@@ -38,24 +38,25 @@ namespace QMatrixClient
             Q_OBJECT
         public:
             Connection(QUrl server, QObject* parent=0);
+            Connection();
             virtual ~Connection();
 
             QHash<QString, Room*> roomMap() const;
-            virtual bool isConnected();
+            Q_INVOKABLE virtual bool isConnected();
 
-            virtual void connectToServer( QString user, QString password );
-            virtual void reconnect();
-            virtual SyncJob* sync(int timeout=-1);
-            virtual void postMessage( Room* room, QString type, QString message );
-            virtual PostReceiptJob* postReceipt( Room* room, Event* event );
-            virtual void joinRoom( QString roomAlias );
-            virtual void leaveRoom( Room* room );
-            virtual void getMembers( Room* room );
-            virtual RoomMessagesJob* getMessages( Room* room, QString from );
+            Q_INVOKABLE virtual void connectToServer( QString user, QString password );
+            Q_INVOKABLE virtual void reconnect();
+            Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
+            Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
+            Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
+            Q_INVOKABLE virtual void joinRoom( QString roomAlias );
+            Q_INVOKABLE virtual void leaveRoom( Room* room );
+            Q_INVOKABLE virtual void getMembers( Room* room );
+            Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
-            virtual User* user(QString userId);
-            virtual User* user();
+            Q_INVOKABLE virtual User* user(QString userId);
+            Q_INVOKABLE virtual User* user();
 
         signals:
             void connected();

@@ -44,6 +44,11 @@ Connection::Connection(QUrl server, QObject* parent)
     d->data = new ConnectionData(server);
 }
 
+Connection::Connection()
+    : Connection(QUrl("https://matrix.org"))
+{
+}
+
 Connection::~Connection()
 {
     delete d;
