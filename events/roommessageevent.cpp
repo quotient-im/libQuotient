@@ -30,16 +30,16 @@ class RoomMessageEvent::Private
         Private() {}
         
         QString userId;
-        QString body;
-        QString msgtype;
+        MessageEventType msgtype;
         QDateTime hsob_ts;
+        MessageEventContent* content;
 };
 
 RoomMessageEvent::RoomMessageEvent()
     : Event(EventType::RoomMessage)
     , d(new Private)
 {
-
+    d->content = 0;
 }
 
 RoomMessageEvent::~RoomMessageEvent()
@@ -52,14 +52,14 @@ QString RoomMessageEvent::userId() const
     return d->userId;
 }
 
-QString RoomMessageEvent::msgtype() const
+MessageEventType RoomMessageEvent::msgtype() const
 {
     return d->msgtype;
 }
 
 QString RoomMessageEvent::body() const
 {
-    return d->body;
+    return d->content->body;
 }
 
 QDateTime RoomMessageEvent::hsob_ts() const
@@ -80,15 +80,99 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
     if( obj.contains("content") )
     {
         QJsonObject content = obj.value("content").toObject();
-        if( content.contains("msgtype") )
+        QString msgtype = content.value("msgtype").toString();
+
+        if( msgtype == "m.text" )
         {
-            e->d->msgtype = content.value("msgtype").toString();
-        } else {
-            qDebug() << "RoomMessageEvent: msgtype not found";
+            e->d->msgtype = MessageEventType::Text;
+            e->d->content = new MessageEventContent();
         }
+        else if( msgtype == "m.emote" )
+        {
+            e->d->msgtype = MessageEventType::Emote;
+            e->d->content = new MessageEventContent();
+        }
+        else if( msgtype == "m.notice" )
+        {
+            e->d->msgtype = MessageEventType::Notice;
+            e->d->content = new MessageEventContent();
+        }
+        else if( msgtype == "m.image" )
+        {
+            e->d->msgtype = MessageEventType::Image;
+            ImageEventContent* c = new ImageEventContent;
+            c->url = QUrl(content.value("url").toString());
+            QJsonObject info = content.value("info").toObject();
+            c->height = info.value("h").toInt();
+            c->width = info.value("w").toInt();
+            c->size = info.value("size").toInt();
+            c->mimetype = info.value("mimetype").toString();
+            e->d->content = c;
+        }
+        else if( msgtype == "m.file" )
+        {
+            e->d->msgtype = MessageEventType::File;
+            FileEventContent* c = new FileEventContent;
+            c->filename = content.value("filename").toString();
+            c->url = QUrl(content.value("url").toString());
+            QJsonObject info = content.value("info").toObject();
+            c->size = info.value("size").toInt();
+            c->mimetype = info.value("mimetype").toString();
+            e->d->content = c;
+        }
+        else if( msgtype == "m.location" )
+        {
+            e->d->msgtype = MessageEventType::Location;
+            LocationEventContent* c = new LocationEventContent;
+            c->geoUri = content.value("geo_uri").toString();
+            c->thumbnailUrl = QUrl(content.value("thumbnail_url").toString());
+            QJsonObject info = content.value("thumbnail_info").toObject();
+            c->thumbnailHeight = info.value("h").toInt();
+            c->thumbnailWidth = info.value("w").toInt();
+            c->thumbnailSize = info.value("size").toInt();
+            c->thumbnailMimetype = info.value("mimetype").toString();
+            e->d->content = c;
+        }
+        else if( msgtype == "m.video" )
+        {
+            e->d->msgtype = MessageEventType::Video;
+            VideoEventContent* c = new VideoEventContent;
+            c->url = QUrl(content.value("url").toString());
+            QJsonObject info = content.value("info").toObject();
+            c->height = info.value("h").toInt();
+            c->width = info.value("w").toInt();
+            c->duration = info.value("duration").toInt();
+            c->size = info.value("size").toInt();
+            c->thumbnailUrl = QUrl(info.value("thumnail_url").toString());
+            QJsonObject thumbnailInfo = content.value("thumbnail_info").toObject();
+            c->thumbnailHeight = thumbnailInfo.value("h").toInt();
+            c->thumbnailWidth = thumbnailInfo.value("w").toInt();
+            c->thumbnailSize = thumbnailInfo.value("size").toInt();
+            c->thumbnailMimetype = thumbnailInfo.value("mimetype").toString();
+            e->d->content = c;
+        }
+        else if( msgtype == "m.audio" )
+        {
+            e->d->msgtype = MessageEventType::Audio;
+            AudioEventContent* c = new AudioEventContent;
+            c->url = QUrl(content.value("url").toString());
+            QJsonObject info = content.value("info").toObject();
+            c->duration = info.value("duration").toInt();
+            c->mimetype = info.value("mimetype").toString();
+            c->size = info.value("size").toInt();
+            e->d->content = c;
+        }
+        else
+        {
+            qDebug() << "RoomMessageEvent: unknown msgtype: " << msgtype;
+            qDebug() << obj;
+            e->d->msgtype = MessageEventType::Unkown;
+            e->d->content = new MessageEventContent;
+        }
+
         if( content.contains("body") )
         {
-            e->d->body = content.value("body").toString();
+            e->d->content->body = content.value("body").toString();
         } else {
             qDebug() << "RoomMessageEvent: body not found";
         }

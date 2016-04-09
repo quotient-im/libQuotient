@@ -19,10 +19,25 @@
 #ifndef QMATRIXCLIENT_ROOMMESSAGEEVENT_H
 #define QMATRIXCLIENT_ROOMMESSAGEEVENT_H
 
+#include <QtCore/QUrl>
+
 #include "event.h"
 
 namespace QMatrixClient
 {
+    enum class MessageEventType
+    {
+        Text, Emote, Notice, Image, File, Location, Video, Audio, Unkown
+    };
+
+    class MessageEventContent
+    {
+        public:
+            virtual ~MessageEventContent() {}
+
+            QString body;
+    };
+
     class RoomMessageEvent: public Event
     {
         public:
@@ -30,9 +45,11 @@ namespace QMatrixClient
             virtual ~RoomMessageEvent();
             
             QString userId() const;
-            QString msgtype() const;
+            MessageEventType msgtype() const;
             QString body() const;
             QDateTime hsob_ts() const;
+
+            MessageEventContent* content() const;
         
             static RoomMessageEvent* fromJson( const QJsonObject& obj );
             
@@ -40,6 +57,62 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+
+    class ImageEventContent: public MessageEventContent
+    {
+        public:
+            QUrl url;
+            int height;
+            int width;
+            int size;
+            QString mimetype;
+    };
+
+    class FileEventContent: public MessageEventContent
+    {
+        public:
+            QString filename;
+            QString mimetype;
+            int size;
+            QUrl url;
+    };
+
+    class LocationEventContent: public MessageEventContent
+    {
+        public:
+            QString geoUri;
+            int thumbnailHeight;
+            int thumbnailWidth;
+            QString thumbnailMimetype;
+            int thumbnailSize;
+            QUrl thumbnailUrl;
+    };
+
+    class VideoEventContent: public MessageEventContent
+    {
+        public:
+            QUrl url;
+            int duration;
+            int width;
+            int height;
+            int size;
+            QString mimetype;
+            int thumbnailWidth;
+            int thumbnailHeight;
+            int thumbnailSize;
+            QString thumbnailMimetype;
+            QUrl thumbnailUrl;
+    };
+
+    class AudioEventContent: public MessageEventContent
+    {
+        public:
+            QUrl url;
+            int size;
+            int duration;
+            QString mimetype;
+    };
+
 }
 
 #endif // QMATRIXCLIENT_ROOMMESSAGEEVENT_H
