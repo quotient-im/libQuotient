@@ -65,7 +65,7 @@ class Room::Private: public QObject
 };
 
 Room::Room(Connection* connection, QString id)
-    : d(new Private(this))
+    : QObject(connection), d(new Private(this))
 {
     d->id = id;
     d->connection = connection;
@@ -78,6 +78,7 @@ Room::Room(Connection* connection, QString id)
 
 Room::~Room()
 {
+    qDebug() << "deconstructing room " << this;
     delete d;
 }
 
