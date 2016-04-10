@@ -59,6 +59,7 @@ class Room::Private: public QObject
         int notificationCount;
         QList<User*> users;
         QList<User*> usersTyping;
+        QList<User*> membersLeft;
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
         bool gettingNewContent;
@@ -192,6 +193,11 @@ if( d->highlightCount == 0 )
 QList< User* > Room::usersTyping() const
 {
     return d->usersTyping;
+}
+
+QList< User* > Room::membersLeft() const
+{
+    return d->membersLeft;
 }
 
 QList< User* > Room::users() const
@@ -336,6 +342,8 @@ void Room::processStateEvent(Event* event)
                  and d->users.contains(u) )
         {
             d->users.removeAll(u);
+            if ( !d->membersLeft.contains(u) )
+                d->membersLeft.append(u);
             emit userRemoved(u);
         }
     }

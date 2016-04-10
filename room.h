@@ -49,6 +49,7 @@ namespace QMatrixClient
             Q_INVOKABLE QString topic() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
+            QList<User*> membersLeft() const;
 
             Q_INVOKABLE QList<User*> users() const;
 
