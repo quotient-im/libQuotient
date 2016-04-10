@@ -56,7 +56,7 @@ namespace QMatrixClient
             void requestAvatar();
 
         signals:
-            void nameChanged();
+            void nameChanged(User*, QString);
             void avatarChanged(User* user);
 
         private:

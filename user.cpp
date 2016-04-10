@@ -114,8 +114,9 @@ void User::processEvent(Event* event)
         RoomMemberEvent* e = static_cast<RoomMemberEvent*>(event);
         if( d->name != e->displayName() )
         {
+            const auto oldName = d->name;
             d->name = e->displayName();
-            emit nameChanged();
+            emit nameChanged(this, oldName);
         }
         if( d->avatarUrl != e->avatarUrl() )
         {
