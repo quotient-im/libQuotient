@@ -64,7 +64,6 @@ QStringList RoomAliasesEvent::aliases() const
 
 RoomAliasesEvent* RoomAliasesEvent::fromJson(const QJsonObject& obj)
 {
-    qDebug() << "RoomAliasesEvent::fromJson";
     RoomAliasesEvent* e = new RoomAliasesEvent();
     e->parseJson(obj);
     const QJsonObject contents = obj.value("content").toObject();
@@ -73,6 +72,6 @@ RoomAliasesEvent* RoomAliasesEvent::fromJson(const QJsonObject& obj)
     {
         e->d->aliases << alias.toString();
     }
-    qDebug() << e->d->aliases;
+    qDebug() << "RoomAliasesEvent:" << e->d->aliases;
     return e;
 }
