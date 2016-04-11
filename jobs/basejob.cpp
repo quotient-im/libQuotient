@@ -81,7 +81,7 @@ void BaseJob::start()
     QNetworkRequest req = QNetworkRequest(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-    req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);\
+    req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
     QJsonDocument data = QJsonDocument(this->data());
@@ -124,7 +124,7 @@ void BaseJob::gotReply()
 {
     if( d->reply->error() != QNetworkReply::NoError )
     {
-        qDebug() << "NetworkError!!!";
+        qDebug() << "NetworkError!!!" << d->reply->error();
         fail( NetworkError, d->reply->errorString() );
         return;
     }
