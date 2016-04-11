@@ -67,6 +67,11 @@ QDateTime RoomMessageEvent::hsob_ts() const
     return d->hsob_ts;
 }
 
+MessageEventContent* RoomMessageEvent::content() const
+{
+        return d->content;
+}
+
 RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
 {
     RoomMessageEvent* e = new RoomMessageEvent();
