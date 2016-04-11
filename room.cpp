@@ -71,14 +71,14 @@ Room::Room(Connection* connection, QString id)
     d->connection = connection;
     d->joinState = JoinState::Join;
     d->gettingNewContent = false;
-    qDebug() << "New Room: " << id;
+    qDebug() << "New Room:" << id;
 
     //connection->getMembers(this); // I don't think we need this anymore in r0.0.1
 }
 
 Room::~Room()
 {
-    qDebug() << "deconstructing room " << this;
+    qDebug() << "deconstructing room" << this;
     delete d;
 }
 
@@ -302,7 +302,7 @@ void Room::processStateEvent(Event* event)
         if (RoomNameEvent* nameEvent = static_cast<RoomNameEvent*>(event))
         {
             d->name = nameEvent->name();
-            qDebug() << "room name: " << d->name;
+            qDebug() << "room name:" << d->name;
             emit namesChanged(this);
         } else
         {
@@ -314,14 +314,14 @@ void Room::processStateEvent(Event* event)
     {
         RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
         d->aliases = aliasesEvent->aliases();
-        qDebug() << "room aliases: " << d->aliases;
+        qDebug() << "room aliases:" << d->aliases;
         emit namesChanged(this);
     }
     if( event->type() == EventType::RoomCanonicalAlias )
     {
         RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
         d->canonicalAlias = aliasEvent->alias();
-        qDebug() << "room canonical alias: " << d->canonicalAlias;
+        qDebug() << "room canonical alias:" << d->canonicalAlias;
         emit namesChanged(this);
     }
     if( event->type() == EventType::RoomTopic )
