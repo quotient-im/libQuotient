@@ -72,24 +72,34 @@ Base* RoomMessageEvent::content() const
     return d->content;
 }
 
-template <class ContentT>
-Base* make(const QJsonObject& json)
+using ContentPair = std::pair<MessageEventType, MessageEventContent::Base*>;
+
+template <MessageEventType EnumType, typename ContentT>
+ContentPair make(const QJsonObject& json)
 {
-    return new ContentT(json);
+    return { EnumType, new ContentT(json) };
 }
 
-Base* makeVideoContent(const QJsonObject& json)
+ContentPair makeVideo(const QJsonObject& json)
 {
     auto c = new VideoContent(json);
     // Only for m.video, the spec puts a thumbnail inside "info" JSON key. Once
     // this is fixed, VideoContent creation will switch to make<>().
     const QJsonObject infoJson = json["info"].toObject();
     if (infoJson.contains("thumbnail_url"))
+    {
         c->thumbnail = ImageInfo(infoJson["thumbnail_url"].toString(),
-                                 infoJson["thumbnail_info"].toObject());
-
-    return c;
+                                         infoJson["thumbnail_info"].toObject());
+    }
+    return { MessageEventType::Video, c };
 };
+
+ContentPair makeUnknown(const QJsonObject& json)
+{
+    qDebug() << "RoomMessageEvent: couldn't resolve msgtype, JSON follows:";
+    qDebug() << json;
+    return { MessageEventType::Unknown, new Base };
+}
 
 RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
 {
@@ -108,41 +118,19 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         {
             e->d->plainBody = content["body"].toString();
 
-            struct Factory
-            {
-                QString jsonTag;
-                MessageEventType enumTag;
-                Base*(*make)(const QJsonObject& json);
-            };
-
-            const Factory factories[] {
-                { "m.text", MessageEventType::Text, make<TextContent> },
-                { "m.emote", MessageEventType::Emote, make<TextContent> },
-                { "m.notice", MessageEventType::Notice, make<TextContent> },
-                { "m.image", MessageEventType::Image, make<ImageContent> },
-                { "m.file", MessageEventType::File, make<FileContent> },
-                { "m.location", MessageEventType::Location, make<LocationContent> },
-                { "m.video", MessageEventType::Video, makeVideoContent },
-                { "m.audio", MessageEventType::Audio, make<AudioContent> },
-                // Insert new message types before this line
-            };
-
-            QString msgtype = content.value("msgtype").toString();
-            for (auto f: factories)
-            {
-                if (msgtype == f.jsonTag)
-                {
-                    e->d->msgtype = f.enumTag;
-                    e->d->content = f.make(content);
-                    break;
-                }
-            }
-            if (e->d->msgtype == MessageEventType::Unknown)
-            {
-                qDebug() << "RoomMessageEvent: unknown msgtype: " << msgtype;
-                qDebug() << obj;
-                e->d->content = new Base;
-            }
+            auto delegate = lookup(content.value("msgtype").toString(),
+                    "m.text", make<MessageEventType::Text, TextContent>,
+                    "m.emote", make<MessageEventType::Emote, TextContent>,
+                    "m.notice", make<MessageEventType::Notice, TextContent>,
+                    "m.image", make<MessageEventType::Image, ImageContent>,
+                    "m.file", make<MessageEventType::File, FileContent>,
+                    "m.location", make<MessageEventType::Location, LocationContent>,
+                    "m.video", makeVideo,
+                    "m.audio", make<MessageEventType::Audio, AudioContent>,
+                    // Insert new message types before this line
+                    makeUnknown
+                );
+            std::tie(e->d->msgtype, e->d->content) = delegate(content);
         }
         else
         {

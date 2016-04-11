@@ -90,27 +90,19 @@ Event* make(const QJsonObject& obj)
 
 Event* Event::fromJson(const QJsonObject& obj)
 {
-    struct Factory {
-        QString type;
-        Event* (*make)(const QJsonObject& obj);
-    };
-    const Factory evTypes[] {
-        { "m.room.message", make<RoomMessageEvent> },
-        { "m.room.name", make<RoomNameEvent> },
-        { "m.room.aliases", make<RoomAliasesEvent> },
-        { "m.room.canonical_alias", make<RoomCanonicalAliasEvent> },
-        { "m.room.member", make<RoomMemberEvent> },
-        { "m.room.topic", make<RoomTopicEvent> },
-        { "m.typing", make<TypingEvent> },
-        { "m.receipt", make<ReceiptEvent> },
-        // Insert new types before this line
-    };
-    for (auto e: evTypes)
-    {
-        if (obj["type"].toString() == e.type)
-            return e.make(obj);
-    }
-    return UnknownEvent::fromJson(obj);
+    auto delegate = lookup(obj.value("type").toString(),
+            "m.room.message", make<RoomMessageEvent>,
+            "m.room.name", make<RoomNameEvent>,
+            "m.room.aliases", make<RoomAliasesEvent>,
+            "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
+            "m.room.member", make<RoomMemberEvent>,
+            "m.room.topic", make<RoomTopicEvent>,
+            "m.typing", make<TypingEvent>,
+            "m.receipt", make<ReceiptEvent>,
+            /* Insert new event types BEFORE this line */
+            make<UnknownEvent>
+        );
+    return delegate(obj);
 }
 
 bool Event::parseJson(const QJsonObject& obj)
