@@ -284,15 +284,7 @@ Connection* Room::connection()
 
 void Room::processMessageEvent(Event* event)
 {
-    for( int i=0; i<d->messageEvents.count(); i++ )
-    {
-        if( event->timestamp() < d->messageEvents.at(i)->timestamp() )
-        {
-            d->messageEvents.insert(i, event);
-            return;
-        }
-    }
-    d->messageEvents.append(event);
+    d->messageEvents.insert(findInsertionPos(d->messageEvents, event), event);
 }
 
 void Room::processStateEvent(Event* event)

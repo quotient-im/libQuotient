@@ -100,6 +100,7 @@ if ( CMAKE_VERSION VERSION_LESS "3.1" )
 else ( CMAKE_VERSION VERSION_LESS "3.1" )
     target_compile_features(qmatrixclient PRIVATE cxx_range_for)
     target_compile_features(qmatrixclient PRIVATE cxx_override)
+    target_compile_features(qmatrixclient PRIVATE cxx_lambdas)
 endif ( CMAKE_VERSION VERSION_LESS "3.1" )
 
 target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
