@@ -334,7 +334,6 @@ void Room::processStateEvent(Event* event)
     {
         RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
         User* u = d->connection->user(memberEvent->userId());
-        if( !u ) qDebug() << "addState: invalid user!" << u << memberEvent->userId();
         u->processEvent(event);
         if( memberEvent->membership() == MembershipType::Join and !d->users.contains(u) )
         {
