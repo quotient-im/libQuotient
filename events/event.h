@@ -19,6 +19,8 @@
 #ifndef QMATRIXCLIENT_EVENT_H
 #define QMATRIXCLIENT_EVENT_H
 
+#include <algorithm>
+
 #include <QtCore/QString>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
@@ -53,6 +55,22 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+
+    /**
+     * Finds a place in the timeline where a new event/message could be inserted.
+     * @return an iterator to an item with the earliest timestamp after
+     * the one of 'item'; or timeline.end(), if all events are earlier
+     */
+    template <class ItemT, template <typename> class ContT>
+    typename ContT<ItemT *>::iterator
+    findInsertionPos(ContT<ItemT *> & timeline, const ItemT *item)
+    {
+        return std::lower_bound (timeline.begin(), timeline.end(), item,
+            [](const ItemT * a, const ItemT * b) {
+                return a->timestamp() < b->timestamp();
+            }
+        );
+    }
 }
 
 #endif // QMATRIXCLIENT_EVENT_H
