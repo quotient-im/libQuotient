@@ -75,43 +75,45 @@ void ConnectionPrivate::resolveServer(QString domain)
 
 void ConnectionPrivate::processState(State* state)
 {
-    QString roomId = state->event()->roomId();
     if( state->event()->type() == QMatrixClient::EventType::RoomMember )
     {
         QMatrixClient::RoomMemberEvent* e = static_cast<QMatrixClient::RoomMemberEvent*>(state->event());
         User* user = q->user(e->userId());
         user->processEvent(e);
     }
-    if( !roomId.isEmpty() )
-    {
-        Room* room;
-        if( !roomMap.contains(roomId) )
-        {
-            room = q->createRoom(roomId);
-            roomMap.insert( roomId, room );
-            emit q->newRoom(room);
-        } else {
-            room = roomMap.value(roomId);
-        }
-        room->addInitialState(state);
-    }
+
+    if ( Room* r = provideRoom(state->event()->roomId()) )
+        r->addInitialState(state);
 }
 
 void ConnectionPrivate::processRooms(const QList<SyncRoomData>& data)
 {
     for( const SyncRoomData& roomData: data )
     {
-        Room* room;
-        if( !roomMap.contains(roomData.roomId) )
-        {
-            room = q->createRoom(roomData.roomId);
-            roomMap.insert( roomData.roomId, room );
-            emit q->newRoom(room);
-        } else {
-            room = roomMap.value(roomData.roomId);
-        }
-        room->updateData(roomData);
+        if ( Room* r = provideRoom(roomData.roomId) )
+            r->updateData(roomData);
     }
+}
+
+Room* ConnectionPrivate::provideRoom(QString id)
+{
+    if (id.isEmpty())
+    {
+        qDebug() << "ConnectionPrivate::provideRoom() with empty id, doing nothing";
+        return nullptr;
+    }
+
+    if (roomMap.contains(id))
+        return roomMap.value(id);
+
+    // Not yet in the map, create a new one.
+    Room* room = q->createRoom(id);
+    if (!room)
+        qCritical() << "Failed to create a room!!!" << id;
+
+    roomMap.insert( id, room );
+    emit q->newRoom(room);
+    return room;
 }
 
 void ConnectionPrivate::connectDone(KJob* job)
@@ -166,17 +168,8 @@ void ConnectionPrivate::gotJoinRoom(KJob* job)
     JoinRoomJob* joinJob = static_cast<JoinRoomJob*>(job);
     if( !joinJob->error() )
     {
-        QString roomId = joinJob->roomId();
-        Room* room;
-        if( roomMap.contains(roomId) )
-        {
-            room = roomMap.value(roomId);
-        } else {
-            room = q->createRoom(roomId);
-            roomMap.insert( roomId, room );
-            emit q->newRoom(room);
-        }
-        emit q->joinedRoom(room);
+        if ( Room* r = provideRoom(joinJob->roomId()) )
+            emit q->joinedRoom(r);
     }
     else
     {
