@@ -20,6 +20,7 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QJsonArray>
+#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QDebug>
 
 #include "connection.h"
@@ -264,6 +265,34 @@ void Room::Private::removeMember(User* u)
 void Room::memberRenamed(User* user, QString oldName)
 {
     d->renameMember(user, oldName);
+}
+
+QString Room::roomMembername(User *u) const
+{
+    // See the CS spec, section 11.2.2.3
+
+    QString username = u->name();
+    if (username.isEmpty())
+        return u->id();
+
+    // Get the list of users with the same display name. Most likely,
+    // there'll be one, but there's a chance there are more.
+    auto namesakes = d->membersMap.values(username);
+    if (namesakes.size() == 1)
+        return username;
+
+    // We expect a user to be a member of the room - but technically it is
+    // possible to invoke roomMemberName() even for non-members. In such case
+    // we return the name _with_ id, to stay on a safe side.
+    if ( !namesakes.contains(u) )
+    {
+        qWarning()
+            << "Room::roomMemberName(): user" << u->id()
+            << "is not a member of the room" << id();
+    }
+
+    // In case of more than one namesake, disambiguate with user id.
+    return username % " <" % u->id() % ">";
 }
 
 void Room::addMessage(Event* event)

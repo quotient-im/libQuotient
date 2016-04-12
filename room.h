@@ -53,6 +53,12 @@ namespace QMatrixClient
 
             Q_INVOKABLE QList<User*> users() const;
 
+            /**
+             * @brief Produces a disambiguated name for a given user in
+             * the context of the room.
+             */
+            Q_INVOKABLE QString roomMembername(User* u) const;
+
             Q_INVOKABLE void addMessage( Event* event );
             Q_INVOKABLE void addInitialState( State* state );
             Q_INVOKABLE void updateData( const SyncRoomData& data );
