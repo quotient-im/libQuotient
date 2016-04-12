@@ -73,9 +73,9 @@ class Room::Private: public QObject
         // operation.
         //void inviteUser(User* u); // We might get it at some point in time.
         void addMember(User* u);
-        bool hasMember(User* u);
+        bool hasMember(User* u) const;
         // You can't identify a single user by displayname, only by id
-        User* member(QString id);
+        User* member(QString id) const;
         void renameMember(User* u, QString oldName);
         void removeMember(User* u);
 };
@@ -229,12 +229,12 @@ void Room::Private::addMember(User *u)
     }
 }
 
-bool Room::Private::hasMember(User* u)
+bool Room::Private::hasMember(User* u) const
 {
     return membersMap.values(u->name()).contains(u);
 }
 
-User* Room::Private::member(QString id)
+User* Room::Private::member(QString id) const
 {
     User* u = connection->user(id);
     return hasMember(u) ? u : nullptr;
