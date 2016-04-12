@@ -54,6 +54,11 @@ Connection::~Connection()
     delete d;
 }
 
+void Connection::resolveServer(QString domain)
+{
+    d->resolveServer( domain );
+}
+
 void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);

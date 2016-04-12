@@ -97,6 +97,7 @@ void BaseJob::start()
             d->reply = d->connection->nam()->put(req, data.toJson());
             break;
     }
+    connect( d->reply, &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply, &QNetworkReply::finished, this, &BaseJob::gotReply );
     QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
 //     connect( d->reply, static_cast<void(QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
@@ -124,7 +125,7 @@ void BaseJob::gotReply()
 {
     if( d->reply->error() != QNetworkReply::NoError )
     {
-        qDebug() << "NetworkError!!!";
+        qDebug() << "NetworkError:" << d->reply->errorString();
         fail( NetworkError, d->reply->errorString() );
         return;
     }
@@ -143,4 +144,12 @@ void BaseJob::timeout()
     qDebug() << "Timeout!";
     if( d->reply->isRunning() )
         d->reply->abort();
+}
+
+void BaseJob::sslErrors(const QList<QSslError>& errors)
+{
+    foreach (const QSslError &error, errors) {
+        qWarning() << "SSL ERROR" << error.errorString();
+    }
+    d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }

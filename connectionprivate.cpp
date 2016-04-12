@@ -31,6 +31,7 @@
 #include "events/roommemberevent.h"
 
 #include <QtCore/QDebug>
+#include <QtNetwork/QDnsLookup>
 
 using namespace QMatrixClient;
 
@@ -44,6 +45,32 @@ ConnectionPrivate::ConnectionPrivate(Connection* parent)
 ConnectionPrivate::~ConnectionPrivate()
 {
     delete data;
+}
+
+void ConnectionPrivate::resolveServer(QString domain)
+{
+    // Find the Matrix server for the given domain.
+    QDnsLookup* dns = new QDnsLookup();
+    dns->setType(QDnsLookup::SRV);
+    dns->setName("_matrix._tcp." + domain);
+
+    connect(dns, &QDnsLookup::finished, [this,dns]() {
+        // Check the lookup succeeded.
+        if (dns->error() != QDnsLookup::NoError ||
+                dns->serviceRecords().isEmpty()) {
+            emit q->resolveError("DNS lookup failed");
+            dns->deleteLater();
+            return;
+        }
+
+        // Handle the results.
+        QDnsServiceRecord record = dns->serviceRecords().first();
+        data->setHost(record.target());
+        data->setPort(record.port());
+        emit q->resolved();
+        dns->deleteLater();
+    });
+    dns->lookup();
 }
 
 void ConnectionPrivate::processState(State* state)
