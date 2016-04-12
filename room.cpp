@@ -18,6 +18,7 @@
 
 #include "room.h"
 
+#include <QtCore/QHash>
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 
@@ -40,6 +41,9 @@ using namespace QMatrixClient;
 class Room::Private: public QObject
 {
     public:
+        /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
+        typedef QMultiHash<QString, User*> members_map_t;
+        
         Private(Room* parent): q(parent) {}
 
         Room* q;
@@ -57,12 +61,23 @@ class Room::Private: public QObject
         JoinState joinState;
         int highlightCount;
         int notificationCount;
-        QList<User*> users;
+        members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
         bool gettingNewContent;
+        
+        // Convenience methods to work with the membersMap and usersLeft. addMember()
+        // and removeMember() emit respective Room:: signals after a succesful
+        // operation.
+        //void inviteUser(User* u); // We might get it at some point in time.
+        void addMember(User* u);
+        bool hasMember(User* u);
+        // You can't identify a single user by displayname, only by id
+        User* member(QString id);
+        void renameMember(User* u, QString oldName);
+        void removeMember(User* u);
 };
 
 Room::Room(Connection* connection, QString id)
@@ -202,7 +217,53 @@ QList< User* > Room::membersLeft() const
 
 QList< User* > Room::users() const
 {
-    return d->users;
+    return d->membersMap.values();
+}
+
+void Room::Private::addMember(User *u)
+{
+    if (!membersMap.values(u->name()).contains(u))
+    {
+        membersMap.insert(u->name(), u);
+        emit q->userAdded(u);
+    }
+}
+
+bool Room::Private::hasMember(User* u)
+{
+    return membersMap.values(u->name()).contains(u);
+}
+
+User* Room::Private::member(QString id)
+{
+    User* u = connection->user(id);
+    return hasMember(u) ? u : nullptr;
+}
+
+void Room::Private::renameMember(User* u, QString oldName)
+{
+    // We can't use hasUser because we need to search by oldName
+    if (membersMap.values(oldName).contains(u))
+    {
+        membersMap.remove(oldName, u);
+        membersMap.insert(u->name(), u);
+    }
+}
+
+void Room::Private::removeMember(User* u)
+{
+    if (hasMember(u))
+    {
+        if ( !membersLeft.contains(u) )
+            membersLeft.append(u);
+        membersMap.remove(u->name(), u);
+        emit q->userRemoved(u);
+    }
+}
+
+void Room::memberRenamed(User* user, QString oldName)
+{
+    d->renameMember(user, oldName);
 }
 
 void Room::addMessage(Event* event)
@@ -333,18 +394,13 @@ void Room::processStateEvent(Event* event)
         RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
         User* u = d->connection->user(memberEvent->userId());
         u->processEvent(event);
-        if( memberEvent->membership() == MembershipType::Join and !d->users.contains(u) )
+        if( memberEvent->membership() == MembershipType::Join )
         {
-            d->users.append(u);
-            emit userAdded(u);
+            d->addMember(u);
         }
-        else if( memberEvent->membership() == MembershipType::Leave
-                 and d->users.contains(u) )
+        else if( memberEvent->membership() == MembershipType::Leave )
         {
-            d->users.removeAll(u);
-            if ( !d->membersLeft.contains(u) )
-                d->membersLeft.append(u);
-            emit userRemoved(u);
+            d->removeMember(u);
         }
     }
 }
