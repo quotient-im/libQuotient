@@ -71,6 +71,7 @@ namespace QMatrixClient
             void joinedRoom(Room* room);
 
             void userRenamed(User*, QString oldName);
+            void avatarChanged(User*);
 
             void loginError(QString error);
             void connectionError(QString error);

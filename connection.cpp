@@ -147,6 +147,8 @@ User* Connection::user(QString userId)
         return d->userMap.value(userId);
     User* user = createUser(userId);
     d->userMap.insert(userId, user);
+    connect( user, &User::nameChanged, this, &Connection::userRenamed);
+    connect( user, &User::avatarChanged, this, &Connection::avatarChanged);
     return user;
 }
 
