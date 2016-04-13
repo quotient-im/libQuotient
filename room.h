@@ -78,7 +78,13 @@ namespace QMatrixClient
 
         signals:
             void newMessage(Event* event);
+            /**
+             * Triggered when the room name, canonical alias or other aliases
+             * change. Not triggered when displayname changes.
+             */
             void namesChanged(Room* room);
+            /** Triggered only for changes in the room displayname. */
+            void displaynameChanged(Room* room);
             void topicChanged();
             void userAdded(User* user);
             void userRemoved(User* user);
