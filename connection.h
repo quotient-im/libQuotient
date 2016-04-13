@@ -70,6 +70,8 @@ namespace QMatrixClient
             void newRoom(Room* room);
             void joinedRoom(Room* room);
 
+            void userRenamed(User*, QString oldName);
+
             void loginError(QString error);
             void connectionError(QString error);
             void resolveError(QString error);

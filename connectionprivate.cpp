@@ -112,6 +112,7 @@ Room* ConnectionPrivate::provideRoom(QString id)
         qCritical() << "Failed to create a room!!!" << id;
 
     roomMap.insert( id, room );
+    connect(q, &Connection::userRenamed, room, &Room::memberRenamed);
     emit q->newRoom(room);
     return room;
 }
