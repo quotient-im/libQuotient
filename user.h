@@ -36,17 +36,17 @@ namespace QMatrixClient
             /**
              * Returns the id of the user
              */
-            QString id() const;
+            Q_INVOKABLE QString id() const;
 
             /**
              * Returns the name chosen by the user
              */
-            QString name() const;
+            Q_INVOKABLE QString name() const;
 
             /**
              * Returns the name that should be used to display the user.
              */
-            QString displayname() const;
+            Q_INVOKABLE QString displayname() const;
 
             QPixmap avatar(int requestedWidth, int requestedHeight);
 

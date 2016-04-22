@@ -68,6 +68,14 @@ void Connection::connectToServer(QString user, QString password)
     d->password = password;
 }
 
+void Connection::connectWithToken(QString userId, QString token)
+{
+    d->isConnected = true;
+    d->userId = userId;
+    d->data->setToken(token);
+    emit connected();
+}
+
 void Connection::reconnect()
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, d->username, d->password );
@@ -147,6 +155,16 @@ User *Connection::user()
     if( d->userId.isEmpty() )
         return 0;
     return user(d->userId);
+}
+
+QString Connection::userId()
+{
+    return d->userId;
+}
+
+QString Connection::token()
+{
+    return d->data->token();
 }
 
 QHash< QString, Room* > Connection::roomMap() const
