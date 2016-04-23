@@ -40,30 +40,30 @@ namespace QMatrixClient
             Room(Connection* connection, QString id);
             virtual ~Room();
 
-            QString id() const;
-            QList<Event*> messageEvents() const;
-            QString name() const;
-            QStringList aliases() const;
-            QString canonicalAlias() const;
-            QString displayName() const;
-            QString topic() const;
-            JoinState joinState() const;
-            QList<User*> usersTyping() const;
+            Q_INVOKABLE QString id() const;
+            Q_INVOKABLE QList<Event*> messageEvents() const;
+            Q_INVOKABLE QString name() const;
+            Q_INVOKABLE QStringList aliases() const;
+            Q_INVOKABLE QString canonicalAlias() const;
+            Q_INVOKABLE QString displayName() const;
+            Q_INVOKABLE QString topic() const;
+            Q_INVOKABLE JoinState joinState() const;
+            Q_INVOKABLE QList<User*> usersTyping() const;
 
-            QList<User*> users() const;
+            Q_INVOKABLE QList<User*> users() const;
 
-            void addMessage( Event* event );
-            void addInitialState( State* state );
-            void updateData( const SyncRoomData& data );
-            void setJoinState( JoinState state );
+            Q_INVOKABLE void addMessage( Event* event );
+            Q_INVOKABLE void addInitialState( State* state );
+            Q_INVOKABLE void updateData( const SyncRoomData& data );
+            Q_INVOKABLE void setJoinState( JoinState state );
 
-            void markMessageAsRead( Event* event );
-            QString lastReadEvent(User* user);
+            Q_INVOKABLE void markMessageAsRead( Event* event );
+            Q_INVOKABLE QString lastReadEvent(User* user);
 
-            int notificationCount() const;
-            void resetNotificationCount();
-            int highlightCount() const;
-            void resetHighlightCount();
+            Q_INVOKABLE int notificationCount() const;
+            Q_INVOKABLE void resetNotificationCount();
+            Q_INVOKABLE int highlightCount() const;
+            Q_INVOKABLE void resetHighlightCount();
 
         public slots:
             void getPreviousContent();
