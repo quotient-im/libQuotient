@@ -63,6 +63,7 @@ namespace QMatrixClient
         protected slots:
             virtual void gotReply();
             void timeout();
+            void sslErrors(const QList<QSslError>& errors);
 
             //void networkError(QNetworkReply::NetworkError code);
 

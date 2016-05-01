@@ -54,6 +54,11 @@ Connection::~Connection()
     delete d;
 }
 
+void Connection::resolveServer(QString domain)
+{
+    d->resolveServer( domain );
+}
+
 void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
@@ -61,6 +66,14 @@ void Connection::connectToServer(QString user, QString password)
     loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
+}
+
+void Connection::connectWithToken(QString userId, QString token)
+{
+    d->isConnected = true;
+    d->userId = userId;
+    d->data->setToken(token);
+    emit connected();
 }
 
 void Connection::reconnect()
@@ -142,6 +155,16 @@ User *Connection::user()
     if( d->userId.isEmpty() )
         return 0;
     return user(d->userId);
+}
+
+QString Connection::userId()
+{
+    return d->userId;
+}
+
+QString Connection::token()
+{
+    return d->data->token();
 }
 
 QHash< QString, Room* > Connection::roomMap() const

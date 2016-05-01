@@ -43,6 +43,8 @@ namespace QMatrixClient
             ConnectionPrivate(Connection* parent);
             ~ConnectionPrivate();
 
+            void resolveServer( QString domain );
+
             void processState( State* state );
             void processRooms( const QList<SyncRoomData>& data );
 

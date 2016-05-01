@@ -44,7 +44,9 @@ namespace QMatrixClient
             QHash<QString, Room*> roomMap() const;
             Q_INVOKABLE virtual bool isConnected();
 
+            Q_INVOKABLE virtual void resolveServer( QString domain );
             Q_INVOKABLE virtual void connectToServer( QString user, QString password );
+            Q_INVOKABLE virtual void connectWithToken( QString userId, QString token );
             Q_INVOKABLE virtual void reconnect();
             Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
@@ -57,16 +59,20 @@ namespace QMatrixClient
 
             Q_INVOKABLE virtual User* user(QString userId);
             Q_INVOKABLE virtual User* user();
+            Q_INVOKABLE virtual QString userId();
+            Q_INVOKABLE virtual QString token();
 
         signals:
             void connected();
             void reconnected();
+            void resolved();
             void syncDone();
             void newRoom(Room* room);
             void joinedRoom(Room* room);
 
             void loginError(QString error);
             void connectionError(QString error);
+            void resolveError(QString error);
             //void jobError(BaseJob* job);
             
         protected:

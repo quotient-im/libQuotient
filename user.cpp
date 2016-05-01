@@ -50,7 +50,7 @@ class User::Private: public QObject
 };
 
 User::User(QString userId, Connection* connection)
-    : d(new Private)
+    : QObject(connection), d(new Private)
 {
     d->q = this;
     d->connection = connection;
