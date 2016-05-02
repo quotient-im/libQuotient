@@ -87,6 +87,7 @@ class Room::Private: public QObject
         void removeMember(User* u);
 
     private:
+        QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 };
 
@@ -492,52 +493,48 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
     return QString();
 }
 
+QString Room::Private::calculateDisplayname() const
+{
+    // CS spec, section 11.2.2.5 Calculating the display name for a room
+    // Numbers below refer to respective parts in the spec.
+
+    // 1. Name (from m.room.name)
+    if (!name.isEmpty()) {
+        // The below two lines extend the spec. They take care of the case
+        // when there are two rooms with the same name.
+        // The format is unwittingly borrowed from the email address format.
+        if (!canonicalAlias.isEmpty())
+            return name % " <" % canonicalAlias % ">";
+
+        return name;
+    }
+
+    // 2. Canonical alias
+    if (!canonicalAlias.isEmpty())
+        return canonicalAlias;
+
+    // 3. Room members
+    QString topMemberNames = roomNameFromMemberNames(membersMap.values());
+    if (!topMemberNames.isEmpty())
+        return topMemberNames;
+
+    // 4. Users that previously left the room
+    topMemberNames = roomNameFromMemberNames(membersLeft);
+    if (!topMemberNames.isEmpty())
+        return tr("Empty room (was: %1)").arg(topMemberNames);
+
+    // 5. Fail miserably
+    return tr("Empty room (%1)").arg(id);
+
+    // Using m.room.aliases is explicitly discouraged by the spec
+    //if (!aliases.empty() && !aliases.at(0).isEmpty())
+    //    displayname = aliases.at(0);
+}
+
 void Room::Private::updateDisplayname()
 {
     const QString old_name = displayname;
-
-    // CS spec, section 11.2.2.5 Calculating the display name for a room
-    // Numbers and i's below refer to respective parts in the spec.
-    do {
-        // it's while (false) down below - we'll break out of the sequence once
-        // the displayname is ready inside 'if' statements
-
-        // 1. Name (from m.room.name)
-        if (!name.isEmpty()) {
-            displayname = name;
-            // The below is a spec extension. This takes care of the case
-            // when there are two rooms with the same name.
-            // The format is unwittingly borrowed from the email address format.
-            if (!canonicalAlias.isEmpty())
-                displayname += " <" % canonicalAlias % ">";
-            break;
-        }
-
-        // 2. Canonical alias
-        if (!canonicalAlias.isEmpty()) {
-            displayname = canonicalAlias;
-            break;
-        }
-
-        // 3. Room members
-        displayname = roomNameFromMemberNames(membersMap.values());
-        if (!displayname.isEmpty())
-            break;
-
-        // 4. Users that previously left the room
-        displayname = tr("Empty room (was: %1)")
-            .arg(roomNameFromMemberNames(membersLeft));
-        if (!displayname.isEmpty())
-            break;
-
-        // 5. Fail miserably
-        displayname = tr("Empty room (%1)").arg(id);
-
-        // Using m.room.aliases is explicitly discouraged by the spec
-        //if (!aliases.empty() && !aliases.at(0).isEmpty())
-        //    displayname = aliases.at(0);
-    } while (false);
-
+    displayname = calculateDisplayname();
     if (old_name != displayname)
         emit q->displaynameChanged(q);
 }
