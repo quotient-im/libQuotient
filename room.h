@@ -74,7 +74,7 @@ namespace QMatrixClient
 
         public slots:
             void getPreviousContent();
-            void memberRenamed(User* user, QString oldName);
+            void userRenamed(User* user, QString oldName);
 
         signals:
             void newMessage(Event* event);
@@ -88,6 +88,7 @@ namespace QMatrixClient
             void topicChanged();
             void userAdded(User* user);
             void userRemoved(User* user);
+            void memberRenamed(User* user);
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
             void highlightCountChanged(Room* room);

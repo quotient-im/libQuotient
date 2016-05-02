@@ -89,6 +89,9 @@ class Room::Private: public QObject
     private:
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
+
+        void insertMemberIntoMap(User* u);
+        void removeMemberFromMap(QString username, User* u);
 };
 
 Room::Room(Connection* connection, QString id)
@@ -209,12 +212,37 @@ QList< User* > Room::users() const
     return d->membersMap.values();
 }
 
+void Room::Private::insertMemberIntoMap(User *u)
+{
+    QList<User*> namesakes = membersMap.values(u->name());
+    membersMap.insert(u->name(), u);
+    // If there is exactly one namesake of the added user, signal member renaming
+    // for that other one because the two should be disambiguated now.
+    if (namesakes.size() == 1)
+        emit q->memberRenamed(namesakes[0]);
+
+    updateDisplayname();
+}
+
+void Room::Private::removeMemberFromMap(QString username, User* u)
+{
+    membersMap.remove(username, u);
+    // If there was one namesake besides the removed user, signal member renaming
+    // for it because it doesn't need to be disambiguated anymore.
+    // TODO: Think about left users.
+    QList<User*> formerNamesakes = membersMap.values(username);
+    if (formerNamesakes.size() == 1)
+        emit q->memberRenamed(formerNamesakes[0]);
+
+    updateDisplayname();
+}
+
 void Room::Private::addMember(User *u)
 {
-    if (!membersMap.values(u->name()).contains(u))
+    if (!hasMember(u))
     {
-        membersMap.insert(u->name(), u);
-        updateDisplayname();
+        insertMemberIntoMap(u);
+        connect(u, &User::nameChanged, q, &Room::userRenamed);
         emit q->userAdded(u);
     }
 }
@@ -232,11 +260,20 @@ User* Room::Private::member(QString id) const
 
 void Room::Private::renameMember(User* u, QString oldName)
 {
-    // We can't use hasUser because we need to search by oldName
+    if (hasMember(u))
+    {
+        qWarning() << "Room::Private::renameMember(): the user "
+                   << u->name()
+                   << "is already known in the room under a new name.";
+        return;
+    }
+
     if (membersMap.values(oldName).contains(u))
     {
-        membersMap.remove(oldName, u);
-        membersMap.insert(u->name(), u);
+        removeMemberFromMap(oldName, u);
+        insertMemberIntoMap(u);
+        emit q->memberRenamed(u);
+
         updateDisplayname();
     }
 }
@@ -247,13 +284,12 @@ void Room::Private::removeMember(User* u)
     {
         if ( !membersLeft.contains(u) )
             membersLeft.append(u);
-        membersMap.remove(u->name(), u);
-        updateDisplayname();
+        removeMemberFromMap(u->name(), u);
         emit q->userRemoved(u);
     }
 }
 
-void Room::memberRenamed(User* user, QString oldName)
+void Room::userRenamed(User* user, QString oldName)
 {
     d->renameMember(user, oldName);
 }
