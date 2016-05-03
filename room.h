@@ -49,8 +49,15 @@ namespace QMatrixClient
             Q_INVOKABLE QString topic() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
+            QList<User*> membersLeft() const;
 
             Q_INVOKABLE QList<User*> users() const;
+
+            /**
+             * @brief Produces a disambiguated name for a given user in
+             * the context of the room.
+             */
+            Q_INVOKABLE QString roomMembername(User* u) const;
 
             Q_INVOKABLE void addMessage( Event* event );
             Q_INVOKABLE void addInitialState( State* state );
@@ -67,13 +74,21 @@ namespace QMatrixClient
 
         public slots:
             void getPreviousContent();
+            void userRenamed(User* user, QString oldName);
 
         signals:
             void newMessage(Event* event);
+            /**
+             * Triggered when the room name, canonical alias or other aliases
+             * change. Not triggered when displayname changes.
+             */
             void namesChanged(Room* room);
+            /** Triggered only for changes in the room displayname. */
+            void displaynameChanged(Room* room);
             void topicChanged();
             void userAdded(User* user);
             void userRemoved(User* user);
+            void memberRenamed(User* user);
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
             void highlightCountChanged(Room* room);

@@ -18,7 +18,11 @@
 
 #include "room.h"
 
+#include <array>
+
+#include <QtCore/QHash>
 #include <QtCore/QJsonArray>
+#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QDebug>
 
 #include "connection.h"
@@ -40,12 +44,18 @@ using namespace QMatrixClient;
 class Room::Private: public QObject
 {
     public:
+        /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
+        typedef QMultiHash<QString, User*> members_map_t;
+        
         Private(Room* parent): q(parent) {}
 
         Room* q;
 
         //static LogMessage* parseMessage(const QJsonObject& message);
         void gotMessages(KJob* job);
+		// This updates the room displayname field (which is the way a room should be shown in the room list)
+		// It should be called whenever the list of members or the room name (m.room.name) or canonical alias change.
+        void updateDisplayname();
 
         Connection* connection;
         QList<Event*> messageEvents;
@@ -53,15 +63,35 @@ class Room::Private: public QObject
         QStringList aliases;
         QString canonicalAlias;
         QString name;
+        QString displayname;
         QString topic;
         JoinState joinState;
         int highlightCount;
         int notificationCount;
-        QList<User*> users;
+        members_map_t membersMap;
         QList<User*> usersTyping;
+        QList<User*> membersLeft;
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
         bool gettingNewContent;
+        
+        // Convenience methods to work with the membersMap and usersLeft. addMember()
+        // and removeMember() emit respective Room:: signals after a succesful
+        // operation.
+        //void inviteUser(User* u); // We might get it at some point in time.
+        void addMember(User* u);
+        bool hasMember(User* u) const;
+        // You can't identify a single user by displayname, only by id
+        User* member(QString id) const;
+        void renameMember(User* u, QString oldName);
+        void removeMember(User* u);
+
+    private:
+        QString calculateDisplayname() const;
+        QString roomNameFromMemberNames(const QList<User*>& userlist) const;
+
+        void insertMemberIntoMap(User* u);
+        void removeMemberFromMap(QString username, User* u);
 };
 
 Room::Room(Connection* connection, QString id)
@@ -109,29 +139,7 @@ QString Room::canonicalAlias() const
 
 QString Room::displayName() const
 {
-    if (name().isEmpty())
-    {
-        // Without a human name, try to find a substitute
-        if (!canonicalAlias().isEmpty())
-            return canonicalAlias();
-        if (!aliases().empty() && !aliases().at(0).isEmpty())
-            return aliases().at(0);
-        // Ok, last attempt - one on one chat
-        if (users().size() == 2) {
-            return users().at(0)->displayname() + " and " +
-                    users().at(1)->displayname();
-        }
-        // Fail miserably
-        return id();
-    }
-
-    // If we have a non-empty name, try to stack canonical alias to it.
-    // The format is unwittingly borrowed from the email address format.
-    QString dispName = name();
-    if (!canonicalAlias().isEmpty())
-        dispName += " <" + canonicalAlias() + ">";
-
-    return dispName;
+    return d->displayname;
 }
 
 QString Room::topic() const
@@ -194,9 +202,124 @@ QList< User* > Room::usersTyping() const
     return d->usersTyping;
 }
 
+QList< User* > Room::membersLeft() const
+{
+    return d->membersLeft;
+}
+
 QList< User* > Room::users() const
 {
-    return d->users;
+    return d->membersMap.values();
+}
+
+void Room::Private::insertMemberIntoMap(User *u)
+{
+    QList<User*> namesakes = membersMap.values(u->name());
+    membersMap.insert(u->name(), u);
+    // If there is exactly one namesake of the added user, signal member renaming
+    // for that other one because the two should be disambiguated now.
+    if (namesakes.size() == 1)
+        emit q->memberRenamed(namesakes[0]);
+
+    updateDisplayname();
+}
+
+void Room::Private::removeMemberFromMap(QString username, User* u)
+{
+    membersMap.remove(username, u);
+    // If there was one namesake besides the removed user, signal member renaming
+    // for it because it doesn't need to be disambiguated anymore.
+    // TODO: Think about left users.
+    QList<User*> formerNamesakes = membersMap.values(username);
+    if (formerNamesakes.size() == 1)
+        emit q->memberRenamed(formerNamesakes[0]);
+
+    updateDisplayname();
+}
+
+void Room::Private::addMember(User *u)
+{
+    if (!hasMember(u))
+    {
+        insertMemberIntoMap(u);
+        connect(u, &User::nameChanged, q, &Room::userRenamed);
+        emit q->userAdded(u);
+    }
+}
+
+bool Room::Private::hasMember(User* u) const
+{
+    return membersMap.values(u->name()).contains(u);
+}
+
+User* Room::Private::member(QString id) const
+{
+    User* u = connection->user(id);
+    return hasMember(u) ? u : nullptr;
+}
+
+void Room::Private::renameMember(User* u, QString oldName)
+{
+    if (hasMember(u))
+    {
+        qWarning() << "Room::Private::renameMember(): the user "
+                   << u->name()
+                   << "is already known in the room under a new name.";
+        return;
+    }
+
+    if (membersMap.values(oldName).contains(u))
+    {
+        removeMemberFromMap(oldName, u);
+        insertMemberIntoMap(u);
+        emit q->memberRenamed(u);
+
+        updateDisplayname();
+    }
+}
+
+void Room::Private::removeMember(User* u)
+{
+    if (hasMember(u))
+    {
+        if ( !membersLeft.contains(u) )
+            membersLeft.append(u);
+        removeMemberFromMap(u->name(), u);
+        emit q->userRemoved(u);
+    }
+}
+
+void Room::userRenamed(User* user, QString oldName)
+{
+    d->renameMember(user, oldName);
+}
+
+QString Room::roomMembername(User *u) const
+{
+    // See the CS spec, section 11.2.2.3
+
+    QString username = u->name();
+    if (username.isEmpty())
+        return u->id();
+
+    // Get the list of users with the same display name. Most likely,
+    // there'll be one, but there's a chance there are more.
+    auto namesakes = d->membersMap.values(username);
+    if (namesakes.size() == 1)
+        return username;
+
+    // We expect a user to be a member of the room - but technically it is
+    // possible to invoke roomMemberName() even for non-members. In such case
+    // we return the name _with_ id, to stay on a safe side.
+    if ( !namesakes.contains(u) )
+    {
+        qWarning()
+            << "Room::roomMemberName(): user" << u->id()
+            << "is not a member of the room" << id();
+    }
+
+    // In case of more than one namesake, disambiguate with user id.
+    return username % " <" % u->id() % ">";
 }
 
 void Room::addMessage(Event* event)
@@ -295,6 +418,7 @@ void Room::processStateEvent(Event* event)
         {
             d->name = nameEvent->name();
             qDebug() << "room name:" << d->name;
+            d->updateDisplayname();
             emit namesChanged(this);
         } else
         {
@@ -307,6 +431,7 @@ void Room::processStateEvent(Event* event)
         RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
         d->aliases = aliasesEvent->aliases();
         qDebug() << "room aliases:" << d->aliases;
+        // No displayname update - aliases are not used to render a displayname
         emit namesChanged(this);
     }
     if( event->type() == EventType::RoomCanonicalAlias )
@@ -314,6 +439,7 @@ void Room::processStateEvent(Event* event)
         RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
         d->canonicalAlias = aliasEvent->alias();
         qDebug() << "room canonical alias:" << d->canonicalAlias;
+        d->updateDisplayname();
         emit namesChanged(this);
     }
     if( event->type() == EventType::RoomTopic )
@@ -327,16 +453,13 @@ void Room::processStateEvent(Event* event)
         RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
         User* u = d->connection->user(memberEvent->userId());
         u->processEvent(event);
-        if( memberEvent->membership() == MembershipType::Join and !d->users.contains(u) )
+        if( memberEvent->membership() == MembershipType::Join )
         {
-            d->users.append(u);
-            emit userAdded(u);
+            d->addMember(u);
         }
-        else if( memberEvent->membership() == MembershipType::Leave
-                 and d->users.contains(u) )
+        else if( memberEvent->membership() == MembershipType::Leave )
         {
-            d->users.removeAll(u);
-            emit userRemoved(u);
+            d->removeMember(u);
         }
     }
 }
@@ -365,6 +488,91 @@ void Room::processEphemeralEvent(Event* event)
             }
         }
     }
+}
+
+QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) const
+{
+    // This is part 3(i,ii,iii) in the room displayname algorithm described
+    // in the CS spec (see also Room::Private::updateDisplayname() ).
+    // The spec requires to sort users lexicographically by state_key (user id)
+    // and use disambiguated display names of two topmost users excluding
+    // the current one to render the name of the room.
+
+    // std::array is the leanest C++ container
+    std::array<User*, 2> first_two { nullptr, nullptr };
+    std::partial_sort_copy(
+        userlist.begin(), userlist.end(),
+        first_two.begin(), first_two.end(),
+        [this](const User* u1, const User* u2) {
+            // Filter out the "me" user so that it never hits the room name
+            return u1 != connection->user() && u1->id() < u2->id();
+        }
+    );
+
+    // i. One-on-one chat. first_two[1] == connection->user() in this case.
+    if (userlist.size() == 2)
+        return q->roomMembername(first_two[0]);
+
+    // ii. Two users besides the current one.
+    if (userlist.size() == 3)
+        return tr("%1 and %2")
+                .arg(q->roomMembername(first_two[0]))
+                .arg(q->roomMembername(first_two[1]));
+
+    // iii. More users.
+    if (userlist.size() > 3)
+        return tr("%1 and %L2 others")
+                .arg(q->roomMembername(first_two[0]))
+                .arg(userlist.size() - 3);
+
+    // userlist.size() < 2 - apparently, there's only current user in the room
+    return QString();
+}
+
+QString Room::Private::calculateDisplayname() const
+{
+    // CS spec, section 11.2.2.5 Calculating the display name for a room
+    // Numbers below refer to respective parts in the spec.
+
+    // 1. Name (from m.room.name)
+    if (!name.isEmpty()) {
+        // The below two lines extend the spec. They take care of the case
+        // when there are two rooms with the same name.
+        // The format is unwittingly borrowed from the email address format.
+        if (!canonicalAlias.isEmpty())
+            return name % " <" % canonicalAlias % ">";
+
+        return name;
+    }
+
+    // 2. Canonical alias
+    if (!canonicalAlias.isEmpty())
+        return canonicalAlias;
+
+    // 3. Room members
+    QString topMemberNames = roomNameFromMemberNames(membersMap.values());
+    if (!topMemberNames.isEmpty())
+        return topMemberNames;
+
+    // 4. Users that previously left the room
+    topMemberNames = roomNameFromMemberNames(membersLeft);
+    if (!topMemberNames.isEmpty())
+        return tr("Empty room (was: %1)").arg(topMemberNames);
+
+    // 5. Fail miserably
+    return tr("Empty room (%1)").arg(id);
+
+    // Using m.room.aliases is explicitly discouraged by the spec
+    //if (!aliases.empty() && !aliases.at(0).isEmpty())
+    //    displayname = aliases.at(0);
+}
+
+void Room::Private::updateDisplayname()
+{
+    const QString old_name = displayname;
+    displayname = calculateDisplayname();
+    if (old_name != displayname)
+        emit q->displaynameChanged(q);
 }
 
 // void Room::setAlias(QString alias)

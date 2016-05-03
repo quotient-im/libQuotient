@@ -47,6 +47,8 @@ namespace QMatrixClient
 
             void processState( State* state );
             void processRooms( const QList<SyncRoomData>& data );
+            /** Finds a room with this id or creates a new one and adds it to roomMap. */
+            Room* provideRoom( QString id );
 
             Connection* q;
             ConnectionData* data;
