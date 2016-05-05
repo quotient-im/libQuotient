@@ -116,69 +116,7 @@ Room* ConnectionPrivate::provideRoom(QString id)
     return room;
 }
 
-//void ConnectionPrivate::connectDone(KJob* job)
-//{
-//    PasswordLogin* realJob = static_cast<PasswordLogin*>(job);
-//    if( !realJob->error() )
-//    {
-//        isConnected = true;
-//        userId = realJob->id();
-//        qDebug() << "Our user ID: " << userId;
-//        emit q->connected();
-//    }
-//    else {
-//        emit q->loginError( job->errorString() );
-//    }
-//}
-
-//void ConnectionPrivate::reconnectDone(KJob* job)
-//{
-//    PasswordLogin* realJob = static_cast<PasswordLogin*>(job);
-//    if( !realJob->error() )
-//    {
-//        userId = realJob->id();
-//        emit q->reconnected();
-//    }
-//    else {
-//        emit q->loginError( job->errorString() );
-//        isConnected = false;
-//    }
-//}
-
-//void ConnectionPrivate::syncDone(KJob* job)
-//{
-//    SyncJob* syncJob = static_cast<SyncJob*>(job);
-//    if( !syncJob->error() )
-//    {
-//        data->setLastEvent(syncJob->nextBatch());
-//        processRooms(syncJob->roomData());
-//        emit q->syncDone();
-//    }
-//    else {
-//        if( syncJob->error() == BaseJob::NetworkError )
-//            emit q->connectionError( syncJob->errorString() );
-//        else
-//            qDebug() << "syncJob failed, error:" << syncJob->error();
-//    }
-//}
-
-//void ConnectionPrivate::gotJoinRoom(KJob* job)
-//{
-//    qDebug() << "gotJoinRoom";
-//    JoinRoomJob* joinJob = static_cast<JoinRoomJob*>(job);
-//    if( !joinJob->error() )
-//    {
-//        if ( Room* r = provideRoom(joinJob->roomId()) )
-//            emit q->joinedRoom(r);
-//    }
-//    else
-//    {
-//        if( joinJob->error() == BaseJob::NetworkError )
-//            emit q->connectionError( joinJob->errorString() );
-//    }
-//}
-
-void ConnectionPrivate::gotRoomMembers(KJob* job)
+void ConnectionPrivate::gotRoomMembers(BaseJob* job)
 {
     RoomMembersJob* membersJob = static_cast<RoomMembersJob*>(job);
     if( !membersJob->error() )

@@ -31,24 +31,21 @@ class BaseJob::Private
 {
     public:
         Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), reply(nullptr), type(t), needsToken(nt) {}
+            : connection(c), reply(nullptr), type(t), needsToken(nt), errorCode(NoError)
+        {}
         
         ConnectionData* connection;
         QNetworkReply* reply;
         JobHttpType type;
         bool needsToken;
+
+        int errorCode;
+        QString errorText;
 };
 
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
-    // Work around KJob inability to separate success and failure signals
-    connect(this, &BaseJob::result, [this]() {
-        if (error() == NoError)
-            emit success(this);
-        else
-            emit failure(this);
-    });
     setObjectName(name);
     qDebug() << "Job" << objectName() << " created";
 }
@@ -119,6 +116,55 @@ void BaseJob::start()
 //              this, &BaseJob::networkError ); // http://doc.qt.io/qt-5/qnetworkreply.html#error-1
 }
 
+void BaseJob::finishJob(bool emitResult)
+{
+    if( d->reply->isRunning() )
+        d->reply->abort();
+
+    // Notify those that are interested in any completion of the job (including killing)
+    emit finished(this);
+
+    if (emitResult) {
+        emit result(this);
+        if (error())
+            emit failure(this);
+        else
+            emit success(this);
+    }
+
+    deleteLater();
+}
+
+int BaseJob::error() const
+{
+    return d->errorCode;
+}
+
+QString BaseJob::errorString() const
+{
+    return d->errorText;
+}
+
+void BaseJob::setError(int errorCode)
+{
+    d->errorCode = errorCode;
+}
+
+void BaseJob::setErrorText(QString errorText)
+{
+    d->errorText = errorText;
+}
+
+void BaseJob::emitResult()
+{
+    finishJob(true);
+}
+
+void BaseJob::abandon()
+{
+    finishJob(false);
+}
+
 void BaseJob::fail(int errorCode, QString errorString)
 {
     setError( errorCode );
@@ -133,11 +179,6 @@ QNetworkReply* BaseJob::networkReply() const
 {
     return d->reply;
 }
-
-// void BaseJob::networkError(QNetworkReply::NetworkError code)
-// {
-//     fail( KJob::UserDefinedError+1, d->reply->errorString() );
-// }
 
 void BaseJob::gotReply()
 {
