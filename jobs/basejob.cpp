@@ -54,7 +54,11 @@ BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
 BaseJob::~BaseJob()
 {
     if( d->reply )
+    {
+        if( d->reply->isRunning() )
+            d->reply->abort();
         d->reply->deleteLater();
+    }
     delete d;
 }
 
@@ -115,6 +119,8 @@ void BaseJob::fail(int errorCode, QString errorString)
 {
     setError( errorCode );
     setErrorText( errorString );
+    if( d->reply->isRunning() )
+        d->reply->abort();
     emitResult();
 }
 
@@ -149,8 +155,7 @@ void BaseJob::gotReply()
 void BaseJob::timeout()
 {
     qDebug() << "Timeout!";
-    if( d->reply->isRunning() )
-        d->reply->abort();
+    fail( TimeoutError, "The job has timed out" );
 }
 
 void BaseJob::sslErrors(const QList<QSslError>& errors)

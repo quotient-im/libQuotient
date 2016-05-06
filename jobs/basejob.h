@@ -45,7 +45,8 @@ namespace QMatrixClient
 
             void start() override;
 
-            enum ErrorCode { NetworkError = KJob::UserDefinedError, JsonParseError, UserDefinedError };
+            enum ErrorCode { NetworkError = KJob::UserDefinedError,
+                             JsonParseError, TimeoutError, UserDefinedError };
 
         signals:
             /**
