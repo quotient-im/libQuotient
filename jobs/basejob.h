@@ -46,7 +46,18 @@ namespace QMatrixClient
             void start() override;
 
             enum ErrorCode { NetworkError = KJob::UserDefinedError, JsonParseError, UserDefinedError };
-            
+
+        signals:
+            /**
+             * Emitted together with KJob::result() but only if there's no error.
+             */
+            void success(BaseJob*);
+            /**
+             * Emitted together with KJob::result() if there's an error.
+             * Same as result(), this won't be emitted in case of kill(Quietly).
+             */
+            void failure(BaseJob*);
+
         protected:
             ConnectionData* connection() const;
 

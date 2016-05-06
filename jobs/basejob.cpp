@@ -42,6 +42,13 @@ class BaseJob::Private
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
+    // Work around KJob inability to separate success and failure signals
+    connect(this, &BaseJob::result, [this]() {
+        if (error() == NoError)
+            emit success(this);
+        else
+            emit failure(this);
+    });
 }
 
 BaseJob::~BaseJob()
