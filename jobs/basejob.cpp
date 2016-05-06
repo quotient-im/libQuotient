@@ -121,6 +121,7 @@ void BaseJob::fail(int errorCode, QString errorString)
     setErrorText( errorString );
     if( d->reply->isRunning() )
         d->reply->abort();
+    qWarning() << this << "failed:" << errorString;
     emitResult();
 }
 
@@ -138,7 +139,7 @@ void BaseJob::gotReply()
 {
     if( d->reply->error() != QNetworkReply::NoError )
     {
-        qDebug() << "NetworkError!!!" << d->reply->error();
+        qDebug() << "NetworkError:" << d->reply->error();
         fail( NetworkError, d->reply->errorString() );
         return;
     }
