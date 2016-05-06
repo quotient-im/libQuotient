@@ -62,7 +62,13 @@ void Connection::resolveServer(QString domain)
 void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
-    connect( loginJob, &PasswordLogin::result, d, &ConnectionPrivate::connectDone );
+    connect( loginJob, &PasswordLogin::success, [=] () {
+        qDebug() << "Our user ID: " << d->userId;
+        connectWithToken(loginJob->id(), loginJob->token());
+    });
+    connect( loginJob, &PasswordLogin::failure, [=] () {
+        emit loginError(loginJob->errorString());
+    });
     loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
@@ -79,7 +85,14 @@ void Connection::connectWithToken(QString userId, QString token)
 void Connection::reconnect()
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, d->username, d->password );
-    connect( loginJob, &PasswordLogin::result, d, &ConnectionPrivate::reconnectDone );
+    connect( loginJob, &PasswordLogin::success, [=] () {
+        d->userId = loginJob->id();
+        emit reconnected();
+    });
+    connect( loginJob, &PasswordLogin::failure, [=] () {
+        emit loginError(loginJob->errorString());
+        d->isConnected = false;
+    });
     loginJob->start();
 }
 
@@ -89,7 +102,13 @@ SyncJob* Connection::sync(int timeout)
     SyncJob* syncJob = new SyncJob(d->data, d->data->lastEvent());
     syncJob->setFilter(filter);
     syncJob->setTimeout(timeout);
-    connect( syncJob, &SyncJob::result, d, &ConnectionPrivate::syncDone );
+    connect( syncJob, &SyncJob::success, [=] () {
+        d->data->setLastEvent(syncJob->nextBatch());
+        d->processRooms(syncJob->roomData());
+        emit syncDone();
+    });
+    connect( syncJob, &SyncJob::failure,
+             [=] () { emit connectionError(syncJob->errorString());});
     syncJob->start();
     return syncJob;
 }
@@ -110,7 +129,10 @@ PostReceiptJob* Connection::postReceipt(Room* room, Event* event)
 void Connection::joinRoom(QString roomAlias)
 {
     JoinRoomJob* job = new JoinRoomJob(d->data, roomAlias);
-    connect( job, &JoinRoomJob::result, d, &ConnectionPrivate::gotJoinRoom );
+    connect( job, &SyncJob::success, [=] () {
+        if ( Room* r = d->provideRoom(job->roomId()) )
+            emit joinedRoom(r);
+    });
     job->start();
 }
 
