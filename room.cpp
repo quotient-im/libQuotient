@@ -74,7 +74,6 @@ class Room::Private: public QObject
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
         RoomMessagesJob* roomMessagesJob;
-        bool gettingNewContent;
         
         // Convenience methods to work with the membersMap and usersLeft. addMember()
         // and removeMember() emit respective Room:: signals after a succesful

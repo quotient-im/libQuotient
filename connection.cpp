@@ -63,7 +63,7 @@ void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
     connect( loginJob, &PasswordLogin::success, [=] () {
-        qDebug() << "Our user ID: " << d->userId;
+        qDebug() << "Our user ID: " << loginJob->id();
         connectWithToken(loginJob->id(), loginJob->token());
     });
     connect( loginJob, &PasswordLogin::failure, [=] () {
