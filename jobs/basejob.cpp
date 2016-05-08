@@ -42,12 +42,23 @@ class BaseJob::Private
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
+    // Work around KJob inability to separate success and failure signals
+    connect(this, &BaseJob::result, [this]() {
+        if (error() == NoError)
+            emit success(this);
+        else
+            emit failure(this);
+    });
 }
 
 BaseJob::~BaseJob()
 {
     if( d->reply )
+    {
+        if( d->reply->isRunning() )
+            d->reply->abort();
         d->reply->deleteLater();
+    }
     delete d;
 }
 
@@ -108,6 +119,9 @@ void BaseJob::fail(int errorCode, QString errorString)
 {
     setError( errorCode );
     setErrorText( errorString );
+    if( d->reply->isRunning() )
+        d->reply->abort();
+    qWarning() << this << "failed:" << errorString;
     emitResult();
 }
 
@@ -125,7 +139,7 @@ void BaseJob::gotReply()
 {
     if( d->reply->error() != QNetworkReply::NoError )
     {
-        qDebug() << "NetworkError!!!" << d->reply->error();
+        qDebug() << "NetworkError:" << d->reply->error();
         fail( NetworkError, d->reply->errorString() );
         return;
     }
@@ -142,8 +156,7 @@ void BaseJob::gotReply()
 void BaseJob::timeout()
 {
     qDebug() << "Timeout!";
-    if( d->reply->isRunning() )
-        d->reply->abort();
+    fail( TimeoutError, "The job has timed out" );
 }
 
 void BaseJob::sslErrors(const QList<QSslError>& errors)

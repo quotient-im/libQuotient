@@ -73,7 +73,7 @@ class Room::Private: public QObject
         QList<User*> membersLeft;
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
-        bool gettingNewContent;
+        RoomMessagesJob* roomMessagesJob;
         
         // Convenience methods to work with the membersMap and usersLeft. addMember()
         // and removeMember() emit respective Room:: signals after a succesful
@@ -85,6 +85,8 @@ class Room::Private: public QObject
         User* member(QString id) const;
         void renameMember(User* u, QString oldName);
         void removeMember(User* u);
+
+        void getPreviousContent();
 
     private:
         QString calculateDisplayname() const;
@@ -100,7 +102,7 @@ Room::Room(Connection* connection, QString id)
     d->id = id;
     d->connection = connection;
     d->joinState = JoinState::Join;
-    d->gettingNewContent = false;
+    d->roomMessagesJob = nullptr;
     qDebug() << "New Room:" << id;
 
     //connection->getMembers(this); // I don't think we need this anymore in r0.0.1
@@ -373,31 +375,27 @@ void Room::updateData(const SyncRoomData& data)
 
 void Room::getPreviousContent()
 {
-    if( !d->gettingNewContent )
-    {
-        d->gettingNewContent = true;
-        RoomMessagesJob* job = d->connection->getMessages(this, d->prevBatch);
-        connect( job, &RoomMessagesJob::result, d, &Room::Private::gotMessages );
-    }
+    d->getPreviousContent();
 }
 
-void Room::Private::gotMessages(KJob* job)
+void Room::Private::getPreviousContent()
 {
-    RoomMessagesJob* realJob = static_cast<RoomMessagesJob*>(job);
-    if( realJob->error() )
+    if( !roomMessagesJob )
     {
-        qDebug() << realJob->errorString();
+        roomMessagesJob = connection->getMessages(q, prevBatch);
+        connect( roomMessagesJob, &RoomMessagesJob::result, [=]() {
+            if( !roomMessagesJob->error() )
+            {
+                for( Event* event: roomMessagesJob->events() )
+                {
+                    q->processMessageEvent(event);
+                    emit q->newMessage(event);
+                }
+                prevBatch = roomMessagesJob->end();
+            }
+            roomMessagesJob = nullptr;
+        });
     }
-    else
-    {
-        for( Event* event: realJob->events() )
-        {
-            q->processMessageEvent(event);
-            emit q->newMessage(event);
-        }
-        prevBatch = realJob->end();
-    }
-    gettingNewContent = false;
 }
 
 Connection* Room::connection()
