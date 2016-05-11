@@ -40,7 +40,8 @@ namespace QMatrixClient
     {
             Q_OBJECT
         public:
-            BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken=true);
+            BaseJob(ConnectionData* connection, JobHttpType type,
+                    QString name, bool needsToken=true);
             virtual ~BaseJob();
 
             void start() override;

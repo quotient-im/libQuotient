@@ -34,7 +34,7 @@ class LeaveRoomJob::Private
 };
 
 LeaveRoomJob::LeaveRoomJob(ConnectionData* data, Room* room)
-    : BaseJob(data, JobHttpType::PostJob)
+    : BaseJob(data, JobHttpType::PostJob, "LeaveRoomJob")
     , d(new Private(room))
 {
 }

@@ -24,8 +24,6 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 
-#include <QtNetwork/QNetworkReply>
-
 #include "../room.h"
 #include "../connectiondata.h"
 #include "../events/event.h"
@@ -43,12 +41,10 @@ class SyncJob::Private
         QString nextBatch;
 
         QList<SyncRoomData> roomData;
-
-        void parseEvents(QString roomId, const QJsonObject& room, JoinState joinState);
 };
 
 SyncJob::SyncJob(ConnectionData* connection, QString since)
-    : BaseJob(connection, JobHttpType::GetJob)
+    : BaseJob(connection, JobHttpType::GetJob, "SyncJob")
     , d(new Private)
 {
     d->since = since;
@@ -120,42 +116,42 @@ void SyncJob::parseJson(const QJsonDocument& data)
     // TODO: account_data
     QJsonObject rooms = json.value("rooms").toObject();
 
-    QJsonObject joinRooms = rooms.value("join").toObject();
-    for( const QString& roomId: joinRooms.keys() )
+    const struct { QString jsonKey; JoinState enumVal; } roomStates[]
     {
-        d->parseEvents(roomId, joinRooms.value(roomId).toObject(), JoinState::Join);
+        { "join", JoinState::Join },
+        { "invite", JoinState::Invite },
+        { "leave", JoinState::Leave }
+    };
+    for (auto roomState: roomStates)
+    {
+        const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
+        for( auto r = rs.begin(); r != rs.end(); ++r )
+        {
+            d->roomData.append({r.key(), r.value().toObject(), roomState.enumVal});
+        }
     }
 
-    QJsonObject inviteRooms = rooms.value("invite").toObject();
-    for( const QString& roomId: inviteRooms.keys() )
-    {
-        d->parseEvents(roomId, inviteRooms.value(roomId).toObject(), JoinState::Invite);
-    }
-
-    QJsonObject leaveRooms = rooms.value("leave").toObject();
-    for( const QString& roomId: leaveRooms.keys() )
-    {
-        d->parseEvents(roomId, leaveRooms.value(roomId).toObject(), JoinState::Leave);
-    }
     emitResult();
 }
 
 SyncRoomData::SyncRoomData(QString roomId_, const QJsonObject& room_, JoinState joinState_)
     : roomId(roomId_), joinState(joinState_)
 {
-    const QList<QPair<QString, QList<Event *> *> > eventLists = {
+    const struct { QString jsonKey; QList<Event *> *evList; } eventLists[]
+    {
         { "state", &state },
         { "timeline", &timeline },
         { "ephemeral", &ephemeral },
         { "account_data", &accountData }
     };
 
-    for (auto elist: eventLists) {
-        QJsonArray array = room_.value(elist.first).toObject().value("events").toArray();
+    for (auto e: eventLists)
+    {
+        QJsonArray array = room_.value(e.jsonKey).toObject().value("events").toArray();
         for( QJsonValue val: array )
         {
             if ( Event* event = Event::fromJson(val.toObject()) )
-                elist.second->append(event);
+                e.evList->append(event);
         }
     }
 
@@ -163,14 +159,8 @@ SyncRoomData::SyncRoomData(QString roomId_, const QJsonObject& room_, JoinState 
     timelineLimited = timeline.value("limited").toBool();
     timelinePrevBatch = timeline.value("prev_batch").toString();
 
-   QJsonObject unread = room_.value("unread_notifications").toObject();
-   highlightCount = unread.value("highlight_count").toInt();
-   notificationCount = unread.value("notification_count").toInt();
-   qDebug() << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    QJsonObject unread = room_.value("unread_notifications").toObject();
+    highlightCount = unread.value("highlight_count").toInt();
+    notificationCount = unread.value("notification_count").toInt();
+    qDebug() << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
 }
-
-void SyncJob::Private::parseEvents(QString roomId, const QJsonObject& room, JoinState joinState)
-{
-    roomData.append(SyncRoomData{roomId, room, joinState});
-}
-

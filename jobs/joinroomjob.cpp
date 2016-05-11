@@ -33,7 +33,7 @@ class JoinRoomJob::Private
 };
 
 JoinRoomJob::JoinRoomJob(ConnectionData* data, QString roomAlias)
-    : BaseJob(data, JobHttpType::PostJob)
+    : BaseJob(data, JobHttpType::PostJob, "JoinRoomJob")
     , d(new Private)
 {
     d->roomAlias = roomAlias;

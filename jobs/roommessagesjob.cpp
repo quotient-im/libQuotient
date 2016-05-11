@@ -28,26 +28,19 @@ using namespace QMatrixClient;
 class RoomMessagesJob::Private
 {
     public:
-        Private() {}
-
         Room* room;
         QString from;
         FetchDirectory dir;
         int limit;
 
         QList<Event*> events;
-        QString end;
 };
 
 RoomMessagesJob::RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir, int limit)
-    : BaseJob(data, JobHttpType::GetJob)
-{
-    d = new Private();
-    d->room = room;
-    d->from = from;
-    d->dir = dir;
-    d->limit = limit;
-}
+    : SimpleJob(data, JobHttpType::GetJob, "RoomMessagesJob")
+    , d(new Private{room, from, dir, limit, {} })
+    , end("end", *this)
+{ }
 
 RoomMessagesJob::~RoomMessagesJob()
 {
@@ -59,11 +52,6 @@ QList<Event*> RoomMessagesJob::events()
     return d->events;
 }
 
-QString RoomMessagesJob::end()
-{
-    return d->end;
-}
-
 QString RoomMessagesJob::apiPath()
 {
     return QString("/_matrix/client/r0/rooms/%1/messages").arg(d->room->id());
@@ -72,12 +60,11 @@ QString RoomMessagesJob::apiPath()
 QUrlQuery RoomMessagesJob::query()
 {
     QUrlQuery query;
-    query.addQueryItem("from", d->from);
-    if( d->dir == FetchDirectory::Backwards )
-        query.addQueryItem("dir", "b");
-    else
-        query.addQueryItem("dir", "f");
-    query.addQueryItem("limit", QString::number(d->limit));
+    query.setQueryItems({
+          { "from", d->from }
+        , { "limit", QString::number(d->limit) }
+        , { "dir", d->dir == FetchDirectory::Backwards ? "b" : "f" }
+    });
     return query;
 }
 
@@ -90,6 +77,5 @@ void RoomMessagesJob::parseJson(const QJsonDocument& data)
         Event* event = Event::fromJson(val.toObject());
         d->events.append(event);
     }
-    d->end = obj.value("end").toString();
-    emitResult();
+    SimpleJob::parseJson(data);
 }
