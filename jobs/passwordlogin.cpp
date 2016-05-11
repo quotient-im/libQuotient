@@ -39,7 +39,7 @@ class PasswordLogin::Private
 };
 
 PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, JobHttpType::PostJob, false)
+    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin", false)
     , d(new Private)
 {
     d->user = user;

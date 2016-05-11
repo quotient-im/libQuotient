@@ -48,7 +48,7 @@ class SyncJob::Private
 };
 
 SyncJob::SyncJob(ConnectionData* connection, QString since)
-    : BaseJob(connection, JobHttpType::GetJob)
+    : BaseJob(connection, JobHttpType::GetJob, "SyncJob")
     , d(new Private)
 {
     d->since = since;

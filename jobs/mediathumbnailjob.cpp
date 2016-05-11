@@ -34,7 +34,7 @@ class MediaThumbnailJob::Private
 
 MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, int requestedWidth, int requestedHeight,
                                      ThumbnailType thumbnailType)
-    : BaseJob(data, JobHttpType::GetJob)
+    : BaseJob(data, JobHttpType::GetJob, "MediaThumbnailJob")
     , d(new Private)
 {
     d->url = url;

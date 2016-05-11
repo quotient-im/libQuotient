@@ -34,7 +34,7 @@ class PostReceiptJob::Private
 };
 
 PostReceiptJob::PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId)
-    : BaseJob(connection, JobHttpType::PostJob)
+    : BaseJob(connection, JobHttpType::PostJob, "PostReceiptJob")
     , d(new Private)
 {
     d->roomId = roomId;

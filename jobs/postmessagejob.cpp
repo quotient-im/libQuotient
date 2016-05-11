@@ -35,7 +35,7 @@ class PostMessageJob::Private
 };
 
 PostMessageJob::PostMessageJob(ConnectionData* connection, Room* room, QString type, QString message)
-    : BaseJob(connection, JobHttpType::PostJob)
+    : BaseJob(connection, JobHttpType::PostJob, "PostMessageJob")
     , d(new Private)
 {
     d->type = type;

@@ -40,7 +40,7 @@ class RoomMessagesJob::Private
 };
 
 RoomMessagesJob::RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir, int limit)
-    : BaseJob(data, JobHttpType::GetJob)
+    : BaseJob(data, JobHttpType::GetJob, "RoomMessagesJob")
 {
     d = new Private();
     d->room = room;
