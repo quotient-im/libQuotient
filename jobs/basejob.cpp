@@ -39,7 +39,7 @@ class BaseJob::Private
         bool needsToken;
 };
 
-BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
+BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
     // Work around KJob inability to separate success and failure signals
@@ -49,6 +49,7 @@ BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
         else
             emit failure(this);
     });
+    setObjectName(name);
 }
 
 BaseJob::~BaseJob()
@@ -121,7 +122,7 @@ void BaseJob::fail(int errorCode, QString errorString)
     setErrorText( errorString );
     if( d->reply->isRunning() )
         d->reply->abort();
-    qWarning() << this << "failed:" << errorString;
+    qWarning() << "Job" << objectName() << "failed:" << errorString;
     emitResult();
 }
 
@@ -155,7 +156,6 @@ void BaseJob::gotReply()
 
 void BaseJob::timeout()
 {
-    qDebug() << "Timeout!";
     fail( TimeoutError, "The job has timed out" );
 }
 

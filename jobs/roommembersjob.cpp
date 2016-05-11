@@ -34,7 +34,7 @@ class RoomMembersJob::Private
 };
 
 RoomMembersJob::RoomMembersJob(ConnectionData* data, Room* room)
-    : BaseJob(data, JobHttpType::GetJob)
+    : BaseJob(data, JobHttpType::GetJob, "RoomMembersJob")
     , d(new Private)
 {
     d->room = room;
