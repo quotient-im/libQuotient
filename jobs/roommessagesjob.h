@@ -19,7 +19,7 @@
 #ifndef QMATRIXCLIENT_ROOMMESSAGESJOB_H
 #define QMATRIXCLIENT_ROOMMESSAGESJOB_H
 
-#include "basejob.h"
+#include "simplejob.h"
 
 namespace QMatrixClient
 {
@@ -28,7 +28,7 @@ namespace QMatrixClient
 
     enum class FetchDirectory { Backwards, Forward };
 
-    class RoomMessagesJob: public BaseJob
+    class RoomMessagesJob: public SimpleJob
     {
             Q_OBJECT
         public:
@@ -36,7 +36,7 @@ namespace QMatrixClient
             virtual ~RoomMessagesJob();
 
             QList<Event*> events();
-            QString end();
+            ResultItem<QString> end;
 
         protected:
             QString apiPath();

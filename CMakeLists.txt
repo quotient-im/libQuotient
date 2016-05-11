@@ -68,6 +68,7 @@ set(libqmatrixclient_SRCS
    events/receiptevent.cpp
    events/unknownevent.cpp
    jobs/basejob.cpp
+   jobs/simplejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
    jobs/postmessagejob.cpp

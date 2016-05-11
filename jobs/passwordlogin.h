@@ -19,27 +19,25 @@
 #ifndef QMATRIXCLIENT_PASSWORDLOGIN_H
 #define QMATRIXCLIENT_PASSWORDLOGIN_H
 
-#include "basejob.h"
+#include "simplejob.h"
 
 namespace QMatrixClient
 {
     class ConnectionData;
 
-    class PasswordLogin : public BaseJob
+    class PasswordLogin : public SimpleJob
     {
-            Q_OBJECT
         public:
             PasswordLogin(ConnectionData* connection, QString user, QString password);
             virtual ~PasswordLogin();
 
-            QString token();
-            QString id();
-            QString server();
+            ResultItem<QString> token;
+            ResultItem<QString> id;
+            ResultItem<QString> server;
 
         protected:
-            QString apiPath();
-            QJsonObject data();
-            void parseJson(const QJsonDocument& data);
+            virtual QString apiPath() override;
+            virtual QJsonObject data() override;
 
         private:
             class Private;

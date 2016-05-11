@@ -18,52 +18,27 @@
 
 #include "passwordlogin.h"
 
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
-#include <QtNetwork/QNetworkReply>
-
-#include "../connectiondata.h"
-
 using namespace QMatrixClient;
 
 class PasswordLogin::Private
 {
     public:
-        Private() {}
-
         QString user;
         QString password;
-        QString returned_id;
-        QString returned_server;
-        QString returned_token;
 };
 
 PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin", false)
-    , d(new Private)
+    : SimpleJob(connection, JobHttpType::PostJob, "PasswordLogin", false)
+    , d(new Private{user, password})
+    , token("access_token", *this)
+    , server("home_server", *this)
+    , id("user_id", *this)
 {
-    d->user = user;
-    d->password = password;
 }
 
 PasswordLogin::~PasswordLogin()
 {
     delete d;
-}
-
-QString PasswordLogin::token()
-{
-    return d->returned_token;
-}
-
-QString PasswordLogin::id()
-{
-    return d->returned_id;
-}
-
-QString PasswordLogin::server()
-{
-    return d->returned_server;
 }
 
 QString PasswordLogin::apiPath()
@@ -78,19 +53,4 @@ QJsonObject PasswordLogin::data()
     json.insert("user", d->user);
     json.insert("password", d->password);
     return json;
-}
-
-void PasswordLogin::parseJson(const QJsonDocument& data)
-{
-    QJsonObject json = data.object();
-    if( !json.contains("access_token") || !json.contains("home_server") || !json.contains("user_id") )
-    {
-        fail( BaseJob::UserDefinedError, "Unexpected data" );
-    }
-    d->returned_token = json.value("access_token").toString();
-    qDebug() << d->returned_token;
-    d->returned_server = json.value("home_server").toString();
-    d->returned_id = json.value("user_id").toString();
-    connection()->setToken(d->returned_token);
-    emitResult();
 }
