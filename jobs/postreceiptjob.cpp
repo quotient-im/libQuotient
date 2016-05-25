@@ -46,7 +46,7 @@ PostReceiptJob::~PostReceiptJob()
     delete d;
 }
 
-QString PostReceiptJob::apiPath()
+QString PostReceiptJob::apiPath() const
 {
     return QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(d->roomId).arg(d->eventId);
 }

@@ -44,7 +44,7 @@ LeaveRoomJob::~LeaveRoomJob()
     delete d;
 }
 
-QString LeaveRoomJob::apiPath()
+QString LeaveRoomJob::apiPath() const
 {
     return QString("_matrix/client/r0/rooms/%1/leave").arg(d->room->id());
 }

@@ -52,7 +52,7 @@ QString CheckAuthMethods::session()
     return d->session;
 }
 
-QString CheckAuthMethods::apiPath()
+QString CheckAuthMethods::apiPath() const
 {
     return "_matrix/client/r0/login";
 }

@@ -50,7 +50,7 @@ QList< State* > RoomMembersJob::states()
     return d->states;
 }
 
-QString RoomMembersJob::apiPath()
+QString RoomMembersJob::apiPath() const
 {
     return QString("_matrix/client/r0/rooms/%1/members").arg(d->room->id());
 }

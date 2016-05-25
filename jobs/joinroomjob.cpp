@@ -49,7 +49,7 @@ QString JoinRoomJob::roomId()
     return d->roomId;
 }
 
-QString JoinRoomJob::apiPath()
+QString JoinRoomJob::apiPath() const
 {
     return QString("_matrix/client/r0/join/%1").arg(d->roomAlias);
 }

@@ -64,12 +64,12 @@ QString RoomMessagesJob::end()
     return d->end;
 }
 
-QString RoomMessagesJob::apiPath()
+QString RoomMessagesJob::apiPath() const
 {
     return QString("/_matrix/client/r0/rooms/%1/messages").arg(d->room->id());
 }
 
-QUrlQuery RoomMessagesJob::query()
+QUrlQuery RoomMessagesJob::query() const
 {
     QUrlQuery query;
     query.addQueryItem("from", d->from);

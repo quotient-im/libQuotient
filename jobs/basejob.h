@@ -64,9 +64,9 @@ namespace QMatrixClient
             ConnectionData* connection() const;
 
             // to implement
-            virtual QString apiPath()=0;
-            virtual QUrlQuery query();
-            virtual QJsonObject data();
+            virtual QString apiPath() const = 0;
+            virtual QUrlQuery query() const;
+            virtual QJsonObject data() const;
             virtual void parseJson(const QJsonDocument& data);
             
             void fail( int errorCode, QString errorString );

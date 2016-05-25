@@ -38,8 +38,8 @@ namespace QMatrixClient
             QPixmap thumbnail();
 
         protected:
-            QString apiPath() override;
-            QUrlQuery query() override;
+            QString apiPath() const override;
+            QUrlQuery query() const override;
 
         protected slots:
             void gotReply() override;

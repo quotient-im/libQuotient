@@ -68,12 +68,12 @@ ConnectionData* BaseJob::connection() const
     return d->connection;
 }
 
-QJsonObject BaseJob::data()
+QJsonObject BaseJob::data() const
 {
     return QJsonObject();
 }
 
-QUrlQuery BaseJob::query()
+QUrlQuery BaseJob::query() const
 {
     return QUrlQuery();
 }

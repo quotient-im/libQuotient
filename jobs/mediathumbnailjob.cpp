@@ -53,12 +53,12 @@ QPixmap MediaThumbnailJob::thumbnail()
     return d->thumbnail;
 }
 
-QString MediaThumbnailJob::apiPath()
+QString MediaThumbnailJob::apiPath() const
 {
     return QString("/_matrix/media/v1/thumbnail/%1/%2").arg(d->url.host()).arg(d->url.path());
 }
 
-QUrlQuery MediaThumbnailJob::query()
+QUrlQuery MediaThumbnailJob::query() const
 {
     QUrlQuery query;
     query.addQueryItem("width", QString::number(d->requestedWidth));

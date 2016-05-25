@@ -32,7 +32,7 @@ namespace QMatrixClient
             virtual ~PostReceiptJob();
 
         protected:
-            QString apiPath();
+            QString apiPath() const override;
 
         private:
             class Private;

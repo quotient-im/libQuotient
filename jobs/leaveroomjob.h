@@ -33,7 +33,7 @@ namespace QMatrixClient
             virtual ~LeaveRoomJob();
 
         protected:
-            QString apiPath();
+            QString apiPath() const override;
 
         private:
             class Private;

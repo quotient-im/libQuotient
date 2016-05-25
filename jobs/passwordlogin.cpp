@@ -66,12 +66,12 @@ QString PasswordLogin::server()
     return d->returned_server;
 }
 
-QString PasswordLogin::apiPath()
+QString PasswordLogin::apiPath() const
 {
     return "_matrix/client/r0/login";
 }
 
-QJsonObject PasswordLogin::data()
+QJsonObject PasswordLogin::data() const
 {
     QJsonObject json;
     json.insert("type", "m.login.password");
