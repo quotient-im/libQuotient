@@ -50,23 +50,17 @@ namespace QMatrixClient
         public:
             JsonValue(const QJsonValue &source) : QJsonValue(source) { }
 
-            // Implies QJsonValueRef and anything castable to it
-            template <class SourceValT>
-            explicit JsonValue(const SourceValT &source) : QJsonValue(source) { }
-
             template <typename T>
             T to() const
             {
                 return QVariant(*this).value<T>();
             }
 
-            JsonValue operator[](QJsonObject::key_type key) const
+            template <class T>
+            bool assign(T* valHolder) const
             {
-                return JsonValue(toObject()[key]);
-            }
-            JsonValue operator[](QJsonArray::size_type i) const
-            {
-                return JsonValue(toArray()[i]);
+                *valHolder = QVariant(*this).value<T>();
+                return true;
             }
     };
 
@@ -82,6 +76,29 @@ namespace QMatrixClient
     {
         return QDateTime::fromMSecsSinceEpoch( qint64(toDouble()) );
     }
+//    template <>
+//    bool JsonValue::assign(QString* valHolder) const
+//    {
+//        if (type() != QJsonValue::String)
+//            return false;
+
+//        *valHolder = toString();
+//        return true;
+//    }
+
+    template <class ValT>
+    class JsonNodeBase : public ValT
+    {
+        public:
+            template <class SourceValT>
+            JsonNodeBase(const SourceValT &source) : ValT(source) { }
+
+            JsonNodeBase<ValT> operator[](QString key) const { return ValT::toObject()[key]; }
+            JsonNodeBase<ValT> operator[](QJsonArray::size_type i) const { return ValT::toArray()[i]; }
+    };
+
+    using JsonNode = JsonNodeBase<QJsonValue>;
+    using JsonNodeRef = JsonNodeBase<QJsonValueRef>;
 
     /**
      * This is a simple wrapper around a key-value pair stored in QJsonObject
@@ -91,12 +108,23 @@ namespace QMatrixClient
     class JsonPair : public QPair<QString, JsonValue>
     {
         public:
-            JsonPair(QString k, QJsonValue v) : QPair( k,JsonValue(v) ) { }
+            JsonPair(QString k, QJsonValue v) : QPair(k,v) { }
             explicit JsonPair(const QJsonObject::const_iterator& it)
                 : QPair( it.key(), it.value() ) { }
 
             QString key() const { return first; }
             JsonValue value() const { return second; }
+    };
+
+    class JsonPairRef
+    {
+        public:
+            JsonPairRef(QJsonObject::iterator other) : iter(other) { }
+
+            QString key() const { return iter.key(); }
+            QJsonValueRef value() { return iter.value(); }
+        private:
+            QJsonObject::iterator iter;
     };
 
     /**
@@ -106,22 +134,56 @@ namespace QMatrixClient
      *   QJsonValue's (@see adjust_iterator<>), therefore allowing to deal
      *   with keys, not only values.
      *
-     * It overloads several inherited methods to return its own version
-     * of const_iterator instead of QJsonObject::const_iterator. Since these
-     * are not virtual, the class is NOT polymorphic and is not intended for
-     * passing by reference/pointer.
+     * It also overloads several inherited methods to return its own iterators
+     * instead of QJsonObject ones. Since these are not virtual, the class
+     * is NOT polymorphic and is not intended for passing by reference/pointer.
      */
     class JsonObject : public QJsonObject
     {
         public:
             JsonObject(const QJsonObject& o) : QJsonObject(o) { }
 
-            JsonObject(const JsonValue& n) : QJsonObject(n.toObject()) { }
+            template <class ValT>
+            JsonObject(const JsonNodeBase<ValT>& n) : QJsonObject(n.toObject()) { }
 
             explicit JsonObject(const QJsonDocument& data)
                 : QJsonObject (data.object()) { }
 
-            JsonValue operator[] (const QString &key) const { return value(key); }
+            JsonObject object(QString key) const
+            {
+                return value(key).toObject();
+            }
+
+            JsonNode operator[] (const QString &key) const { return value(key); }
+//            JsonNodeRef operator[] (const QString &key) { return value(key); }
+
+            using QJsonObject::contains;
+            template <typename T>
+            bool contains(std::initializer_list<T> keys)
+            {
+                return std::all_of(keys.begin(), keys.end(),
+                        [=](const QString &k) { return contains(k); });
+            }
+
+            template <class T>
+            bool assign(QString key, T* valHolder) const
+            {
+                const_iterator iter = find(key);
+                if (iter == end())
+                    return false;
+
+                return iter->value().assign(valHolder);
+            }
+
+//            template <typename T, class FactoryT>
+//            T* parse(QString key, FactoryT factory) const
+//            {
+//                const_iterator iter = find(key);
+//                if (iter == end())
+//                    return nullptr;
+
+//                return factory(iter->value());
+//            }
 
             template <typename ContT>
             bool containsAll(const ContT& keyList) const
@@ -154,36 +216,41 @@ namespace QMatrixClient
              * to iterate over key-value pairs (otherwise you have to resort
              * to the old for syntax if you need access to keys as well).
              *
-             * This template is further specialised for const_iterator but
+             * This template can be used as-is for a const_iterator but
              * is also suitable as a base for a read-write iterator class.
              */
             template <class IterT>
             class adjust_iterator : public IterT
             {
-                public:
+                protected:
                     /**
-                     * This class is only needed to keep a pointer to
-                     * a temporary JsonPair that is returned by the iterator's
+                     * This template class is only needed to keep a pointer to
+                     * a temporary JsonPair or JsonPairRef returned by the iterator's
                      * operator->(). Thanks to this class, you can write,
-                     * e.g., iter->value() to get a JsonValue from the iterator
+                     * e.g., iter->value() to get a JsonValue from a const_iterator
                      * It behaves as an "unmovable" pointer: the only thing
                      * you can do with it is dereferencing by either
                      * operator*() or operator->().
                      */
-                    class JsonPairHolder
+                    template <class T>
+                    class Holder
                     {
                         public:
-                            JsonPairHolder(IterT& it) : obj(it) { }
+                            template <typename... ParamTs>
+                            Holder(ParamTs... params) : obj(params...) { }
 
-                            JsonPair operator*() const { return obj; }
-                            const JsonPair* operator->() const { return &obj; }
+                            T operator*() const { return obj; }
+                            const T* operator->() const { return &obj; }
                         protected:
-                            JsonPair obj;
+                            T obj;
                     };
 
+                public:
                     using base_type = IterT;
                     using value_type = JsonObject::value_type;
-                    using pointer = JsonPairHolder;
+
+                    using reference = value_type&;
+                    using pointer = Holder<value_type>;
 
                     // Constructors
                     using base_type::base_type;
@@ -196,15 +263,41 @@ namespace QMatrixClient
         public:
             using const_iterator = adjust_iterator<QJsonObject::const_iterator>;
 
+            class iterator : public adjust_iterator<QJsonObject::iterator>
+            {
+                public:
+                    using adjust_iterator::adjust_iterator;
+                    using reference = JsonPairRef;
+                    class pointer : public Holder<JsonPairRef>
+                    {
+                        public:
+                            using Holder::Holder;
+
+                            reference operator*() { return obj; }
+                            reference* operator->() { return &obj; }
+                    };
+
+                    reference operator*() { return reference(*this); }
+                    pointer operator->() { return pointer(*this); }
+            };
+
+        public:
             // STL style
+            iterator begin() { return QJsonObject::begin(); }
             const_iterator begin() const { return QJsonObject::begin(); }
             const_iterator constBegin() const { return QJsonObject::constBegin(); }
+            iterator end() { return QJsonObject::end(); }
             const_iterator end() const { return QJsonObject::end(); }
             const_iterator constEnd() const { return QJsonObject::constEnd(); }
+            iterator erase(iterator it) { return QJsonObject::erase(it); }
 
             // more Qt
+            typedef iterator Iterator;
             typedef const_iterator ConstIterator;
+            iterator find(const QString &key) { return QJsonObject::find(key); }
             const_iterator find(const QString &key) const { return QJsonObject::find(key); }
             const_iterator constFind(const QString &key) const { return QJsonObject::constFind(key); }
+            iterator insert(const QString &key, const QJsonValue &value) { return QJsonObject::insert(key, value); }
+            iterator insert(const JsonPair &kv) { return insert(kv.key(), kv.value()); }
     };
 }
