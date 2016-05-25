@@ -18,7 +18,7 @@
 
 #include "event.h"
 
-#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
@@ -134,7 +134,8 @@ bool Event::parseJson(const QJsonObject& obj)
     }
     if( obj.contains("origin_server_ts") )
     {
-        d->timestamp = QDateTime::fromMSecsSinceEpoch( (quint64) obj.value("origin_server_ts").toDouble(), Qt::UTC );
+        d->timestamp = QDateTime::fromMSecsSinceEpoch(
+            static_cast<qint64>(obj.value("origin_server_ts").toDouble()), Qt::UTC );
     } else {
         correct = false;
         qDebug() << "Event: can't find ts";
@@ -145,4 +146,13 @@ bool Event::parseJson(const QJsonObject& obj)
         d->roomId = obj.value("room_id").toString();
     }
     return correct;
+}
+
+QList<Event*> QMatrixClient::eventListFromJson(const QJsonArray& json)
+{
+    QList<Event*> l;
+    l.reserve(json.size());
+    for (auto event: json)
+        l.push_back(Event::fromJson(event.toObject()));
+    return l;
 }
