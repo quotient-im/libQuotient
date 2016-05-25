@@ -72,13 +72,13 @@ namespace QMatrixClient
 
     // A couple of examples how to specialise JsonValue::to() in your code
     template <>
-    QUrl JsonValue::to() const
+    inline QUrl JsonValue::to() const
     {
         return QUrl(toString());
     }
 
     template <>
-    QDateTime JsonValue::to() const
+    inline QDateTime JsonValue::to() const
     {
         return QDateTime::fromMSecsSinceEpoch( qint64(toDouble()) );
     }
@@ -122,6 +122,20 @@ namespace QMatrixClient
                 : QJsonObject (data.object()) { }
 
             JsonValue operator[] (const QString &key) const { return value(key); }
+
+            template <typename ContT>
+            bool containsAll(const ContT& keyList) const
+            {
+                return std::all_of(keyList.begin(), keyList.end(), &JsonObject::contains);
+            }
+
+            // A special overload for std::initializer_list because it's not
+            // automatically deduced
+            template <typename T>
+            bool containsAll(const std::initializer_list<T>& keyList) const
+            {
+                return containsAll(keyList);
+            }
 
             // STL compatibility
             using value_type = JsonPair;

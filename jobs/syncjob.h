@@ -26,6 +26,7 @@
 namespace QMatrixClient
 {
     class Event;
+    class JsonObject;
 
     class SyncRoomData
     {
@@ -36,7 +37,7 @@ namespace QMatrixClient
                 QString jsonKey;
             public:
                 explicit EventList(QString k) : jsonKey(k) { }
-                void fromJson(const QJsonObject& roomContents);
+                void fromJson(const JsonObject& allLists);
         };
 
         QString roomId;
