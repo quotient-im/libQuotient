@@ -30,12 +30,22 @@ namespace QMatrixClient
     class SyncRoomData
     {
     public:
+        class EventList : public QList<Event*>
+        {
+            private:
+                QString jsonKey;
+            public:
+                explicit EventList(QString k) : jsonKey(k) { }
+                void fromJson(const QJsonObject& roomContents);
+        };
+
         QString roomId;
         JoinState joinState;
-        QList<Event*> state;
-        QList<Event*> timeline;
-        QList<Event*> ephemeral;
-        QList<Event*> accountData;
+        EventList state;
+        EventList timeline;
+        EventList ephemeral;
+        EventList accountData;
+        EventList inviteState;
 
         bool timelineLimited;
         QString timelinePrevBatch;
