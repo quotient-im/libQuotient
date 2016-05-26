@@ -25,6 +25,8 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
 
+class QJsonArray;
+
 namespace QMatrixClient
 {
     enum class EventType
@@ -55,6 +57,8 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+
+    QList<Event*> eventListFromJson(const QJsonArray& contents);
 
     /**
      * Finds a place in the timeline where a new event/message could be inserted.
