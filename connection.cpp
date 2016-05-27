@@ -79,6 +79,8 @@ void Connection::connectWithToken(QString userId, QString token)
     d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
+    qDebug() << "Connected with token:";
+    qDebug() << token;
     emit connected();
 }
 
