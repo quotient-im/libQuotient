@@ -39,7 +39,7 @@ RoomMessageEvent::RoomMessageEvent()
     : Event(EventType::RoomMessage)
     , d(new Private)
 {
-    d->content = 0;
+    d->content = nullptr;
 }
 
 RoomMessageEvent::~RoomMessageEvent()

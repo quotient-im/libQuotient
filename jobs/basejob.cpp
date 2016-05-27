@@ -31,7 +31,7 @@ class BaseJob::Private
 {
     public:
         Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), reply(0), type(t), needsToken(nt) {}
+            : connection(c), reply(nullptr), type(t), needsToken(nt) {}
         
         ConnectionData* connection;
         QNetworkReply* reply;

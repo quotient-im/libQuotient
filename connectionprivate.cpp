@@ -39,7 +39,7 @@ ConnectionPrivate::ConnectionPrivate(Connection* parent)
     : q(parent)
 {
     isConnected = false;
-    data = 0;
+    data = nullptr;
 }
 
 ConnectionPrivate::~ConnectionPrivate()

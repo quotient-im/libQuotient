@@ -177,7 +177,7 @@ User* Connection::user(QString userId)
 User *Connection::user()
 {
     if( d->userId.isEmpty() )
-        return 0;
+        return nullptr;
     return user(d->userId);
 }
 
