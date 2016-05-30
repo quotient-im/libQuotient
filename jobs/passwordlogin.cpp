@@ -74,7 +74,7 @@ QString PasswordLogin::apiPath()
 QJsonObject PasswordLogin::data()
 {
     QJsonObject json;
-    json.insert("type", "m.login.password");
+    json.insert("type", QLatin1String("m.login.password"));
     json.insert("user", d->user);
     json.insert("password", d->password);
     return json;

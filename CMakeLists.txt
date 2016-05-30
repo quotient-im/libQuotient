@@ -14,9 +14,9 @@ set(CMAKE_AUTOMOC ON)
 set( BUNDLE_KCOREADDONS "AUTO" CACHE STRING "Build own KCoreAddons, one of ON, OFF and AUTO" )
 set( KCOREADDONS_DIR "kcoreaddons" CACHE STRING "Local path to bundled KCoreAddons sources, if own KCoreAddons is built" )
 
-find_package(Qt5Core 5.3.0) # For JSON (de)serialization
-find_package(Qt5Network 5.3.0) # For networking
-find_package(Qt5Gui 5.3.0) # For userpics
+find_package(Qt5Core 5.2.0) # For JSON (de)serialization
+find_package(Qt5Network 5.2.0) # For networking
+find_package(Qt5Gui 5.2.0) # For userpics
 
 if ( (NOT BUNDLE_KCOREADDONS STREQUAL "ON")
      AND (NOT BUNDLE_KCOREADDONS STREQUAL "OFF")
