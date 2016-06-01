@@ -34,8 +34,8 @@ namespace QMatrixClient
             QString roomId();
 
             protected:
-                QString apiPath();
-                void parseJson(const QJsonDocument& data);
+                QString apiPath() const override;
+                void parseJson(const QJsonDocument& data) override;
 
             private:
                 class Private;

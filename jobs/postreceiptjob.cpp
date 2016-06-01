@@ -34,7 +34,7 @@ class PostReceiptJob::Private
 };
 
 PostReceiptJob::PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId)
-    : BaseJob(connection, JobHttpType::PostJob)
+    : BaseJob(connection, JobHttpType::PostJob, "PostReceiptJob")
     , d(new Private)
 {
     d->roomId = roomId;
@@ -46,7 +46,7 @@ PostReceiptJob::~PostReceiptJob()
     delete d;
 }
 
-QString PostReceiptJob::apiPath()
+QString PostReceiptJob::apiPath() const
 {
     return QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(d->roomId).arg(d->eventId);
 }

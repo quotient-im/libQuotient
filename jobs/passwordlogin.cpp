@@ -39,7 +39,7 @@ class PasswordLogin::Private
 };
 
 PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, JobHttpType::PostJob, false)
+    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin", false)
     , d(new Private)
 {
     d->user = user;
@@ -66,12 +66,12 @@ QString PasswordLogin::server()
     return d->returned_server;
 }
 
-QString PasswordLogin::apiPath()
+QString PasswordLogin::apiPath() const
 {
     return "_matrix/client/r0/login";
 }
 
-QJsonObject PasswordLogin::data()
+QJsonObject PasswordLogin::data() const
 {
     QJsonObject json;
     json.insert("type", "m.login.password");
@@ -88,9 +88,7 @@ void PasswordLogin::parseJson(const QJsonDocument& data)
         fail( BaseJob::UserDefinedError, "Unexpected data" );
     }
     d->returned_token = json.value("access_token").toString();
-    qDebug() << d->returned_token;
     d->returned_server = json.value("home_server").toString();
     d->returned_id = json.value("user_id").toString();
-    connection()->setToken(d->returned_token);
     emitResult();
 }

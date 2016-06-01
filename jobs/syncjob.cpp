@@ -44,7 +44,7 @@ class SyncJob::Private
 };
 
 SyncJob::SyncJob(ConnectionData* connection, QString since)
-    : BaseJob(connection, JobHttpType::GetJob)
+    : BaseJob(connection, JobHttpType::GetJob, "SyncJob")
     , d(new Private)
 {
     d->since = since;
@@ -87,12 +87,12 @@ QList<SyncRoomData> SyncJob::roomData() const
     return d->roomData;
 }
 
-QString SyncJob::apiPath()
+QString SyncJob::apiPath() const
 {
     return "_matrix/client/r0/sync";
 }
 
-QUrlQuery SyncJob::query()
+QUrlQuery SyncJob::query() const
 {
     QUrlQuery query;
     if( !d->filter.isEmpty() )

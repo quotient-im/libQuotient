@@ -37,7 +37,7 @@ class CheckAuthMethods::Private
 };
 
 CheckAuthMethods::CheckAuthMethods(ConnectionData* connection)
-    : BaseJob(connection, JobHttpType::GetJob, false)
+    : BaseJob(connection, JobHttpType::GetJob, "CheckAuthMethods", false)
     , d(new Private)
 {
 }
@@ -52,7 +52,7 @@ QString CheckAuthMethods::session()
     return d->session;
 }
 
-QString CheckAuthMethods::apiPath()
+QString CheckAuthMethods::apiPath() const
 {
     return "_matrix/client/r0/login";
 }

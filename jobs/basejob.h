@@ -40,7 +40,8 @@ namespace QMatrixClient
     {
             Q_OBJECT
         public:
-            BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken=true);
+            BaseJob(ConnectionData* connection, JobHttpType type,
+                    QString name, bool needsToken=true);
             virtual ~BaseJob();
 
             void start() override;
@@ -63,9 +64,9 @@ namespace QMatrixClient
             ConnectionData* connection() const;
 
             // to implement
-            virtual QString apiPath()=0;
-            virtual QUrlQuery query();
-            virtual QJsonObject data();
+            virtual QString apiPath() const = 0;
+            virtual QUrlQuery query() const;
+            virtual QJsonObject data() const;
             virtual void parseJson(const QJsonDocument& data);
             
             void fail( int errorCode, QString errorString );

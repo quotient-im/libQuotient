@@ -40,7 +40,7 @@ class RoomMessagesJob::Private
 };
 
 RoomMessagesJob::RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir, int limit)
-    : BaseJob(data, JobHttpType::GetJob)
+    : BaseJob(data, JobHttpType::GetJob, "RoomMessagesJob")
 {
     d = new Private();
     d->room = room;
@@ -64,12 +64,12 @@ QString RoomMessagesJob::end()
     return d->end;
 }
 
-QString RoomMessagesJob::apiPath()
+QString RoomMessagesJob::apiPath() const
 {
     return QString("/_matrix/client/r0/rooms/%1/messages").arg(d->room->id());
 }
 
-QUrlQuery RoomMessagesJob::query()
+QUrlQuery RoomMessagesJob::query() const
 {
     QUrlQuery query;
     query.addQueryItem("from", d->from);

@@ -37,7 +37,7 @@ namespace QMatrixClient
     class Connection: public QObject {
             Q_OBJECT
         public:
-            Connection(QUrl server, QObject* parent=0);
+            Connection(QUrl server, QObject* parent = nullptr);
             Connection();
             virtual ~Connection();
 

@@ -79,6 +79,8 @@ void Connection::connectWithToken(QString userId, QString token)
     d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
+    qDebug() << "Connected with token:";
+    qDebug() << token;
     emit connected();
 }
 
@@ -175,7 +177,7 @@ User* Connection::user(QString userId)
 User *Connection::user()
 {
     if( d->userId.isEmpty() )
-        return 0;
+        return nullptr;
     return user(d->userId);
 }
 

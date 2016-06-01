@@ -35,7 +35,7 @@ class PostMessageJob::Private
 };
 
 PostMessageJob::PostMessageJob(ConnectionData* connection, Room* room, QString type, QString message)
-    : BaseJob(connection, JobHttpType::PostJob)
+    : BaseJob(connection, JobHttpType::PostJob, "PostMessageJob")
     , d(new Private)
 {
     d->type = type;
@@ -48,12 +48,12 @@ PostMessageJob::~PostMessageJob()
     delete d;
 }
 
-QString PostMessageJob::apiPath()
+QString PostMessageJob::apiPath() const
 {
     return QString("_matrix/client/r0/rooms/%1/send/m.room.message").arg(d->room->id());
 }
 
-QJsonObject PostMessageJob::data()
+QJsonObject PostMessageJob::data() const
 {
     QJsonObject json;
     json.insert("msgtype", d->type);

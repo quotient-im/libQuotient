@@ -34,7 +34,7 @@ class RoomMembersJob::Private
 };
 
 RoomMembersJob::RoomMembersJob(ConnectionData* data, Room* room)
-    : BaseJob(data, JobHttpType::GetJob)
+    : BaseJob(data, JobHttpType::GetJob, "RoomMembersJob")
     , d(new Private)
 {
     d->room = room;
@@ -50,7 +50,7 @@ QList< State* > RoomMembersJob::states()
     return d->states;
 }
 
-QString RoomMembersJob::apiPath()
+QString RoomMembersJob::apiPath() const
 {
     return QString("_matrix/client/r0/rooms/%1/members").arg(d->room->id());
 }

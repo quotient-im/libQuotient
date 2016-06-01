@@ -31,7 +31,7 @@ class BaseJob::Private
 {
     public:
         Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), reply(0), type(t), needsToken(nt) {}
+            : connection(c), reply(nullptr), type(t), needsToken(nt) {}
         
         ConnectionData* connection;
         QNetworkReply* reply;
@@ -39,7 +39,7 @@ class BaseJob::Private
         bool needsToken;
 };
 
-BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
+BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
     // Work around KJob inability to separate success and failure signals
@@ -49,6 +49,7 @@ BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, bool needsToken)
         else
             emit failure(this);
     });
+    setObjectName(name);
 }
 
 BaseJob::~BaseJob()
@@ -67,12 +68,12 @@ ConnectionData* BaseJob::connection() const
     return d->connection;
 }
 
-QJsonObject BaseJob::data()
+QJsonObject BaseJob::data() const
 {
     return QJsonObject();
 }
 
-QUrlQuery BaseJob::query()
+QUrlQuery BaseJob::query() const
 {
     return QUrlQuery();
 }
@@ -121,7 +122,7 @@ void BaseJob::fail(int errorCode, QString errorString)
     setErrorText( errorString );
     if( d->reply->isRunning() )
         d->reply->abort();
-    qWarning() << this << "failed:" << errorString;
+    qWarning() << "Job" << objectName() << "failed:" << errorString;
     emitResult();
 }
 
@@ -155,7 +156,6 @@ void BaseJob::gotReply()
 
 void BaseJob::timeout()
 {
-    qDebug() << "Timeout!";
     fail( TimeoutError, "The job has timed out" );
 }
 
