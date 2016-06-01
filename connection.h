@@ -66,6 +66,7 @@ namespace QMatrixClient
             void connected();
             void reconnected();
             void resolved();
+            void syncStarted();
             void syncDone();
             void newRoom(Room* room);
             void joinedRoom(Room* room);

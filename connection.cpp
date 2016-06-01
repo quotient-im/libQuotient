@@ -105,6 +105,7 @@ SyncJob* Connection::sync(int timeout)
     syncJob->setFilter(filter);
     syncJob->setTimeout(timeout);
     connect( syncJob, &SyncJob::success, [=] () {
+        emit syncStarted();
         d->data->setLastEvent(syncJob->nextBatch());
         d->processRooms(syncJob->roomData());
         emit syncDone();
