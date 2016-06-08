@@ -21,11 +21,11 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
-#include "jobs/passwordlogin.h"
-#include "jobs/logoutjob.h"
+#include "serverapi/passwordlogin.h"
+#include "serverapi/logout.h"
 #include "jobs/postmessagejob.h"
 #include "jobs/postreceiptjob.h"
-#include "jobs/joinroomjob.h"
+#include "serverapi/joinroom.h"
 #include "jobs/leaveroomjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
@@ -104,14 +104,14 @@ void Connection::resolveServer(QString domain)
 
 void Connection::connectToServer(QString user, QString password)
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        connectWithToken(loginJob->id(), loginJob->token());
+    using namespace ServerApi;
+    auto loginJob = callServer(PasswordLogin(user, password));
+    loginJob->onSuccess([=] (const AccessData& result) {
+        connectWithToken(result.id, result.token);
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
+    loginJob->onFailure([=] (Status status) {
+        emit loginError(status.message);
     });
-    loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
 }
@@ -130,16 +130,16 @@ void Connection::connectWithToken(QString userId, QString token)
 
 void Connection::reconnect()
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, d->username, d->password );
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        d->userId = loginJob->id();
+    using namespace ServerApi;
+    auto loginJob = callServer(PasswordLogin(d->username, d->password));
+    connect( loginJob, &Call::success, [=]() {
+        d->userId = loginJob->result().id;
         emit reconnected();
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
+    connect( loginJob, &Call::failure, [=](Status status) {
+        emit loginError(status.message);
         d->isConnected = false;
     });
-    loginJob->start();
 }
 
 void Connection::disconnectFromServer()
@@ -150,11 +150,11 @@ void Connection::disconnectFromServer()
 
 void Connection::logout()
 {
-    auto job = callApi<LogoutJob>();
-    connect( job, &LogoutJob::success, [=] {
-        stopSync();
-        emit loggedOut();
-    });
+    callServer(ServerApi::Logout())
+        ->onSuccess([=]() {
+            d->data->setToken({});
+            emit loggedOut();
+        });
 }
 
 void Connection::sync(int timeout)
@@ -209,12 +209,11 @@ PostReceiptJob* Connection::postReceipt(Room* room, Event* event)
 
 JoinRoomJob* Connection::joinRoom(QString roomAlias)
 {
-    auto job = callApi<JoinRoomJob>(roomAlias);
-    connect( job, &BaseJob::success, [=] () {
-        if ( Room* r = provideRoom(job->roomId()) )
-            emit joinedRoom(r);
-    });
-    return job;
+    callServer(ServerApi::JoinRoom(roomAlias))
+        ->onSuccess([=] (const QString& roomId) {
+            if ( Room* r = provideRoom(roomId) )
+                emit joinedRoom(r);
+        });
 }
 
 void Connection::leaveRoom(Room* room)
@@ -228,18 +227,6 @@ RoomMessagesJob* Connection::getMessages(Room* room, QString from)
     RoomMessagesJob* job = new RoomMessagesJob(d->data, room->id(), from);
     job->start();
     return job;
-}
-
-MediaThumbnailJob* Connection::getThumbnail(QUrl url, QSize requestedSize)
-{
-    MediaThumbnailJob* job = new MediaThumbnailJob(d->data, url, requestedSize);
-    job->start();
-    return job;
-}
-
-MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int requestedHeight)
-{
-    return getThumbnail(url, QSize(requestedWidth, requestedHeight));
 }
 
 QUrl Connection::homeserver() const

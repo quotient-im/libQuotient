@@ -44,7 +44,7 @@ message( STATUS "===============================================================
 message( STATUS )
 
 # Set up source files
-set(libqmatrixclient_SRCS
+list(APPEND libqmatrixclient_SRCS
    connectiondata.cpp
    connection.cpp
    room.cpp
@@ -61,18 +61,20 @@ set(libqmatrixclient_SRCS
    events/typingevent.cpp
    events/receiptevent.cpp
    events/unknownevent.cpp
+   serverapi/servercallsetup.cpp
+   serverapi/servercall.cpp
+   serverapi/passwordlogin.cpp
+   serverapi/logout.cpp
+   serverapi/getmediathumbnail.cpp
+   serverapi/joinroom.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
-   jobs/passwordlogin.cpp
    jobs/postmessagejob.cpp
    jobs/postreceiptjob.cpp
-   jobs/joinroomjob.cpp
    jobs/leaveroomjob.cpp
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
-   jobs/mediathumbnailjob.cpp
-   jobs/logoutjob.cpp
-    )
+)
 
 set(example_SRCS examples/qmc-example.cpp)
 

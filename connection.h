@@ -18,9 +18,13 @@
 
 #pragma once
 
+#include "serverapi/servercall.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
+
+#include <utility>
 
 namespace QMatrixClient
 {
@@ -62,8 +66,6 @@ namespace QMatrixClient
             Q_INVOKABLE virtual JoinRoomJob* joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
-            virtual MediaThumbnailJob* getThumbnail( QUrl url, QSize requestedSize );
-            MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(QString userId);
@@ -81,6 +83,12 @@ namespace QMatrixClient
                 auto job = new JobT(connectionData(), jobArgs...);
                 job->start();
                 return job;
+            }
+
+            template <typename ConfigT>
+            ServerApi::PendingCall<ConfigT>* callServer(const ConfigT& c)
+            {
+                return new ServerApi::PendingCall<ConfigT>(connectionData(), c);
             }
 
         signals:
