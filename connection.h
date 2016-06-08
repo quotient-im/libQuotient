@@ -19,7 +19,11 @@
 #ifndef QMATRIXCLIENT_CONNECTION_H
 #define QMATRIXCLIENT_CONNECTION_H
 
+#include "serverapi/servercall.h"
+
 #include <QtCore/QObject>
+
+#include <utility>
 
 namespace QMatrixClient
 {
@@ -63,6 +67,13 @@ namespace QMatrixClient
             Q_INVOKABLE virtual User* user();
             Q_INVOKABLE virtual QString userId();
             Q_INVOKABLE virtual QString token();
+
+            template <typename SetupT>
+            ServerCall<SetupT>* callServer(SetupT&& setup, bool startNow = true)
+            {
+                return new ServerCall<SetupT>
+                        (connectionData(), std::forward<SetupT>(setup), startNow);
+            }
 
         signals:
             void resolved();
