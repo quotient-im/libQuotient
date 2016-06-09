@@ -52,7 +52,7 @@ class ServerCallBase::Private
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         QByteArray rawData;
 
-        // The actual status object is managed in ServerCall<>
+        // The actual status object is managed in ServerCall<>::setup
         CallStatus* pStatus;
 };
 
@@ -119,7 +119,6 @@ bool ServerCallBase::pendingReply() const
 
 CallStatus ServerCallBase::status() const
 {
-    // Will crash if you try to use it with no pStatus pointer set. Use bindStatus()
     Q_ASSERT(d->pStatus);
     return *(d->pStatus);
 }
@@ -131,7 +130,6 @@ const QByteArray&ServerCallBase::rawData() const
 
 void ServerCallBase::setStatus(CallStatus cs)
 {
-    // Will crash if you try to use it with no pStatus pointer set. Use bindStatus()
     Q_ASSERT(d->pStatus);
     *(d->pStatus) = cs;
     if (!cs.good())

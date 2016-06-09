@@ -21,11 +21,12 @@
 #include "connection.h"
 #include "events/event.h"
 #include "events/roommemberevent.h"
-#include "jobs/mediathumbnailjob.h"
+#include "serverapi/getmediathumbnail.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QPair>
 #include <QtCore/QDebug>
+
 
 using namespace QMatrixClient;
 
@@ -132,14 +133,14 @@ void User::requestAvatar()
 
 void User::Private::requestAvatar()
 {
-    MediaThumbnailJob* job =
-            connection->getThumbnail(avatarUrl, requestedWidth, requestedHeight);
-    connect( job, &MediaThumbnailJob::success, [=]() {
-        avatarOngoingRequest = false;
-        avatarValid = true;
-        avatar = job->thumbnail().scaled(requestedWidth, requestedHeight,
-                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        scaledMap.clear();
-        emit q->avatarChanged(q);
-    });
+    connection
+        ->callServer(GetMediaThumbnail(avatarUrl, requestedWidth, requestedHeight))
+        ->onSuccess( [=](const GetMediaThumbnail& data) {
+            avatarOngoingRequest = false;
+            avatarValid = true;
+            avatar = data.thumbnail.scaled(requestedWidth, requestedHeight,
+                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            scaledMap.clear();
+            emit q->avatarChanged(q);
+        });
 }

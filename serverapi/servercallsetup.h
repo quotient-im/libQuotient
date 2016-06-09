@@ -30,6 +30,7 @@ namespace QMatrixClient
      * of a code, that is described (but not delimited) by the respective enum,
      * and a freeform message.
      *
+     * @see ServerCall, ServerCallSetup
      */
     class CallStatus
     {
@@ -59,9 +60,9 @@ namespace QMatrixClient
     };
 
     // The following two types define two stock result adaptors to be used.
-    // If you write a customer preprocessor, you should define:
+    // If you write a custom adaptor, you should define:
     // - output_type type;
-    // - a function (or a function object equivalent to it):
+    // - a function (or a function object equivalent to it)
     //       output_type preprocess(const QByteArray&, CallStatus&)
     //   The return value can be of a type implicitly castable to output_type
 
@@ -90,7 +91,7 @@ namespace QMatrixClient
     };
 
     // A supplementary base class for ServerCallSetup<> to pass the shared
-    // status to ServerCallBase. Not supposed to be derived from directly.
+    // status to ServerCallBase. Do not derive from it directly, use ServerCallSetup<>.
     class ServerCallSetupBase
     {
         public:
@@ -111,7 +112,6 @@ namespace QMatrixClient
             friend class ServerCallBase;
             // Allow full access to status for the ServerCallBase class and
             // classes derived from ServerCallSetupBase.
-            // in particular sending this reference further on.
             CallStatus* statusPtr() { return &m_status; }
         private:
             QString m_name;
