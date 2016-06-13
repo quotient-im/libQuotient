@@ -41,7 +41,7 @@
 
 using namespace QMatrixClient;
 
-class Room::Private: public QObject
+class Room::Private
 {
     public:
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
@@ -52,7 +52,7 @@ class Room::Private: public QObject
         Room* q;
 
         //static LogMessage* parseMessage(const QJsonObject& message);
-        void gotMessages(KJob* job);
+
 		// This updates the room displayname field (which is the way a room should be shown in the room list)
 		// It should be called whenever the list of members or the room name (m.room.name) or canonical alias change.
         void updateDisplayname();
