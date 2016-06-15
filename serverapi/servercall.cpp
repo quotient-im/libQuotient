@@ -40,14 +40,13 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class ServerCallBase::Private
 {
     public:
-        Private(ConnectionData* c, QString n)
-            : connection(c), name(n), reply(nullptr), pStatus(nullptr)
-        {}
+        explicit Private(ConnectionData* c)
+            : connection(c), reply(nullptr), pStatus(nullptr)
+        { }
 
         inline void sendRequest(const RequestParams& params);
 
         ConnectionData* connection;
-        QString name;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         QByteArray rawData;
@@ -85,7 +84,7 @@ void ServerCallBase::Private::sendRequest(const RequestParams& params)
 }
 
 ServerCallBase::ServerCallBase(ConnectionData* data, QString name)
-    : d(new Private(data, name))
+    : d(new Private(data))
 {
     setObjectName(name);
 }
