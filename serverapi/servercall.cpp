@@ -22,6 +22,7 @@
 #include "servercallsetup.h"
 
 #include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 #include <QtCore/QUrlQuery>
 #include <QtCore/QTimer>
 
@@ -41,7 +42,7 @@ class ServerCallBase::Private
 {
     public:
         explicit Private(ConnectionData* c)
-            : connection(c), reply(nullptr), pStatus(nullptr)
+            : connection(c), reply(nullptr), status(CallStatus::PendingResult)
         { }
 
         inline void sendRequest(const RequestParams& params);
@@ -51,8 +52,7 @@ class ServerCallBase::Private
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         QByteArray rawData;
 
-        // The actual status object is managed in ServerCall<>::setup
-        CallStatus* pStatus;
+        CallStatus status;
 };
 
 void ServerCallBase::Private::sendRequest(const RequestParams& params)
@@ -83,43 +83,29 @@ void ServerCallBase::Private::sendRequest(const RequestParams& params)
     }
 }
 
-ServerCallBase::ServerCallBase(ConnectionData* data, QString name)
+ServerCallBase::ServerCallBase(ConnectionData* data, QString name,
+                               const RequestParams& params)
     : d(new Private(data))
 {
     setObjectName(name);
-}
 
-void ServerCallBase::init(ServerCallSetupBase& setup)
-{
-    d->pStatus = setup.statusPtr();
+    d->sendRequest(params);
+    connect( reply(), &QNetworkReply::sslErrors, this, &ServerCallBase::sslErrors );
+    connect( reply(), &QNetworkReply::finished, this, &ServerCallBase::gotReply );
+    QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
 }
 
 ServerCallBase::~ServerCallBase()
 { }
-
-void ServerCallBase::doStart(const RequestParams& params)
-{
-    setStatus(CallStatus::PendingResult);
-
-    d->sendRequest(params);
-    connect( reply(), &QNetworkReply::sslErrors, this, &ServerCallBase::sslErrors );
-    QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
-}
 
 void ServerCallBase::abandon()
 {
     finish(false);
 }
 
-bool ServerCallBase::pendingReply() const
-{
-    return d->reply && d->reply->isRunning();
-}
-
 CallStatus ServerCallBase::status() const
 {
-    Q_ASSERT(d->pStatus);
-    return *(d->pStatus);
+    return d->status;
 }
 
 const QByteArray&ServerCallBase::rawData() const
@@ -129,8 +115,7 @@ const QByteArray&ServerCallBase::rawData() const
 
 void ServerCallBase::setStatus(CallStatus cs)
 {
-    Q_ASSERT(d->pStatus);
-    *(d->pStatus) = cs;
+    d->status = cs;
     if (!cs.good())
     {
         qWarning() << "Server call" << objectName() << "failed:"
@@ -148,19 +133,23 @@ QNetworkReply* ServerCallBase::reply() const
     return d->reply.data();
 }
 
-bool ServerCallBase::readReply()
+void ServerCallBase::gotReply()
 {
     if( reply()->error() == QNetworkReply::NoError )
     {
         setStatus(CallStatus::Success);
         d->rawData = reply()->readAll();
+        makeResult(d->rawData);
     }
     else
     {
         setStatus({ CallStatus::NetworkError,
-              tr("%1 %2").arg(d->reply->error()).arg(d->reply->errorString()) });
+                      tr("Network Error %1: %2")
+                            .arg(d->reply->error())
+                            .arg(d->reply->errorString())
+                  });
     }
-    return status().good();
+    finish(true);
 }
 
 void ServerCallBase::finish(bool emitResult)

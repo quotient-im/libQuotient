@@ -86,7 +86,7 @@ void Connection::connectWithToken(QString userId, QString token)
 
 void Connection::reconnect()
 {
-    auto loginJob = callServer(PasswordLogin(d->username, d->password), true);
+    auto loginJob = callServer(PasswordLogin(d->username, d->password));
     connect( loginJob, &ServerCallBase::success, [=]() {
         d->userId = loginJob->results().id;
         emit reconnected();

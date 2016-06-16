@@ -23,21 +23,21 @@
 
 using namespace QMatrixClient;
 
-QJsonObject JsonObjectResult::preprocess(QByteArray bytes, CallStatus& status)
+QJsonObject GetJson::preprocess(QByteArray bytes)
 {
     QJsonParseError error;
     QJsonDocument data = QJsonDocument::fromJson(bytes, &error);
     if (error.error != QJsonParseError::NoError)
     {
-        status = { CallStatus::JsonParseError,
+        setStatus( CallStatus::JsonParseError,
                    QObject::tr("Invalid JSON: %1 at offset %2")
                        .arg(error.errorString()).arg(error.offset)
-                 };
+                 );
     }
     if (!data.isObject())
     {
-        status = { CallStatus::JsonParseError,
-                   QObject::tr("The received JSON has no top-level object") };
+        setStatus( CallStatus::JsonParseError,
+                   QObject::tr("The received JSON has no top-level object") );
     }
     return std::move(data.object());
 }

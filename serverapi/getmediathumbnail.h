@@ -26,7 +26,7 @@ namespace QMatrixClient
 {
     enum class ThumbnailType {Crop, Scale};
 
-    class GetMediaThumbnail: public ServerCallSetup<NoResultAdaptor>
+    class GetMediaThumbnail: public ServerCallSetup<GetBytes>
     {
         public:
             GetMediaThumbnail(QUrl url, int requestedWidth, int requestedHeight,

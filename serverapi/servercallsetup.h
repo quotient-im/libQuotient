@@ -30,6 +30,9 @@ namespace QMatrixClient
      * of a code, that is described (but not delimited) by the respective enum,
      * and a freeform message.
      *
+     * To extend the list of error codes, define an (anonymous) enum
+     * with additional values starting at CallStatus::UserDefinedError
+     *
      * @see ServerCall, ServerCallSetup
      */
     class CallStatus
@@ -59,37 +62,6 @@ namespace QMatrixClient
             QString message;
     };
 
-    // The following two types define two stock result adaptors to be used.
-    // If you write a custom adaptor, you should define:
-    // - output_type type;
-    // - a function (or a function object equivalent to it)
-    //       output_type preprocess(const QByteArray&, CallStatus&)
-    //   The return value can be of a type implicitly castable to output_type
-
-    /**
-     * This no-op adaptor passes the reply contents without any actions.
-     */
-    struct NoResultAdaptor
-    {
-        using output_type = QByteArray;
-        static const QByteArray& preprocess(const QByteArray& bytes,
-                                            CallStatus& /*unused*/)
-        {
-            return bytes;
-        }
-    };
-
-    /**
-     * This adaptor checks the reply contents to be a valid JSON document
-     * that has a single object on the top level, parses the document and
-     * returns the resulting structure wrapped into a QJsonObject.
-     */
-    struct JsonObjectResult
-    {
-        using output_type = QJsonObject;
-        static QJsonObject preprocess(QByteArray bytes, CallStatus& status);
-    };
-
     // A supplementary base class for ServerCallSetup<> to pass the shared
     // status to ServerCallBase. Do not derive from it directly, use ServerCallSetup<>.
     class ServerCallSetupBase
@@ -109,14 +81,48 @@ namespace QMatrixClient
             void setStatus(int c, QString m) { setStatus(CallStatus(c,m)); }
             void setStatus(CallStatus cs) { m_status = cs; }
 
-            friend class ServerCallBase;
-            // Allow full access to status for the ServerCallBase class and
-            // classes derived from ServerCallSetupBase.
-            CallStatus* statusPtr() { return &m_status; }
         private:
             QString m_name;
             RequestParams m_reqParams;
             CallStatus m_status;
+    };
+
+    // The following two types define two stock result preprocessors to be used.
+    // If you write a custom preprocessor, you should:
+    // - provide a constructor with the same signature as the one of ServerCallSetupBase
+    //   ('using', as below, is the easiest way)
+    // - define preprocessed_type that specifies the output type of your preprocessor;
+    // - provide a function or a function object equivalent to:
+    //       preprocessed_type preprocess(const QByteArray&)
+    //   The return value type can be implicitly castable to preprocessed_type
+
+    /**
+     * This no-op adaptor passes the reply contents without any actions.
+     */
+    class GetBytes : public ServerCallSetupBase
+    {
+        public:
+            using ServerCallSetupBase::ServerCallSetupBase;
+
+            using preprocessed_type = QByteArray;
+            const QByteArray& preprocess(const QByteArray& bytes)
+            {
+                return bytes;
+            }
+    };
+
+    /**
+     * This adaptor checks the reply contents to be a valid JSON document
+     * that has a single object on the top level, parses the document and
+     * returns the resulting structure wrapped into a QJsonObject.
+     */
+    class GetJson : public ServerCallSetupBase
+    {
+        public:
+            using ServerCallSetupBase::ServerCallSetupBase;
+
+            using preprocessed_type = QJsonObject;
+            QJsonObject preprocess(QByteArray bytes);
     };
 
     /**
@@ -131,35 +137,23 @@ namespace QMatrixClient
      *
      * @see RequestParams, ServerCall
      */
-    template <class ResultAdaptorT = JsonObjectResult>
-    class ServerCallSetup : public ServerCallSetupBase
+    template <class ResultAdaptorT = GetJson>
+    class ServerCallSetup : public ResultAdaptorT
     {
-        public: // For use in derived classes initialization
+        public:
             ServerCallSetup(QString name, RequestParams rp)
-                : ServerCallSetupBase(name, rp)
+                : ResultAdaptorT(name, rp)
             { }
 
             using HttpType = RequestParams::HttpType;
             using Query = RequestParams::Query;
             using Data = RequestParams::Data;
 
-            using preprocessed_type = typename ResultAdaptorT::output_type;
-
-            void fillResult(preprocessed_type)
+            void fillResult(typename ResultAdaptorT::preprocessed_type)
             {
                 Q_STATIC_ASSERT_X(true,
                     "When deriving from ServerCallSetup<>, "
                     "fillResult(preprocessed_type) should be redefined");
             }
-
-        public:
-            // If you want to do preprocessing inside the class derived from
-            // ServerCallSetup<>, don't override this; just use NoResultAdaptor
-            // and do preprocessing in fillResult() directly.
-            preprocessed_type preprocess(const QByteArray& bytes)
-            {
-                return std::move(ResultAdaptorT::preprocess(bytes, *statusPtr()));
-            }
     };
-
 }
