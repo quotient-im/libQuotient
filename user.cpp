@@ -25,6 +25,7 @@
 
 #include <QtCore/QTimer>
 #include <QtCore/QPair>
+#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
