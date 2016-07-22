@@ -78,6 +78,7 @@ set(libqmatrixclient_SRCS
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
+   jobs/logoutjob.cpp
     )
 # Add bundled KCoreAddons sources if we haven't found the system sources
 # or if we ignore them

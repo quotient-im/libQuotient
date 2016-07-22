@@ -48,6 +48,8 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void connectToServer( QString user, QString password );
             Q_INVOKABLE virtual void connectWithToken( QString userId, QString token );
             Q_INVOKABLE virtual void reconnect();
+            Q_INVOKABLE virtual void logout();
+
             Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
@@ -63,9 +65,11 @@ namespace QMatrixClient
             Q_INVOKABLE virtual QString token();
 
         signals:
+            void resolved();
             void connected();
             void reconnected();
-            void resolved();
+            void loggedOut();
+
             void syncDone();
             void newRoom(Room* room);
             void joinedRoom(Room* room);
