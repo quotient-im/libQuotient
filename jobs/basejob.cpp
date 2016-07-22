@@ -80,6 +80,7 @@ QUrlQuery BaseJob::query() const
 
 void BaseJob::parseJson(const QJsonDocument& data)
 {
+    emitResult();
 }
 
 void BaseJob::start()
@@ -120,7 +121,7 @@ void BaseJob::fail(int errorCode, QString errorString)
 {
     setError( errorCode );
     setErrorText( errorString );
-    if( d->reply->isRunning() )
+    if( d->reply && d->reply->isRunning() )
         d->reply->abort();
     qWarning() << "Job" << objectName() << "failed:" << errorString;
     emitResult();
@@ -138,12 +139,24 @@ QNetworkReply* BaseJob::networkReply() const
 
 void BaseJob::gotReply()
 {
-    if( d->reply->error() != QNetworkReply::NoError )
+    switch( d->reply->error() )
     {
-        qDebug() << "NetworkError:" << d->reply->error();
+    case QNetworkReply::NoError:
+        break; // All good, go to the normal flow after the switch()
+
+    case QNetworkReply::AuthenticationRequiredError:
+    case QNetworkReply::ContentAccessDenied:
+    case QNetworkReply::ContentOperationNotPermittedError:
+        qDebug() << "Content access error, Qt error code:" << d->reply->error();
+        fail( ContentAccessError, d->reply->errorString() );
+        return;
+
+    default:
+        qDebug() << "NetworkError, Qt error code:" << d->reply->error();
         fail( NetworkError, d->reply->errorString() );
         return;
     }
+
     QJsonParseError error;
     QJsonDocument data = QJsonDocument::fromJson(d->reply->readAll(), &error);
     if( error.error != QJsonParseError::NoError )
