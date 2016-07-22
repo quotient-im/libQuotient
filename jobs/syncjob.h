@@ -58,7 +58,6 @@ namespace QMatrixClient
     class ConnectionData;
     class SyncJob: public BaseJob
     {
-            Q_OBJECT
         public:
             SyncJob(ConnectionData* connection, QString since=QString());
             virtual ~SyncJob();

@@ -26,7 +26,6 @@ namespace QMatrixClient
     class Room;
     class PostMessageJob: public BaseJob
     {
-            Q_OBJECT
         public:
             PostMessageJob(ConnectionData* connection, Room* room, QString type, QString message);
             virtual ~PostMessageJob();

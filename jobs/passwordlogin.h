@@ -27,7 +27,6 @@ namespace QMatrixClient
 
     class PasswordLogin : public BaseJob
     {
-            Q_OBJECT
         public:
             PasswordLogin(ConnectionData* connection, QString user, QString password);
             virtual ~PasswordLogin();

@@ -29,7 +29,6 @@ namespace QMatrixClient
 
     class MediaThumbnailJob: public BaseJob
     {
-            Q_OBJECT
         public:
             MediaThumbnailJob(ConnectionData* data, QUrl url, int requestedWidth, int requestedHeight,
                               ThumbnailType thumbnailType=ThumbnailType::Scale);

@@ -30,7 +30,6 @@ namespace QMatrixClient
 
     class RoomMessagesJob: public BaseJob
     {
-            Q_OBJECT
         public:
             RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir = FetchDirectory::Backwards, int limit=10);
             virtual ~RoomMessagesJob();

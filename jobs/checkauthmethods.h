@@ -27,7 +27,6 @@ namespace QMatrixClient
     
     class CheckAuthMethods : public BaseJob
     {
-            Q_OBJECT
         public:
             CheckAuthMethods(ConnectionData* connection);
             virtual ~CheckAuthMethods();
