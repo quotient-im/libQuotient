@@ -20,6 +20,7 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QtCore/QDebug>
 
 #include "../room.h"
 #include "../state.h"
