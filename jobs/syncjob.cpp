@@ -43,8 +43,10 @@ class SyncJob::Private
         QList<SyncRoomData> roomData;
 };
 
+static size_t jobId = 0;
+
 SyncJob::SyncJob(ConnectionData* connection, QString since)
-    : BaseJob(connection, JobHttpType::GetJob, "SyncJob")
+    : BaseJob(connection, JobHttpType::GetJob, QString("SyncJob-%1").arg(++jobId))
     , d(new Private)
 {
     d->since = since;
@@ -133,6 +135,7 @@ void SyncJob::parseJson(const QJsonDocument& data)
     }
 
     emitResult();
+    qDebug() << objectName() << ": processing complete";
 }
 
 void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)

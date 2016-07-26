@@ -50,6 +50,7 @@ BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, boo
             emit failure(this);
     });
     setObjectName(name);
+    qDebug() << "Job" << objectName() << " created";
 }
 
 BaseJob::~BaseJob()
@@ -61,6 +62,7 @@ BaseJob::~BaseJob()
         d->reply->deleteLater();
     }
     delete d;
+    qDebug() << "Job" << objectName() << " destroyed";
 }
 
 ConnectionData* BaseJob::connection() const
