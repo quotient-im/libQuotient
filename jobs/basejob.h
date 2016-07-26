@@ -19,10 +19,14 @@
 #ifndef QMATRIXCLIENT_BASEJOB_H
 #define QMATRIXCLIENT_BASEJOB_H
 
+#include <QtCore/QObject>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrlQuery>
-#include <QtNetwork/QNetworkReply>
+#include <QtCore/QScopedPointer>
+
+class QNetworkReply;
+class QSslError;
 
 namespace QMatrixClient
 {
@@ -109,7 +113,35 @@ namespace QMatrixClient
             virtual QString apiPath() const = 0;
             virtual QUrlQuery query() const;
             virtual QJsonObject data() const;
-            virtual void parseJson(const QJsonDocument& data);
+
+            /**
+             * Checks the received reply for sanity; calls setError/setErrorText
+             * respectively. setError() with any argument except NoError prevents
+             * further parseReply()/parseJson() invocations.
+             *
+             * @param reply the reply received from the server
+             */
+            virtual bool checkReply(QNetworkReply* reply);
+
+            /**
+             * Processes the reply. By default, parses the reply into
+             * a QJsonDocument and calls parseJson() if it's a valid JSON.
+             * Overrides MUST ensure that fail() or emitResult() is called
+             * on every execution path exactly once.
+             *
+             * @param data raw contents of a HTTP reply from the server (without headers)
+             */
+            virtual void parseReply(QByteArray data);
+
+            /**
+             * Processes the JSON document received from the Matrix server.
+             * By default emits a successful result without analysing the JSON.
+             * Overrides MUST ensure that fail() or emitResult() is called
+             * on every execution path exactly once.
+             *
+             * @param json valid JSON document received from the server
+             */
+            virtual void parseJson(const QJsonDocument&);
             
             /**
              * Sets the error code.
@@ -126,12 +158,16 @@ namespace QMatrixClient
              * @see emitResult(), fail()
              */
             void setError(int errorCode);
+            /**
+             * Sets the error text. Usually is combined with a setError() call
+             * before it, as setErrorText() alone does not indicate the error status.
+             */
             void setErrorText(QString errorText);
 
             /**
-             * Utility function to emit the result signal, and suicide this job.
-             * It first notifies the observers to hide the progress for this job using
-             * the finished() signal.
+             * Emits the result signal, and suicides this job.
+             * It first notifies the observers to hide the progress for this job
+             * using the finished() signal.
              *
              * @note: Deletes this job using deleteLater().
              *
@@ -139,20 +175,27 @@ namespace QMatrixClient
              * @see finished()
              */
             void emitResult();
-            void fail( int errorCode, QString errorString );
-            QNetworkReply* networkReply() const;
 
+            /**
+             * Same as emitResult() but calls setError() and setErrorText()
+             * with respective arguments passed to it. Use it as a shortcut to
+             * finish the job with a failure status.
+             */
+            void fail( int errorCode, QString errorString );
             
+
         protected slots:
-            virtual void gotReply();
             void timeout();
             void sslErrors(const QList<QSslError>& errors);
+
+        private slots:
+            void gotReply();
 
         private:
             void finishJob(bool emitResult);
 
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 }
 

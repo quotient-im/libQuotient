@@ -70,17 +70,9 @@ QUrlQuery MediaThumbnailJob::query() const
     return query;
 }
 
-void MediaThumbnailJob::gotReply()
+void MediaThumbnailJob::parseReply(QByteArray data)
 {
-    if( networkReply()->error() != QNetworkReply::NoError )
-    {
-        qDebug() << "NetworkError!!!";
-        qDebug() << networkReply()->errorString();
-        fail( NetworkError, networkReply()->errorString() );
-        return;
-    }
-
-    if( !d->thumbnail.loadFromData( networkReply()->readAll() ) )
+    if( !d->thumbnail.loadFromData(data) )
     {
         qDebug() << "MediaThumbnailJob: could not read image data";
     }
