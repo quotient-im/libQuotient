@@ -23,7 +23,7 @@
 #include "events/event.h"
 #include "room.h"
 #include "serverapi/passwordlogin.h"
-#include "jobs/logoutjob.h"
+#include "serverapi/logout.h"
 #include "jobs/geteventsjob.h"
 #include "jobs/postmessagejob.h"
 #include "jobs/postreceiptjob.h"
@@ -99,9 +99,8 @@ void Connection::reconnect()
 
 void Connection::logout()
 {
-    auto job = new LogoutJob(d->data);
-    connect( job, &LogoutJob::success, this, &Connection::loggedOut);
-    job->start();
+    auto c = callServer(Logout());
+    connect(c, &ServerCallBase::success, this, &Connection::loggedOut);
 }
 
 SyncJob* Connection::sync(int timeout)

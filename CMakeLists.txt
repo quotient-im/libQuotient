@@ -70,6 +70,7 @@ set(libqmatrixclient_SRCS
    serverapi/servercallsetup.cpp
    serverapi/servercall.cpp
    serverapi/passwordlogin.cpp
+   serverapi/logout.cpp
    serverapi/getmediathumbnail.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
