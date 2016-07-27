@@ -110,7 +110,7 @@ QUrlQuery SyncJob::query() const
     return query;
 }
 
-void SyncJob::parseJson(const QJsonDocument& data)
+BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject json = data.object();
     d->nextBatch = json.value("next_batch").toString();
@@ -134,8 +134,7 @@ void SyncJob::parseJson(const QJsonDocument& data)
         }
     }
 
-    emitResult();
-    qDebug() << objectName() << ": processing complete";
+    return Success;
 }
 
 void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)

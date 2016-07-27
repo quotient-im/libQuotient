@@ -40,10 +40,38 @@ namespace QMatrixClient
         public:
             /* Just in case, the values are compatible with KJob
              * (which BaseJob used to inherit from). */
-            enum ErrorCode { NoError = 0, NetworkError = 100,
-                             JsonParseError, TimeoutError, ContentAccessError,
-                             UserDefinedError = 512 };
+            enum StatusCode { NoError = 0 // To be compatible with Qt conventions
+                , Success = 0
+                , ErrorLevel = 100 // Errors have codes starting from this
+                , NetworkError = 100
+                , JsonParseError
+                , TimeoutError
+                , ContentAccessError
+                , UserDefinedError = 200
+            };
 
+            /**
+             * This structure stores the status of a server call job. The status consists
+             * of a code, that is described (but not delimited) by the respective enum,
+             * and a freeform message.
+             *
+             * To extend the list of error codes, define an (anonymous) enum
+             * along the lines of StatusCode, with additional values
+             * starting at UserDefinedError
+             */
+            class Status
+            {
+                public:
+                    Status(StatusCode c) : code(c) { }
+                    Status(int c, QString m) : code(c), message(m) { }
+
+                    bool good() const { return code < ErrorLevel; }
+
+                    int code;
+                    QString message;
+            };
+
+        public:
             BaseJob(ConnectionData* connection, JobHttpType type,
                     QString name, bool needsToken=true);
             virtual ~BaseJob();
@@ -59,6 +87,7 @@ namespace QMatrixClient
              */
             void abandon();
 
+            Status status() const;
             int error() const;
             virtual QString errorString() const;
 
@@ -115,74 +144,40 @@ namespace QMatrixClient
             virtual QJsonObject data() const;
 
             /**
-             * Checks the received reply for sanity; calls setError/setErrorText
-             * respectively. setError() with any argument except NoError prevents
-             * further parseReply()/parseJson() invocations.
+             * Used by gotReply() slot to check the received reply for general
+             * issues such as network errors or access denial.
+             * Returning anything except NoError/Success prevents
+             * further parseReply()/parseJson() invocation.
              *
              * @param reply the reply received from the server
+             * @return the result of checking the reply
+             *
+             * @see gotReply
              */
-            virtual bool checkReply(QNetworkReply* reply);
+            virtual Status checkReply(QNetworkReply* reply) const;
 
             /**
              * Processes the reply. By default, parses the reply into
              * a QJsonDocument and calls parseJson() if it's a valid JSON.
-             * Overrides MUST ensure that fail() or emitResult() is called
-             * on every execution path exactly once.
              *
              * @param data raw contents of a HTTP reply from the server (without headers)
+             *
+             * @see gotReply, parseJson
              */
-            virtual void parseReply(QByteArray data);
+            virtual Status parseReply(QByteArray data);
 
             /**
              * Processes the JSON document received from the Matrix server.
-             * By default emits a successful result without analysing the JSON.
-             * Overrides MUST ensure that fail() or emitResult() is called
-             * on every execution path exactly once.
+             * By default returns succesful status without analysing the JSON.
              *
              * @param json valid JSON document received from the server
+             *
+             * @see parseReply
              */
-            virtual void parseJson(const QJsonDocument&);
+            virtual Status parseJson(const QJsonDocument&);
             
-            /**
-             * Sets the error code.
-             *
-             * It should be called when an error is encountered in the job,
-             * just before calling emitResult(). Normally you might want to
-             * use fail() instead - it sets error code, error text, makes sure
-             * the job has finished and invokes emitResult after that.
-             *
-             * To extend the list of error codes, define an (anonymous) enum
-             * with additional values starting at BaseJob::UserDefinedError
-             *
-             * @param errorCode the error code
-             * @see emitResult(), fail()
-             */
-            void setError(int errorCode);
-            /**
-             * Sets the error text. Usually is combined with a setError() call
-             * before it, as setErrorText() alone does not indicate the error status.
-             */
-            void setErrorText(QString errorText);
-
-            /**
-             * Emits the result signal, and suicides this job.
-             * It first notifies the observers to hide the progress for this job
-             * using the finished() signal.
-             *
-             * @note: Deletes this job using deleteLater().
-             *
-             * @see result()
-             * @see finished()
-             */
-            void emitResult();
-
-            /**
-             * Same as emitResult() but calls setError() and setErrorText()
-             * with respective arguments passed to it. Use it as a shortcut to
-             * finish the job with a failure status.
-             */
-            void fail( int errorCode, QString errorString );
-            
+            void setStatus(Status s);
+            void setStatus(int code, QString message);
 
         protected slots:
             void timeout();

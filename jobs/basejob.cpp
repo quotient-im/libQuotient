@@ -42,16 +42,16 @@ class BaseJob::Private
 {
     public:
         Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), reply(nullptr), type(t), needsToken(nt), errorCode(NoError)
+            : connection(c), type(t), needsToken(nt)
+            , reply(nullptr), status(NoError)
         {}
         
         ConnectionData* connection;
-        QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         JobHttpType type;
         bool needsToken;
 
-        int errorCode;
-        QString errorText;
+        QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
+        Status status;
 };
 
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
@@ -117,47 +117,45 @@ void BaseJob::start()
 
 void BaseJob::gotReply()
 {
-    if (checkReply(d->reply.data()))
-        parseReply(d->reply->readAll());
-    // FIXME: we should not hold parseReply()/parseJson() responsible for
-    // emitting the result; it should be done here instead.
+    setStatus(checkReply(d->reply.data()));
+    if (status().good())
+        setStatus(parseReply(d->reply->readAll()));
+
+    finishJob(true);
 }
 
-bool BaseJob::checkReply(QNetworkReply* reply)
+BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
     switch( reply->error() )
     {
     case QNetworkReply::NoError:
-        return true;
+        return NoError;
 
     case QNetworkReply::AuthenticationRequiredError:
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::ContentOperationNotPermittedError:
         qDebug() << "Content access error, Qt error code:" << reply->error();
-        fail( ContentAccessError, reply->errorString() );
-        return false;
+        return { ContentAccessError, reply->errorString() };
 
     default:
         qDebug() << "NetworkError, Qt error code:" << reply->error();
-        fail( NetworkError, reply->errorString() );
-        return false;
+        return { NetworkError, reply->errorString() };
     }
 }
 
-void BaseJob::parseReply(QByteArray data)
+BaseJob::Status BaseJob::parseReply(QByteArray data)
 {
     QJsonParseError error;
     QJsonDocument json = QJsonDocument::fromJson(data, &error);
     if( error.error == QJsonParseError::NoError )
-        parseJson(json);
+        return parseJson(json);
     else
-        fail( JsonParseError, error.errorString() );
+        return { JsonParseError, error.errorString() };
 }
 
-void BaseJob::parseJson(const QJsonDocument&)
+BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
 {
-    // Do nothing by default
-    emitResult();
+    return Success;
 }
 
 void BaseJob::finishJob(bool emitResult)
@@ -165,7 +163,7 @@ void BaseJob::finishJob(bool emitResult)
     if (!d->reply)
     {
         qWarning() << objectName()
-                   << ": empty network reply (finish() called more than once?)";
+                   << ": empty network reply (finishJob() called more than once?)";
         return;
     }
 
@@ -184,29 +182,34 @@ void BaseJob::finishJob(bool emitResult)
     deleteLater();
 }
 
+BaseJob::Status BaseJob::status() const
+{
+    return d->status;
+}
+
 int BaseJob::error() const
 {
-    return d->errorCode;
+    return d->status.code;
 }
 
 QString BaseJob::errorString() const
 {
-    return d->errorText;
+    return d->status.message;
 }
 
-void BaseJob::setError(int errorCode)
+void BaseJob::setStatus(Status s)
 {
-    d->errorCode = errorCode;
+    d->status = s;
+    if (!s.good())
+    {
+        qWarning() << QString("Job %1 status: %2, code %3")
+                      .arg(objectName()).arg(s.message).arg(s.code);
+    }
 }
 
-void BaseJob::setErrorText(QString errorText)
+void BaseJob::setStatus(int code, QString message)
 {
-    d->errorText = errorText;
-}
-
-void BaseJob::emitResult()
-{
-    finishJob(true);
+    setStatus({ code, message });
 }
 
 void BaseJob::abandon()
@@ -214,17 +217,10 @@ void BaseJob::abandon()
     finishJob(false);
 }
 
-void BaseJob::fail(int errorCode, QString errorString)
-{
-    setError( errorCode );
-    setErrorText( errorString );
-    qWarning() << "Job" << objectName() << "failed:" << errorString;
-    emitResult();
-}
-
 void BaseJob::timeout()
 {
-    fail( TimeoutError, "The job has timed out" );
+    setStatus( TimeoutError, "The job has timed out" );
+    finishJob(true);
 }
 
 void BaseJob::sslErrors(const QList<QSslError>& errors)

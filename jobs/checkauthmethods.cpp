@@ -57,7 +57,7 @@ QString CheckAuthMethods::apiPath() const
     return "_matrix/client/r0/login";
 }
 
-void CheckAuthMethods::parseJson(const QJsonDocument& data)
+BaseJob::Status CheckAuthMethods::parseJson(const QJsonDocument& data)
 {
     // TODO
 }

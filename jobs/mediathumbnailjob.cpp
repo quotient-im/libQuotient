@@ -70,11 +70,11 @@ QUrlQuery MediaThumbnailJob::query() const
     return query;
 }
 
-void MediaThumbnailJob::parseReply(QByteArray data)
+BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)
 {
     if( !d->thumbnail.loadFromData(data) )
     {
         qDebug() << "MediaThumbnailJob: could not read image data";
     }
-    emitResult();
+    return Success;
 }

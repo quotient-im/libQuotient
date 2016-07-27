@@ -40,7 +40,7 @@ namespace QMatrixClient
             QString apiPath() const override;
             QUrlQuery query() const override;
 
-            virtual void parseReply(QByteArray data) override;
+            Status parseReply(QByteArray data) override;
 
         private:
             class Private;
