@@ -69,10 +69,10 @@ namespace QMatrixClient
             Q_INVOKABLE virtual QString token();
 
             template <typename SetupT>
-            ServerCall<SetupT>* callServer(SetupT&& setup, bool startNow = true)
+            ServerCall<SetupT>* callServer(SetupT&& setup)
             {
                 return new ServerCall<SetupT>
-                        (connectionData(), std::forward<SetupT>(setup), startNow);
+                        (connectionData(), std::forward<SetupT>(setup));
             }
 
         signals:
