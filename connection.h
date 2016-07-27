@@ -69,9 +69,9 @@ namespace QMatrixClient
             Q_INVOKABLE virtual QString token();
 
             template <typename SetupT>
-            ServerCall<SetupT>* callServer(SetupT&& setup)
+            ServerApi::Call<SetupT>* callServer(SetupT&& setup)
             {
-                return new ServerCall<SetupT>
+                return new ServerApi::Call<SetupT>
                         (connectionData(), std::forward<SetupT>(setup));
             }
 

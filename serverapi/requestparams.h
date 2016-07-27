@@ -7,6 +7,31 @@
 
 namespace QMatrixClient
 {
+namespace ServerApi
+{
+    class Query : public QUrlQuery
+    {
+        public:
+            using QUrlQuery::QUrlQuery;
+            Query() = default;
+            Query(QList<QPair<QString, QString> > l)
+            {
+                setQueryItems(l);
+            }
+    };
+    class Data : public QJsonObject
+    {
+        public:
+            using QJsonObject::QJsonObject;
+            Data() = default;
+            Data(QList<QPair<QString, QString> > l)
+            {
+                for (auto i: l)
+                    insert(i.first, i.second);
+            }
+    };
+    enum class HttpType { Get, Put, Post };
+
     /**
      * This class defines the generic set of parameters for a request to
      * a Matrix server. It also provides a set of wrapper classes that ease
@@ -16,30 +41,6 @@ namespace QMatrixClient
      */
     class RequestParams
     {
-        public: // Supplementary type definitions
-            class Query : public QUrlQuery
-            {
-                public:
-                    using QUrlQuery::QUrlQuery;
-                    Query() = default;
-                    Query(QList<QPair<QString, QString> > l)
-                    {
-                        setQueryItems(l);
-                    }
-            };
-            class Data : public QJsonObject
-            {
-                public:
-                    using QJsonObject::QJsonObject;
-                    Data() = default;
-                    Data(QList<QPair<QString, QString> > l)
-                    {
-                        for (auto i: l)
-                            insert(i.first, i.second);
-                    }
-            };
-            enum class HttpType { Get, Put, Post };
-
         public: // Methods
             RequestParams(HttpType t, QString p,
                     Query q = Query(), Data d = Data(), bool needsToken = true)
@@ -61,4 +62,5 @@ namespace QMatrixClient
             bool m_needsToken;
     };
 
+}
 }

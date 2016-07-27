@@ -24,9 +24,11 @@
 
 namespace QMatrixClient
 {
+namespace ServerApi
+{
     enum class ThumbnailType {Crop, Scale};
 
-    class GetMediaThumbnail: public ServerCallSetup<GetBytes>
+    class GetMediaThumbnail: public CallData<GetBytes>
     {
         public:
             GetMediaThumbnail(QUrl url, int requestedWidth, int requestedHeight,
@@ -34,6 +36,7 @@ namespace QMatrixClient
 
             QPixmap thumbnail;
 
-            void fillResult(QByteArray bytes);
+            CallStatus fillResult(QByteArray bytes);
     };
+}
 }

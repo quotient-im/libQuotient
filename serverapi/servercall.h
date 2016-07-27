@@ -21,6 +21,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
 
+#include "servercallsetup.h"
+
 class QNetworkReply;
 class QSslError;
 class QByteArray;
@@ -28,19 +30,21 @@ class QByteArray;
 namespace QMatrixClient
 {
     class ConnectionData;
-    class CallStatus;
-    class RequestParams;
+//    class CallStatus;
+//    class RequestParams;
 
-    class ServerCallBase : public QObject
+namespace ServerApi
+{
+    class CallBase : public QObject
     {
             Q_OBJECT
 
         protected:
             // This class is for inheritance only (as of now, at least)
-            ServerCallBase(ConnectionData* data, QString name,
+            CallBase(ConnectionData* data, QString name,
                            const RequestParams& params);
             // Deletion will be done from within the object; don't delete explicitly
-            virtual ~ServerCallBase();
+            virtual ~CallBase();
 
         public:
             /**
@@ -147,7 +151,7 @@ namespace QMatrixClient
             void sslErrors(const QList<QSslError>& errors);
 
         protected:
-            virtual void makeResult(const QByteArray& bytes) = 0;
+            virtual CallStatus makeResult(const QByteArray& bytes) = 0;
 
         private:
             class Private;
@@ -155,11 +159,11 @@ namespace QMatrixClient
     };
 
     template <class SetupT>
-    class ServerCall : public ServerCallBase
+    class Call : public CallBase
     {
         public:
-            ServerCall(ConnectionData* c, SetupT&& s)
-                : ServerCallBase(c, s.name(), s.requestParams())
+            Call(ConnectionData* c, SetupT&& s)
+                : CallBase(c, s.name(), s.requestParams())
                 , setup(std::forward<SetupT>(s))
             { }
 
@@ -188,7 +192,7 @@ namespace QMatrixClient
             template <typename HandlerT>
             void onAnyResult(HandlerT handler)
             {
-                connect(this, &ServerCallBase::resultReady,
+                connect(this, &CallBase::resultReady,
                         [=]() { handler(results()); });
             }
 
@@ -203,7 +207,7 @@ namespace QMatrixClient
             template <typename HandlerT>
             void onSuccess(HandlerT handler) const
             {
-                connect(this, &ServerCallBase::success,
+                connect(this, &CallBase::success,
                         [=]() { handler(results()); });
             }
 
@@ -218,22 +222,22 @@ namespace QMatrixClient
             template <typename HandlerT>
             void onFailure(HandlerT handler)
             {
-                connect(this, &ServerCallBase::failure,
-                        [=]() { handler(results()); });
+                connect(this, &CallBase::failure,
+                        [=]() { handler(status()); });
             }
 
         protected:
-            virtual void makeResult(const QByteArray& bytes) override
+            virtual CallStatus makeResult(const QByteArray& bytes) override
             {
-                const typename SetupT::preprocessed_type data = setup.preprocess(bytes);
-                if (setup.status().good())
-                    setup.fillResult(data);
-                // Update ServerCallBase status from the setup status;
-                // clients can use either status to their choice
-                setStatus(setup.status());
+                const Result<typename SetupT::envelope_type> r = setup.preprocess(bytes);
+                if (r.status().good())
+                    return setup.fillResult(r);
+                else
+                    return r.status();
             }
 
         private:
             SetupT setup;
     };
+}
 }

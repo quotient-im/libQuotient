@@ -23,7 +23,9 @@
 
 namespace QMatrixClient
 {
-    class PasswordLogin : public ServerCallSetup<>
+namespace ServerApi
+{
+    class PasswordLogin : public CallData<>
     {
         public:
             PasswordLogin(QString user, QString password);
@@ -32,8 +34,9 @@ namespace QMatrixClient
             QString id;
             QString server;
 
-            void fillResult(const QJsonObject& json);
+            CallStatus fillResult(const QJsonObject& json);
     };
+}
 }
 
 #endif // QMATRIXCLIENT_PASSWORDLOGIN_H

@@ -62,13 +62,14 @@ void Connection::resolveServer(QString domain)
 
 void Connection::connectToServer(QString user, QString password)
 {
+    using ServerApi::PasswordLogin;
     auto loginJob = callServer(PasswordLogin(user, password));
     loginJob->onSuccess([=] (const PasswordLogin& result) {
         qDebug() << "Our user ID: " << result.id;
         connectWithToken(result.id, result.token);
     });
-    loginJob->onFailure([=] (const PasswordLogin& result) {
-        emit loginError(result.status().message);
+    loginJob->onFailure([=] (ServerApi::CallStatus status) {
+        emit loginError(status.message);
     });
     d->username = user; // to be able to reconnect
     d->password = password;
@@ -86,12 +87,13 @@ void Connection::connectWithToken(QString userId, QString token)
 
 void Connection::reconnect()
 {
+    using namespace ServerApi;
     auto loginJob = callServer(PasswordLogin(d->username, d->password));
-    connect( loginJob, &ServerCallBase::success, [=]() {
+    connect( loginJob, &CallBase::success, [=]() {
         d->userId = loginJob->results().id;
         emit reconnected();
     });
-    connect( loginJob, &ServerCallBase::failure, [=]() {
+    connect( loginJob, &CallBase::failure, [=]() {
         emit loginError(loginJob->status().message);
         d->isConnected = false;
     });
@@ -99,8 +101,8 @@ void Connection::reconnect()
 
 void Connection::logout()
 {
-    auto c = callServer(Logout());
-    connect(c, &ServerCallBase::success, this, &Connection::loggedOut);
+    auto c = callServer(ServerApi::Logout());
+    connect(c, &ServerApi::CallBase::success, this, &Connection::loggedOut);
 }
 
 SyncJob* Connection::sync(int timeout)

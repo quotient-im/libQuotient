@@ -19,9 +19,10 @@
 #include "passwordlogin.h"
 
 using namespace QMatrixClient;
+using namespace QMatrixClient::ServerApi;
 
 PasswordLogin::PasswordLogin(QString user, QString password)
-    : ServerCallSetup("PasswordLogin",
+    : CallData("PasswordLogin",
         RequestParams (HttpType::Post, "_matrix/client/r0/login"
         , Query()
         , Data(
@@ -33,14 +34,13 @@ PasswordLogin::PasswordLogin(QString user, QString password)
         ))
 { }
 
-
-void PasswordLogin::fillResult(const QJsonObject& json)
+CallStatus PasswordLogin::fillResult(const QJsonObject& json)
 {
     if( !json.contains("access_token") || !json.contains("home_server") || !json.contains("user_id") )
-    {
-        setStatus(CallStatus::UserDefinedError, "Unexpected data");
-    }
+        return { CallStatus::UserDefinedError, "Unexpected data" };
+
     token = json.value("access_token").toString();
     server = json.value("home_server").toString();
     id = json.value("user_id").toString();
+    return CallSuccess;
 }

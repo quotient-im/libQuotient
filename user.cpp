@@ -27,7 +27,6 @@
 #include <QtCore/QPair>
 #include <QtCore/QDebug>
 
-
 using namespace QMatrixClient;
 
 class User::Private
@@ -133,12 +132,14 @@ void User::requestAvatar()
 
 void User::Private::requestAvatar()
 {
+    using ServerApi::GetMediaThumbnail;
     connection
-        ->callServer(GetMediaThumbnail(avatarUrl, requestedWidth, requestedHeight))
-        ->onSuccess( [=](const GetMediaThumbnail& data) {
+        ->callServer(GetMediaThumbnail(
+                         avatarUrl, requestedWidth, requestedHeight))
+        ->onSuccess( [=](const GetMediaThumbnail& result) {
             avatarOngoingRequest = false;
             avatarValid = true;
-            avatar = data.thumbnail.scaled(requestedWidth, requestedHeight,
+            avatar = result.thumbnail.scaled(requestedWidth, requestedHeight,
                             Qt::KeepAspectRatio, Qt::SmoothTransformation);
             scaledMap.clear();
             emit q->avatarChanged(q);

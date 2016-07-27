@@ -27,6 +27,7 @@
 #include <QtCore/QTimer>
 
 using namespace QMatrixClient;
+using namespace QMatrixClient::ServerApi;
 
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 {
@@ -38,14 +39,18 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
     }
 };
 
-class ServerCallBase::Private
+class CallBase::Private
 {
     public:
-        explicit Private(ConnectionData* c)
-            : connection(c), reply(nullptr), status(CallStatus::PendingResult)
+        Private(CallBase* _q, ConnectionData* _c)
+            : q(_q), connection(_c), reply(nullptr), status(CallStatus::PendingResult)
         { }
 
         inline void sendRequest(const RequestParams& params);
+        void gotReply();
+
+    public:
+        CallBase* q;
 
         ConnectionData* connection;
 
@@ -55,7 +60,7 @@ class ServerCallBase::Private
         CallStatus status;
 };
 
-void ServerCallBase::Private::sendRequest(const RequestParams& params)
+void CallBase::Private::sendRequest(const RequestParams& params)
 {
     QUrl url = connection->baseUrl();
     url.setPath( url.path() + "/" + params.apiPath() );
@@ -63,7 +68,8 @@ void ServerCallBase::Private::sendRequest(const RequestParams& params)
     if( params.needsToken() )
         query.addQueryItem("access_token", connection->token());
     url.setQuery(query);
-    QNetworkRequest req = QNetworkRequest(url);
+
+    QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -71,89 +77,103 @@ void ServerCallBase::Private::sendRequest(const RequestParams& params)
 #endif
     switch( params.type() )
     {
-        case RequestParams::HttpType::Get:
+        case HttpType::Get:
             reply.reset( connection->nam()->get(req) );
             break;
-        case RequestParams::HttpType::Post:
+        case HttpType::Post:
             reply.reset( connection->nam()->post(req, params.data()) );
             break;
-        case RequestParams::HttpType::Put:
+        case HttpType::Put:
             reply.reset( connection->nam()->put(req, params.data()) );
             break;
     }
+    connect( reply.data(), &QNetworkReply::sslErrors, q, &CallBase::sslErrors );
+    connect( reply.data(), &QNetworkReply::finished, q, &CallBase::gotReply );
+    QTimer::singleShot( 120*1000, q, SLOT(timeout()) );
 }
 
-ServerCallBase::ServerCallBase(ConnectionData* data, QString name,
+void CallBase::gotReply()
+{
+    d->gotReply();
+}
+
+void CallBase::Private::gotReply()
+{
+    if( reply->error() == QNetworkReply::NoError )
+    {
+        rawData = reply->readAll();
+        status = q->makeResult(rawData);
+    }
+    else
+    {
+        status.set(CallStatus::NetworkError,
+                      tr("Network Error %1: %2")
+                            .arg(reply->error())
+                            .arg(reply->errorString())
+                  );
+    }
+    q->finish(true);
+}
+
+void CallBase::timeout()
+{
+    setStatus({CallStatus::TimeoutError, "The job has timed out"});
+    d->reply->disconnect(); // To avoid "Operation cancelled" false alarms
+    abandon();
+}
+
+void CallBase::sslErrors(const QList<QSslError>& errors)
+{
+    foreach (const QSslError &error, errors) {
+        qWarning() << "SSL ERROR" << error.errorString();
+    }
+    d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
+}
+
+CallBase::CallBase(ConnectionData* data, QString name,
                                const RequestParams& params)
-    : d(new Private(data))
+    : d(new Private(this, data))
 {
     setObjectName(name);
 
     d->sendRequest(params);
-    connect( reply(), &QNetworkReply::sslErrors, this, &ServerCallBase::sslErrors );
-    connect( reply(), &QNetworkReply::finished, this, &ServerCallBase::gotReply );
-    QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
 }
 
-ServerCallBase::~ServerCallBase()
+CallBase::~CallBase()
 { }
 
-void ServerCallBase::abandon()
+void CallBase::abandon()
 {
     finish(false);
 }
 
-CallStatus ServerCallBase::status() const
+CallStatus CallBase::status() const
 {
     return d->status;
 }
 
-const QByteArray&ServerCallBase::rawData() const
+const QByteArray&CallBase::rawData() const
 {
     return d->rawData;
 }
 
-void ServerCallBase::setStatus(CallStatus cs)
+void CallBase::setStatus(CallStatus cs)
 {
     d->status = cs;
-    if (!cs.good())
-    {
-        qWarning() << "Server call" << objectName() << "failed:"
-                   << "CallStatus(" << cs.code << "," << cs.message << ")";
-    }
 }
 
-void ServerCallBase::setStatus(int code)
+void CallBase::setStatus(int code)
 {
     setStatus(CallStatus(code));
 }
 
-QNetworkReply* ServerCallBase::reply() const
+void CallBase::finish(bool emitResult)
 {
-    return d->reply.data();
-}
-
-void ServerCallBase::gotReply()
-{
-    if( reply()->error() == QNetworkReply::NoError )
+    if (!status().good())
     {
-        setStatus(CallStatus::Success);
-        d->rawData = reply()->readAll();
-        makeResult(d->rawData);
+        qWarning() << "Server call" << objectName() << "failed:" << status();
     }
-    else
-    {
-        setStatus({ CallStatus::NetworkError,
-                      tr("Network Error %1: %2")
-                            .arg(d->reply->error())
-                            .arg(d->reply->errorString())
-                  });
-    }
-    finish(true);
-}
 
-void ServerCallBase::finish(bool emitResult)
-{
     if (!d->reply)
     {
         qWarning() << objectName()
@@ -171,18 +191,4 @@ void ServerCallBase::finish(bool emitResult)
 
     d->reply.reset();
     deleteLater();
-}
-
-void ServerCallBase::timeout()
-{
-    setStatus({ CallStatus::TimeoutError, "The job has timed out" });
-    abandon();
-}
-
-void ServerCallBase::sslErrors(const QList<QSslError>& errors)
-{
-    foreach (const QSslError &error, errors) {
-        qWarning() << "SSL ERROR" << error.errorString();
-    }
-    d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }

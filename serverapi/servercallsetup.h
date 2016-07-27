@@ -22,8 +22,11 @@
 
 #include <QtCore/QByteArray>
 #include <QtCore/QJsonObject>
+#include <QtCore/QDebug>
 
 namespace QMatrixClient
+{
+namespace ServerApi
 {
     /**
      * This structure stores status of a server call. The status consists
@@ -33,7 +36,7 @@ namespace QMatrixClient
      * To extend the list of error codes, define an (anonymous) enum
      * with additional values starting at CallStatus::UserDefinedError
      *
-     * @see ServerCall, ServerCallSetup
+     * @see Call, CallSetup
      */
     class CallStatus
     {
@@ -61,54 +64,77 @@ namespace QMatrixClient
             int code;
             QString message;
     };
+    inline QDebug operator<< (QDebug dbg, CallStatus cs) {
+        return dbg << "CallStatus(" << cs.code << "," << cs.message << ")";
+    }
+    const CallStatus CallSuccess { CallStatus::Success };
 
-    // A supplementary base class for ServerCallSetup<> to pass the shared
-    // status to ServerCallBase. Do not derive from it directly, use ServerCallSetup<>.
-    class ServerCallSetupBase
+    /**
+     * This class encapsulates a return value from a result handling function
+     * (either an adaptor, or makeResult) packed together with CallStatus.
+     * This allows to return error codes and messages without using exceptions.
+     * Result<void> has a special (but obvious) meaning: it stores no return
+     * value, only a CallStatus.
+     */
+    template <typename T>
+    class Result
     {
         public:
-            ServerCallSetupBase(QString name, RequestParams rp)
-                : m_name(name), m_reqParams(rp)
+            Result(const T& value)
+                : m_data(value), m_status(CallStatus::Success)
             { }
 
-            QString name() const { return m_name; }
-            const RequestParams& requestParams() const { return m_reqParams; }
+            Result(const CallStatus& cs) : m_status(cs) { }
+            Result(int code, QString message) : m_status(code, message) { }
 
-            const CallStatus status() const { return m_status; }
+            Result& operator=(const T& value)
+            {
+                return *this = Result(value);
+            }
 
-        protected:
-            void setStatus(int code) { setStatus(CallStatus(code)); }
-            void setStatus(int c, QString m) { setStatus(CallStatus(c,m)); }
-            void setStatus(CallStatus cs) { m_status = cs; }
+            const T& get() const { return m_data; }
+            operator const T& () const { return get(); }
+
+            CallStatus status() const { return m_status; }
+            operator CallStatus () const { return status(); }
 
         private:
-            QString m_name;
-            RequestParams m_reqParams;
+            T m_data;
             CallStatus m_status;
     };
 
-    // The following two types define two stock result preprocessors to be used.
-    // If you write a custom preprocessor, you should:
-    // - provide a constructor with the same signature as the one of ServerCallSetupBase
-    //   ('using', as below, is the easiest way)
-    // - define preprocessed_type that specifies the output type of your preprocessor;
+    template <>
+    class Result<void>
+    {
+        public:
+            Result(const CallStatus& cs) : m_status(cs) { }
+            Result(int code, QString message) : m_status(code, message) { }
+
+            CallStatus status() const { return m_status; }
+            operator CallStatus () const { return status(); }
+
+        private:
+            CallStatus m_status;
+    };
+
+    // The following two types define two stock result adaptors to be used.
+    // If you write a custom result adaptor, you should:
+    // - define output_type that specifies the output type of your adaptor;
     // - provide a function or a function object equivalent to:
-    //       preprocessed_type preprocess(const QByteArray&)
-    //   The return value type can be implicitly castable to preprocessed_type
+    //       output_type preprocess(const QByteArray&)
+    //   The return value type should be output_type or Result<output_type>, or
+    //   implicitly castable to either type.
 
     /**
      * This no-op adaptor passes the reply contents without any actions.
      */
-    class GetBytes : public ServerCallSetupBase
+    struct GetBytes
     {
-        public:
-            using ServerCallSetupBase::ServerCallSetupBase;
-
-            using preprocessed_type = QByteArray;
-            const QByteArray& preprocess(const QByteArray& bytes)
-            {
-                return bytes;
-            }
+        using output_type = QByteArray;
+        static const QByteArray& preprocess(const QByteArray& bytes)
+        {
+            return bytes;
+        }
     };
 
     /**
@@ -116,41 +142,46 @@ namespace QMatrixClient
      * that has a single object on the top level, parses the document and
      * returns the resulting structure wrapped into a QJsonObject.
      */
-    class GetJson : public ServerCallSetupBase
+    struct GetJson
     {
-        public:
-            using ServerCallSetupBase::ServerCallSetupBase;
-
-            using preprocessed_type = QJsonObject;
-            QJsonObject preprocess(QByteArray bytes);
+        using output_type = QJsonObject;
+        static Result<QJsonObject> preprocess(QByteArray bytes);
     };
 
     /**
      * This is a base class for setups that describe specific server calls
      * (to specific endpoints, in particular). Derived classes should pick
      * an appropriate ResultAdaptorT and implement two things:
-     * - Constructor that initializes ServerCallSetup<> - in particular,
+     * - Constructor that initializes CallSetup<> - in particular,
      *   supplies a valid RequestParams object.
      * - a function or a function object fillResult that can accept
      *   preprocessed_type, which is the type produced by the chosen preprocessor
      *   type (QJsonObject by default).
      *
-     * @see RequestParams, ServerCall
+     * @see RequestParams, Call
      */
-    template <class ResultAdaptorT = GetJson>
-    class ServerCallSetup : public ResultAdaptorT
+    template <typename ResultAdaptorT = GetJson>
+    class CallData : public ResultAdaptorT
     {
         public:
-            ServerCallSetup(QString name, RequestParams rp)
-                : ResultAdaptorT(name, rp)
+            using envelope_type = typename ResultAdaptorT::output_type;
+
+            CallData(QString name, RequestParams rp)
+                : m_name(name), m_reqParams(rp)
             { }
 
-            using HttpType = RequestParams::HttpType;
-            using Query = RequestParams::Query;
-            using Data = RequestParams::Data;
+            QString name() const { return m_name; }
+            const RequestParams& requestParams() const { return m_reqParams; }
 
-            void fillResult(typename ResultAdaptorT::preprocessed_type)
+
+            CallStatus fillResult(envelope_type)
             {
+                return CallSuccess;
             }
+
+        private:
+            QString m_name;
+            RequestParams m_reqParams;
     };
+}
 }

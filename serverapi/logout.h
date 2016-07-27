@@ -22,12 +22,15 @@
 
 namespace QMatrixClient
 {
-    class Logout : public ServerCallSetup<>
+namespace ServerApi
+{
+    class Logout : public CallData<>
     {
         public:
             Logout()
-                : ServerCallSetup<>("Logout",
+                : CallData<>("Logout",
                     RequestParams(HttpType::Post, "_matrix/client/r0/logout"))
             {  }
     };
+}
 }

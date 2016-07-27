@@ -21,10 +21,11 @@
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
+using namespace QMatrixClient::ServerApi;
 
 GetMediaThumbnail::GetMediaThumbnail(QUrl url, int requestedWidth, int requestedHeight,
                                      ThumbnailType thumbnailType)
-    : ServerCallSetup("MediaThumbnailJob",
+    : CallData("MediaThumbnailJob",
         RequestParams(HttpType::Get
         , QString("/_matrix/media/v1/thumbnail/%1%2").arg(url.host()).arg(url.path())
         , Query(
@@ -32,12 +33,14 @@ GetMediaThumbnail::GetMediaThumbnail(QUrl url, int requestedWidth, int requested
             , { "height", QString::number(requestedHeight) }
             , { "method", thumbnailType == ThumbnailType::Scale ? "scale" : "crop" }
             })
-        ))
+                      ))
 { }
 
-void GetMediaThumbnail::fillResult(QByteArray bytes)
+CallStatus GetMediaThumbnail::fillResult(QByteArray bytes)
 {
-    if (!thumbnail.loadFromData(bytes))
-        setStatus(CallStatus::UserDefinedError,
-                  "MediaThumbnailJob: could not read image data");
+    if (thumbnail.loadFromData(bytes))
+        return CallSuccess;
+
+    return { CallStatus::UserDefinedError,
+              "MediaThumbnailJob: could not read image data" };
 }
