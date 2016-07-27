@@ -151,9 +151,6 @@ namespace QMatrixClient
 
             void fillResult(typename ResultAdaptorT::preprocessed_type)
             {
-                Q_STATIC_ASSERT_X(true,
-                    "When deriving from ServerCallSetup<>, "
-                    "fillResult(preprocessed_type) should be redefined");
             }
     };
 }
