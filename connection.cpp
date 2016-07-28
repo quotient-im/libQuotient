@@ -22,7 +22,7 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
-#include "jobs/passwordlogin.h"
+#include "serverapi/passwordlogin.h"
 #include "jobs/logoutjob.h"
 #include "jobs/postmessagejob.h"
 #include "jobs/postreceiptjob.h"
@@ -61,15 +61,14 @@ void Connection::resolveServer(QString domain)
 
 void Connection::connectToServer(QString user, QString password)
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        qDebug() << "Our user ID: " << loginJob->id();
-        connectWithToken(loginJob->id(), loginJob->token());
+    auto loginJob = callServer(PasswordLogin(user, password));
+    loginJob->onSuccess([=] (const PasswordLogin& result) {
+        qDebug() << "Our user ID: " << result.id;
+        connectWithToken(result.id, result.token);
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
+    loginJob->onFailure([=] (const PasswordLogin& result) {
+        emit loginError(result.status().message);
     });
-    loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
 }
@@ -86,16 +85,15 @@ void Connection::connectWithToken(QString userId, QString token)
 
 void Connection::reconnect()
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, d->username, d->password );
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        d->userId = loginJob->id();
+    auto loginJob = callServer(PasswordLogin(d->username, d->password));
+    connect( loginJob, &ServerCallBase::success, [=]() {
+        d->userId = loginJob->results().id;
         emit reconnected();
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
+    connect( loginJob, &ServerCallBase::failure, [=]() {
+        emit loginError(loginJob->status().message);
         d->isConnected = false;
     });
-    loginJob->start();
 }
 
 void Connection::logout()
