@@ -24,7 +24,6 @@
 #include "room.h"
 #include "jobs/passwordlogin.h"
 #include "jobs/logoutjob.h"
-#include "jobs/geteventsjob.h"
 #include "jobs/postmessagejob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"

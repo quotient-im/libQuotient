@@ -54,16 +54,21 @@ class BaseJob::Private
         Status status;
 };
 
+inline QDebug operator<<(QDebug dbg, BaseJob* j)
+{
+    return dbg << "Job" << j->objectName();
+}
+
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
     setObjectName(name);
-    qDebug() << "Job" << objectName() << " created";
+    qDebug() << this << "created";
 }
 
 BaseJob::~BaseJob()
 {
-    qDebug() << "Job" << objectName() << " destroyed";
+    qDebug() << this << "destroyed";
 }
 
 ConnectionData* BaseJob::connection() const
@@ -134,11 +139,9 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
     case QNetworkReply::AuthenticationRequiredError:
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::ContentOperationNotPermittedError:
-        qDebug() << "Content access error, Qt error code:" << reply->error();
         return { ContentAccessError, reply->errorString() };
 
     default:
-        qDebug() << "NetworkError, Qt error code:" << reply->error();
         return { NetworkError, reply->errorString() };
     }
 }
@@ -162,9 +165,12 @@ void BaseJob::finishJob(bool emitResult)
 {
     if (!d->reply)
     {
-        qWarning() << objectName()
-                   << ": empty network reply (finishJob() called more than once?)";
-        return;
+        qWarning() << this << "finishes with empty network reply";
+    }
+    else if (d->reply->isRunning())
+    {
+        qWarning() << this << "finishes without ready network reply";
+        d->reply->disconnect(this); // Ignore whatever comes from the reply
     }
 
     // Notify those that are interested in any completion of the job (including killing)
@@ -178,7 +184,6 @@ void BaseJob::finishJob(bool emitResult)
             emit success(this);
     }
 
-    d->reply.reset();
     deleteLater();
 }
 
@@ -202,8 +207,7 @@ void BaseJob::setStatus(Status s)
     d->status = s;
     if (!s.good())
     {
-        qWarning() << QString("Job %1 status: %2, code %3")
-                      .arg(objectName()).arg(s.message).arg(s.code);
+        qWarning() << this << "status" << s.code << ":" << s.message;
     }
 }
 
