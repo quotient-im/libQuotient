@@ -23,7 +23,6 @@
 #include "user.h"
 #include "jobs/passwordlogin.h"
 #include "jobs/syncjob.h"
-#include "jobs/geteventsjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommembersjob.h"
 #include "events/event.h"

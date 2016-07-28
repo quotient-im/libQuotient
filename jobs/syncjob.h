@@ -81,4 +81,4 @@ namespace QMatrixClient
     };
 }
 
-#endif // QMATRIXCLIENT_GETEVENTSJOB_H
+#endif // QMATRIXCLIENT_SYNCJOB_H
