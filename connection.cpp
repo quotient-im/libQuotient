@@ -117,8 +117,12 @@ SyncJob* Connection::sync(int timeout)
         d->processRooms(syncJob->roomData());
         emit syncDone();
     });
-    connect( syncJob, &SyncJob::failure,
-             [=] () { emit connectionError(syncJob->errorString());});
+    connect( syncJob, &SyncJob::failure, [=] () {
+        if (syncJob->error() == BaseJob::ContentAccessError)
+            emit loginError(syncJob->errorString());
+        else
+            emit connectionError(syncJob->errorString());
+    });
     syncJob->start();
     return syncJob;
 }
