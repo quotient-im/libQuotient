@@ -324,6 +324,11 @@ QString Room::roomMembername(User *u) const
     return username % " <" % u->id() % ">";
 }
 
+QString Room::roomMembername(QString userId) const
+{
+    return roomMembername(connection()->user(userId));
+}
+
 void Room::addMessage(Event* event)
 {
     processMessageEvent(event);
@@ -398,7 +403,7 @@ void Room::Private::getPreviousContent()
     }
 }
 
-Connection* Room::connection()
+Connection* Room::connection() const
 {
     return d->connection;
 }

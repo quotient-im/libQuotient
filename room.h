@@ -55,9 +55,14 @@ namespace QMatrixClient
 
             /**
              * @brief Produces a disambiguated name for a given user in
-             * the context of the room.
+             * the context of the room
              */
             Q_INVOKABLE QString roomMembername(User* u) const;
+            /**
+             * @brief Produces a disambiguated name for a user with this id in
+             * the context of the room
+             */
+            Q_INVOKABLE QString roomMembername(QString userId) const;
 
             Q_INVOKABLE void addMessage( Event* event );
             Q_INVOKABLE void addInitialState( State* state );
@@ -95,7 +100,7 @@ namespace QMatrixClient
             void notificationCountChanged(Room* room);
 
         protected:
-            Connection* connection();
+            Connection* connection() const;
             virtual void processMessageEvent(Event* event);
             virtual void processStateEvent(Event* event);
             virtual void processEphemeralEvent(Event* event);
