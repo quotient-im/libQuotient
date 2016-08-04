@@ -35,8 +35,8 @@ namespace QMatrixClient
             QList<State*> states();
 
         protected:
-            virtual QString apiPath() const override;
-            virtual void parseJson(const QJsonDocument& data) override;
+            QString apiPath() const override;
+            Status parseJson(const QJsonDocument& data) override;
 
         private:
             class Private;

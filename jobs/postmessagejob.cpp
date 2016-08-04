@@ -61,14 +61,11 @@ QJsonObject PostMessageJob::data() const
     return json;
 }
 
-void PostMessageJob::parseJson(const QJsonDocument& data)
+BaseJob::Status PostMessageJob::parseJson(const QJsonDocument& data)
 {
-    QJsonObject json = data.object();
-    if( !json.contains("event_id") )
-    {
-        fail( BaseJob::UserDefinedError, "Something went wrong..." );
-        qDebug() << data;
-        return;
-    }
-    emitResult();
+    if( data.object().contains("event_id") )
+        return Success;
+
+    qDebug() << data;
+    return { UserDefinedError, "No event_id in the JSON response" };
 }

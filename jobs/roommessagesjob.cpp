@@ -81,10 +81,10 @@ QUrlQuery RoomMessagesJob::query() const
     return query;
 }
 
-void RoomMessagesJob::parseJson(const QJsonDocument& data)
+BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject obj = data.object();
     d->events = eventListFromJson(obj.value("chunk").toArray());
     d->end = obj.value("end").toString();
-    emitResult();
+    return Success;
 }

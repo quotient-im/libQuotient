@@ -80,15 +80,15 @@ QJsonObject PasswordLogin::data() const
     return json;
 }
 
-void PasswordLogin::parseJson(const QJsonDocument& data)
+BaseJob::Status PasswordLogin::parseJson(const QJsonDocument& data)
 {
     QJsonObject json = data.object();
     if( !json.contains("access_token") || !json.contains("home_server") || !json.contains("user_id") )
     {
-        fail( BaseJob::UserDefinedError, "Unexpected data" );
+        return { UserDefinedError, "No expected data" };
     }
     d->returned_token = json.value("access_token").toString();
     d->returned_server = json.value("home_server").toString();
     d->returned_id = json.value("user_id").toString();
-    emitResult();
+    return Success;
 }

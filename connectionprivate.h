@@ -19,15 +19,12 @@
 #ifndef QMATRIXCLIENT_CONNECTIONPRIVATE_H
 #define QMATRIXCLIENT_CONNECTIONPRIVATE_H
 
-class KJob;
-
 #include <QtCore/QObject>
 #include <QtCore/QHash>
 #include <QtCore/QJsonObject>
 
 #include "connection.h"
 #include "connectiondata.h"
-#include "jobs/syncjob.h"
 
 namespace QMatrixClient
 {
@@ -35,6 +32,8 @@ namespace QMatrixClient
     class Event;
     class State;
     class User;
+    class BaseJob;
+    class SyncRoomData;
 
     class ConnectionPrivate : public QObject
     {
@@ -60,11 +59,7 @@ namespace QMatrixClient
             QString userId;
 
         public slots:
-//            void connectDone(KJob* job);
-//            void reconnectDone(KJob* job);
-//            void syncDone(KJob* job);
-//            void gotJoinRoom(KJob* job);
-            void gotRoomMembers(KJob* job);
+            void gotRoomMembers(BaseJob* job);
     };
 }
 

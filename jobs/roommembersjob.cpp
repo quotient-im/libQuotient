@@ -56,10 +56,9 @@ QString RoomMembersJob::apiPath() const
     return QString("_matrix/client/r0/rooms/%1/members").arg(d->room->id());
 }
 
-void RoomMembersJob::parseJson(const QJsonDocument& data)
+BaseJob::Status RoomMembersJob::parseJson(const QJsonDocument& data)
 {
-    QJsonObject obj = data.object();
-    QJsonArray chunk = obj.value("chunk").toArray();
+    QJsonArray chunk = data.object().value("chunk").toArray();
     for( const QJsonValue& val : chunk )
     {
         State* state = State::fromJson(val.toObject());
@@ -67,5 +66,5 @@ void RoomMembersJob::parseJson(const QJsonDocument& data)
             d->states.append(state);
     }
     qDebug() << "States: " << d->states.count();
-    emitResult();
+    return Success;
 }
