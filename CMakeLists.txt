@@ -10,8 +10,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt5Core 5.2.1)
-find_package(Qt5Network 5.2.1)
+find_package(Qt5Core 5.2.0) # For JSON (de)serialization
+find_package(Qt5Network 5.2.0) # For networking
+find_package(Qt5Gui 5.2.0) # For userpics
 
 message( STATUS )
 message( STATUS "================================================================================" )
