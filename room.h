@@ -20,6 +20,7 @@
 #define QMATRIXCLIENT_ROOM_H
 
 #include <QtCore/QList>
+#include <QtCore/QStringList>
 #include <QtCore/QObject>
 #include <QtCore/QJsonObject>
 
