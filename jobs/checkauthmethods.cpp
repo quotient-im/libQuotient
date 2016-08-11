@@ -60,4 +60,5 @@ QString CheckAuthMethods::apiPath() const
 BaseJob::Status CheckAuthMethods::parseJson(const QJsonDocument& data)
 {
     // TODO
+    return { BaseJob::StatusCode::UserDefinedError, "Not implemented" };
 }
