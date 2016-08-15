@@ -71,7 +71,7 @@ namespace QMatrixClient
     {
         return std::lower_bound (timeline.begin(), timeline.end(), item,
             [](const ItemT * a, const ItemT * b) {
-                return a->timestamp() < b->timestamp();
+                return a->timestamp() > b->timestamp();
             }
         );
     }
