@@ -27,7 +27,7 @@ namespace QMatrixClient
 {
     enum class MessageEventType
     {
-        Text, Emote, Notice, Image, File, Location, Video, Audio, Unkown
+        Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
     };
 
     class MessageEventContent
