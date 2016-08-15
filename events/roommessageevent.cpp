@@ -171,7 +171,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         {
             qDebug() << "RoomMessageEvent: unknown msgtype: " << msgtype;
             qDebug() << obj;
-            e->d->msgtype = MessageEventType::Unkown;
+            e->d->msgtype = MessageEventType::Unknown;
             e->d->content = new MessageEventContent;
         }
 
