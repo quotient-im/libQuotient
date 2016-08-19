@@ -19,100 +19,151 @@
 #ifndef QMATRIXCLIENT_ROOMMESSAGEEVENT_H
 #define QMATRIXCLIENT_ROOMMESSAGEEVENT_H
 
+#include <QtCore/QMimeType>
 #include <QtCore/QUrl>
+#include <QtCore/QSize>
 
 #include "event.h"
 
 namespace QMatrixClient
 {
-    enum class MessageEventType
-    {
-        Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
-    };
 
-    class MessageEventContent
+    namespace MessageEventContent
     {
-        public:
-            virtual ~MessageEventContent() {}
-
-            QString body;
-    };
+        class Base { };
+    }
 
     class RoomMessageEvent: public Event
     {
         public:
-            RoomMessageEvent();
+            enum MsgType
+            {
+                Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
+            };
+
+            RoomMessageEvent(const QJsonObject& obj);
             virtual ~RoomMessageEvent();
             
             QString userId() const;
-            MessageEventType msgtype() const;
-            QString body() const;
-            QDateTime hsob_ts() const;
+            MsgType msgtype() const;
 
-            MessageEventContent* content() const;
-        
+            /**
+             * @brief Get the event content
+             * @return the event content, or the first found representation
+             * if there are several ones; nullptr if the event has no content.
+             */
+            MessageEventContent::Base* content() const;
+
+            QString plainBody() const;
+
+            /**
+             * Same as plainBody() for now; might change for "best-looking body"
+             * in the future. For richer contents, use content-specific data.
+             *
+             * @deprecated
+             */
+            QString body() const;
+
             static RoomMessageEvent* fromJson( const QJsonObject& obj );
-            
+
         private:
             class Private;
             Private* d;
     };
 
-    class ImageEventContent: public MessageEventContent
-    {
-        public:
-            QUrl url;
-            int height;
-            int width;
-            int size;
-            QString mimetype;
-    };
+    // For compatibility with the previous library interface
+    using MessageEventType = RoomMessageEvent::MsgType;
 
-    class FileEventContent: public MessageEventContent
+    namespace MessageEventContent
     {
-        public:
-            QString filename;
-            QString mimetype;
-            int size;
-            QUrl url;
-    };
+        // The below structures fairly follow CS spec 11.2.1.6. The overall
+        // set of attributes for each content types is a superset of the spec
+        // but specific aggregation structure is altered.
 
-    class LocationEventContent: public MessageEventContent
-    {
-        public:
-            QString geoUri;
-            int thumbnailHeight;
-            int thumbnailWidth;
-            QString thumbnailMimetype;
-            int thumbnailSize;
-            QUrl thumbnailUrl;
-    };
+        class Text: public Base
+        {
+            public:
+                Text(const QJsonObject& json);
 
-    class VideoEventContent: public MessageEventContent
-    {
-        public:
-            QUrl url;
-            int duration;
-            int width;
-            int height;
-            int size;
-            QString mimetype;
-            int thumbnailWidth;
-            int thumbnailHeight;
-            int thumbnailSize;
-            QString thumbnailMimetype;
-            QUrl thumbnailUrl;
-    };
+                QMimeType mimeType;
+                QString body;
+        };
 
-    class AudioEventContent: public MessageEventContent
-    {
-        public:
-            QUrl url;
-            int size;
-            int duration;
-            QString mimetype;
-    };
+        class FileInfo: public Base
+        {
+            public:
+                FileInfo(QUrl url, const QJsonObject& infoJson,
+                         QString originalFilename = QString());
 
+                QUrl url;
+                QMimeType mimeType;
+                int fileSize;
+                QString originalName;
+        };
+
+        class ImageInfo: public FileInfo
+        {
+            public:
+                ImageInfo(QUrl url, const QJsonObject& infoJson);
+
+                QSize imageSize;
+        };
+
+        class VideoInfo: public FileInfo
+        {
+            public:
+                VideoInfo(QUrl url, const QJsonObject& infoJson);
+
+                int duration;
+                QSize imageSize;
+                ImageInfo thumbnail;
+        };
+
+        class AudioInfo: public FileInfo
+        {
+            public:
+                AudioInfo(QUrl url, const QJsonObject& infoJson);
+
+                int duration;
+        };
+
+        template <class ContentInfoT>
+        class FileBased: public ContentInfoT
+        {
+            public:
+                FileBased(const QJsonObject& json)
+                    : ContentInfoT(json["url"].toString(), json["info"].toObject())
+                { }
+        };
+
+        template <class ContentInfoT>
+        class ThumbnailedFileBased: public FileBased<ContentInfoT>
+        {
+            public:
+                ThumbnailedFileBased(const QJsonObject& json)
+                    : FileBased<ContentInfoT>(json)
+                    , thumbnail(json["thumbnail_url"].toString(),
+                                json["thumbnail_info"].toObject())
+                { }
+
+                ImageInfo thumbnail;
+        };
+
+        using Image = ThumbnailedFileBased<ImageInfo>;
+        using File = ThumbnailedFileBased<FileInfo>;
+
+        class Location: public Base
+        {
+            public:
+                Location(const QJsonObject& json);
+
+                QUrl geoUri;
+                ImageInfo thumbnail;
+        };
+
+        using Video = FileBased<VideoInfo>;
+        using Audio = FileBased<AudioInfo>;
+    }
 }
 
 #endif // QMATRIXCLIENT_ROOMMESSAGEEVENT_H

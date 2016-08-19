@@ -18,8 +18,9 @@
 
 #include "roommessageevent.h"
 
+//#include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
-#include <QtCore/QDateTime>
+#include <QtCore/QMimeDatabase>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
@@ -27,19 +28,85 @@ using namespace QMatrixClient;
 class RoomMessageEvent::Private
 {
     public:
-        Private() {}
+        Private() : msgtype(Unknown) {}
         
         QString userId;
         MessageEventType msgtype;
-        QDateTime hsob_ts;
-        MessageEventContent* content;
+        QString plainBody;
+
+        MessageEventContent::Base* content;
+//        QDateTime hsob_ts;
 };
 
-RoomMessageEvent::RoomMessageEvent()
+template <class ContentInfoT>
+MessageEventContent::Base* make(const QJsonObject& json)
+{
+    return new ContentInfoT(json);
+}
+
+RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : Event(EventType::RoomMessage)
     , d(new Private)
 {
-    d->content = nullptr;
+    parseJson(obj);
+
+    if( obj.contains("sender") )
+    {
+        d->userId = obj.value("sender").toString();
+    } else {
+        qDebug() << "RoomMessageEvent: sender id not found";
+    }
+
+    if( obj.contains("content") )
+    {
+        const QJsonObject content = obj.value("content").toObject();
+        if ( content.contains("msgtype") && content.contains("body") )
+        {
+            d->plainBody = content.value("body").toString();
+
+            namespace MEC = MessageEventContent;
+            struct Factory
+            {
+                QString jsonTag;
+                MsgType enumTag;
+                MEC::Base*(*make)(const QJsonObject& json);
+            };
+
+            const Factory factories[] {
+                { "m.text", Text, make<MEC::Text> },
+                { "m.emote", Emote, make<MEC::Text> },
+                { "m.notice", Notice, make<MEC::Text> },
+                { "m.image", Image, make<MEC::Image> },
+                { "m.file", File, make<MEC::File> },
+                { "m.location", Location, make<MEC::Location> },
+                { "m.video", Video, make<MEC::Video> },
+                { "m.audio", Audio, make<MEC::Audio> },
+                // Insert new message types before this line
+            };
+
+            QString msgtype = content.value("msgtype").toString();
+            for (auto f: factories)
+            {
+                if (msgtype == f.jsonTag)
+                {
+                    d->msgtype = f.enumTag;
+                    d->content = f.make(content);
+                    break;
+                }
+            }
+            if (d->msgtype == Unknown)
+            {
+                qDebug() << "Unknown msgtype: " << msgtype;
+                qDebug() << obj;
+                d->content = new MEC::Base();
+            }
+        }
+        else
+        {
+            qWarning() << "Message event" << id() << ": no body or msgtype";
+            qDebug() << obj;
+        }
+    }
 }
 
 RoomMessageEvent::~RoomMessageEvent()
@@ -57,134 +124,80 @@ MessageEventType RoomMessageEvent::msgtype() const
     return d->msgtype;
 }
 
+QString RoomMessageEvent::plainBody() const
+{
+    return d->plainBody;
+}
+
 QString RoomMessageEvent::body() const
 {
-    return d->content->body;
+    return plainBody();
 }
 
-QDateTime RoomMessageEvent::hsob_ts() const
-{
-    return d->hsob_ts;
-}
+//QDateTime RoomMessageEvent::hsob_ts() const
+//{
+//    return d->hsob_ts;
+//}
 
-MessageEventContent* RoomMessageEvent::content() const
+MessageEventContent::Base* RoomMessageEvent::content() const
 {
-        return d->content;
+    return d->content;
 }
 
 RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
 {
-    RoomMessageEvent* e = new RoomMessageEvent();
-    e->parseJson(obj);
-    if( obj.contains("sender") )
-    {
-        e->d->userId = obj.value("sender").toString();
-    } else {
-        qDebug() << "RoomMessageEvent: user_id not found";
-    }
-    if( obj.contains("content") )
-    {
-        QJsonObject content = obj.value("content").toObject();
-        QString msgtype = content.value("msgtype").toString();
-
-        if( msgtype == "m.text" )
-        {
-            e->d->msgtype = MessageEventType::Text;
-            e->d->content = new MessageEventContent();
-        }
-        else if( msgtype == "m.emote" )
-        {
-            e->d->msgtype = MessageEventType::Emote;
-            e->d->content = new MessageEventContent();
-        }
-        else if( msgtype == "m.notice" )
-        {
-            e->d->msgtype = MessageEventType::Notice;
-            e->d->content = new MessageEventContent();
-        }
-        else if( msgtype == "m.image" )
-        {
-            e->d->msgtype = MessageEventType::Image;
-            ImageEventContent* c = new ImageEventContent;
-            c->url = QUrl(content.value("url").toString());
-            QJsonObject info = content.value("info").toObject();
-            c->height = info.value("h").toInt();
-            c->width = info.value("w").toInt();
-            c->size = info.value("size").toInt();
-            c->mimetype = info.value("mimetype").toString();
-            e->d->content = c;
-        }
-        else if( msgtype == "m.file" )
-        {
-            e->d->msgtype = MessageEventType::File;
-            FileEventContent* c = new FileEventContent;
-            c->filename = content.value("filename").toString();
-            c->url = QUrl(content.value("url").toString());
-            QJsonObject info = content.value("info").toObject();
-            c->size = info.value("size").toInt();
-            c->mimetype = info.value("mimetype").toString();
-            e->d->content = c;
-        }
-        else if( msgtype == "m.location" )
-        {
-            e->d->msgtype = MessageEventType::Location;
-            LocationEventContent* c = new LocationEventContent;
-            c->geoUri = content.value("geo_uri").toString();
-            c->thumbnailUrl = QUrl(content.value("thumbnail_url").toString());
-            QJsonObject info = content.value("thumbnail_info").toObject();
-            c->thumbnailHeight = info.value("h").toInt();
-            c->thumbnailWidth = info.value("w").toInt();
-            c->thumbnailSize = info.value("size").toInt();
-            c->thumbnailMimetype = info.value("mimetype").toString();
-            e->d->content = c;
-        }
-        else if( msgtype == "m.video" )
-        {
-            e->d->msgtype = MessageEventType::Video;
-            VideoEventContent* c = new VideoEventContent;
-            c->url = QUrl(content.value("url").toString());
-            QJsonObject info = content.value("info").toObject();
-            c->height = info.value("h").toInt();
-            c->width = info.value("w").toInt();
-            c->duration = info.value("duration").toInt();
-            c->size = info.value("size").toInt();
-            c->thumbnailUrl = QUrl(info.value("thumnail_url").toString());
-            QJsonObject thumbnailInfo = content.value("thumbnail_info").toObject();
-            c->thumbnailHeight = thumbnailInfo.value("h").toInt();
-            c->thumbnailWidth = thumbnailInfo.value("w").toInt();
-            c->thumbnailSize = thumbnailInfo.value("size").toInt();
-            c->thumbnailMimetype = thumbnailInfo.value("mimetype").toString();
-            e->d->content = c;
-        }
-        else if( msgtype == "m.audio" )
-        {
-            e->d->msgtype = MessageEventType::Audio;
-            AudioEventContent* c = new AudioEventContent;
-            c->url = QUrl(content.value("url").toString());
-            QJsonObject info = content.value("info").toObject();
-            c->duration = info.value("duration").toInt();
-            c->mimetype = info.value("mimetype").toString();
-            c->size = info.value("size").toInt();
-            e->d->content = c;
-        }
-        else
-        {
-            qDebug() << "RoomMessageEvent: unknown msgtype: " << msgtype;
-            qDebug() << obj;
-            e->d->msgtype = MessageEventType::Unknown;
-            e->d->content = new MessageEventContent;
-        }
-
-        if( content.contains("body") )
-        {
-            e->d->content->body = content.value("body").toString();
-        } else {
-            qDebug() << "RoomMessageEvent: body not found";
-        }
-//             e->d->hsob_ts = QDateTime::fromMSecsSinceEpoch( content.value("hsoc_ts").toInt() );
-//         } else {
-//             qDebug() << "RoomMessageEvent: hsoc_ts not found";
-//         }
-    }
-    return e;
+    return new RoomMessageEvent(obj);
 }
+
+using namespace MessageEventContent;
+
+Text::Text(const QJsonObject& json)
+{
+    QMimeDatabase db;
+
+    // Special-casing the custom matrix.org's (actually, Vector's) way
+    // of sending HTML messages.
+    if (json["format"].toString() == "org.matrix.custom.html")
+    {
+        mimeType = db.mimeTypeForName("text/html");
+        body = json["formatted_body"].toString();
+    } else {
+        // Best-guessing from the content
+        body = json["body"].toString();
+        mimeType = db.mimeTypeForData(body.toUtf8());
+    }
+}
+
+FileInfo::FileInfo(QUrl url, const QJsonObject& infoJson, QString originalFilename)
+    : url(url)
+    , mimeType(QMimeDatabase().mimeTypeForName(infoJson["mimetype"].toString()))
+    , fileSize(infoJson["size"].toInt())
+    , originalName(originalFilename)
+{
+    if (!mimeType.isValid())
+        mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
+}
+
+ImageInfo::ImageInfo(QUrl url, const QJsonObject& infoJson)
+    : FileInfo(url, infoJson)
+    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
+{  }
+
+VideoInfo::VideoInfo(QUrl url, const QJsonObject& infoJson)
+    : FileInfo(url, infoJson)
+    , duration(infoJson["duration"].toInt())
+    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
+    , thumbnail(infoJson["thumbnail_url"].toString(),
+                infoJson["thumbnail_info"].toObject())
+{ }
+
+AudioInfo::AudioInfo(QUrl url, const QJsonObject& infoJson)
+    : FileInfo(url, infoJson)
+    , duration(infoJson["duration"].toInt())
+{ }
+
+Location::Location(const QJsonObject& json)
+    : geoUri(json["geo_uri"].toString())
+    , thumbnail(json["thumbnail_url"].toString(),
+                json["thumbnail_info"].toObject())
+{ }
