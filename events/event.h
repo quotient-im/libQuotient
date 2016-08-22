@@ -65,12 +65,12 @@ namespace QMatrixClient
      * @return an iterator to an item with the earliest timestamp after
      * the one of 'item'; or timeline.end(), if all events are earlier
      */
-    template <class ItemT, template <typename> class ContT>
-    typename ContT<ItemT *>::iterator
-    findInsertionPos(ContT<ItemT *> & timeline, const ItemT *item)
+    template <class ItemT, class ContT>
+    typename ContT::iterator
+    findInsertionPos(ContT & timeline, const ItemT *item)
     {
         return std::lower_bound (timeline.begin(), timeline.end(), item,
-            [](const ItemT * a, const ItemT * b) {
+            [](const typename ContT::value_type a, const ItemT * b) {
                 return a->timestamp() < b->timestamp();
             }
         );
