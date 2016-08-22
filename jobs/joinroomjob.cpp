@@ -54,18 +54,15 @@ QString JoinRoomJob::apiPath() const
     return QString("_matrix/client/r0/join/%1").arg(d->roomAlias);
 }
 
-void JoinRoomJob::parseJson(const QJsonDocument& data)
+BaseJob::Status JoinRoomJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject json = data.object();
-    if( !json.contains("room_id") )
-    {
-        fail( BaseJob::UserDefinedError, "Something went wrong..." );
-        qDebug() << data;
-        return;
-    }
-    else
+    if( json.contains("room_id") )
     {
         d->roomId = json.value("room_id").toString();
+        return Success;
     }
-    emitResult();
+
+    qDebug() << data;
+    return { UserDefinedError, "No room_id in the JSON response" };
 }

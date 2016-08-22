@@ -40,7 +40,7 @@ namespace QMatrixClient
         protected:
             QString apiPath() const override;
             QUrlQuery query() const override;
-            void parseJson(const QJsonDocument& data) override;
+            Status parseJson(const QJsonDocument& data) override;
 
         private:
             class Private;

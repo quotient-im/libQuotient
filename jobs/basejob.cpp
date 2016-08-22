@@ -19,50 +19,56 @@
 #include "basejob.h"
 
 #include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QSslError>
 #include <QtCore/QTimer>
 
 #include "../connectiondata.h"
 
 using namespace QMatrixClient;
 
+struct NetworkReplyDeleter : public QScopedPointerDeleteLater
+{
+    static inline void cleanup(QNetworkReply* reply)
+    {
+        if (reply && reply->isRunning())
+            reply->abort();
+        QScopedPointerDeleteLater::cleanup(reply);
+    }
+};
+
 class BaseJob::Private
 {
     public:
         Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), reply(nullptr), type(t), needsToken(nt) {}
+            : connection(c), type(t), needsToken(nt)
+            , reply(nullptr), status(NoError)
+        {}
         
         ConnectionData* connection;
-        QNetworkReply* reply;
         JobHttpType type;
         bool needsToken;
+
+        QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
+        Status status;
 };
+
+inline QDebug operator<<(QDebug dbg, BaseJob* j)
+{
+    return dbg << "Job" << j->objectName();
+}
 
 BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
     : d(new Private(connection, type, needsToken))
 {
-    // Work around KJob inability to separate success and failure signals
-    connect(this, &BaseJob::result, [this]() {
-        if (error() == NoError)
-            emit success(this);
-        else
-            emit failure(this);
-    });
     setObjectName(name);
-    qDebug() << "Job" << objectName() << " created";
+    qDebug() << this << "created";
 }
 
 BaseJob::~BaseJob()
 {
-    if( d->reply )
-    {
-        if( d->reply->isRunning() )
-            d->reply->abort();
-        d->reply->deleteLater();
-    }
-    delete d;
-    qDebug() << "Job" << objectName() << " destroyed";
+    qDebug() << this << "destroyed";
 }
 
 ConnectionData* BaseJob::connection() const
@@ -78,11 +84,6 @@ QJsonObject BaseJob::data() const
 QUrlQuery BaseJob::query() const
 {
     return QUrlQuery();
-}
-
-void BaseJob::parseJson(const QJsonDocument& data)
-{
-    emitResult();
 }
 
 void BaseJob::start()
@@ -103,75 +104,127 @@ void BaseJob::start()
     switch( d->type )
     {
         case JobHttpType::GetJob:
-            d->reply = d->connection->nam()->get(req);
+            d->reply.reset( d->connection->nam()->get(req) );
             break;
         case JobHttpType::PostJob:
-            d->reply = d->connection->nam()->post(req, data.toJson());
+            d->reply.reset( d->connection->nam()->post(req, data.toJson()) );
             break;
         case JobHttpType::PutJob:
-            d->reply = d->connection->nam()->put(req, data.toJson());
+            d->reply.reset( d->connection->nam()->put(req, data.toJson()) );
             break;
     }
-    connect( d->reply, &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
-    connect( d->reply, &QNetworkReply::finished, this, &BaseJob::gotReply );
+    connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
+    connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
 //     connect( d->reply, static_cast<void(QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
 //              this, &BaseJob::networkError ); // http://doc.qt.io/qt-5/qnetworkreply.html#error-1
 }
 
-void BaseJob::fail(int errorCode, QString errorString)
-{
-    setError( errorCode );
-    setErrorText( errorString );
-    if( d->reply && d->reply->isRunning() )
-        d->reply->abort();
-    qWarning() << "Job" << objectName() << "failed:" << errorString;
-    emitResult();
-}
-
-QNetworkReply* BaseJob::networkReply() const
-{
-    return d->reply;
-}
-
-// void BaseJob::networkError(QNetworkReply::NetworkError code)
-// {
-//     fail( KJob::UserDefinedError+1, d->reply->errorString() );
-// }
-
 void BaseJob::gotReply()
 {
-    switch( d->reply->error() )
+    setStatus(checkReply(d->reply.data()));
+    if (status().good())
+        setStatus(parseReply(d->reply->readAll()));
+
+    finishJob(true);
+}
+
+BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
+{
+    switch( reply->error() )
     {
     case QNetworkReply::NoError:
-        break; // All good, go to the normal flow after the switch()
+        return NoError;
 
     case QNetworkReply::AuthenticationRequiredError:
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::ContentOperationNotPermittedError:
-        qDebug() << "Content access error, Qt error code:" << d->reply->error();
-        fail( ContentAccessError, d->reply->errorString() );
-        return;
+        return { ContentAccessError, reply->errorString() };
 
     default:
-        qDebug() << "NetworkError, Qt error code:" << d->reply->error();
-        fail( NetworkError, d->reply->errorString() );
-        return;
+        return { NetworkError, reply->errorString() };
+    }
+}
+
+BaseJob::Status BaseJob::parseReply(QByteArray data)
+{
+    QJsonParseError error;
+    QJsonDocument json = QJsonDocument::fromJson(data, &error);
+    if( error.error == QJsonParseError::NoError )
+        return parseJson(json);
+    else
+        return { JsonParseError, error.errorString() };
+}
+
+BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
+{
+    return Success;
+}
+
+void BaseJob::finishJob(bool emitResult)
+{
+    if (!d->reply)
+    {
+        qWarning() << this << "finishes with empty network reply";
+    }
+    else if (d->reply->isRunning())
+    {
+        qWarning() << this << "finishes without ready network reply";
+        d->reply->disconnect(this); // Ignore whatever comes from the reply
     }
 
-    QJsonParseError error;
-    QJsonDocument data = QJsonDocument::fromJson(d->reply->readAll(), &error);
-    if( error.error != QJsonParseError::NoError )
-    {
-        fail( JsonParseError, error.errorString() );
-        return;
+    // Notify those that are interested in any completion of the job (including killing)
+    emit finished(this);
+
+    if (emitResult) {
+        emit result(this);
+        if (error())
+            emit failure(this);
+        else
+            emit success(this);
     }
-    parseJson(data);
+
+    deleteLater();
+}
+
+BaseJob::Status BaseJob::status() const
+{
+    return d->status;
+}
+
+int BaseJob::error() const
+{
+    return d->status.code;
+}
+
+QString BaseJob::errorString() const
+{
+    return d->status.message;
+}
+
+void BaseJob::setStatus(Status s)
+{
+    d->status = s;
+    if (!s.good())
+    {
+        qWarning() << this << "status" << s.code << ":" << s.message;
+    }
+}
+
+void BaseJob::setStatus(int code, QString message)
+{
+    setStatus({ code, message });
+}
+
+void BaseJob::abandon()
+{
+    finishJob(false);
 }
 
 void BaseJob::timeout()
 {
-    fail( TimeoutError, "The job has timed out" );
+    setStatus( TimeoutError, "The job has timed out" );
+    finishJob(true);
 }
 
 void BaseJob::sslErrors(const QList<QSslError>& errors)

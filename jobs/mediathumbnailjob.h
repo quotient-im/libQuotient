@@ -40,8 +40,7 @@ namespace QMatrixClient
             QString apiPath() const override;
             QUrlQuery query() const override;
 
-        protected slots:
-            void gotReply() override;
+            Status parseReply(QByteArray data) override;
 
         private:
             class Private;

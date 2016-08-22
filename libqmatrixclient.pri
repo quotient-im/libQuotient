@@ -32,10 +32,7 @@ HEADERS += \
     $$PWD/jobs/roommessagesjob.h \
     $$PWD/jobs/syncjob.h \
     $$PWD/jobs/mediathumbnailjob.h \
-    $$PWD/kcoreaddons/src/lib/jobs/kjob.h \
-    $$PWD/kcoreaddons/src/lib/jobs/kcompositejob.h \
-    $$PWD/kcoreaddons/src/lib/jobs/kjobtrackerinterface.h \
-    $$PWD/kcoreaddons/src/lib/jobs/kjobuidelegate.h
+    $$PWD/jobs/logoutjob.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
@@ -66,7 +63,4 @@ SOURCES += \
     $$PWD/jobs/roommessagesjob.cpp \
     $$PWD/jobs/syncjob.cpp \
     $$PWD/jobs/mediathumbnailjob.cpp \
-    $$PWD/kcoreaddons/src/lib/jobs/kjob.cpp \
-    $$PWD/kcoreaddons/src/lib/jobs/kcompositejob.cpp \
-    $$PWD/kcoreaddons/src/lib/jobs/kjobtrackerinterface.cpp \
-    $$PWD/kcoreaddons/src/lib/jobs/kjobuidelegate.cpp
+    $$PWD/jobs/logoutjob.cpp
