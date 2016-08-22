@@ -41,17 +41,11 @@ Example of a Receipt Event:
 
 using namespace QMatrixClient;
 
-Receipt::Receipt(QString event, QString user, QDateTime time)
-    : eventId(event)
-    , userId(user)
-    , timestamp(time)
-{
-}
 
 class ReceiptEvent::Private
 {
     public:
-        QHash<QString, QList<Receipt>> eventToReceipts;
+        QHash<QString, Receipts> eventToReceipts;
 };
 
 ReceiptEvent::ReceiptEvent()
@@ -65,7 +59,7 @@ ReceiptEvent::~ReceiptEvent()
     delete d;
 }
 
-QList<Receipt> ReceiptEvent::receiptsForEvent(QString eventId) const
+Receipts ReceiptEvent::receiptsForEvent(QString eventId) const
 {
     return d->eventToReceipts.value(eventId);
 }
@@ -79,17 +73,17 @@ ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
 {
     ReceiptEvent* e = new ReceiptEvent();
     e->parseJson(obj);
-    const QJsonObject contents = obj.value("content").toObject();
+    const QJsonObject contents = obj["content"].toObject();
+    e->d->eventToReceipts.reserve(contents.size());
     for( const QString& eventId: contents.keys() )
     {
-        QJsonObject reads = contents.value(eventId).toObject().value("m.read").toObject();
-        QList<Receipt> receipts;
+        const QJsonObject reads = contents[eventId].toObject().value("m.read").toObject();
+        Receipts receipts(reads.size());
         for( const QString& userId: reads.keys() )
         {
-            QJsonObject user = reads.value(userId).toObject();
-            QDateTime time = QDateTime::fromMSecsSinceEpoch( (quint64) user.value("ts").toDouble(), Qt::UTC );
-            Receipt receipt(eventId, userId, time);
-            receipts.append(receipt);
+            const QJsonObject user = reads[userId].toObject();
+            const QDateTime time = QDateTime::fromMSecsSinceEpoch( (quint64) user["ts"].toDouble(), Qt::UTC );
+            receipts.push_back({ eventId, userId, time });
         }
         e->d->eventToReceipts.insert(eventId, receipts);
     }

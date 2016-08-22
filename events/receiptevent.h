@@ -31,9 +31,8 @@ namespace QMatrixClient
             QString eventId;
             QString userId;
             QDateTime timestamp;
-
-            Receipt(QString event, QString user, QDateTime time);
     };
+    using Receipts = QVector<Receipt>;
 
     class ReceiptEvent: public Event
     {
@@ -41,7 +40,7 @@ namespace QMatrixClient
             ReceiptEvent();
             virtual ~ReceiptEvent();
 
-            QList<Receipt> receiptsForEvent(QString eventId) const;
+            Receipts receiptsForEvent(QString eventId) const;
 
             QStringList events() const;
 
@@ -52,5 +51,6 @@ namespace QMatrixClient
             Private* d;
     };
 }
+Q_DECLARE_TYPEINFO(QMatrixClient::Receipt, Q_MOVABLE_TYPE);
 
 #endif // QMATRIXCLIENT_RECEIPTEVENT_H

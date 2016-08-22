@@ -52,8 +52,11 @@ namespace QMatrixClient
         int highlightCount;
         int notificationCount;
 
-        SyncRoomData(QString roomId_, const QJsonObject& room_, JoinState joinState_);
+        SyncRoomData(QString roomId_ = QString(),
+                     JoinState joinState_ = JoinState::Join,
+                     const QJsonObject& room_ = QJsonObject());
     };
+    using SyncData = QVector<SyncRoomData>;
 
     class ConnectionData;
     class SyncJob: public BaseJob
@@ -67,7 +70,7 @@ namespace QMatrixClient
             void setPresence(QString presence);
             void setTimeout(int timeout);
 
-            QList<SyncRoomData> roomData() const;
+            const SyncData& roomData() const;
             QString nextBatch() const;
 
         protected:
@@ -80,5 +83,6 @@ namespace QMatrixClient
             Private* d;
     };
 }
+Q_DECLARE_TYPEINFO(QMatrixClient::SyncRoomData, Q_MOVABLE_TYPE);
 
 #endif // QMATRIXCLIENT_SYNCJOB_H

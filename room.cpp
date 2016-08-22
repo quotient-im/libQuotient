@@ -482,11 +482,11 @@ void Room::processEphemeralEvent(Event* event)
     }
     if( event->type() == EventType::Receipt )
     {
-        ReceiptEvent* receiptEvent = static_cast<ReceiptEvent*>(event);
+        auto receiptEvent = static_cast<ReceiptEvent*>(event);
         for( QString eventId: receiptEvent->events() )
         {
-            QList<Receipt> receipts = receiptEvent->receiptsForEvent(eventId);
-            for( Receipt r: receipts )
+            const auto receipts = receiptEvent->receiptsForEvent(eventId);
+            for( const Receipt r: receipts )
             {
                 d->lastReadEvent.insert(d->connection->user(r.userId), eventId);
             }
