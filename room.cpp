@@ -53,8 +53,9 @@ class Room::Private
 
         //static LogMessage* parseMessage(const QJsonObject& message);
 
-		// This updates the room displayname field (which is the way a room should be shown in the room list)
-		// It should be called whenever the list of members or the room name (m.room.name) or canonical alias change.
+        // This updates the room displayname field (which is the way a room
+        // should be shown in the room list) It should be called whenever the
+        // list of members or the room name (m.room.name) or canonical alias change.
         void updateDisplayname();
 
         Connection* connection;
@@ -75,9 +76,9 @@ class Room::Private
         QString prevBatch;
         RoomMessagesJob* roomMessagesJob;
         
-        // Convenience methods to work with the membersMap and usersLeft. addMember()
-        // and removeMember() emit respective Room:: signals after a succesful
-        // operation.
+        // Convenience methods to work with the membersMap and usersLeft.
+        // addMember() and removeMember() emit respective Room:: signals
+        // after a succesful operation.
         //void inviteUser(User* u); // We might get it at some point in time.
         void addMember(User* u);
         bool hasMember(User* u) const;
@@ -110,7 +111,7 @@ Room::Room(Connection* connection, QString id)
 
 Room::~Room()
 {
-    qDebug() << "deconstructing room" << this;
+    qDebug() << "deconstructing room" << id();
     delete d;
 }
 
@@ -502,7 +503,7 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
     // the current one to render the name of the room.
 
     // std::array is the leanest C++ container
-    std::array<User*, 2> first_two { nullptr, nullptr };
+    std::array<User*, 2> first_two = { {nullptr, nullptr} };
     std::partial_sort_copy(
         userlist.begin(), userlist.end(),
         first_two.begin(), first_two.end(),
