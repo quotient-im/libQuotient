@@ -113,7 +113,11 @@ SyncJob* Connection::sync(int timeout)
     syncJob->setTimeout(timeout);
     connect( syncJob, &SyncJob::success, [=] () {
         d->data->setLastEvent(syncJob->nextBatch());
-        d->processRooms(syncJob->roomData());
+        for( const auto roomData: syncJob->roomData() )
+        {
+            if ( Room* r = d->provideRoom(roomData.roomId) )
+                r->updateData(roomData);
+        }
         emit syncDone();
     });
     connect( syncJob, &SyncJob::failure, [=] () {

@@ -85,15 +85,6 @@ void ConnectionPrivate::processState(State* state)
         r->addInitialState(state);
 }
 
-void ConnectionPrivate::processRooms(const QList<SyncRoomData>& data)
-{
-    for( const SyncRoomData& roomData: data )
-    {
-        if ( Room* r = provideRoom(roomData.roomId) )
-            r->updateData(roomData);
-    }
-}
-
 Room* ConnectionPrivate::provideRoom(QString id)
 {
     if (id.isEmpty())

@@ -40,7 +40,7 @@ class SyncJob::Private
         int timeout;
         QString nextBatch;
 
-        QList<SyncRoomData> roomData;
+        SyncData roomData;
 };
 
 static size_t jobId = 0;
@@ -84,7 +84,7 @@ QString SyncJob::nextBatch() const
     return d->nextBatch;
 }
 
-QList<SyncRoomData> SyncJob::roomData() const
+const SyncData& SyncJob::roomData() const
 {
     return d->roomData;
 }
@@ -128,9 +128,9 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
         d->roomData.reserve(rs.size());
-        for( auto r = rs.begin(); r != rs.end(); ++r )
+        for( auto rkey: rs.keys() )
         {
-            d->roomData.push_back({r.key(), r.value().toObject(), roomState.enumVal});
+            d->roomData.push_back({rkey, roomState.enumVal, rs[rkey].toObject()});
         }
     }
 
@@ -143,7 +143,7 @@ void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
     swap(l);
 }
 
-SyncRoomData::SyncRoomData(QString roomId_, const QJsonObject& room_, JoinState joinState_)
+SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
     , state("state")
