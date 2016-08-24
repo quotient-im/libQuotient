@@ -20,6 +20,7 @@
 #define QMATRIXCLIENT_ROOMMESSAGEEVENT_H
 
 #include <QtCore/QUrl>
+#include <QtCore/QMimeType>
 
 #include "event.h"
 
@@ -65,6 +66,15 @@ namespace QMatrixClient
 
     namespace MessageEventContent
     {
+        class TextContent: public Base
+        {
+            public:
+                TextContent(const QJsonObject& json);
+
+                QMimeType mimeType;
+                QString body;
+        };
+
         class ImageContent: public Base
         {
             public:

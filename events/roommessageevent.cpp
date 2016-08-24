@@ -19,6 +19,7 @@
 #include "roommessageevent.h"
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QMimeDatabase>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
@@ -26,7 +27,7 @@ using namespace QMatrixClient;
 class RoomMessageEvent::Private
 {
     public:
-        Private() {}
+        Private() : msgtype(MessageEventType::Unknown), content(nullptr) {}
         
         QString userId;
         MessageEventType msgtype;
@@ -37,9 +38,7 @@ class RoomMessageEvent::Private
 RoomMessageEvent::RoomMessageEvent()
     : Event(EventType::RoomMessage)
     , d(new Private)
-{
-    d->content = nullptr;
-}
+{ }
 
 RoomMessageEvent::~RoomMessageEvent()
 {
@@ -91,17 +90,17 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         if( msgtype == "m.text" )
         {
             e->d->msgtype = MessageEventType::Text;
-            e->d->content = new Base();
+            e->d->content = new TextContent(obj);
         }
         else if( msgtype == "m.emote" )
         {
             e->d->msgtype = MessageEventType::Emote;
-            e->d->content = new Base();
+            e->d->content = new TextContent(obj);
         }
         else if( msgtype == "m.notice" )
         {
             e->d->msgtype = MessageEventType::Notice;
-            e->d->content = new Base();
+            e->d->content = new TextContent(obj);
         }
         else if( msgtype == "m.image" )
         {
@@ -184,4 +183,23 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         }
     }
     return e;
+}
+
+using namespace MessageEventContent;
+
+TextContent::TextContent(const QJsonObject& json)
+{
+    QMimeDatabase db;
+
+    // Special-casing the custom matrix.org's (actually, Vector's) way
+    // of sending HTML messages.
+    if (json["format"].toString() == "org.matrix.custom.html")
+    {
+        mimeType = db.mimeTypeForName("text/html");
+        body = json["formatted_body"].toString();
+    } else {
+        // Best-guessing from the content
+        body = json["body"].toString();
+        mimeType = db.mimeTypeForData(body.toUtf8());
+    }
 }
