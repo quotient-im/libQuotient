@@ -19,7 +19,6 @@
 #include "roommessageevent.h"
 
 #include <QtCore/QJsonObject>
-#include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
@@ -32,7 +31,6 @@ class RoomMessageEvent::Private
         QString userId;
         MessageEventType msgtype;
         QString plainBody;
-        QDateTime hsob_ts;
         MessageEventContent::Base* content;
 };
 
@@ -66,11 +64,6 @@ QString RoomMessageEvent::plainBody() const
 QString RoomMessageEvent::body() const
 {
     return plainBody();
-}
-
-QDateTime RoomMessageEvent::hsob_ts() const
-{
-    return d->hsob_ts;
 }
 
 MessageEventContent::Base* RoomMessageEvent::content() const
@@ -189,10 +182,6 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         } else {
             qDebug() << "RoomMessageEvent: body not found";
         }
-//             e->d->hsob_ts = QDateTime::fromMSecsSinceEpoch( content.value("hsoc_ts").toInt() );
-//         } else {
-//             qDebug() << "RoomMessageEvent: hsoc_ts not found";
-//         }
     }
     return e;
 }

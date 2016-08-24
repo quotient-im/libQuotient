@@ -54,8 +54,6 @@ namespace QMatrixClient
              */
             QString body() const;
 
-            QDateTime hsob_ts() const;
-
             MessageEventContent::Base* content() const;
         
             static RoomMessageEvent* fromJson( const QJsonObject& obj );
