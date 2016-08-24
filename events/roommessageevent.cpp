@@ -31,6 +31,7 @@ class RoomMessageEvent::Private
         
         QString userId;
         MessageEventType msgtype;
+        QString plainBody;
         QDateTime hsob_ts;
         MessageEventContent::Base* content;
 };
@@ -57,9 +58,14 @@ MessageEventType RoomMessageEvent::msgtype() const
     return d->msgtype;
 }
 
+QString RoomMessageEvent::plainBody() const
+{
+    return d->plainBody;
+}
+
 QString RoomMessageEvent::body() const
 {
-    return d->content->body;
+    return plainBody();
 }
 
 QDateTime RoomMessageEvent::hsob_ts() const
@@ -179,7 +185,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
 
         if( content.contains("body") )
         {
-            e->d->content->body = content.value("body").toString();
+            e->d->plainBody = content.value("body").toString();
         } else {
             qDebug() << "RoomMessageEvent: body not found";
         }

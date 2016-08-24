@@ -32,11 +32,7 @@ namespace QMatrixClient
 
     namespace MessageEventContent
     {
-        class Base
-        {
-            public:
-                QString body;
-        };
+        class Base { };
     }
 
     class RoomMessageEvent: public Event
@@ -47,7 +43,17 @@ namespace QMatrixClient
             
             QString userId() const;
             MessageEventType msgtype() const;
+
+            QString plainBody() const;
+
+            /**
+             * Same as plainBody() for now; might change for "best-looking body"
+             * in the future. For richer contents, use content-specific data.
+             *
+             * @deprecated
+             */
             QString body() const;
+
             QDateTime hsob_ts() const;
 
             MessageEventContent::Base* content() const;
