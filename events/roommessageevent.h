@@ -21,6 +21,7 @@
 
 #include <QtCore/QUrl>
 #include <QtCore/QMimeType>
+#include <QtCore/QSize>
 
 #include "event.h"
 
@@ -66,6 +67,10 @@ namespace QMatrixClient
 
     namespace MessageEventContent
     {
+        // The below structures fairly follow CS spec 11.2.1.6. The overall
+        // set of attributes for each content types is a superset of the spec
+        // but specific aggregation structure is altered.
+
         class TextContent: public Base
         {
             public:
@@ -75,59 +80,71 @@ namespace QMatrixClient
                 QString body;
         };
 
-        class ImageContent: public Base
+        class FileInfo: public Base
         {
             public:
+                FileInfo(QUrl u, const QJsonObject& infoJson,
+                         QString originalFilename = QString());
+
                 QUrl url;
-                int height;
-                int width;
-                int size;
-                QString mimetype;
+                int fileSize;
+                QMimeType mimetype;
+                QString originalName;
         };
 
-        class FileContent: public Base
+        class ImageInfo: public FileInfo
         {
             public:
-                QString filename;
-                QString mimetype;
-                int size;
-                QUrl url;
+                ImageInfo(QUrl u, const QJsonObject& infoJson);
+
+                QSize imageSize;
         };
+
+        template <class ContentInfoT>
+        class ThumbnailedContent: public ContentInfoT
+        {
+            public:
+                ThumbnailedContent(const QJsonObject& json)
+                    : ContentInfoT(json["url"].toString(), json["info"].toObject())
+                    , thumbnail(json["thumbnail_url"].toString(),
+                                json["thumbnail_info"].toObject())
+                { }
+
+                ImageInfo thumbnail;
+        };
+
+        using ImageContent = ThumbnailedContent<ImageInfo>;
+        using FileContent = ThumbnailedContent<FileInfo>;
 
         class LocationContent: public Base
         {
             public:
+                LocationContent(const QJsonObject& json);
+
                 QString geoUri;
-                int thumbnailHeight;
-                int thumbnailWidth;
-                QString thumbnailMimetype;
-                int thumbnailSize;
-                QUrl thumbnailUrl;
+                ImageInfo thumbnail;
         };
 
-        class VideoContent: public Base
+        // The spec structures m.video messages differently for some reason -
+        // instead of putting a thumbnail block on the top level, as with
+        // file and image, it puts it inside "info" key. So instead of
+        // using ThumbnailContent<> base, we add the thumbnail into VideoInfo explicitly.
+        class VideoContent: public FileInfo
         {
             public:
-                QUrl url;
+                VideoContent(QUrl u, const QJsonObject& infoJson);
+
                 int duration;
-                int width;
-                int height;
-                int size;
-                QString mimetype;
-                int thumbnailWidth;
-                int thumbnailHeight;
-                int thumbnailSize;
-                QString thumbnailMimetype;
-                QUrl thumbnailUrl;
+                QSize imageSize;
+                ImageInfo thumbnail;
         };
 
-        class AudioContent: public Base
+        class AudioContent: public FileInfo
         {
             public:
-                QUrl url;
-                int size;
+                AudioContent(QUrl u, const QJsonObject& infoJson);
+
                 int duration;
-                QString mimetype;
         };
     }
 }
