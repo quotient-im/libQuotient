@@ -32,7 +32,7 @@ class RoomMessageEvent::Private
         QString userId;
         MessageEventType msgtype;
         QDateTime hsob_ts;
-        MessageEventContent* content;
+        MessageEventContent::Base* content;
 };
 
 RoomMessageEvent::RoomMessageEvent()
@@ -67,9 +67,9 @@ QDateTime RoomMessageEvent::hsob_ts() const
     return d->hsob_ts;
 }
 
-MessageEventContent* RoomMessageEvent::content() const
+MessageEventContent::Base* RoomMessageEvent::content() const
 {
-        return d->content;
+    return d->content;
 }
 
 RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
@@ -84,28 +84,30 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
     }
     if( obj.contains("content") )
     {
+        using namespace MessageEventContent;
+
         QJsonObject content = obj.value("content").toObject();
         QString msgtype = content.value("msgtype").toString();
 
         if( msgtype == "m.text" )
         {
             e->d->msgtype = MessageEventType::Text;
-            e->d->content = new MessageEventContent();
+            e->d->content = new Base();
         }
         else if( msgtype == "m.emote" )
         {
             e->d->msgtype = MessageEventType::Emote;
-            e->d->content = new MessageEventContent();
+            e->d->content = new Base();
         }
         else if( msgtype == "m.notice" )
         {
             e->d->msgtype = MessageEventType::Notice;
-            e->d->content = new MessageEventContent();
+            e->d->content = new Base();
         }
         else if( msgtype == "m.image" )
         {
             e->d->msgtype = MessageEventType::Image;
-            ImageEventContent* c = new ImageEventContent;
+            ImageContent* c = new ImageContent;
             c->url = QUrl(content.value("url").toString());
             QJsonObject info = content.value("info").toObject();
             c->height = info.value("h").toInt();
@@ -117,7 +119,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         else if( msgtype == "m.file" )
         {
             e->d->msgtype = MessageEventType::File;
-            FileEventContent* c = new FileEventContent;
+            FileContent* c = new FileContent;
             c->filename = content.value("filename").toString();
             c->url = QUrl(content.value("url").toString());
             QJsonObject info = content.value("info").toObject();
@@ -128,7 +130,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         else if( msgtype == "m.location" )
         {
             e->d->msgtype = MessageEventType::Location;
-            LocationEventContent* c = new LocationEventContent;
+            LocationContent* c = new LocationContent;
             c->geoUri = content.value("geo_uri").toString();
             c->thumbnailUrl = QUrl(content.value("thumbnail_url").toString());
             QJsonObject info = content.value("thumbnail_info").toObject();
@@ -141,7 +143,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         else if( msgtype == "m.video" )
         {
             e->d->msgtype = MessageEventType::Video;
-            VideoEventContent* c = new VideoEventContent;
+            VideoContent* c = new VideoContent;
             c->url = QUrl(content.value("url").toString());
             QJsonObject info = content.value("info").toObject();
             c->height = info.value("h").toInt();
@@ -159,7 +161,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         else if( msgtype == "m.audio" )
         {
             e->d->msgtype = MessageEventType::Audio;
-            AudioEventContent* c = new AudioEventContent;
+            AudioContent* c = new AudioContent;
             c->url = QUrl(content.value("url").toString());
             QJsonObject info = content.value("info").toObject();
             c->duration = info.value("duration").toInt();
@@ -172,7 +174,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
             qDebug() << "RoomMessageEvent: unknown msgtype: " << msgtype;
             qDebug() << obj;
             e->d->msgtype = MessageEventType::Unknown;
-            e->d->content = new MessageEventContent;
+            e->d->content = new Base;
         }
 
         if( content.contains("body") )

@@ -30,13 +30,14 @@ namespace QMatrixClient
         Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
     };
 
-    class MessageEventContent
+    namespace MessageEventContent
     {
-        public:
-            virtual ~MessageEventContent() {}
-
-            QString body;
-    };
+        class Base
+        {
+            public:
+                QString body;
+        };
+    }
 
     class RoomMessageEvent: public Event
     {
@@ -49,7 +50,7 @@ namespace QMatrixClient
             QString body() const;
             QDateTime hsob_ts() const;
 
-            MessageEventContent* content() const;
+            MessageEventContent::Base* content() const;
         
             static RoomMessageEvent* fromJson( const QJsonObject& obj );
             
@@ -58,61 +59,63 @@ namespace QMatrixClient
             Private* d;
     };
 
-    class ImageEventContent: public MessageEventContent
+    namespace MessageEventContent
     {
-        public:
-            QUrl url;
-            int height;
-            int width;
-            int size;
-            QString mimetype;
-    };
+        class ImageContent: public Base
+        {
+            public:
+                QUrl url;
+                int height;
+                int width;
+                int size;
+                QString mimetype;
+        };
 
-    class FileEventContent: public MessageEventContent
-    {
-        public:
-            QString filename;
-            QString mimetype;
-            int size;
-            QUrl url;
-    };
+        class FileContent: public Base
+        {
+            public:
+                QString filename;
+                QString mimetype;
+                int size;
+                QUrl url;
+        };
 
-    class LocationEventContent: public MessageEventContent
-    {
-        public:
-            QString geoUri;
-            int thumbnailHeight;
-            int thumbnailWidth;
-            QString thumbnailMimetype;
-            int thumbnailSize;
-            QUrl thumbnailUrl;
-    };
+        class LocationContent: public Base
+        {
+            public:
+                QString geoUri;
+                int thumbnailHeight;
+                int thumbnailWidth;
+                QString thumbnailMimetype;
+                int thumbnailSize;
+                QUrl thumbnailUrl;
+        };
 
-    class VideoEventContent: public MessageEventContent
-    {
-        public:
-            QUrl url;
-            int duration;
-            int width;
-            int height;
-            int size;
-            QString mimetype;
-            int thumbnailWidth;
-            int thumbnailHeight;
-            int thumbnailSize;
-            QString thumbnailMimetype;
-            QUrl thumbnailUrl;
-    };
+        class VideoContent: public Base
+        {
+            public:
+                QUrl url;
+                int duration;
+                int width;
+                int height;
+                int size;
+                QString mimetype;
+                int thumbnailWidth;
+                int thumbnailHeight;
+                int thumbnailSize;
+                QString thumbnailMimetype;
+                QUrl thumbnailUrl;
+        };
 
-    class AudioEventContent: public MessageEventContent
-    {
-        public:
-            QUrl url;
-            int size;
-            int duration;
-            QString mimetype;
-    };
-
+        class AudioContent: public Base
+        {
+            public:
+                QUrl url;
+                int size;
+                int duration;
+                QString mimetype;
+        };
+    }
 }
 
 #endif // QMATRIXCLIENT_ROOMMESSAGEEVENT_H
