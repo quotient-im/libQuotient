@@ -65,21 +65,30 @@ QString RoomMessageEvent::body() const
     return plainBody();
 }
 
-MessageEventContent::Base* RoomMessageEvent::content() const
+using namespace MessageEventContent;
+
+Base* RoomMessageEvent::content() const
 {
     return d->content;
 }
 
 template <class ContentT>
-MessageEventContent::Base* make(const QJsonObject& json)
+Base* make(const QJsonObject& json)
 {
     return new ContentT(json);
 }
 
-template <class ContentT>
-MessageEventContent::Base* make2(const QJsonObject& json)
+Base* makeVideoContent(const QJsonObject& json)
 {
-    return new ContentT(json["url"].toString(), json["info"].toObject());
+    auto c = new VideoContent(json);
+    // Only for m.video, the spec puts a thumbnail inside "info" JSON key. Once
+    // this is fixed, VideoContent creation will switch to make<>().
+    const QJsonObject infoJson = json["info"].toObject();
+    if (infoJson.contains("thumbnail_url"))
+        c->thumbnail = ImageInfo(infoJson["thumbnail_url"].toString(),
+                                 infoJson["thumbnail_info"].toObject());
+
+    return c;
 };
 
 RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
@@ -97,15 +106,13 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         const QJsonObject content = obj["content"].toObject();
         if ( content.contains("msgtype") && content.contains("body") )
         {
-            using namespace MessageEventContent;
-
             e->d->plainBody = content["body"].toString();
 
             struct Factory
             {
                 QString jsonTag;
                 MessageEventType enumTag;
-                MessageEventContent::Base*(*make)(const QJsonObject& json);
+                Base*(*make)(const QJsonObject& json);
             };
 
             const Factory factories[] {
@@ -115,8 +122,8 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
                 { "m.image", MessageEventType::Image, make<ImageContent> },
                 { "m.file", MessageEventType::File, make<FileContent> },
                 { "m.location", MessageEventType::Location, make<LocationContent> },
-                { "m.video", MessageEventType::Video, make2<VideoContent> },
-                { "m.audio", MessageEventType::Audio, make2<AudioContent> },
+                { "m.video", MessageEventType::Video, makeVideoContent },
+                { "m.audio", MessageEventType::Audio, make<AudioContent> },
                 // Insert new message types before this line
             };
 
@@ -186,15 +193,13 @@ LocationContent::LocationContent(const QJsonObject& json)
                 json["thumbnail_info"].toObject())
 { }
 
-VideoContent::VideoContent(QUrl u, const QJsonObject& infoJson)
+VideoInfo::VideoInfo(QUrl u, const QJsonObject& infoJson)
     : FileInfo(u, infoJson)
     , duration(infoJson["duration"].toInt())
     , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
-    , thumbnail(infoJson["thumbnail_url"].toString(),
-                infoJson["thumbnail_info"].toObject())
 { }
 
-AudioContent::AudioContent(QUrl u, const QJsonObject& infoJson)
+AudioInfo::AudioInfo(QUrl u, const QJsonObject& infoJson)
     : FileInfo(u, infoJson)
     , duration(infoJson["duration"].toInt())
 { }

@@ -125,27 +125,24 @@ namespace QMatrixClient
                 ImageInfo thumbnail;
         };
 
-        // The spec structures m.video messages differently for some reason -
-        // instead of putting a thumbnail block on the top level, as with
-        // file and image, it puts it inside "info" key. So instead of
-        // using ThumbnailContent<> base, we add the thumbnail into VideoInfo explicitly.
-        class VideoContent: public FileInfo
+        class VideoInfo: public FileInfo
         {
             public:
-                VideoContent(QUrl u, const QJsonObject& infoJson);
+                VideoInfo(QUrl u, const QJsonObject& infoJson);
 
                 int duration;
                 QSize imageSize;
-                ImageInfo thumbnail;
         };
+        using VideoContent = ThumbnailedContent<VideoInfo>;
 
-        class AudioContent: public FileInfo
+        class AudioInfo: public FileInfo
         {
             public:
-                AudioContent(QUrl u, const QJsonObject& infoJson);
+                AudioInfo(QUrl u, const QJsonObject& infoJson);
 
                 int duration;
         };
+        using AudioContent = ThumbnailedContent<AudioInfo>;
     }
 }
 
