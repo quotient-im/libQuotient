@@ -26,6 +26,8 @@
 #include "jobs/syncjob.h"
 #include "joinstate.h"
 
+#include <deque>
+
 namespace QMatrixClient
 {
     class Event;
@@ -38,7 +40,7 @@ namespace QMatrixClient
             Q_OBJECT
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerPromoted)
         public:
-            using Timeline = Owning<Events>;
+            using Timeline = Owning< std::deque<Event*> >;
 
             Room(Connection* connection, QString id);
             virtual ~Room();

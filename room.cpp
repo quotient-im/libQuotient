@@ -504,7 +504,6 @@ bool Room::Private::isEventNotable(const Event* e) const
 
 void Room::doAddNewMessageEvents(const Events& events)
 {
-    d->messageEvents.reserve(d->messageEvents.size() + events.size());
 
     Timeline::size_type newUnreadMessages = 0;
 
@@ -554,7 +553,6 @@ void Room::addHistoricalMessageEvents(const Events& events)
 void Room::doAddHistoricalMessageEvents(const Events& events)
 {
     // Historical messages arrive in newest-to-oldest order
-    d->messageEvents.reserve(d->messageEvents.size() + events.size());
     std::copy(events.begin(), events.end(), std::front_inserter(d->messageEvents));
 }
 
