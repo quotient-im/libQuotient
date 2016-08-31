@@ -82,40 +82,33 @@ QString Event::originalJson() const
     return d->originalJson;
 }
 
+template <typename T>
+Event* make(const QJsonObject& obj)
+{
+    return T::fromJson(obj);
+}
+
 Event* Event::fromJson(const QJsonObject& obj)
 {
-    //qDebug() << obj.value("type").toString();
-    if( obj.value("type").toString() == "m.room.message" )
+    struct Factory {
+        QString type;
+        Event* (*make)(const QJsonObject& obj);
+    };
+    const Factory evTypes[] {
+        { "m.room.message", make<RoomMessageEvent> },
+        { "m.room.name", make<RoomNameEvent> },
+        { "m.room.aliases", make<RoomAliasesEvent> },
+        { "m.room.canonical_alias", make<RoomCanonicalAliasEvent> },
+        { "m.room.member", make<RoomMemberEvent> },
+        { "m.room.topic", make<RoomTopicEvent> },
+        { "m.room.typing", make<TypingEvent> },
+        { "m.room.receipt", make<ReceiptEvent> },
+        // Insert new types before this line
+    };
+    for (auto e: evTypes)
     {
-        return RoomMessageEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.room.name" )
-    {
-        return RoomNameEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.room.aliases" )
-    {
-        return RoomAliasesEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.room.canonical_alias" )
-    {
-        return RoomCanonicalAliasEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.room.member" )
-    {
-        return RoomMemberEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.room.topic" )
-    {
-        return RoomTopicEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.typing" )
-    {
-        return TypingEvent::fromJson(obj);
-    }
-    if( obj.value("type").toString() == "m.receipt" )
-    {
-        return ReceiptEvent::fromJson(obj);
+        if (obj["type"].toString() == e.type)
+            return e.make(obj);
     }
     return UnknownEvent::fromJson(obj);
 }
