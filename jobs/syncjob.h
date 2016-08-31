@@ -22,15 +22,14 @@
 #include "basejob.h"
 
 #include "../joinstate.h"
+#include "../events/event.h"
 
 namespace QMatrixClient
 {
-    class Event;
-
     class SyncRoomData
     {
     public:
-        class EventList : public QList<Event*>
+        class EventList : public Events
         {
             private:
                 QString jsonKey;

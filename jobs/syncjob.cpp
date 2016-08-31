@@ -26,7 +26,6 @@
 
 #include "../room.h"
 #include "../connectiondata.h"
-#include "../events/event.h"
 
 using namespace QMatrixClient;
 
@@ -139,7 +138,7 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 
 void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
 {
-    auto l = eventListFromJson(roomContents[jsonKey].toObject()["events"].toArray());
+    auto l = eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray());
     swap(l);
 }
 

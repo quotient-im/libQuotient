@@ -21,10 +21,11 @@
 
 #include "basejob.h"
 
+#include "../events/event.h"
+
 namespace QMatrixClient
 {
     class Room;
-    class Event;
 
     enum class FetchDirectory { Backwards, Forward };
 
@@ -34,7 +35,7 @@ namespace QMatrixClient
             RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir = FetchDirectory::Backwards, int limit=10);
             virtual ~RoomMessagesJob();
 
-            QList<Event*> events();
+            Events events();
             QString end();
 
         protected:

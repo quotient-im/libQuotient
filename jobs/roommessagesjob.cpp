@@ -18,7 +18,6 @@
 
 #include "roommessagesjob.h"
 #include "../room.h"
-#include "../events/event.h"
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
@@ -35,7 +34,7 @@ class RoomMessagesJob::Private
         FetchDirectory dir;
         int limit;
 
-        QList<Event*> events;
+        Events events;
         QString end;
 };
 
@@ -54,7 +53,7 @@ RoomMessagesJob::~RoomMessagesJob()
     delete d;
 }
 
-QList<Event*> RoomMessagesJob::events()
+Events RoomMessagesJob::events()
 {
     return d->events;
 }
@@ -84,7 +83,7 @@ QUrlQuery RoomMessagesJob::query() const
 BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject obj = data.object();
-    d->events = eventListFromJson(obj.value("chunk").toArray());
+    d->events = eventsFromJson(obj.value("chunk").toArray());
     d->end = obj.value("end").toString();
     return Success;
 }
