@@ -55,7 +55,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
             Q_INVOKABLE virtual void joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
-            Q_INVOKABLE virtual void getMembers( Room* room );
+//            Q_INVOKABLE virtual void getMembers( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
@@ -81,10 +81,21 @@ namespace QMatrixClient
             
         protected:
             /**
-             * Access the underlying ConnectionData class
+             * @brief Access the underlying ConnectionData class
              */
             ConnectionData* connectionData();
             
+            /**
+             * @brief Find a (possibly new) Room object for the specified id
+             * Use this method whenever you need to find a Room object in
+             * the local list of rooms. Note that this does not interact with
+             * the server; in particular, does not automatically create rooms
+             * on the server.
+             * @return a pointer to a Room object with the specified id; nullptr
+             * if roomId is empty if createRoom() failed to create a Room object.
+             */
+            Room* provideRoom(QString roomId);
+
             /**
              * makes it possible for derived classes to have its own User class
              */
@@ -96,8 +107,8 @@ namespace QMatrixClient
             virtual Room* createRoom(QString roomId);
 
         private:
-            friend class ConnectionPrivate;
-            ConnectionPrivate* d;
+            class Private;
+            Private* d;
     };
 }
 

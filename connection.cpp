@@ -18,7 +18,7 @@
 
 #include "connection.h"
 #include "connectiondata.h"
-#include "connectionprivate.h"
+//#include "connectionprivate.h"
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
@@ -33,15 +33,39 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 
+#include <QtNetwork/QDnsLookup>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
+class Connection::Private
+{
+    public:
+        explicit Private(QUrl serverUrl)
+            : q(nullptr)
+            , data(new ConnectionData(serverUrl))
+            , isConnected(false)
+        { }
+        Private(Private&) = delete;
+        ~Private() { delete data; }
+
+        Room* provideRoom( QString id );
+
+        Connection* q;
+        ConnectionData* data;
+        QHash<QString, Room*> roomMap;
+        QHash<QString, User*> userMap;
+        bool isConnected;
+        QString username;
+        QString password;
+        QString userId;
+};
+
 Connection::Connection(QUrl server, QObject* parent)
     : QObject(parent)
+    , d(new Private(server))
 {
-    d = new ConnectionPrivate(this);
-    d->data = new ConnectionData(server);
+    d->q = this; // All d initialization should occur before this line
 }
 
 Connection::Connection()
@@ -56,7 +80,26 @@ Connection::~Connection()
 
 void Connection::resolveServer(QString domain)
 {
-    d->resolveServer( domain );
+    // Find the Matrix server for the given domain.
+    QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
+    dns->setType(QDnsLookup::SRV);
+    dns->setName("_matrix._tcp." + domain);
+
+    dns->lookup();
+    connect(dns.data(), &QDnsLookup::finished, [&]() {
+        // Check the lookup succeeded.
+        if (dns->error() != QDnsLookup::NoError ||
+                dns->serviceRecords().isEmpty()) {
+            emit resolveError("DNS lookup failed");
+            return;
+        }
+
+        // Handle the results.
+        auto record = dns->serviceRecords().front();
+        d->data->setHost(record.target());
+        d->data->setPort(record.port());
+        emit resolved();
+    });
 }
 
 void Connection::connectToServer(QString user, QString password)
@@ -113,9 +156,9 @@ SyncJob* Connection::sync(int timeout)
     syncJob->setTimeout(timeout);
     connect( syncJob, &SyncJob::success, [=] () {
         d->data->setLastEvent(syncJob->nextBatch());
-        for( const auto roomData: syncJob->roomData() )
+        for( const auto& roomData: syncJob->roomData() )
         {
-            if ( Room* r = d->provideRoom(roomData.roomId) )
+            if ( Room* r = provideRoom(roomData.roomId) )
                 r->updateData(roomData);
         }
         emit syncDone();
@@ -147,7 +190,7 @@ void Connection::joinRoom(QString roomAlias)
 {
     JoinRoomJob* job = new JoinRoomJob(d->data, roomAlias);
     connect( job, &SyncJob::success, [=] () {
-        if ( Room* r = d->provideRoom(job->roomId()) )
+        if ( Room* r = provideRoom(job->roomId()) )
             emit joinedRoom(r);
     });
     job->start();
@@ -159,12 +202,12 @@ void Connection::leaveRoom(Room* room)
     job->start();
 }
 
-void Connection::getMembers(Room* room)
-{
-    RoomMembersJob* job = new RoomMembersJob(d->data, room);
-    connect( job, &RoomMembersJob::result, d, &ConnectionPrivate::gotRoomMembers );
-    job->start();
-}
+//void Connection::getMembers(Room* room)
+//{
+//    RoomMembersJob* job = new RoomMembersJob(d->data, room);
+//    connect( job, &RoomMembersJob::result, d, &ConnectionPrivate::gotRoomMembers );
+//    job->start();
+//}
 
 RoomMessagesJob* Connection::getMessages(Room* room, QString from)
 {
@@ -219,6 +262,30 @@ bool Connection::isConnected()
 ConnectionData* Connection::connectionData()
 {
     return d->data;
+}
+
+Room* Connection::provideRoom(QString id)
+{
+    if (id.isEmpty())
+    {
+        qDebug() << "ConnectionPrivate::provideRoom() with empty id, doing nothing";
+        return nullptr;
+    }
+
+    if (d->roomMap.contains(id))
+        return d->roomMap.value(id);
+
+    // Not yet in the map, create a new one.
+    Room* room = createRoom(id);
+    if (room)
+    {
+        d->roomMap.insert( id, room );
+        emit newRoom(room);
+    } else {
+        qCritical() << "Failed to create a room!!!" << id;
+    }
+
+    return room;
 }
 
 User* Connection::createUser(QString userId)
