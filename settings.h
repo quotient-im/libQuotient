@@ -29,7 +29,13 @@ namespace QMatrixClient
     class Settings: public QSettings
     {
         public:
+#if defined(_MSC_VER) && _MSC_VER <= 1200
+            // VS 2013 (and probably older) aren't friends with 'using' statements
+            // that involve private constructors
+            explicit Settings(QObject* parent = 0) : QSettings(parent) { }
+#else
             using QSettings::QSettings;
+#endif
             virtual ~Settings();
 
             Q_INVOKABLE void setValue(const QString &key,
@@ -71,7 +77,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
         public:
             template <typename... ArgTs>
-            AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
+            explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
                 : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
             { }
             virtual ~AccountSettings();
