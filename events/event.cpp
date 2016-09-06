@@ -151,11 +151,11 @@ bool Event::parseJson(const QJsonObject& obj)
     return correct;
 }
 
-QList<Event*> QMatrixClient::eventListFromJson(const QJsonArray& json)
+Events QMatrixClient::eventsFromJson(const QJsonArray& json)
 {
-    QList<Event*> l;
-    l.reserve(json.size());
+    Events evs;
+    evs.reserve(json.size());
     for (auto event: json)
-        l.push_back(Event::fromJson(event.toObject()));
-    return l;
+        evs.push_back(Event::fromJson(event.toObject()));
+    return evs;
 }

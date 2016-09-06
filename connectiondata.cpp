@@ -29,7 +29,7 @@ class ConnectionData::Private
         
         QUrl baseUrl;
         //bool isConnected;
-        QString token;
+        QString accessToken;
         QString lastEvent;
         QNetworkAccessManager* nam;
 };
@@ -52,9 +52,9 @@ ConnectionData::~ConnectionData()
 //     return d->isConnected;
 // }
 
-QString ConnectionData::token() const
+QString ConnectionData::accessToken() const
 {
-    return d->token;
+    return d->accessToken;
 }
 
 QUrl ConnectionData::baseUrl() const
@@ -69,7 +69,7 @@ QNetworkAccessManager* ConnectionData::nam() const
 
 void ConnectionData::setToken(QString token)
 {
-    d->token = token;
+    d->accessToken = token;
 }
 
 void ConnectionData::setHost(QString host)

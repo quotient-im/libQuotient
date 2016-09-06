@@ -28,11 +28,11 @@ message( STATUS )
 set(libqmatrixclient_SRCS
    connectiondata.cpp
    connection.cpp
-   connectionprivate.cpp
    room.cpp
    user.cpp
    logmessage.cpp
    state.cpp
+   settings.cpp
    events/event.cpp
    events/roommessageevent.cpp
    events/roomnameevent.cpp

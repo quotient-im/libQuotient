@@ -24,6 +24,7 @@
 #include <QtCore/QString>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
+#include <QtCore/QVector>
 
 class QJsonArray;
 
@@ -38,7 +39,8 @@ namespace QMatrixClient
     class Event
     {
         public:
-            Event(EventType type);
+            explicit Event(EventType type);
+            Event(Event&) = delete;
             virtual ~Event();
             
             EventType type() const;
@@ -57,8 +59,9 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+    using Events = QVector<Event*>;
 
-    QList<Event*> eventListFromJson(const QJsonArray& contents);
+    Events eventsFromJson(const QJsonArray& contents);
 
     /**
      * Finds a place in the timeline where a new event/message could be inserted.
@@ -71,6 +74,11 @@ namespace QMatrixClient
     {
         return std::lower_bound (timeline.begin(), timeline.end(), item,
             [](const typename ContT::value_type a, const ItemT * b) {
+                // FIXME: We should not order the message list by origin timestamp.
+                // Rather, an order of receiving should be used (which actually
+                // poses a question on whether this method is needed at all -
+                // or we'd just prepend and append, depending on whether we
+                // received something from /sync or from /messages.
                 return a->timestamp() < b->timestamp();
             }
         );

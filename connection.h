@@ -20,6 +20,7 @@
 #define QMATRIXCLIENT_CONNECTION_H
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 
 namespace QMatrixClient
 {
@@ -48,6 +49,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void connectToServer( QString user, QString password );
             Q_INVOKABLE virtual void connectWithToken( QString userId, QString token );
             Q_INVOKABLE virtual void reconnect();
+            Q_INVOKABLE virtual void disconnectFromServer();
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
@@ -55,14 +57,17 @@ namespace QMatrixClient
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
             Q_INVOKABLE virtual void joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
-            Q_INVOKABLE virtual void getMembers( Room* room );
+//            Q_INVOKABLE virtual void getMembers( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
-            Q_INVOKABLE virtual User* user(QString userId);
-            Q_INVOKABLE virtual User* user();
-            Q_INVOKABLE virtual QString userId();
-            Q_INVOKABLE virtual QString token();
+            Q_INVOKABLE QUrl homeserver() const;
+            Q_INVOKABLE User* user(QString userId);
+            Q_INVOKABLE User* user();
+            Q_INVOKABLE QString userId() const;
+            /** @deprecated Use accessToken() instead. */
+            Q_INVOKABLE QString token() const;
+            Q_INVOKABLE QString accessToken() const;
 
         signals:
             void resolved();
@@ -81,10 +86,21 @@ namespace QMatrixClient
             
         protected:
             /**
-             * Access the underlying ConnectionData class
+             * @brief Access the underlying ConnectionData class
              */
             ConnectionData* connectionData();
             
+            /**
+             * @brief Find a (possibly new) Room object for the specified id
+             * Use this method whenever you need to find a Room object in
+             * the local list of rooms. Note that this does not interact with
+             * the server; in particular, does not automatically create rooms
+             * on the server.
+             * @return a pointer to a Room object with the specified id; nullptr
+             * if roomId is empty if createRoom() failed to create a Room object.
+             */
+            Room* provideRoom(QString roomId);
+
             /**
              * makes it possible for derived classes to have its own User class
              */
@@ -96,8 +112,8 @@ namespace QMatrixClient
             virtual Room* createRoom(QString roomId);
 
         private:
-            friend class ConnectionPrivate;
-            ConnectionPrivate* d;
+            class Private;
+            Private* d;
     };
 }
 

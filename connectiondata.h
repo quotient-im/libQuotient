@@ -32,11 +32,11 @@ namespace QMatrixClient
             virtual ~ConnectionData();
             
             //bool isConnected() const;
-            QString token() const;
+            QString accessToken() const;
             QUrl baseUrl() const;
 
             QNetworkAccessManager* nam() const;
-            void setToken( QString token );
+            void setToken( QString accessToken );
             void setHost( QString host );
             void setPort( int port );
 

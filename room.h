@@ -30,7 +30,6 @@
 namespace QMatrixClient
 {
     class Event;
-    class State;
     class Connection;
     class User;
 
@@ -65,8 +64,6 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QString roomMembername(QString userId) const;
 
-            Q_INVOKABLE void addMessage( Event* event );
-            Q_INVOKABLE void addInitialState( State* state );
             Q_INVOKABLE void updateData( const SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 

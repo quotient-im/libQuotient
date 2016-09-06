@@ -18,7 +18,7 @@
 
 #include "connection.h"
 #include "connectiondata.h"
-#include "connectionprivate.h"
+//#include "connectionprivate.h"
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
@@ -33,15 +33,42 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 
+#include <QtNetwork/QDnsLookup>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
+class Connection::Private
+{
+    public:
+        explicit Private(QUrl serverUrl)
+            : q(nullptr)
+            , data(new ConnectionData(serverUrl))
+            , isConnected(false)
+            , syncJob(nullptr)
+        { }
+        Private(Private&) = delete;
+        ~Private() { delete data; }
+
+        Connection* q;
+        ConnectionData* data;
+        QHash<QString, Room*> roomMap;
+        QHash<QString, User*> userMap;
+        bool isConnected;
+        QString username;
+        QString password;
+        QString userId;
+
+        SyncJob* syncJob;
+
+        SyncJob* startSyncJob(const QString& filter, int timeout);
+};
+
 Connection::Connection(QUrl server, QObject* parent)
     : QObject(parent)
+    , d(new Private(server))
 {
-    d = new ConnectionPrivate(this);
-    d->data = new ConnectionData(server);
+    d->q = this; // All d initialization should occur before this line
 }
 
 Connection::Connection()
@@ -56,14 +83,32 @@ Connection::~Connection()
 
 void Connection::resolveServer(QString domain)
 {
-    d->resolveServer( domain );
+    // Find the Matrix server for the given domain.
+    QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
+    dns->setType(QDnsLookup::SRV);
+    dns->setName("_matrix._tcp." + domain);
+
+    dns->lookup();
+    connect(dns.data(), &QDnsLookup::finished, [&]() {
+        // Check the lookup succeeded.
+        if (dns->error() != QDnsLookup::NoError ||
+                dns->serviceRecords().isEmpty()) {
+            emit resolveError("DNS lookup failed");
+            return;
+        }
+
+        // Handle the results.
+        auto record = dns->serviceRecords().front();
+        d->data->setHost(record.target());
+        d->data->setPort(record.port());
+        emit resolved();
+    });
 }
 
 void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
     connect( loginJob, &PasswordLogin::success, [=] () {
-        qDebug() << "Our user ID: " << loginJob->id();
         connectWithToken(loginJob->id(), loginJob->token());
     });
     connect( loginJob, &PasswordLogin::failure, [=] () {
@@ -79,7 +124,9 @@ void Connection::connectWithToken(QString userId, QString token)
     d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
-    qDebug() << "Connected with token:";
+    qDebug() << "Accessing" << d->data->baseUrl()
+             << "by user" << userId
+             << "with the following access token:";
     qDebug() << token;
     emit connected();
 }
@@ -98,6 +145,12 @@ void Connection::reconnect()
     loginJob->start();
 }
 
+void Connection::disconnectFromServer()
+{
+    d->syncJob->abandon();
+    d->isConnected = false;
+}
+
 void Connection::logout()
 {
     auto job = new LogoutJob(d->data);
@@ -107,27 +160,39 @@ void Connection::logout()
 
 SyncJob* Connection::sync(int timeout)
 {
-    QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
-    SyncJob* syncJob = new SyncJob(d->data, d->data->lastEvent());
-    syncJob->setFilter(filter);
-    syncJob->setTimeout(timeout);
-    connect( syncJob, &SyncJob::success, [=] () {
-        d->data->setLastEvent(syncJob->nextBatch());
-        for( const auto roomData: syncJob->roomData() )
+    if (d->syncJob)
+        return d->syncJob;
+
+    const QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
+    auto job = d->startSyncJob(filter, timeout);
+    connect( job, &SyncJob::success, [=] () {
+        d->data->setLastEvent(job->nextBatch());
+        for( const auto& roomData: job->roomData() )
         {
-            if ( Room* r = d->provideRoom(roomData.roomId) )
+            if ( Room* r = provideRoom(roomData.roomId) )
                 r->updateData(roomData);
         }
+        d->syncJob = nullptr;
         emit syncDone();
     });
-    connect( syncJob, &SyncJob::failure, [=] () {
-        if (syncJob->error() == BaseJob::ContentAccessError)
-            emit loginError(syncJob->errorString());
+    connect( job, &SyncJob::failure, [=] () {
+        d->syncJob = nullptr;
+        if (job->error() == BaseJob::ContentAccessError)
+            emit loginError(job->errorString());
         else
-            emit connectionError(syncJob->errorString());
+            emit connectionError(job->errorString());
     });
+    return job;
+}
+
+SyncJob* Connection::Private::startSyncJob(const QString& filter, int timeout)
+{
+    syncJob = new SyncJob(data, data->lastEvent());
+    syncJob->setFilter(filter);
+    syncJob->setTimeout(timeout);
     syncJob->start();
     return syncJob;
+
 }
 
 void Connection::postMessage(Room* room, QString type, QString message)
@@ -147,7 +212,7 @@ void Connection::joinRoom(QString roomAlias)
 {
     JoinRoomJob* job = new JoinRoomJob(d->data, roomAlias);
     connect( job, &SyncJob::success, [=] () {
-        if ( Room* r = d->provideRoom(job->roomId()) )
+        if ( Room* r = provideRoom(job->roomId()) )
             emit joinedRoom(r);
     });
     job->start();
@@ -159,12 +224,12 @@ void Connection::leaveRoom(Room* room)
     job->start();
 }
 
-void Connection::getMembers(Room* room)
-{
-    RoomMembersJob* job = new RoomMembersJob(d->data, room);
-    connect( job, &RoomMembersJob::result, d, &ConnectionPrivate::gotRoomMembers );
-    job->start();
-}
+//void Connection::getMembers(Room* room)
+//{
+//    RoomMembersJob* job = new RoomMembersJob(d->data, room);
+//    connect( job, &RoomMembersJob::result, d, &ConnectionPrivate::gotRoomMembers );
+//    job->start();
+//}
 
 RoomMessagesJob* Connection::getMessages(Room* room, QString from)
 {
@@ -178,6 +243,11 @@ MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int re
     MediaThumbnailJob* job = new MediaThumbnailJob(d->data, url, requestedWidth, requestedHeight);
     job->start();
     return job;
+}
+
+QUrl Connection::homeserver() const
+{
+    return d->data->baseUrl();
 }
 
 User* Connection::user(QString userId)
@@ -196,14 +266,19 @@ User *Connection::user()
     return user(d->userId);
 }
 
-QString Connection::userId()
+QString Connection::userId() const
 {
     return d->userId;
 }
 
-QString Connection::token()
+QString Connection::token() const
 {
-    return d->data->token();
+    return accessToken();
+}
+
+QString Connection::accessToken() const
+{
+    return d->data->accessToken();
 }
 
 QHash< QString, Room* > Connection::roomMap() const
@@ -219,6 +294,30 @@ bool Connection::isConnected()
 ConnectionData* Connection::connectionData()
 {
     return d->data;
+}
+
+Room* Connection::provideRoom(QString id)
+{
+    if (id.isEmpty())
+    {
+        qDebug() << "Connection::provideRoom() with empty id, doing nothing";
+        return nullptr;
+    }
+
+    if (d->roomMap.contains(id))
+        return d->roomMap.value(id);
+
+    // Not yet in the map, create a new one.
+    Room* room = createRoom(id);
+    if (room)
+    {
+        d->roomMap.insert( id, room );
+        emit newRoom(room);
+    } else {
+        qCritical() << "Failed to create a room!!!" << id;
+    }
+
+    return room;
 }
 
 User* Connection::createUser(QString userId)

@@ -51,8 +51,6 @@ class Room::Private
 
         Room* q;
 
-        //static LogMessage* parseMessage(const QJsonObject& message);
-
         // This updates the room displayname field (which is the way a room
         // should be shown in the room list) It should be called whenever the
         // list of members or the room name (m.room.name) or canonical alias change.
@@ -330,18 +328,6 @@ QString Room::roomMembername(QString userId) const
     return roomMembername(connection()->user(userId));
 }
 
-void Room::addMessage(Event* event)
-{
-    processMessageEvent(event);
-    emit newMessage(event);
-    //d->addState(event);
-}
-
-void Room::addInitialState(State* state)
-{
-    processStateEvent(state->event());
-}
-
 void Room::updateData(const SyncRoomData& data)
 {
     if( d->prevBatch.isEmpty() )
@@ -578,85 +564,3 @@ void Room::Private::updateDisplayname()
     if (old_name != displayname)
         emit q->displaynameChanged(q);
 }
-
-// void Room::setAlias(QString alias)
-// {
-//     d->alias = alias;
-//     emit aliasChanged(this);
-// }
-//
-// bool Room::parseEvents(const QJsonObject& json)
-// {
-//     QList<LogMessage*> newMessages;
-//     QJsonValue value = json.value("messages").toObject().value("chunk");
-//     if( !value.isArray() )
-//     {
-//         return false;
-//     }
-//     QJsonArray messages = value.toArray();
-//     for(const QJsonValue& val: messages )
-//     {
-//         if( !val.isObject() )
-//             continue;
-//         LogMessage* msg = Private::parseMessage(val.toObject());
-//         if( msg )
-//         {
-//             newMessages.append(msg);
-//         }
-//
-//     }
-//     addMessages(newMessages);
-//     return true;
-// }
-//
-// bool Room::parseSingleEvent(const QJsonObject& json)
-// {
-//     qDebug() << "parseSingleEvent";
-//     LogMessage* msg = Private::parseMessage(json);
-//     if( msg )
-//     {
-//         addMessage(msg);
-//         return true;
-//     }
-//     return false;
-// }
-//
-// bool Room::parseState(const QJsonObject& json)
-// {
-//     QJsonValue value = json.value("state");
-//     if( !value.isArray() )
-//     {
-//         return false;
-//     }
-//     QJsonArray states = value.toArray();
-//     for( const QJsonValue& val: states )
-//     {
-//         QJsonObject state = val.toObject();
-//         QString type = state.value("type").toString();
-//         if( type == "m.room.aliases" )
-//         {
-//             QJsonArray aliases = state.value("content").toObject().value("aliases").toArray();
-//             if( aliases.count() > 0 )
-//             {
-//                 setAlias(aliases.at(0).toString());
-//             }
-//         }
-//     }
-//     return true;
-// }
-//
-// LogMessage* Room::Private::parseMessage(const QJsonObject& message)
-// {
-//     if( message.value("type") == "m.room.message" )
-//     {
-//         QJsonObject content = message.value("content").toObject();
-//         if( content.value("msgtype").toString() != "m.text" )
-//             return 0;
-//         QString user = message.value("user_id").toString();
-//         QString body = content.value("body").toString();
-//         LogMessage* msg = new LogMessage( LogMessage::UserMessage, body, user );
-//         return msg;
-//     }
-//     return 0;
-// }
-

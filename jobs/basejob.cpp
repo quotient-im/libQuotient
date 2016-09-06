@@ -92,7 +92,7 @@ void BaseJob::start()
     url.setPath( url.path() + "/" + apiPath() );
     QUrlQuery query = this->query();
     if( d->needsToken )
-        query.addQueryItem("access_token", connection()->token());
+        query.addQueryItem("access_token", connection()->accessToken());
     url.setQuery(query);
     QNetworkRequest req = QNetworkRequest(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
