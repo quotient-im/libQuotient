@@ -32,6 +32,7 @@ set(libqmatrixclient_SRCS
    user.cpp
    logmessage.cpp
    state.cpp
+   settings.cpp
    events/event.cpp
    events/roommessageevent.cpp
    events/roomnameevent.cpp
