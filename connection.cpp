@@ -224,13 +224,6 @@ void Connection::leaveRoom(Room* room)
     job->start();
 }
 
-//void Connection::getMembers(Room* room)
-//{
-//    RoomMembersJob* job = new RoomMembersJob(d->data, room);
-//    connect( job, &RoomMembersJob::result, d, &ConnectionPrivate::gotRoomMembers );
-//    job->start();
-//}
-
 RoomMessagesJob* Connection::getMessages(Room* room, QString from)
 {
     RoomMessagesJob* job = new RoomMessagesJob(d->data, room, from);

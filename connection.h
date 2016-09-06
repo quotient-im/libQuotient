@@ -57,7 +57,6 @@ namespace QMatrixClient
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
             Q_INVOKABLE virtual void joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
-//            Q_INVOKABLE virtual void getMembers( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
