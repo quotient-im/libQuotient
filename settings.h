@@ -29,7 +29,7 @@ namespace QMatrixClient
     class Settings: public QSettings
     {
         public:
-#if defined(_MSC_VER) && _MSC_VER <= 1200
+#if defined(_MSC_VER) && _MSC_VER <= 1900
             // VS 2013 (and probably older) aren't friends with 'using' statements
             // that involve private constructors
             explicit Settings(QObject* parent = 0) : QSettings(parent) { }
