@@ -106,7 +106,6 @@ void Connection::connectToServer(QString user, QString password)
 {
     PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
     connect( loginJob, &PasswordLogin::success, [=] () {
-        qDebug() << "Our user ID: " << loginJob->id();
         connectWithToken(loginJob->id(), loginJob->token());
     });
     connect( loginJob, &PasswordLogin::failure, [=] () {
@@ -122,7 +121,9 @@ void Connection::connectWithToken(QString userId, QString token)
     d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
-    qDebug() << "Connected with token:";
+    qDebug() << "Accessing" << d->data->baseUrl()
+             << "by user" << userId
+             << "with the following access token:";
     qDebug() << token;
     emit connected();
 }
@@ -223,6 +224,11 @@ MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int re
     return job;
 }
 
+QUrl Connection::homeserver() const
+{
+    return d->data->baseUrl();
+}
+
 User* Connection::user(QString userId)
 {
     if( d->userMap.contains(userId) )
@@ -239,14 +245,19 @@ User *Connection::user()
     return user(d->userId);
 }
 
-QString Connection::userId()
+QString Connection::userId() const
 {
     return d->userId;
 }
 
-QString Connection::token()
+QString Connection::token() const
 {
-    return d->data->token();
+    return accessToken();
+}
+
+QString Connection::accessToken() const
+{
+    return d->data->accessToken();
 }
 
 QHash< QString, Room* > Connection::roomMap() const

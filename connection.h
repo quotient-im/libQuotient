@@ -20,6 +20,7 @@
 #define QMATRIXCLIENT_CONNECTION_H
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 
 namespace QMatrixClient
 {
@@ -59,10 +60,13 @@ namespace QMatrixClient
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
-            Q_INVOKABLE virtual User* user(QString userId);
-            Q_INVOKABLE virtual User* user();
-            Q_INVOKABLE virtual QString userId();
-            Q_INVOKABLE virtual QString token();
+            Q_INVOKABLE QUrl homeserver() const;
+            Q_INVOKABLE User* user(QString userId);
+            Q_INVOKABLE User* user();
+            Q_INVOKABLE QString userId() const;
+            /** @deprecated Use accessToken() instead. */
+            Q_INVOKABLE QString token() const;
+            Q_INVOKABLE QString accessToken() const;
 
         signals:
             void resolved();
