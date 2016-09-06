@@ -49,8 +49,6 @@ class Connection::Private
         Private(Private&) = delete;
         ~Private() { delete data; }
 
-        Room* provideRoom( QString id );
-
         Connection* q;
         ConnectionData* data;
         QHash<QString, Room*> roomMap;
@@ -279,7 +277,7 @@ Room* Connection::provideRoom(QString id)
 {
     if (id.isEmpty())
     {
-        qDebug() << "ConnectionPrivate::provideRoom() with empty id, doing nothing";
+        qDebug() << "Connection::provideRoom() with empty id, doing nothing";
         return nullptr;
     }
 
