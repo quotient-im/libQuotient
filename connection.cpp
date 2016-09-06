@@ -45,6 +45,7 @@ class Connection::Private
             : q(nullptr)
             , data(new ConnectionData(serverUrl))
             , isConnected(false)
+            , syncJob(nullptr)
         { }
         Private(Private&) = delete;
         ~Private() { delete data; }
@@ -57,6 +58,10 @@ class Connection::Private
         QString username;
         QString password;
         QString userId;
+
+        SyncJob* syncJob;
+
+        SyncJob* startSyncJob(const QString& filter, int timeout);
 };
 
 Connection::Connection(QUrl server, QObject* parent)
@@ -140,6 +145,12 @@ void Connection::reconnect()
     loginJob->start();
 }
 
+void Connection::disconnectFromServer()
+{
+    d->syncJob->abandon();
+    d->isConnected = false;
+}
+
 void Connection::logout()
 {
     auto job = new LogoutJob(d->data);
@@ -149,27 +160,39 @@ void Connection::logout()
 
 SyncJob* Connection::sync(int timeout)
 {
-    QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
-    SyncJob* syncJob = new SyncJob(d->data, d->data->lastEvent());
-    syncJob->setFilter(filter);
-    syncJob->setTimeout(timeout);
-    connect( syncJob, &SyncJob::success, [=] () {
-        d->data->setLastEvent(syncJob->nextBatch());
-        for( const auto& roomData: syncJob->roomData() )
+    if (d->syncJob)
+        return d->syncJob;
+
+    const QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
+    auto job = d->startSyncJob(filter, timeout);
+    connect( job, &SyncJob::success, [=] () {
+        d->data->setLastEvent(job->nextBatch());
+        for( const auto& roomData: job->roomData() )
         {
             if ( Room* r = provideRoom(roomData.roomId) )
                 r->updateData(roomData);
         }
+        d->syncJob = nullptr;
         emit syncDone();
     });
-    connect( syncJob, &SyncJob::failure, [=] () {
-        if (syncJob->error() == BaseJob::ContentAccessError)
-            emit loginError(syncJob->errorString());
+    connect( job, &SyncJob::failure, [=] () {
+        d->syncJob = nullptr;
+        if (job->error() == BaseJob::ContentAccessError)
+            emit loginError(job->errorString());
         else
-            emit connectionError(syncJob->errorString());
+            emit connectionError(job->errorString());
     });
+    return job;
+}
+
+SyncJob* Connection::Private::startSyncJob(const QString& filter, int timeout)
+{
+    syncJob = new SyncJob(data, data->lastEvent());
+    syncJob->setFilter(filter);
+    syncJob->setTimeout(timeout);
     syncJob->start();
     return syncJob;
+
 }
 
 void Connection::postMessage(Room* room, QString type, QString message)

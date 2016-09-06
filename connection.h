@@ -49,6 +49,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void connectToServer( QString user, QString password );
             Q_INVOKABLE virtual void connectWithToken( QString userId, QString token );
             Q_INVOKABLE virtual void reconnect();
+            Q_INVOKABLE virtual void disconnectFromServer();
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
