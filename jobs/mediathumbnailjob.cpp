@@ -55,7 +55,7 @@ QPixmap MediaThumbnailJob::thumbnail()
 
 QString MediaThumbnailJob::apiPath() const
 {
-    return QString("/_matrix/media/v1/thumbnail/%1/%2").arg(d->url.host()).arg(d->url.path());
+    return QString("/_matrix/media/v1/thumbnail/%1%2").arg(d->url.host()).arg(d->url.path());
 }
 
 QUrlQuery MediaThumbnailJob::query() const
