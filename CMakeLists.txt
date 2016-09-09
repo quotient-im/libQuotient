@@ -19,9 +19,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-find_package(Qt5Core 5.2.0) # For JSON (de)serialization
-find_package(Qt5Network 5.2.0) # For networking
-find_package(Qt5Gui 5.2.0) # For userpics
+find_package(Qt5Core 5.2.0 REQUIRED) # For JSON (de)serialization
+find_package(Qt5Network 5.2.0 REQUIRED) # For networking
+find_package(Qt5Gui 5.2.0 REQUIRED) # For userpics
 
 message( STATUS )
 message( STATUS "================================================================================" )
