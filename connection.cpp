@@ -148,7 +148,10 @@ void Connection::reconnect()
 void Connection::disconnectFromServer()
 {
     if (d->syncJob)
+    {
         d->syncJob->abandon();
+        d->syncJob = nullptr;
+    }
     d->isConnected = false;
 }
 
