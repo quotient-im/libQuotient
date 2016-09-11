@@ -52,6 +52,8 @@ class BaseJob::Private
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         Status status;
+
+        QTimer timer;
 };
 
 inline QDebug operator<<(QDebug dbg, BaseJob* j)
@@ -63,6 +65,7 @@ BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, boo
     : d(new Private(connection, type, needsToken))
 {
     setObjectName(name);
+    connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     qDebug() << this << "created";
 }
 
@@ -115,7 +118,7 @@ void BaseJob::start()
     }
     connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
-    QTimer::singleShot( 120*1000, this, SLOT(timeout()) );
+    d->timer.start( 120*1000 );
 //     connect( d->reply, static_cast<void(QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
 //              this, &BaseJob::networkError ); // http://doc.qt.io/qt-5/qnetworkreply.html#error-1
 }
@@ -163,6 +166,7 @@ BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
 
 void BaseJob::finishJob(bool emitResult)
 {
+    d->timer.stop();
     if (!d->reply)
     {
         qWarning() << this << "finishes with empty network reply";
