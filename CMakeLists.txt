@@ -67,6 +67,8 @@ set(libqmatrixclient_SRCS
     )
 
 add_library(qmatrixclient ${libqmatrixclient_SRCS})
+set_property(TARGET qmatrixclient PROPERTY VERSION "0.0.0")
+set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
 
 if ( CMAKE_VERSION VERSION_LESS "3.1" )
     CHECK_CXX_COMPILER_FLAG("-std=c++11" STD_FLAG_SUPPORTED)
