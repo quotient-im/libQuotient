@@ -47,7 +47,10 @@ class Room::Private
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
         typedef QMultiHash<QString, User*> members_map_t;
         
-        Private(Room* parent): q(parent) {}
+        Private(Connection* c, const QString& id_)
+            : q(nullptr), connection(c), id(id_), joinState(JoinState::Join)
+            , roomMessagesJob(nullptr)
+        { }
 
         Room* q;
 
@@ -96,12 +99,11 @@ class Room::Private
 };
 
 Room::Room(Connection* connection, QString id)
-    : QObject(connection), d(new Private(this))
+    : QObject(connection), d(new Private(connection, id))
 {
-    d->id = id;
-    d->connection = connection;
-    d->joinState = JoinState::Join;
-    d->roomMessagesJob = nullptr;
+    // See "Accessing the Public Class" section in
+    // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
+    d->q = this;
     qDebug() << "New Room:" << id;
 
     //connection->getMembers(this); // I don't think we need this anymore in r0.0.1
