@@ -37,11 +37,13 @@ namespace QMatrixClient
     {
             Q_OBJECT
         public:
+            using Timeline = Events;
+
             Room(Connection* connection, QString id);
             virtual ~Room();
 
             Q_INVOKABLE QString id() const;
-            Q_INVOKABLE QList<Event*> messageEvents() const;
+            Q_INVOKABLE Timeline messageEvents() const;
             Q_INVOKABLE QString name() const;
             Q_INVOKABLE QStringList aliases() const;
             Q_INVOKABLE QString canonicalAlias() const;

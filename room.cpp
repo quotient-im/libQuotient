@@ -60,7 +60,7 @@ class Room::Private
         void updateDisplayname();
 
         Connection* connection;
-        QList<Event*> messageEvents;
+        Timeline messageEvents;
         QString id;
         QStringList aliases;
         QString canonicalAlias;
@@ -120,7 +120,7 @@ QString Room::id() const
     return d->id;
 }
 
-QList< Event* > Room::messageEvents() const
+Room::Timeline Room::messageEvents() const
 {
     return d->messageEvents;
 }
