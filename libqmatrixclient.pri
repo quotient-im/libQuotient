@@ -6,7 +6,6 @@ INCLUDEPATH += $$PWD $$PWD/kcoreaddons/src/lib/jobs
 HEADERS += \
     $$PWD/connectiondata.h \
     $$PWD/connection.h \
-    $$PWD/connectionprivate.h \
     $$PWD/room.h \
     $$PWD/user.h \
     $$PWD/logmessage.h \
@@ -37,7 +36,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/connectiondata.cpp \
     $$PWD/connection.cpp \
-    $$PWD/connectionprivate.cpp \
     $$PWD/room.cpp \
     $$PWD/user.cpp \
     $$PWD/logmessage.cpp \
