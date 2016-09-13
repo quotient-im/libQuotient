@@ -109,7 +109,9 @@ bool Event::parseJson(const QJsonObject& obj)
 {
     d->originalJson = QString::fromUtf8(QJsonDocument(obj).toJson());
     bool correct = (d->type != EventType::Unknown);
-    if ( d->type != EventType::Unknown && d->type != EventType::Typing )
+    if ( d->type != EventType::Unknown &&
+         d->type != EventType::Typing &&
+         d->type != EventType::Receipt )
     {
         if( obj.contains("event_id") )
         {
