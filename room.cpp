@@ -340,13 +340,14 @@ void Room::updateData(const SyncRoomData& data)
         processStateEvent(stateEvent);
     }
 
-    for( Event* timelineEvent: data.timeline )
+    if (!data.timeline.empty())
     {
-
-        processMessageEvent(timelineEvent);
-        emit newMessage(timelineEvent);
-        // State changes can arrive in a timeline event - try to check those.
-        processStateEvent(timelineEvent);
+        for( Event* e: data.timeline )
+        {
+            // State changes can arrive in a timeline event; so check those.
+            processStateEvent(e);
+        }
+        addNewMessageEvents(data.timeline);
     }
 
     for( Event* ephemeralEvent: data.ephemeral )
@@ -379,11 +380,7 @@ void Room::Private::getPreviousContent()
         connect( roomMessagesJob, &RoomMessagesJob::result, [=]() {
             if( !roomMessagesJob->error() )
             {
-                for( Event* event: roomMessagesJob->events() )
-                {
-                    q->processMessageEvent(event);
-                    emit q->newMessage(event);
-                }
+                q->addHistoricalMessageEvents(roomMessagesJob->events());
                 prevBatch = roomMessagesJob->end();
             }
             roomMessagesJob = nullptr;
@@ -396,9 +393,32 @@ Connection* Room::connection() const
     return d->connection;
 }
 
-void Room::processMessageEvent(Event* event)
+void Room::addNewMessageEvents(const Events& events)
 {
-    d->messageEvents.insert(findInsertionPos(d->messageEvents, event), event);
+    emit aboutToAddNewMessages(events);
+    doAddNewMessageEvents(events);
+    emit addedMessages();
+}
+
+void Room::doAddNewMessageEvents(const Events& events)
+{
+    d->messageEvents.reserve(d->messageEvents.size() + events.size());
+    std::copy(events.begin(), events.end(), std::back_inserter(d->messageEvents));
+}
+
+void Room::addHistoricalMessageEvents(const Events& events)
+{
+    emit aboutToAddHistoricalMessages(events);
+    doAddHistoricalMessageEvents(events);
+    emit addedMessages();
+}
+
+void Room::doAddHistoricalMessageEvents(const Events& events)
+{
+    // Preserver the order of messages when inserting the block in the
+    // beginning of the container.
+    std::reverse_copy(events.begin(), events.end(),
+                      std::front_inserter(d->messageEvents));
 }
 
 void Room::processStateEvent(Event* event)

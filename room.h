@@ -82,13 +82,17 @@ namespace QMatrixClient
             void userRenamed(User* user, QString oldName);
 
         signals:
-            void newMessage(Event* event);
+            void aboutToAddHistoricalMessages(const Events& events);
+            void aboutToAddNewMessages(const Events& events);
+            void addedMessages();
+
             /**
-             * Triggered when the room name, canonical alias or other aliases
-             * change. Not triggered when displayname changes.
+             * @brief The room name, the canonical alias or other aliases changed
+             *
+             * Not triggered when displayname changes.
              */
             void namesChanged(Room* room);
-            /** Triggered only for changes in the room displayname. */
+            /** @brief The room displayname changed */
             void displaynameChanged(Room* room);
             void topicChanged();
             void userAdded(User* user);
@@ -101,13 +105,17 @@ namespace QMatrixClient
 
         protected:
             Connection* connection() const;
-            virtual void processMessageEvent(Event* event);
+            virtual void doAddNewMessageEvents(const Events& events);
+            virtual void doAddHistoricalMessageEvents(const Events& events);
             virtual void processStateEvent(Event* event);
             virtual void processEphemeralEvent(Event* event);
 
         private:
             class Private;
             Private* d;
+
+            void addNewMessageEvents(const Events& events);
+            void addHistoricalMessageEvents(const Events& events);
     };
 }
 
