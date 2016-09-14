@@ -474,7 +474,7 @@ void Room::processEphemeralEvent(Event* event)
         for( QString eventId: receiptEvent->events() )
         {
             const auto receipts = receiptEvent->receiptsForEvent(eventId);
-            for( const Receipt r: receipts )
+            for( const Receipt& r: receipts )
             {
                 d->lastReadEvent.insert(d->connection->user(r.userId), eventId);
             }
