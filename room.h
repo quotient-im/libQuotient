@@ -107,7 +107,7 @@ namespace QMatrixClient
             Connection* connection() const;
             virtual void doAddNewMessageEvents(const Events& events);
             virtual void doAddHistoricalMessageEvents(const Events& events);
-            virtual void processStateEvent(Event* event);
+            virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
 
         private:
