@@ -111,7 +111,6 @@ Room::Room(Connection* connection, QString id)
 
 Room::~Room()
 {
-    qDebug() << "deconstructing room" << id();
     delete d;
 }
 

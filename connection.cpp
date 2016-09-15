@@ -78,6 +78,7 @@ Connection::Connection()
 
 Connection::~Connection()
 {
+    qDebug() << "deconstructing connection object for" << d->userId;
     delete d;
 }
 
