@@ -497,9 +497,8 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
         first_two.begin(), first_two.end(),
         [this](const User* u1, const User* u2) {
             // Filter out the "me" user so that it never hits the room name
-            if( u1 == connection->user() || u2 == connection->user() )
-                return u2 == connection->user();
-            return u1->id() < u2->id();
+            return u2 == connection->user() ||
+                    (u1 != connection->user() && u1->id() < u2->id());
         }
     );
 
