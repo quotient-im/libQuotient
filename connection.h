@@ -52,7 +52,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void disconnectFromServer();
             Q_INVOKABLE virtual void logout();
 
-            Q_INVOKABLE virtual SyncJob* sync(int timeout=-1);
+            Q_INVOKABLE virtual void sync(int timeout=-1);
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
             Q_INVOKABLE virtual void joinRoom( QString roomAlias );
