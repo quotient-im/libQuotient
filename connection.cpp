@@ -163,10 +163,10 @@ void Connection::logout()
     job->start();
 }
 
-SyncJob* Connection::sync(int timeout)
+void Connection::sync(int timeout)
 {
     if (d->syncJob)
-        return d->syncJob;
+        return;
 
     const QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
     auto job = d->startSyncJob(filter, timeout);
@@ -187,7 +187,6 @@ SyncJob* Connection::sync(int timeout)
         else
             emit connectionError(job->errorString());
     });
-    return job;
 }
 
 SyncJob* Connection::Private::startSyncJob(const QString& filter, int timeout)
