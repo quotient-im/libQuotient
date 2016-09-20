@@ -43,6 +43,7 @@ class Event::Private
         QString id;
         QDateTime timestamp;
         QString roomId;
+        QString senderId;
         QString originalJson;
 };
 
@@ -75,6 +76,11 @@ QDateTime Event::timestamp() const
 QString Event::roomId() const
 {
     return d->roomId;
+}
+
+QString Event::senderId() const
+{
+    return d->senderId;
 }
 
 QString Event::originalJson() const
@@ -131,10 +137,8 @@ bool Event::parseJson(const QJsonObject& obj)
             qDebug() << formatJson << obj;
         }
     }
-    if( obj.contains("room_id") )
-    {
-        d->roomId = obj.value("room_id").toString();
-    }
+    d->roomId = obj.value("room_id").toString();
+    d->senderId = obj.value("sender").toString();
     return correct;
 }
 

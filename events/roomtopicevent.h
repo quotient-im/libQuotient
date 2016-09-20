@@ -31,7 +31,6 @@ namespace QMatrixClient
             RoomTopicEvent();
             virtual ~RoomTopicEvent();
 
-            QString senderId() const;
             QString topic() const;
 
             static RoomTopicEvent* fromJson(const QJsonObject& obj);

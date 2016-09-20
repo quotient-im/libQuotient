@@ -24,7 +24,6 @@ class RoomTopicEvent::Private
 {
     public:
         QString topic;
-        QString senderId;
 };
 
 RoomTopicEvent::RoomTopicEvent()
@@ -38,11 +37,6 @@ RoomTopicEvent::~RoomTopicEvent()
     delete d;
 }
 
-QString RoomTopicEvent::senderId() const
-{
-    return d->senderId;
-}
-
 QString RoomTopicEvent::topic() const
 {
     return d->topic;
@@ -53,6 +47,5 @@ RoomTopicEvent* RoomTopicEvent::fromJson(const QJsonObject& obj)
     auto e = new RoomTopicEvent();
     e->parseJson(obj);
     e->d->topic = obj.value("content").toObject().value("topic").toString();
-    e->d->senderId = obj["sender"].toString();
     return e;
 }
