@@ -409,10 +409,9 @@ void Room::addHistoricalMessageEvents(const Events& events)
 
 void Room::doAddHistoricalMessageEvents(const Events& events)
 {
-    // Preserver the order of messages when inserting the block in the
-    // beginning of the container.
-    std::reverse_copy(events.begin(), events.end(),
-                      std::front_inserter(d->messageEvents));
+    // Historical messages arrive in newest-to-oldest order
+    d->messageEvents.reserve(d->messageEvents.size() + events.size());
+    std::copy(events.begin(), events.end(), std::front_inserter(d->messageEvents));
 }
 
 void Room::processStateEvents(const Events& events)
