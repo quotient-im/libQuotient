@@ -35,7 +35,7 @@ namespace QMatrixClient
         RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
         RoomMember, RoomTopic, Typing, Receipt, Unknown
     };
-    
+
     class Event
     {
         public:
@@ -61,28 +61,7 @@ namespace QMatrixClient
     };
     using Events = QVector<Event*>;
 
-    Events eventsFromJson(const QJsonArray& contents);
-
-    /**
-     * Finds a place in the timeline where a new event/message could be inserted.
-     * @return an iterator to an item with the earliest timestamp after
-     * the one of 'item'; or timeline.end(), if all events are earlier
-     */
-    template <class ItemT, class ContT>
-    typename ContT::iterator
-    findInsertionPos(ContT & timeline, const ItemT *item)
-    {
-        return std::lower_bound (timeline.begin(), timeline.end(), item,
-            [](const typename ContT::value_type a, const ItemT * b) {
-                // FIXME: We should not order the message list by origin timestamp.
-                // Rather, an order of receiving should be used (which actually
-                // poses a question on whether this method is needed at all -
-                // or we'd just prepend and append, depending on whether we
-                // received something from /sync or from /messages.
-                return a->timestamp() < b->timestamp();
-            }
-        );
-    }
+    Events eventsFromJson(const QJsonArray& json);
 
     /**
      * @brief Lookup a value by a key in a varargs list

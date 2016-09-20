@@ -46,7 +46,7 @@ class Room::Private
     public:
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
         typedef QMultiHash<QString, User*> members_map_t;
-        
+
         Private(Connection* c, const QString& id_)
             : q(nullptr), connection(c), id(id_), joinState(JoinState::Join)
             , roomMessagesJob(nullptr)
@@ -76,7 +76,7 @@ class Room::Private
         QHash<User*, QString> lastReadEvent;
         QString prevBatch;
         RoomMessagesJob* roomMessagesJob;
-        
+
         // Convenience methods to work with the membersMap and usersLeft.
         // addMember() and removeMember() emit respective Room:: signals
         // after a succesful operation.
@@ -335,18 +335,13 @@ void Room::updateData(const SyncRoomData& data)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    for( Event* stateEvent: data.state )
-    {
-        processStateEvent(stateEvent);
-    }
+    processStateEvents(data.state);
 
-    for( Event* timelineEvent: data.timeline )
+    if (!data.timeline.empty())
     {
-
-        processMessageEvent(timelineEvent);
-        emit newMessage(timelineEvent);
-        // State changes can arrive in a timeline event - try to check those.
-        processStateEvent(timelineEvent);
+        // State changes can arrive in a timeline event; so check those.
+        processStateEvents(data.timeline);
+        addNewMessageEvents(data.timeline);
     }
 
     for( Event* ephemeralEvent: data.ephemeral )
@@ -379,11 +374,7 @@ void Room::Private::getPreviousContent()
         connect( roomMessagesJob, &RoomMessagesJob::result, [=]() {
             if( !roomMessagesJob->error() )
             {
-                for( Event* event: roomMessagesJob->events() )
-                {
-                    q->processMessageEvent(event);
-                    emit q->newMessage(event);
-                }
+                q->addHistoricalMessageEvents(roomMessagesJob->events());
                 prevBatch = roomMessagesJob->end();
             }
             roomMessagesJob = nullptr;
@@ -396,61 +387,80 @@ Connection* Room::connection() const
     return d->connection;
 }
 
-void Room::processMessageEvent(Event* event)
+void Room::addNewMessageEvents(const Events& events)
 {
-    d->messageEvents.insert(findInsertionPos(d->messageEvents, event), event);
+    emit aboutToAddNewMessages(events);
+    doAddNewMessageEvents(events);
+    emit addedMessages();
 }
 
-void Room::processStateEvent(Event* event)
+void Room::doAddNewMessageEvents(const Events& events)
 {
-    if( event->type() == EventType::RoomName )
+    d->messageEvents.reserve(d->messageEvents.size() + events.size());
+    std::copy(events.begin(), events.end(), std::back_inserter(d->messageEvents));
+}
+
+void Room::addHistoricalMessageEvents(const Events& events)
+{
+    emit aboutToAddHistoricalMessages(events);
+    doAddHistoricalMessageEvents(events);
+    emit addedMessages();
+}
+
+void Room::doAddHistoricalMessageEvents(const Events& events)
+{
+    // Historical messages arrive in newest-to-oldest order
+    d->messageEvents.reserve(d->messageEvents.size() + events.size());
+    std::copy(events.begin(), events.end(), std::front_inserter(d->messageEvents));
+}
+
+void Room::processStateEvents(const Events& events)
+{
+    for (auto event: events)
     {
-        if (RoomNameEvent* nameEvent = static_cast<RoomNameEvent*>(event))
+        if( event->type() == EventType::RoomName )
         {
+            RoomNameEvent* nameEvent = static_cast<RoomNameEvent*>(event);
             d->name = nameEvent->name();
             qDebug() << "room name:" << d->name;
             d->updateDisplayname();
             emit namesChanged(this);
-        } else
-        {
-            qDebug() <<
-                "!!! event type is RoomName but the event is not RoomNameEvent";
         }
-    }
-    if( event->type() == EventType::RoomAliases )
-    {
-        RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
-        d->aliases = aliasesEvent->aliases();
-        qDebug() << "room aliases:" << d->aliases;
-        // No displayname update - aliases are not used to render a displayname
-        emit namesChanged(this);
-    }
-    if( event->type() == EventType::RoomCanonicalAlias )
-    {
-        RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
-        d->canonicalAlias = aliasEvent->alias();
-        qDebug() << "room canonical alias:" << d->canonicalAlias;
-        d->updateDisplayname();
-        emit namesChanged(this);
-    }
-    if( event->type() == EventType::RoomTopic )
-    {
-        RoomTopicEvent* topicEvent = static_cast<RoomTopicEvent*>(event);
-        d->topic = topicEvent->topic();
-        emit topicChanged();
-    }
-    if( event->type() == EventType::RoomMember )
-    {
-        RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
-        User* u = d->connection->user(memberEvent->userId());
-        u->processEvent(event);
-        if( memberEvent->membership() == MembershipType::Join )
+        if( event->type() == EventType::RoomAliases )
         {
-            d->addMember(u);
+            RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
+            d->aliases = aliasesEvent->aliases();
+            qDebug() << "room aliases:" << d->aliases;
+            // No displayname update - aliases are not used to render a displayname
+            emit namesChanged(this);
         }
-        else if( memberEvent->membership() == MembershipType::Leave )
+        if( event->type() == EventType::RoomCanonicalAlias )
         {
-            d->removeMember(u);
+            RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
+            d->canonicalAlias = aliasEvent->alias();
+            qDebug() << "room canonical alias:" << d->canonicalAlias;
+            d->updateDisplayname();
+            emit namesChanged(this);
+        }
+        if( event->type() == EventType::RoomTopic )
+        {
+            RoomTopicEvent* topicEvent = static_cast<RoomTopicEvent*>(event);
+            d->topic = topicEvent->topic();
+            emit topicChanged();
+        }
+        if( event->type() == EventType::RoomMember )
+        {
+            RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
+            User* u = d->connection->user(memberEvent->userId());
+            u->processEvent(event);
+            if( memberEvent->membership() == MembershipType::Join )
+            {
+                d->addMember(u);
+            }
+            else if( memberEvent->membership() == MembershipType::Leave )
+            {
+                d->removeMember(u);
+            }
         }
     }
 }
