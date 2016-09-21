@@ -337,12 +337,9 @@ void Room::updateData(const SyncRoomData& data)
 
     processStateEvents(data.state);
 
-    if (!data.timeline.empty())
-    {
-        // State changes can arrive in a timeline event; so check those.
-        processStateEvents(data.timeline);
-        addNewMessageEvents(data.timeline);
-    }
+    // State changes can arrive in a timeline event; so check those.
+    processStateEvents(data.timeline);
+    addNewMessageEvents(data.timeline);
 
     for( Event* ephemeralEvent: data.ephemeral )
     {
@@ -389,6 +386,8 @@ Connection* Room::connection() const
 
 void Room::addNewMessageEvents(const Events& events)
 {
+    if (events.empty())
+        return;
     emit aboutToAddNewMessages(events);
     doAddNewMessageEvents(events);
     emit addedMessages();
@@ -402,6 +401,8 @@ void Room::doAddNewMessageEvents(const Events& events)
 
 void Room::addHistoricalMessageEvents(const Events& events)
 {
+    if (events.empty())
+        return;
     emit aboutToAddHistoricalMessages(events);
     doAddHistoricalMessageEvents(events);
     emit addedMessages();
