@@ -4,6 +4,8 @@ project(qmatrixclient)
 enable_language(CXX)
 
 include(CheckCXXCompilerFlag)
+include(cmake/Findolm.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -22,6 +24,7 @@ endif()
 find_package(Qt5Core 5.2.0 REQUIRED) # For JSON (de)serialization
 find_package(Qt5Network 5.2.0 REQUIRED) # For networking
 find_package(Qt5Gui 5.2.0 REQUIRED) # For userpics
+find_package(olm REQUIRED)
 
 message( STATUS )
 message( STATUS "================================================================================" )
@@ -30,6 +33,7 @@ message( STATUS "===============================================================
 message( STATUS "Building with: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
 message( STATUS "Path to Qt Core: ${Qt5Core_DIR}" )
+message( STATUS "Path to libolm: ${OLM_LIBRARY}" )
 message( STATUS "================================================================================" )
 message( STATUS )
 
@@ -86,4 +90,4 @@ else ( CMAKE_VERSION VERSION_LESS "3.1" )
     target_compile_features(qmatrixclient PRIVATE cxx_variadic_templates)
 endif ( CMAKE_VERSION VERSION_LESS "3.1" )
 
-target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
+target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui ${OLM_LIBRARIES})
