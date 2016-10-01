@@ -10,6 +10,12 @@ if (NOT WIN32)
     include(GNUInstallDirs)
 endif(NOT WIN32)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(cmake/FindOlm.cmake)
+
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
@@ -47,6 +53,8 @@ endforeach ()
 # upstream Qt 5.4 is required.
 find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
+find_package(Olm REQUIRED)
+get_filename_component(Olm_Prefix "${Olm_INCLUDE_DIRS}/.." ABSOLUTE)
 
 if (GTAD_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
@@ -64,11 +72,13 @@ if (CMAKE_BUILD_TYPE)
     message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
+message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     message( STATUS "Generating API stubs enabled" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
     message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
+    message( STATUS "Using libolm at ${Olm_Prefix}" )
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -157,8 +167,9 @@ set_property(TARGET QMatrixClient APPEND PROPERTY
 target_include_directories(QMatrixClient PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    "${Olm_INCLUDE_DIRS}"
 )
-target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
+target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia ${Olm_LIBRARIES})
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core QMatrixClient)
