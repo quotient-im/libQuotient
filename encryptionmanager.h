@@ -35,6 +35,7 @@ namespace QMatrixClient
     {
         public:
             EncryptionManager(QString userId);
+            ~EncryptionManager();
 
             /**
              * Check whether this is a valid instace of EncryptionManager,

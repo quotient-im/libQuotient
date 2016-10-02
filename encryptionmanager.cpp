@@ -54,6 +54,12 @@ class EncryptionManager::Private
 EncryptionManager::EncryptionManager(QString userId)
     : d(new Private(userId))
 {
+    d->account = olm_account( malloc(olm_account_size()) );
+}
+
+EncryptionManager::~EncryptionManager()
+{
+    free(d->account);
 }
 
 bool EncryptionManager::isValid()
@@ -66,6 +72,7 @@ bool EncryptionManager::initialize(QString deviceId)
     d->deviceId = deviceId;
 
     size_t randomSize = olm_create_account_random_length(d->account);
+    qDebug() << "randomSize" << randomSize;
     std::vector<unsigned char> randomData(randomSize);
     std::generate(begin(randomData), end(randomData), std::ref(d->rbe));
     size_t create_error = olm_create_account(d->account, (void*) &randomData[0], randomSize);
