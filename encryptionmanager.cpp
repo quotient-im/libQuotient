@@ -45,7 +45,7 @@ class EncryptionManager::Private
         bool valid;
 
         OlmAccount* account;
-        std::vector<unsigned char> publicIdentityKeys;
+        QByteArray publicIdentityKeys;
 
         random_bytes_engine rbe;
 };
@@ -62,7 +62,17 @@ EncryptionManager::~EncryptionManager()
     free(d->account);
 }
 
-bool EncryptionManager::isValid()
+QString EncryptionManager::userId() const
+{
+    return d->userId;
+}
+
+QString EncryptionManager::deviceId() const
+{
+    return d->deviceId;
+}
+
+bool EncryptionManager::isValid() const
 {
     return d->valid;
 }
@@ -86,9 +96,9 @@ bool EncryptionManager::initialize(QString deviceId)
     qDebug() << "OLM: successfully created keys";
 
     size_t publicIdentitySize = olm_account_identity_keys_length(d->account);
-    d->publicIdentityKeys.resize(publicIdentitySize, 0);
-    size_t readError = olm_account_identity_keys(d->account, (void*) &d->publicIdentityKeys[0], publicIdentitySize);
-    if( readError != olm_error() )
+    d->publicIdentityKeys.resize(publicIdentitySize);
+    size_t readError = olm_account_identity_keys(d->account, (void*) d->publicIdentityKeys.data(), publicIdentitySize);
+    if( readError == olm_error() )
     {
         qDebug() << "OLM ERROR: ACCOUNT: reading keys: " << olm_account_last_error(d->account);
         return false;
@@ -100,7 +110,7 @@ bool EncryptionManager::initialize(QString deviceId)
     return true;
 }
 
-const std::vector<unsigned char>& EncryptionManager::publicIdentityKeys() const
+const QByteArray& EncryptionManager::publicIdentityKeys() const
 {
     return d->publicIdentityKeys;
 }

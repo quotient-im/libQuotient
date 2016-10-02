@@ -22,6 +22,7 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
+#include "encryptionmanager.h"
 #include "jobs/passwordlogin.h"
 #include "jobs/logoutjob.h"
 #include "jobs/postmessagejob.h"
@@ -62,6 +63,8 @@ class Connection::Private
         SyncJob* syncJob;
 
         SyncJob* startSyncJob(const QString& filter, int timeout);
+
+        EncryptionManager* encryptionManager;
 };
 
 Connection::Connection(QUrl server, QObject* parent)
@@ -118,6 +121,11 @@ void Connection::connectToServer(QString user, QString password)
     loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
+
+    qDebug() << "User:" << user;
+    d->encryptionManager = new EncryptionManager(user);
+    d->encryptionManager->initialize("asd");
+    qDebug() << d->encryptionManager->publicIdentityKeys();
 }
 
 void Connection::connectWithToken(QString userId, QString token)

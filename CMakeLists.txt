@@ -69,6 +69,7 @@ set(libqmatrixclient_SRCS
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
    jobs/logoutjob.cpp
+   jobs/uploaddevicekeys.cpp
     )
 
 add_library(qmatrixclient ${libqmatrixclient_SRCS})

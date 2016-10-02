@@ -20,8 +20,7 @@
 #define QMATRIXCLIENT_ENCRYPTIONMANAGER_H
 
 #include <QtCore/QString>
-
-#include <vector>
+#include <QtCore/QByteArray>
 
 namespace QMatrixClient
 {
@@ -37,11 +36,14 @@ namespace QMatrixClient
             EncryptionManager(QString userId);
             ~EncryptionManager();
 
+            QString userId() const;
+            QString deviceId() const;
+
             /**
              * Check whether this is a valid instace of EncryptionManager,
              * ready to use.
              */
-            bool isValid();
+            bool isValid() const;
 
             /**
              * Set the device id and create all necessairy long term keys.
@@ -50,7 +52,7 @@ namespace QMatrixClient
              */
             bool initialize(QString deviceId);
 
-            const std::vector<unsigned char>& publicIdentityKeys() const;
+            const QByteArray& publicIdentityKeys() const;
 
         private:
             class Private;
