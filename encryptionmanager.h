@@ -20,7 +20,7 @@
 #define QMATRIXCLIENT_ENCRYPTIONMANAGER_H
 
 #include <QtCore/QString>
-#include <QtCore/QByteArray>
+#include <QtCore/QJsonObject>
 
 namespace QMatrixClient
 {
@@ -52,7 +52,7 @@ namespace QMatrixClient
              */
             bool initialize(QString deviceId);
 
-            const QByteArray& publicIdentityKeys() const;
+            const QJsonObject& publicIdentityKeys() const;
 
         private:
             class Private;

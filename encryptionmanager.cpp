@@ -27,6 +27,8 @@
 #include <functional>
 
 #include <QtCore/QDebug>
+#include <QtCore/QByteArray>
+#include <QtCore/QJsonDocument>
 
 using namespace QMatrixClient;
 
@@ -45,7 +47,7 @@ class EncryptionManager::Private
         bool valid;
 
         OlmAccount* account;
-        QByteArray publicIdentityKeys;
+        QJsonObject publicIdentityKeys;
 
         random_bytes_engine rbe;
 };
@@ -96,13 +98,17 @@ bool EncryptionManager::initialize(QString deviceId)
     qDebug() << "OLM: successfully created keys";
 
     size_t publicIdentitySize = olm_account_identity_keys_length(d->account);
-    d->publicIdentityKeys.resize(publicIdentitySize);
-    size_t readError = olm_account_identity_keys(d->account, (void*) d->publicIdentityKeys.data(), publicIdentitySize);
+    QByteArray keyData;
+    keyData.resize(publicIdentitySize);
+    size_t readError = olm_account_identity_keys(d->account, (void*) keyData.data(), publicIdentitySize);
     if( readError == olm_error() )
     {
         qDebug() << "OLM ERROR: ACCOUNT: reading keys: " << olm_account_last_error(d->account);
         return false;
     }
+    
+    QJsonDocument keyJson = QJsonDocument::fromJson(keyData);
+    d->publicIdentityKeys = keyJson.object();
 
     qDebug() << "OLM: successfully read keys";
 
@@ -110,7 +116,7 @@ bool EncryptionManager::initialize(QString deviceId)
     return true;
 }
 
-const QByteArray& EncryptionManager::publicIdentityKeys() const
+const QJsonObject& EncryptionManager::publicIdentityKeys() const
 {
     return d->publicIdentityKeys;
 }

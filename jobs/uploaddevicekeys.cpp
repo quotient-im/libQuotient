@@ -57,9 +57,9 @@ QJsonObject UploadDeviceKeys::data() const
     json.insert("algorithms", algorithms);
     json.insert("device_id", deviceId );
     QJsonObject keys;
-    keys.insert(QString("curve25519:%1").arg(deviceId), QString::fromUtf8(d->encryptionManager->publicIdentityKeys().toBase64()));
-    keys.insert(QString("ed25519:%1").arg(deviceId), QString::fromUtf8(d->encryptionManager->publicIdentityKeys().toBase64()));
-    json.insert("keys", keys);
+    keys.insert(QString("curve25519:%1").arg(deviceId), d->encryptionManager->publicIdentityKeys().value("curve25519").toString());
+    keys.insert(QString("ed25519:%1").arg(deviceId), d->encryptionManager->publicIdentityKeys().value("ed25519").toString());
+    json.insert("keys", d->encryptionManager->publicIdentityKeys());
     json.insert("user_id", d->encryptionManager->userId() );
     return json;
 }
