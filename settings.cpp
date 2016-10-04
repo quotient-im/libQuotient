@@ -3,6 +3,8 @@
 #include <QtCore/QUrl>
 #include <QtCore/QDebug>
 
+#include "encryptionmanager.h"
+
 using namespace QMatrixClient;
 
 Settings::~Settings()
@@ -100,3 +102,18 @@ void AccountSettings::clearAccessToken()
 {
     remove("access_token");
 }
+
+EncryptionManager* AccountSettings::loadEncryptionManager()
+{
+    EncryptionManager* manager = new EncryptionManager(userId());
+    QByteArray data = value("encryption_account").toByteArray();
+    manager->load(data);
+    return manager;
+}
+
+void AccountSettings::saveEncryptionManager(EncryptionManager* manager)
+{
+    const QByteArray data = manager->save();
+    setValue("encryption_account", data);
+}
+

@@ -26,6 +26,7 @@ class QUrl;
 
 namespace QMatrixClient
 {
+    class EncryptionManager;
     class Settings: public QSettings
     {
         public:
@@ -75,6 +76,7 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver)
             Q_PROPERTY(bool keepLoggedIn READ keepLoggedIn WRITE setKeepLoggedIn)
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
+            Q_PROPERTY(EncryptionManager* encryptionManager READ loadEncryptionManager WRITE saveEncryptionManager)
         public:
             template <typename... ArgTs>
             explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
@@ -93,5 +95,8 @@ namespace QMatrixClient
             QString accessToken() const;
             void setAccessToken(const QString& accessToken);
             Q_INVOKABLE void clearAccessToken();
+
+            EncryptionManager* loadEncryptionManager();
+            void saveEncryptionManager(EncryptionManager* manager);
     };
 }

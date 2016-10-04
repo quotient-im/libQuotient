@@ -47,6 +47,7 @@ class Connection::Private
             , data(new ConnectionData(serverUrl))
             , isConnected(false)
             , syncJob(nullptr)
+            , encryptionManager(nullptr)
         { }
         Private(Private&) = delete;
         ~Private() { delete data; }
@@ -61,10 +62,9 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
+        EncryptionManager* encryptionManager
 
         SyncJob* startSyncJob(const QString& filter, int timeout);
-
-        EncryptionManager* encryptionManager;
 };
 
 Connection::Connection(QUrl server, QObject* parent)
@@ -334,3 +334,4 @@ Room* Connection::createRoom(QString roomId)
 {
     return new Room(this, roomId);
 }
+

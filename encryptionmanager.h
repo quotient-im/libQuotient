@@ -54,6 +54,9 @@ namespace QMatrixClient
 
             const QJsonObject& publicIdentityKeys() const;
 
+            void load(const QByteArray& data);
+            QByteArray save();
+
         private:
             class Private;
             Private* d;

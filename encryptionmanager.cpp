@@ -29,6 +29,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QByteArray>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QDataStream>
 
 using namespace QMatrixClient;
 
@@ -120,3 +121,53 @@ const QJsonObject& EncryptionManager::publicIdentityKeys() const
 {
     return d->publicIdentityKeys;
 }
+
+QByteArray EncryptionManager::save()
+{
+    QByteArray bytes;
+    QDataStream stream(&bytes, QIODevice::WriteOnly);
+    stream << 0; // data version
+    stream << d->deviceId;
+    stream << QJsonDocument(d->publicIdentityKeys).toBinaryData();
+
+    size_t pickleLength = olm_pickle_account_length(d->account);
+    QByteArray pickleData;
+    pickleData.resize(pickleLength);
+    size_t pickleError = olm_pickle_account(d->account, 0, 0, pickleData.data(), pickleLength);
+    if( pickleError == olm_error() )
+    {
+        qDebug() << "OLM: ACCOUNT: Error while saving: " << olm_account_last_error(d->account);
+        return QByteArray();
+    }
+    stream << pickleData;
+    return bytes;
+}
+
+void EncryptionManager::load(const QByteArray& data)
+{
+    QDataStream stream(data);
+    int streamVersion;
+    stream >> streamVersion;
+    stream >> d->deviceId;
+    QByteArray keyjsondata;
+    stream >> keyjsondata;
+    d->publicIdentityKeys = QJsonDocument::fromBinaryData(keyjsondata).object();
+
+    QByteArray accountPickleData;
+    stream >> accountPickleData;
+    size_t pickleError = olm_unpickle_account(d->account, 0, 0, accountPickleData.data(), accountPickleData.size());
+    if( pickleError == olm_error() )
+    {
+        qDebug() << "OLM: ACCOUNT: Error while loading: " << olm_account_last_error(d->account);
+        return;
+    }
+
+    if( stream.status() != QDataStream::Ok )
+    {
+        qDebug() << "OLM: Error while reading saved data: steam error";
+        return;
+    }
+
+    d->valid = true;
+}
+
