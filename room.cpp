@@ -321,7 +321,7 @@ QString Room::roomMembername(User *u) const
     }
 
     // In case of more than one namesake, disambiguate with user id.
-    return username % " <" % u->id() % ">";
+    return username % " (" % u->id() % ")";
 }
 
 QString Room::roomMembername(QString userId) const
