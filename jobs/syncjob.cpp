@@ -83,7 +83,7 @@ QString SyncJob::nextBatch() const
     return d->nextBatch;
 }
 
-const SyncData& SyncJob::roomData() const
+SyncData& SyncJob::roomData()
 {
     return d->roomData;
 }

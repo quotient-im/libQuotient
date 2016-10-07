@@ -119,7 +119,7 @@ QString Room::id() const
     return d->id;
 }
 
-Room::Timeline Room::messageEvents() const
+const Room::Timeline& Room::messageEvents() const
 {
     return d->messageEvents;
 }
@@ -329,7 +329,7 @@ QString Room::roomMembername(QString userId) const
     return roomMembername(connection()->user(userId));
 }
 
-void Room::updateData(const SyncRoomData& data)
+void Room::updateData(SyncRoomData& data)
 {
     if( d->prevBatch.isEmpty() )
         d->prevBatch = data.timelinePrevBatch;
@@ -339,7 +339,7 @@ void Room::updateData(const SyncRoomData& data)
 
     // State changes can arrive in a timeline event; so check those.
     processStateEvents(data.timeline);
-    addNewMessageEvents(data.timeline);
+    addNewMessageEvents(data.timeline.release());
 
     for( Event* ephemeralEvent: data.ephemeral )
     {

@@ -18,7 +18,6 @@
 
 #include "connection.h"
 #include "connectiondata.h"
-//#include "connectionprivate.h"
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
@@ -172,7 +171,7 @@ void Connection::sync(int timeout)
     auto job = d->startSyncJob(filter, timeout);
     connect( job, &SyncJob::success, [=] () {
         d->data->setLastEvent(job->nextBatch());
-        for( const auto& roomData: job->roomData() )
+        for( auto& roomData: job->roomData() )
         {
             if ( Room* r = provideRoom(roomData.roomId) )
                 r->updateData(roomData);
