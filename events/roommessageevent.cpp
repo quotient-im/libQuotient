@@ -28,6 +28,7 @@ class RoomMessageEvent::Private
 {
     public:
         Private() : msgtype(MessageEventType::Unknown), content(nullptr) {}
+        ~Private() { if (content) delete content; }
         
         QString userId;
         MessageEventType msgtype;
