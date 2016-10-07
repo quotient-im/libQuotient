@@ -38,7 +38,15 @@ namespace QMatrixClient
     {
         public:
             Owning() = default;
+#if defined(_MSC_VER) && _MSC_VER < 1900
+            // Workaround: Dangerous (auto_ptr style) copy constructor because
+            // VS2013 (unnecessarily) instantiates EventList::QVector<>::toList()
+            // which instantiates QList< Owning<> > which needs the contained
+            // object to have a non-deleted copy constructor.
+            Owning(Owning& other) : ContainerT(std::move(other)) { }
+#else
             Owning(Owning&) = delete;
+#endif
             Owning(Owning&& other) : ContainerT(std::move(other)) { }
             ~Owning() { for (auto e: *this) delete e; }
 
