@@ -37,13 +37,13 @@ namespace QMatrixClient
     {
             Q_OBJECT
         public:
-            using Timeline = Events;
+            using Timeline = Owning<Events>;
 
             Room(Connection* connection, QString id);
             virtual ~Room();
 
             Q_INVOKABLE QString id() const;
-            Q_INVOKABLE Timeline messageEvents() const;
+            Q_INVOKABLE const Timeline& messageEvents() const;
             Q_INVOKABLE QString name() const;
             Q_INVOKABLE QStringList aliases() const;
             Q_INVOKABLE QString canonicalAlias() const;
@@ -66,7 +66,7 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QString roomMembername(QString userId) const;
 
-            Q_INVOKABLE void updateData( const SyncRoomData& data );
+            Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
             Q_INVOKABLE void markMessageAsRead( Event* event );

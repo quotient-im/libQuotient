@@ -119,7 +119,7 @@ QString Room::id() const
     return d->id;
 }
 
-Room::Timeline Room::messageEvents() const
+const Room::Timeline& Room::messageEvents() const
 {
     return d->messageEvents;
 }
@@ -329,7 +329,7 @@ QString Room::roomMembername(QString userId) const
     return roomMembername(connection()->user(userId));
 }
 
-void Room::updateData(const SyncRoomData& data)
+void Room::updateData(SyncRoomData& data)
 {
     if( d->prevBatch.isEmpty() )
         d->prevBatch = data.timelinePrevBatch;
@@ -339,7 +339,7 @@ void Room::updateData(const SyncRoomData& data)
 
     // State changes can arrive in a timeline event; so check those.
     processStateEvents(data.timeline);
-    addNewMessageEvents(data.timeline);
+    addNewMessageEvents(data.timeline.release());
 
     for( Event* ephemeralEvent: data.ephemeral )
     {
@@ -452,6 +452,7 @@ void Room::processStateEvents(const Events& events)
         if( event->type() == EventType::RoomMember )
         {
             RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
+            // Can't use d->member() below because the user may be not a member (yet)
             User* u = d->connection->user(memberEvent->userId());
             u->processEvent(event);
             if( memberEvent->membership() == MembershipType::Join )
@@ -472,9 +473,10 @@ void Room::processEphemeralEvent(Event* event)
     {
         TypingEvent* typingEvent = static_cast<TypingEvent*>(event);
         d->usersTyping.clear();
-        for( const QString& user: typingEvent->users() )
+        for( const QString& userId: typingEvent->users() )
         {
-            d->usersTyping.append(d->connection->user(user));
+            if (auto m = d->member(userId))
+                d->usersTyping.append(m);
         }
         emit typingChanged();
     }
@@ -486,7 +488,8 @@ void Room::processEphemeralEvent(Event* event)
             const auto receipts = receiptEvent->receiptsForEvent(eventId);
             for( const Receipt& r: receipts )
             {
-                d->lastReadEvent.insert(d->connection->user(r.userId), eventId);
+                if (auto m = d->member(r.userId))
+                    d->lastReadEvent.insert(m, eventId);
             }
         }
     }
