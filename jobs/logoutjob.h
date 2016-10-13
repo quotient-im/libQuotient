@@ -27,8 +27,5 @@ namespace QMatrixClient
         public:
             LogoutJob(ConnectionData* connection);
             virtual ~LogoutJob();
-
-        protected:
-            QString apiPath() const override;
     };
 }

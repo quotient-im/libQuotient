@@ -29,21 +29,24 @@ using namespace QMatrixClient;
 class PasswordLogin::Private
 {
     public:
-        Private() {}
-
-        QString user;
-        QString password;
         QString returned_id;
         QString returned_server;
         QString returned_token;
 };
 
 PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin", false)
+    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin"
+            , "_matrix/client/r0/login"
+            , Query()
+            , Data(
+                { { "type", "m.login.password" }
+                , { "user", user }
+                , { "password", password }
+                })
+            , false
+            )
     , d(new Private)
 {
-    d->user = user;
-    d->password = password;
 }
 
 PasswordLogin::~PasswordLogin()
@@ -64,20 +67,6 @@ QString PasswordLogin::id()
 QString PasswordLogin::server()
 {
     return d->returned_server;
-}
-
-QString PasswordLogin::apiPath() const
-{
-    return "_matrix/client/r0/login";
-}
-
-QJsonObject PasswordLogin::data() const
-{
-    QJsonObject json;
-    json.insert("type", QLatin1String("m.login.password"));
-    json.insert("user", d->user);
-    json.insert("password", d->password);
-    return json;
 }
 
 BaseJob::Status PasswordLogin::parseJson(const QJsonDocument& data)

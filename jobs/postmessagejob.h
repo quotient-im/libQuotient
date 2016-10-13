@@ -33,8 +33,6 @@ namespace QMatrixClient
             //bool success();
 
         protected:
-            QString apiPath() const override;
-            QJsonObject data() const override;
             Status parseJson(const QJsonDocument& data) override;
 
         private:

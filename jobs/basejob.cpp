@@ -41,13 +41,22 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class BaseJob::Private
 {
     public:
-        Private(ConnectionData* c, JobHttpType t, bool nt)
-            : connection(c), type(t), needsToken(nt)
+        Private(ConnectionData* c, JobHttpType t, QString endpoint,
+                const QUrlQuery& q, const Data& data, bool nt)
+            : connection(c), type(t), apiEndpoint(endpoint), requestQuery(q)
+            , requestData(data), needsToken(nt)
             , reply(nullptr), status(NoError)
-        {}
+        { }
         
+        inline void sendRequest();
+
         ConnectionData* connection;
+
+        // Contents for the network request
         JobHttpType type;
+        QString apiEndpoint;
+        QUrlQuery requestQuery;
+        Data requestData;
         bool needsToken;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
@@ -61,8 +70,10 @@ inline QDebug operator<<(QDebug dbg, BaseJob* j)
     return dbg << "Job" << j->objectName();
 }
 
-BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name, bool needsToken)
-    : d(new Private(connection, type, needsToken))
+BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name,
+                 QString endpoint, BaseJob::Query query, BaseJob::Data data,
+                 bool needsToken)
+    : d(new Private(connection, type, endpoint, query, data, needsToken))
 {
     setObjectName(name);
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
@@ -79,48 +90,63 @@ ConnectionData* BaseJob::connection() const
     return d->connection;
 }
 
-QJsonObject BaseJob::data() const
+const QUrlQuery&BaseJob::query() const
 {
-    return QJsonObject();
+    return d->requestQuery;
 }
 
-QUrlQuery BaseJob::query() const
+void BaseJob::setRequestQuery(const QUrlQuery& query)
 {
-    return QUrlQuery();
+    d->requestQuery = query;
 }
 
-void BaseJob::start()
+const BaseJob::Data&BaseJob::requestData() const
 {
-    QUrl url = d->connection->baseUrl();
-    url.setPath( url.path() + "/" + apiPath() );
-    QUrlQuery query = this->query();
-    if( d->needsToken )
-        query.addQueryItem("access_token", connection()->accessToken());
-    url.setQuery(query);
-    QNetworkRequest req = QNetworkRequest(url);
+    return d->requestData;
+}
+
+void BaseJob::setRequestData(const BaseJob::Data& data)
+{
+    d->requestData = data;
+}
+
+void BaseJob::Private::sendRequest()
+{
+    QUrl url = connection->baseUrl();
+    url.setPath( url.path() + "/" + apiEndpoint );
+    if (needsToken)
+        requestQuery.addQueryItem("access_token", connection->accessToken());
+    url.setQuery(requestQuery);
+
+    QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
-    QJsonDocument data = QJsonDocument(this->data());
-    switch( d->type )
+    switch( type )
     {
         case JobHttpType::GetJob:
-            d->reply.reset( d->connection->nam()->get(req) );
+            reply.reset( connection->nam()->get(req) );
             break;
         case JobHttpType::PostJob:
-            d->reply.reset( d->connection->nam()->post(req, data.toJson()) );
+            reply.reset( connection->nam()->post(req, requestData.serialize()) );
             break;
         case JobHttpType::PutJob:
-            d->reply.reset( d->connection->nam()->put(req, data.toJson()) );
+            reply.reset( connection->nam()->put(req, requestData.serialize()) );
+            break;
+        case JobHttpType::DeleteJob:
+            reply.reset( connection->nam()->deleteResource(req) );
             break;
     }
+}
+
+void BaseJob::start()
+{
+    d->sendRequest();
     connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     d->timer.start( 120*1000 );
-//     connect( d->reply, static_cast<void(QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-//              this, &BaseJob::networkError ); // http://doc.qt.io/qt-5/qnetworkreply.html#error-1
 }
 
 void BaseJob::gotReply()

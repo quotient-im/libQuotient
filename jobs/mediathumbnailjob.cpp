@@ -25,21 +25,21 @@ using namespace QMatrixClient;
 class MediaThumbnailJob::Private
 {
     public:
-        QUrl url;
         QPixmap thumbnail;
-        QSize requestedSize;
-        ThumbnailType thumbnailType;
 };
 
 MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
-    : BaseJob(data, JobHttpType::GetJob, "MediaThumbnailJob")
+    : BaseJob(data, JobHttpType::GetJob, "MediaThumbnailJob",
+              QString("/_matrix/media/v1/thumbnail/%1%2").arg(url.host(), url.path()),
+              Query(
+                { { "width", QString::number(requestedSize.width()) }
+                , { "height", QString::number(requestedSize.height()) }
+                , { "method",
+                    thumbnailType == ThumbnailType::Scale ? "scale" : "crop" }
+                }))
     , d(new Private)
-{
-    d->url = url;
-    d->requestedSize = requestedSize;
-    d->thumbnailType = thumbnailType;
-}
+{ }
 
 MediaThumbnailJob::~MediaThumbnailJob()
 {
@@ -49,23 +49,6 @@ MediaThumbnailJob::~MediaThumbnailJob()
 QPixmap MediaThumbnailJob::thumbnail()
 {
     return d->thumbnail;
-}
-
-QString MediaThumbnailJob::apiPath() const
-{
-    return QString("/_matrix/media/v1/thumbnail/%1%2").arg(d->url.host()).arg(d->url.path());
-}
-
-QUrlQuery MediaThumbnailJob::query() const
-{
-    QUrlQuery query;
-    query.addQueryItem("width", QString::number(d->requestedSize.width()));
-    query.addQueryItem("height", QString::number(d->requestedSize.height()));
-    if( d->thumbnailType == ThumbnailType::Scale )
-        query.addQueryItem("method", "scale");
-    else
-        query.addQueryItem("method", "crop");
-    return query;
 }
 
 BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)

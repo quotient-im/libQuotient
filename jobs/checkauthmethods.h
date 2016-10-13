@@ -34,7 +34,6 @@ namespace QMatrixClient
             QString session();
             
         protected:
-            QString apiPath() const override;
             Status parseJson(const QJsonDocument& data) override;
             
         private:

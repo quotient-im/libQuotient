@@ -32,15 +32,14 @@ namespace QMatrixClient
     class RoomMessagesJob: public BaseJob
     {
         public:
-            RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir = FetchDirectory::Backwards, int limit=10);
+            RoomMessagesJob(ConnectionData* data, Room* room, QString from,
+                            FetchDirectory dir = FetchDirectory::Backwards, int limit=10);
             virtual ~RoomMessagesJob();
 
             Events events();
             QString end();
 
         protected:
-            QString apiPath() const override;
-            QUrlQuery query() const override;
             Status parseJson(const QJsonDocument& data) override;
 
         private:

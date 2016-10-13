@@ -29,14 +29,13 @@ class JoinRoomJob::Private
 {
     public:
         QString roomId;
-        QString roomAlias;
 };
 
 JoinRoomJob::JoinRoomJob(ConnectionData* data, QString roomAlias)
-    : BaseJob(data, JobHttpType::PostJob, "JoinRoomJob")
+    : BaseJob(data, JobHttpType::PostJob, "JoinRoomJob",
+              QString("_matrix/client/r0/join/%1").arg(roomAlias))
     , d(new Private)
 {
-    d->roomAlias = roomAlias;
 }
 
 JoinRoomJob::~JoinRoomJob()
@@ -47,11 +46,6 @@ JoinRoomJob::~JoinRoomJob()
 QString JoinRoomJob::roomId()
 {
     return d->roomId;
-}
-
-QString JoinRoomJob::apiPath() const
-{
-    return QString("_matrix/client/r0/join/%1").arg(d->roomAlias);
 }
 
 BaseJob::Status JoinRoomJob::parseJson(const QJsonDocument& data)

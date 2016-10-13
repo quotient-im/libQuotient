@@ -32,50 +32,33 @@ using namespace QMatrixClient;
 class SyncJob::Private
 {
     public:
-        QString since;
-        QString filter;
-        bool fullState;
-        QString presence;
-        int timeout;
         QString nextBatch;
-
         SyncData roomData;
 };
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(ConnectionData* connection, QString since)
-    : BaseJob(connection, JobHttpType::GetJob, QString("SyncJob-%1").arg(++jobId))
+SyncJob::SyncJob(ConnectionData* connection, QString filter, int timeout,
+                 QString since, QString presence)
+    : BaseJob(connection, JobHttpType::GetJob, QString("SyncJob-%1").arg(++jobId),
+              "_matrix/client/r0/sync")
     , d(new Private)
 {
-    d->since = since;
-    d->fullState = false;
-    d->timeout = -1;
+    QUrlQuery query;
+    if( !filter.isEmpty() )
+        query.addQueryItem("filter", filter);
+    if( !presence.isEmpty() )
+        query.addQueryItem("set_presence", presence);
+    if( timeout >= 0 )
+        query.addQueryItem("timeout", QString::number(timeout));
+    if( !since.isEmpty() )
+        query.addQueryItem("since", since);
+    setRequestQuery(query);
 }
 
 SyncJob::~SyncJob()
 {
     delete d;
-}
-
-void SyncJob::setFilter(QString filter)
-{
-    d->filter = filter;
-}
-
-void SyncJob::setFullState(bool full)
-{
-    d->fullState = full;
-}
-
-void SyncJob::setPresence(QString presence)
-{
-    d->presence = presence;
-}
-
-void SyncJob::setTimeout(int timeout)
-{
-    d->timeout = timeout;
 }
 
 QString SyncJob::nextBatch() const
@@ -86,27 +69,6 @@ QString SyncJob::nextBatch() const
 SyncData& SyncJob::roomData()
 {
     return d->roomData;
-}
-
-QString SyncJob::apiPath() const
-{
-    return "_matrix/client/r0/sync";
-}
-
-QUrlQuery SyncJob::query() const
-{
-    QUrlQuery query;
-    if( !d->filter.isEmpty() )
-        query.addQueryItem("filter", d->filter);
-    if( d->fullState )
-        query.addQueryItem("full_state", "true");
-    if( !d->presence.isEmpty() )
-        query.addQueryItem("set_presence", d->presence);
-    if( d->timeout >= 0 )
-        query.addQueryItem("timeout", QString::number(d->timeout));
-    if( !d->since.isEmpty() )
-        query.addQueryItem("since", d->since);
-    return query;
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
