@@ -27,19 +27,17 @@ class MediaThumbnailJob::Private
     public:
         QUrl url;
         QPixmap thumbnail;
-        int requestedHeight;
-        int requestedWidth;
+        QSize requestedSize;
         ThumbnailType thumbnailType;
 };
 
-MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, int requestedWidth, int requestedHeight,
+MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
     : BaseJob(data, JobHttpType::GetJob, "MediaThumbnailJob")
     , d(new Private)
 {
     d->url = url;
-    d->requestedHeight = requestedHeight;
-    d->requestedWidth = requestedWidth;
+    d->requestedSize = requestedSize;
     d->thumbnailType = thumbnailType;
 }
 
@@ -61,8 +59,8 @@ QString MediaThumbnailJob::apiPath() const
 QUrlQuery MediaThumbnailJob::query() const
 {
     QUrlQuery query;
-    query.addQueryItem("width", QString::number(d->requestedWidth));
-    query.addQueryItem("height", QString::number(d->requestedHeight));
+    query.addQueryItem("width", QString::number(d->requestedSize.width()));
+    query.addQueryItem("height", QString::number(d->requestedSize.height()));
     if( d->thumbnailType == ThumbnailType::Scale )
         query.addQueryItem("method", "scale");
     else

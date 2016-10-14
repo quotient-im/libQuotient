@@ -27,7 +27,6 @@
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/leaveroomjob.h"
-#include "jobs/roommembersjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
@@ -234,11 +233,16 @@ RoomMessagesJob* Connection::getMessages(Room* room, QString from)
     return job;
 }
 
-MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int requestedHeight)
+MediaThumbnailJob* Connection::getThumbnail(QUrl url, QSize requestedSize)
 {
-    MediaThumbnailJob* job = new MediaThumbnailJob(d->data, url, requestedWidth, requestedHeight);
+    MediaThumbnailJob* job = new MediaThumbnailJob(d->data, url, requestedSize);
     job->start();
     return job;
+}
+
+MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int requestedHeight)
+{
+    return getThumbnail(url, QSize(requestedWidth, requestedHeight));
 }
 
 QUrl Connection::homeserver() const
