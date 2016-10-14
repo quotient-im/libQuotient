@@ -58,7 +58,8 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
-            virtual MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
+            virtual MediaThumbnailJob* getThumbnail( QUrl url, QSize requestedSize );
+            MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
 
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(QString userId);
