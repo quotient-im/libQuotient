@@ -99,20 +99,14 @@ namespace QMatrixClient
     class SyncJob: public BaseJob
     {
         public:
-            SyncJob(ConnectionData* connection, QString since=QString());
+            SyncJob(ConnectionData* connection, QString since = {}, QString filter = {},
+                    int timeout = -1, QString presence = {});
             virtual ~SyncJob();
             
-            void setFilter(QString filter);
-            void setFullState(bool full);
-            void setPresence(QString presence);
-            void setTimeout(int timeout);
-
             SyncData& roomData();
             QString nextBatch() const;
 
         protected:
-            QString apiPath() const override;
-            QUrlQuery query() const override;
             Status parseJson(const QJsonDocument& data) override;
 
         private:

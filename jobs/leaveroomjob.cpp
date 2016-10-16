@@ -18,33 +18,14 @@
 
 #include "leaveroomjob.h"
 
-#include <QtNetwork/QNetworkReply>
-
 #include "../room.h"
-#include "../connectiondata.h"
 
 using namespace QMatrixClient;
 
-class LeaveRoomJob::Private
-{
-    public:
-        Private(Room* r) : room(r) {}
-
-        Room* room;
-};
-
 LeaveRoomJob::LeaveRoomJob(ConnectionData* data, Room* room)
-    : BaseJob(data, JobHttpType::PostJob, "LeaveRoomJob")
-    , d(new Private(room))
-{
-}
+    : BaseJob(data, JobHttpType::PostJob, "LeaveRoomJob",
+              QString("_matrix/client/r0/rooms/%1/leave").arg(room->id()))
+{ }
 
 LeaveRoomJob::~LeaveRoomJob()
-{
-    delete d;
-}
-
-QString LeaveRoomJob::apiPath() const
-{
-    return QString("_matrix/client/r0/rooms/%1/leave").arg(d->room->id());
-}
+{ }

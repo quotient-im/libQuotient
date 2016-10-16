@@ -31,13 +31,6 @@ namespace QMatrixClient
         public:
             LeaveRoomJob(ConnectionData* data, Room* room);
             virtual ~LeaveRoomJob();
-
-        protected:
-            QString apiPath() const override;
-
-        private:
-            class Private;
-            Private* d;
     };
 }
 

@@ -37,9 +37,6 @@ namespace QMatrixClient
             QPixmap thumbnail();
 
         protected:
-            QString apiPath() const override;
-            QUrlQuery query() const override;
-
             Status parseReply(QByteArray data) override;
 
         private:

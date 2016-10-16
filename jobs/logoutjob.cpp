@@ -21,15 +21,10 @@
 using namespace QMatrixClient;
 
 LogoutJob::LogoutJob(ConnectionData* connection)
-    : BaseJob(connection, JobHttpType::PostJob, "LogoutJob")
+    : BaseJob(connection, JobHttpType::PostJob, "LogoutJob", "/_matrix/client/r0/logout")
 {
 }
 
 LogoutJob::~LogoutJob()
 {
-}
-
-QString LogoutJob::apiPath() const
-{
-    return "/_matrix/client/r0/logout";
 }

@@ -29,36 +29,20 @@ class PostMessageJob::Private
     public:
         Private() {}
 
-        QString type;
-        QString message;
-        Room* room;
+        QString eventId; // unused yet
 };
 
 PostMessageJob::PostMessageJob(ConnectionData* connection, Room* room, QString type, QString message)
-    : BaseJob(connection, JobHttpType::PostJob, "PostMessageJob")
+    : BaseJob(connection, JobHttpType::PostJob, "PostMessageJob",
+              QString("_matrix/client/r0/rooms/%1/send/m.room.message").arg(room->id()),
+              Query(),
+              Data({ { "msgtype", type }, { "body", message } }))
     , d(new Private)
-{
-    d->type = type;
-    d->message = message;
-    d->room = room;
-}
+{ }
 
 PostMessageJob::~PostMessageJob()
 {
     delete d;
-}
-
-QString PostMessageJob::apiPath() const
-{
-    return QString("_matrix/client/r0/rooms/%1/send/m.room.message").arg(d->room->id());
-}
-
-QJsonObject PostMessageJob::data() const
-{
-    QJsonObject json;
-    json.insert("msgtype", d->type);
-    json.insert("body", d->message);
-    return json;
 }
 
 BaseJob::Status PostMessageJob::parseJson(const QJsonDocument& data)

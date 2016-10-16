@@ -59,7 +59,6 @@ set(libqmatrixclient_SRCS
    jobs/postreceiptjob.cpp
    jobs/joinroomjob.cpp
    jobs/leaveroomjob.cpp
-   jobs/roommembersjob.cpp
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp

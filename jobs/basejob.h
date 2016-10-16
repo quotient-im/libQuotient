@@ -32,8 +32,8 @@ namespace QMatrixClient
 {
     class ConnectionData;
 
-    enum class JobHttpType { GetJob, PutJob, PostJob };
-    
+    enum class JobHttpType { GetJob, PutJob, PostJob, DeleteJob };
+
     class BaseJob: public QObject
     {
             Q_OBJECT
@@ -48,6 +48,42 @@ namespace QMatrixClient
                 , TimeoutError
                 , ContentAccessError
                 , UserDefinedError = 200
+            };
+
+            /**
+             * A simple wrapper around QUrlQuery that allows its creation from
+             * a list of string pairs
+             */
+            class Query : public QUrlQuery
+            {
+                public:
+                    using QUrlQuery::QUrlQuery;
+                    Query() = default;
+                    Query(const QList< QPair<QString, QString> >& l)
+                    {
+                        setQueryItems(l);
+                    }
+            };
+            /**
+             * A simple wrapper around QJsonObject that represents a JSON data
+             * section of an HTTP request to a Matrix server. Facilitates
+             * creation from a list of key-value string pairs and dumping of
+             * a resulting JSON to a QByteArray.
+             */
+            class Data : public QJsonObject
+            {
+                public:
+                    using QJsonObject::QJsonObject;
+                    Data() = default;
+                    Data(const QList< QPair<QString, QString> >& l)
+                    {
+                        for (auto i: l)
+                            insert(i.first, i.second);
+                    }
+                    QByteArray serialize() const
+                    {
+                        return QJsonDocument(*this).toJson();
+                    }
             };
 
             /**
@@ -72,8 +108,9 @@ namespace QMatrixClient
             };
 
         public:
-            BaseJob(ConnectionData* connection, JobHttpType type,
-                    QString name, bool needsToken=true);
+            BaseJob(ConnectionData* connection, JobHttpType type, QString name,
+                    QString endpoint, Query query = Query(), Data data = Data(),
+                    bool needsToken = true);
             virtual ~BaseJob();
 
             void start();
@@ -138,10 +175,10 @@ namespace QMatrixClient
         protected:
             ConnectionData* connection() const;
 
-            // to implement
-            virtual QString apiPath() const = 0;
-            virtual QUrlQuery query() const;
-            virtual QJsonObject data() const;
+            const QUrlQuery& query() const;
+            void setRequestQuery(const QUrlQuery& query);
+            const Data& requestData() const;
+            void setRequestData(const Data& data);
 
             /**
              * Used by gotReply() slot to check the received reply for general

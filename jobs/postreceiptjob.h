@@ -30,9 +30,6 @@ namespace QMatrixClient
             PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId);
             virtual ~PostReceiptJob();
 
-        protected:
-            QString apiPath() const override;
-
         private:
             class Private;
             Private* d;
