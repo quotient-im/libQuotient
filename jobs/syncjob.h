@@ -99,8 +99,8 @@ namespace QMatrixClient
     class SyncJob: public BaseJob
     {
         public:
-            SyncJob(ConnectionData* connection, QString filter, int timeout,
-                    QString since = {}, QString presence = {});
+            SyncJob(ConnectionData* connection, QString since = {}, QString filter = {},
+                    int timeout = -1, QString presence = {});
             virtual ~SyncJob();
             
             SyncData& roomData();

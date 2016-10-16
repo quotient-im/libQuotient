@@ -189,7 +189,7 @@ void Connection::sync(int timeout)
 
 SyncJob* Connection::Private::startSyncJob(const QString& filter, int timeout)
 {
-    syncJob = new SyncJob(data, filter, timeout, data->lastEvent());
+    syncJob = new SyncJob(data, data->lastEvent(), filter, timeout);
     syncJob->start();
     return syncJob;
 
