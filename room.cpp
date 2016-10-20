@@ -163,9 +163,17 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
+void Room::setLastReadEvent(User* user, QString eventId)
+{
+    d->lastReadEvent.insert(user, eventId);
+    emit lastReadEventChanged(user);
+}
+
 void Room::markMessageAsRead(Event* event)
 {
-    d->connection->postReceipt(this, event);
+    setLastReadEvent(connection()->user(), event->id());
+    if (event->senderId() != connection()->userId())
+        d->connection->postReceipt(this, event);
 }
 
 QString Room::lastReadEvent(User* user)
@@ -489,7 +497,7 @@ void Room::processEphemeralEvent(Event* event)
             for( const Receipt& r: receipts )
             {
                 if (auto m = d->member(r.userId))
-                    d->lastReadEvent.insert(m, eventId);
+                    setLastReadEvent(m, eventId);
             }
         }
     }

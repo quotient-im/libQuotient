@@ -69,6 +69,7 @@ namespace QMatrixClient
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
+            Q_INVOKABLE void setLastReadEvent(User* user, QString eventId);
             Q_INVOKABLE void markMessageAsRead( Event* event );
             Q_INVOKABLE QString lastReadEvent(User* user);
 
@@ -102,6 +103,7 @@ namespace QMatrixClient
             void typingChanged();
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
+            void lastReadEventChanged(User* user);
 
         protected:
             Connection* connection() const;
