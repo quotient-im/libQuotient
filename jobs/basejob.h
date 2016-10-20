@@ -73,7 +73,6 @@ namespace QMatrixClient
             class Data : public QJsonObject
             {
                 public:
-                    using QJsonObject::QJsonObject;
                     Data() = default;
                     Data(const QList< QPair<QString, QString> >& l)
                     {
