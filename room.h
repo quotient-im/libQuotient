@@ -69,9 +69,22 @@ namespace QMatrixClient
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
-            Q_INVOKABLE void setLastReadEvent(User* user, QString eventId);
-            Q_INVOKABLE void markMessageAsRead( Event* event );
             Q_INVOKABLE QString lastReadEvent(User* user);
+            Q_INVOKABLE void setLastReadEvent(User* user, QString eventId);
+            /**
+             * @brief Mark the message at the iterator as read
+             *
+             * Marks the message at the iterator as read; also posts a read
+             * receipt to the server either for this message or, if it's from
+             * the local user, for the nearest non-local message before.
+             */
+            Q_INVOKABLE void markMessagesAsRead(Timeline::const_iterator iter);
+            /**
+             * @brief Mark the most recent message in the timeline as read
+             *
+             * This effectively marks everything in the room as read.
+             */
+            Q_INVOKABLE void markMessagesAsRead();
 
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();
