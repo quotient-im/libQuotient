@@ -70,7 +70,6 @@ namespace QMatrixClient
             Q_INVOKABLE void setJoinState( JoinState state );
 
             Q_INVOKABLE QString lastReadEvent(User* user);
-            Q_INVOKABLE void setLastReadEvent(User* user, QString eventId);
             /**
              * @brief Mark the message at the iterator as read
              *
@@ -78,7 +77,7 @@ namespace QMatrixClient
              * receipt to the server either for this message or, if it's from
              * the local user, for the nearest non-local message before.
              */
-            Q_INVOKABLE void markMessagesAsRead(Timeline::const_iterator iter);
+            Q_INVOKABLE void markMessagesAsRead(Timeline::const_iterator last);
             /**
              * @brief Mark the most recent message in the timeline as read
              *
@@ -124,6 +123,8 @@ namespace QMatrixClient
             virtual void doAddHistoricalMessageEvents(const Events& events);
             virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
+
+            void setLastReadEvent(User* user, QString eventId);
 
         private:
             class Private;

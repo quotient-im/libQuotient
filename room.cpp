@@ -169,32 +169,30 @@ void Room::setLastReadEvent(User* user, QString eventId)
     emit lastReadEventChanged(user);
 }
 
-void Room::markMessagesAsRead(Timeline::const_iterator end)
+void Room::markMessagesAsRead(Timeline::const_iterator last)
 {
-    if (messageEvents().empty())
-        return;
-
     QString prevLastReadId = lastReadEvent(connection()->user());
-    setLastReadEvent(connection()->user(), (*--end)->id());
+    setLastReadEvent(connection()->user(), (*last)->id());
 
     // We shouldn't send read receipts for messages from the local user - so
     // shift back (if necessary) to the nearest message not from the local user
     // or the so far last read message, whichever comes first.
-    for (; (*end)->id() != prevLastReadId; --end)
+    for (; (*last)->id() != prevLastReadId; --last)
     {
-        if ((*end)->senderId() != connection()->userId())
+        if ((*last)->senderId() != connection()->userId())
         {
-            d->connection->postReceipt(this, (*end));
+            d->connection->postReceipt(this, (*last));
             break;
         }
-        if (end == messageEvents().begin())
+        if (last == messageEvents().begin())
             break;
     }
 }
 
 void Room::markMessagesAsRead()
 {
-    markMessagesAsRead(messageEvents().end());
+    if (!messageEvents().empty())
+        markMessagesAsRead(messageEvents().end() - 1);
 }
 
 QString Room::lastReadEvent(User* user)
