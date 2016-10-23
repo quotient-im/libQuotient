@@ -169,10 +169,31 @@ void Room::setLastReadEvent(User* user, QString eventId)
     emit lastReadEventChanged(user);
 }
 
+bool Room::promoteReadMarker(User* user, QString eventId)
+{
+    // Check that the new read event is not before the previously set - only
+    // allow the read marker to move down the timeline, not up.
+    QString prevLastReadId = lastReadEvent(user);
+    // Older Qt doesn't provide rbegin()/rend() for Qt containers
+    for (auto it = messageEvents().end(); it != messageEvents().begin();)
+    {
+        --it;
+        if (prevLastReadId == (*it)->id())
+            return false;
+        if (eventId == (*it)->id())
+        {
+            setLastReadEvent(user, eventId);
+            return true;
+        }
+    }
+    return false;
+}
+
 void Room::markMessagesAsRead(Timeline::const_iterator last)
 {
     QString prevLastReadId = lastReadEvent(connection()->user());
-    setLastReadEvent(connection()->user(), (*last)->id());
+    if ( !promoteReadMarker(connection()->user(), (*last)->id()) )
+        return;
 
     // We shouldn't send read receipts for messages from the local user - so
     // shift back (if necessary) to the nearest message not from the local user
@@ -516,7 +537,7 @@ void Room::processEphemeralEvent(Event* event)
             for( const Receipt& r: receipts )
             {
                 if (auto m = d->member(r.userId))
-                    setLastReadEvent(m, eventId);
+                    promoteReadMarker(m, eventId);
             }
         }
     }

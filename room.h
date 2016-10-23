@@ -124,7 +124,7 @@ namespace QMatrixClient
             virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
 
-            void setLastReadEvent(User* user, QString eventId);
+            bool promoteReadMarker(User* user, QString eventId);
 
         private:
             class Private;
@@ -132,6 +132,8 @@ namespace QMatrixClient
 
             void addNewMessageEvents(const Events& events);
             void addHistoricalMessageEvents(const Events& events);
+
+            void setLastReadEvent(User* user, QString eventId);
     };
 }
 
