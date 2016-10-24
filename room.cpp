@@ -163,9 +163,57 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::markMessageAsRead(Event* event)
+void Room::setLastReadEvent(User* user, QString eventId)
 {
-    d->connection->postReceipt(this, event);
+    d->lastReadEvent.insert(user, eventId);
+    emit lastReadEventChanged(user);
+}
+
+bool Room::promoteReadMarker(User* user, QString eventId)
+{
+    // Check that the new read event is not before the previously set - only
+    // allow the read marker to move down the timeline, not up.
+    QString prevLastReadId = lastReadEvent(user);
+    // Older Qt doesn't provide rbegin()/rend() for Qt containers
+    for (auto it = messageEvents().end(); it != messageEvents().begin();)
+    {
+        --it;
+        if (prevLastReadId == (*it)->id())
+            return false;
+        if (eventId == (*it)->id())
+        {
+            setLastReadEvent(user, eventId);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Room::markMessagesAsRead(Timeline::const_iterator last)
+{
+    QString prevLastReadId = lastReadEvent(connection()->user());
+    if ( !promoteReadMarker(connection()->user(), (*last)->id()) )
+        return;
+
+    // We shouldn't send read receipts for messages from the local user - so
+    // shift back (if necessary) to the nearest message not from the local user
+    // or the so far last read message, whichever comes first.
+    for (; (*last)->id() != prevLastReadId; --last)
+    {
+        if ((*last)->senderId() != connection()->userId())
+        {
+            d->connection->postReceipt(this, (*last));
+            break;
+        }
+        if (last == messageEvents().begin())
+            break;
+    }
+}
+
+void Room::markMessagesAsRead()
+{
+    if (!messageEvents().empty())
+        markMessagesAsRead(messageEvents().end() - 1);
 }
 
 QString Room::lastReadEvent(User* user)
@@ -489,7 +537,7 @@ void Room::processEphemeralEvent(Event* event)
             for( const Receipt& r: receipts )
             {
                 if (auto m = d->member(r.userId))
-                    d->lastReadEvent.insert(m, eventId);
+                    promoteReadMarker(m, eventId);
             }
         }
     }
