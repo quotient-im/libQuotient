@@ -81,6 +81,11 @@ QString User::displayname() const
 
 QPixmap User::avatar(int width, int height)
 {
+    return croppedAvatar(width, height); // FIXME: Return an uncropped avatar;
+}
+
+QPixmap User::croppedAvatar(int width, int height)
+{
     QSize size(width, height);
 
     if( !d->avatarValid
