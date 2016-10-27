@@ -19,18 +19,19 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-find_package(Qt5Core 5.2.0 REQUIRED) # For JSON (de)serialization
-find_package(Qt5Network 5.2.0 REQUIRED) # For networking
-find_package(Qt5Gui 5.2.0 REQUIRED) # For userpics
+find_package(Qt5 5.2.1 REQUIRED Network Gui)
+get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 message( STATUS )
-message( STATUS "================================================================================" )
-message( STATUS "                          libqmatrixclient Build Information                          " )
-message( STATUS "================================================================================" )
+message( STATUS "=============================================================================" )
+message( STATUS "                       libqmatrixclient Build Information" )
+message( STATUS "=============================================================================" )
 message( STATUS "Building with: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
-message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
-message( STATUS "Path to Qt Core: ${Qt5Core_DIR}" )
-message( STATUS "================================================================================" )
+if (CMAKE_BUILD_TYPE)
+    message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif(CMAKE_BUILD_TYPE)
+message( STATUS "Building with Qt ${Qt5_VERSION} at: ${Qt5_Prefix}" )
+message( STATUS "=============================================================================" )
 message( STATUS )
 
 # Set up source files
