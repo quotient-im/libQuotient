@@ -200,10 +200,12 @@ bool Room::promoteReadMarker(QString newLastReadEventId)
     if( d->unreadMessages && stillUnreadMessagesCount == 0)
     {
         d->unreadMessages = false;
+        qDebug() << "Room" << displayName() << ": no more unread messages";
         emit unreadMessagesChanged(this);
     }
-    qDebug() << "Room" << displayName()
-             << ": still" << stillUnreadMessagesCount << "unread message(s)";
+    if (stillUnreadMessagesCount > 0)
+        qDebug() << "Room" << displayName()
+                 << ": still" << stillUnreadMessagesCount << "unread message(s)";
     return newLastReadEventId.isEmpty() || lastReadEvent(localUser) == newLastReadEventId;
 }
 
