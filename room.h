@@ -85,6 +85,8 @@ namespace QMatrixClient
              */
             Q_INVOKABLE void markMessagesAsRead();
 
+            Q_INVOKABLE bool hasUnreadMessages();
+
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();
             Q_INVOKABLE int highlightCount() const;
@@ -116,6 +118,7 @@ namespace QMatrixClient
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
             void lastReadEventChanged(User* user);
+            void unreadMessagesChanged(Room* room);
 
         protected:
             Connection* connection() const;
@@ -124,7 +127,7 @@ namespace QMatrixClient
             virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
 
-            bool promoteReadMarker(User* user, QString eventId);
+            bool promoteReadMarker(QString newLastReadEventId);
 
         private:
             class Private;
