@@ -23,16 +23,11 @@
 
 namespace QMatrixClient
 {
-    class Room;
     class PostReceiptJob: public BaseJob
     {
         public:
             PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId);
             virtual ~PostReceiptJob();
-
-        private:
-            class Private;
-            Private* d;
     };
 }
 

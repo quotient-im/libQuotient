@@ -211,7 +211,7 @@ PostReceiptJob* Connection::postReceipt(Room* room, Event* event)
 void Connection::joinRoom(QString roomAlias)
 {
     JoinRoomJob* job = new JoinRoomJob(d->data, roomAlias);
-    connect( job, &SyncJob::success, [=] () {
+    connect( job, &BaseJob::success, [=] () {
         if ( Room* r = provideRoom(job->roomId()) )
             emit joinedRoom(r);
     });

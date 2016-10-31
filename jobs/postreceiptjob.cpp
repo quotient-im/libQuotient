@@ -24,23 +24,10 @@
 
 using namespace QMatrixClient;
 
-class PostReceiptJob::Private
-{
-    public:
-        Private() {}
-
-        QString roomId;
-        QString eventId;
-};
-
 PostReceiptJob::PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId)
     : BaseJob(connection, JobHttpType::PostJob, "PostReceiptJob",
               QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(roomId, eventId))
-    , d(new Private)
-{
-}
+{ }
 
 PostReceiptJob::~PostReceiptJob()
-{
-    delete d;
-}
+{ }

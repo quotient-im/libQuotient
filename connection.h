@@ -21,6 +21,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QSize>
 
 namespace QMatrixClient
 {
