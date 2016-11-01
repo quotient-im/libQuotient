@@ -28,7 +28,6 @@
 #include "connection.h"
 #include "state.h"
 #include "user.h"
-#include "events/event.h"
 #include "events/roommessageevent.h"
 #include "events/roomnameevent.h"
 #include "events/roomaliasesevent.h"
@@ -676,4 +675,20 @@ void Room::Private::updateDisplayname()
     displayname = calculateDisplayname();
     if (old_name != displayname)
         emit q->displaynameChanged(q);
+}
+
+MemberSorter Room::memberSorter() const
+{
+    return MemberSorter(this);
+}
+
+bool MemberSorter::operator()(User *u1, User *u2) const
+{
+    auto n1 = room->roomMembername(u1);
+    auto n2 = room->roomMembername(u2);
+    if (n1[0] == '@')
+        n1.remove(0, 1);
+    if (n2[0] == '@')
+        n2.remove(0, 1);
+    return n1 < n2;
 }

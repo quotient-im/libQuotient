@@ -32,6 +32,7 @@ namespace QMatrixClient
     class Event;
     class Connection;
     class User;
+    class MemberSorter;
 
     class Room: public QObject
     {
@@ -92,6 +93,8 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            MemberSorter memberSorter() const;
+
         public slots:
             void getPreviousContent();
             void userRenamed(User* user, QString oldName);
@@ -137,6 +140,24 @@ namespace QMatrixClient
             void addHistoricalMessageEvents(const Events& events);
 
             void setLastReadEvent(User* user, QString eventId);
+    };
+
+    class MemberSorter
+    {
+        public:
+            MemberSorter(const Room* r) : room(r) { }
+
+            bool operator()(User* u1, User* u2) const;
+
+            template <typename ContT>
+            typename ContT::size_type lowerBoundIndex(const ContT& c,
+                                                      typename ContT::value_type v) const
+            {
+                return  std::lower_bound(c.begin(), c.end(), v, *this) - c.begin();
+            }
+
+        private:
+            const Room* room;
     };
 }
 
