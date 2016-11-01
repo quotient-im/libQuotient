@@ -19,8 +19,6 @@
 #ifndef QMATRIXCLIENT_EVENT_H
 #define QMATRIXCLIENT_EVENT_H
 
-#include <algorithm>
-
 #include <QtCore/QString>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>

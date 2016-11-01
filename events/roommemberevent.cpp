@@ -19,7 +19,6 @@
 #include "roommemberevent.h"
 
 #include <QtCore/QDebug>
-#include <QtCore/QUrl>
 
 using namespace QMatrixClient;
 

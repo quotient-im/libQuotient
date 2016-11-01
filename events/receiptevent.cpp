@@ -35,12 +35,10 @@ Example of a Receipt Event:
 
 #include "receiptevent.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
-
 
 class ReceiptEvent::Private
 {

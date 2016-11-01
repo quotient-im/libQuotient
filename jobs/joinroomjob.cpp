@@ -18,7 +18,6 @@
 
 #include "joinroomjob.h"
 
-#include <QtCore/QJsonObject>
 #include <QtNetwork/QNetworkReply>
 
 #include "../connectiondata.h"

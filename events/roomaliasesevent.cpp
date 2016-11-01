@@ -34,7 +34,6 @@
 
 #include "roomaliasesevent.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 

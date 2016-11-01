@@ -18,8 +18,6 @@
 
 #include "passwordlogin.h"
 
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
 #include <QtNetwork/QNetworkReply>
 
 #include "../connectiondata.h"

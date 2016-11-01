@@ -19,7 +19,6 @@
 #include "roommessagesjob.h"
 #include "../room.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 
 using namespace QMatrixClient;

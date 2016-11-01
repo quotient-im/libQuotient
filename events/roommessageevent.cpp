@@ -18,7 +18,6 @@
 
 #include "roommessageevent.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QDebug>
 

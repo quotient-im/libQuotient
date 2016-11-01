@@ -18,13 +18,9 @@
 
 #include "syncjob.h"
 
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
-#include <QtCore/QJsonValue>
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 
-#include "../room.h"
 #include "../connectiondata.h"
 
 using namespace QMatrixClient;
