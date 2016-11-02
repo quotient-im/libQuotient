@@ -170,13 +170,14 @@ void Room::setLastReadEvent(User* user, QString eventId)
     emit lastReadEventChanged(user);
 }
 
-bool Room::promoteReadMarker(QString newLastReadEventId)
+Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
 {
     User* localUser = connection()->user();
     QString prevLastReadId = lastReadEvent(localUser);
     int stillUnreadMessagesCount = 0;
+    auto it = d->messageEvents.end();
     // Older Qt doesn't provide rbegin()/rend() for Qt containers
-    for (auto it = messageEvents().end(); it != messageEvents().begin();)
+    while (it != d->messageEvents.begin())
     {
         --it;
         // Check that the new read event is not before the previously set - only
@@ -186,9 +187,10 @@ bool Room::promoteReadMarker(QString newLastReadEventId)
 
         // Found the message to mark as read; for the local user,
         // if we don't have other notable events below this one, reset unreadMessages
-        if (newLastReadEventId == (*it)->id())
+        if (eventId == (*it)->id())
         {
-            setLastReadEvent(localUser, newLastReadEventId);
+            setLastReadEvent(localUser, eventId);
+            emit readMarkerPromoted();
             break;
         }
 
@@ -205,14 +207,16 @@ bool Room::promoteReadMarker(QString newLastReadEventId)
     if (stillUnreadMessagesCount > 0)
         qDebug() << "Room" << displayName()
                  << ": still" << stillUnreadMessagesCount << "unread message(s)";
-    return newLastReadEventId.isEmpty() || lastReadEvent(localUser) == newLastReadEventId;
+    return it;
 }
 
-void Room::markMessagesAsRead(Timeline::const_iterator last)
+void Room::markMessagesAsRead(QString uptoEventId)
 {
-    QString prevLastReadId = lastReadEvent(connection()->user());
-    if ( !promoteReadMarker( (*last)->id()) )
+    if (d->messageEvents.empty())
         return;
+
+    QString prevLastReadId = lastReadEvent(connection()->user());
+    auto last = promoteReadMarker(uptoEventId);
 
     // We shouldn't send read receipts for messages from the local user - so
     // shift back (if necessary) to the nearest message not from the local user
@@ -221,7 +225,7 @@ void Room::markMessagesAsRead(Timeline::const_iterator last)
     {
         if ((*last)->senderId() != connection()->userId())
         {
-            d->connection->postReceipt(this, (*last));
+            d->connection->postReceipt(this, *last);
             break;
         }
         if (last == messageEvents().begin())
@@ -232,7 +236,7 @@ void Room::markMessagesAsRead(Timeline::const_iterator last)
 void Room::markMessagesAsRead()
 {
     if (!messageEvents().empty())
-        markMessagesAsRead(messageEvents().end() - 1);
+        markMessagesAsRead(messageEvents().back()->id());
 }
 
 bool Room::hasUnreadMessages()
@@ -240,9 +244,14 @@ bool Room::hasUnreadMessages()
     return d->unreadMessages;
 }
 
-QString Room::lastReadEvent(User* user)
+QString Room::lastReadEvent(User* user) const
 {
     return d->lastReadEvent.value(user);
+}
+
+QString Room::readMarkerEventId() const
+{
+    return lastReadEvent(d->connection->user());
 }
 
 int Room::notificationCount() const
