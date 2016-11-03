@@ -168,6 +168,8 @@ void Room::setLastReadEvent(User* user, QString eventId)
 {
     d->lastReadEvent.insert(user, eventId);
     emit lastReadEventChanged(user);
+    if (user == d->connection->user())
+        emit readMarkerPromoted();
 }
 
 Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
@@ -176,6 +178,7 @@ Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
     QString prevLastReadId = lastReadEvent(localUser);
     int stillUnreadMessagesCount = 0;
     auto it = d->messageEvents.end();
+    Event* targetEvent = nullptr;
     // Older Qt doesn't provide rbegin()/rend() for Qt containers
     while (it != d->messageEvents.begin())
     {
@@ -185,14 +188,27 @@ Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
         if (prevLastReadId == (*it)->id())
             break;
 
-        // Found the message to mark as read; for the local user,
-        // if we don't have other notable events below this one, reset unreadMessages
+        // Found the message to mark as read; if there are messages from
+        // the local user right below this one, automatically promote the marker
+        // to them instead of this one; still return this one to save
+        // markMessagesAsRead() from going through local messages over again.
         if (eventId == (*it)->id())
         {
-            setLastReadEvent(localUser, eventId);
-            emit readMarkerPromoted();
+            setLastReadEvent(localUser,
+                (targetEvent ? targetEvent : *it)->id());
             break;
         }
+
+        // If we are on a local message (or a series thereof), remember it
+        // (or the end of the sequence) so that we could use it in case when
+        // the event to promote the marker to is immediately above the local ones.
+        if ((*it)->senderId() == localUser->id())
+        {
+            if (!targetEvent)
+                targetEvent = *it;
+        }
+        else
+            targetEvent = nullptr;
 
         // Detect events "notable" for the local user so that we can properly
         // set unreadMessages
@@ -483,13 +499,18 @@ bool Room::Private::isEventNotable(const Event* e) const
 void Room::doAddNewMessageEvents(const Events& events)
 {
     d->messageEvents.reserve(d->messageEvents.size() + events.size());
-    int newMessages = 0;
 
+    int newMessages = 0;
+    Event* latestLocalEventBeforeUnread = nullptr;
     for (auto e: events)
     {
         d->messageEvents.push_back(e);
         newMessages += d->isEventNotable(e);
+        if (!newMessages && e->senderId() == connection()->userId())
+            latestLocalEventBeforeUnread = e;
     }
+    if (latestLocalEventBeforeUnread)
+        setLastReadEvent(d->connection->user(), latestLocalEventBeforeUnread->id());
 
     if( !d->unreadMessages && newMessages > 0)
     {
