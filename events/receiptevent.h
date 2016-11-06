@@ -28,7 +28,6 @@ namespace QMatrixClient
     class Receipt
     {
         public:
-            QString eventId;
             QString userId;
             QDateTime timestamp;
     };

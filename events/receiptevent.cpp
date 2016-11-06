@@ -81,7 +81,7 @@ ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
         {
             const QJsonObject user = reads[userId].toObject();
             const QDateTime time = QDateTime::fromMSecsSinceEpoch( (quint64) user["ts"].toDouble(), Qt::UTC );
-            receipts.push_back({ eventId, userId, time });
+            receipts.push_back({ userId, time });
         }
         e->d->eventToReceipts.insert(eventId, receipts);
     }
