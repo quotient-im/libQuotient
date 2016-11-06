@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_JOINSTATE_H
-#define QMATRIXCLIENT_JOINSTATE_H
+#pragma once
 
 namespace QMatrixClient
 {
@@ -28,5 +27,3 @@ namespace QMatrixClient
         Leave
     };
 }
-
-#endif // QMATRIXCLIENT_JOINSTATE_H

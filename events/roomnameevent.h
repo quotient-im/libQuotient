@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_ROOMNAMEEVENT_H
-#define QMATRIXCLIENT_ROOMNAMEEVENT_H
+#pragma once
 
 #include "event.h"
 
@@ -40,5 +39,3 @@ private:
 };
 
 }
-
-#endif // QMATRIXCLIENT_ROOMNAMEEVENT_H

@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_LOGMESSAGE_H
-#define QMATRIXCLIENT_LOGMESSAGE_H
+#pragma once
 
 #include <QtCore/QString>
 
@@ -40,5 +39,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_LOGMESSAGE_H

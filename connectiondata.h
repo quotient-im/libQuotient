@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_CONNECTIONDATA_H
-#define QMATRIXCLIENT_CONNECTIONDATA_H
+#pragma once
 
 #include <QtCore/QUrl>
 
@@ -30,7 +29,7 @@ namespace QMatrixClient
         public:
             ConnectionData(QUrl baseUrl);
             virtual ~ConnectionData();
-            
+
             //bool isConnected() const;
             QString accessToken() const;
             QUrl baseUrl() const;
@@ -42,11 +41,9 @@ namespace QMatrixClient
 
             QString lastEvent() const;
             void setLastEvent( QString identifier );
-            
+
         private:
             class Private;
             Private* d;
     };
-}           
-
-#endif // QMATRIXCLIENT_CONNECTIONDATA_H
+}

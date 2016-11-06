@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_ROOM_H
-#define QMATRIXCLIENT_ROOM_H
+#pragma once
 
 #include <QtCore/QList>
 #include <QtCore/QStringList>
@@ -136,5 +135,3 @@ namespace QMatrixClient
             void setLastReadEvent(User* user, QString eventId);
     };
 }
-
-#endif // QMATRIXCLIENT_ROOM_H

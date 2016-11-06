@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_USER_H
-#define QMATRIXCLIENT_USER_H
+#pragma once
 
 #include <QtCore/QString>
 #include <QtCore/QObject>
@@ -64,5 +63,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_USER_H

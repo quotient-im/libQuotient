@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_GETEVENTSJOB_H
-#define QMATRIXCLIENT_GETEVENTSJOB_H
+#pragma once
 
 #include "basejob.h"
 
@@ -45,5 +44,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_GETEVENTSJOB_H

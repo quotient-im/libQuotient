@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_SYNCJOB_H
-#define QMATRIXCLIENT_SYNCJOB_H
+#pragma once
 
 #include "basejob.h"
 
@@ -102,7 +101,7 @@ namespace QMatrixClient
             SyncJob(ConnectionData* connection, QString since = {}, QString filter = {},
                     int timeout = -1, QString presence = {});
             virtual ~SyncJob();
-            
+
             SyncData& roomData();
             QString nextBatch() const;
 
@@ -114,5 +113,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_SYNCJOB_H
