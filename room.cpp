@@ -172,10 +172,9 @@ void Room::setLastReadEvent(User* user, QString eventId)
         emit readMarkerPromoted();
 }
 
-Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
+Room::Timeline::const_iterator Room::promoteReadMarker(User* u, QString eventId)
 {
-    User* localUser = connection()->user();
-    QString prevLastReadId = lastReadEvent(localUser);
+    QString prevLastReadId = lastReadEvent(u);
     int stillUnreadMessagesCount = 0;
     auto it = d->messageEvents.end();
     Event* targetEvent = nullptr;
@@ -189,20 +188,20 @@ Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
             break;
 
         // Found the message to mark as read; if there are messages from
-        // the local user right below this one, automatically promote the marker
+        // that user right below this one, automatically promote the marker
         // to them instead of this one; still return this one to save
         // markMessagesAsRead() from going through local messages over again.
         if (eventId == (*it)->id())
         {
-            setLastReadEvent(localUser,
-                (targetEvent ? targetEvent : *it)->id());
+            setLastReadEvent(u, (targetEvent ? targetEvent : *it)->id());
             break;
         }
 
-        // If we are on a local message (or a series thereof), remember it
-        // (or the end of the sequence) so that we could use it in case when
-        // the event to promote the marker to is immediately above the local ones.
-        if ((*it)->senderId() == localUser->id())
+        // If we are on a message from that user (or a series thereof),
+        // remember it (or the end of the sequence) so that we could use it
+        // in case when the event to promote the marker to is immediately
+        // above the ones from that user.
+        if ((*it)->senderId() == u->id())
         {
             if (!targetEvent)
                 targetEvent = *it;
@@ -212,17 +211,22 @@ Room::Timeline::const_iterator Room::promoteReadMarker(QString eventId)
 
         // Detect events "notable" for the local user so that we can properly
         // set unreadMessages
-        stillUnreadMessagesCount += d->isEventNotable(*it);
+        if (u == connection()->user())
+            stillUnreadMessagesCount += d->isEventNotable(*it);
     }
-    if( d->unreadMessages && stillUnreadMessagesCount == 0)
+
+    if( u == connection()->user() )
     {
-        d->unreadMessages = false;
-        qDebug() << "Room" << displayName() << ": no more unread messages";
-        emit unreadMessagesChanged(this);
+        if (d->unreadMessages && stillUnreadMessagesCount == 0)
+        {
+            d->unreadMessages = false;
+            qDebug() << "Room" << displayName() << ": no more unread messages";
+            emit unreadMessagesChanged(this);
+        }
+        if (stillUnreadMessagesCount > 0)
+            qDebug() << "Room" << displayName()
+                     << ": still" << stillUnreadMessagesCount << "unread message(s)";
     }
-    if (stillUnreadMessagesCount > 0)
-        qDebug() << "Room" << displayName()
-                 << ": still" << stillUnreadMessagesCount << "unread message(s)";
     return it;
 }
 
@@ -231,8 +235,9 @@ void Room::markMessagesAsRead(QString uptoEventId)
     if (d->messageEvents.empty())
         return;
 
-    QString prevLastReadId = lastReadEvent(connection()->user());
-    auto last = promoteReadMarker(uptoEventId);
+    User* localUser = connection()->user();
+    QString prevLastReadId = lastReadEvent(localUser);
+    auto last = promoteReadMarker(localUser, uptoEventId);
 
     // We shouldn't send read receipts for messages from the local user - so
     // shift back (if necessary) to the nearest message not from the local user
@@ -608,15 +613,8 @@ void Room::processEphemeralEvent(Event* event)
         {
             const auto receipts = receiptEvent->receiptsForEvent(eventId);
             for( const Receipt& r: receipts )
-            {
                 if (auto m = d->member(r.userId))
-                {
-                    if (m == connection()->user())
-                        promoteReadMarker(eventId);
-                    else
-                        setLastReadEvent(m, eventId);
-                }
-            }
+                    promoteReadMarker(m, eventId);
         }
     }
 }

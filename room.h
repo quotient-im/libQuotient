@@ -132,7 +132,7 @@ namespace QMatrixClient
             virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
 
-            Timeline::const_iterator promoteReadMarker(QString eventId);
+            Timeline::const_iterator promoteReadMarker(User* u, QString eventId);
 
         private:
             class Private;
