@@ -511,7 +511,7 @@ void Room::doAddNewMessageEvents(const Events& events)
     // automatically promote any further. Others will need explicit read receipts
     // from the server (or, for the local user, markMessagesAsRead() invocation)
     // to promote their read markers over the new message events.
-    User* firstWriter = d->member(events.front()->senderId());
+    User* firstWriter = connection()->user(events.front()->senderId());
     bool canAutoPromote = d->messageEvents.empty() ||
             lastReadEvent(firstWriter) == d->messageEvents.back()->id();
     Event* firstWriterSeriesEnd = canAutoPromote ? events.front() : nullptr;
