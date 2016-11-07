@@ -505,19 +505,35 @@ void Room::doAddNewMessageEvents(const Events& events)
 {
     d->messageEvents.reserve(d->messageEvents.size() + events.size());
 
-    int newMessages = 0;
-    Event* latestLocalEventBeforeUnread = nullptr;
+    Timeline::size_type newUnreadMessages = 0;
+
+    // The first message in the batch defines whose read marker we can
+    // automatically promote any further. Others will need explicit read receipts
+    // from the server (or, for the local user, markMessagesAsRead() invocation)
+    // to promote their read markers over the new message events.
+    User* firstWriter = d->member(events.front()->senderId());
+    bool canAutoPromote = d->messageEvents.empty() ||
+            lastReadEvent(firstWriter) == d->messageEvents.back()->id();
+    Event* firstWriterSeriesEnd = canAutoPromote ? events.front() : nullptr;
+
     for (auto e: events)
     {
         d->messageEvents.push_back(e);
-        newMessages += d->isEventNotable(e);
-        if (!newMessages && e->senderId() == connection()->userId())
-            latestLocalEventBeforeUnread = e;
-    }
-    if (latestLocalEventBeforeUnread)
-        setLastReadEvent(d->connection->user(), latestLocalEventBeforeUnread->id());
 
-    if( !d->unreadMessages && newMessages > 0)
+        newUnreadMessages += d->isEventNotable(e);
+        if (firstWriterSeriesEnd)
+        {
+            if (e->senderId() != firstWriter->id())
+                firstWriterSeriesEnd = e;
+            else
+            {
+                setLastReadEvent(firstWriter, firstWriterSeriesEnd->id());
+                firstWriterSeriesEnd = nullptr;
+            }
+        }
+    }
+
+    if( !d->unreadMessages && newUnreadMessages > 0)
     {
         d->unreadMessages = true;
         emit unreadMessagesChanged(this);
