@@ -72,7 +72,6 @@ namespace QMatrixClient
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
-            Q_INVOKABLE QString lastReadEvent(User* user) const;
             QString readMarkerEventId() const;
             /**
              * @brief Mark the event with uptoEventId as read
@@ -142,7 +141,7 @@ namespace QMatrixClient
             void addNewMessageEvents(const Events& events);
             void addHistoricalMessageEvents(const Events& events);
 
-            void setLastReadEvent(User* user, QString eventId);
+            void setLastReadEvent(User* user, Event* event);
     };
 
     class MemberSorter
