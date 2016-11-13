@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_EVENT_H
-#define QMATRIXCLIENT_EVENT_H
+#pragma once
 
 #include <QtCore/QString>
 #include <QtCore/QDateTime>
@@ -110,5 +109,3 @@ namespace QMatrixClient
         return fallback;
     }
 }
-
-#endif // QMATRIXCLIENT_EVENT_H

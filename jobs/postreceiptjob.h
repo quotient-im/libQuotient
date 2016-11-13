@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_POSTRECEIPTJOB_H
-#define QMATRIXCLIENT_POSTRECEIPTJOB_H
+#pragma once
 
 #include "basejob.h"
 
@@ -30,5 +29,3 @@ namespace QMatrixClient
             virtual ~PostReceiptJob();
     };
 }
-
-#endif // QMATRIXCLIENT_POSTRECEIPTJOB_H

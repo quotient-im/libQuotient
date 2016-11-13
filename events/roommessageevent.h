@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_ROOMMESSAGEEVENT_H
-#define QMATRIXCLIENT_ROOMMESSAGEEVENT_H
+#pragma once
 
 #include <QtCore/QUrl>
 #include <QtCore/QMimeType>
@@ -42,7 +41,7 @@ namespace QMatrixClient
         public:
             RoomMessageEvent();
             virtual ~RoomMessageEvent();
-            
+
             QString userId() const;
             MessageEventType msgtype() const;
 
@@ -57,9 +56,9 @@ namespace QMatrixClient
             QString body() const;
 
             MessageEventContent::Base* content() const;
-        
+
             static RoomMessageEvent* fromJson( const QJsonObject& obj );
-            
+
         private:
             class Private;
             Private* d;
@@ -145,5 +144,3 @@ namespace QMatrixClient
         using AudioContent = ThumbnailedContent<AudioInfo>;
     }
 }
-
-#endif // QMATRIXCLIENT_ROOMMESSAGEEVENT_H

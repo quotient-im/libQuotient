@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_LEAVEROOMJOB_H
-#define QMATRIXCLIENT_LEAVEROOMJOB_H
+#pragma once
 
 #include "basejob.h"
 
@@ -33,5 +32,3 @@ namespace QMatrixClient
             virtual ~LeaveRoomJob();
     };
 }
-
-#endif // QMATRIXCLIENT_LEAVEROOMJOB_H

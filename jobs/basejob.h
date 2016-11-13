@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_BASEJOB_H
-#define QMATRIXCLIENT_BASEJOB_H
+#pragma once
 
 #include <QtCore/QObject>
 #include <QtCore/QJsonDocument>
@@ -229,5 +228,3 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 }
-
-#endif // QMATRIXCLIENT_BASEJOB_H

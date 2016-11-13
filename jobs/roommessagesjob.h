@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_ROOMMESSAGESJOB_H
-#define QMATRIXCLIENT_ROOMMESSAGESJOB_H
+#pragma once
 
 #include "basejob.h"
 
@@ -47,5 +46,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_ROOMMESSAGESJOB_H

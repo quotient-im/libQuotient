@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_CONNECTION_H
-#define QMATRIXCLIENT_CONNECTION_H
+#pragma once
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
@@ -84,13 +83,13 @@ namespace QMatrixClient
             void connectionError(QString error);
             void resolveError(QString error);
             //void jobError(BaseJob* job);
-            
+
         protected:
             /**
              * @brief Access the underlying ConnectionData class
              */
             ConnectionData* connectionData();
-            
+
             /**
              * @brief Find a (possibly new) Room object for the specified id
              * Use this method whenever you need to find a Room object in
@@ -106,7 +105,7 @@ namespace QMatrixClient
              * makes it possible for derived classes to have its own User class
              */
             virtual User* createUser(QString userId);
-            
+
             /**
              * makes it possible for derived classes to have its own Room class
              */
@@ -117,5 +116,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_CONNECTION_H

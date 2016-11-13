@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QMATRIXCLIENT_ROOMTOPICEVENT_H
-#define QMATRIXCLIENT_ROOMTOPICEVENT_H
+#pragma once
 
 #include <QtCore/QJsonObject>
 
@@ -40,5 +39,3 @@ namespace QMatrixClient
             Private* d;
     };
 }
-
-#endif // QMATRIXCLIENT_ROOMTOPICEVENT_H
