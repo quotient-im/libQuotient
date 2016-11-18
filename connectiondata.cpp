@@ -25,10 +25,9 @@ using namespace QMatrixClient;
 class ConnectionData::Private
 {
     public:
-        Private() {/*isConnected=false;*/}
+        Private() : nam(nullptr) { }
         
         QUrl baseUrl;
-        //bool isConnected;
         QString accessToken;
         QString lastEvent;
         QNetworkAccessManager* nam;
@@ -46,11 +45,6 @@ ConnectionData::~ConnectionData()
     d->nam->deleteLater();
     delete d;
 }
-
-// bool ConnectionData::isConnected() const
-// {
-//     return d->isConnected;
-// }
 
 QString ConnectionData::accessToken() const
 {

@@ -58,7 +58,7 @@ namespace QMatrixClient
                 public:
                     using QUrlQuery::QUrlQuery;
                     Query() = default;
-                    Query(const QList< QPair<QString, QString> >& l)
+                    explicit Query(const QList< QPair<QString, QString> >& l)
                     {
                         setQueryItems(l);
                     }
@@ -73,7 +73,7 @@ namespace QMatrixClient
             {
                 public:
                     Data() = default;
-                    Data(const QList< QPair<QString, QString> >& l)
+                    explicit Data(const QList< QPair<QString, QString> >& l)
                     {
                         for (auto i: l)
                             insert(i.first, i.second);

@@ -30,7 +30,6 @@ namespace QMatrixClient
             ConnectionData(QUrl baseUrl);
             virtual ~ConnectionData();
 
-            //bool isConnected() const;
             QString accessToken() const;
             QUrl baseUrl() const;
 

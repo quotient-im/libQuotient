@@ -146,7 +146,7 @@ namespace QMatrixClient
     class MemberSorter
     {
         public:
-            MemberSorter(const Room* r) : room(r) { }
+            explicit MemberSorter(const Room* r) : room(r) { }
 
             bool operator()(User* u1, User* u2) const;
 

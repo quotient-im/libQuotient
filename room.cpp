@@ -48,7 +48,8 @@ class Room::Private
 
         Private(Connection* c, const QString& id_)
             : q(nullptr), connection(c), id(id_), joinState(JoinState::Join)
-            , unreadMessages(false), roomMessagesJob(nullptr)
+            , unreadMessages(false), highlightCount(0), notificationCount(0)
+            , roomMessagesJob(nullptr)
         { }
 
         Room* q;
