@@ -48,6 +48,7 @@ namespace QMatrixClient
             Q_INVOKABLE QString displayname() const;
 
             QPixmap avatar(int requestedWidth, int requestedHeight);
+            QPixmap croppedAvatar(int requestedWidth, int requestedHeight);
 
             void processEvent(Event* event);
 

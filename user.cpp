@@ -25,6 +25,7 @@
 
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
+#include <algorithm>
 
 using namespace QMatrixClient;
 
@@ -80,6 +81,11 @@ QString User::displayname() const
 
 QPixmap User::avatar(int width, int height)
 {
+    return croppedAvatar(width, height); // FIXME: Return an uncropped avatar;
+}
+
+QPixmap User::croppedAvatar(int width, int height)
+{
     QSize size(width, height);
 
     if( !d->avatarValid
@@ -102,10 +108,14 @@ QPixmap User::avatar(int width, int height)
         if (p.size() == size)
             return p;
     }
-    QPixmap newlyScaled =
-            d->avatar.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    d->scaledAvatars.push_back(newlyScaled);
-    return newlyScaled;
+    QPixmap newlyScaled = d->avatar.scaled(size,
+        Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    QPixmap scaledAndCroped = newlyScaled.copy(
+        std::max((newlyScaled.width() - width)/2, 0),
+        std::max((newlyScaled.height() - height)/2, 0),
+        width, height);
+    d->scaledAvatars.push_back(scaledAndCroped);
+    return scaledAndCroped;
 }
 
 void User::processEvent(Event* event)
