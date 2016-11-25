@@ -20,11 +20,7 @@
 
 #include <QtCore/QUrlQuery>
 #include <QtCore/QJsonObject>
-#include <QtCore/QJsonDocument>
 #include <QtCore/QByteArray>
-#include <QtCore/QDebug>
-
-#include <functional>
 
 class QNetworkReply;
 
@@ -32,6 +28,20 @@ namespace QMatrixClient
 {
     namespace ServerApi
     {
+        class ApiPath
+        {
+            public:
+                ApiPath(QString shortPath,
+                        QString scope = "client",
+                        QString version = "r0");
+                ApiPath(const char * shortPath)
+                    : ApiPath(QString(shortPath))
+                { }
+                QString toString() const { return fullPath; }
+
+            private:
+                QString fullPath;
+        };
         class Query : public QUrlQuery
         {
             public:
@@ -51,14 +61,16 @@ namespace QMatrixClient
                     for (auto i: l)
                         insert(i.first, i.second);
                 }
+                QByteArray dump() const;
         };
-        enum class HttpVerb { Get, Put, Post };
+        enum class HttpVerb { Get, Put, Post, Delete };
 
         class RequestConfig
         {
             public:
-                RequestConfig(QString name, HttpVerb type, QString endpoint,
-                        Query query = Query(), Data data = Data(), bool needsToken = true)
+                RequestConfig(QString name, HttpVerb type, ApiPath endpoint,
+                              Query query = Query(), Data data = Data(),
+                              bool needsToken = true)
                     : m_name(name), m_type(type), m_endpoint(endpoint)
                     , m_query(query), m_data(data)
                     , m_needsToken(needsToken)
@@ -66,7 +78,7 @@ namespace QMatrixClient
 
                 QString name() const { return m_name; }
                 HttpVerb type() const { return m_type; }
-                QString apiPath() const { return m_endpoint; }
+                QString apiPath() const { return m_endpoint.toString(); }
                 QUrlQuery query() const { return m_query; }
                 QByteArray data() const { return QJsonDocument(m_data).toJson(); }
                 bool needsToken() const { return m_needsToken; }
@@ -74,7 +86,7 @@ namespace QMatrixClient
             private:
                 QString m_name;
                 HttpVerb m_type;
-                QString m_endpoint;
+                ApiPath m_endpoint;
                 Query m_query;
                 Data m_data;
                 bool m_needsToken;
@@ -115,165 +127,94 @@ namespace QMatrixClient
                 QString message;
         };
 
-        /*
-         * This class has common definitions for Result<> and its <void> specialization.
-         * Do not use directly, use Result<void> instead.
-         */
-        class ResultBase
-        {
-            public:
-                ResultBase(const Status& cs) : m_status(cs) { }
-                ResultBase(int code, QString message) : m_status(code, message) { }
-
-                Status status() const { return m_status; }
-                explicit operator Status () const { return status(); }
-
-            protected:
-                Status m_status;
-        };
-
         /**
          * This class encapsulates a return value from a result handling function
          * (either an adaptor, or makeResult) packed together with CallStatus.
          * This allows to return error codes and messages without using exceptions.
          * A notable case is Result<void>, which represents a result with no value,
-         * only with a status but provides respective interface.
+         * only with a status; but provides respective interface.
          */
         template <typename T>
-        class Result : public ResultBase
+        class Result
         {
             public:
                 using cref_type = const T&;
 
-                using ResultBase::ResultBase;
-
+                Result(const Status& cs) : m_status(cs) { }
+                Result(int code, QString message) : m_status(code, message) { }
                 Result(const T& value, const Status& cs = Success)
-                    : ResultBase(cs), m_value(value)
+                    : m_status(cs), m_value(value)
                 { }
                 Result(T&& value, const Status& cs = Success)
-                    : ResultBase(cs), m_value(std::move(value))
+                    : m_status(cs), m_value(std::move(value))
                 { }
 
+                Status status() const { return m_status; }
                 cref_type get() const { return m_value; }
-                explicit operator cref_type () const { return get(); }
 
                 template <typename HandlerT>
                 void passTo(HandlerT handler) const { handler(get()); }
 
             private:
+                Status m_status;
                 T m_value;
         };
 
         template <>
-        class Result<void> : public ResultBase
+        class Result<void>
         {
             public:
                 using cref_type = void;
 
-                using ResultBase::ResultBase;
+                Result(const Status& cs) : m_status(cs) { }
+                Result(int code, QString message) : m_status(code, message) { }
+
+                Status status() const { return m_status; }
 
                 template <typename HandlerT>
                 void passTo(HandlerT handler) const { handler(); }
+
+            private:
+                Status m_status;
         };
 
         /**
-         * @brief A base class for a call configuration without result data
+         * @brief A base class for a call configuration
          *
-         * Derive a call configuration from this class if the call only returns
-         * the status, without additional data. Reimplement checkReply() if you
-         * need to customise the reply checking. This class also serves as a
-         * base for CallConfig, the general-purpose call configuration class
-         * which overrides makeResult() with a full-fledged result-making strategy.
-         */
-        class CallConfigBase: public RequestConfig
-        {
-            public:
-                using RequestConfig::RequestConfig;
-                using result_type = Result<void>;
-
-                Status checkReply(const QNetworkReply* reply) const;
-
-                template <typename ActualConfigT>
-                static result_type makeResult(QNetworkReply* reply,
-                                              const ActualConfigT& config)
-                {
-                    return config.checkReply(reply);
-                }
-        };
-
-        class FromByteArray
-        {
-            public:
-                using reply_raw_type = QByteArray;
-                static QByteArray load(QNetworkReply* reply);
-        };
-
-        class FromJsonObject
-        {
-            public:
-                using reply_raw_type = QJsonObject;
-                static Result<QJsonObject> load(QNetworkReply* reply);
-        };
-
-        /**
-         * @brief A base class for a call configuration that requires parsing
-         * the reply payload
-         *
-         * This is a base class for call configurations that need to process
-         * the reply body - most configurations fall under this category.
-         *
-         * Derived classes should:
-         * - Specify as template parameters:
-         *   - the actual result type - the one that will be exposed by the call
-         *     to the outside world;
-         *   - optionally, the reply loader; by default, a QJsonObject reply
-         *     loader is used but you may want to use FromByteArray to parse
-         *     the result directly from the reply payload;
+         * Derive from this class to make a call configuration that can be used
+         * with PendingCall<>. Derived classes should:
          * - Provide a constructor or constructors that will initialize
-         *   RequestConfig inside the base class;
-         * - Provide a function or a function object with the name parseReply
-         *   that can accept the type produced by the reply loader; the default
-         *   implementation blindly returns Success without analysing the reply.
-         *
-         * The overall result-building strategy is laid out in makeResult() -
-         * you can override this as well if you need a more sophisticated or
-         * just different logic. You should consider deriving from CallConfigBase
-         * in that case, though.
+         *   RequestConfig fields inside the base class;
+         * - (optionally) Provide a function or a function object with the same
+         *   signature as checkReply() below to override the network reply
+         *   preliminary checking.
+         * - (optionally) Provide a function or a function object with the name
+         *   parseReply that accepts either QNetworkReply* or QJsonObject
+         *   and returns a data structure (optionally enclosed into Result<>)
+         *   parsed from the reply or from the respective JSON. Only one overload
+         *   should exist; having both QNetworkReply* and QJsonObject versions
+         *   will cause a compilation error. The default implementation blindly
+         *   returns Success without analysing the reply.
          *
          * @see RequestConfig, Call, PendingCall
          */
-        template <typename ResultT, typename ReplyLoaderT = FromJsonObject>
-        class CallConfig : public CallConfigBase
+        class CallConfig : public RequestConfig
         {
             public:
-                using CallConfigBase::CallConfigBase; // see RequestConfig
-                using result_type = Result<ResultT>;
-                using reply_raw_type = typename ReplyLoaderT::reply_raw_type;
+                using RequestConfig::RequestConfig;
 
-                /**
-                 * @brief callback for reply parsing after preparation
-                 *
-                 * Override this in your call config class to actually process
-                 * the reply.
-                 */
-                Result<ResultT> parseReply(const reply_raw_type&) const
+                Status checkReply(const QNetworkReply* reply) const;
+                Result<QJsonObject> readAsJson(QNetworkReply* reply) const;
+        };
+
+        class CallConfigNoReplyBody : public CallConfig
+        {
+            public:
+                using CallConfig::CallConfig;
+
+                Status parseReply(QNetworkReply*) const
                 {
-                    return {};
-                }
-
-                template <typename ActualConfigT>
-                static result_type makeResult(QNetworkReply* reply,
-                                              const ActualConfigT& config)
-                {
-                    const Status cs = config.checkReply(reply);
-                    if (!cs.good())
-                        return cs;
-
-                    const Result<reply_raw_type> src = ReplyLoaderT::load(reply);
-                    if (src.status().good())
-                        return config.parseReply(src.get());
-                    else
-                        return src.status();
+                    return { Success };
                 }
         };
     }

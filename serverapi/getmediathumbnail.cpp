@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <QtNetwork/QNetworkReply>
+
 #include "getmediathumbnail.h"
 
 #include <QtCore/QStringBuilder>
@@ -25,7 +27,7 @@ using namespace QMatrixClient::ServerApi;
 
 GetMediaThumbnail::GetMediaThumbnail(QUrl url, QSize requestedSize, ThumbnailType thumbnailType)
     : CallConfig("MediaThumbnailJob", HttpVerb::Get
-        , "/_matrix/media/v1/thumbnail/" % url.host() % url.path()
+        , ApiPath("/thumbnail/" % url.host() % url.path(), "media", "v1")
         , Query(
             { { "width", QString::number(requestedSize.width()) }
             , { "height", QString::number(requestedSize.height()) }
@@ -34,10 +36,10 @@ GetMediaThumbnail::GetMediaThumbnail(QUrl url, QSize requestedSize, ThumbnailTyp
         )
 { }
 
-Result<QPixmap> GetMediaThumbnail::parseReply(const QByteArray& bytes) const
+Result<QPixmap> GetMediaThumbnail::parseReply(QNetworkReply *reply) const
 {
     QPixmap thumbnail;
-    if (thumbnail.loadFromData(bytes))
+    if (thumbnail.loadFromData(reply->readAll()))
         return std::move(thumbnail);
 
     return { UserDefinedError, "Could not read image data from" + apiPath() };

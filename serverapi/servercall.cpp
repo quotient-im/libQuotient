@@ -19,11 +19,10 @@
 #include "servercall.h"
 
 #include "connectiondata.h"
-#include "servercallsetup.h"
 
+#include <QtCore/QStringBuilder>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtCore/QUrlQuery>
 #include <QtCore/QTimer>
 
 using namespace QMatrixClient;
@@ -54,7 +53,7 @@ class Call::Private
 void Call::Private::sendRequest(const RequestConfig& params)
 {
     QUrl url = connection->baseUrl();
-    url.setPath( url.path() + "/" + params.apiPath() );
+    url.setPath( url.path() + params.apiPath() );
     QUrlQuery query = params.query();
     if( params.needsToken() )
         query.addQueryItem("access_token", connection->accessToken());
@@ -76,6 +75,9 @@ void Call::Private::sendRequest(const RequestConfig& params)
             break;
         case HttpVerb::Put:
             reply.reset( connection->nam()->put(req, params.data()) );
+            break;
+        case HttpVerb::Delete:
+            reply.reset( connection->nam()->deleteResource(req) );
             break;
     }
     timer.start( 120*1000 );
@@ -140,3 +142,4 @@ void Call::finish(Status status, bool emitResult)
     d->reply.reset();
     deleteLater();
 }
+

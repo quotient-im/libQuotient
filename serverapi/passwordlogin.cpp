@@ -18,11 +18,10 @@
 
 #include "passwordlogin.h"
 
-using namespace QMatrixClient;
 using namespace QMatrixClient::ServerApi;
 
 PasswordLogin::PasswordLogin(QString user, QString password)
-    : CallConfig("PasswordLogin", HttpVerb::Post, "_matrix/client/r0/login"
+    : CallConfig("PasswordLogin", HttpVerb::Post, "/login"
         , Query()
         , Data(
             { { "type", "m.login.password" }

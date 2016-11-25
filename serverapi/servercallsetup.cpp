@@ -18,14 +18,26 @@
 
 #include "servercallsetup.h"
 
+#include <QtCore/QStringBuilder>
 #include <QtCore/QJsonDocument>
-#include <QtCore/QObject> // For tr()
-
+#include <QtCore/QMimeDatabase>
 #include <QtNetwork/QNetworkReply>
 
 using namespace QMatrixClient::ServerApi;
 
-Status CallConfigBase::checkReply(const QNetworkReply* reply) const
+ApiPath::ApiPath(QString shortPath, QString scope, QString version)
+    : fullPath("/_matrix/" % scope % "/" % version % "/" % shortPath)
+{ }
+
+QByteArray Data::dump() const
+{
+    return QJsonDocument(*this).toJson();
+}
+
+const QMimeType RequestConfig::JsonMimeType =
+        QMimeDatabase().mimeTypeForName("application/json");
+
+Status CallConfig::checkReply(const QNetworkReply* reply) const
 {
     switch( reply->error() )
     {
@@ -42,26 +54,21 @@ Status CallConfigBase::checkReply(const QNetworkReply* reply) const
     }
 }
 
-QByteArray FromByteArray::load(QNetworkReply* reply)
-{
-    return reply->readAll();
-}
-
-Result<QJsonObject> FromJsonObject::load(QNetworkReply* reply)
+Result<QJsonObject> CallConfig::readAsJson(QNetworkReply* reply) const
 {
     QJsonParseError error;
     QJsonDocument data = QJsonDocument::fromJson(reply->readAll(), &error);
     if (error.error != QJsonParseError::NoError)
     {
         return { JsonParseError,
-                   QObject::tr("Invalid JSON: %1 at offset %2")
-                       .arg(error.errorString()).arg(error.offset)
-                 };
+                 QObject::tr("Invalid JSON: %1 at offset %2")
+                         .arg(error.errorString()).arg(error.offset)
+        };
     }
     if (!data.isObject())
     {
         return { JsonParseError,
-                   QObject::tr("The received JSON has no top-level object") };
+                 QObject::tr("The received JSON has no top-level object") };
     }
     return data.object();
 }

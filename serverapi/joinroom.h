@@ -24,10 +24,10 @@ namespace QMatrixClient
 {
     namespace ServerApi
     {
-        class JoinRoom : public CallConfig<QString>
+        class JoinRoom : public CallConfig
         {
             public:
-                JoinRoom(QString roomAlias);
+                explicit JoinRoom(QString roomAlias);
 
                 Result<QString> parseReply(const QJsonObject& json) const;
         };

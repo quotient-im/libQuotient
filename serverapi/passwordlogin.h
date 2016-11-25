@@ -30,7 +30,7 @@ namespace QMatrixClient
             QString id;
             QString server;
         };
-        class PasswordLogin : public CallConfig<AccessData>
+        class PasswordLogin : public CallConfig
         {
             public:
                 PasswordLogin(QString user, QString password);

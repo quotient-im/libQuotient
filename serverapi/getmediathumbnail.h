@@ -28,13 +28,13 @@ namespace ServerApi
 {
     enum class ThumbnailType { Crop, Scale };
 
-    class GetMediaThumbnail: public CallConfig<QPixmap, FromByteArray>
+    class GetMediaThumbnail: public CallConfig
     {
         public:
             GetMediaThumbnail(QUrl url, QSize requestedSize,
                               ThumbnailType thumbnailType = ThumbnailType::Scale);
 
-            Result<QPixmap> parseReply(const QByteArray& bytes) const;
+            Result<QPixmap> parseReply(QNetworkReply *reply) const;
     };
 }
 }

@@ -112,11 +112,62 @@ namespace ServerApi
             QScopedPointer<Private> d;
     };
 
+    namespace impl
+    {
+        template <class T>
+        struct Wrap
+        {
+            using type = Result<T>;
+        };
+
+        template <class AlreadyWrappedT>
+        struct Wrap< Result<AlreadyWrappedT> >
+        {
+            using type = Result<AlreadyWrappedT>;
+        };
+
+        template <>
+        struct Wrap<Status>
+        {
+            using type = Result<void>;
+        };
+
+        template <typename T>
+        using wrap_t = typename Wrap<T>::type;
+
+        template <class CallConfigT>
+        inline auto fillResult(QNetworkReply* reply, const CallConfigT& config)
+            -> decltype(config.parseReply(QJsonObject()))
+        {
+            const Result<QJsonObject> src = config.readAsJson(reply);
+            if (src.status().good())
+                return config.parseReply(src.get());
+            else
+                return src.status();
+        }
+
+        template <class CallConfigT>
+        inline auto fillResult(QNetworkReply* reply, const CallConfigT& config)
+            -> decltype(config.parseReply(reply))
+        {
+            return config.parseReply(reply);
+        }
+    }
+
     template <typename ConfigT>
     class PendingCall : public Call
     {
+        private:
+            const ConfigT config;
+
+            // result_type is basically whatever comes from ConfigT::parseReply(),
+            // wrapped into Result<>
+            using result_type =
+                impl::wrap_t<decltype(impl::fillResult(nullptr, config))>;
+            result_type promise;
+
         public:
-            using result_cref_type = typename ConfigT::result_type::cref_type;
+            using result_cref_type = typename result_type::cref_type;
 
             PendingCall(ConnectionData* cd, const ConfigT& cfg)
                 : Call(cd, cfg), config(cfg), promise(PendingResult)
@@ -196,7 +247,7 @@ namespace ServerApi
             template <typename HandlerT>
             void onFailure(HandlerT handler)
             {
-                connect(this, &Call::failure, [=]() { handler(promise.status()); });
+                connect(this, &Call::failure, [=]() { handler(status()); });
             }
 
         protected:
@@ -205,13 +256,14 @@ namespace ServerApi
 
             virtual void gotReply()
             {
-                promise = ConfigT::makeResult(reply(), config);
+                // Only the status part is filled in m_result from checkReply().
+                promise = config.checkReply(reply());
+                if (promise.status().good())
+                    promise = impl::fillResult(reply(), config);
+
                 finish(promise.status(), true);
             }
 
-        protected:
-            const ConfigT config;
-            typename ConfigT::result_type promise;
     };
 }
 }

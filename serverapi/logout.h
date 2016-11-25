@@ -22,11 +22,11 @@
 
 namespace QMatrixClient
 {
-namespace ServerApi
-{
-    inline CallConfigBase Logout()
+    namespace ServerApi
     {
-        return { "Logout", HttpVerb::Post, "_matrix/client/r0/logout" };
+        inline CallConfigNoReplyBody Logout()
+        {
+            return { "Logout", HttpVerb::Post, "/logout" };
+        }
     }
-}
 }
