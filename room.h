@@ -31,10 +31,12 @@ namespace QMatrixClient
     class Event;
     class Connection;
     class User;
+    class MemberSorter;
 
     class Room: public QObject
     {
             Q_OBJECT
+            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerPromoted)
         public:
             using Timeline = Owning<Events>;
 
@@ -68,26 +70,30 @@ namespace QMatrixClient
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
-            Q_INVOKABLE QString lastReadEvent(User* user);
+            Q_INVOKABLE QString lastReadEvent(User* user) const;
+            QString readMarkerEventId() const;
             /**
-             * @brief Mark the message at the iterator as read
+             * @brief Mark the event with uptoEventId as read
              *
-             * Marks the message at the iterator as read; also posts a read
-             * receipt to the server either for this message or, if it's from
-             * the local user, for the nearest non-local message before.
+             * Finds in the timeline and marks as read the event with
+             * the specified id; also posts a read receipt to the server either
+             * for this message or, if it's from the local user, for
+             * the nearest non-local message before.
              */
-            Q_INVOKABLE void markMessagesAsRead(Timeline::const_iterator last);
+            Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
             /**
-             * @brief Mark the most recent message in the timeline as read
-             *
-             * This effectively marks everything in the room as read.
+             * @brief Mark the whole room timeline as read
              */
             Q_INVOKABLE void markMessagesAsRead();
+
+            Q_INVOKABLE bool hasUnreadMessages();
 
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
+
+            MemberSorter memberSorter() const;
 
         public slots:
             void getPreviousContent();
@@ -115,6 +121,8 @@ namespace QMatrixClient
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
             void lastReadEventChanged(User* user);
+            void readMarkerPromoted();
+            void unreadMessagesChanged(Room* room);
 
         protected:
             Connection* connection() const;
@@ -123,7 +131,7 @@ namespace QMatrixClient
             virtual void processStateEvents(const Events& events);
             virtual void processEphemeralEvent(Event* event);
 
-            bool promoteReadMarker(User* user, QString eventId);
+            Timeline::const_iterator promoteReadMarker(User* u, QString eventId);
 
         private:
             class Private;
@@ -133,5 +141,23 @@ namespace QMatrixClient
             void addHistoricalMessageEvents(const Events& events);
 
             void setLastReadEvent(User* user, QString eventId);
+    };
+
+    class MemberSorter
+    {
+        public:
+            MemberSorter(const Room* r) : room(r) { }
+
+            bool operator()(User* u1, User* u2) const;
+
+            template <typename ContT>
+            typename ContT::size_type lowerBoundIndex(const ContT& c,
+                                                      typename ContT::value_type v) const
+            {
+                return  std::lower_bound(c.begin(), c.end(), v, *this) - c.begin();
+            }
+
+        private:
+            const Room* room;
     };
 }
