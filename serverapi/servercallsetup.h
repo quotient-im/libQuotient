@@ -20,7 +20,9 @@
 
 #include <QtCore/QUrlQuery>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 #include <QtCore/QByteArray>
+#include <QtCore/QMimeType>
 
 class QNetworkReply;
 
@@ -47,20 +49,35 @@ namespace QMatrixClient
             public:
                 using QUrlQuery::QUrlQuery;
                 Query() = default;
-                explicit Query(QList<QPair<QString, QString> > l)
+                explicit Query(std::initializer_list< QPair<QString, QString> > l)
                 {
                     setQueryItems(l);
+                }
+                using QUrlQuery::addQueryItem;
+                void addQueryItem(const QString& name, int value)
+                {
+                    addQueryItem(name, QString::number(value));
                 }
         };
         class Data : public QJsonObject
         {
             public:
                 Data() = default;
-                explicit Data(QList<QPair<QString, QString> > l)
+                explicit Data(std::initializer_list< QPair<QString, QJsonValue> > l)
                 {
                     for (auto i: l)
                         insert(i.first, i.second);
                 }
+                using QJsonObject::insert;
+                void insert(const QString& name, const QStringList& sl);
+                template <typename T>
+                void insert(const QString& name, const QVector<T>& vv)
+                {
+                    QJsonArray ja;
+                    std::copy(vv.begin(), vv.end(), std::back_inserter(ja));
+                    insert(name, ja);
+                }
+
                 QByteArray dump() const;
         };
         enum class HttpVerb { Get, Put, Post, Delete };
@@ -69,27 +86,46 @@ namespace QMatrixClient
         {
             public:
                 RequestConfig(QString name, HttpVerb type, ApiPath endpoint,
-                              Query query = Query(), Data data = Data(),
-                              bool needsToken = true)
-                    : m_name(name), m_type(type), m_endpoint(endpoint)
-                    , m_query(query), m_data(data)
-                    , m_needsToken(needsToken)
+                              QMimeType contentType, QByteArray data,
+                              Query query = Query(), bool needsToken = true)
+                    : _name(name), _type(type), _endpoint(endpoint)
+                    , _query(query), _contentType(contentType), _data(data)
+                    , _needsToken(needsToken)
                 { }
 
-                QString name() const { return m_name; }
-                HttpVerb type() const { return m_type; }
-                QString apiPath() const { return m_endpoint.toString(); }
-                QUrlQuery query() const { return m_query; }
-                QByteArray data() const { return QJsonDocument(m_data).toJson(); }
-                bool needsToken() const { return m_needsToken; }
+                RequestConfig(QString name, HttpVerb type, ApiPath endpoint,
+                              Query query, Data data = Data(),
+                              bool needsToken = true)
+                    : RequestConfig(name, type, endpoint,
+                        JsonMimeType, data.dump(), query, needsToken)
+                { }
 
-            private:
-                QString m_name;
-                HttpVerb m_type;
-                ApiPath m_endpoint;
-                Query m_query;
-                Data m_data;
-                bool m_needsToken;
+                RequestConfig(QString name, HttpVerb type, ApiPath endpoint,
+                              bool needsToken = true)
+                    : RequestConfig(name, type, endpoint,
+                                    Query(), Data(), needsToken)
+                { }
+
+                QString name() const { return _name; }
+                HttpVerb type() const { return _type; }
+                QString apiPath() const { return _endpoint.toString(); }
+                QUrlQuery query() const { return _query; }
+                void setQuery(const Query& q) { _query = q; }
+                QMimeType contentType() const { return _contentType; }
+                QByteArray data() const { return _data; }
+                void setData(const Data& json) { _data = json.dump(); }
+                bool needsToken() const { return _needsToken; }
+
+            protected:
+                const QString _name;
+                const HttpVerb _type;
+                ApiPath _endpoint;
+                Query _query;
+                QMimeType _contentType;
+                QByteArray _data;
+                bool _needsToken;
+
+                static const QMimeType JsonMimeType;
         };
 
         enum StatusCode { NoError = 0 // To be compatible with Qt conventions

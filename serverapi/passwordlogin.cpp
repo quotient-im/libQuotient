@@ -21,15 +21,14 @@
 using namespace QMatrixClient::ServerApi;
 
 PasswordLogin::PasswordLogin(QString user, QString password)
-    : CallConfig("PasswordLogin", HttpVerb::Post, "/login"
-        , Query()
-        , Data(
-            { { "type", "m.login.password" }
-            , { "user", user }
-            , { "password", password }
-            })
-        , false)
-{ }
+    : CallConfig("PasswordLogin", HttpVerb::Post, "/login", false)
+{
+    Data d;
+    d.insert("type", QStringLiteral("m.login.password"));
+    d.insert("user", user);
+    d.insert("password", password);
+    setData(d);
+}
 
 Result<AccessData> PasswordLogin::parseReply(const QJsonObject& json) const
 {

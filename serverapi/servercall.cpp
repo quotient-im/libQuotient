@@ -60,7 +60,8 @@ void Call::Private::sendRequest(const RequestConfig& params)
     url.setQuery(query);
 
     QNetworkRequest req {url};
-    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setHeader(QNetworkRequest::ContentTypeHeader,
+                  params.contentType().name());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
