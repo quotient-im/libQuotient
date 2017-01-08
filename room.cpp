@@ -252,9 +252,10 @@ bool Room::hasUnreadMessages()
 
 Room::Timeline::const_iterator Room::Private::readMarker(const User* user) const
 {
-    return lastReadEventIds.contains(user) ?
-                std::next(eventsIndex.value(lastReadEventIds.value(user))) :
-                timeline.begin();
+    auto lastReadId = lastReadEventIds.value(user);
+    return lastReadId.isEmpty() ?
+            eventsIndex.value(lastReadId) + 1 :
+            timeline.begin();
 }
 
 QString Room::readMarkerEventId() const
