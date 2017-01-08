@@ -43,6 +43,9 @@ message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 message( STATUS "=============================================================================" )
 message( STATUS )
 
+aux_source_directory(serverapi/generated libqmatrixclient_SRCS)
+aux_source_directory(serverapi/generated/definitions libqmatrixclient_SRCS)
+
 # Set up source files
 list(APPEND libqmatrixclient_SRCS
    connectiondata.cpp
@@ -75,7 +78,6 @@ list(APPEND libqmatrixclient_SRCS
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
 )
-
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(qmatrixclient ${libqmatrixclient_SRCS})
