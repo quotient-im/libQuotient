@@ -18,12 +18,11 @@
 
 #include "room.h"
 
-#include <array>
-
 #include <QtCore/QHash>
 #include <QtCore/QJsonArray>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QDebug>
+#include <algorithm>
 
 #include "connection.h"
 #include "state.h"
@@ -60,7 +59,8 @@ class Room::Private
         void updateDisplayname();
 
         Connection* connection;
-        Timeline messageEvents;
+        Timeline timeline;
+        QHash<QString, Timeline::const_iterator> eventsIndex;
         QString id;
         QStringList aliases;
         QString canonicalAlias;
@@ -74,7 +74,7 @@ class Room::Private
         members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
-        QHash<User*, QString> lastReadEvent;
+        QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
         RoomMessagesJob* roomMessagesJob;
 
@@ -92,6 +92,9 @@ class Room::Private
         void getPreviousContent();
 
         bool isEventNotable(const Event* e) const;
+
+        Timeline::const_iterator readMarker(const User* user) const;
+
     private:
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
@@ -123,7 +126,7 @@ QString Room::id() const
 
 const Room::Timeline& Room::messageEvents() const
 {
-    return d->messageEvents;
+    return d->timeline;
 }
 
 QString Room::name() const
@@ -165,9 +168,9 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::setLastReadEvent(User* user, QString eventId)
+void Room::setLastReadEvent(User* user, Event* event)
 {
-    d->lastReadEvent.insert(user, eventId);
+    d->lastReadEventIds.insert(user, event->id());
     emit lastReadEventChanged(user);
     if (user == d->connection->user())
         emit readMarkerPromoted();
@@ -175,83 +178,64 @@ void Room::setLastReadEvent(User* user, QString eventId)
 
 Room::Timeline::const_iterator Room::promoteReadMarker(User* u, QString eventId)
 {
-    QString prevLastReadId = lastReadEvent(u);
-    int stillUnreadMessagesCount = 0;
-    auto it = d->messageEvents.end();
-    Event* targetEvent = nullptr;
-    // Older Qt doesn't provide rbegin()/rend() for Qt containers
-    while (it != d->messageEvents.begin())
+    if (d->timeline.empty())
+        return d->timeline.end();
+
+    auto newMarker = next(d->eventsIndex.value(eventId)); // After the event
     {
-        --it;
-        // Check that the new read event is not before the previously set - only
-        // allow the read marker to move down the timeline, not up.
-        if (prevLastReadId == (*it)->id())
-            break;
-
-        // Found the message to mark as read; if there are messages from
-        // that user right below this one, automatically promote the marker
-        // to them instead of this one; still return this one to save
-        // markMessagesAsRead() from going through local messages over again.
-        if (eventId == (*it)->id())
-        {
-            setLastReadEvent(u, (targetEvent ? targetEvent : *it)->id());
-            break;
-        }
-
-        // If we are on a message from that user (or a series thereof),
-        // remember it (or the end of the sequence) so that we could use it
-        // in case when the event to promote the marker to is immediately
-        // above the ones from that user.
-        if ((*it)->senderId() == u->id())
-        {
-            if (!targetEvent)
-                targetEvent = *it;
-        }
-        else
-            targetEvent = nullptr;
-
-        // Detect events "notable" for the local user so that we can properly
-        // set unreadMessages
-        if (u == connection()->user())
-            stillUnreadMessagesCount += d->isEventNotable(*it);
+        auto prevMarker = d->readMarker(u);
+        if (prevMarker > newMarker)
+            return prevMarker;
     }
 
-    if( u == connection()->user() )
+    using namespace std;
+
+    // Try to auto-promote the read marker over the user's own messages.
+    auto eagerMarker = find_if(newMarker, d->timeline.cend(),
+                 [=](Event* e) { return e->senderId() != u->id(); });
+    setLastReadEvent(u, *(prev(eagerMarker)));
+
+    if (u == connection()->user() && d->unreadMessages)
     {
-        if (d->unreadMessages && stillUnreadMessagesCount == 0)
+        auto stillUnreadMessagesCount =
+            count_if(eagerMarker, d->timeline.cend(),
+                     [=](Event* e) { return d->isEventNotable(e); });
+
+        if (stillUnreadMessagesCount == 0)
         {
             d->unreadMessages = false;
             qDebug() << "Room" << displayName() << ": no more unread messages";
             emit unreadMessagesChanged(this);
         }
-        if (stillUnreadMessagesCount > 0)
+        else
             qDebug() << "Room" << displayName()
                      << ": still" << stillUnreadMessagesCount << "unread message(s)";
     }
-    return it;
+
+    // Return newMarker, rather than eagerMarker, to save markMessagesAsRead()
+    // that calls this method from going back through knowingly-local messages.
+    return newMarker;
 }
 
 void Room::markMessagesAsRead(QString uptoEventId)
 {
-    if (d->messageEvents.empty())
+    if (d->timeline.empty())
         return;
 
     User* localUser = connection()->user();
-    QString prevLastReadId = lastReadEvent(localUser);
+    auto prevReadMarker = d->readMarker(localUser);
     auto last = promoteReadMarker(localUser, uptoEventId);
 
-    // We shouldn't send read receipts for messages from the local user - so
+    // We shouldn't send read receipts for the local user's own messages - so
     // shift back (if necessary) to the nearest message not from the local user
     // or the so far last read message, whichever comes first.
-    for (; (*last)->id() != prevLastReadId; --last)
+    while (last > prevReadMarker)
     {
-        if ((*last)->senderId() != connection()->userId())
+        if ((*--last)->senderId() != connection()->userId())
         {
             d->connection->postReceipt(this, *last);
             break;
         }
-        if (last == messageEvents().begin())
-            break;
     }
 }
 
@@ -266,14 +250,17 @@ bool Room::hasUnreadMessages()
     return d->unreadMessages;
 }
 
-QString Room::lastReadEvent(User* user) const
+Room::Timeline::const_iterator Room::Private::readMarker(const User* user) const
 {
-    return d->lastReadEvent.value(user);
+    auto lastReadId = lastReadEventIds.value(user);
+    return lastReadId.isEmpty() ?
+            eventsIndex.value(lastReadId) + 1 :
+            timeline.begin();
 }
 
 QString Room::readMarkerEventId() const
 {
-    return lastReadEvent(d->connection->user());
+    return d->lastReadEventIds.value(d->connection->user());
 }
 
 int Room::notificationCount() const
@@ -504,7 +491,6 @@ bool Room::Private::isEventNotable(const Event* e) const
 
 void Room::doAddNewMessageEvents(const Events& events)
 {
-    d->messageEvents.reserve(d->messageEvents.size() + events.size());
 
     Timeline::size_type newUnreadMessages = 0;
 
@@ -513,26 +499,15 @@ void Room::doAddNewMessageEvents(const Events& events)
     // from the server (or, for the local user, markMessagesAsRead() invocation)
     // to promote their read markers over the new message events.
     User* firstWriter = connection()->user(events.front()->senderId());
-    bool canAutoPromote = d->messageEvents.empty() ||
-            lastReadEvent(firstWriter) == d->messageEvents.back()->id();
-    Event* firstWriterSeriesEnd = canAutoPromote ? events.front() : nullptr;
+    bool canAutoPromote = d->readMarker(firstWriter) == d->timeline.end();
 
     for (auto e: events)
     {
-        d->messageEvents.push_back(e);
-
+        d->eventsIndex.insert(e->id(), d->timeline.insert(d->timeline.end(), e));
         newUnreadMessages += d->isEventNotable(e);
-        if (firstWriterSeriesEnd)
-        {
-            if (e->senderId() != firstWriter->id())
-                firstWriterSeriesEnd = e;
-            else
-            {
-                setLastReadEvent(firstWriter, firstWriterSeriesEnd->id());
-                firstWriterSeriesEnd = nullptr;
-            }
-        }
     }
+    if (canAutoPromote)
+        promoteReadMarker(firstWriter, events.front()->id());
 
     if( !d->unreadMessages && newUnreadMessages > 0)
     {
@@ -554,8 +529,8 @@ void Room::addHistoricalMessageEvents(const Events& events)
 void Room::doAddHistoricalMessageEvents(const Events& events)
 {
     // Historical messages arrive in newest-to-oldest order
-    d->messageEvents.reserve(d->messageEvents.size() + events.size());
-    std::copy(events.begin(), events.end(), std::front_inserter(d->messageEvents));
+    for (auto e: events)
+        d->eventsIndex.insert(e->id(), d->timeline.insert(d->timeline.begin(), e));
 }
 
 void Room::processStateEvents(const Events& events)

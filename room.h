@@ -26,6 +26,8 @@
 #include "jobs/syncjob.h"
 #include "joinstate.h"
 
+#include <deque>
+
 namespace QMatrixClient
 {
     class Event;
@@ -38,7 +40,7 @@ namespace QMatrixClient
             Q_OBJECT
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerPromoted)
         public:
-            using Timeline = Owning<Events>;
+            using Timeline = Owning< std::deque<Event*> >;
 
             Room(Connection* connection, QString id);
             virtual ~Room();
@@ -70,7 +72,6 @@ namespace QMatrixClient
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
-            Q_INVOKABLE QString lastReadEvent(User* user) const;
             QString readMarkerEventId() const;
             /**
              * @brief Mark the event with uptoEventId as read
@@ -140,7 +141,7 @@ namespace QMatrixClient
             void addNewMessageEvents(const Events& events);
             void addHistoricalMessageEvents(const Events& events);
 
-            void setLastReadEvent(User* user, QString eventId);
+            void setLastReadEvent(User* user, Event* event);
     };
 
     class MemberSorter
