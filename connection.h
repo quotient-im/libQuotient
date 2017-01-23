@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "serverapi/servercall.h"
+#include "serverapi/call.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "servercallsetup.h"
+#include "callconfig.h"
 
 namespace QMatrixClient
 {

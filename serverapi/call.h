@@ -21,7 +21,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QScopedPointer>
 
-#include "servercallsetup.h"
+#include "callconfig.h"
 
 class QNetworkReply;
 class QSslError;

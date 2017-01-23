@@ -64,8 +64,9 @@ list(APPEND libqmatrixclient_SRCS
    events/typingevent.cpp
    events/receiptevent.cpp
    events/unknownevent.cpp
-   serverapi/servercallsetup.cpp
-   serverapi/servercall.cpp
+   serverapi/requestconfig.cpp
+   serverapi/callconfig.cpp
+   serverapi/call.cpp
    serverapi/passwordlogin.cpp
    serverapi/logout.cpp
    serverapi/getmediathumbnail.cpp

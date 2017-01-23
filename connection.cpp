@@ -22,7 +22,7 @@
 #include "events/event.h"
 #include "room.h"
 #include "serverapi/passwordlogin.h"
-#include "serverapi/logout.h"
+#include "serverapi/generated/logout.h"
 #include "jobs/postmessagejob.h"
 #include "jobs/postreceiptjob.h"
 #include "serverapi/joinroom.h"
