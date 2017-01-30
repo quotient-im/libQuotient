@@ -36,7 +36,6 @@ namespace QMatrixClient
 
     class SyncJob;
     class RoomMessagesJob;
-    class PostReceiptJob;
     class MediaThumbnailJob;
     class JoinRoomJob;
 
@@ -61,8 +60,6 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void stopSync();
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
-            /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
-            Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
             Q_INVOKABLE virtual JoinRoomJob* joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );

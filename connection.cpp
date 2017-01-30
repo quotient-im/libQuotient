@@ -24,7 +24,6 @@
 #include "serverapi/passwordlogin.h"
 #include "serverapi/generated/logout.h"
 #include "jobs/postmessagejob.h"
-#include "jobs/postreceiptjob.h"
 #include "serverapi/joinroom.h"
 #include "jobs/leaveroomjob.h"
 #include "jobs/roommessagesjob.h"
@@ -198,13 +197,6 @@ void Connection::postMessage(Room* room, QString type, QString message)
 {
     PostMessageJob* job = new PostMessageJob(d->data, room->id(), type, message);
     job->start();
-}
-
-PostReceiptJob* Connection::postReceipt(Room* room, Event* event)
-{
-    PostReceiptJob* job = new PostReceiptJob(d->data, room->id(), event->id());
-    job->start();
-    return job;
 }
 
 JoinRoomJob* Connection::joinRoom(QString roomAlias)
