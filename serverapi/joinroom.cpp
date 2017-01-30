@@ -5,7 +5,7 @@
 using namespace QMatrixClient::ServerApi;
 
 JoinRoom::JoinRoom(QString roomAlias)
-    : CallConfig("JoinRoom", HttpVerb::Post, "/join/" + roomAlias)
+    : CallConfig("JoinRoom", JobHttpType::PostJob, "/join/" + roomAlias)
 { }
 
 Result<QString> JoinRoom::parseReply(const QJsonObject& json) const

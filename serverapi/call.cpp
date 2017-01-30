@@ -68,16 +68,16 @@ void Call::Private::sendRequest(const RequestConfig& params)
 #endif
     switch( params.type() )
     {
-        case HttpVerb::Get:
+        case JobHttpType::GetJob:
             reply.reset( connection->nam()->get(req) );
             break;
-        case HttpVerb::Post:
+        case JobHttpType::PostJob:
             reply.reset( connection->nam()->post(req, params.data()) );
             break;
-        case HttpVerb::Put:
+        case JobHttpType::PutJob:
             reply.reset( connection->nam()->put(req, params.data()) );
             break;
-        case HttpVerb::Delete:
+        case JobHttpType::DeleteJob:
             reply.reset( connection->nam()->deleteResource(req) );
             break;
     }

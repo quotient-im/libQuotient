@@ -36,7 +36,7 @@ RoomMessagesJob::RoomMessagesJob(ConnectionData* data, QString roomId,
                                  QString from, int limit, FetchDirection dir)
     : BaseJob(data, JobHttpType::GetJob, "RoomMessagesJob",
               QString("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
-              Query(
+              makeQuery(
                 { { "from", from }
                 , { "dir", dir == FetchDirection::Backward ? "b" : "f" }
                 , { "limit", QString::number(limit) }

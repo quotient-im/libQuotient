@@ -26,7 +26,7 @@ namespace QMatrixClient
     {
         inline SimpleCallConfig Logout()
         {
-            return { "Logout", HttpVerb::Post, "/logout" };
+            return { "Logout", JobHttpType::PostJob, "/logout" };
         }
     }
 }

@@ -43,23 +43,16 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class BaseJob::Private
 {
     public:
-        Private(ConnectionData* c, JobHttpType t, QString endpoint,
-                const QUrlQuery& q, const Data& data, bool nt)
-            : connection(c), type(t), apiEndpoint(endpoint), requestQuery(q)
-            , requestData(data), needsToken(nt)
-            , reply(nullptr), status(NoError)
+        Private(ConnectionData* c, const RequestConfig& rc)
+            : connection(c), reqConfig(rc), reply(nullptr), status(NoError)
         { }
-        
+
         inline void sendRequest();
 
         ConnectionData* connection;
 
         // Contents for the network request
-        JobHttpType type;
-        QString apiEndpoint;
-        QUrlQuery requestQuery;
-        Data requestData;
-        bool needsToken;
+        RequestConfig reqConfig;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         Status status;
@@ -76,12 +69,17 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
     return dbg << "Job" << j->objectName();
 }
 
-BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name,
-                 QString endpoint, BaseJob::Query query, BaseJob::Data data,
+BaseJob::BaseJob(ConnectionData* connection, JobHttpType verb, QString name,
+                 QString endpoint, const QUrlQuery& query, const Data& data,
                  bool needsToken)
-    : d(new Private(connection, type, endpoint, query, data, needsToken))
+    : BaseJob(connection,
+              RequestConfig(name, verb, endpoint, query, data, needsToken))
+{ }
+
+BaseJob::BaseJob(ConnectionData* connection, const RequestConfig& rc)
+    : d(new Private(connection, rc))
 {
-    setObjectName(name);
+    setObjectName(rc.name());
     d->timer.setSingleShot(true);
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);
@@ -95,38 +93,19 @@ BaseJob::~BaseJob()
     qDebug() << this << "destroyed";
 }
 
-ConnectionData* BaseJob::connection() const
+RequestConfig& BaseJob::request()
 {
-    return d->connection;
-}
-
-const QUrlQuery&BaseJob::query() const
-{
-    return d->requestQuery;
-}
-
-void BaseJob::setRequestQuery(const QUrlQuery& query)
-{
-    d->requestQuery = query;
-}
-
-const BaseJob::Data&BaseJob::requestData() const
-{
-    return d->requestData;
-}
-
-void BaseJob::setRequestData(const BaseJob::Data& data)
-{
-    d->requestData = data;
+    return d->reqConfig;
 }
 
 void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
-    url.setPath( url.path() + "/" + apiEndpoint );
-    if (needsToken)
-        requestQuery.addQueryItem("access_token", connection->accessToken());
-    url.setQuery(requestQuery);
+    url.setPath( url.path() + reqConfig.apiPath() );
+    auto query = reqConfig.query();
+    if (reqConfig.needsToken())
+        query.addQueryItem("access_token", connection->accessToken());
+    url.setQuery(query);
 
     QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -134,16 +113,16 @@ void BaseJob::Private::sendRequest()
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
-    switch( type )
+    switch( reqConfig.type() )
     {
         case JobHttpType::GetJob:
             reply.reset( connection->nam()->get(req) );
             break;
         case JobHttpType::PostJob:
-            reply.reset( connection->nam()->post(req, requestData.serialize()) );
+            reply.reset( connection->nam()->post(req, reqConfig.data() ));
             break;
         case JobHttpType::PutJob:
-            reply.reset( connection->nam()->put(req, requestData.serialize()) );
+            reply.reset( connection->nam()->put(req, reqConfig.data() ));
             break;
         case JobHttpType::DeleteJob:
             reply.reset( connection->nam()->deleteResource(req) );

@@ -24,14 +24,14 @@
 #include <QtCore/QUrlQuery>
 #include <QtCore/QScopedPointer>
 
+#include "requestconfig.h"
+
 class QNetworkReply;
 class QSslError;
 
 namespace QMatrixClient
 {
     class ConnectionData;
-
-    enum class JobHttpType { GetJob, PutJob, PostJob, DeleteJob };
 
     class BaseJob: public QObject
     {
@@ -50,41 +50,6 @@ namespace QMatrixClient
                 , NotFoundError
                 , IncorrectRequestError
                 , UserDefinedError = 200
-            };
-
-            /**
-             * A simple wrapper around QUrlQuery that allows its creation from
-             * a list of string pairs
-             */
-            class Query : public QUrlQuery
-            {
-                public:
-                    using QUrlQuery::QUrlQuery;
-                    Query() = default;
-                    explicit Query(const QList< QPair<QString, QString> >& l)
-                    {
-                        setQueryItems(l);
-                    }
-            };
-            /**
-             * A simple wrapper around QJsonObject that represents a JSON data
-             * section of an HTTP request to a Matrix server. Facilitates
-             * creation from a list of key-value string pairs and dumping of
-             * a resulting JSON to a QByteArray.
-             */
-            class Data : public QJsonObject
-            {
-                public:
-                    Data() = default;
-                    explicit Data(const QList< QPair<QString, QString> >& l)
-                    {
-                        for (auto i: l)
-                            insert(i.first, i.second);
-                    }
-                    QByteArray serialize() const
-                    {
-                        return QJsonDocument(*this).toJson();
-                    }
             };
 
             /**
@@ -111,9 +76,10 @@ namespace QMatrixClient
             using duration_t = int; // milliseconds
 
         public:
-            BaseJob(ConnectionData* connection, JobHttpType type, QString name,
-                    QString endpoint, Query query = Query(), Data data = Data(),
-                    bool needsToken = true);
+            BaseJob(ConnectionData* connection, JobHttpType verb, QString name,
+                    QString endpoint, const QUrlQuery& query = {},
+                    const Data& data = {}, bool needsToken = true);
+            BaseJob(ConnectionData* connection, const RequestConfig& rc);
             virtual ~BaseJob();
 
             Status status() const;
@@ -198,12 +164,8 @@ namespace QMatrixClient
             void failure(BaseJob*);
 
         protected:
-            ConnectionData* connection() const;
 
-            const QUrlQuery& query() const;
-            void setRequestQuery(const QUrlQuery& query);
-            const Data& requestData() const;
-            void setRequestData(const Data& data);
+            RequestConfig& request();
 
             /**
              * Used by gotReply() to check the received reply for general

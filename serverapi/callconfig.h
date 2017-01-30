@@ -21,7 +21,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QString>
 
-#include "requestconfig.h"
+#include "../jobs/requestconfig.h"
 
 class QNetworkReply;
 

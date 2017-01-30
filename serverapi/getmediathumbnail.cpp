@@ -26,9 +26,9 @@ using namespace QMatrixClient;
 using namespace QMatrixClient::ServerApi;
 
 GetMediaThumbnail::GetMediaThumbnail(QUrl url, QSize requestedSize, ThumbnailType thumbnailType)
-    : CallConfig("MediaThumbnailJob", HttpVerb::Get
+    : CallConfig("MediaThumbnailJob", JobHttpType::GetJob
         , ApiPath("/thumbnail/" % url.host() % url.path(), "media", "v1")
-        , Query(
+        , makeQuery(
             { { "width", QString::number(requestedSize.width()) }
             , { "height", QString::number(requestedSize.height()) }
             , { "method", thumbnailType == ThumbnailType::Scale ? "scale" : "crop" }

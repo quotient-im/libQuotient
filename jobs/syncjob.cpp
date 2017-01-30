@@ -47,7 +47,7 @@ SyncJob::SyncJob(ConnectionData* connection,
         query.addQueryItem("timeout", QString::number(timeout));
     if( !since.isEmpty() )
         query.addQueryItem("since", since);
-    setRequestQuery(query);
+    request().setQuery(query);
 
     setMaxRetries(std::numeric_limits<int>::max());
 }

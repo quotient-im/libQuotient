@@ -35,7 +35,7 @@ PostMessageJob::PostMessageJob(ConnectionData* connection, QString roomId,
                                QString type, QString message)
     : BaseJob(connection, JobHttpType::PostJob, "PostMessageJob",
               QString("_matrix/client/r0/rooms/%1/send/m.room.message").arg(roomId),
-              Query(),
+              QUrlQuery(),
               Data({ { "msgtype", type }, { "body", message } }))
     , d(new Private)
 { }
