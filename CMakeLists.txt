@@ -84,3 +84,8 @@ target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core qmatrixclient)
+
+if (WIN32)
+    install (FILES mime/packages/freedesktop.org.xml
+             DESTINATION mime/packages)
+endif (WIN32)
