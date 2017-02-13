@@ -370,6 +370,16 @@ QList< User* > Room::users() const
     return d->membersMap.values();
 }
 
+QStringList Room::memberNames() const {
+	QStringList res;
+
+	for (auto u : d->membersMap.values()) {
+        res.append( this->roomMembername(u) );
+    }
+
+	return res;
+}
+
 void Room::Private::insertMemberIntoMap(User *u)
 {
     auto namesakes = membersMap.values(u->name());
