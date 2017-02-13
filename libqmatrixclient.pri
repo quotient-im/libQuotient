@@ -8,7 +8,6 @@ HEADERS += \
     $$PWD/connection.h \
     $$PWD/room.h \
     $$PWD/user.h \
-    $$PWD/logmessage.h \
     $$PWD/state.h \
     $$PWD/events/event.h \
     $$PWD/events/roommessageevent.h \
@@ -19,7 +18,6 @@ HEADERS += \
     $$PWD/events/roomtopicevent.h \
     $$PWD/events/typingevent.h \
     $$PWD/events/receiptevent.h \
-    $$PWD/events/unknownevent.h \
     $$PWD/jobs/basejob.h \
     $$PWD/jobs/checkauthmethods.h \
     $$PWD/jobs/passwordlogin.h \
@@ -27,19 +25,18 @@ HEADERS += \
     $$PWD/jobs/postreceiptjob.h \
     $$PWD/jobs/joinroomjob.h \
     $$PWD/jobs/leaveroomjob.h \
-    $$PWD/jobs/roommembersjob.h \
     $$PWD/jobs/roommessagesjob.h \
     $$PWD/jobs/syncjob.h \
     $$PWD/jobs/mediathumbnailjob.h \
-    $$PWD/jobs/logoutjob.h
+    $$PWD/jobs/logoutjob.h \
+    $$PWD/logging.h \
+    $$PWD/settings.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
     $$PWD/connection.cpp \
     $$PWD/room.cpp \
     $$PWD/user.cpp \
-    $$PWD/logmessage.cpp \
-    $$PWD/state.cpp \
     $$PWD/events/event.cpp \
     $$PWD/events/roommessageevent.cpp \
     $$PWD/events/roomnameevent.cpp \
@@ -49,7 +46,6 @@ SOURCES += \
     $$PWD/events/roomtopicevent.cpp \
     $$PWD/events/typingevent.cpp \
     $$PWD/events/receiptevent.cpp \
-    $$PWD/events/unknownevent.cpp \
     $$PWD/jobs/basejob.cpp \
     $$PWD/jobs/checkauthmethods.cpp \
     $$PWD/jobs/passwordlogin.cpp \
@@ -57,8 +53,9 @@ SOURCES += \
     $$PWD/jobs/postreceiptjob.cpp \
     $$PWD/jobs/joinroomjob.cpp \
     $$PWD/jobs/leaveroomjob.cpp \
-    $$PWD/jobs/roommembersjob.cpp \
     $$PWD/jobs/roommessagesjob.cpp \
     $$PWD/jobs/syncjob.cpp \
     $$PWD/jobs/mediathumbnailjob.cpp \
-    $$PWD/jobs/logoutjob.cpp
+    $$PWD/jobs/logoutjob.cpp \
+    $$PWD/logging.cpp \
+    $$PWD/settings.cpp
