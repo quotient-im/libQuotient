@@ -603,13 +603,10 @@ void Room::processEphemeralEvent(Event* event)
     if( event->type() == EventType::Receipt )
     {
         auto receiptEvent = static_cast<ReceiptEvent*>(event);
-        for( QString eventId: receiptEvent->events() )
-        {
-            const auto receipts = receiptEvent->receiptsForEvent(eventId);
-            for( const Receipt& r: receipts )
+        for( const auto &eventReceiptPair: receiptEvent->events() )
+            for( const Receipt& r: eventReceiptPair.second )
                 if (auto m = d->member(r.userId))
-                    d->promoteReadMarker(m, eventId);
-        }
+                    d->promoteReadMarker(m, eventReceiptPair.first);
     }
 }
 

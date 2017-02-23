@@ -36,6 +36,7 @@ Q_DECLARE_TYPEINFO(QMatrixClient::Receipt, Q_MOVABLE_TYPE);
 namespace QMatrixClient
 {
     using Receipts = QVector<Receipt>;
+    using EventsToReceipts = QVector< QPair<QString, Receipts> >;
 
     class ReceiptEvent: public Event
     {
@@ -43,9 +44,7 @@ namespace QMatrixClient
             ReceiptEvent();
             virtual ~ReceiptEvent();
 
-            Receipts receiptsForEvent(QString eventId) const;
-
-            QStringList events() const;
+            EventsToReceipts events() const;
 
             static ReceiptEvent* fromJson(const QJsonObject& obj);
 
