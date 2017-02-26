@@ -70,6 +70,12 @@ ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
     e->d->eventsToReceipts.reserve(contents.size());
     for( auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt )
     {
+        if (eventIt.key().isEmpty())
+        {
+            qWarning() << "ReceiptEvent has an empty event id, skipping";
+            qDebug() << "ReceiptEvent content follows:\n" << contents;
+            continue;
+        }
         const QJsonObject reads = eventIt.value().toObject().value("m.read").toObject();
         Receipts receipts; receipts.reserve(reads.size());
         for( auto userIt = reads.begin(); userIt != reads.end(); ++userIt )
