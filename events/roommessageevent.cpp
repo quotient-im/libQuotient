@@ -17,6 +17,7 @@
  */
 
 #include "roommessageevent.h"
+#include "util.h"
 
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QDebug>

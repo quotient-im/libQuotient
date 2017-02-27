@@ -23,7 +23,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 
-#include "../logging_util.h"
+#include "util.h"
 #include "roommessageevent.h"
 #include "roomnameevent.h"
 #include "roomaliasesevent.h"

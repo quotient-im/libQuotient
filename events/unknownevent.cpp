@@ -21,7 +21,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDebug>
 
-#include "../logging_util.h"
+#include "util.h"
 
 using namespace QMatrixClient;
 
