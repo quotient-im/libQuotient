@@ -42,12 +42,20 @@
 
 using namespace QMatrixClient;
 
+inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
+{
+    QDebugStateSaver dss(d);
+    d.nospace() << "(" << ti.index() << "|" << ti->id() << ")";
+    return d;
+}
+
 class Room::Private
 {
     public:
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
         typedef QMultiHash<QString, User*> members_map_t;
         typedef Timeline::const_reverse_iterator rev_iter_t;
+        typedef std::pair<rev_iter_t, rev_iter_t> rev_iter_pair_t;
 
         Private(Connection* c, const QString& id_)
             : q(nullptr), connection(c), id(id_), joinState(JoinState::Join)
@@ -64,6 +72,7 @@ class Room::Private
 
         Connection* connection;
         Timeline timeline;
+        QHash<QString, TimelineItem::index_t> eventsIndex;
         QString id;
         QStringList aliases;
         QString canonicalAlias;
@@ -98,11 +107,13 @@ class Room::Private
 
         void appendEvent(Event* e)
         {
-            insertEvent(e, timeline.end());
+            insertEvent(e, timeline.end(),
+                        timeline.empty() ? 0 : timeline.back().index() + 1);
         }
         void prependEvent(Event* e)
         {
-            insertEvent(e, timeline.begin());
+            insertEvent(e, timeline.begin(),
+                        timeline.empty() ? 0 : timeline.front().index() - 1);
         }
 
         /**
@@ -119,22 +130,31 @@ class Room::Private
             events.erase(dupsBegin, events.end());
         }
 
+        rev_iter_t findInTimeline(QString evtId) const
+        {
+            if (!timeline.empty() && eventsIndex.contains(evtId))
+                return timeline.crbegin() +
+                        (timeline.back().index() - eventsIndex.value(evtId));
+            return timeline.crend();
+        }
+
         rev_iter_t readMarker(const User* user) const
         {
-            return eventsIndex.value(lastReadEventIds[user], timeline.crend());
+            return findInTimeline(lastReadEventIds[user]);
         }
-        std::pair<rev_iter_t, rev_iter_t> promoteReadMarker(User* u, QString eventId);
+        void setLastReadEvent(User* u, QString eventId);
+
+        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
 
     private:
-        QHash<QString, rev_iter_t> eventsIndex;
-
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 
         void insertMemberIntoMap(User* u);
         void removeMemberFromMap(QString username, User* u);
 
-        void insertEvent(Event* e, Timeline::iterator where);
+        void insertEvent(Event* e, Timeline::iterator where,
+                         TimelineItem::index_t index);
 };
 
 Room::Room(Connection* connection, QString id)
@@ -202,52 +222,45 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::setLastReadEvent(User* user, Event* event)
+void Room::Private::setLastReadEvent(User* u, QString eventId)
 {
-    d->lastReadEventIds.insert(user, event->id());
-    emit lastReadEventChanged(user);
-    if (user == d->connection->user())
-        emit readMarkerPromoted();
+    lastReadEventIds.insert(u, eventId);
+    emit q->lastReadEventChanged(u);
+    if (u == connection->user())
+        emit q->readMarkerMoved();
 }
 
-std::pair<Room::Private::rev_iter_t, Room::Private::rev_iter_t>
-Room::Private::promoteReadMarker(User* u, QString eventId)
+Room::Private::rev_iter_pair_t
+Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker)
 {
-    Q_ASSERT_X (!eventId.isEmpty(), __FUNCTION__,
-        "Attempt to promote a read marker to an event with no id");
+    Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
+    Q_ASSERT(newMarker >= timeline.crbegin() && newMarker <= timeline.crend());
 
-    // Find the event by its id and position the marker at it. If the event
-    // is not found (most likely, because it's not fetched from the server),
-    // or if it's older than the current marker position, keep the marker intact.
-    const auto newMarker = eventsIndex.value(eventId, timeline.crend());
     const auto prevMarker = readMarker(u);
     if (prevMarker <= newMarker) // Remember, we deal with reverse iterators
         return { prevMarker, prevMarker };
 
-    using namespace std;
+    Q_ASSERT(newMarker < timeline.crend());
 
     // Try to auto-promote the read marker over the user's own messages
     // (switch to direct iterators for that).
     auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
-                 [=](Event* e) { return e->senderId() != u->id(); });
-    if (eagerMarker > timeline.begin())
-        q->setLastReadEvent(u, *(eagerMarker - 1));
+          [=](const TimelineItem& ti) { return ti->senderId() != u->id(); });
 
+    setLastReadEvent(u, (*(eagerMarker - 1))->id());
     if (u == connection->user() && unreadMessages)
     {
         auto stillUnreadMessagesCount =
             count_if(eagerMarker, timeline.cend(),
-                     [=](Event* e) { return isEventNotable(e); });
+                 [=](const TimelineItem& ti) { return isEventNotable(ti.event()); });
 
         if (stillUnreadMessagesCount == 0)
         {
             unreadMessages = false;
-            qDebug() << "Room" << q->displayName()
-                     << "has no more unread messages";
+            qDebug() << "Room" << displayname << "has no more unread messages";
             emit q->unreadMessagesChanged(q);
-        }
-        else
-            qDebug() << "Room" << q->displayName() << "still has"
+        } else
+            qDebug() << "Room" << displayname << "still has"
                      << stillUnreadMessagesCount << "unread message(s)";
     }
 
@@ -258,14 +271,16 @@ Room::Private::promoteReadMarker(User* u, QString eventId)
 
 void Room::markMessagesAsRead(QString uptoEventId)
 {
-    auto markers = d->promoteReadMarker(connection()->user(), uptoEventId);
+    User* localUser = connection()->user();
+    Private::rev_iter_pair_t markers =
+            d->promoteReadMarker(localUser, d->findInTimeline(uptoEventId));
 
     // We shouldn't send read receipts for the local user's own messages - so
     // search earlier messages for the latest message not from the local user
     // until the previous last-read message, whichever comes first.
     for (; markers.second < markers.first; ++markers.second)
     {
-        if ((*markers.second)->senderId() != connection()->userId())
+        if ((*markers.second)->senderId() != localUser->id())
         {
             connection()->callApi<PostReceiptJob>(this->id(),
                                                      (*markers.second)->id());
@@ -350,24 +365,26 @@ void Room::Private::removeMemberFromMap(QString username, User* u)
     updateDisplayname();
 }
 
-inline QByteArray makeErrorStr(Event* e, const char* msg)
+inline QByteArray makeErrorStr(const Event* e, const char* msg)
 {
     return QString("%1; event dump follows:\n%2")
             .arg(msg, e->originalJson()).toUtf8();
 }
 
-void Room::Private::insertEvent(Event* e, Room::Timeline::iterator where)
+void Room::Private::insertEvent(Event* e, Timeline::iterator where,
+                                TimelineItem::index_t index)
 {
     Q_ASSERT_X(e, __FUNCTION__, "Attempt to add nullptr to timeline");
     Q_ASSERT_X(!e->id().isEmpty(), __FUNCTION__,
-               makeErrorStr(e,
-                            "Event with empty id cannot be in the timeline"));
+               makeErrorStr(e, "Event with empty id cannot be in the timeline"));
     Q_ASSERT_X(!eventsIndex.contains(e->id()), __FUNCTION__,
                makeErrorStr(e,
-                            "Event is already in the timeline (use dropDuplicateEvents())"));
-    Q_ASSERT(where >= timeline.begin() && where <= timeline.end());
-    eventsIndex.insert(e->id(), rev_iter_t(timeline.insert(where, e) + 1));
-    Q_ASSERT((*eventsIndex.value(e->id()))->id() == e->id());
+                    "Event is already in the timeline (use dropDuplicateEvents())"));
+    Q_ASSERT_X(where == timeline.end() || where == timeline.begin(), __FUNCTION__,
+               "Events can only be appended or prepended to the timeline");
+    timeline.emplace(where, e, index);
+    eventsIndex.insert(e->id(), index);
+    Q_ASSERT(findInTimeline(e->id())->event() == e);
 }
 
 void Room::Private::addMember(User *u)
@@ -543,29 +560,24 @@ bool Room::Private::isEventNotable(const Event* e) const
 void Room::doAddNewMessageEvents(const Events& events)
 {
     Q_ASSERT(!events.isEmpty());
+
     Timeline::size_type newUnreadMessages = 0;
-
-    // The first event in the batch defines whose read marker we can
-    // automatically promote any further (if this author has read the whole
-    // timeline by then). Others will need explicit read receipts
-    // from the server (or, for the local user, markMessagesAsRead() invocation)
-    // to promote their read markers over the new message events.
-    User* firstWriter = connection()->user(events.front()->senderId());
-    bool canAutoPromote = d->readMarker(firstWriter) == d->timeline.crbegin();
-
     for (auto e: events)
     {
         d->appendEvent(e);
         newUnreadMessages += d->isEventNotable(e);
     }
-    qDebug() << "Added" << events.size()
+    qDebug() << "Room" << displayName() << "received" << events.size()
              << "(with" << newUnreadMessages << "notable)"
-             << "new events to room" << displayName();
-    if (canAutoPromote)
-    {
-        qDebug() << "Auto-promoting" << firstWriter->id() << "over own events";
-        d->promoteReadMarker(firstWriter, events.front()->id());
-    }
+             << "new events; the last event is now" << d->timeline.back();
+
+    // The first event in the batch defines whose read marker can possibly be
+    // promoted any further over the same author's events newly arrived.
+    // Others will need explicit read receipts from the server (or, for
+    // the local user, markMessagesAsRead() invocation) to promote their
+    // read markers over the new message events.
+    User* firstWriter = connection()->user(events.front()->senderId());
+    d->promoteReadMarker(firstWriter, d->findInTimeline(events.front()->id()));
 
     if( !d->unreadMessages && newUnreadMessages > 0)
     {
@@ -591,8 +603,8 @@ void Room::doAddHistoricalMessageEvents(const Events& events)
     // Historical messages arrive in newest-to-oldest order
     for (auto e: events)
         d->prependEvent(e);
-    qDebug() << "Added" << events.size() << "historical events to room"
-             << displayName();
+    qDebug() << "Room" << displayName() << "received" << events.size()
+             << "past events; the oldest event is now" << d->timeline.front();
 }
 
 void Room::processStateEvents(const Events& events)
@@ -674,9 +686,25 @@ void Room::processEphemeralEvent(Event* event)
                 else
                     qd << receipts.size() << "users";
             }
-            for( const Receipt& r: receipts )
-                if (auto m = d->member(r.userId))
-                    d->promoteReadMarker(m, eventId);
+            if (d->eventsIndex.contains(eventId))
+            {
+                const auto newMarker = d->findInTimeline(eventId);
+                for( const Receipt& r: receipts )
+                    if (auto m = d->member(r.userId))
+                        d->promoteReadMarker(m, newMarker);
+            } else
+            {
+                qDebug() << "Event" << eventId
+                         << "not found; saving read markers anyway";
+                // If the event is not found (most likely, because it's too old
+                // and hasn't been fetched from the server yet), but there is
+                // a previous marker for a user, keep the previous marker.
+                // Otherwise, blindly store the event id for this user.
+                for( const Receipt& r: receipts )
+                    if (auto m = d->member(r.userId))
+                        if (d->readMarker(m) == d->timeline.crend())
+                            d->setLastReadEvent(m, eventId);
+            }
         }
     }
 }

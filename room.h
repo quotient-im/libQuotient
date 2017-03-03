@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <memory>
+#include <deque>
+
 #include <QtCore/QList>
 #include <QtCore/QStringList>
 #include <QtCore/QObject>
@@ -26,8 +29,6 @@
 #include "jobs/syncjob.h"
 #include "joinstate.h"
 
-#include <deque>
-
 namespace QMatrixClient
 {
     class Event;
@@ -35,12 +36,28 @@ namespace QMatrixClient
     class User;
     class MemberSorter;
 
+    class TimelineItem
+    {
+        public:
+            using index_t = int; // For compatibility with Qt containers
+
+            TimelineItem(Event* e, index_t number) : evt(e), idx(number) { }
+
+            Event* event() const { return evt.get(); }
+            Event* operator->() const { return event(); } //< Synonym for event()
+            index_t index() const { return idx; }
+
+        private:
+            std::unique_ptr<Event> evt;
+            index_t idx;
+    };
+
     class Room: public QObject
     {
             Q_OBJECT
-            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerPromoted)
+            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
-            using Timeline = Owning< std::deque<Event*> >;
+            using Timeline = std::deque<TimelineItem>;
 
             Room(Connection* connection, QString id);
             virtual ~Room();
@@ -119,7 +136,7 @@ namespace QMatrixClient
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
             void lastReadEventChanged(User* user);
-            void readMarkerPromoted();
+            void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
 
         protected:
@@ -135,8 +152,6 @@ namespace QMatrixClient
 
             void addNewMessageEvents(Events events);
             void addHistoricalMessageEvents(Events events);
-
-            void setLastReadEvent(User* user, Event* event);
     };
 
     class MemberSorter
