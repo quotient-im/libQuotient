@@ -18,11 +18,12 @@
 
 #include "room.h"
 
+#include <array>
+
 #include <QtCore/QHash>
 #include <QtCore/QJsonArray>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QDebug>
-#include <algorithm>
 
 #include "connection.h"
 #include "state.h"
