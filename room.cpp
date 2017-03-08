@@ -36,7 +36,9 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
+#include "jobs/postmessagejob.h"
 #include "jobs/roommessagesjob.h"
+#include "jobs/postreceiptjob.h"
 
 using namespace QMatrixClient;
 
@@ -90,7 +92,7 @@ class Room::Private
         void renameMember(User* u, QString oldName);
         void removeMember(User* u);
 
-        void getPreviousContent();
+        void getPreviousContent(int limit = 10);
 
         bool isEventNotable(const Event* e) const;
 
@@ -269,7 +271,8 @@ void Room::markMessagesAsRead(QString uptoEventId)
     {
         if ((*markers.second)->senderId() != connection()->userId())
         {
-            connection()->postReceipt(this, *markers.second);
+            connection()->callApi<PostReceiptJob>(this->id(),
+                                                     (*markers.second)->id());
             break;
         }
     }
@@ -490,16 +493,22 @@ void Room::updateData(SyncRoomData& data)
     }
 }
 
-void Room::getPreviousContent()
+void Room::postMessage(QString type, QString content)
 {
-    d->getPreviousContent();
+    connection()->callApi<PostMessageJob>(id(), type, content);
 }
 
-void Room::Private::getPreviousContent()
+void Room::getPreviousContent(int limit)
+{
+    d->getPreviousContent(limit);
+}
+
+void Room::Private::getPreviousContent(int limit)
 {
     if( !roomMessagesJob )
     {
-        roomMessagesJob = connection->getMessages(q, prevBatch);
+        roomMessagesJob =
+                connection->callApi<RoomMessagesJob>(id, prevBatch, limit);
         connect( roomMessagesJob, &RoomMessagesJob::result, [=]() {
             if( !roomMessagesJob->error() )
             {
