@@ -58,8 +58,6 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
-
-        SyncJob* startSyncJob(const QString& filter, int timeout);
 };
 
 Connection::Connection(QUrl server, QObject* parent)
@@ -167,7 +165,8 @@ void Connection::sync(int timeout)
         return;
 
     const QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
-    auto job = d->startSyncJob(filter, timeout);
+    auto job = d->syncJob =
+            callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
         d->data->setLastEvent(job->nextBatch());
         for( auto& roomData: job->roomData() )
@@ -187,17 +186,9 @@ void Connection::sync(int timeout)
     });
 }
 
-SyncJob* Connection::Private::startSyncJob(const QString& filter, int timeout)
-{
-    syncJob = new SyncJob(data, data->lastEvent(), filter, timeout);
-    syncJob->start();
-    return syncJob;
-
-}
-
 void Connection::postMessage(Room* room, QString type, QString message)
 {
-    PostMessageJob* job = new PostMessageJob(d->data, room, type, message);
+    PostMessageJob* job = new PostMessageJob(d->data, room->id(), type, message);
     job->start();
 }
 
@@ -226,7 +217,7 @@ void Connection::leaveRoom(Room* room)
 
 RoomMessagesJob* Connection::getMessages(Room* room, QString from)
 {
-    RoomMessagesJob* job = new RoomMessagesJob(d->data, room, from);
+    RoomMessagesJob* job = new RoomMessagesJob(d->data, room->id(), from);
     job->start();
     return job;
 }

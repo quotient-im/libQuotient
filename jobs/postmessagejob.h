@@ -22,11 +22,11 @@
 
 namespace QMatrixClient
 {
-    class Room;
     class PostMessageJob: public BaseJob
     {
         public:
-            PostMessageJob(ConnectionData* connection, Room* room, QString type, QString message);
+            PostMessageJob(ConnectionData* connection, QString roomId,
+                           QString type, QString message);
             virtual ~PostMessageJob();
 
             //bool success();

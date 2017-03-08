@@ -17,7 +17,7 @@
  */
 
 #include "roommessagesjob.h"
-#include "../room.h"
+#include "../util.h"
 
 #include <QtCore/QJsonArray>
 
@@ -32,12 +32,13 @@ class RoomMessagesJob::Private
         QString end;
 };
 
-RoomMessagesJob::RoomMessagesJob(ConnectionData* data, Room* room, QString from, FetchDirectory dir, int limit)
+RoomMessagesJob::RoomMessagesJob(ConnectionData* data, QString roomId,
+                                 QString from, int limit, FetchDirection dir)
     : BaseJob(data, JobHttpType::GetJob, "RoomMessagesJob",
-              QString("/_matrix/client/r0/rooms/%1/messages").arg(room->id()),
+              QString("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
               Query(
                 { { "from", from }
-                , { "dir", dir == FetchDirectory::Backwards ? "b" : "f" }
+                , { "dir", dir == FetchDirection::Backward ? "b" : "f" }
                 , { "limit", QString::number(limit) }
                 }))
     , d(new Private)
