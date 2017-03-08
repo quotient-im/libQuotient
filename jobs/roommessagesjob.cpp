@@ -28,7 +28,7 @@ class RoomMessagesJob::Private
     public:
         Private() {}
 
-        Events events;
+        Owning<Events> events;
         QString end;
 };
 
@@ -49,9 +49,9 @@ RoomMessagesJob::~RoomMessagesJob()
     delete d;
 }
 
-Events RoomMessagesJob::events()
+Events RoomMessagesJob::releaseEvents()
 {
-    return d->events;
+    return d->events.release();
 }
 
 QString RoomMessagesJob::end()
@@ -62,7 +62,7 @@ QString RoomMessagesJob::end()
 BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject obj = data.object();
-    d->events = eventsFromJson(obj.value("chunk").toArray());
+    d->events.assign(eventsFromJson(obj.value("chunk").toArray()));
     d->end = obj.value("end").toString();
     return Success;
 }

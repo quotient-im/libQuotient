@@ -96,8 +96,7 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 
 void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
 {
-    auto l = eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray());
-    swap(l);
+    assign(eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray()));
 }
 
 SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObject& room_)

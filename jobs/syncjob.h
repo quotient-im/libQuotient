@@ -22,41 +22,10 @@
 
 #include "../joinstate.h"
 #include "../events/event.h"
+#include "util.h"
 
 namespace QMatrixClient
 {
-    /**
-     * @brief A crude wrapper around a container of pointers that owns pointers
-     * to contained objects
-     *
-     * Similar to vector<unique_ptr<>>, upon deletion, EventsHolder
-     * will delete all events contained in it.
-     */
-    template <typename ContainerT>
-    class Owning : public ContainerT
-    {
-        public:
-            Owning() = default;
-#if defined(_MSC_VER) && _MSC_VER < 1900
-            // Workaround: Dangerous (auto_ptr style) copy constructor because
-            // VS2013 (unnecessarily) instantiates EventList::QVector<>::toList()
-            // which instantiates QList< Owning<> > which needs the contained
-            // object to have a non-deleted copy constructor.
-            Owning(Owning& other) : ContainerT(std::move(other)) { }
-#else
-            Owning(Owning&) = delete;
-#endif
-            Owning(Owning&& other) : ContainerT(std::move(other)) { }
-            ~Owning() { for (auto e: *this) delete e; }
-
-            /**
-             * @brief returns the underlying events and releases the ownership
-             *
-             * Acts similar to unique_ptr::release.
-             */
-            ContainerT release() { return std::move(*this); }
-    };
-
     class SyncRoomData
     {
     public:

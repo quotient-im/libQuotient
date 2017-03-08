@@ -23,7 +23,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 
-#include "../logging_util.h"
+#include "util.h"
 #include "roommessageevent.h"
 #include "roomnameevent.h"
 #include "roomaliasesevent.h"
@@ -114,31 +114,31 @@ Event* Event::fromJson(const QJsonObject& obj)
 bool Event::parseJson(const QJsonObject& obj)
 {
     d->originalJson = QString::fromUtf8(QJsonDocument(obj).toJson());
+    d->id = obj.value("event_id").toString();
+    d->roomId = obj.value("room_id").toString();
+    d->senderId = obj.value("sender").toString();
     bool correct = (d->type != EventType::Unknown);
-    if ( d->type != EventType::Unknown &&
-         d->type != EventType::Typing &&
+    if ( d->type != EventType::Typing &&
          d->type != EventType::Receipt )
     {
-        if( obj.contains("event_id") )
+        if (d->id.isEmpty())
         {
-            d->id = obj.value("event_id").toString();
-        } else {
             correct = false;
-            qDebug() << "Event: can't find event_id";
+            qDebug() << "Event: can't find event_id; event dump follows";
             qDebug() << formatJson << obj;
         }
         if( obj.contains("origin_server_ts") )
         {
-            d->timestamp = QDateTime::fromMSecsSinceEpoch( 
+            d->timestamp = QDateTime::fromMSecsSinceEpoch(
                 static_cast<qint64>(obj.value("origin_server_ts").toDouble()), Qt::UTC );
-        } else {
+        }
+        else if (d->type != EventType::Unknown)
+        {
             correct = false;
-            qDebug() << "Event: can't find ts";
+            qDebug() << "Event: can't find ts; event dump follows";
             qDebug() << formatJson << obj;
         }
     }
-    d->roomId = obj.value("room_id").toString();
-    d->senderId = obj.value("sender").toString();
     return correct;
 }
 

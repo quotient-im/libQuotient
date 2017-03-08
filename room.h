@@ -79,10 +79,9 @@ namespace QMatrixClient
              * Finds in the timeline and marks as read the event with
              * the specified id; also posts a read receipt to the server either
              * for this message or, if it's from the local user, for
-             * the nearest non-local message before. If the event id is empty,
-             * marks the whole timeline as read.
+             * the nearest non-local message before. uptoEventId must be non-empty.
              */
-            Q_INVOKABLE void markMessagesAsRead(QString uptoEventId = {});
+            Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
 
             Q_INVOKABLE bool hasUnreadMessages();
 
@@ -133,8 +132,8 @@ namespace QMatrixClient
             class Private;
             Private* d;
 
-            void addNewMessageEvents(const Events& events);
-            void addHistoricalMessageEvents(const Events& events);
+            void addNewMessageEvents(Events events);
+            void addHistoricalMessageEvents(Events events);
 
             void setLastReadEvent(User* user, Event* event);
     };
