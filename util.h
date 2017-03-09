@@ -81,11 +81,12 @@ namespace QMatrixClient
             // in case of Owning< QVector<> > VS2013 (unnecessarily) instantiates
             // QVector<>::toList() which instantiates QList< Owning<> > which
             // requires the contained object to have a copy constructor.
-            Owning(Owning& other) : ContainerT(std::move(other)) { }
+            Owning(Owning& other) : ContainerT(other.release()) { }
+            Owning(Owning&& other) : ContainerT(other.release()) { }
 #else
             Owning(Owning&) = delete;
-#endif
             Owning(Owning&& other) = default;
+#endif
             Owning& operator=(Owning&& other)
             {
                 assign(other.release());
