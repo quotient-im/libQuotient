@@ -69,6 +69,14 @@ namespace QMatrixClient
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;
 
+            template <typename JobT, typename... JobArgTs>
+            JobT* callApi(JobArgTs... jobArgs)
+            {
+                auto job = new JobT(connectionData(), jobArgs...);
+                job->start();
+                return job;
+            }
+
         signals:
             void resolved();
             void connected();

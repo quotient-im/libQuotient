@@ -24,15 +24,14 @@
 
 namespace QMatrixClient
 {
-    class Room;
-
-    enum class FetchDirectory { Backwards, Forward };
+    enum class FetchDirection { Backward, Forward };
 
     class RoomMessagesJob: public BaseJob
     {
         public:
-            RoomMessagesJob(ConnectionData* data, Room* room, QString from,
-                            FetchDirectory dir = FetchDirectory::Backwards, int limit=10);
+            RoomMessagesJob(ConnectionData* data, QString roomId,
+                            QString from, int limit = 10,
+                            FetchDirection dir = FetchDirection::Backward);
             virtual ~RoomMessagesJob();
 
             Events releaseEvents();
