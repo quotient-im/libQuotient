@@ -231,11 +231,7 @@ Room::Private::promoteReadMarker(User* u, QString eventId)
     auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
                  [=](Event* e) { return e->senderId() != u->id(); });
     if (eagerMarker > timeline.begin())
-    {
-        qDebug() << "Promoting the read marker in room" << displayname
-                 << "for" << u->id() << "to" << (*(eagerMarker - 1))->id();
         q->setLastReadEvent(u, *(eagerMarker - 1));
-    }
 
     if (u == connection->user() && unreadMessages)
     {
@@ -448,12 +444,15 @@ QString Room::roomMembername(User *u) const
     // We expect a user to be a member of the room - but technically it is
     // possible to invoke roomMemberName() even for non-members. In such case
     // we return the name _with_ id, to stay on a safe side.
-    if ( !namesakes.contains(u) )
-    {
-        qWarning()
-            << "Room::roomMemberName(): user" << u->id()
-            << "is not a member of the room" << id();
-    }
+    // XXX: Causes a storm of false alarms when scrolling through older events
+    // with left users; commented out until we have a proper backtracking of
+    // room state ("room time machine").
+//    if ( !namesakes.contains(u) )
+//    {
+//        qWarning()
+//            << "Room::roomMemberName(): user" << u->id()
+//            << "is not a member of the room" << id();
+//    }
 
     // In case of more than one namesake, disambiguate with user id.
     return username % " (" % u->id() % ")";
@@ -665,9 +664,20 @@ void Room::processEphemeralEvent(Event* event)
     {
         auto receiptEvent = static_cast<ReceiptEvent*>(event);
         for( const auto &eventReceiptPair: receiptEvent->events() )
-            for( const Receipt& r: eventReceiptPair.second )
+        {
+            const auto& eventId = eventReceiptPair.first;
+            const auto& receipts = eventReceiptPair.second;
+            {
+                auto qd = qDebug() << "Marking event" << eventId << "as read for";
+                if (receipts.size() == 1)
+                    qd << receipts[0].userId;
+                else
+                    qd << receipts.size() << "users";
+            }
+            for( const Receipt& r: receipts )
                 if (auto m = d->member(r.userId))
-                    d->promoteReadMarker(m, eventReceiptPair.first);
+                    d->promoteReadMarker(m, eventId);
+        }
     }
 }
 
