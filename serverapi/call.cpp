@@ -84,11 +84,17 @@ void Call::Private::sendRequest(const RequestConfig& params)
     timer.start( 120*1000 );
 }
 
+inline QDebug operator<<(QDebug dbg, Call* c)
+{
+    return dbg << "API call" << c->objectName();
+}
+
 Call::Call(ConnectionData* data, const RequestConfig& config)
     : d(new Private(data))
 {
     setObjectName(config.name());
     connect (&d->timer, &QTimer::timeout, this, &Call::timeout);
+    qDebug() << this << "created";
 
     d->sendRequest(config);
     connect( reply(), &QNetworkReply::sslErrors, this, &Call::sslErrors );
@@ -96,7 +102,9 @@ Call::Call(ConnectionData* data, const RequestConfig& config)
 }
 
 Call::~Call()
-{ }
+{
+    qDebug() << this << "destroyed";
+}
 
 void Call::timeout()
 {
@@ -112,7 +120,7 @@ void Call::sslErrors(const QList<QSslError>& errors)
     d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }
 
-QNetworkReply*Call::reply() const
+QNetworkReply* Call::reply() const
 {
     return d->reply.data();
 }
@@ -121,7 +129,7 @@ void Call::finish(Status status, bool emitResult)
 {
     if (!status.good())
     {
-        qWarning() << "Server call" << objectName() << "failed:"
+        qWarning() << "API call" << objectName() << "failed:"
                    << status.message << ", code" << status.code;
     }
 
@@ -143,4 +151,3 @@ void Call::finish(Status status, bool emitResult)
     d->reply.reset();
     deleteLater();
 }
-
