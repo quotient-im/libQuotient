@@ -32,15 +32,16 @@ namespace QMatrixClient
             ApiPath(QString shortPath,
                     QString scope = "client",
                     QString version = "r0");
-            ApiPath(const char * shortPath)
-                : ApiPath(QString(shortPath))
-            { }
-            QString toString() const { return fullPath; }
+
+            operator QString() const { return fullPath; }
 
         private:
             QString fullPath;
     };
 
+//    QString makeApiPath(QString shortPath,
+//                        QString scope = "client",
+//                        QString version = "r0");
     QUrlQuery makeQuery(std::initializer_list< QPair<QString, QString> > l);
 
     class Data : public QJsonObject
@@ -49,18 +50,18 @@ namespace QMatrixClient
             Data() = default;
             explicit Data(std::initializer_list< QPair<QString, QJsonValue> > l)
             {
-        for (auto i: l)
-        insert(i.first, i.second);
-        }
+                for (auto i: l)
+                    insert(i.first, i.second);
+            }
             using QJsonObject::insert;
             void insert(const QString& name, const QStringList& sl);
             template <typename T>
             void insert(const QString& name, const QVector<T>& vv)
             {
-        QJsonArray ja;
-        std::copy(vv.begin(), vv.end(), std::back_inserter(ja));
-        insert(name, ja);
-        }
+                QJsonArray ja;
+                std::copy(vv.begin(), vv.end(), std::back_inserter(ja));
+                insert(name, ja);
+            }
 
             QByteArray dump() const;
     };
@@ -70,7 +71,7 @@ namespace QMatrixClient
     class RequestConfig
     {
         public:
-            RequestConfig(QString name, JobHttpType type, const ApiPath& endpoint,
+            RequestConfig(QString name, JobHttpType type, QString endpoint,
                           QMimeType contentType, QByteArray data,
                           const QUrlQuery& query = {}, bool needsToken = true)
                 : _name(name), _type(type), _endpoint(endpoint)
@@ -78,21 +79,21 @@ namespace QMatrixClient
                 , _needsToken(needsToken)
             { }
 
-            RequestConfig(QString name, JobHttpType type, const ApiPath& endpoint,
+            RequestConfig(QString name, JobHttpType type, QString endpoint,
                           const QUrlQuery &query = {}, const Data &data = {},
                           bool needsToken = true)
                 : RequestConfig(name, type, endpoint,
-                    JsonMimeType, data.dump(), query, needsToken)
+                    JsonMimeType(), data.dump(), query, needsToken)
             { }
 
-            RequestConfig(QString name, JobHttpType type, const ApiPath& endpoint,
+            RequestConfig(QString name, JobHttpType type, QString endpoint,
                           bool needsToken)
                 : RequestConfig(name, type, endpoint, {}, {}, needsToken)
             { }
 
             QString name() const { return _name; }
             JobHttpType type() const { return _type; }
-            QString apiPath() const { return _endpoint.toString(); }
+            QString apiPath() const { return _endpoint; }
             QUrlQuery query() const { return _query; }
             void setQuery(const QUrlQuery& q) { _query = q; }
             QMimeType contentType() const { return _contentType; }
@@ -103,12 +104,12 @@ namespace QMatrixClient
         protected:
             const QString _name;
             const JobHttpType _type;
-            ApiPath _endpoint;
+            QString _endpoint;
             QUrlQuery _query;
             QMimeType _contentType;
             QByteArray _data;
             bool _needsToken;
 
-            static const QMimeType JsonMimeType;
+            static QMimeType JsonMimeType();
     };
 }

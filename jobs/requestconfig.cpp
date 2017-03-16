@@ -7,12 +7,12 @@
 using namespace QMatrixClient;
 
 ApiPath::ApiPath(QString shortPath, QString scope, QString version)
-    : fullPath("/_matrix/" % scope % "/" % version % "/" % shortPath)
+    : fullPath("/_matrix/" % scope % "/" % version % shortPath)
 { }
 
 //QString QMatrixClient::makeApiPath(QString shortPath, QString scope, QString version)
 //{
-//    return "/_matrix/" % scope % "/" % version % "/" % shortPath;
+//    return "/_matrix/" % scope % "/" % version % shortPath;
 //}
 
 QUrlQuery QMatrixClient::makeQuery(std::initializer_list<QPair<QString, QString> > l)
@@ -32,5 +32,11 @@ QByteArray Data::dump() const
     return QJsonDocument(*this).toJson();
 }
 
-const QMimeType RequestConfig::JsonMimeType =
-        QMimeDatabase().mimeTypeForName("application/json");
+QMimeType RequestConfig::JsonMimeType()
+{
+    static const auto jsonMimeType =
+            QMimeDatabase().mimeTypeForName("application/json");
+    Q_ASSERT_X(jsonMimeType.isValid(), __FUNCTION__,
+       "MIME database doesn't have JSON type; check your mime/packages file(s)");
+    return jsonMimeType;
+}

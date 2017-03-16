@@ -85,6 +85,7 @@ BaseJob::BaseJob(ConnectionData* connection, const RequestConfig& rc)
     d->retryTimer.setSingleShot(true);
     connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::start);
     qDebug() << this << "created";
+    qDebug() << "Endpoint:" << request().apiPath();
 }
 
 BaseJob::~BaseJob()
@@ -108,7 +109,8 @@ void BaseJob::Private::sendRequest()
     url.setQuery(query);
 
     QNetworkRequest req {url};
-    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setHeader(QNetworkRequest::ContentTypeHeader,
+                  reqConfig.contentType().name());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);

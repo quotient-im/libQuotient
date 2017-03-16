@@ -21,7 +21,7 @@
 using namespace QMatrixClient::ServerApi;
 
 PasswordLogin::PasswordLogin(QString user, QString password)
-    : CallConfig("PasswordLogin", JobHttpType::PostJob, "/login", false)
+    : CallConfig("PasswordLogin", JobHttpType::PostJob, ApiPath("/login"), false)
 {
     Data d;
     d.insert("type", QStringLiteral("m.login.password"));
