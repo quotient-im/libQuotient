@@ -1,47 +1,47 @@
 # Libqmatrixclient
 libqmatrixclient is a Qt-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is used by the Quaternion client and is a part of the Quaternion project. The below instructions are the same for Quaternion and libqmatrixclient (the source tree of Quaternion has most up-to-date instructions but this source tree strives to closely follow).
 
+## Contacts
+You can find authors of libqmatrixclient in the Quaternion Matrix room: [#quaternion:matrix.org](https://matrix.to/#/#quaternion:matrix.org).
+
+Issues should be submitted to [the project's issue tracker](https://github.com/Fxrh/libqmatrixclient/issues). We do not guarantee a response but we usually try to at least acknowledge the issue
+
+
 ## Pre-requisites
-- a Linux or Windows system (MacOS should work too)
+ a Linux, MacOS or Windows system (desktop versions tried; mobile Linux/Windows might work too)
 - a Git client (to check out this repo)
-- a C++ toolchain that can deal with Qt (see a link for your platform at http://doc.qt.io/qt-5/gettingstarted.html#platform-requirements)
-- CMake (from your package management system or https://cmake.org/download/)
-- Qt 5 (either Open Source or Commercial)
-- KDE Framework Core Addons (optional; a submodule from KDE git is included in this repo and will be used if CMake doesn't find a KCoreAddons package)
+- CMake (from your package management system or [the official website](https://cmake.org/download/))
+- Qt 5 (either Open Source or Commercial), version 5.2.1 or higher as of this writing (check the CMakeLists.txt for most up-to-date information). Qt 5.3 or higher recommended on Windows.
+- a C++ toolchain supported by your version of Qt (see a link for your platform at [the Qt's platform requirements page](http://doc.qt.io/qt-5/gettingstarted.html#platform-requirements))
+  - GCC 4.8, Clang 3.5.0, Visual C++ 2015 are the oldest officially supported as of this writing
 
-## Linux
-### Installing pre-requisites
-Just install things from "Pre-requisites" using your preferred package manager. If your Qt package base is fine-grained you might want to take a look at CMakeLists.txt to figure out which specific libraries libqmatrixclient uses.
+## Installing pre-requisites
+### Linux
+Just install things from "Pre-requisites" using your preferred package manager. If your Qt package base is fine-grained you might want to take a look at CMakeLists.txt to figure out which specific libraries libqmatrixclient uses (or blindly run cmake and look at error messages).
 
-### Building
-From the root directory of the project sources:
-```
-mkdir build
-cd build
-cmake ../
-make
-```
+### OS X
+`brew install qt5` should get you Qt5. You may need to tell CMake about the path to Qt by passing `-DCMAKE_PREFIX_PATH=<where-Qt-installed>`
 
-### Installation
-From the root directory of the project sources:
-```
-cd build
-sudo make install
-```
+### Windows
+1. Install a Git client and CMake. The commands here imply that git and cmake are in your PATH - otherwise you have to prepend them with your actual paths.
+1. Install Qt5, using their official installer. If for some reason you need to use Qt 5.2.1, select its Add-ons component in the installer as well; for later versions, no extras are needed. If you don't have a toolchain and/or IDE, you can easily get one by selecting Qt Creator and at least one toolchain under Qt Creator.
+1. Make sure CMake knows about Qt and the toolchain - the easiest way is to run a qtenv2.bat script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`). The only thing it does is adding necessary paths to PATH - you might not want to run it on system startup but it's very handy to setup environment before building. Setting CMAKE_PREFIX_PATH, the same way as for OS X (see above), also helps.
 
-## OS X
+There are no official MinGW-based 64-bit packages for Qt. If you're determined to build 64-bit libqmatrixclient, either use a Visual Studio toolchain or build Qt5 yourself as described in Qt documentation.
 
-```
-brew install qt5
-git submodule init # pull in the KCoreAddons package
-git submodule update
-mkdir build
-cd build
-cmake ../ -DCMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.5.1/ # or whatever version of qt5 brew installed
-make
-```
+## Source code
+To get all necessary sources, simply clone the GitHub repo. If you have cloned Quaternion or Tensor sources with `--recursive`, you already have libqmatrixclient in the respective `lib` subdirectory.
 
-### Troubleshooting
+## Building
+In the root directory of the project sources:
+```
+mkdir build_dir
+cd build_dir
+cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
+cmake --build . --target all
+```
+This will get you the compiled library in `build_dir` inside your project sources. Only static builds of libqmatrixclient are tested at the moment; experiments with dynamic builds are welcome. The two known projects to link with libqmatrixclient are Tensor and Quaternion; you should take a look at their source code before doing anything with libqmatrixclient on your own.
+## Troubleshooting
 
 If `cmake` fails with...
 ```
@@ -51,57 +51,3 @@ CMake Warning at CMakeLists.txt:11 (find_package):
   "Qt5Widgets", but CMake did not find one.
 ```
 ...then you need to set the right -DCMAKE_PREFIX_PATH variable, see above.
-
-If `make` fails with...
-```
-Scanning dependencies of target libqmatrixclient
-make[2]: *** No rule to make target `CMakeFiles/libqmatrixclient.dir/build'.  Stop.
-make[1]: *** [CMakeFiles/libqmatrixclient.dir/all] Error 2
-```
-...then cmake failed to create a build target for libqmatrixclient as it couldn't find
-an optional dependency - probably KCoreAddons.  You probably forgot to do the
-`git submodule init && git submodule update` dance.
-
-
-## Windows
-### Installing pre-requisites
-Here you have options.
-
-#### Use official pre-built packages
-Notes:
-- This is quicker but takes a bit of your time to gather and install everything.
-- Unless you already have Visual Studio installed, it's quicker and easier to rely on MinGW supplied by the Qt's online installer. It's only 32-bit yet, though.
-- At the time of this writing (Feb '16), there're no official Qt packages for MinGW 64-bit; so if you want a 64-bit libqmatrixclient built by MinGW you have to pass on to the next section.
-- You're not getting a "system" KCoreAddons this way - the in-tree version will be used instead to build libqmatrixclient.
-Actions: download and install things from "Pre-requisites" (except KCoreAddons) in no particular order.
-
-#### Build-the-world
-Notes:
-- This is slower and takes much more machine time (and, possibly, your own time if you're not friendly with command line and configuration files) but downloads and sets up all dependencies on your behalf (including the toolchain, unless you tell it to use Visual Studio).
-- The process is based on [this KDE TechBase article](https://techbase.kde.org/Getting_Started/Build/Windows/emerge) and it uses a Gentoo Linux portage system ported to Windows. Have the article handy when going through it.
-- This option will download and build Qt (and KCoreAddons) from scratch so in theory you should be free to configure Qt in whatever way you want. This requires some knowledge of how the portage system works; it's definitely not for simple folks. Knowing Linux helps a lot.
-- You should give it enough time and space to compile everything (it can easily be several hours on weaker hardware and consumes 10+ Gb).
-- Tested with 64-bit MinGW. Visual Studio should work as well but noone tried it yet.
-- TODO: ```emerge qt``` below builds the default set of Qt components. By using a needed subset of Qt components instead of a qt metapackage, one can significantly reduce the build time.
-Actions:
-1. Check out and configure the emerge tool as described in the KDE TechBase article. Don't run emerge yet.
-2. If you don't have Windows SDK installed (it usually comes bundled with Visual Studio):
-  - Download and install Windows SDK: https://dev.windows.com/en-us/downloads/windows-10-sdk and set DXSDK_DIR environment variable to the root of the installation. This is needed for Qt to compile the DirectX-dependent parts.
-  - Alternatively (in theory, nobody tried it yet), you can setup/hack Qt portages so that Qt compilation doesn't rely on DirectX (see http://doc.qt.io/qt-5/windows-requirements.html#graphics-drivers for details about linking Qt to OpenGL).
-3. Enter ```emerge qt qtquickcontrols kcoreaddons``` inside the shell made by the kdeenv script (see the KDE TechBase article), double check that the checkout-configure-build-install process has started and leave it running. Leaving it for a night on even an older machine should suffice.
-4. Once the build is over, make sure you have the toolchain reachable from the environment you're going to compile libqmatrixclient in. If you plan to use the just-compiled MinGW and CMake to compile libqmatrixclient you might want to add <KDEROOT>/dev-utils/bin and <KDEROOT>/mingw64/bin into your PATH for convenience. If you have other MinGW or CMake installations around you have to carefully select the order of PATH entries and bear in mind that emerge usually takes the latest versions by default (which are not necessarily the same that you installed).
-  - Alternatively: just build libqmatrixclient inside the same kdeenv wrapper shell (not tried but should work).
-
-### Building
-All operations below assume that mingw32-make (if you use the MinGW toolchain) and cmake are in your PATH. If you use an IDE, import the sources as a CMake project and the IDE should do the rest for you. Qt Creator (the stock Qt IDE) and CLion were checked to work. The source tree also contains a (no more maintained) .project file for CodeLite.
-
-From the root directory of the project sources:
-```
-md build
-cd build
-cmake ../
-mingw32-make
-```
-
-### Installation
-There is no installer configuration for Windows as of yet. You might want to use [the Windows Deployment Tool](http://doc.qt.io/qt-5/windows-deployment.html#the-windows-deployment-tool) that comes with Qt to find all dependencies and put them into the build directory. Though it misses on a library or two it helps a lot. To double-check that you're good to go you can use [the Dependencies Walker tool aka depends.exe](http://www.dependencywalker.com/) - this is especially needed when you have a mixed 32/64-bit environment or have different versions of the same library scattered around.
