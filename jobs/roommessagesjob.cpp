@@ -43,6 +43,7 @@ RoomMessagesJob::RoomMessagesJob(ConnectionData* data, QString roomId,
                 }))
     , d(new Private)
 {
+    qDebug() << "Room messages query:" << query().toString(QUrl::PrettyDecoded);
 }
 
 RoomMessagesJob::~RoomMessagesJob()
