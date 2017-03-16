@@ -41,7 +41,7 @@ namespace QMatrixClient
      *
      * @example qDebug() << formatJson << json_object; // (QJsonObject, etc.)
      */
-    static QDebugManip formatJson = [](QDebug debug_object) {
+    const QDebugManip formatJson = [](QDebug debug_object) {
     #if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
             return debug_object;
     #else
