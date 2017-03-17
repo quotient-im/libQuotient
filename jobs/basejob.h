@@ -159,7 +159,7 @@ namespace QMatrixClient
              * observers that the job is terminated and that progress can be hidden.
              *
              * This should not be emitted directly by subclasses;
-             * use emitResult() instead.
+             * use finishJob() instead.
              *
              * In general, to be notified of a job's completion, client code
              * should connect to success() and failure()
@@ -178,7 +178,7 @@ namespace QMatrixClient
             /**
              * Emitted when the job is finished (except when killed).
              *
-             * Use error to know if the job was finished with error.
+             * Use error() to know if the job was finished with error.
              *
              * @param job the job that emitted this signal
              *
