@@ -21,8 +21,6 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
 
-#include "../connectiondata.h"
-
 using namespace QMatrixClient;
 
 class SyncJob::Private
@@ -50,6 +48,8 @@ SyncJob::SyncJob(ConnectionData* connection,
     if( !since.isEmpty() )
         query.addQueryItem("since", since);
     setRequestQuery(query);
+
+    setMaxRetries(std::numeric_limits<int>::max());
 }
 
 SyncJob::~SyncJob()

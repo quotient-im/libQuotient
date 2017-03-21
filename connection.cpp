@@ -270,6 +270,16 @@ QString Connection::accessToken() const
     return d->data->accessToken();
 }
 
+SyncJob* Connection::syncJob() const
+{
+    return d->syncJob;
+}
+
+int Connection::millisToReconnect() const
+{
+    return d->syncJob ? d->syncJob->millisToRetry() : 0;
+}
+
 QHash< QString, Room* > Connection::roomMap() const
 {
     return d->roomMap;

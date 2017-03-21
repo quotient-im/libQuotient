@@ -36,6 +36,7 @@ namespace QMatrixClient
     class BaseJob: public QObject
     {
             Q_OBJECT
+            Q_PROPERTY(size_t maxRetries READ maxRetries WRITE setMaxRetries)
         public:
             /* Just in case, the values are compatible with KJob
              * (which BaseJob used to inherit from). */
@@ -107,12 +108,26 @@ namespace QMatrixClient
                     QString message;
             };
 
+            using duration_t = int; // milliseconds
+
         public:
             BaseJob(ConnectionData* connection, JobHttpType type, QString name,
                     QString endpoint, Query query = Query(), Data data = Data(),
                     bool needsToken = true);
             virtual ~BaseJob();
 
+            Status status() const;
+            int error() const;
+            virtual QString errorString() const;
+
+            size_t maxRetries() const;
+            void setMaxRetries(size_t newMaxRetries);
+
+            Q_INVOKABLE duration_t getCurrentTimeout() const;
+            Q_INVOKABLE duration_t getNextRetryInterval() const;
+            Q_INVOKABLE duration_t millisToRetry() const;
+
+        public slots:
             void start();
 
             /**
@@ -124,11 +139,21 @@ namespace QMatrixClient
              */
             void abandon();
 
-            Status status() const;
-            int error() const;
-            virtual QString errorString() const;
-
         signals:
+            /** The job is about to send a network request */
+            void aboutToStart();
+
+            /** The job has sent a network request */
+            void started();
+
+            /**
+             * The previous network request has failed; the next attempt will
+             * be done in the specified time
+             * @param nextAttempt the 1-based number of attempt (will always be more than 1)
+             * @param inMilliseconds the interval after which the next attempt will be taken
+             */
+            void retryScheduled(size_t nextAttempt, int inMilliseconds);
+
             /**
              * Emitted when the job is finished, in any case. It is used to notify
              * observers that the job is terminated and that progress can be hidden.
@@ -181,7 +206,7 @@ namespace QMatrixClient
             void setRequestData(const Data& data);
 
             /**
-             * Used by gotReply() slot to check the received reply for general
+             * Used by gotReply() to check the received reply for general
              * issues such as network errors or access denial.
              * Returning anything except NoError/Success prevents
              * further parseReply()/parseJson() invocation.
@@ -212,7 +237,7 @@ namespace QMatrixClient
              * @see parseReply
              */
             virtual Status parseJson(const QJsonDocument&);
-            
+
             void setStatus(Status s);
             void setStatus(int code, QString message);
 
@@ -224,7 +249,8 @@ namespace QMatrixClient
             void gotReply();
 
         private:
-            void finishJob(bool emitResult);
+            void stop();
+            void finishJob();
 
             class Private;
             QScopedPointer<Private> d;

@@ -71,6 +71,8 @@ namespace QMatrixClient
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;
+            Q_INVOKABLE SyncJob* syncJob() const;
+            Q_INVOKABLE int millisToReconnect() const;
 
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs)
