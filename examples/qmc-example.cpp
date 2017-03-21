@@ -4,12 +4,29 @@
 #include "connection.h"
 #include "room.h"
 
+using namespace QMatrixClient;
+using std::cout;
+using std::endl;
+
+void onNewRoom(Room* r)
+{
+    cout << "New room: " << r->id().toStdString() << endl;
+    QObject::connect(r, &Room::namesChanged, [=] {
+        cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl;
+        cout << "  Name: " << r->name().toStdString() << endl;
+        cout << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl;
+    });
+    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (Events evs) {
+        cout << "New events in room " << r->id().toStdString() << ":" << endl;
+        for (auto e: evs)
+        {
+            cout << e->originalJson().toStdString() << endl;
+        }
+    });
+}
+
 int main(int argc, char* argv[])
 {
-    using namespace QMatrixClient;
-    using std::cout;
-    using std::endl;
-
     QCoreApplication app(argc, argv);
     if (argc < 2)
         return -1;
@@ -24,20 +41,6 @@ int main(int argc, char* argv[])
         cout << "Sync done" << endl;
         conn->sync(30000);
     });
-    QObject::connect(conn, &Connection::newRoom, [=] (Room* r) {
-        cout << "New room: " << r->id().toStdString() << endl;
-        QObject::connect(r, &Room::namesChanged, [=] {
-            cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl;
-            cout << "  Name: " << r->name().toStdString() << endl;
-            cout << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl;
-        });
-        QObject::connect(r, &Room::aboutToAddNewMessages, [=] (Events evs) {
-            cout << "New events in room " << r->id().toStdString() << ":" << endl;
-            for (auto e: evs)
-            {
-                cout << e->originalJson().toStdString() << endl;
-            }
-        });
-    });
+    QObject::connect(conn, &Connection::newRoom, onNewRoom);
     return app.exec();
 }
