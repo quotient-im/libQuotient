@@ -18,6 +18,7 @@
 
 #include "connectiondata.h"
 
+#include <QtCore/QDebug>
 #include <QtNetwork/QNetworkAccessManager>
 
 using namespace QMatrixClient;
