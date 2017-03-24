@@ -34,6 +34,7 @@ namespace QMatrixClient
     class RoomMessagesJob;
     class PostReceiptJob;
     class MediaThumbnailJob;
+    class JoinRoomJob;
 
     class Connection: public QObject {
             Q_OBJECT
@@ -53,9 +54,11 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE virtual void sync(int timeout=-1);
+            /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
+            /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
-            Q_INVOKABLE virtual void joinRoom( QString roomAlias );
+            Q_INVOKABLE virtual JoinRoomJob* joinRoom( QString roomAlias );
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
             virtual MediaThumbnailJob* getThumbnail( QUrl url, QSize requestedSize );
