@@ -65,7 +65,7 @@ class BaseJob::Private
         QTimer timer;
 };
 
-inline QDebug operator<<(QDebug dbg, BaseJob* j)
+inline QDebug operator<<(QDebug dbg, const BaseJob* j)
 {
     return dbg << "Job" << j->objectName();
 }
@@ -160,6 +160,8 @@ void BaseJob::gotReply()
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
+    if (reply->error() != QNetworkReply::NoError)
+        qDebug() << this << "returned" << reply->error();
     switch( reply->error() )
     {
     case QNetworkReply::NoError:
@@ -169,6 +171,12 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::ContentOperationNotPermittedError:
         return { ContentAccessError, reply->errorString() };
+
+    case QNetworkReply::ProtocolInvalidOperationError:
+        return { IncorrectRequestError, reply->errorString() };
+
+    case QNetworkReply::ContentNotFoundError:
+        return { NotFoundError, reply->errorString() };
 
     default:
         return { NetworkError, reply->errorString() };

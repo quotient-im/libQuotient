@@ -46,6 +46,8 @@ namespace QMatrixClient
                 , JsonParseError
                 , TimeoutError
                 , ContentAccessError
+                , NotFoundError
+                , IncorrectRequestError
                 , UserDefinedError = 200
             };
 
