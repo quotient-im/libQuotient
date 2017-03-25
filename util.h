@@ -16,10 +16,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/**
- * @file logging_util.h - a collection of utilities to facilitate debug logging.
- */
-
 #pragma once
 
 #include <QtCore/QDebug>
@@ -32,7 +28,7 @@ namespace QMatrixClient
     using QDebugManip = QDebug (*)(QDebug);
 
     /**
-     * @brief QDebug manipulator to setup the stream for JSON output.
+     * @brief QDebug manipulator to setup the stream for JSON output
      *
      * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
      * and the respective addition of QDebug::noquote().
@@ -41,13 +37,14 @@ namespace QMatrixClient
      *
      * @example qDebug() << formatJson << json_object; // (QJsonObject, etc.)
      */
-    const QDebugManip formatJson = [](QDebug debug_object) {
-    #if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+    inline QDebug formatJson(QDebug debug_object)
+    {
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
             return debug_object;
-    #else
+#else
             return debug_object.noquote();
-    #endif
-        };
+#endif
+    };
 
     /**
      * @brief A helper operator to facilitate usage of formatJson (and possibly
