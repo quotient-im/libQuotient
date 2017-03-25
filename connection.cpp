@@ -144,19 +144,17 @@ void Connection::reconnect()
 
 void Connection::disconnectFromServer()
 {
-    if (d->syncJob)
-    {
-        d->syncJob->abandon();
-        d->syncJob = nullptr;
-    }
+    stopSync();
     d->isConnected = false;
 }
 
 void Connection::logout()
 {
-    auto job = new LogoutJob(d->data);
-    connect( job, &LogoutJob::success, this, &Connection::loggedOut);
-    job->start();
+    auto job = callApi<LogoutJob>();
+    connect( job, &LogoutJob::success, [=] {
+        stopSync();
+        emit loggedOut();
+    });
 }
 
 void Connection::sync(int timeout)
@@ -184,6 +182,15 @@ void Connection::sync(int timeout)
         else
             emit connectionError(job->errorString());
     });
+}
+
+void Connection::stopSync()
+{
+    if (d->syncJob)
+    {
+        d->syncJob->abandon();
+        d->syncJob = nullptr;
+    }
 }
 
 void Connection::postMessage(Room* room, QString type, QString message)

@@ -54,6 +54,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE virtual void sync(int timeout=-1);
+            Q_INVOKABLE virtual void stopSync();
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
