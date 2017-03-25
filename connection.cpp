@@ -175,12 +175,13 @@ void Connection::sync(int timeout)
         d->syncJob = nullptr;
         emit syncDone();
     });
+    connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
     connect( job, &SyncJob::failure, [=] () {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
             emit loginError(job->errorString());
         else
-            emit connectionError(job->errorString());
+            emit syncError(job->errorString());
     });
 }
 

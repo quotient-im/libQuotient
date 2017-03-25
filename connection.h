@@ -94,8 +94,9 @@ namespace QMatrixClient
             void joinedRoom(Room* room);
 
             void loginError(QString error);
-            void connectionError(QString error);
+            void networkError(size_t nextAttempt, int inMilliseconds);
             void resolveError(QString error);
+            void syncError(QString error);
             //void jobError(BaseJob* job);
 
         protected:
