@@ -25,6 +25,7 @@
 
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
+#include <QtGui/QIcon>
 #include <algorithm>
 
 using namespace QMatrixClient;
@@ -39,6 +40,7 @@ class User::Private
         Connection* connection;
 
         QPixmap avatar;
+        QIcon defaultIcon;
         QSize requestedSize;
         bool avatarValid;
         bool avatarOngoingRequest;
@@ -55,6 +57,7 @@ User::User(QString userId, Connection* connection)
     d->avatarValid = false;
     d->avatarOngoingRequest = false;
     d->q = this;
+    d->defaultIcon = QIcon::fromTheme(QStringLiteral("user-available"));
 }
 
 User::~User()
@@ -102,7 +105,13 @@ QPixmap User::croppedAvatar(int width, int height)
     }
 
     if( d->avatar.isNull() )
-        return d->avatar;
+    {
+        if (d->defaultIcon.isNull())
+            return d->avatar;
+
+        d->avatar = d->defaultIcon.pixmap(size);
+    }
+
     for (const QPixmap& p: d->scaledAvatars)
     {
         if (p.size() == size)
