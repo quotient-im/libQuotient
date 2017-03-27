@@ -54,6 +54,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE virtual void sync(int timeout=-1);
+            Q_INVOKABLE virtual void stopSync();
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
@@ -71,6 +72,8 @@ namespace QMatrixClient
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;
+            Q_INVOKABLE SyncJob* syncJob() const;
+            Q_INVOKABLE int millisToReconnect() const;
 
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs)
@@ -91,8 +94,9 @@ namespace QMatrixClient
             void joinedRoom(Room* room);
 
             void loginError(QString error);
-            void connectionError(QString error);
+            void networkError(size_t nextAttempt, int inMilliseconds);
             void resolveError(QString error);
+            void syncError(QString error);
             //void jobError(BaseJob* job);
 
         protected:

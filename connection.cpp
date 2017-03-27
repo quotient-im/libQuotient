@@ -144,19 +144,17 @@ void Connection::reconnect()
 
 void Connection::disconnectFromServer()
 {
-    if (d->syncJob)
-    {
-        d->syncJob->abandon();
-        d->syncJob = nullptr;
-    }
+    stopSync();
     d->isConnected = false;
 }
 
 void Connection::logout()
 {
-    auto job = new LogoutJob(d->data);
-    connect( job, &LogoutJob::success, this, &Connection::loggedOut);
-    job->start();
+    auto job = callApi<LogoutJob>();
+    connect( job, &LogoutJob::success, [=] {
+        stopSync();
+        emit loggedOut();
+    });
 }
 
 void Connection::sync(int timeout)
@@ -177,13 +175,23 @@ void Connection::sync(int timeout)
         d->syncJob = nullptr;
         emit syncDone();
     });
+    connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
     connect( job, &SyncJob::failure, [=] () {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
             emit loginError(job->errorString());
         else
-            emit connectionError(job->errorString());
+            emit syncError(job->errorString());
     });
+}
+
+void Connection::stopSync()
+{
+    if (d->syncJob)
+    {
+        d->syncJob->abandon();
+        d->syncJob = nullptr;
+    }
 }
 
 void Connection::postMessage(Room* room, QString type, QString message)
@@ -268,6 +276,16 @@ QString Connection::token() const
 QString Connection::accessToken() const
 {
     return d->data->accessToken();
+}
+
+SyncJob* Connection::syncJob() const
+{
+    return d->syncJob;
+}
+
+int Connection::millisToReconnect() const
+{
+    return d->syncJob ? d->syncJob->millisToRetry() : 0;
 }
 
 QHash< QString, Room* > Connection::roomMap() const
