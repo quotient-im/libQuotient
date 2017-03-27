@@ -186,6 +186,7 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
         return { ContentAccessError, reply->errorString() };
 
     case QNetworkReply::ProtocolInvalidOperationError:
+    case QNetworkReply::UnknownContentError:
         return { IncorrectRequestError, reply->errorString() };
 
     case QNetworkReply::ContentNotFoundError:
