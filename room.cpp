@@ -608,9 +608,12 @@ void Room::doAddNewMessageEvents(const Events& events)
     // the local user, markMessagesAsRead() invocation) to promote their
     // read markers over the new message events.
     User* firstWriter = connection()->user(events.front()->senderId());
-    d->promoteReadMarker(firstWriter, findInTimeline(events.front()->id()));
-    qDebug() << "Auto-promoted read marker for" << firstWriter->id()
-             << "to" << *readMarker(firstWriter);
+    if (readMarker(firstWriter) != timelineEdge())
+    {
+        d->promoteReadMarker(firstWriter, findInTimeline(events.front()->id()));
+        qDebug() << "Auto-promoted read marker for" << firstWriter->id()
+                 << "to" << *readMarker(firstWriter);
+    }
 
     if( !d->unreadMessages && newUnreadMessages > 0)
     {
