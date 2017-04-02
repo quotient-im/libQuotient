@@ -33,7 +33,7 @@ class PasswordLogin::Private
 };
 
 PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, JobHttpType::PostJob, "PasswordLogin"
+    : BaseJob(connection, HttpVerb::Post, "PasswordLogin"
             , "_matrix/client/r0/login"
             , Query()
             , Data(

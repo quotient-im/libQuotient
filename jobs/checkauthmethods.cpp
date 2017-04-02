@@ -37,7 +37,7 @@ class CheckAuthMethods::Private
 };
 
 CheckAuthMethods::CheckAuthMethods(ConnectionData* connection)
-    : BaseJob(connection, JobHttpType::GetJob, "CheckAuthMethods",
+    : BaseJob(connection, HttpVerb::Get, "CheckAuthMethods",
               "_matrix/client/r0/login", Query(), Data(), false)
     , d(new Private)
 {

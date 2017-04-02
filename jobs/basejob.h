@@ -31,7 +31,7 @@ namespace QMatrixClient
 {
     class ConnectionData;
 
-    enum class JobHttpType { GetJob, PutJob, PostJob, DeleteJob };
+    enum class HttpVerb { Get, Put, Post, Delete };
 
     class BaseJob: public QObject
     {
@@ -111,7 +111,7 @@ namespace QMatrixClient
             using duration_t = int; // milliseconds
 
         public:
-            BaseJob(ConnectionData* connection, JobHttpType type, QString name,
+            BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
                     QString endpoint, Query query = Query(), Data data = Data(),
                     bool needsToken = true);
             virtual ~BaseJob();

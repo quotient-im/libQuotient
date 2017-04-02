@@ -34,7 +34,7 @@ static size_t jobId = 0;
 
 SyncJob::SyncJob(ConnectionData* connection,
                  QString since, QString filter, int timeout, QString presence)
-    : BaseJob(connection, JobHttpType::GetJob, QString("SyncJob-%1").arg(++jobId),
+    : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
     , d(new Private)
 {

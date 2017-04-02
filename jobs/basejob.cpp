@@ -43,9 +43,9 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class BaseJob::Private
 {
     public:
-        Private(ConnectionData* c, JobHttpType t, QString endpoint,
+        Private(ConnectionData* c, HttpVerb v, QString endpoint,
                 const QUrlQuery& q, const Data& data, bool nt)
-            : connection(c), type(t), apiEndpoint(endpoint), requestQuery(q)
+            : connection(c), verb(v), apiEndpoint(endpoint), requestQuery(q)
             , requestData(data), needsToken(nt)
             , reply(nullptr), status(NoError)
         { }
@@ -55,7 +55,7 @@ class BaseJob::Private
         ConnectionData* connection;
 
         // Contents for the network request
-        JobHttpType type;
+        HttpVerb verb;
         QString apiEndpoint;
         QUrlQuery requestQuery;
         Data requestData;
@@ -76,10 +76,10 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
     return dbg << "Job" << j->objectName();
 }
 
-BaseJob::BaseJob(ConnectionData* connection, JobHttpType type, QString name,
+BaseJob::BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
                  QString endpoint, BaseJob::Query query, BaseJob::Data data,
                  bool needsToken)
-    : d(new Private(connection, type, endpoint, query, data, needsToken))
+    : d(new Private(connection, verb, endpoint, query, data, needsToken))
 {
     setObjectName(name);
     d->timer.setSingleShot(true);
@@ -134,18 +134,18 @@ void BaseJob::Private::sendRequest()
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
-    switch( type )
+    switch( verb )
     {
-        case JobHttpType::GetJob:
+        case HttpVerb::Get:
             reply.reset( connection->nam()->get(req) );
             break;
-        case JobHttpType::PostJob:
+        case HttpVerb::Post:
             reply.reset( connection->nam()->post(req, requestData.serialize()) );
             break;
-        case JobHttpType::PutJob:
+        case HttpVerb::Put:
             reply.reset( connection->nam()->put(req, requestData.serialize()) );
             break;
-        case JobHttpType::DeleteJob:
+        case HttpVerb::Delete:
             reply.reset( connection->nam()->deleteResource(req) );
             break;
     }

@@ -25,7 +25,7 @@
 using namespace QMatrixClient;
 
 PostReceiptJob::PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId)
-    : BaseJob(connection, JobHttpType::PostJob, "PostReceiptJob",
+    : BaseJob(connection, HttpVerb::Post, "PostReceiptJob",
               QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(roomId, eventId))
 { }
 

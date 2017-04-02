@@ -30,7 +30,7 @@ class MediaThumbnailJob::Private
 
 MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
-    : BaseJob(data, JobHttpType::GetJob, "MediaThumbnailJob",
+    : BaseJob(data, HttpVerb::Get, "MediaThumbnailJob",
               QString("/_matrix/media/v1/thumbnail/%1%2").arg(url.host(), url.path()),
               Query(
                 { { "width", QString::number(requestedSize.width()) }
