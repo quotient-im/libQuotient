@@ -792,12 +792,6 @@ QString Room::Private::calculateDisplayname() const
 
     // 1. Name (from m.room.name)
     if (!name.isEmpty()) {
-        // The below two lines extend the spec. They take care of the case
-        // when there are two rooms with the same name.
-        // The format is unwittingly borrowed from the email address format.
-        if (!canonicalAlias.isEmpty())
-            return name % " <" % canonicalAlias % ">";
-
         return name;
     }
 
