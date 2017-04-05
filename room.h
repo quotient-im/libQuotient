@@ -64,6 +64,12 @@ namespace QMatrixClient
     {
             Q_OBJECT
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
+            Q_PROPERTY(QString id READ id CONSTANT)
+            Q_PROPERTY(QString name READ name NOTIFY namesChanged)
+            Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
+            Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
+            Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
+            Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
         public:
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
@@ -71,12 +77,12 @@ namespace QMatrixClient
             Room(Connection* connection, QString id);
             virtual ~Room();
 
-            Q_INVOKABLE QString id() const;
-            Q_INVOKABLE QString name() const;
-            Q_INVOKABLE QStringList aliases() const;
-            Q_INVOKABLE QString canonicalAlias() const;
-            Q_INVOKABLE QString displayName() const;
-            Q_INVOKABLE QString topic() const;
+            QString id() const;
+            QString name() const;
+            QStringList aliases() const;
+            QString canonicalAlias() const;
+            QString displayName() const;
+            QString topic() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
             QList<User*> membersLeft() const;
