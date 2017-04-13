@@ -139,7 +139,9 @@ namespace QMatrixClient
             MemberSorter memberSorter() const;
 
         public slots:
-            void postMessage(QString msgType, QString msgContent);
+            void postMessage(const QString& type, const QString& plainText);
+            void postMessage(const QString& type, const QString& plainText,
+                             const QString& richText);
             void getPreviousContent(int limit = 10);
             void userRenamed(User* user, QString oldName);
 

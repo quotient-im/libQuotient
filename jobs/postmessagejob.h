@@ -25,8 +25,13 @@ namespace QMatrixClient
     class PostMessageJob: public BaseJob
     {
         public:
-            PostMessageJob(ConnectionData* connection, QString roomId,
-                           QString type, QString message);
+            /** Constructs a plain text message job */
+            PostMessageJob(ConnectionData* connection, const QString& roomId,
+                           const QString& type, const QString& plainText);
+            /** Constructs a rich text message job */
+            PostMessageJob(ConnectionData* connection, const QString& roomId,
+                           const QString& type, const QString& plainText,
+                           const QString& richText);
             virtual ~PostMessageJob();
 
             //bool success();

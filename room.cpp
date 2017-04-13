@@ -535,9 +535,15 @@ void Room::updateData(SyncRoomData& data)
     }
 }
 
-void Room::postMessage(QString type, QString content)
+void Room::postMessage(const QString& type, const QString& plainText)
 {
-    connection()->callApi<PostMessageJob>(id(), type, content);
+    connection()->callApi<PostMessageJob>(id(), type, plainText);
+}
+
+void Room::postMessage(const QString& type, const QString& plainText,
+                       const QString& richText)
+{
+    connection()->callApi<PostMessageJob>(id(), type, plainText, richText);
 }
 
 void Room::getPreviousContent(int limit)
