@@ -155,9 +155,10 @@ TextContent::TextContent(const QJsonObject& json)
         mimeType = db.mimeTypeForName("text/html");
         body = json["formatted_body"].toString();
     } else {
-        // Best-guessing from the content
+        // Falling back to plain text, as there's no standard way to describe
+        // rich text in messages.
         body = json["body"].toString();
-        mimeType = db.mimeTypeForData(body.toUtf8());
+        mimeType = db.mimeTypeForName("text/plain");
     }
 }
 
