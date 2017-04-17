@@ -844,6 +844,6 @@ bool MemberSorter::operator()(User *u1, User *u2) const
         n1.remove(0, 1);
     if (n2[0] == '@')
         n2.remove(0, 1);
-    return n1 < n2;
+    return n1.localeAwareCompare(n2) < 0;
 }
 
