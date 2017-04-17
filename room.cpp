@@ -243,11 +243,10 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
     return { prevMarker, newMarker };
 }
 
-void Room::markMessagesAsRead(QString uptoEventId)
+void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
 {
     User* localUser = connection()->user();
-    Private::rev_iter_pair_t markers =
-            d->promoteReadMarker(localUser, findInTimeline(uptoEventId));
+    Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser, upToMarker);
     if (markers.first != markers.second)
         qDebug() << "Marked messages as read until" << *readMarker();
 
@@ -258,11 +257,21 @@ void Room::markMessagesAsRead(QString uptoEventId)
     {
         if ((*markers.second)->senderId() != localUser->id())
         {
-            connection()->callApi<PostReceiptJob>(this->id(),
-                                                  (*markers.second)->id());
+            connection()->callApi<PostReceiptJob>(id(), (*markers.second)->id());
             break;
         }
     }
+}
+
+void Room::markMessagesAsRead(QString uptoEventId)
+{
+    markMessagesAsRead(findInTimeline(uptoEventId));
+}
+
+void Room::markAllMessagesAsRead()
+{
+    if (!d->timeline.empty())
+        markMessagesAsRead(d->timeline.crbegin());
 }
 
 bool Room::hasUnreadMessages()

@@ -128,6 +128,8 @@ namespace QMatrixClient
              * the nearest non-local message before. uptoEventId must be non-empty.
              */
             void markMessagesAsRead(QString uptoEventId);
+            /** Mark all messages in the room as read */
+            void markAllMessagesAsRead();
 
             Q_INVOKABLE bool hasUnreadMessages();
 
@@ -183,6 +185,8 @@ namespace QMatrixClient
 
             void addNewMessageEvents(Events events);
             void addHistoricalMessageEvents(Events events);
+
+            void markMessagesAsRead(rev_iter_t upToMarker);
     };
 
     class MemberSorter
