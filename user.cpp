@@ -132,7 +132,10 @@ void User::processEvent(Event* event)
     if( event->type() == EventType::RoomMember )
     {
         RoomMemberEvent* e = static_cast<RoomMemberEvent*>(event);
-        if( d->name != e->displayName() && e->membership() != MembershipType::Leave)
+        if (e->membership() == MembershipType::Leave)
+            return;
+
+        if( d->name != e->displayName() )
         {
             const auto oldName = d->name;
             d->name = e->displayName();
