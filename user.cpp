@@ -22,6 +22,7 @@
 #include "events/event.h"
 #include "events/roommemberevent.h"
 #include "jobs/mediathumbnailjob.h"
+#include "util.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
@@ -97,7 +98,7 @@ QPixmap User::croppedAvatar(int width, int height)
     {
         if( !d->avatarOngoingRequest && d->avatarUrl.isValid() )
         {
-            qDebug() << "Getting avatar for" << id();
+            qCDebug(MAIN) << "Getting avatar for" << id();
             d->requestedSize = size;
             d->avatarOngoingRequest = true;
             QTimer::singleShot(0, this, SLOT(requestAvatar()));

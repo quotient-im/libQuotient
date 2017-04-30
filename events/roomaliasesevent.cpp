@@ -33,6 +33,7 @@
 // }
 
 #include "roomaliasesevent.h"
+#include "util.h"
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
@@ -71,6 +72,6 @@ RoomAliasesEvent* RoomAliasesEvent::fromJson(const QJsonObject& obj)
     {
         e->d->aliases << alias.toString();
     }
-    qDebug() << "RoomAliasesEvent:" << e->d->aliases;
+    qCDebug(EVENTS) << "RoomAliasesEvent:" << e->d->aliases;
     return e;
 }

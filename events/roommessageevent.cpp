@@ -97,8 +97,8 @@ ContentPair makeVideo(const QJsonObject& json)
 
 ContentPair makeUnknown(const QJsonObject& json)
 {
-    qDebug() << "RoomMessageEvent: couldn't resolve msgtype, JSON follows:";
-    qDebug() << json;
+    qCDebug(EVENTS) << "RoomMessageEvent: couldn't resolve msgtype, JSON follows:";
+    qCDebug(EVENTS) << json;
     return { MessageEventType::Unknown, new Base };
 }
 
@@ -110,7 +110,7 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
     {
         e->d->userId = obj.value("sender").toString();
     } else {
-        qDebug() << "RoomMessageEvent: user_id not found";
+        qCDebug(EVENTS) << "RoomMessageEvent: user_id not found";
     }
     if( obj.contains("content") )
     {
@@ -135,8 +135,8 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         }
         else
         {
-            qWarning() << "RoomMessageEvent(" << e->id() << "): no body or msgtype";
-            qDebug() << obj;
+            qCWarning(EVENTS) << "RoomMessageEvent(" << e->id() << "): no body or msgtype";
+            qCDebug(EVENTS) << obj;
         }
     }
     return e;

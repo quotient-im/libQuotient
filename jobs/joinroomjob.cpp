@@ -17,6 +17,7 @@
  */
 
 #include "joinroomjob.h"
+#include "util.h"
 
 #include <QtNetwork/QNetworkReply>
 
@@ -56,6 +57,6 @@ BaseJob::Status JoinRoomJob::parseJson(const QJsonDocument& data)
         return Success;
     }
 
-    qDebug() << data;
+    qCDebug(JOBS) << data;
     return { UserDefinedError, "No room_id in the JSON response" };
 }

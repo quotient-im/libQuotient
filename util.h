@@ -18,7 +18,11 @@
 
 #pragma once
 
-#include <QtCore/QDebug>
+#include <QtCore/QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(EVENTS)
+Q_DECLARE_LOGGING_CATEGORY(JOBS)
+Q_DECLARE_LOGGING_CATEGORY(MAIN)
 
 namespace QMatrixClient
 {
@@ -35,7 +39,7 @@ namespace QMatrixClient
      * Together with the operator<<() helper, the proposed usage is
      * (similar to std:: I/O manipulators):
      *
-     * @example qDebug() << formatJson << json_object; // (QJsonObject, etc.)
+     * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
      */
     inline QDebug formatJson(QDebug debug_object)
     {

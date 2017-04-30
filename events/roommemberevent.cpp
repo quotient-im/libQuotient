@@ -17,6 +17,7 @@
  */
 
 #include "roommemberevent.h"
+#include "util.h"
 
 #include <QtCore/QDebug>
 
@@ -81,7 +82,7 @@ RoomMemberEvent* RoomMemberEvent::fromJson(const QJsonObject& obj)
     else if( membershipString == "ban" )
         e->d->membership = MembershipType::Ban;
     else
-        qDebug() << "Unknown MembershipType: " << membershipString;
+        qCDebug(EVENTS) << "Unknown MembershipType: " << membershipString;
     e->d->avatarUrl = QUrl(content.value("avatar_url").toString());
     return e;
 }

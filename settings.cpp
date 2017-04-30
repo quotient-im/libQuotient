@@ -10,7 +10,7 @@ Settings::~Settings()
 
 void Settings::setValue(const QString& key, const QVariant& value)
 {
-//    qDebug() << "Setting" << key << "to" << value;
+//    qCDebug() << "Setting" << key << "to" << value;
     QSettings::setValue(key, value);
 }
 

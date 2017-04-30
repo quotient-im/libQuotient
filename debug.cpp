@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Elvis Angelaccio <elvid.angelaccio@kde.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,45 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "typingevent.h"
 #include "util.h"
 
-#include <QtCore/QJsonArray>
-#include <QtCore/QDebug>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+Q_LOGGING_CATEGORY(MAIN, "libqmatrixclient.main", QtInfoMsg)
+Q_LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events", QtInfoMsg)
+Q_LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs", QtInfoMsg)
+#else
+Q_LOGGING_CATEGORY(MAIN, "libqmatrixclient.main")
+Q_LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events")
+Q_LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs")
+#endif
 
-using namespace QMatrixClient;
-
-class TypingEvent::Private
-{
-    public:
-        QStringList users;
-};
-
-TypingEvent::TypingEvent()
-    : Event(EventType::Typing)
-    , d( new Private )
-{
-}
-
-TypingEvent::~TypingEvent()
-{
-    delete d;
-}
-
-QStringList TypingEvent::users()
-{
-    return d->users;
-}
-
-TypingEvent* TypingEvent::fromJson(const QJsonObject& obj)
-{
-    TypingEvent* e = new TypingEvent();
-    e->parseJson(obj);
-    QJsonArray array = obj.value("content").toObject().value("user_ids").toArray();
-    for( const QJsonValue& user: array )
-    {
-        e->d->users << user.toString();
-    }
-    qCDebug(EVENTS) << "Typing:" << e->d->users;
-    return e;
-}

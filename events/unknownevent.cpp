@@ -59,7 +59,7 @@ UnknownEvent* UnknownEvent::fromJson(const QJsonObject& obj)
     e->parseJson(obj);
     e->d->type = obj.value("type").toString();
     e->d->content = QString::fromUtf8(QJsonDocument(obj).toJson());
-    qDebug() << "UnknownEvent, JSON follows:";
-    qDebug() << formatJson << obj;
+    qCDebug(EVENTS) << "UnknownEvent, JSON follows:";
+    qCDebug(EVENTS) << formatJson << obj;
     return e;
 }

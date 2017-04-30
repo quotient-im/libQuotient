@@ -17,6 +17,7 @@
  */
 
 #include "mediathumbnailjob.h"
+#include "util.h"
 
 #include <QtCore/QDebug>
 
@@ -55,7 +56,7 @@ BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)
 {
     if( !d->thumbnail.loadFromData(data) )
     {
-        qDebug() << "MediaThumbnailJob: could not read image data";
+        qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }
     return Success;
 }

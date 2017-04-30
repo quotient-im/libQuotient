@@ -124,8 +124,8 @@ bool Event::parseJson(const QJsonObject& obj)
         if (d->id.isEmpty())
         {
             correct = false;
-            qDebug() << "Event: can't find event_id; event dump follows";
-            qDebug() << formatJson << obj;
+            qCDebug(EVENTS) << "Event: can't find event_id; event dump follows";
+            qCDebug(EVENTS) << formatJson << obj;
         }
         if( obj.contains("origin_server_ts") )
         {
@@ -135,8 +135,8 @@ bool Event::parseJson(const QJsonObject& obj)
         else if (d->type != EventType::Unknown)
         {
             correct = false;
-            qDebug() << "Event: can't find ts; event dump follows";
-            qDebug() << formatJson << obj;
+            qCDebug(EVENTS) << "Event: can't find ts; event dump follows";
+            qCDebug(EVENTS) << formatJson << obj;
         }
     }
     return correct;
