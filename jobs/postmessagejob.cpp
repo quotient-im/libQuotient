@@ -18,6 +18,7 @@
 
 #include "postmessagejob.h"
 #include "../connectiondata.h"
+#include "util.h"
 
 #include <QtNetwork/QNetworkReply>
 
@@ -62,6 +63,6 @@ BaseJob::Status PostMessageJob::parseJson(const QJsonDocument& data)
     if( data.object().contains("event_id") )
         return Success;
 
-    qDebug() << data;
+    qCDebug(JOBS) << data;
     return { UserDefinedError, "No event_id in the JSON response" };
 }

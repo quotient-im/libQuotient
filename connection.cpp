@@ -74,7 +74,7 @@ Connection::Connection()
 
 Connection::~Connection()
 {
-    qDebug() << "deconstructing connection object for" << d->userId;
+    qCDebug(MAIN) << "deconstructing connection object for" << d->userId;
     delete d;
 }
 
@@ -121,10 +121,10 @@ void Connection::connectWithToken(QString userId, QString token)
     d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
-    qDebug() << "Accessing" << d->data->baseUrl()
+    qCDebug(MAIN) << "Accessing" << d->data->baseUrl()
              << "by user" << userId
              << "with the following access token:";
-    qDebug() << token;
+    qCDebug(MAIN) << token;
     emit connected();
 }
 
@@ -307,7 +307,7 @@ Room* Connection::provideRoom(QString id)
 {
     if (id.isEmpty())
     {
-        qDebug() << "Connection::provideRoom() with empty id, doing nothing";
+        qCDebug(MAIN) << "Connection::provideRoom() with empty id, doing nothing";
         return nullptr;
     }
 

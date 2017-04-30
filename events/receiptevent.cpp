@@ -34,6 +34,7 @@ Example of a Receipt Event:
 */
 
 #include "receiptevent.h"
+#include "util.h"
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QDebug>
@@ -72,8 +73,8 @@ ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
     {
         if (eventIt.key().isEmpty())
         {
-            qWarning() << "ReceiptEvent has an empty event id, skipping";
-            qDebug() << "ReceiptEvent content follows:\n" << contents;
+            qCWarning(EVENTS) << "ReceiptEvent has an empty event id, skipping";
+            qCDebug(EVENTS) << "ReceiptEvent content follows:\n" << contents;
             continue;
         }
         const QJsonObject reads = eventIt.value().toObject().value("m.read").toObject();

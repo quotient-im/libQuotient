@@ -137,7 +137,7 @@ Room::Room(Connection* connection, QString id)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
-    qDebug() << "New Room:" << id;
+    qCDebug(MAIN) << "New Room:" << id;
 
     //connection->getMembers(this); // I don't think we need this anymore in r0.0.1
 }
@@ -231,10 +231,10 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
         if (stillUnreadMessagesCount == 0)
         {
             unreadMessages = false;
-            qDebug() << "Room" << displayname << "has no more unread messages";
+            qCDebug(MAIN) << "Room" << displayname << "has no more unread messages";
             emit q->unreadMessagesChanged(q);
         } else
-            qDebug() << "Room" << displayname << "still has"
+            qCDebug(MAIN) << "Room" << displayname << "still has"
                      << stillUnreadMessagesCount << "unread message(s)";
     }
 
@@ -248,7 +248,7 @@ void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
     User* localUser = connection()->user();
     Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser, upToMarker);
     if (markers.first != markers.second)
-        qDebug() << "Marked messages as read until" << *readMarker();
+        qCDebug(MAIN) << "Marked messages as read until" << *readMarker();
 
     // We shouldn't send read receipts for the local user's own messages - so
     // search earlier messages for the latest message not from the local user
@@ -412,8 +412,8 @@ void Room::Private::insertEvent(Event* e, Timeline::iterator where,
                "Events can only be appended or prepended to the timeline");
     if (eventsIndex.contains(e->id()))
     {
-        qWarning() << "Event" << e->id() << "is already in the timeline.";
-        qWarning() << "Either dropDuplicateEvents() wasn't called or duplicate "
+        qCWarning(MAIN) << "Event" << e->id() << "is already in the timeline.";
+        qCWarning(MAIN) << "Either dropDuplicateEvents() wasn't called or duplicate "
                       "events within the same batch arrived from the server.";
         return;
     }
@@ -447,7 +447,7 @@ void Room::Private::renameMember(User* u, QString oldName)
 {
     if (hasMember(u))
     {
-        qWarning() << "Room::Private::renameMember(): the user "
+        qCWarning(MAIN) << "Room::Private::renameMember(): the user "
                    << u->name()
                    << "is already known in the room under a new name.";
         return;
@@ -501,7 +501,7 @@ QString Room::roomMembername(User *u) const
     // room state ("room time machine").
 //    if ( !namesakes.contains(u) )
 //    {
-//        qWarning()
+//        qCWarning()
 //            << "Room::roomMemberName(): user" << u->id()
 //            << "is not a member of the room" << id();
 //    }
@@ -613,7 +613,7 @@ void Room::doAddNewMessageEvents(const Events& events)
         d->appendEvent(e);
         newUnreadMessages += d->isEventNotable(e);
     }
-    qDebug() << "Room" << displayName() << "received" << events.size()
+    qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
              << "(with" << newUnreadMessages << "notable)"
              << "new events; the last event is now" << d->timeline.back();
 
@@ -626,7 +626,7 @@ void Room::doAddNewMessageEvents(const Events& events)
     if (readMarker(firstWriter) != timelineEdge())
     {
         d->promoteReadMarker(firstWriter, findInTimeline(events.front()->id()));
-        qDebug() << "Auto-promoted read marker for" << firstWriter->id()
+        qCDebug(MAIN) << "Auto-promoted read marker for" << firstWriter->id()
                  << "to" << *readMarker(firstWriter);
     }
 
@@ -634,7 +634,7 @@ void Room::doAddNewMessageEvents(const Events& events)
     {
         d->unreadMessages = true;
         emit unreadMessagesChanged(this);
-        qDebug() << "Room" << displayName() << "has unread messages";
+        qCDebug(MAIN) << "Room" << displayName() << "has unread messages";
     }
 }
 
@@ -654,7 +654,7 @@ void Room::doAddHistoricalMessageEvents(const Events& events)
     // Historical messages arrive in newest-to-oldest order
     for (auto e: events)
         d->prependEvent(e);
-    qDebug() << "Room" << displayName() << "received" << events.size()
+    qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
              << "past events; the oldest event is now" << d->timeline.front();
 }
 
@@ -666,7 +666,7 @@ void Room::processStateEvents(const Events& events)
         {
             RoomNameEvent* nameEvent = static_cast<RoomNameEvent*>(event);
             d->name = nameEvent->name();
-            qDebug() << "room name:" << d->name;
+            qCDebug(MAIN) << "room name:" << d->name;
             d->updateDisplayname();
             emit namesChanged(this);
         }
@@ -674,7 +674,7 @@ void Room::processStateEvents(const Events& events)
         {
             RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
             d->aliases = aliasesEvent->aliases();
-            qDebug() << "room aliases:" << d->aliases;
+            qCDebug(MAIN) << "room aliases:" << d->aliases;
             // No displayname update - aliases are not used to render a displayname
             emit namesChanged(this);
         }
@@ -682,7 +682,7 @@ void Room::processStateEvents(const Events& events)
         {
             RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
             d->canonicalAlias = aliasEvent->alias();
-            qDebug() << "room canonical alias:" << d->canonicalAlias;
+            qCDebug(MAIN) << "room canonical alias:" << d->canonicalAlias;
             d->updateDisplayname();
             emit namesChanged(this);
         }
@@ -731,11 +731,10 @@ void Room::processEphemeralEvent(Event* event)
             const auto& eventId = eventReceiptPair.first;
             const auto& receipts = eventReceiptPair.second;
             {
-                auto qd = qDebug() << "Marking event" << eventId << "as read for";
                 if (receipts.size() == 1)
-                    qd << receipts[0].userId;
+                    qCDebug(MAIN) << "Marking event" << eventId << "as read for" << receipts[0].userId;
                 else
-                    qd << receipts.size() << "users";
+                    qCDebug(MAIN) << "Marking event" << eventId << "as read for" << receipts.size() << "users";
             }
             if (d->eventsIndex.contains(eventId))
             {
@@ -745,7 +744,7 @@ void Room::processEphemeralEvent(Event* event)
                         d->promoteReadMarker(m, newMarker);
             } else
             {
-                qDebug() << "Event" << eventId
+                qCDebug(MAIN) << "Event" << eventId
                          << "not found; saving read markers anyway";
                 // If the event is not found (most likely, because it's too old
                 // and hasn't been fetched from the server yet), but there is

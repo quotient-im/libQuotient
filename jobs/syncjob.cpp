@@ -123,7 +123,7 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObj
             timeline.fromJson(room_);
             break;
     default:
-        qWarning() << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
+        qCWarning(JOBS) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
     }
 
     QJsonObject timeline = room_.value("timeline").toObject();
@@ -133,5 +133,5 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObj
     QJsonObject unread = room_.value("unread_notifications").toObject();
     highlightCount = unread.value("highlight_count").toInt();
     notificationCount = unread.value("notification_count").toInt();
-    qDebug() << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    qCDebug(JOBS) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
 }

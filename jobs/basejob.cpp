@@ -17,6 +17,7 @@
  */
 
 #include "basejob.h"
+#include "util.h"
 
 #include <array>
 
@@ -86,13 +87,13 @@ BaseJob::BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);
     connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::start);
-    qDebug() << this << "created";
+    qCDebug(JOBS) << this << "created";
 }
 
 BaseJob::~BaseJob()
 {
     stop();
-    qDebug() << this << "destroyed";
+    qCDebug(JOBS) << this << "destroyed";
 }
 
 ConnectionData* BaseJob::connection() const
@@ -174,7 +175,7 @@ void BaseJob::gotReply()
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
     if (reply->error() != QNetworkReply::NoError)
-        qDebug() << this << "returned" << reply->error();
+        qCDebug(JOBS) << this << "returned" << reply->error();
     switch( reply->error() )
     {
     case QNetworkReply::NoError:
@@ -217,11 +218,11 @@ void BaseJob::stop()
     d->timer.stop();
     if (!d->reply)
     {
-        qWarning() << this << "stopped with empty network reply";
+        qCWarning(JOBS) << this << "stopped with empty network reply";
     }
     else if (d->reply->isRunning())
     {
-        qWarning() << this << "stopped without ready network reply";
+        qCWarning(JOBS) << this << "stopped without ready network reply";
         d->reply->disconnect(this); // Ignore whatever comes from the reply
         d->reply->abort();
     }
@@ -235,7 +236,7 @@ void BaseJob::finishJob()
     {
         const auto retryInterval = getNextRetryInterval();
         ++d->retriesTaken;
-        qWarning() << this << "will take retry" << d->retriesTaken
+        qCWarning(JOBS) << this << "will take retry" << d->retriesTaken
                    << "in" << retryInterval/1000 << "s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
@@ -301,7 +302,7 @@ void BaseJob::setStatus(Status s)
     d->status = s;
     if (!s.good())
     {
-        qWarning() << this << "status" << s.code << ":" << s.message;
+        qCWarning(JOBS) << this << "status" << s.code << ":" << s.message;
     }
 }
 
@@ -324,7 +325,7 @@ void BaseJob::timeout()
 void BaseJob::sslErrors(const QList<QSslError>& errors)
 {
     foreach (const QSslError &error, errors) {
-        qWarning() << "SSL ERROR" << error.errorString();
+        qCWarning(JOBS) << "SSL ERROR" << error.errorString();
     }
     d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }
