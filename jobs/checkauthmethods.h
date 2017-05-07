@@ -22,12 +22,10 @@
 
 namespace QMatrixClient
 {
-    class ConnectionData;
-
     class CheckAuthMethods : public BaseJob
     {
         public:
-            CheckAuthMethods(ConnectionData* connection);
+            CheckAuthMethods(const ConnectionData* connection);
             virtual ~CheckAuthMethods();
 
             QString session();

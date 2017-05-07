@@ -22,10 +22,7 @@
 
 using namespace QMatrixClient;
 
-LeaveRoomJob::LeaveRoomJob(ConnectionData* data, Room* room)
+LeaveRoomJob::LeaveRoomJob(const ConnectionData* data, Room* room)
     : BaseJob(data, HttpVerb::Post, "LeaveRoomJob",
               QString("_matrix/client/r0/rooms/%1/leave").arg(room->id()))
-{ }
-
-LeaveRoomJob::~LeaveRoomJob()
 { }

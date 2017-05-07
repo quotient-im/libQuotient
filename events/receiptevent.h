@@ -20,8 +20,6 @@
 
 #include "event.h"
 
-#include <QtCore/QStringList>
-
 namespace QMatrixClient
 {
     class Receipt

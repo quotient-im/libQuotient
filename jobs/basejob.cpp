@@ -24,7 +24,6 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QSslError>
 #include <QtCore/QTimer>
 
 #include "../connectiondata.h"
@@ -44,16 +43,18 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class BaseJob::Private
 {
     public:
-        Private(ConnectionData* c, HttpVerb v, QString endpoint,
-                const QUrlQuery& q, const Data& data, bool nt)
-            : connection(c), verb(v), apiEndpoint(endpoint), requestQuery(q)
-            , requestData(data), needsToken(nt)
-            , reply(nullptr), status(NoError)
+        // Using an idiom from clang-tidy:
+        // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
+        Private(const ConnectionData* c, HttpVerb v,
+                QString endpoint, QUrlQuery q, Data data, bool nt)
+            : connection(c), verb(v), apiEndpoint(std::move(endpoint))
+            , requestQuery(std::move(q)), requestData(std::move(data))
+            , needsToken(nt), reply(nullptr), status(NoError)
         { }
         
         inline void sendRequest();
 
-        ConnectionData* connection;
+        const ConnectionData* connection;
 
         // Contents for the network request
         HttpVerb verb;
@@ -77,9 +78,9 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
     return dbg << "Job" << j->objectName();
 }
 
-BaseJob::BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
-                 QString endpoint, BaseJob::Query query, BaseJob::Data data,
-                 bool needsToken)
+BaseJob::BaseJob(const ConnectionData* connection, HttpVerb verb,
+                 const QString& name, const QString& endpoint,
+                 const Query& query, const Data& data, bool needsToken)
     : d(new Private(connection, verb, endpoint, query, data, needsToken))
 {
     setObjectName(name);
@@ -96,12 +97,12 @@ BaseJob::~BaseJob()
     qCDebug(JOBS) << this << "destroyed";
 }
 
-ConnectionData* BaseJob::connection() const
+const ConnectionData* BaseJob::connection() const
 {
     return d->connection;
 }
 
-const QUrlQuery&BaseJob::query() const
+const QUrlQuery& BaseJob::query() const
 {
     return d->requestQuery;
 }
@@ -111,7 +112,7 @@ void BaseJob::setRequestQuery(const QUrlQuery& query)
     d->requestQuery = query;
 }
 
-const BaseJob::Data&BaseJob::requestData() const
+const BaseJob::Data& BaseJob::requestData() const
 {
     return d->requestData;
 }

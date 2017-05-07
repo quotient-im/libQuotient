@@ -34,7 +34,7 @@ namespace QMatrixClient
             private:
                 QString jsonKey;
             public:
-                explicit EventList(QString k) : jsonKey(k) { }
+                explicit EventList(QString k) : jsonKey(std::move(k)) { }
                 void fromJson(const QJsonObject& roomContents);
         };
 
@@ -51,11 +51,10 @@ namespace QMatrixClient
         int highlightCount;
         int notificationCount;
 
-        SyncRoomData(QString roomId_ = QString(),
-                     JoinState joinState_ = JoinState::Join,
-                     const QJsonObject& room_ = QJsonObject());
+        SyncRoomData(const QString& roomId, JoinState joinState_,
+                     const QJsonObject& room_);
     };
-}
+}  // namespace QMatrixClient
 Q_DECLARE_TYPEINFO(QMatrixClient::SyncRoomData, Q_MOVABLE_TYPE);
 
 namespace QMatrixClient
@@ -63,12 +62,12 @@ namespace QMatrixClient
     // QVector cannot work with non-copiable objects, std::vector can.
     using SyncData = std::vector<SyncRoomData>;
 
-    class ConnectionData;
     class SyncJob: public BaseJob
     {
         public:
-            SyncJob(ConnectionData* connection, QString since = {}, QString filter = {},
-                    int timeout = -1, QString presence = {});
+            explicit SyncJob(const ConnectionData* connection, const QString& since = {},
+                             const QString& filter = {},
+                             int timeout = -1, const QString& presence = {});
             virtual ~SyncJob();
 
             SyncData& roomData();
@@ -81,4 +80,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient

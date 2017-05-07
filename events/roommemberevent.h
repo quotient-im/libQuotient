@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include <QtCore/QJsonObject>
-#include <QtCore/QUrl>
-
 #include "event.h"
+
+#include <QtCore/QUrl>
 
 namespace QMatrixClient
 {

@@ -26,14 +26,12 @@ using namespace QMatrixClient;
 class RoomMessagesJob::Private
 {
     public:
-        Private() {}
-
         Owning<Events> events;
         QString end;
 };
 
-RoomMessagesJob::RoomMessagesJob(ConnectionData* data, QString roomId,
-                                 QString from, int limit, FetchDirection dir)
+RoomMessagesJob::RoomMessagesJob(const ConnectionData* data, const QString& roomId,
+                                 const QString& from, int limit, FetchDirection dir)
     : BaseJob(data, HttpVerb::Get, "RoomMessagesJob",
               QString("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
               Query(

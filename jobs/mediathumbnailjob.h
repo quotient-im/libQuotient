@@ -29,7 +29,7 @@ namespace QMatrixClient
     class MediaThumbnailJob: public BaseJob
     {
         public:
-            MediaThumbnailJob(ConnectionData* data, QUrl url, QSize requestedSize,
+            MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
                               ThumbnailType thumbnailType=ThumbnailType::Scale);
             virtual ~MediaThumbnailJob();
 

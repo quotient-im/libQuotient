@@ -100,7 +100,7 @@ namespace QMatrixClient
             {
                 public:
                     Status(StatusCode c) : code(c) { }
-                    Status(int c, QString m) : code(c), message(m) { }
+                    Status(int c, QString m) : code(c), message(std::move(m)) { }
 
                     bool good() const { return code < ErrorLevel; }
 
@@ -111,10 +111,10 @@ namespace QMatrixClient
             using duration_t = int; // milliseconds
 
         public:
-            BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
-                    QString endpoint, Query query = Query(), Data data = Data(),
+            BaseJob(const ConnectionData* connection, HttpVerb verb,
+                    const QString& name, const QString& endpoint,
+                    const Query& query = {}, const Data& data = {},
                     bool needsToken = true);
-            virtual ~BaseJob();
 
             Status status() const;
             int error() const;
@@ -198,7 +198,7 @@ namespace QMatrixClient
             void failure(BaseJob*);
 
         protected:
-            ConnectionData* connection() const;
+            const ConnectionData* connection() const;
 
             const QUrlQuery& query() const;
             void setRequestQuery(const QUrlQuery& query);
@@ -241,6 +241,8 @@ namespace QMatrixClient
             void setStatus(Status s);
             void setStatus(int code, QString message);
 
+            // Job objects should only be deleted via QObject::deleteLater
+            virtual ~BaseJob();
         protected slots:
             void timeout();
             void sslErrors(const QList<QSslError>& errors);

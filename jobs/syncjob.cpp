@@ -32,8 +32,8 @@ class SyncJob::Private
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(ConnectionData* connection,
-                 QString since, QString filter, int timeout, QString presence)
+SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
+                 const QString& filter, int timeout, const QString& presence)
     : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
     , d(new Private)
@@ -84,11 +84,10 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     for (auto roomState: roomStates)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
-        d->roomData.reserve(rs.size());
+        // We have a Qt container on the right and an STL one on the left
+        d->roomData.reserve(static_cast<size_t>(rs.size()));
         for( auto rkey: rs.keys() )
-        {
-            d->roomData.push_back({rkey, roomState.enumVal, rs[rkey].toObject()});
-        }
+            d->roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
 
     return Success;
@@ -99,7 +98,8 @@ void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
     assign(eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray()));
 }
 
-SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObject& room_)
+SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
+                           const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
     , state("state")

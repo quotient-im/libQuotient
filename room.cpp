@@ -115,7 +115,7 @@ class Room::Private
         /**
          * Removes events from the passed container that are already in the timeline
          */
-        void dropDuplicateEvents(Events& events) const;
+        void dropDuplicateEvents(Events* events) const;
 
         void setLastReadEvent(User* u, QString eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
@@ -510,7 +510,7 @@ QString Room::roomMembername(User *u) const
     return username % " (" % u->id() % ")";
 }
 
-QString Room::roomMembername(QString userId) const
+QString Room::roomMembername(const QString& userId) const
 {
     return roomMembername(connection()->user(userId));
 }
@@ -577,15 +577,15 @@ void Room::Private::getPreviousContent(int limit)
     }
 }
 
-void Room::Private::dropDuplicateEvents(Events& events) const
+void Room::Private::dropDuplicateEvents(Events* events) const
 {
     // Collect all duplicate events at the end of the container
     auto dupsBegin =
-            std::stable_partition(events.begin(), events.end(),
+            std::stable_partition(events->begin(), events->end(),
                                   [&] (Event* e) { return !eventsIndex.contains(e->id()); });
     // Dispose of those dups
-    std::for_each(dupsBegin, events.end(), [] (Event* e) { delete e; });
-    events.erase(dupsBegin, events.end());
+    std::for_each(dupsBegin, events->end(), [] (Event* e) { delete e; });
+    events->erase(dupsBegin, events->end());
 }
 
 Connection* Room::connection() const
@@ -595,7 +595,7 @@ Connection* Room::connection() const
 
 void Room::addNewMessageEvents(Events events)
 {
-    d->dropDuplicateEvents(events);
+    d->dropDuplicateEvents(&events);
     if (events.empty())
         return;
     emit aboutToAddNewMessages(events);
@@ -640,7 +640,7 @@ void Room::doAddNewMessageEvents(const Events& events)
 
 void Room::addHistoricalMessageEvents(Events events)
 {
-    d->dropDuplicateEvents(events);
+    d->dropDuplicateEvents(&events);
     if (events.empty())
         return;
     emit aboutToAddHistoricalMessages(events);

@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <QtCore/QJsonObject>
-
 #include "event.h"
 
 namespace QMatrixClient

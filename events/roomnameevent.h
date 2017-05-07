@@ -22,20 +22,18 @@
 
 namespace QMatrixClient
 {
+    class RoomNameEvent : public Event
+    {
+        public:
+            RoomNameEvent();
+            virtual ~RoomNameEvent();
 
-class RoomNameEvent : public Event
-{
-public:
-    RoomNameEvent();
-    virtual ~RoomNameEvent();
+            QString name() const;
 
-    QString name() const;
+            static RoomNameEvent* fromJson(const QJsonObject& obj);
 
-    static RoomNameEvent* fromJson(const QJsonObject& obj);
-
-private:
-    class Private;
-    Private *d;
-};
-
+        private:
+            class Private;
+            Private *d;
+    };
 }

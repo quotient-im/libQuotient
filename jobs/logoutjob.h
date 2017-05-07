@@ -25,7 +25,6 @@ namespace QMatrixClient
     class LogoutJob: public BaseJob
     {
         public:
-            LogoutJob(ConnectionData* connection);
-            virtual ~LogoutJob();
+            explicit LogoutJob(const ConnectionData* connection);
     };
 }

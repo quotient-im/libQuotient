@@ -22,8 +22,8 @@ using namespace QMatrixClient;
 
 class RoomNameEvent::Private
 {
-public:
-    QString name;
+    public:
+        QString name;
 };
 
 RoomNameEvent::RoomNameEvent() :

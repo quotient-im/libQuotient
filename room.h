@@ -63,13 +63,13 @@ namespace QMatrixClient
     class Room: public QObject
     {
             Q_OBJECT
-            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
@@ -98,7 +98,7 @@ namespace QMatrixClient
              * @brief Produces a disambiguated name for a user with this id in
              * the context of the room
              */
-            Q_INVOKABLE QString roomMembername(QString userId) const;
+            Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
             Q_INVOKABLE void updateData(SyncRoomData& data );
             Q_INVOKABLE void setJoinState( JoinState state );

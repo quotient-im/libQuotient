@@ -18,11 +18,11 @@
 
 #pragma once
 
+#include "event.h"
+
 #include <QtCore/QUrl>
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
-
-#include "event.h"
 
 namespace QMatrixClient
 {
