@@ -24,27 +24,27 @@
 
 using namespace QMatrixClient;
 
-class ConnectionData::Private
+QNetworkAccessManager* getNam()
 {
-    public:
-        Private() : nam(nullptr) { }
-        
-        QUrl baseUrl;
-        QString accessToken;
-        QString lastEvent;
-        QNetworkAccessManager* nam;
+    static QNetworkAccessManager* _nam = new QNetworkAccessManager();
+    return _nam;
+}
+
+struct ConnectionData::Private
+{
+    QUrl baseUrl;
+    QString accessToken;
+    QString lastEvent;
 };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(new Private)
 {
     d->baseUrl = baseUrl;
-    d->nam = new QNetworkAccessManager();
 }
 
 ConnectionData::~ConnectionData()
 {
-    d->nam->deleteLater();
     delete d;
 }
 
@@ -60,7 +60,7 @@ QUrl ConnectionData::baseUrl() const
 
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    return d->nam;
+    return getNam();
 }
 
 void ConnectionData::setToken(QString token)
