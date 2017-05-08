@@ -208,7 +208,7 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 
 void Connection::leaveRoom(Room* room)
 {
-    callApi<LeaveRoomJob>(room);
+    callApi<LeaveRoomJob>(room->id());
 }
 
 RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const

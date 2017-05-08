@@ -61,6 +61,7 @@ namespace QMatrixClient
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event ) const;
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+            /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
                                                              const QString& from) const;

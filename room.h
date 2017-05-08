@@ -147,6 +147,8 @@ namespace QMatrixClient
             void postMessage(const QString& type, const QString& plainText,
                              const QString& richText);
             void getPreviousContent(int limit = 10);
+
+            void leaveRoom() const;
             void userRenamed(User* user, QString oldName);
 
         signals:

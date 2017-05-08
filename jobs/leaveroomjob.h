@@ -22,11 +22,9 @@
 
 namespace QMatrixClient
 {
-    class Room;
-
     class LeaveRoomJob: public BaseJob
     {
         public:
-            LeaveRoomJob(const ConnectionData* data, Room* room);
+            LeaveRoomJob(const ConnectionData* data, const QString& roomId);
     };
-}
+}  // namespace QMatrixClient

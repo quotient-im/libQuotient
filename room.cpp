@@ -39,6 +39,7 @@
 #include "jobs/postmessagejob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
+#include "jobs/leaveroomjob.h"
 
 using namespace QMatrixClient;
 
@@ -575,6 +576,11 @@ void Room::Private::getPreviousContent(int limit)
             roomMessagesJob = nullptr;
         });
     }
+}
+
+void Room::leaveRoom() const
+{
+    connection()->callApi<LeaveRoomJob>(id());
 }
 
 void Room::Private::dropDuplicateEvents(Events* events) const

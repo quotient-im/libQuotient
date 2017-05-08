@@ -18,11 +18,9 @@
 
 #include "leaveroomjob.h"
 
-#include "../room.h"
-
 using namespace QMatrixClient;
 
-LeaveRoomJob::LeaveRoomJob(const ConnectionData* data, Room* room)
+LeaveRoomJob::LeaveRoomJob(const ConnectionData* data, const QString& roomId)
     : BaseJob(data, HttpVerb::Post, "LeaveRoomJob",
-              QString("_matrix/client/r0/rooms/%1/leave").arg(room->id()))
+              QStringLiteral("_matrix/client/r0/rooms/%1/leave").arg(roomId))
 { }
