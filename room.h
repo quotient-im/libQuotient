@@ -131,8 +131,6 @@ namespace QMatrixClient
              * the nearest non-local message before. uptoEventId must be non-empty.
              */
             void markMessagesAsRead(QString uptoEventId);
-            /** Mark all messages in the room as read */
-            void markAllMessagesAsRead();
 
             Q_INVOKABLE bool hasUnreadMessages();
 
@@ -151,6 +149,9 @@ namespace QMatrixClient
 
             void leaveRoom() const;
             void userRenamed(User* user, QString oldName);
+
+            /** Mark all messages in the room as read */
+            void markAllMessagesAsRead();
 
         signals:
             void aboutToAddHistoricalMessages(const RoomEvents& events);
