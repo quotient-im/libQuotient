@@ -17,7 +17,7 @@ Issues should be submitted to [the project's issue tracker](https://github.com/F
 
 ## Installing pre-requisites
 ### Linux
-Just install things from "Pre-requisites" using your preferred package manager. If your Qt package base is fine-grained you might want to take a look at CMakeLists.txt to figure out which specific libraries libqmatrixclient uses (or blindly run cmake and look at error messages).
+Just install things from "Pre-requisites" using your preferred package manager. If your Qt package base is fine-grained you might want to take a look at `CMakeLists.txt` to figure out which specific libraries libqmatrixclient uses (or blindly run cmake and look at error messages).
 
 ### OS X
 `brew install qt5` should get you Qt5. You may need to tell CMake about the path to Qt by passing `-DCMAKE_PREFIX_PATH=<where-Qt-installed>`
@@ -41,6 +41,7 @@ cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
 cmake --build . --target all
 ```
 This will get you the compiled library in `build_dir` inside your project sources. Only static builds of libqmatrixclient are tested at the moment; experiments with dynamic builds are welcome. The two known projects to link with libqmatrixclient are Tensor and Quaternion; you should take a look at their source code before doing anything with libqmatrixclient on your own.
+
 ## Troubleshooting
 
 If `cmake` fails with...
@@ -50,4 +51,18 @@ CMake Warning at CMakeLists.txt:11 (find_package):
   has asked CMake to find a package configuration file provided by
   "Qt5Widgets", but CMake did not find one.
 ```
-...then you need to set the right -DCMAKE_PREFIX_PATH variable, see above.
+...then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+
+libqmatrixclient uses Qt's logging categories to make switching certain types of logging easier. In case of troubles at runtime (bugs, crashes) you can increase logging if you add the following to the `QT_LOGGING_RULES` environment variable:
+```
+libqmatrixclient.<category>.<level>=<flag>
+```
+where
+- `<category>` is something like `main`, `jobs`, or `events` (the full list is in the file `debug.cpp`)
+- `<level>` is one of `debug` and `warning`
+- `<flag>` is either `true` or `false`.
+
+`*` can be used as a wildcard for any part between two dots, and comma is used for a separator. Latter statements override former ones, so if you want to switch on all debug logs except `jobs` you can set
+```
+QT_LOGGING_RULES="libqmatrixclient.*.debug=true,libqmatrixclient.jobs.debug=false"
+```
