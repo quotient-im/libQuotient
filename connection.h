@@ -51,6 +51,8 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void connectWithToken(const QString& userId,
                                                       const QString& token);
             Q_INVOKABLE virtual void reconnect();
+            /** @deprecated Use stopSync() instead */
+            Q_INVOKABLE virtual void disconnectFromServer() { stopSync(); }
             Q_INVOKABLE virtual void logout();
 
             Q_INVOKABLE void sync(int timeout = -1);
