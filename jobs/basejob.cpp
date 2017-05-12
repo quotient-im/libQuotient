@@ -125,9 +125,10 @@ void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
     url.setPath( url.path() + "/" + apiEndpoint );
+    QUrlQuery q = requestQuery;
     if (needsToken)
-        requestQuery.addQueryItem("access_token", connection->accessToken());
-    url.setQuery(requestQuery);
+        q.addQueryItem("access_token", connection->accessToken());
+    url.setQuery(q);
 
     QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -234,6 +235,9 @@ void BaseJob::finishJob()
     if ((error() == NetworkError || error() == TimeoutError)
             && d->retriesTaken < d->maxRetries)
     {
+        // TODO: The whole retrying thing should be put to ConnectionManager
+        // otherwise independently retrying jobs make a bit of notification
+        // storm towards the UI.
         const auto retryInterval = getNextRetryInterval();
         ++d->retriesTaken;
         qCWarning(JOBS) << this << "will take retry" << d->retriesTaken
