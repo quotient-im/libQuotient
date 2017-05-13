@@ -19,7 +19,7 @@
 #include "syncjob.h"
 
 #include <QtCore/QJsonArray>
-#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
 
@@ -38,6 +38,7 @@ SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
               "_matrix/client/r0/sync")
     , d(new Private)
 {
+    setLoggingCategory(SYNCJOB);
     QUrlQuery query;
     if( !filter.isEmpty() )
         query.addQueryItem("filter", filter);
@@ -69,6 +70,7 @@ SyncData& SyncJob::roomData()
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
+    QElapsedTimer et; et.start();
     QJsonObject json = data.object();
     d->nextBatch = json.value("next_batch").toString();
     // TODO: presence
@@ -89,6 +91,7 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
         for( auto rkey: rs.keys() )
             d->roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
+    qCDebug(PROFILER) << "*** SyncJob::parseJson():" << et.elapsed() << "ms";
 
     return Success;
 }
@@ -123,7 +126,7 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
             timeline.fromJson(room_);
             break;
     default:
-        qCWarning(JOBS) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
+        qCWarning(SYNCJOB) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
     }
 
     QJsonObject timeline = room_.value("timeline").toObject();
@@ -133,5 +136,5 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
     QJsonObject unread = room_.value("unread_notifications").toObject();
     highlightCount = unread.value("highlight_count").toInt();
     notificationCount = unread.value("notification_count").toInt();
-    qCDebug(JOBS) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    qCDebug(SYNCJOB) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
 }

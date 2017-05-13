@@ -18,10 +18,9 @@
 
 #include "unknownevent.h"
 
-#include <QtCore/QJsonDocument>
-#include <QtCore/QDebug>
+#include "logging.h"
 
-#include "util.h"
+#include <QtCore/QJsonDocument>
 
 using namespace QMatrixClient;
 

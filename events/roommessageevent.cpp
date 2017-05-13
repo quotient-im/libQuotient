@@ -17,10 +17,11 @@
  */
 
 #include "roommessageevent.h"
+
+#include "logging.h"
 #include "util.h"
 
 #include <QtCore/QMimeDatabase>
-#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 

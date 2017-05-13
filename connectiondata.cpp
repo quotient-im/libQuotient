@@ -17,9 +17,9 @@
  */
 
 #include "connectiondata.h"
-#include "util.h"
 
-#include <QtCore/QDebug>
+#include "logging.h"
+
 #include <QtNetwork/QNetworkAccessManager>
 
 using namespace QMatrixClient;

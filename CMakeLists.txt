@@ -47,7 +47,7 @@ message( STATUS )
 set(libqmatrixclient_SRCS
    connectiondata.cpp
    connection.cpp
-   debug.cpp
+   logging.cpp
    room.cpp
    user.cpp
    state.cpp

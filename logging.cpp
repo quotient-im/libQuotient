@@ -16,15 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "util.h"
+#include "logging.h"
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-Q_LOGGING_CATEGORY(MAIN, "libqmatrixclient.main", QtInfoMsg)
-Q_LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events", QtInfoMsg)
-Q_LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs", QtInfoMsg)
-#else
-Q_LOGGING_CATEGORY(MAIN, "libqmatrixclient.main")
-Q_LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events")
-Q_LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs")
-#endif
-
+LOGGING_CATEGORY(MAIN, "libqmatrixclient.main")
+LOGGING_CATEGORY(PROFILER, "libqmatrixclient.profiler")
+LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events")
+LOGGING_CATEGORY(EPHEMERAL, "libqmatrixclient.events.ephemeral")
+LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs")
+LOGGING_CATEGORY(SYNCJOB, "libqmatrixclient.jobs.sync")

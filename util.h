@@ -18,51 +18,8 @@
 
 #pragma once
 
-#include <QtCore/QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(EVENTS)
-Q_DECLARE_LOGGING_CATEGORY(JOBS)
-Q_DECLARE_LOGGING_CATEGORY(MAIN)
-
 namespace QMatrixClient
 {
-
-    // QDebug manipulators
-
-    using QDebugManip = QDebug (*)(QDebug);
-
-    /**
-     * @brief QDebug manipulator to setup the stream for JSON output
-     *
-     * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
-     * and the respective addition of QDebug::noquote().
-     * Together with the operator<<() helper, the proposed usage is
-     * (similar to std:: I/O manipulators):
-     *
-     * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
-     */
-    inline QDebug formatJson(QDebug debug_object)
-    {
-#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
-            return debug_object;
-#else
-            return debug_object.noquote();
-#endif
-    };
-
-    /**
-     * @brief A helper operator to facilitate usage of formatJson (and possibly
-     * other manipulators)
-     *
-     * @param debug_object to output the json to
-     * @param qdm a QDebug manipulator
-     * @return a copy of debug_object that has its mode altered by qdm
-     */
-    inline QDebug operator<< (QDebug debug_object, QDebugManip qdm)
-    {
-        return qdm(debug_object);
-    }
-
     /**
      * @brief A crude wrapper around a container of pointers that owns pointers
      * to contained objects
@@ -77,17 +34,8 @@ namespace QMatrixClient
     {
         public:
             Owning() = default;
-#if defined(_MSC_VER) && _MSC_VER < 1900
-            // Workaround: Dangerous (auto_ptr style) copy constructor because
-            // in case of Owning< QVector<> > VS2013 (unnecessarily) instantiates
-            // QVector<>::toList() which instantiates QList< Owning<> > which
-            // requires the contained object to have a copy constructor.
-            Owning(Owning& other) : ContainerT(other.release()) { }
-            Owning(Owning&& other) : ContainerT(other.release()) { }
-#else
             Owning(Owning&) = delete;
             Owning(Owning&& other) = default;
-#endif
             Owning& operator=(Owning&& other)
             {
                 assign(other.release());
@@ -166,6 +114,5 @@ namespace QMatrixClient
     {
         return fallback;
     }
-
-}
+}  // namespace QMatrixClient
 

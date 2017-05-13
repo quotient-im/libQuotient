@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "logging.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -241,6 +243,11 @@ namespace QMatrixClient
             void setStatus(Status s);
             void setStatus(int code, QString message);
 
+            // Q_DECLARE_LOGGING_CATEGORY return different function types
+            // in different versions
+            using LoggingCategory = decltype(JOBS)*;
+            void setLoggingCategory(LoggingCategory lcf);
+
             // Job objects should only be deleted via QObject::deleteLater
             virtual ~BaseJob();
         protected slots:
@@ -257,4 +264,4 @@ namespace QMatrixClient
             class Private;
             QScopedPointer<Private> d;
     };
-}
+}  // namespace QMatrixClient
