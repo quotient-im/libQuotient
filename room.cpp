@@ -23,7 +23,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QJsonArray>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
-#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 #include "connection.h"
 #include "state.h"
@@ -50,10 +50,10 @@ class Room::Private
         typedef QMultiHash<QString, User*> members_map_t;
         typedef std::pair<rev_iter_t, rev_iter_t> rev_iter_pair_t;
 
-        Private(Connection* c, const QString& id_)
-            : q(nullptr), connection(c), id(id_), joinState(JoinState::Join)
-            , unreadMessages(false), highlightCount(0), notificationCount(0)
-            , roomMessagesJob(nullptr)
+        Private(Connection* c, QString id_)
+            : q(nullptr), connection(c), id(std::move(id_))
+            , joinState(JoinState::Join), unreadMessages(false)
+            , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
         { }
 
         Room* q;
@@ -90,7 +90,7 @@ class Room::Private
         void addMember(User* u);
         bool hasMember(User* u) const;
         // You can't identify a single user by displayname, only by id
-        User* member(QString id) const;
+        User* member(const QString& id) const;
         void renameMember(User* u, QString oldName);
         void removeMember(User* u);
 
@@ -118,7 +118,7 @@ class Room::Private
          */
         void dropDuplicateEvents(Events* events) const;
 
-        void setLastReadEvent(User* u, QString eventId);
+        void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
 
     private:
@@ -126,7 +126,7 @@ class Room::Private
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 
         void insertMemberIntoMap(User* u);
-        void removeMemberFromMap(QString username, User* u);
+        void removeMemberFromMap(const QString& username, User* u);
 
         void insertEvent(Event* e, Timeline::iterator where,
                          TimelineItem::index_t index);
@@ -139,8 +139,6 @@ Room::Room(Connection* connection, QString id)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     qCDebug(MAIN) << "New Room:" << id;
-
-    //connection->getMembers(this); // I don't think we need this anymore in r0.0.1
 }
 
 Room::~Room()
@@ -197,7 +195,7 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::Private::setLastReadEvent(User* u, QString eventId)
+void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 {
     lastReadEventIds.insert(u, eventId);
     emit q->lastReadEventChanged(u);
@@ -236,7 +234,7 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
             emit q->unreadMessagesChanged(q);
         } else
             qCDebug(MAIN) << "Room" << displayname << "still has"
-                     << stillUnreadMessagesCount << "unread message(s)";
+                          << stillUnreadMessagesCount << "unread message(s)";
     }
 
     // Return newMarker, rather than eagerMarker, to save markMessagesAsRead()
@@ -246,7 +244,7 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
 
 void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
 {
-    User* localUser = connection()->user();
+    auto localUser = connection()->user();
     Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser, upToMarker);
     if (markers.first != markers.second)
         qCDebug(MAIN) << "Marked messages as read until" << *readMarker();
@@ -308,7 +306,7 @@ Room::rev_iter_t Room::findInTimeline(TimelineItem::index_t index) const
             (isValidIndex(index) ? index - minTimelineIndex() + 1 : 0);
 }
 
-Room::rev_iter_t Room::findInTimeline(QString evtId) const
+Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
 {
     if (!d->timeline.empty() && d->eventsIndex.contains(evtId))
         return findInTimeline(d->eventsIndex.value(evtId));
@@ -351,7 +349,7 @@ int Room::highlightCount() const
 
 void Room::resetHighlightCount()
 {
-if( d->highlightCount == 0 )
+    if( d->highlightCount == 0 )
         return;
     d->highlightCount = 0;
     emit highlightCountChanged(this);
@@ -374,27 +372,23 @@ QList< User* > Room::users() const
 
 void Room::Private::insertMemberIntoMap(User *u)
 {
-    QList<User*> namesakes = membersMap.values(u->name());
+    auto namesakes = membersMap.values(u->name());
     membersMap.insert(u->name(), u);
     // If there is exactly one namesake of the added user, signal member renaming
     // for that other one because the two should be disambiguated now.
     if (namesakes.size() == 1)
         emit q->memberRenamed(namesakes[0]);
-
-    updateDisplayname();
 }
 
-void Room::Private::removeMemberFromMap(QString username, User* u)
+void Room::Private::removeMemberFromMap(const QString& username, User* u)
 {
     membersMap.remove(username, u);
     // If there was one namesake besides the removed user, signal member renaming
     // for it because it doesn't need to be disambiguated anymore.
     // TODO: Think about left users.
-    QList<User*> formerNamesakes = membersMap.values(username);
+    auto formerNamesakes = membersMap.values(username);
     if (formerNamesakes.size() == 1)
         emit q->memberRenamed(formerNamesakes[0]);
-
-    updateDisplayname();
 }
 
 inline QByteArray makeErrorStr(const Event* e, const char* msg)
@@ -415,7 +409,7 @@ void Room::Private::insertEvent(Event* e, Timeline::iterator where,
     {
         qCWarning(MAIN) << "Event" << e->id() << "is already in the timeline.";
         qCWarning(MAIN) << "Either dropDuplicateEvents() wasn't called or duplicate "
-                      "events within the same batch arrived from the server.";
+                           "events within the same batch arrived from the server.";
         return;
     }
     timeline.emplace(where, e, index);
@@ -438,9 +432,9 @@ bool Room::Private::hasMember(User* u) const
     return membersMap.values(u->name()).contains(u);
 }
 
-User* Room::Private::member(QString id) const
+User* Room::Private::member(const QString& id) const
 {
-    User* u = connection->user(id);
+    auto u = connection->user(id);
     return hasMember(u) ? u : nullptr;
 }
 
@@ -449,8 +443,8 @@ void Room::Private::renameMember(User* u, QString oldName)
     if (hasMember(u))
     {
         qCWarning(MAIN) << "Room::Private::renameMember(): the user "
-                   << u->name()
-                   << "is already known in the room under a new name.";
+                        << u->name()
+                        << "is already known in the room under a new name.";
         return;
     }
 
@@ -459,8 +453,6 @@ void Room::Private::renameMember(User* u, QString oldName)
         removeMemberFromMap(oldName, u);
         insertMemberIntoMap(u);
         emit q->memberRenamed(u);
-
-        updateDisplayname();
     }
 }
 
@@ -477,7 +469,7 @@ void Room::Private::removeMember(User* u)
 
 void Room::userRenamed(User* user, QString oldName)
 {
-    d->renameMember(user, oldName);
+    d->renameMember(user, std::move(oldName));
 }
 
 QString Room::roomMembername(User *u) const
@@ -516,22 +508,33 @@ QString Room::roomMembername(const QString& userId) const
     return roomMembername(connection()->user(userId));
 }
 
-void Room::updateData(SyncRoomData& data)
+void Room::updateData(SyncRoomData&& data)
 {
     if( d->prevBatch.isEmpty() )
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    processStateEvents(data.state);
+    QElapsedTimer et; et.start();
 
+    processStateEvents(data.state);
+    qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
+                      << et.elapsed() << "ms," << data.state.size() << "events";
+
+    et.restart();
     // State changes can arrive in a timeline event; so check those.
     processStateEvents(data.timeline);
+    qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
+                      << et.elapsed() << "ms," << data.timeline.size() << "events";
+    et.restart();
     addNewMessageEvents(data.timeline.release());
+    qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et.elapsed() << "ms";
 
+    et.restart();
     for( Event* ephemeralEvent: data.ephemeral )
     {
         processEphemeralEvent(ephemeralEvent);
     }
+    qCDebug(PROFILER) << "*** Room::processEphemeralEvents():" << et.elapsed() << "ms";
 
     if( data.highlightCount != d->highlightCount )
     {
@@ -620,8 +623,8 @@ void Room::doAddNewMessageEvents(const Events& events)
         newUnreadMessages += d->isEventNotable(e);
     }
     qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
-             << "(with" << newUnreadMessages << "notable)"
-             << "new events; the last event is now" << d->timeline.back();
+                  << "(with" << newUnreadMessages << "notable)"
+                  << "new events; the last event is now" << d->timeline.back();
 
     // The first event in the batch defines whose read marker can possibly be
     // promoted any further over the same author's events newly arrived.
@@ -633,7 +636,7 @@ void Room::doAddNewMessageEvents(const Events& events)
     {
         d->promoteReadMarker(firstWriter, findInTimeline(events.front()->id()));
         qCDebug(MAIN) << "Auto-promoted read marker for" << firstWriter->id()
-                 << "to" << *readMarker(firstWriter);
+                      << "to" << *readMarker(firstWriter);
     }
 
     if( !d->unreadMessages && newUnreadMessages > 0)
@@ -661,46 +664,44 @@ void Room::doAddHistoricalMessageEvents(const Events& events)
     for (auto e: events)
         d->prependEvent(e);
     qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
-             << "past events; the oldest event is now" << d->timeline.front();
+                  << "past events; the oldest event is now" << d->timeline.front();
 }
 
 void Room::processStateEvents(const Events& events)
 {
+    bool emitNamesChanged = false;
     for (auto event: events)
     {
         if( event->type() == EventType::RoomName )
         {
-            RoomNameEvent* nameEvent = static_cast<RoomNameEvent*>(event);
+            auto nameEvent = static_cast<RoomNameEvent*>(event);
             d->name = nameEvent->name();
             qCDebug(MAIN) << "room name:" << d->name;
-            d->updateDisplayname();
-            emit namesChanged(this);
+            emitNamesChanged = true;
         }
         if( event->type() == EventType::RoomAliases )
         {
-            RoomAliasesEvent* aliasesEvent = static_cast<RoomAliasesEvent*>(event);
+            auto aliasesEvent = static_cast<RoomAliasesEvent*>(event);
             d->aliases = aliasesEvent->aliases();
             qCDebug(MAIN) << "room aliases:" << d->aliases;
-            // No displayname update - aliases are not used to render a displayname
-            emit namesChanged(this);
+            emitNamesChanged = true;
         }
         if( event->type() == EventType::RoomCanonicalAlias )
         {
-            RoomCanonicalAliasEvent* aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
+            auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
             d->canonicalAlias = aliasEvent->alias();
             qCDebug(MAIN) << "room canonical alias:" << d->canonicalAlias;
-            d->updateDisplayname();
-            emit namesChanged(this);
+            emitNamesChanged = true;
         }
         if( event->type() == EventType::RoomTopic )
         {
-            RoomTopicEvent* topicEvent = static_cast<RoomTopicEvent*>(event);
+            auto topicEvent = static_cast<RoomTopicEvent*>(event);
             d->topic = topicEvent->topic();
             emit topicChanged();
         }
         if( event->type() == EventType::RoomMember )
         {
-            RoomMemberEvent* memberEvent = static_cast<RoomMemberEvent*>(event);
+            auto memberEvent = static_cast<RoomMemberEvent*>(event);
             // Can't use d->member() below because the user may be not a member (yet)
             User* u = d->connection->user(memberEvent->userId());
             u->processEvent(event);
@@ -714,13 +715,17 @@ void Room::processStateEvents(const Events& events)
             }
         }
     }
+    if (emitNamesChanged) {
+        emit namesChanged(this);
+    }
+    d->updateDisplayname();
 }
 
 void Room::processEphemeralEvent(Event* event)
 {
     if( event->type() == EventType::Typing )
     {
-        TypingEvent* typingEvent = static_cast<TypingEvent*>(event);
+        auto typingEvent = static_cast<TypingEvent*>(event);
         d->usersTyping.clear();
         for( const QString& userId: typingEvent->users() )
         {
@@ -738,9 +743,12 @@ void Room::processEphemeralEvent(Event* event)
             const auto& receipts = eventReceiptPair.second;
             {
                 if (receipts.size() == 1)
-                    qCDebug(MAIN) << "Marking event" << eventId << "as read for" << receipts[0].userId;
+                    qCDebug(EPHEMERAL) << "Marking" << eventId
+                                       << "as read for" << receipts[0].userId;
                 else
-                    qCDebug(MAIN) << "Marking event" << eventId << "as read for" << receipts.size() << "users";
+                    qCDebug(EPHEMERAL) << "Marking" << eventId
+                                       << "as read for"
+                                       << receipts.size() << "users";
             }
             if (d->eventsIndex.contains(eventId))
             {
@@ -750,8 +758,8 @@ void Room::processEphemeralEvent(Event* event)
                         d->promoteReadMarker(m, newMarker);
             } else
             {
-                qCDebug(MAIN) << "Event" << eventId
-                         << "not found; saving read markers anyway";
+                qCDebug(EPHEMERAL) << "Event" << eventId
+                                   << "not found; saving read receipts anyway";
                 // If the event is not found (most likely, because it's too old
                 // and hasn't been fetched from the server yet), but there is
                 // a previous marker for a user, keep the previous marker.

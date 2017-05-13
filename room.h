@@ -102,7 +102,7 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-            Q_INVOKABLE void updateData(SyncRoomData& data );
+            void updateData(SyncRoomData&& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
             const Timeline& messageEvents() const;
@@ -116,7 +116,7 @@ namespace QMatrixClient
             Q_INVOKABLE bool isValidIndex(TimelineItem::index_t timelineIndex) const;
 
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
-            rev_iter_t findInTimeline(QString evtId) const;
+            rev_iter_t findInTimeline(const QString& evtId) const;
 
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;

@@ -63,9 +63,9 @@ QString SyncJob::nextBatch() const
     return d->nextBatch;
 }
 
-SyncData& SyncJob::roomData()
+SyncData&& SyncJob::takeRoomData()
 {
-    return d->roomData;
+    return std::move(d->roomData);
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)

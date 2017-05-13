@@ -70,7 +70,7 @@ namespace QMatrixClient
                              int timeout = -1, const QString& presence = {});
             virtual ~SyncJob();
 
-            SyncData& roomData();
+            SyncData&& takeRoomData();
             QString nextBatch() const;
 
         protected:

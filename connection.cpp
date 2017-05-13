@@ -159,10 +159,10 @@ void Connection::sync(int timeout)
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
         d->data->setLastEvent(job->nextBatch());
-        for( auto& roomData: job->roomData() )
+        for( auto&& roomData: job->takeRoomData() )
         {
-            if ( Room* r = provideRoom(roomData.roomId) )
-                r->updateData(roomData);
+            if ( auto* r = provideRoom(roomData.roomId) )
+                r->updateData(std::move(roomData));
         }
         d->syncJob = nullptr;
         emit syncDone();
