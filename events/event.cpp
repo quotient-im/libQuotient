@@ -87,27 +87,26 @@ QString Event::originalJson() const
     return d->originalJson;
 }
 
-template <typename T>
-Event* make(const QJsonObject& obj)
+template <typename EventT>
+EventT* make(const QJsonObject& obj)
 {
-    return T::fromJson(obj);
+    return EventT::fromJson(obj);
 }
 
 Event* Event::fromJson(const QJsonObject& obj)
 {
-    auto delegate = lookup(obj.value("type").toString(),
-            "m.room.message", make<RoomMessageEvent>,
-            "m.room.name", make<RoomNameEvent>,
-            "m.room.aliases", make<RoomAliasesEvent>,
-            "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
-            "m.room.member", make<RoomMemberEvent>,
-            "m.room.topic", make<RoomTopicEvent>,
-            "m.typing", make<TypingEvent>,
-            "m.receipt", make<ReceiptEvent>,
+    return dispatch<Event*>(obj).to(obj["type"].toString(),
+            "m.room.message", &make<RoomMessageEvent>,
+            "m.room.name", &make<RoomNameEvent>,
+            "m.room.aliases", &make<RoomAliasesEvent>,
+            "m.room.canonical_alias", &make<RoomCanonicalAliasEvent>,
+            "m.room.member", &make<RoomMemberEvent>,
+            "m.room.topic", &make<RoomTopicEvent>,
+            "m.typing", &make<TypingEvent>,
+            "m.receipt", &make<ReceiptEvent>,
             /* Insert new event types BEFORE this line */
-            make<UnknownEvent>
+            &make<UnknownEvent>
         );
-    return delegate(obj);
 }
 
 bool Event::parseJson(const QJsonObject& obj)

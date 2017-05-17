@@ -120,17 +120,17 @@ RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
         {
             e->d->plainBody = content["body"].toString();
 
-            auto delegate = lookup(content.value("msgtype").toString(),
-                    "m.text", make<MessageEventType::Text, TextContent>,
-                    "m.emote", make<MessageEventType::Emote, TextContent>,
-                    "m.notice", make<MessageEventType::Notice, TextContent>,
-                    "m.image", make<MessageEventType::Image, ImageContent>,
-                    "m.file", make<MessageEventType::File, FileContent>,
-                    "m.location", make<MessageEventType::Location, LocationContent>,
-                    "m.video", makeVideo,
-                    "m.audio", make<MessageEventType::Audio, AudioContent>,
+            auto delegate = lookup(content["msgtype"].toString(),
+                    "m.text", &make<MessageEventType::Text, TextContent>,
+                    "m.emote", &make<MessageEventType::Emote, TextContent>,
+                    "m.notice", &make<MessageEventType::Notice, TextContent>,
+                    "m.image", &make<MessageEventType::Image, ImageContent>,
+                    "m.file", &make<MessageEventType::File, FileContent>,
+                    "m.location", &make<MessageEventType::Location, LocationContent>,
+                    "m.video", &makeVideo,
+                    "m.audio", &make<MessageEventType::Audio, AudioContent>,
                     // Insert new message types before this line
-                    makeUnknown
+                    &makeUnknown
                 );
             std::tie(e->d->msgtype, e->d->content) = delegate(content);
         }
