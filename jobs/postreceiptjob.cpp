@@ -17,17 +17,11 @@
  */
 
 #include "postreceiptjob.h"
-#include "../room.h"
-#include "../connectiondata.h"
-
-#include <QtNetwork/QNetworkReply>
 
 using namespace QMatrixClient;
 
-PostReceiptJob::PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId)
+PostReceiptJob::PostReceiptJob(const ConnectionData* connection,
+                               const QString& roomId, const QString& eventId)
     : BaseJob(connection, HttpVerb::Post, "PostReceiptJob",
               QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(roomId, eventId))
-{ }
-
-PostReceiptJob::~PostReceiptJob()
 { }

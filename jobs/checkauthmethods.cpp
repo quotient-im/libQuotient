@@ -18,25 +18,18 @@
 
 #include "checkauthmethods.h"
 
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
-#include <QtCore/QJsonParseError>
-
-#include "../connectiondata.h"
 
 using namespace QMatrixClient;
 
 class CheckAuthMethods::Private
 {
     public:
-        Private() {}
-        
         QString session;
 };
 
-CheckAuthMethods::CheckAuthMethods(ConnectionData* connection)
+CheckAuthMethods::CheckAuthMethods(const ConnectionData* connection)
     : BaseJob(connection, HttpVerb::Get, "CheckAuthMethods",
               "_matrix/client/r0/login", Query(), Data(), false)
     , d(new Private)

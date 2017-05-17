@@ -17,9 +17,8 @@
  */
 
 #include "roommemberevent.h"
-#include "util.h"
 
-#include <QtCore/QDebug>
+#include "logging.h"
 
 using namespace QMatrixClient;
 

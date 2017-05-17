@@ -20,10 +20,7 @@
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
-#include <QtCore/QDateTime>
-#include <QtCore/QDebug>
 
-#include "util.h"
 #include "roommessageevent.h"
 #include "roomnameevent.h"
 #include "roomaliasesevent.h"
@@ -33,6 +30,8 @@
 #include "typingevent.h"
 #include "receiptevent.h"
 #include "unknownevent.h"
+#include "logging.h"
+#include "util.h"
 
 using namespace QMatrixClient;
 

@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <QtCore/QStringList>
-
 #include "event.h"
+
+#include <QtCore/QStringList>
 
 namespace QMatrixClient
 {

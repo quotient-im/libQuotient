@@ -17,10 +17,10 @@
  */
 
 #include "typingevent.h"
-#include "util.h"
+
+#include "logging.h"
 
 #include <QtCore/QJsonArray>
-#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
@@ -55,6 +55,6 @@ TypingEvent* TypingEvent::fromJson(const QJsonObject& obj)
     {
         e->d->users << user.toString();
     }
-    qCDebug(EVENTS) << "Typing:" << e->d->users;
+    qCDebug(EPHEMERAL) << "Typing:" << e->d->users;
     return e;
 }

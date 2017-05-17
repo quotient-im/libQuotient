@@ -33,10 +33,10 @@
 // }
 
 #include "roomaliasesevent.h"
-#include "util.h"
+
+#include "logging.h"
 
 #include <QtCore/QJsonArray>
-#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 

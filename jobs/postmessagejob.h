@@ -26,10 +26,10 @@ namespace QMatrixClient
     {
         public:
             /** Constructs a plain text message job */
-            PostMessageJob(ConnectionData* connection, const QString& roomId,
+            PostMessageJob(const ConnectionData* connection, const QString& roomId,
                            const QString& type, const QString& plainText);
             /** Constructs a rich text message job */
-            PostMessageJob(ConnectionData* connection, const QString& roomId,
+            PostMessageJob(const ConnectionData* connection, const QString& roomId,
                            const QString& type, const QString& plainText,
                            const QString& richText);
             virtual ~PostMessageJob();
@@ -43,4 +43,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient

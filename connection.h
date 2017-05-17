@@ -39,34 +39,41 @@ namespace QMatrixClient
     class Connection: public QObject {
             Q_OBJECT
         public:
-            Connection(QUrl server, QObject* parent = nullptr);
+            explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
             virtual ~Connection();
 
             QHash<QString, Room*> roomMap() const;
-            Q_INVOKABLE virtual bool isConnected();
 
-            Q_INVOKABLE virtual void resolveServer( QString domain );
-            Q_INVOKABLE virtual void connectToServer( QString user, QString password );
-            Q_INVOKABLE virtual void connectWithToken( QString userId, QString token );
+            Q_INVOKABLE virtual void resolveServer(const QString& domain);
+            Q_INVOKABLE virtual void connectToServer(const QString& user,
+                                                     const QString& password);
+            Q_INVOKABLE virtual void connectWithToken(const QString& userId,
+                                                      const QString& token);
             Q_INVOKABLE virtual void reconnect();
-            Q_INVOKABLE virtual void disconnectFromServer();
+            /** @deprecated Use stopSync() instead */
+            Q_INVOKABLE virtual void disconnectFromServer() { stopSync(); }
             Q_INVOKABLE virtual void logout();
 
-            Q_INVOKABLE virtual void sync(int timeout=-1);
-            Q_INVOKABLE virtual void stopSync();
+            Q_INVOKABLE void sync(int timeout = -1);
+            Q_INVOKABLE void stopSync();
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
-            Q_INVOKABLE virtual void postMessage( Room* room, QString type, QString message );
+            Q_INVOKABLE virtual void postMessage(Room* room, const QString& type,
+                                                 const QString& message) const;
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
-            Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event );
-            Q_INVOKABLE virtual JoinRoomJob* joinRoom( QString roomAlias );
+            Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event ) const;
+            Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+            /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
-            Q_INVOKABLE virtual RoomMessagesJob* getMessages( Room* room, QString from );
-            virtual MediaThumbnailJob* getThumbnail( QUrl url, QSize requestedSize );
-            MediaThumbnailJob* getThumbnail( QUrl url, int requestedWidth, int requestedHeight );
+            Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
+                                                             const QString& from) const;
+            virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
+                                                    QSize requestedSize) const;
+            MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
+                                            int requestedHeight) const;
 
             Q_INVOKABLE QUrl homeserver() const;
-            Q_INVOKABLE User* user(QString userId);
+            Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
             Q_INVOKABLE QString userId() const;
             /** @deprecated Use accessToken() instead. */
@@ -76,7 +83,7 @@ namespace QMatrixClient
             Q_INVOKABLE int millisToReconnect() const;
 
             template <typename JobT, typename... JobArgTs>
-            JobT* callApi(JobArgTs... jobArgs)
+            JobT* callApi(JobArgTs... jobArgs) const
             {
                 auto job = new JobT(connectionData(), jobArgs...);
                 job->start();
@@ -103,7 +110,7 @@ namespace QMatrixClient
             /**
              * @brief Access the underlying ConnectionData class
              */
-            ConnectionData* connectionData();
+            const ConnectionData* connectionData() const;
 
             /**
              * @brief Find a (possibly new) Room object for the specified id
@@ -114,20 +121,20 @@ namespace QMatrixClient
              * @return a pointer to a Room object with the specified id; nullptr
              * if roomId is empty if createRoom() failed to create a Room object.
              */
-            Room* provideRoom(QString roomId);
+            Room* provideRoom(const QString& roomId);
 
             /**
              * makes it possible for derived classes to have its own User class
              */
-            virtual User* createUser(QString userId);
+            virtual User* createUser(const QString& userId);
 
             /**
              * makes it possible for derived classes to have its own Room class
              */
-            virtual Room* createRoom(QString roomId);
+            virtual Room* createRoom(const QString& roomId);
 
         private:
             class Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient

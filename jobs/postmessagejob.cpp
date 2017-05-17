@@ -17,33 +17,29 @@
  */
 
 #include "postmessagejob.h"
-#include "../connectiondata.h"
 #include "util.h"
-
-#include <QtNetwork/QNetworkReply>
 
 using namespace QMatrixClient;
 
 class PostMessageJob::Private
 {
     public:
-        Private() {}
-
         QString eventId; // unused yet
 };
 
-PostMessageJob::PostMessageJob(ConnectionData* connection, const QString& roomId,
-                               const QString& type, const QString& plainText)
+PostMessageJob::PostMessageJob(const ConnectionData* connection,
+                               const QString& roomId, const QString& type,
+                               const QString& plainText)
     : BaseJob(connection, HttpVerb::Post, "PostMessageJob",
-              QString("_matrix/client/r0/rooms/%1/send/m.room.message").arg(roomId),
+              QStringLiteral("_matrix/client/r0/rooms/%1/send/m.room.message").arg(roomId),
               Query(),
               Data({ { "msgtype", type }, { "body", plainText } }) )
     , d(new Private)
 { }
 
-PostMessageJob::PostMessageJob(ConnectionData* connection, const QString& roomId,
-                               const QString& type, const QString& plainText,
-                               const QString& richText)
+PostMessageJob::PostMessageJob(const ConnectionData* connection,
+                               const QString& roomId, const QString& type,
+                               const QString& plainText, const QString& richText)
     : BaseJob(connection, HttpVerb::Post, "PostMessageJob",
               QStringLiteral("_matrix/client/r0/rooms/%1/send/m.room.message").arg(roomId),
               Query(),

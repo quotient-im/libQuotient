@@ -17,17 +17,15 @@
  */
 
 #include "basejob.h"
-#include "util.h"
 
-#include <array>
+#include "connectiondata.h"
 
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QSslError>
 #include <QtCore/QTimer>
 
-#include "../connectiondata.h"
+#include <array>
 
 using namespace QMatrixClient;
 
@@ -44,16 +42,18 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
 class BaseJob::Private
 {
     public:
-        Private(ConnectionData* c, HttpVerb v, QString endpoint,
-                const QUrlQuery& q, const Data& data, bool nt)
-            : connection(c), verb(v), apiEndpoint(endpoint), requestQuery(q)
-            , requestData(data), needsToken(nt)
-            , reply(nullptr), status(NoError)
+        // Using an idiom from clang-tidy:
+        // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
+        Private(const ConnectionData* c, HttpVerb v,
+                QString endpoint, QUrlQuery q, Data data, bool nt)
+            : connection(c), verb(v), apiEndpoint(std::move(endpoint))
+            , requestQuery(std::move(q)), requestData(std::move(data))
+            , needsToken(nt)
         { }
         
-        inline void sendRequest();
+        void sendRequest();
 
-        ConnectionData* connection;
+        const ConnectionData* connection;
 
         // Contents for the network request
         HttpVerb verb;
@@ -63,13 +63,15 @@ class BaseJob::Private
         bool needsToken;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
-        Status status;
+        Status status = NoError;
 
         QTimer timer;
         QTimer retryTimer;
 
         size_t maxRetries = 3;
         size_t retriesTaken = 0;
+
+        LoggingCategory logCat = JOBS;
 };
 
 inline QDebug operator<<(QDebug dbg, const BaseJob* j)
@@ -77,9 +79,9 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
     return dbg << "Job" << j->objectName();
 }
 
-BaseJob::BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
-                 QString endpoint, BaseJob::Query query, BaseJob::Data data,
-                 bool needsToken)
+BaseJob::BaseJob(const ConnectionData* connection, HttpVerb verb,
+                 const QString& name, const QString& endpoint,
+                 const Query& query, const Data& data, bool needsToken)
     : d(new Private(connection, verb, endpoint, query, data, needsToken))
 {
     setObjectName(name);
@@ -87,21 +89,21 @@ BaseJob::BaseJob(ConnectionData* connection, HttpVerb verb, QString name,
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);
     connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::start);
-    qCDebug(JOBS) << this << "created";
+    qCDebug(d->logCat) << this << "created";
 }
 
 BaseJob::~BaseJob()
 {
     stop();
-    qCDebug(JOBS) << this << "destroyed";
+    qCDebug(d->logCat) << this << "destroyed";
 }
 
-ConnectionData* BaseJob::connection() const
+const ConnectionData* BaseJob::connection() const
 {
     return d->connection;
 }
 
-const QUrlQuery&BaseJob::query() const
+const QUrlQuery& BaseJob::query() const
 {
     return d->requestQuery;
 }
@@ -111,7 +113,7 @@ void BaseJob::setRequestQuery(const QUrlQuery& query)
     d->requestQuery = query;
 }
 
-const BaseJob::Data&BaseJob::requestData() const
+const BaseJob::Data& BaseJob::requestData() const
 {
     return d->requestData;
 }
@@ -176,7 +178,7 @@ void BaseJob::gotReply()
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
     if (reply->error() != QNetworkReply::NoError)
-        qCDebug(JOBS) << this << "returned" << reply->error();
+        qCDebug(d->logCat) << this << "returned" << reply->error();
     switch( reply->error() )
     {
     case QNetworkReply::NoError:
@@ -219,11 +221,11 @@ void BaseJob::stop()
     d->timer.stop();
     if (!d->reply)
     {
-        qCWarning(JOBS) << this << "stopped with empty network reply";
+        qCWarning(d->logCat) << this << "stopped with empty network reply";
     }
     else if (d->reply->isRunning())
     {
-        qCWarning(JOBS) << this << "stopped without ready network reply";
+        qCWarning(d->logCat) << this << "stopped without ready network reply";
         d->reply->disconnect(this); // Ignore whatever comes from the reply
         d->reply->abort();
     }
@@ -240,7 +242,7 @@ void BaseJob::finishJob()
         // storm towards the UI.
         const auto retryInterval = getNextRetryInterval();
         ++d->retriesTaken;
-        qCWarning(JOBS) << this << "will take retry" << d->retriesTaken
+        qCWarning(d->logCat) << this << "will take retry" << d->retriesTaken
                    << "in" << retryInterval/1000 << "s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
@@ -306,7 +308,8 @@ void BaseJob::setStatus(Status s)
     d->status = s;
     if (!s.good())
     {
-        qCWarning(JOBS) << this << "status" << s.code << ":" << s.message;
+        qCWarning(d->logCat) << this << "status" << s.code
+                                     << ":" << s.message;
     }
 }
 
@@ -329,7 +332,13 @@ void BaseJob::timeout()
 void BaseJob::sslErrors(const QList<QSslError>& errors)
 {
     foreach (const QSslError &error, errors) {
-        qCWarning(JOBS) << "SSL ERROR" << error.errorString();
+        qCWarning(d->logCat) << "SSL ERROR" << error.errorString();
     }
     d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }
+
+void BaseJob::setLoggingCategory(LoggingCategory lcf)
+{
+    d->logCat = lcf;
+}
+

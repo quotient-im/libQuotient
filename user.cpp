@@ -34,6 +34,12 @@ using namespace QMatrixClient;
 class User::Private
 {
     public:
+        Private(QString userId, Connection* connection)
+            : q(nullptr), userId(std::move(userId)), connection(connection)
+            , defaultIcon(QIcon::fromTheme(QStringLiteral("user-available")))
+            , avatarValid(false) , avatarOngoingRequest(false)
+        { }
+
         User* q;
         QString userId;
         QString name;
@@ -51,14 +57,9 @@ class User::Private
 };
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(new Private)
+    : QObject(connection), d(new Private(userId, connection))
 {
-    d->connection = connection;
-    d->userId = userId;
-    d->avatarValid = false;
-    d->avatarOngoingRequest = false;
-    d->q = this;
-    d->defaultIcon = QIcon::fromTheme(QStringLiteral("user-available"));
+    d->q = this; // Initialization finished
 }
 
 User::~User()

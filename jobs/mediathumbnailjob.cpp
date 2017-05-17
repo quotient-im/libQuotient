@@ -29,7 +29,7 @@ class MediaThumbnailJob::Private
         QPixmap thumbnail;
 };
 
-MediaThumbnailJob::MediaThumbnailJob(ConnectionData* data, QUrl url, QSize requestedSize,
+MediaThumbnailJob::MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
     : BaseJob(data, HttpVerb::Get, "MediaThumbnailJob",
               QString("/_matrix/media/v1/thumbnail/%1%2").arg(url.host(), url.path()),

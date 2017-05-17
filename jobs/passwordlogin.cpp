@@ -18,10 +18,6 @@
 
 #include "passwordlogin.h"
 
-#include <QtNetwork/QNetworkReply>
-
-#include "../connectiondata.h"
-
 using namespace QMatrixClient;
 
 class PasswordLogin::Private
@@ -32,7 +28,7 @@ class PasswordLogin::Private
         QString returned_token;
 };
 
-PasswordLogin::PasswordLogin(ConnectionData* connection, QString user, QString password)
+PasswordLogin::PasswordLogin(const ConnectionData* connection, QString user, QString password)
     : BaseJob(connection, HttpVerb::Post, "PasswordLogin"
             , "_matrix/client/r0/login"
             , Query()

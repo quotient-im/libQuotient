@@ -19,10 +19,6 @@
 #include "joinroomjob.h"
 #include "util.h"
 
-#include <QtNetwork/QNetworkReply>
-
-#include "../connectiondata.h"
-
 using namespace QMatrixClient;
 
 class JoinRoomJob::Private
@@ -31,7 +27,7 @@ class JoinRoomJob::Private
         QString roomId;
 };
 
-JoinRoomJob::JoinRoomJob(ConnectionData* data, QString roomAlias)
+JoinRoomJob::JoinRoomJob(const ConnectionData* data, const QString& roomAlias)
     : BaseJob(data, HttpVerb::Post, "JoinRoomJob",
               QString("_matrix/client/r0/join/%1").arg(roomAlias))
     , d(new Private)

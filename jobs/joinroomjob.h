@@ -22,21 +22,19 @@
 
 namespace QMatrixClient
 {
-    class ConnectionData;
-
     class JoinRoomJob: public BaseJob
     {
         public:
-            JoinRoomJob(ConnectionData* data, QString roomAlias);
+            JoinRoomJob(const ConnectionData* data, const QString& roomAlias);
             virtual ~JoinRoomJob();
 
             QString roomId();
 
-            protected:
-                Status parseJson(const QJsonDocument& data) override;
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
 
-            private:
-                class Private;
-                Private* d;
+        private:
+            class Private;
+            Private* d;
     };
-}
+}  // namespace QMatrixClient

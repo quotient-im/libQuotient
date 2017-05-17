@@ -63,13 +63,14 @@ namespace QMatrixClient
     class Room: public QObject
     {
             Q_OBJECT
-            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
+            Q_PROPERTY(const Connection* connection READ connection CONSTANT)
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
@@ -77,6 +78,7 @@ namespace QMatrixClient
             Room(Connection* connection, QString id);
             virtual ~Room();
 
+            Connection* connection() const;
             QString id() const;
             QString name() const;
             QStringList aliases() const;
@@ -98,9 +100,9 @@ namespace QMatrixClient
              * @brief Produces a disambiguated name for a user with this id in
              * the context of the room
              */
-            Q_INVOKABLE QString roomMembername(QString userId) const;
+            Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-            Q_INVOKABLE void updateData(SyncRoomData& data );
+            void updateData(SyncRoomData&& data );
             Q_INVOKABLE void setJoinState( JoinState state );
 
             const Timeline& messageEvents() const;
@@ -114,7 +116,7 @@ namespace QMatrixClient
             Q_INVOKABLE bool isValidIndex(TimelineItem::index_t timelineIndex) const;
 
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
-            rev_iter_t findInTimeline(QString evtId) const;
+            rev_iter_t findInTimeline(const QString& evtId) const;
 
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
@@ -145,6 +147,8 @@ namespace QMatrixClient
             void postMessage(const QString& type, const QString& plainText,
                              const QString& richText);
             void getPreviousContent(int limit = 10);
+
+            void leaveRoom() const;
             void userRenamed(User* user, QString oldName);
 
         signals:
@@ -173,7 +177,6 @@ namespace QMatrixClient
             void unreadMessagesChanged(Room* room);
 
         protected:
-            Connection* connection() const;
             virtual void doAddNewMessageEvents(const Events& events);
             virtual void doAddHistoricalMessageEvents(const Events& events);
             virtual void processStateEvents(const Events& events);

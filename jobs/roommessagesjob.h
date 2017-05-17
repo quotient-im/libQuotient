@@ -29,8 +29,8 @@ namespace QMatrixClient
     class RoomMessagesJob: public BaseJob
     {
         public:
-            RoomMessagesJob(ConnectionData* data, QString roomId,
-                            QString from, int limit = 10,
+            RoomMessagesJob(const ConnectionData* data, const QString& roomId,
+                            const QString& from, int limit = 10,
                             FetchDirection dir = FetchDirection::Backward);
             virtual ~RoomMessagesJob();
 
@@ -44,4 +44,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient

@@ -22,12 +22,11 @@
 
 namespace QMatrixClient
 {
-    class ConnectionData;
-
     class PasswordLogin : public BaseJob
     {
         public:
-            PasswordLogin(ConnectionData* connection, QString user, QString password);
+            PasswordLogin(const ConnectionData* connection,
+                          QString user, QString password);
             virtual ~PasswordLogin();
 
             QString token();

@@ -19,7 +19,7 @@
 #include "syncjob.h"
 
 #include <QtCore/QJsonArray>
-#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
 
@@ -32,12 +32,13 @@ class SyncJob::Private
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(ConnectionData* connection,
-                 QString since, QString filter, int timeout, QString presence)
+SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
+                 const QString& filter, int timeout, const QString& presence)
     : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
     , d(new Private)
 {
+    setLoggingCategory(SYNCJOB);
     QUrlQuery query;
     if( !filter.isEmpty() )
         query.addQueryItem("filter", filter);
@@ -62,13 +63,14 @@ QString SyncJob::nextBatch() const
     return d->nextBatch;
 }
 
-SyncData& SyncJob::roomData()
+SyncData&& SyncJob::takeRoomData()
 {
-    return d->roomData;
+    return std::move(d->roomData);
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
+    QElapsedTimer et; et.start();
     QJsonObject json = data.object();
     d->nextBatch = json.value("next_batch").toString();
     // TODO: presence
@@ -84,12 +86,12 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     for (auto roomState: roomStates)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
-        d->roomData.reserve(rs.size());
+        // We have a Qt container on the right and an STL one on the left
+        d->roomData.reserve(static_cast<size_t>(rs.size()));
         for( auto rkey: rs.keys() )
-        {
-            d->roomData.push_back({rkey, roomState.enumVal, rs[rkey].toObject()});
-        }
+            d->roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
+    qCDebug(PROFILER) << "*** SyncJob::parseJson():" << et.elapsed() << "ms";
 
     return Success;
 }
@@ -99,7 +101,8 @@ void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
     assign(eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray()));
 }
 
-SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObject& room_)
+SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
+                           const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
     , state("state")
@@ -123,7 +126,7 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObj
             timeline.fromJson(room_);
             break;
     default:
-        qCWarning(JOBS) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
+        qCWarning(SYNCJOB) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
     }
 
     QJsonObject timeline = room_.value("timeline").toObject();
@@ -133,5 +136,5 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState_, const QJsonObj
     QJsonObject unread = room_.value("unread_notifications").toObject();
     highlightCount = unread.value("highlight_count").toInt();
     notificationCount = unread.value("notification_count").toInt();
-    qCDebug(JOBS) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    qCDebug(SYNCJOB) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
 }

@@ -39,20 +39,20 @@ using namespace QMatrixClient;
 class Connection::Private
 {
     public:
-        explicit Private(QUrl serverUrl)
+        explicit Private(const QUrl& serverUrl)
             : q(nullptr)
             , data(new ConnectionData(serverUrl))
-            , isConnected(false)
             , syncJob(nullptr)
         { }
-        Private(Private&) = delete;
+        Q_DISABLE_COPY(Private)
+        Private(Private&&) = delete;
+        Private operator=(Private&&) = delete;
         ~Private() { delete data; }
 
         Connection* q;
         ConnectionData* data;
         QHash<QString, Room*> roomMap;
         QHash<QString, User*> userMap;
-        bool isConnected;
         QString username;
         QString password;
         QString userId;
@@ -60,7 +60,7 @@ class Connection::Private
         SyncJob* syncJob;
 };
 
-Connection::Connection(QUrl server, QObject* parent)
+Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
     , d(new Private(server))
 {
@@ -75,10 +75,11 @@ Connection::Connection()
 Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << d->userId;
+    stopSync();
     delete d;
 }
 
-void Connection::resolveServer(QString domain)
+void Connection::resolveServer(const QString& domain)
 {
     // Find the Matrix server for the given domain.
     QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
@@ -102,23 +103,21 @@ void Connection::resolveServer(QString domain)
     });
 }
 
-void Connection::connectToServer(QString user, QString password)
+void Connection::connectToServer(const QString& user, const QString& password)
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, user, password);
+    auto loginJob = callApi<PasswordLogin>(user, password);
     connect( loginJob, &PasswordLogin::success, [=] () {
         connectWithToken(loginJob->id(), loginJob->token());
     });
     connect( loginJob, &PasswordLogin::failure, [=] () {
         emit loginError(loginJob->errorString());
     });
-    loginJob->start();
     d->username = user; // to be able to reconnect
     d->password = password;
 }
 
-void Connection::connectWithToken(QString userId, QString token)
+void Connection::connectWithToken(const QString& userId, const QString& token)
 {
-    d->isConnected = true;
     d->userId = userId;
     d->data->setToken(token);
     qCDebug(MAIN) << "Accessing" << d->data->baseUrl()
@@ -130,22 +129,14 @@ void Connection::connectWithToken(QString userId, QString token)
 
 void Connection::reconnect()
 {
-    PasswordLogin* loginJob = new PasswordLogin(d->data, d->username, d->password );
+    auto loginJob = callApi<PasswordLogin>(d->username, d->password);
     connect( loginJob, &PasswordLogin::success, [=] () {
         d->userId = loginJob->id();
         emit reconnected();
     });
     connect( loginJob, &PasswordLogin::failure, [=] () {
         emit loginError(loginJob->errorString());
-        d->isConnected = false;
     });
-    loginJob->start();
-}
-
-void Connection::disconnectFromServer()
-{
-    stopSync();
-    d->isConnected = false;
 }
 
 void Connection::logout()
@@ -162,15 +153,16 @@ void Connection::sync(int timeout)
     if (d->syncJob)
         return;
 
-    const QString filter = "{\"room\": { \"timeline\": { \"limit\": 100 } } }";
+    // Raw string: http://en.cppreference.com/w/cpp/language/string_literal
+    const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
         d->data->setLastEvent(job->nextBatch());
-        for( auto& roomData: job->roomData() )
+        for( auto&& roomData: job->takeRoomData() )
         {
-            if ( Room* r = provideRoom(roomData.roomId) )
-                r->updateData(roomData);
+            if ( auto* r = provideRoom(roomData.roomId) )
+                r->updateData(std::move(roomData));
         }
         d->syncJob = nullptr;
         emit syncDone();
@@ -194,20 +186,17 @@ void Connection::stopSync()
     }
 }
 
-void Connection::postMessage(Room* room, QString type, QString message)
+void Connection::postMessage(Room* room, const QString& type, const QString& message) const
 {
-    PostMessageJob* job = new PostMessageJob(d->data, room->id(), type, message);
-    job->start();
+    callApi<PostMessageJob>(room->id(), type, message);
 }
 
-PostReceiptJob* Connection::postReceipt(Room* room, Event* event)
+PostReceiptJob* Connection::postReceipt(Room* room, Event* event) const
 {
-    PostReceiptJob* job = new PostReceiptJob(d->data, room->id(), event->id());
-    job->start();
-    return job;
+    return callApi<PostReceiptJob>(room->id(), event->id());
 }
 
-JoinRoomJob* Connection::joinRoom(QString roomAlias)
+JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 {
     auto job = callApi<JoinRoomJob>(roomAlias);
     connect( job, &BaseJob::success, [=] () {
@@ -219,25 +208,21 @@ JoinRoomJob* Connection::joinRoom(QString roomAlias)
 
 void Connection::leaveRoom(Room* room)
 {
-    LeaveRoomJob* job = new LeaveRoomJob(d->data, room);
-    job->start();
+    callApi<LeaveRoomJob>(room->id());
 }
 
-RoomMessagesJob* Connection::getMessages(Room* room, QString from)
+RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
 {
-    RoomMessagesJob* job = new RoomMessagesJob(d->data, room->id(), from);
-    job->start();
-    return job;
+    return callApi<RoomMessagesJob>(room->id(), from);
 }
 
-MediaThumbnailJob* Connection::getThumbnail(QUrl url, QSize requestedSize)
+MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, QSize requestedSize) const
 {
-    MediaThumbnailJob* job = new MediaThumbnailJob(d->data, url, requestedSize);
-    job->start();
-    return job;
+    return callApi<MediaThumbnailJob>(url, requestedSize);
 }
 
-MediaThumbnailJob* Connection::getThumbnail(QUrl url, int requestedWidth, int requestedHeight)
+MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
+                                            int requestedHeight) const
 {
     return getThumbnail(url, QSize(requestedWidth, requestedHeight));
 }
@@ -247,7 +232,7 @@ QUrl Connection::homeserver() const
     return d->data->baseUrl();
 }
 
-User* Connection::user(QString userId)
+User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
@@ -293,17 +278,12 @@ QHash< QString, Room* > Connection::roomMap() const
     return d->roomMap;
 }
 
-bool Connection::isConnected()
-{
-    return d->isConnected;
-}
-
-ConnectionData* Connection::connectionData()
+const ConnectionData* Connection::connectionData() const
 {
     return d->data;
 }
 
-Room* Connection::provideRoom(QString id)
+Room* Connection::provideRoom(const QString& id)
 {
     if (id.isEmpty())
     {
@@ -327,12 +307,12 @@ Room* Connection::provideRoom(QString id)
     return room;
 }
 
-User* Connection::createUser(QString userId)
+User* Connection::createUser(const QString& userId)
 {
     return new User(userId, this);
 }
 
-Room* Connection::createRoom(QString roomId)
+Room* Connection::createRoom(const QString& roomId)
 {
     return new Room(this, roomId);
 }

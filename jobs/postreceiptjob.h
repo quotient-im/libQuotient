@@ -25,7 +25,7 @@ namespace QMatrixClient
     class PostReceiptJob: public BaseJob
     {
         public:
-            PostReceiptJob(ConnectionData* connection, QString roomId, QString eventId);
-            virtual ~PostReceiptJob();
+            PostReceiptJob(const ConnectionData* connection, const QString& roomId,
+                           const QString& eventId);
     };
 }
