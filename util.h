@@ -150,12 +150,18 @@ namespace QMatrixClient
      * \tparam ResultT - the desired type of a picked function invocation (mandatory)
      * \tparam ArgTs - function argument types (deduced)
      */
+#if __GNUC__ < 5 && __GNUC_MINOR__ < 9
+    // GCC 4.8 cannot cope with parameter packs inside lambdas; so provide a single
+    // argument version of Dispatch<> that we only need so far.
+    template <typename ResultT, typename ArgT>
+#else
     template <typename ResultT, typename... ArgTs>
+#endif
     class Dispatch
     {
-            // We take a chapter from functional programming here: Dispatch<>
-            // uses a function that in turn accepts a function as its argument.
-            // The sole purpose of the outer function (initialized by
+            // The implementation takes a chapter from functional programming:
+            // Dispatch<> uses a function that in turn accepts a function as its
+            // argument. The sole purpose of the outer function (initialized by
             // a lambda-expression in the constructor) is to store the arguments
             // to any of the functions later looked up. The inner function (its
             // type is defined by fn_t alias) is the one returned by lookup()
@@ -164,21 +170,25 @@ namespace QMatrixClient
             // It's a bit counterintuitive to specify function parameters before
             // the list of functions but otherwise it would take several overloads
             // here to match all the ways a function-like behaviour can be done:
-            // reference-to-function, pointer-to-function, function object. For
-            // each of these overloads, we'd have to carefully retrieve the list
-            // of parameters and cover up possible reference-vs-value
-            // incompatibilities. Instead, you show what you have and if it's
-            // possible to bring all your functions to the same std::function<>
-            // based on what you have as parameters, the code will compile. If
-            // it's not possible, modern compilers are already good enough at
-            // pinpointing a specific place where types don't match.
-            using fn_t = std::function<ResultT(ArgTs...)>;
+            // reference-to-function, pointer-to-function, function object. This
+            // probably could be done as well but I preferred a more compact
+            // solution: you show what you have and if it's possible to bring all
+            // your functions to the same std::function<> based on what you have
+            // as parameters, the code will compile. If it's not possible, modern
+            // compilers are already good enough at pinpointing a specific place
+            // where types don't match.
         public:
-            explicit Dispatch(ArgTs&&... args)
-                : boundArgs([=](fn_t &&f) {
-                        return f(std::forward<ArgTs...>(args)...);
-                    })
+#if __GNUC__ < 5 && __GNUC_MINOR__ < 9
+            using fn_t = std::function<ResultT(ArgT)>;
+            explicit Dispatch(ArgT&& arg)
+                : boundArgs([=](fn_t &&f) { return f(std::move(arg)); })
             { }
+#else
+            using fn_t = std::function<ResultT(ArgTs...)>;
+            explicit Dispatch(ArgTs&&... args)
+                : boundArgs([=](fn_t &&f) { return f(std::move(args)...); })
+            { }
+#endif
 
             template <typename... LookupParamTs>
             ResultT to(LookupParamTs&&... lookupParams)
@@ -190,12 +200,18 @@ namespace QMatrixClient
                 // generic (because std::function is covariant by return types and
                 // contravariant by argument types (see the link in the Doxygen
                 // part of the comments).
+                auto fn = lookup<fn_t>(std::forward<LookupParamTs>(lookupParams)...);
                 // 2. Passing the result of lookup() to boundArgs() invokes the
                 // lambda-expression mentioned in the constructor, which simply
                 // invokes this passed function with a set of arguments captured
                 // by lambda.
-                return boundArgs(
-                    lookup<fn_t>(std::forward<LookupParamTs>(lookupParams)...));
+                if (fn)
+                    return boundArgs(std::move(fn));
+
+                // A shortcut to allow passing nullptr for a function;
+                // a default-constructed ResultT will be returned
+                // (for pointers, it will be nullptr)
+                return {};
             }
 
         private:
