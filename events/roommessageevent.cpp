@@ -64,16 +64,16 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
         _plainBody = content["body"].toString();
 
         auto factory = lookup(content["msgtype"].toString(),
-                            "m.text", make<CType::Text, TextContent>,
-                            "m.emote", make<CType::Emote, TextContent>,
-                            "m.notice", make<CType::Notice, TextContent>,
-                            "m.image", make<CType::Image, ImageContent>,
-                            "m.file", make<CType::File, FileContent>,
-                            "m.location", make<CType::Location, LocationContent>,
-                            "m.video", makeVideo,
-                            "m.audio", make<CType::Audio, AudioContent>,
+                            "m.text", &make<CType::Text, TextContent>,
+                            "m.emote", &make<CType::Emote, TextContent>,
+                            "m.notice", &make<CType::Notice, TextContent>,
+                            "m.image", &make<CType::Image, ImageContent>,
+                            "m.file", &make<CType::File, FileContent>,
+                            "m.location", &make<CType::Location, LocationContent>,
+                            "m.video", &makeVideo,
+                            "m.audio", &make<CType::Audio, AudioContent>,
                             // Insert new message types before this line
-                            makeUnknown
+                            &makeUnknown
                         );
         std::tie(_msgtype, _content) = factory(content);
     }
