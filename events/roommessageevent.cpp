@@ -19,64 +19,15 @@
 #include "roommessageevent.h"
 
 #include "logging.h"
-#include "util.h"
 
 #include <QtCore/QMimeDatabase>
 
 using namespace QMatrixClient;
-
-class RoomMessageEvent::Private
-{
-    public:
-        Private() : msgtype(MessageEventType::Unknown), content(nullptr) {}
-        ~Private() { if (content) delete content; }
-        
-        QString userId;
-        MessageEventType msgtype;
-        QString plainBody;
-        MessageEventContent::Base* content;
-};
-
-RoomMessageEvent::RoomMessageEvent()
-    : Event(EventType::RoomMessage)
-    , d(new Private)
-{ }
-
-RoomMessageEvent::~RoomMessageEvent()
-{
-    delete d;
-}
-
-QString RoomMessageEvent::userId() const
-{
-    return d->userId;
-}
-
-MessageEventType RoomMessageEvent::msgtype() const
-{
-    return d->msgtype;
-}
-
-QString RoomMessageEvent::plainBody() const
-{
-    return d->plainBody;
-}
-
-QString RoomMessageEvent::body() const
-{
-    return plainBody();
-}
-
 using namespace MessageEventContent;
 
-Base* RoomMessageEvent::content() const
-{
-    return d->content;
-}
+using ContentPair = std::pair<CType, Base*>;
 
-using ContentPair = std::pair<MessageEventType, MessageEventContent::Base*>;
-
-template <MessageEventType EnumType, typename ContentT>
+template <CType EnumType, typename ContentT>
 ContentPair make(const QJsonObject& json)
 {
     return { EnumType, new ContentT(json) };
@@ -91,59 +42,53 @@ ContentPair makeVideo(const QJsonObject& json)
     if (infoJson.contains("thumbnail_url"))
     {
         c->thumbnail = ImageInfo(infoJson["thumbnail_url"].toString(),
-                                         infoJson["thumbnail_info"].toObject());
+                                 infoJson["thumbnail_info"].toObject());
     }
-    return { MessageEventType::Video, c };
+    return { CType::Video, c };
 };
 
 ContentPair makeUnknown(const QJsonObject& json)
 {
     qCDebug(EVENTS) << "RoomMessageEvent: couldn't resolve msgtype, JSON follows:";
     qCDebug(EVENTS) << json;
-    return { MessageEventType::Unknown, new Base };
+    return { CType::Unknown, new Base() };
 }
 
-RoomMessageEvent* RoomMessageEvent::fromJson(const QJsonObject& obj)
+RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
+    : RoomEvent(Type::RoomMessage, obj), _msgtype(CType::Unknown)
+    , _content(nullptr)
 {
-    RoomMessageEvent* e = new RoomMessageEvent();
-    e->parseJson(obj);
-    if( obj.contains("sender") )
+    const QJsonObject content = contentJson();
+    if ( content.contains("msgtype") && content.contains("body") )
     {
-        e->d->userId = obj.value("sender").toString();
-    } else {
-        qCDebug(EVENTS) << "RoomMessageEvent: user_id not found";
-    }
-    if( obj.contains("content") )
-    {
-        const QJsonObject content = obj["content"].toObject();
-        if ( content.contains("msgtype") && content.contains("body") )
-        {
-            e->d->plainBody = content["body"].toString();
+        _plainBody = content["body"].toString();
 
-            auto delegate = lookup(content["msgtype"].toString(),
-                    "m.text", &make<MessageEventType::Text, TextContent>,
-                    "m.emote", &make<MessageEventType::Emote, TextContent>,
-                    "m.notice", &make<MessageEventType::Notice, TextContent>,
-                    "m.image", &make<MessageEventType::Image, ImageContent>,
-                    "m.file", &make<MessageEventType::File, FileContent>,
-                    "m.location", &make<MessageEventType::Location, LocationContent>,
-                    "m.video", &makeVideo,
-                    "m.audio", &make<MessageEventType::Audio, AudioContent>,
-                    // Insert new message types before this line
-                    &makeUnknown
-                );
-            std::tie(e->d->msgtype, e->d->content) = delegate(content);
-        }
-        else
-        {
-            qCWarning(EVENTS) << "RoomMessageEvent(" << e->id() << "): no body or msgtype";
-            qCDebug(EVENTS) << obj;
-        }
+        auto factory = lookup(content["msgtype"].toString(),
+                            "m.text", make<CType::Text, TextContent>,
+                            "m.emote", make<CType::Emote, TextContent>,
+                            "m.notice", make<CType::Notice, TextContent>,
+                            "m.image", make<CType::Image, ImageContent>,
+                            "m.file", make<CType::File, FileContent>,
+                            "m.location", make<CType::Location, LocationContent>,
+                            "m.video", makeVideo,
+                            "m.audio", make<CType::Audio, AudioContent>,
+                            // Insert new message types before this line
+                            makeUnknown
+                        );
+        std::tie(_msgtype, _content) = factory(content);
     }
-    return e;
+    else
+    {
+        qCWarning(EVENTS) << "No body or msgtype in room message event";
+        qCWarning(EVENTS) << formatJson << obj;
+    }
 }
 
-using namespace MessageEventContent;
+RoomMessageEvent::~RoomMessageEvent()
+{
+    if (_content)
+        delete _content;
+}
 
 TextContent::TextContent(const QJsonObject& json)
 {

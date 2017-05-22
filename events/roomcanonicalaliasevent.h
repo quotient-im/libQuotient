@@ -22,18 +22,17 @@
 
 namespace QMatrixClient
 {
-    class RoomCanonicalAliasEvent: public Event
+    class RoomCanonicalAliasEvent : public RoomEvent
     {
         public:
-            RoomCanonicalAliasEvent();
-            virtual ~RoomCanonicalAliasEvent();
+            explicit RoomCanonicalAliasEvent(const QJsonObject& obj)
+                : RoomEvent(Type::RoomCanonicalAlias, obj)
+                , _canonicalAlias(contentJson()["alias"].toString())
+            { }
 
-            QString alias();
-
-            static RoomCanonicalAliasEvent* fromJson(const QJsonObject& obj);
+            QString alias() const { return _canonicalAlias; }
 
         private:
-            class Private;
-            Private* d;
+            QString _canonicalAlias;
     };
-}
+}  // namespace QMatrixClient

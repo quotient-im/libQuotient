@@ -43,14 +43,14 @@ namespace QMatrixClient
             // a std:: container now
             using index_t = int;
 
-            TimelineItem(Event* e, index_t number) : evt(e), idx(number) { }
+            TimelineItem(RoomEvent* e, index_t number) : evt(e), idx(number) { }
 
-            Event* event() const { return evt.get(); }
-            Event* operator->() const { return event(); } //< Synonym for event()
+            RoomEvent* event() const { return evt.get(); }
+            RoomEvent* operator->() const { return event(); } //< Synonym for event()
             index_t index() const { return idx; }
 
         private:
-            std::unique_ptr<Event> evt;
+            std::unique_ptr<RoomEvent> evt;
             index_t idx;
     };
     inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
@@ -152,8 +152,8 @@ namespace QMatrixClient
             void userRenamed(User* user, QString oldName);
 
         signals:
-            void aboutToAddHistoricalMessages(const Events& events);
-            void aboutToAddNewMessages(const Events& events);
+            void aboutToAddHistoricalMessages(const RoomEvents& events);
+            void aboutToAddNewMessages(const RoomEvents& events);
             void addedMessages();
 
             /**
@@ -177,17 +177,17 @@ namespace QMatrixClient
             void unreadMessagesChanged(Room* room);
 
         protected:
-            virtual void doAddNewMessageEvents(const Events& events);
-            virtual void doAddHistoricalMessageEvents(const Events& events);
-            virtual void processStateEvents(const Events& events);
+            virtual void doAddNewMessageEvents(const RoomEvents& events);
+            virtual void doAddHistoricalMessageEvents(const RoomEvents& events);
+            virtual void processStateEvents(const RoomEvents& events);
             virtual void processEphemeralEvent(Event* event);
 
         private:
             class Private;
             Private* d;
 
-            void addNewMessageEvents(Events events);
-            void addHistoricalMessageEvents(Events events);
+            void addNewMessageEvents(RoomEvents events);
+            void addHistoricalMessageEvents(RoomEvents events);
 
             void markMessagesAsRead(rev_iter_t upToMarker);
     };
@@ -209,4 +209,4 @@ namespace QMatrixClient
         private:
             const Room* room;
     };
-}
+}  // namespace QMatrixClient

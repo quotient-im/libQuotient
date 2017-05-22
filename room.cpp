@@ -96,18 +96,18 @@ class Room::Private
 
         void getPreviousContent(int limit = 10);
 
-        bool isEventNotable(const Event* e) const
+        bool isEventNotable(const RoomEvent* e) const
         {
             return e->senderId() != connection->userId() &&
                     e->type() == EventType::RoomMessage;
         }
 
-        void appendEvent(Event* e)
+        void appendEvent(RoomEvent* e)
         {
             insertEvent(e, timeline.end(),
                         timeline.empty() ? 0 : q->maxTimelineIndex() + 1);
         }
-        void prependEvent(Event* e)
+        void prependEvent(RoomEvent* e)
         {
             insertEvent(e, timeline.begin(),
                         timeline.empty() ? 0 : q->minTimelineIndex() - 1);
@@ -116,7 +116,7 @@ class Room::Private
         /**
          * Removes events from the passed container that are already in the timeline
          */
-        void dropDuplicateEvents(Events* events) const;
+        void dropDuplicateEvents(RoomEvents* events) const;
 
         void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
@@ -128,7 +128,7 @@ class Room::Private
         void insertMemberIntoMap(User* u);
         void removeMemberFromMap(const QString& username, User* u);
 
-        void insertEvent(Event* e, Timeline::iterator where,
+        void insertEvent(RoomEvent* e, Timeline::iterator where,
                          TimelineItem::index_t index);
 };
 
@@ -394,10 +394,10 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
 inline QByteArray makeErrorStr(const Event* e, const char* msg)
 {
     return QString("%1; event dump follows:\n%2")
-            .arg(msg, e->originalJson()).toUtf8();
+            .arg(msg, QString(e->originalJson())).toUtf8();
 }
 
-void Room::Private::insertEvent(Event* e, Timeline::iterator where,
+void Room::Private::insertEvent(RoomEvent* e, Timeline::iterator where,
                                 TimelineItem::index_t index)
 {
     Q_ASSERT_X(e, __FUNCTION__, "Attempt to add nullptr to timeline");
@@ -530,7 +530,7 @@ void Room::updateData(SyncRoomData&& data)
     qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et.elapsed() << "ms";
 
     et.restart();
-    for( Event* ephemeralEvent: data.ephemeral )
+    for( auto ephemeralEvent: data.ephemeral )
     {
         processEphemeralEvent(ephemeralEvent);
     }
@@ -586,12 +586,12 @@ void Room::leaveRoom() const
     connection()->callApi<LeaveRoomJob>(id());
 }
 
-void Room::Private::dropDuplicateEvents(Events* events) const
+void Room::Private::dropDuplicateEvents(RoomEvents* events) const
 {
     // Collect all duplicate events at the end of the container
     auto dupsBegin =
             std::stable_partition(events->begin(), events->end(),
-                                  [&] (Event* e) { return !eventsIndex.contains(e->id()); });
+                  [&] (RoomEvent* e) { return !eventsIndex.contains(e->id()); });
     // Dispose of those dups
     std::for_each(dupsBegin, events->end(), [] (Event* e) { delete e; });
     events->erase(dupsBegin, events->end());
@@ -602,7 +602,7 @@ Connection* Room::connection() const
     return d->connection;
 }
 
-void Room::addNewMessageEvents(Events events)
+void Room::addNewMessageEvents(RoomEvents events)
 {
     d->dropDuplicateEvents(&events);
     if (events.empty())
@@ -612,9 +612,9 @@ void Room::addNewMessageEvents(Events events)
     emit addedMessages();
 }
 
-void Room::doAddNewMessageEvents(const Events& events)
+void Room::doAddNewMessageEvents(const RoomEvents& events)
 {
-    Q_ASSERT(!events.isEmpty());
+    Q_ASSERT(!events.empty());
 
     Timeline::size_type newUnreadMessages = 0;
     for (auto e: events)
@@ -647,7 +647,7 @@ void Room::doAddNewMessageEvents(const Events& events)
     }
 }
 
-void Room::addHistoricalMessageEvents(Events events)
+void Room::addHistoricalMessageEvents(RoomEvents events)
 {
     d->dropDuplicateEvents(&events);
     if (events.empty())
@@ -657,9 +657,9 @@ void Room::addHistoricalMessageEvents(Events events)
     emit addedMessages();
 }
 
-void Room::doAddHistoricalMessageEvents(const Events& events)
+void Room::doAddHistoricalMessageEvents(const RoomEvents& events)
 {
-    Q_ASSERT(!events.isEmpty());
+    Q_ASSERT(!events.empty());
     // Historical messages arrive in newest-to-oldest order
     for (auto e: events)
         d->prependEvent(e);
@@ -667,52 +667,57 @@ void Room::doAddHistoricalMessageEvents(const Events& events)
                   << "past events; the oldest event is now" << d->timeline.front();
 }
 
-void Room::processStateEvents(const Events& events)
+void Room::processStateEvents(const RoomEvents& events)
 {
     bool emitNamesChanged = false;
     for (auto event: events)
     {
-        if( event->type() == EventType::RoomName )
+        switch (event->type())
         {
-            auto nameEvent = static_cast<RoomNameEvent*>(event);
-            d->name = nameEvent->name();
-            qCDebug(MAIN) << "room name:" << d->name;
-            emitNamesChanged = true;
-        }
-        if( event->type() == EventType::RoomAliases )
-        {
-            auto aliasesEvent = static_cast<RoomAliasesEvent*>(event);
-            d->aliases = aliasesEvent->aliases();
-            qCDebug(MAIN) << "room aliases:" << d->aliases;
-            emitNamesChanged = true;
-        }
-        if( event->type() == EventType::RoomCanonicalAlias )
-        {
-            auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
-            d->canonicalAlias = aliasEvent->alias();
-            qCDebug(MAIN) << "room canonical alias:" << d->canonicalAlias;
-            emitNamesChanged = true;
-        }
-        if( event->type() == EventType::RoomTopic )
-        {
-            auto topicEvent = static_cast<RoomTopicEvent*>(event);
-            d->topic = topicEvent->topic();
-            emit topicChanged();
-        }
-        if( event->type() == EventType::RoomMember )
-        {
-            auto memberEvent = static_cast<RoomMemberEvent*>(event);
-            // Can't use d->member() below because the user may be not a member (yet)
-            User* u = d->connection->user(memberEvent->userId());
-            u->processEvent(event);
-            if( memberEvent->membership() == MembershipType::Join )
-            {
-                d->addMember(u);
+            case EventType::RoomName: {
+                auto nameEvent = static_cast<RoomNameEvent*>(event);
+                d->name = nameEvent->name();
+                qCDebug(MAIN) << "Room name updated:" << d->name;
+                emitNamesChanged = true;
+                break;
             }
-            else if( memberEvent->membership() == MembershipType::Leave )
-            {
-                d->removeMember(u);
+            case EventType::RoomAliases: {
+                auto aliasesEvent = static_cast<RoomAliasesEvent*>(event);
+                d->aliases = aliasesEvent->aliases();
+                qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
+                emitNamesChanged = true;
+                break;
             }
+            case EventType::RoomCanonicalAlias: {
+                auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
+                d->canonicalAlias = aliasEvent->alias();
+                qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
+                emitNamesChanged = true;
+                break;
+            }
+            case EventType::RoomTopic: {
+                auto topicEvent = static_cast<RoomTopicEvent*>(event);
+                d->topic = topicEvent->topic();
+                qCDebug(MAIN) << "Room topic updated:" << d->topic;
+                emit topicChanged();
+                break;
+            }
+            case EventType::RoomMember: {
+                auto memberEvent = static_cast<RoomMemberEvent*>(event);
+                // Can't use d->member() below because the user may be not a member (yet)
+                User* u = d->connection->user(memberEvent->userId());
+                u->processEvent(event);
+                if( memberEvent->membership() == MembershipType::Join )
+                {
+                    d->addMember(u);
+                }
+                else if( memberEvent->membership() == MembershipType::Leave )
+                {
+                    d->removeMember(u);
+                }
+                break;
+            }
+            default: /* Ignore events of other types */;
         }
     }
     if (emitNamesChanged) {
@@ -723,53 +728,57 @@ void Room::processStateEvents(const Events& events)
 
 void Room::processEphemeralEvent(Event* event)
 {
-    if( event->type() == EventType::Typing )
+    switch (event->type())
     {
-        auto typingEvent = static_cast<TypingEvent*>(event);
-        d->usersTyping.clear();
-        for( const QString& userId: typingEvent->users() )
-        {
-            if (auto m = d->member(userId))
-                d->usersTyping.append(m);
-        }
-        emit typingChanged();
-    }
-    if( event->type() == EventType::Receipt )
-    {
-        auto receiptEvent = static_cast<ReceiptEvent*>(event);
-        for( const auto &eventReceiptPair: receiptEvent->events() )
-        {
-            const auto& eventId = eventReceiptPair.first;
-            const auto& receipts = eventReceiptPair.second;
+        case EventType::Typing: {
+            auto typingEvent = static_cast<TypingEvent*>(event);
+            d->usersTyping.clear();
+            for( const QString& userId: typingEvent->users() )
             {
-                if (receipts.size() == 1)
-                    qCDebug(EPHEMERAL) << "Marking" << eventId
-                                       << "as read for" << receipts[0].userId;
-                else
-                    qCDebug(EPHEMERAL) << "Marking" << eventId
-                                       << "as read for"
-                                       << receipts.size() << "users";
+                if (auto m = d->member(userId))
+                    d->usersTyping.append(m);
             }
-            if (d->eventsIndex.contains(eventId))
-            {
-                const auto newMarker = findInTimeline(eventId);
-                for( const Receipt& r: receipts )
-                    if (auto m = d->member(r.userId))
-                        d->promoteReadMarker(m, newMarker);
-            } else
-            {
-                qCDebug(EPHEMERAL) << "Event" << eventId
-                                   << "not found; saving read receipts anyway";
-                // If the event is not found (most likely, because it's too old
-                // and hasn't been fetched from the server yet), but there is
-                // a previous marker for a user, keep the previous marker.
-                // Otherwise, blindly store the event id for this user.
-                for( const Receipt& r: receipts )
-                    if (auto m = d->member(r.userId))
-                        if (readMarker(m) == timelineEdge())
-                            d->setLastReadEvent(m, eventId);
-            }
+            emit typingChanged();
+            break;
         }
+        case EventType::Receipt: {
+            auto receiptEvent = static_cast<ReceiptEvent*>(event);
+            for( const auto &p: receiptEvent->eventsWithReceipts() )
+            {
+                {
+                    if (p.receipts.size() == 1)
+                        qCDebug(EPHEMERAL) << "Marking" << p.evtId
+                                           << "as read for" << p.receipts[0].userId;
+                    else
+                        qCDebug(EPHEMERAL) << "Marking" << p.evtId
+                                           << "as read for"
+                                           << p.receipts.size() << "users";
+                }
+                if (d->eventsIndex.contains(p.evtId))
+                {
+                    const auto newMarker = findInTimeline(p.evtId);
+                    for( const Receipt& r: p.receipts )
+                        if (auto m = d->member(r.userId))
+                            d->promoteReadMarker(m, newMarker);
+                } else
+                {
+                    qCDebug(EPHEMERAL) << "Event" << p.evtId
+                                       << "not found; saving read receipts anyway";
+                    // If the event is not found (most likely, because it's too old
+                    // and hasn't been fetched from the server yet), but there is
+                    // a previous marker for a user, keep the previous marker.
+                    // Otherwise, blindly store the event id for this user.
+                    for( const Receipt& r: p.receipts )
+                        if (auto m = d->member(r.userId))
+                            if (readMarker(m) == timelineEdge())
+                                d->setLastReadEvent(m, p.evtId);
+                }
+            }
+            break;
+        }
+        default:
+            qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
+                                 << event->type();
     }
 }
 

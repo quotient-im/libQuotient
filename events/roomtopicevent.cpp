@@ -20,32 +20,3 @@
 
 using namespace QMatrixClient;
 
-class RoomTopicEvent::Private
-{
-    public:
-        QString topic;
-};
-
-RoomTopicEvent::RoomTopicEvent()
-    : Event(EventType::RoomTopic)
-    , d(new Private)
-{
-}
-
-RoomTopicEvent::~RoomTopicEvent()
-{
-    delete d;
-}
-
-QString RoomTopicEvent::topic() const
-{
-    return d->topic;
-}
-
-RoomTopicEvent* RoomTopicEvent::fromJson(const QJsonObject& obj)
-{
-    auto e = new RoomTopicEvent();
-    e->parseJson(obj);
-    e->d->topic = obj.value("content").toObject().value("topic").toString();
-    return e;
-}

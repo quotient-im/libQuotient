@@ -24,44 +24,45 @@
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 
+#include <memory>
+
 namespace QMatrixClient
 {
-    enum class MessageEventType
-    {
-        Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
-    };
-
     namespace MessageEventContent
     {
-        class Base { };
-    }
+        class Base
+        {
+            Q_GADGET
+            public:
+                enum class Type
+                {
+                    Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
+                };
 
-    class RoomMessageEvent: public Event
+                virtual ~Base() = default;
+
+                REGISTER_ENUM(Type)
+        };
+        using CType = Base::Type;
+    }  // namespace MessageEventContent
+    using MessageEventType = MessageEventContent::CType;
+
+    class RoomMessageEvent: public RoomEvent
     {
         public:
-            RoomMessageEvent();
-            virtual ~RoomMessageEvent();
+            explicit RoomMessageEvent(const QJsonObject& obj);
+            ~RoomMessageEvent();
 
-            QString userId() const;
-            MessageEventType msgtype() const;
-
-            QString plainBody() const;
-
-            /**
-             * Same as plainBody() for now; might change for "best-looking body"
-             * in the future. For richer contents, use content-specific data.
-             *
-             * @deprecated
-             */
-            QString body() const;
-
-            MessageEventContent::Base* content() const;
-
-            static RoomMessageEvent* fromJson( const QJsonObject& obj );
+            const QString& userId() const                    { return _userId; }
+            MessageEventType msgtype() const                 { return _msgtype; }
+            const QString& plainBody() const                 { return _plainBody; }
+            const MessageEventContent::Base* content() const { return _content; }
 
         private:
-            class Private;
-            Private* d;
+            QString _userId;
+            MessageEventType _msgtype;
+            QString _plainBody;
+            MessageEventContent::Base* _content;
     };
 
     namespace MessageEventContent
@@ -73,7 +74,7 @@ namespace QMatrixClient
         class TextContent: public Base
         {
             public:
-                TextContent(const QJsonObject& json);
+                explicit TextContent(const QJsonObject& json);
 
                 QMimeType mimeType;
                 QString body;
@@ -103,7 +104,7 @@ namespace QMatrixClient
         class ThumbnailedContent: public ContentInfoT
         {
             public:
-                ThumbnailedContent(const QJsonObject& json)
+                explicit ThumbnailedContent(const QJsonObject& json)
                     : ContentInfoT(json["url"].toString(), json["info"].toObject())
                     , thumbnail(json["thumbnail_url"].toString(),
                                 json["thumbnail_info"].toObject())
@@ -118,7 +119,7 @@ namespace QMatrixClient
         class LocationContent: public Base
         {
             public:
-                LocationContent(const QJsonObject& json);
+                explicit LocationContent(const QJsonObject& json);
 
                 QString geoUri;
                 ImageInfo thumbnail;
@@ -142,5 +143,5 @@ namespace QMatrixClient
                 int duration;
         };
         using AudioContent = ThumbnailedContent<AudioInfo>;
-    }
-}
+    }  // namespace MessageEventContent
+}  // namespace QMatrixClient

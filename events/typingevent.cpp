@@ -18,43 +18,15 @@
 
 #include "typingevent.h"
 
-#include "logging.h"
-
-#include <QtCore/QJsonArray>
-
 using namespace QMatrixClient;
 
-class TypingEvent::Private
+TypingEvent::TypingEvent(const QJsonObject& obj)
+    : Event(Type::Typing, obj)
 {
-    public:
-        QStringList users;
-};
-
-TypingEvent::TypingEvent()
-    : Event(EventType::Typing)
-    , d( new Private )
-{
-}
-
-TypingEvent::~TypingEvent()
-{
-    delete d;
-}
-
-QStringList TypingEvent::users()
-{
-    return d->users;
-}
-
-TypingEvent* TypingEvent::fromJson(const QJsonObject& obj)
-{
-    TypingEvent* e = new TypingEvent();
-    e->parseJson(obj);
-    QJsonArray array = obj.value("content").toObject().value("user_ids").toArray();
+    QJsonValue result;
+    result= contentJson()["user_ids"];
+    QJsonArray array = result.toArray();
     for( const QJsonValue& user: array )
-    {
-        e->d->users << user.toString();
-    }
-    qCDebug(EPHEMERAL) << "Typing:" << e->d->users;
-    return e;
+        _users.push_back(user.toString());
 }
+

@@ -20,39 +20,46 @@
 
 #include "basejob.h"
 
-#include "../joinstate.h"
-#include "../events/event.h"
+#include "joinstate.h"
+#include "events/event.h"
 #include "util.h"
 
 namespace QMatrixClient
 {
     class SyncRoomData
     {
-    public:
-        class EventList : public Owning<Events>
-        {
-            private:
-                QString jsonKey;
-            public:
-                explicit EventList(QString k) : jsonKey(std::move(k)) { }
-                void fromJson(const QJsonObject& roomContents);
-        };
+        public:
+            template <typename EventT>
+            class Batch : public Owning<EventsBatch<EventT>>
+            {
+                public:
+                    explicit Batch(QString k) : jsonKey(std::move(k)) { }
+                    void fromJson(const QJsonObject& roomContents)
+                    {
+                        this->assign(makeEvents<EventT>(
+                            roomContents[jsonKey].toObject()["events"].toArray()));
+                    }
 
-        QString roomId;
-        JoinState joinState;
-        EventList state;
-        EventList timeline;
-        EventList ephemeral;
-        EventList accountData;
-        EventList inviteState;
 
-        bool timelineLimited;
-        QString timelinePrevBatch;
-        int highlightCount;
-        int notificationCount;
+                private:
+                    QString jsonKey;
+            };
 
-        SyncRoomData(const QString& roomId, JoinState joinState_,
-                     const QJsonObject& room_);
+            QString roomId;
+            JoinState joinState;
+            Batch<RoomEvent> state;
+            Batch<RoomEvent> timeline;
+            Batch<Event> ephemeral;
+            Batch<Event> accountData;
+            Batch<Event> inviteState;
+
+            bool timelineLimited;
+            QString timelinePrevBatch;
+            int highlightCount;
+            int notificationCount;
+
+            SyncRoomData(const QString& roomId, JoinState joinState_,
+                         const QJsonObject& room_);
     };
 }  // namespace QMatrixClient
 Q_DECLARE_TYPEINFO(QMatrixClient::SyncRoomData, Q_MOVABLE_TYPE);

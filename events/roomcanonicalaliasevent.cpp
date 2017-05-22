@@ -19,35 +19,3 @@
 #include "roomcanonicalaliasevent.h"
 
 using namespace QMatrixClient;
-
-class RoomCanonicalAliasEvent::Private
-{
-    public:
-        QString alias;
-};
-
-RoomCanonicalAliasEvent::RoomCanonicalAliasEvent()
-    : Event(EventType::RoomCanonicalAlias)
-    , d(new Private)
-{
-}
-
-RoomCanonicalAliasEvent::~RoomCanonicalAliasEvent()
-{
-    delete d;
-}
-
-QString RoomCanonicalAliasEvent::alias()
-{
-    return d->alias;
-}
-
-RoomCanonicalAliasEvent* RoomCanonicalAliasEvent::fromJson(const QJsonObject& obj)
-{
-    RoomCanonicalAliasEvent* e = new RoomCanonicalAliasEvent();
-    e->parseJson(obj);
-    const QJsonObject contents = obj.value("content").toObject();
-    e->d->alias = contents.value("alias").toString();
-    return e;
-}
-

@@ -24,18 +24,14 @@
 
 namespace QMatrixClient
 {
-    class RoomAliasesEvent: public Event
+    class RoomAliasesEvent: public RoomEvent
     {
         public:
-            RoomAliasesEvent();
-            virtual ~RoomAliasesEvent();
+            explicit RoomAliasesEvent(const QJsonObject& obj);
 
-            QStringList aliases() const;
-
-            static RoomAliasesEvent* fromJson(const QJsonObject& obj);
+            QStringList aliases() const { return _aliases; }
 
         private:
-            class Private;
-            Private* d;
+            QStringList _aliases;
     };
-}
+}  // namespace QMatrixClient

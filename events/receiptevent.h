@@ -22,32 +22,29 @@
 
 namespace QMatrixClient
 {
-    class Receipt
+    struct Receipt
     {
-        public:
-            QString userId;
-            QDateTime timestamp;
+        QString userId;
+        QDateTime timestamp;
     };
-}
-Q_DECLARE_TYPEINFO(QMatrixClient::Receipt, Q_MOVABLE_TYPE);
-
-namespace QMatrixClient
-{
-    using Receipts = QVector<Receipt>;
-    using EventsToReceipts = QVector< QPair<QString, Receipts> >;
+    struct ReceiptsForEvent
+    {
+        QString evtId;
+        std::vector<Receipt> receipts;
+    };
+    using EventsWithReceipts = std::vector<ReceiptsForEvent>;
 
     class ReceiptEvent: public Event
     {
         public:
-            ReceiptEvent();
-            virtual ~ReceiptEvent();
+            explicit ReceiptEvent(const QJsonObject& obj);
 
-            EventsToReceipts events() const;
-
-            static ReceiptEvent* fromJson(const QJsonObject& obj);
+            EventsWithReceipts eventsWithReceipts() const
+            { return _eventsWithReceipts; }
 
         private:
-            class Private;
-            Private* d;
+            EventsWithReceipts _eventsWithReceipts;
+
+            static constexpr const char * jsonType = "m.receipt";
     };
-}
+}  // namespace QMatrixClient

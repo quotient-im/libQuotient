@@ -22,66 +22,19 @@
 
 using namespace QMatrixClient;
 
-class RoomMemberEvent::Private
+RoomMemberEvent::RoomMemberEvent(const QJsonObject& obj)
+    : RoomEvent(Type::RoomMember, obj), _userId(obj["state_key"].toString())
 {
-    public:
-        MembershipType membership;
-        QString userId;
-        QString displayname;
-        QUrl avatarUrl;
-};
-
-RoomMemberEvent::RoomMemberEvent()
-    : Event(EventType::RoomMember)
-    , d(new Private)
-{
-}
-
-RoomMemberEvent::~RoomMemberEvent()
-{
-    delete d;
-}
-
-MembershipType RoomMemberEvent::membership() const
-{
-    return d->membership;
-}
-
-QString RoomMemberEvent::userId() const
-{
-    return d->userId;
-}
-
-QString RoomMemberEvent::displayName() const
-{
-    return d->displayname;
-}
-
-QUrl RoomMemberEvent::avatarUrl() const
-{
-    return d->avatarUrl;
-}
-
-RoomMemberEvent* RoomMemberEvent::fromJson(const QJsonObject& obj)
-{
-    RoomMemberEvent* e = new RoomMemberEvent();
-    e->parseJson(obj);
-    e->d->userId = obj.value("state_key").toString();
-    QJsonObject content = obj.value("content").toObject();
-    e->d->displayname = content.value("displayname").toString();
-    QString membershipString = content.value("membership").toString();
-    if( membershipString == "invite" )
-        e->d->membership = MembershipType::Invite;
-    else if( membershipString == "join" )
-        e->d->membership = MembershipType::Join;
-    else if( membershipString == "knock" )
-        e->d->membership = MembershipType::Knock;
-    else if( membershipString == "leave" )
-        e->d->membership = MembershipType::Leave;
-    else if( membershipString == "ban" )
-        e->d->membership = MembershipType::Ban;
-    else
-        qCDebug(EVENTS) << "Unknown MembershipType: " << membershipString;
-    e->d->avatarUrl = QUrl(content.value("avatar_url").toString());
-    return e;
+    const auto contentObj = contentJson();
+    _displayName = contentObj["displayname"].toString();
+    _avatarUrl = contentObj["avatar_url"].toString();
+    QString membershipString = contentObj["membership"].toString();
+    const auto supportedStrings = { "invite", "join", "knock", "leave", "ban" };
+    for (auto it = supportedStrings.begin(); it != supportedStrings.end(); ++it)
+        if (membershipString == *it)
+        {
+            _membership = MembershipType(it - supportedStrings.begin());
+            return;
+        }
+    qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
 }

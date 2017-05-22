@@ -34,7 +34,7 @@ namespace QMatrixClient
                             FetchDirection dir = FetchDirection::Backward);
             virtual ~RoomMessagesJob();
 
-            Events releaseEvents();
+            RoomEvents releaseEvents();
             QString end();
 
         protected:

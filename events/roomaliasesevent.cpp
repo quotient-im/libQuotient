@@ -34,44 +34,10 @@
 
 #include "roomaliasesevent.h"
 
-#include "logging.h"
-
-#include <QtCore/QJsonArray>
-
 using namespace QMatrixClient;
 
-class RoomAliasesEvent::Private
-{
-    public:
-        QStringList aliases;
-};
+RoomAliasesEvent::RoomAliasesEvent(const QJsonObject& obj)
+    : RoomEvent(Type::RoomAliases, obj)
+    , _aliases(toStringList(contentJson()["aliases"]))
+{ }
 
-RoomAliasesEvent::RoomAliasesEvent()
-    : Event(EventType::RoomAliases)
-    , d(new Private)
-{
-}
-
-RoomAliasesEvent::~RoomAliasesEvent()
-{
-    delete d;
-}
-
-QStringList RoomAliasesEvent::aliases() const
-{
-    return d->aliases;
-}
-
-RoomAliasesEvent* RoomAliasesEvent::fromJson(const QJsonObject& obj)
-{
-    RoomAliasesEvent* e = new RoomAliasesEvent();
-    e->parseJson(obj);
-    const QJsonObject contents = obj.value("content").toObject();
-    const QJsonArray aliases = contents.value("aliases").toArray();
-    for( const QJsonValue& alias : aliases )
-    {
-        e->d->aliases << alias.toString();
-    }
-    qCDebug(EVENTS) << "RoomAliasesEvent:" << e->d->aliases;
-    return e;
-}

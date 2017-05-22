@@ -41,34 +41,13 @@ Example of a Receipt Event:
 
 using namespace QMatrixClient;
 
-class ReceiptEvent::Private
+ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
+    : Event(Type::Receipt, obj)
 {
-    public:
-        EventsToReceipts eventsToReceipts;
-};
+    Q_ASSERT(obj["type"].toString() == jsonType);
 
-ReceiptEvent::ReceiptEvent()
-    : Event(EventType::Receipt)
-    , d(new Private)
-{
-}
-
-ReceiptEvent::~ReceiptEvent()
-{
-    delete d;
-}
-
-EventsToReceipts ReceiptEvent::events() const
-{
-    return d->eventsToReceipts;
-}
-
-ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
-{
-    ReceiptEvent* e = new ReceiptEvent();
-    e->parseJson(obj);
     const QJsonObject contents = obj["content"].toObject();
-    e->d->eventsToReceipts.reserve(contents.size());
+    _eventsWithReceipts.reserve(static_cast<size_t>(contents.size()));
     for( auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt )
     {
         if (eventIt.key().isEmpty())
@@ -78,15 +57,14 @@ ReceiptEvent* ReceiptEvent::fromJson(const QJsonObject& obj)
             continue;
         }
         const QJsonObject reads = eventIt.value().toObject().value("m.read").toObject();
-        Receipts receipts; receipts.reserve(reads.size());
+        std::vector<Receipt> receipts;
+        receipts.reserve(static_cast<size_t>(reads.size()));
         for( auto userIt = reads.begin(); userIt != reads.end(); ++userIt )
         {
             const QJsonObject user = userIt.value().toObject();
-            const auto time = QDateTime::fromMSecsSinceEpoch(
-                        static_cast<qint64>(user["ts"].toDouble()), Qt::UTC );
-            receipts.push_back({ userIt.key(), time });
+            receipts.push_back({userIt.key(), toTimestamp(user["ts"])});
         }
-        e->d->eventsToReceipts.push_back({ eventIt.key(), receipts });
+        _eventsWithReceipts.push_back({eventIt.key(), receipts});
     }
-    return e;
 }
+

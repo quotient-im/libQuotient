@@ -191,7 +191,7 @@ void Connection::postMessage(Room* room, const QString& type, const QString& mes
     callApi<PostMessageJob>(room->id(), type, message);
 }
 
-PostReceiptJob* Connection::postReceipt(Room* room, Event* event) const
+PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
     return callApi<PostReceiptJob>(room->id(), event->id());
 }
