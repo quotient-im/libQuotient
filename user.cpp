@@ -133,7 +133,7 @@ void User::processEvent(Event* event)
 {
     if( event->type() == EventType::RoomMember )
     {
-        RoomMemberEvent* e = static_cast<RoomMemberEvent*>(event);
+        auto e = static_cast<RoomMemberEvent*>(event);
         if (e->membership() == MembershipType::Leave)
             return;
 

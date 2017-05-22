@@ -40,4 +40,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient
