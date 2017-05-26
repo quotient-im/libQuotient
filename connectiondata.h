@@ -27,7 +27,7 @@ namespace QMatrixClient
     class ConnectionData
     {
         public:
-            ConnectionData(QUrl baseUrl);
+            explicit ConnectionData(QUrl baseUrl);
             virtual ~ConnectionData();
 
             QString accessToken() const;
@@ -41,8 +41,10 @@ namespace QMatrixClient
             QString lastEvent() const;
             void setLastEvent( QString identifier );
 
+            QByteArray generateTxnId() const;
+
         private:
-            class Private;
+            struct Private;
             Private* d;
     };
-}
+}  // namespace QMatrixClient

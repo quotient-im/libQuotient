@@ -32,7 +32,6 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
-#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
@@ -315,4 +314,9 @@ User* Connection::createUser(const QString& userId)
 Room* Connection::createRoom(const QString& roomId)
 {
     return new Room(this, roomId);
+}
+
+QByteArray Connection::generateTxnId()
+{
+    return d->data->generateTxnId();
 }
