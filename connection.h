@@ -26,7 +26,7 @@ namespace QMatrixClient
 {
     class Room;
     class User;
-    class Event;
+    class RoomEvent;
     class ConnectionPrivate;
     class ConnectionData;
 
@@ -61,7 +61,8 @@ namespace QMatrixClient
             Q_INVOKABLE virtual void postMessage(Room* room, const QString& type,
                                                  const QString& message) const;
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
-            Q_INVOKABLE virtual PostReceiptJob* postReceipt( Room* room, Event* event ) const;
+            Q_INVOKABLE virtual PostReceiptJob* postReceipt(Room* room,
+                                                            RoomEvent* event) const;
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );

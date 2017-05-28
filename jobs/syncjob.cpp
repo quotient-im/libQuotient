@@ -18,7 +18,6 @@
 
 #include "syncjob.h"
 
-#include <QtCore/QJsonArray>
 #include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
@@ -94,11 +93,6 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     qCDebug(PROFILER) << "*** SyncJob::parseJson():" << et.elapsed() << "ms";
 
     return Success;
-}
-
-void SyncRoomData::EventList::fromJson(const QJsonObject& roomContents)
-{
-    assign(eventsFromJson(roomContents[jsonKey].toObject()["events"].toArray()));
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,

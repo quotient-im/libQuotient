@@ -18,9 +18,6 @@
 
 #include "event.h"
 
-#include <QtCore/QJsonArray>
-#include <QtCore/QJsonDocument>
-
 #include "roommessageevent.h"
 #include "roomnameevent.h"
 #include "roomaliasesevent.h"
@@ -31,121 +28,101 @@
 #include "receiptevent.h"
 #include "unknownevent.h"
 #include "logging.h"
-#include "util.h"
+
+#include <QtCore/QJsonDocument>
 
 using namespace QMatrixClient;
 
-class Event::Private
+Event::Event(Type type, const QJsonObject& rep)
+    : _type(type), _originalJson(rep)
 {
-    public:
-        EventType type;
-        QString id;
-        QDateTime timestamp;
-        QString roomId;
-        QString senderId;
-        QString originalJson;
-};
-
-Event::Event(EventType type)
-    : d(new Private)
-{
-    d->type = type;
+    if (!rep.contains("content"))
+    {
+        qCWarning(EVENTS) << "Event without 'content' node";
+        qCWarning(EVENTS) << formatJson << rep;
+    }
 }
 
-Event::~Event()
+QByteArray Event::originalJson() const
 {
-    delete d;
+    return QJsonDocument(_originalJson).toJson();
 }
 
-EventType Event::type() const
+QDateTime Event::toTimestamp(const QJsonValue& v)
 {
-    return d->type;
+    Q_ASSERT(v.isDouble());
+    return QDateTime::fromMSecsSinceEpoch(
+            static_cast<long long int>(v.toDouble()), Qt::UTC);
 }
 
-QString Event::id() const
+QStringList Event::toStringList(const QJsonValue& v)
 {
-    return d->id;
+    Q_ASSERT(v.isArray());
+
+    QStringList l;
+    for( const QJsonValue& e : v.toArray() )
+        l.push_back(e.toString());
+    return l;
 }
 
-QDateTime Event::timestamp() const
+const QJsonObject Event::contentJson() const
 {
-    return d->timestamp;
+    return _originalJson["content"].toObject();
 }
 
-QString Event::roomId() const
+template <typename EventT>
+EventT* make(const QJsonObject& o)
 {
-    return d->roomId;
-}
-
-QString Event::senderId() const
-{
-    return d->senderId;
-}
-
-QString Event::originalJson() const
-{
-    return d->originalJson;
-}
-
-template <typename T>
-Event* make(const QJsonObject& obj)
-{
-    return T::fromJson(obj);
+    return new EventT(o);
 }
 
 Event* Event::fromJson(const QJsonObject& obj)
 {
-    auto delegate = lookup(obj.value("type").toString(),
+    // Check more specific event types first
+    if (auto e = RoomEvent::fromJson(obj))
+        return e;
+
+    return dispatch<Event*>(obj).to(obj["type"].toString(),
+            "m.typing", make<TypingEvent>,
+            "m.receipt", make<ReceiptEvent>,
+            /* Insert new event types (except room events) BEFORE this line */
+            nullptr
+            );
+}
+
+RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
+    : Event(type, rep), _id(rep["event_id"].toString())
+    , _serverTimestamp(toTimestamp(rep["origin_server_ts"]))
+    , _roomId(rep["room_id"].toString())
+    , _senderId(rep["sender"].toString())
+{
+    if (_id.isEmpty())
+    {
+        qCWarning(EVENTS) << "Can't find event_id in a room event";
+        qCWarning(EVENTS) << formatJson << rep;
+    }
+    if (!rep.contains("origin_server_ts"))
+    {
+        qCWarning(EVENTS) << "Event: can't find server timestamp in a room event";
+        qCWarning(EVENTS) << formatJson << rep;
+    }
+    if (_senderId.isEmpty())
+    {
+        qCWarning(EVENTS) << "user_id not found in a room event";
+        qCWarning(EVENTS) << formatJson << rep;
+    }
+}
+
+RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
+{
+    return dispatch<RoomEvent*>(obj).to(obj["type"].toString(),
             "m.room.message", make<RoomMessageEvent>,
             "m.room.name", make<RoomNameEvent>,
             "m.room.aliases", make<RoomAliasesEvent>,
             "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
             "m.room.member", make<RoomMemberEvent>,
             "m.room.topic", make<RoomTopicEvent>,
-            "m.typing", make<TypingEvent>,
-            "m.receipt", make<ReceiptEvent>,
-            /* Insert new event types BEFORE this line */
-            make<UnknownEvent>
+            /* Insert new ROOM event types BEFORE this line */
+            nullptr
         );
-    return delegate(obj);
-}
-
-bool Event::parseJson(const QJsonObject& obj)
-{
-    d->originalJson = QString::fromUtf8(QJsonDocument(obj).toJson());
-    d->id = obj.value("event_id").toString();
-    d->roomId = obj.value("room_id").toString();
-    d->senderId = obj.value("sender").toString();
-    bool correct = (d->type != EventType::Unknown);
-    if ( d->type != EventType::Typing &&
-         d->type != EventType::Receipt )
-    {
-        if (d->id.isEmpty())
-        {
-            correct = false;
-            qCDebug(EVENTS) << "Event: can't find event_id; event dump follows";
-            qCDebug(EVENTS) << formatJson << obj;
-        }
-        if( obj.contains("origin_server_ts") )
-        {
-            d->timestamp = QDateTime::fromMSecsSinceEpoch(
-                static_cast<qint64>(obj.value("origin_server_ts").toDouble()), Qt::UTC );
-        }
-        else if (d->type != EventType::Unknown)
-        {
-            correct = false;
-            qCDebug(EVENTS) << "Event: can't find ts; event dump follows";
-            qCDebug(EVENTS) << formatJson << obj;
-        }
-    }
-    return correct;
-}
-
-Events QMatrixClient::eventsFromJson(const QJsonArray& json)
-{
-    Events evs;
-    evs.reserve(json.size());
-    for (auto event: json)
-        evs.push_back(Event::fromJson(event.toObject()));
-    return evs;
 }

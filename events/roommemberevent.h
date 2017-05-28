@@ -24,23 +24,26 @@
 
 namespace QMatrixClient
 {
-    enum class MembershipType {Invite, Join, Knock, Leave, Ban};
-
-    class RoomMemberEvent: public Event
+    class RoomMemberEvent: public RoomEvent
     {
+            Q_GADGET
         public:
-            RoomMemberEvent();
-            virtual ~RoomMemberEvent();
+            enum MembershipType : int {Invite = 0, Join, Knock, Leave, Ban};
 
-            MembershipType membership() const;
-            QString userId() const;
-            QString displayName() const;
-            QUrl avatarUrl() const;
+            explicit RoomMemberEvent(const QJsonObject& obj);
 
-            static RoomMemberEvent* fromJson(const QJsonObject& obj);
+            MembershipType membership() const  { return _membership; }
+            const QString& userId() const      { return _userId; }
+            const QString& displayName() const { return _displayName; }
+            const QUrl& avatarUrl() const      { return _avatarUrl; }
 
         private:
-            class Private;
-            Private* d;
+            MembershipType _membership;
+            QString _userId;
+            QString _displayName;
+            QUrl _avatarUrl;
+
+            REGISTER_ENUM(MembershipType)
     };
-}
+    using MembershipType = RoomMemberEvent::MembershipType;
+}  // namespace QMatrixClient

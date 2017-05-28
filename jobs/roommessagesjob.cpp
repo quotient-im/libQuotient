@@ -17,16 +17,15 @@
  */
 
 #include "roommessagesjob.h"
-#include "../util.h"
 
-#include <QtCore/QJsonArray>
+#include "util.h"
 
 using namespace QMatrixClient;
 
 class RoomMessagesJob::Private
 {
     public:
-        Owning<Events> events;
+        Owning<RoomEvents> events;
         QString end;
 };
 
@@ -49,7 +48,7 @@ RoomMessagesJob::~RoomMessagesJob()
     delete d;
 }
 
-Events RoomMessagesJob::releaseEvents()
+RoomEvents RoomMessagesJob::releaseEvents()
 {
     return d->events.release();
 }
@@ -62,7 +61,7 @@ QString RoomMessagesJob::end()
 BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
     QJsonObject obj = data.object();
-    d->events.assign(eventsFromJson(obj.value("chunk").toArray()));
+    d->events.assign(makeEvents<RoomEvent>(obj.value("chunk").toArray()));
     d->end = obj.value("end").toString();
     return Success;
 }

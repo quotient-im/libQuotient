@@ -1,12 +1,15 @@
-#include <iostream>
-#include <QCoreApplication>
 
 #include "connection.h"
 #include "room.h"
 
+#include <QCoreApplication>
+#include <iostream>
+#include <string>
+
 using namespace QMatrixClient;
 using std::cout;
 using std::endl;
+using std::string;
 
 void onNewRoom(Room* r)
 {
@@ -16,11 +19,11 @@ void onNewRoom(Room* r)
         cout << "  Name: " << r->name().toStdString() << endl;
         cout << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl;
     });
-    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (Events evs) {
+    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEvents evs) {
         cout << "New events in room " << r->id().toStdString() << ":" << endl;
         for (auto e: evs)
         {
-            cout << e->originalJson().toStdString() << endl;
+            cout << string(e->originalJson()) << endl;
         }
     });
 }

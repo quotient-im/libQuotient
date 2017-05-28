@@ -20,33 +20,3 @@
 
 using namespace QMatrixClient;
 
-class RoomNameEvent::Private
-{
-    public:
-        QString name;
-};
-
-RoomNameEvent::RoomNameEvent() :
-    Event(EventType::RoomName),
-    d(new Private)
-{
-}
-
-RoomNameEvent::~RoomNameEvent()
-{
-    delete d;
-}
-
-QString RoomNameEvent::name() const
-{
-    return d->name;
-}
-
-RoomNameEvent* RoomNameEvent::fromJson(const QJsonObject& obj)
-{
-    RoomNameEvent* e = new RoomNameEvent();
-    e->parseJson(obj);
-    const QJsonObject contents = obj.value("content").toObject();
-    e->d->name = contents.value("name").toString();
-    return e;
-}

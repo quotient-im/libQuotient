@@ -27,15 +27,11 @@ namespace QMatrixClient
     class TypingEvent: public Event
     {
         public:
-            TypingEvent();
-            virtual ~TypingEvent();
+            TypingEvent(const QJsonObject& obj);
 
-            QStringList users();
-
-            static TypingEvent* fromJson(const QJsonObject& obj);
+            QStringList users() const { return _users; }
 
         private:
-            class Private;
-            Private* d;
+            QStringList _users;
     };
-}
+}  // namespace QMatrixClient

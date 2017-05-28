@@ -50,7 +50,6 @@ set(libqmatrixclient_SRCS
    logging.cpp
    room.cpp
    user.cpp
-   state.cpp
    settings.cpp
    events/event.cpp
    events/roommessageevent.cpp
@@ -61,7 +60,6 @@ set(libqmatrixclient_SRCS
    events/roomtopicevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
-   events/unknownevent.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
