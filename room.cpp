@@ -24,8 +24,6 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QElapsedTimer>
-#include <algorithm>
-#include <array>
 
 #include "connection.h"
 #include "state.h"

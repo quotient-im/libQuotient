@@ -20,9 +20,9 @@
 
 #include <QtCore/QSettings>
 #include <QtCore/QVector>
+#include <QtCore/QUrl>
 
 class QVariant;
-class QUrl;
 
 namespace QMatrixClient
 {
