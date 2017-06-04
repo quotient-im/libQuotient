@@ -53,13 +53,11 @@ namespace QMatrixClient
             explicit RoomMessageEvent(const QJsonObject& obj);
             ~RoomMessageEvent();
 
-            const QString& userId() const                    { return _userId; }
             MessageEventType msgtype() const                 { return _msgtype; }
             const QString& plainBody() const                 { return _plainBody; }
             const MessageEventContent::Base* content() const { return _content; }
 
         private:
-            QString _userId;
             MessageEventType _msgtype;
             QString _plainBody;
             MessageEventContent::Base* _content;
