@@ -63,7 +63,7 @@ namespace QMatrixClient
                 public:
                     using QUrlQuery::QUrlQuery;
                     Query() = default;
-                    explicit Query(const QList< QPair<QString, QString> >& l)
+                    explicit Query(const std::initializer_list< QPair<QString, QString> >& l)
                     {
                         setQueryItems(l);
                     }
@@ -78,11 +78,16 @@ namespace QMatrixClient
             {
                 public:
                     Data() = default;
-                    explicit Data(const QList< QPair<QString, QString> >& l)
+                    Data(const QJsonObject& o) : QJsonObject(o) { }
+                    Data(QJsonObject&& o) : QJsonObject(std::move(o)) { }
+#if (QT_VERSION < QT_VERSION_CHECK(5, 4, 0))
+                    // This method exists in QJsonObject of newer Qt versions
+                    explicit Data(const std::initializer_list< QPair<QString, QString> >& l)
                     {
                         for (auto i: l)
                             insert(i.first, i.second);
                     }
+#endif
                     QByteArray serialize() const
                     {
                         return QJsonDocument(*this).toJson();
