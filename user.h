@@ -47,10 +47,10 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QString displayname() const;
 
-			/**
-			  * Returns the name of bridge the user is connected from or empty.
-			  */
-			Q_INVOKABLE QString bridged() const;
+            /**
+             * Returns the name of bridge the user is connected from or empty.
+            */
+            Q_INVOKABLE QString bridged() const;
 
             QPixmap avatar(int requestedWidth, int requestedHeight);
             QPixmap croppedAvatar(int requestedWidth, int requestedHeight);
