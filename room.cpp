@@ -371,13 +371,13 @@ QList< User* > Room::users() const
 }
 
 QStringList Room::memberNames() const {
-	QStringList res;
+    QStringList res;
 
-	for (auto u : d->membersMap.values()) {
+    for (auto u : d->membersMap.values()) {
         res.append( this->roomMembername(u) );
     }
 
-	return res;
+    return res;
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
