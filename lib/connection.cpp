@@ -30,7 +30,7 @@
 #include "csapi/account-data.h"
 #include "csapi/joining.h"
 #include "csapi/to_device.h"
-#include "jobs/sendeventjob.h"
+#include "csapi/room_send.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -405,11 +405,6 @@ void Connection::stopSync()
     }
 }
 
-void Connection::postMessage(Room* room, const QString& type, const QString& message) const
-{
-    callApi<SendEventJob>(room->id(), type, message);
-}
-
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
@@ -643,6 +638,14 @@ SendToDeviceJob* Connection::sendToDevices(const QString& eventType,
         });
     return callApi<SendToDeviceJob>(BackgroundRequest,
                 eventType, generateTxnId(), json);
+}
+
+SendMessageJob* Connection::sendMessage(const QString& roomId, const RoomEvent& event) const
+{
+    const auto txnId = event.transactionId().isEmpty()
+                            ? generateTxnId() : event.transactionId();
+    return callApi<SendMessageJob>(roomId, event.matrixType(),
+                                   txnId, event.contentJson());
 }
 
 QUrl Connection::homeserver() const

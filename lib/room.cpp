@@ -27,13 +27,13 @@
 #include "csapi/account-data.h"
 #include "csapi/message_pagination.h"
 #include "csapi/room_state.h"
+#include "csapi/room_send.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
-#include "jobs/sendeventjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/postreadmarkersjob.h"
@@ -88,6 +88,7 @@ class Room::Private
 
         Connection* connection;
         Timeline timeline;
+        RoomEvents unsyncedEvents;
         QHash<QString, TimelineItem::index_t> eventsIndex;
         QString id;
         QStringList aliases;
@@ -199,9 +200,20 @@ class Room::Private
 
         void markMessagesAsRead(rev_iter_t upToMarker);
 
+        void sendEvent(RoomEventPtr&& event);
+
+        template <typename EventT, typename... ArgTs>
+        void sendEvent(ArgTs&&... eventArgs)
+        {
+            sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
+        }
+
+        void deleteLocalEcho(const RoomEventPtr& remoteEcho);
+
         template <typename EvT>
         auto requestSetState(const QString& stateKey, const EvT& event)
         {
+            // TODO: Queue up state events sending (see #133).
             return connection->callApi<SetRoomStateWithKeyJob>(
                         id, EvT::matrixTypeId(), stateKey, event.contentJson());
         }
@@ -272,6 +284,11 @@ const QString& Room::id() const
 const Room::Timeline& Room::messageEvents() const
 {
     return d->timeline;
+}
+
+const RoomEvents& Room::pendingEvents() const
+{
+    return d->unsyncedEvents;
 }
 
 QString Room::name() const
@@ -1073,32 +1090,64 @@ void Room::updateData(SyncRoomData&& data)
     }
 }
 
+void Room::Private::sendEvent(RoomEventPtr&& event)
+{
+    auto* pEvent = rawPtr(event);
+    emit q->pendingEventAboutToAdd();
+    unsyncedEvents.emplace_back(move(event));
+    emit q->pendingEventAdded();
+
+    if (pEvent->transactionId().isEmpty())
+        pEvent->setTransactionId(connection->generateTxnId());
+    // TODO: Enqueue the job rather than immediately trigger it
+    auto call = connection->sendMessage(id, *pEvent);
+    Room::connect(call, &BaseJob::success, q, [this,call,pEvent]
+    {
+        const auto comparator =
+            [pEvent] (const auto& eptr) { return rawPtr(eptr) == pEvent; };
+
+        // Find an event by the pointer saved in the lambda
+        auto it = std::find_if(unsyncedEvents.begin(), unsyncedEvents.end(),
+                               comparator);
+        if (it == unsyncedEvents.end())
+            return; // The event is already synced, nothing to do
+
+        pEvent->addId(call->eventId());
+        emit q->pendingEventChanged(it - unsyncedEvents.begin());
+    });
+}
+
 void Room::postMessage(const QString& type, const QString& plainText)
 {
-    postMessage(RoomMessageEvent { plainText, type });
+    d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
 void Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    postMessage(RoomMessageEvent { plainText, type });
+    d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
 void Room::postHtmlMessage(const QString& plainText, const QString& htmlText,
                            MessageEventType type)
 {
-    postMessage(RoomMessageEvent { plainText, type,
-        new EventContent::TextContent(htmlText, QStringLiteral("text/html")) });
-
+    d->sendEvent<RoomMessageEvent>(plainText, type,
+        new EventContent::TextContent(htmlText, QStringLiteral("text/html")));
 }
 
-void Room::postMessage(const RoomMessageEvent& event)
+void Room::postMessage(RoomEvent* event)
 {
     if (usesEncryption())
     {
         qCCritical(MAIN) << "Room" << displayName()
             << "enforces encryption; sending encrypted messages is not supported yet";
     }
-    connection()->callApi<SendEventJob>(id(), event);
+    d->sendEvent(RoomEventPtr(event));
+}
+
+void Room::postMessage(const QString& matrixType,
+                       const QJsonObject& eventContent)
+{
+    d->sendEvent(loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
 }
 
 void Room::setName(const QString& newName)
@@ -1114,6 +1163,41 @@ void Room::setCanonicalAlias(const QString& newAlias)
 void Room::setTopic(const QString& newTopic)
 {
     d->requestSetState(RoomTopicEvent(newTopic));
+}
+
+void Room::Private::deleteLocalEcho(const RoomEventPtr& remoteEcho)
+{
+    if (remoteEcho->senderId() == connection->userId())
+    {
+        auto localEchoIt =
+            std::find_if(unsyncedEvents.begin(), unsyncedEvents.end(),
+                 [&remoteEcho] (const RoomEventPtr& le)
+                 {
+                     if (le->type() != remoteEcho->type())
+                         return false;
+
+                     if (!le->id().isEmpty())
+                         return le->id() == remoteEcho->id();
+                     if (!le->transactionId().isEmpty())
+                         return le->transactionId() ==
+                            remoteEcho->transactionId();
+
+                     // This one is not reliable (there can be two unsynced
+                     // events with the same type, sender and state key) but
+                     // it's the best we have for state events.
+                     if (le->isStateEvent())
+                         return le->stateKey() == remoteEcho->stateKey();
+
+                     // Empty id and no state key, hmm... (shrug)
+                     return le->contentJson() == remoteEcho->contentJson();
+                 });
+        if (localEchoIt != unsyncedEvents.end())
+        {
+            emit q->pendingEventAboutToRemove(localEchoIt - unsyncedEvents.begin());
+            unsyncedEvents.erase(localEchoIt);
+            emit q->pendingEventRemoved();
+        }
+    }
 }
 
 void Room::getPreviousContent(int limit)
@@ -1399,7 +1483,12 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 #endif
 
     if (!normalEvents.empty())
+    {
+        for (const auto& e: normalEvents)
+            deleteLocalEcho(e);
+
         emit q->aboutToAddNewMessages(normalEvents);
+    }
     const auto insertedSize = moveEventsToTimeline(normalEvents, Newer);
     const auto from = timeline.cend() - insertedSize;
     if (insertedSize > 0)
@@ -1648,7 +1737,7 @@ void Room::processAccountDataEvent(EventPtr&& event)
     // efficient; maaybe do it another day
     if (!currentData || currentData->contentJson() != event->contentJson())
     {
-        currentData = std::move(event);
+        currentData = move(event);
         qCDebug(MAIN) << "Updated account data of type"
                       << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());

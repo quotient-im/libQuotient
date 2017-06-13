@@ -57,6 +57,7 @@ namespace QMatrixClient {
             }
             QString redactionReason() const;
             const QString& transactionId() const { return _txnId; }
+            QString stateKey() const;
 
             /**
              * Sets the transaction id for locally created events. This should be

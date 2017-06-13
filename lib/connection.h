@@ -47,6 +47,7 @@ namespace QMatrixClient
     class GetContentJob;
     class DownloadFileJob;
     class SendToDeviceJob;
+    class SendMessageJob;
 
     /** Create a single-shot connection that triggers on the signal and
      * then self-disconnects
@@ -421,11 +422,11 @@ namespace QMatrixClient
             SendToDeviceJob* sendToDevices(const QString& eventType,
                     const UsersToDevicesToEvents& eventsMap) const;
 
+            SendMessageJob* sendMessage(const QString& roomId,
+                                        const RoomEvent& event) const;
+
             // Old API that will be abolished any time soon. DO NOT USE.
 
-            /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
-            virtual void postMessage(Room* room, const QString& type,
-                                                 const QString& message) const;
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             virtual PostReceiptJob* postReceipt(Room* room,
                                                 RoomEvent* event) const;

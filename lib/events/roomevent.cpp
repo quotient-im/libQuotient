@@ -75,6 +75,11 @@ QString RoomEvent::redactionReason() const
     return isRedacted() ? _redactedBecause->reason() : QString{};
 }
 
+QString RoomEvent::stateKey() const
+{
+    return fullJson()["state_key"_ls].toString();
+}
+
 void RoomEvent::addId(const QString& newId)
 {
     Q_ASSERT(id().isEmpty()); Q_ASSERT(!newId.isEmpty());

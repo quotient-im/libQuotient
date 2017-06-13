@@ -2,7 +2,7 @@
 #include "connection.h"
 #include "room.h"
 #include "user.h"
-#include "jobs/sendeventjob.h"
+#include "csapi/room_send.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 
@@ -87,8 +87,8 @@ void QMCTest::setup(const QString& testRoomName)
             c->sync(10000);
         else if (targetRoom)
         {
-            auto j = c->callApi<SendEventJob>(targetRoom->id(),
-                                              RoomMessageEvent(origin % ": All tests finished"));
+            auto j = c->sendMessage(targetRoom->id(),
+                            RoomMessageEvent(origin % ": All tests finished"));
             connect(j, &BaseJob::finished, this, &QMCTest::leave);
         }
         else
@@ -176,7 +176,7 @@ void QMCTest::sendAndRedact()
 {
     running.push_back("Redaction");
     cout << "Sending a message to redact" << endl;
-    auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
+    auto* job = targetRoom->connection()->sendMessage(targetRoom->id(),
             RoomMessageEvent(origin % ": Message to redact"));
     connect(job, &BaseJob::success, targetRoom, [job,this] {
         cout << "Message to redact has been succesfully sent, redacting" << endl;

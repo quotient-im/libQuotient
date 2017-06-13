@@ -33,7 +33,6 @@ HEADERS += \
     $$SRCPATH/events/eventloader.h \
     $$SRCPATH/jobs/requestdata.h \
     $$SRCPATH/jobs/basejob.h \
-    $$SRCPATH/jobs/sendeventjob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
@@ -65,7 +64,6 @@ SOURCES += \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
-    $$SRCPATH/jobs/sendeventjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \

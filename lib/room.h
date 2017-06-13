@@ -216,6 +216,7 @@ namespace QMatrixClient
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
             const Timeline& messageEvents() const;
+            const RoomEvents& pendingEvents() const;
             /**
              * A convenience method returning the read marker to the before-oldest
              * message
@@ -350,7 +351,10 @@ namespace QMatrixClient
                              MessageEventType type = MessageEventType::Text);
             void postHtmlMessage(const QString& plainText, const QString& htmlText,
                              MessageEventType type = MessageEventType::Text);
-            void postMessage(const RoomMessageEvent& event);
+            /** Post a pre-created room message event; takes ownership of the event */
+            void postMessage(RoomEvent* event);
+            void postMessage(const QString& matrixType,
+                             const QJsonObject& eventContent);
             /** @deprecated If you have a custom event type, construct the event
              * and pass it as a whole to postMessage() */
             void postMessage(const QString& type, const QString& plainText);
@@ -384,6 +388,11 @@ namespace QMatrixClient
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);
             void addedMessages();
+            void pendingEventAboutToAdd();
+            void pendingEventAdded();
+            void pendingEventAboutToRemove(int pendingEventIndex);
+            void pendingEventRemoved();
+            void pendingEventChanged(int pendingEventIndex);
 
             /**
              * @brief The room name, the canonical alias or other aliases changed
