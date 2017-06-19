@@ -1,4 +1,8 @@
 # Libqmatrixclient
+
+[![license](https://img.shields.io/github/license/QMatrixClient/libqmatrixclient.svg)](https://github.com/QMatrixClient/libqmatrixclient/blob/master/COPYING)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
 libqmatrixclient is a Qt-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is used by the Quaternion client and is a part of the Quaternion project. The below instructions are the same for Quaternion and libqmatrixclient (the source tree of Quaternion has most up-to-date instructions but this source tree strives to closely follow).
 
 ## Contacts
