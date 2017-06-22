@@ -51,7 +51,7 @@ const std::vector<MsgTypeDesc> msgTypes =
     , { QStringLiteral("m.audio"), MsgType::Audio, make<AudioContent> }
     };
 
-QJsonValue msgTypeToJson(MsgType enumType)
+QString msgTypeToJson(MsgType enumType)
 {
     auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
         [=](const MsgTypeDesc& mtd) { return mtd.enumType == enumType; });
@@ -73,28 +73,29 @@ MsgType jsonToMsgType(const QString& jsonType)
     return {};
 }
 
+RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
+                                   MsgType msgType, Base* content)
+    : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
+{ }
+
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
-    : RoomEvent(Type::RoomMessage, obj), _msgtype(MsgType::Unknown)
-    , _content(nullptr)
+    : RoomEvent(Type::RoomMessage, obj), _content(nullptr)
 {
     const QJsonObject content = contentJson();
     if ( content.contains("msgtype") && content.contains("body") )
     {
         _plainBody = content["body"].toString();
 
-        auto msgtype = content["msgtype"].toString();
+        _msgtype = content["msgtype"].toString();
         for (auto mt: msgTypes)
-            if (mt.jsonType == msgtype)
-            {
-                _msgtype = mt.enumType;
+            if (mt.jsonType == _msgtype)
                 _content.reset(mt.maker(content));
-            }
 
-        if (_msgtype == MsgType::Unknown)
+        if (!_content)
         {
-            qCDebug(EVENTS) << "RoomMessageEvent: couldn't load content,"
-                            << " full content dump follows";
-            qCDebug(EVENTS) << formatJson << content;
+            qCWarning(EVENTS) << "RoomMessageEvent: couldn't load content,"
+                              << " full content dump follows";
+            qCWarning(EVENTS) << formatJson << content;
         }
     }
     else
@@ -102,6 +103,11 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
         qCWarning(EVENTS) << "No body or msgtype in room message event";
         qCWarning(EVENTS) << formatJson << obj;
     }
+}
+
+RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
+{
+    return jsonToMsgType(_msgtype);
 }
 
 QMimeType RoomMessageEvent::mimeType() const

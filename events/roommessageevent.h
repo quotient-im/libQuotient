@@ -92,24 +92,22 @@ namespace QMatrixClient
                 Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
             };
 
-            RoomMessageEvent(const QString& roomId, const QString& fromUserId,
-                             const QString& plainMessage,
-                             MsgType msgType = MsgType::Text)
-                : RoomEvent(Type::RoomMessage, roomId, fromUserId)
-                , _msgtype(msgType), _plainBody(plainMessage), _content(nullptr)
+            RoomMessageEvent(const QString& plainBody,
+                             const QString& jsonMsgType,
+                             MessageEventContent::Base* content = nullptr)
+                : RoomEvent(Type::RoomMessage)
+                , _msgtype(jsonMsgType), _plainBody(plainBody), _content(content)
             { }
-            RoomMessageEvent(const QString& roomId, const QString& fromUserId,
-                             const QString& plainBody,
-                             MessageEventContent::Base* content,
-                             MsgType msgType)
-                : RoomEvent(Type::RoomMessage, roomId, fromUserId)
-                , _msgtype(msgType), _plainBody(plainBody), _content(content)
-            { }
+            explicit RoomMessageEvent(const QString& plainBody,
+                                      MsgType msgType = MsgType::Text,
+                                      MessageEventContent::Base* content = nullptr);
             explicit RoomMessageEvent(const QJsonObject& obj);
 
-            MsgType msgtype() const          { return _msgtype; }
+            MsgType msgtype() const;
+            QString rawMsgtype() const       { return _msgtype; }
             const QString& plainBody() const { return _plainBody; }
-            const MessageEventContent::Base* content() const { return _content.data(); }
+            const MessageEventContent::Base* content() const
+                                             { return _content.data(); }
             QMimeType mimeType() const;
 
             QJsonObject toJson() const;
@@ -117,7 +115,7 @@ namespace QMatrixClient
             static constexpr const char* TypeId = "m.room.message";
 
         private:
-            MsgType _msgtype;
+            QString _msgtype;
             QString _plainBody;
             QScopedPointer<MessageEventContent::Base> _content;
 
