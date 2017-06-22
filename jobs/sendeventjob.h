@@ -20,27 +20,38 @@
 
 #include "basejob.h"
 
+#include "connectiondata.h"
+
 namespace QMatrixClient
 {
-    class PostMessageJob: public BaseJob
+    class SendEventJob: public BaseJob
     {
         public:
-            /** Constructs a plain text message job */
-            PostMessageJob(const ConnectionData* connection, const QString& roomId,
-                           const QString& type, const QString& plainText);
-            /** Constructs a rich text message job */
-            PostMessageJob(const ConnectionData* connection, const QString& roomId,
-                           const QString& type, const QString& plainText,
-                           const QString& richText);
-            virtual ~PostMessageJob();
+            /** Constructs a job that sends an arbitrary room event */
+            template <typename EvT>
+            SendEventJob(const ConnectionData* connection, const QString& roomId,
+                         const EvT* event)
+                : BaseJob(connection, HttpVerb::Put, "SendEventJob",
+                          QStringLiteral("_matrix/client/r0/rooms/%1/send/%2/%3")
+                              .arg(roomId).arg(EvT::TypeId)
+                              .arg(event->transactionId()),
+                          Query(),
+                          Data(event->toJson()))
+            { }
 
-            //bool success();
+            /**
+             * Constructs a plain text message job (for compatibility with
+             * the old PostMessageJob API).
+             */
+            SendEventJob(const ConnectionData* connection, const QString& roomId,
+                         const QString& type, const QString& plainText);
+
+            QString eventId() const { return _eventId; }
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            Private* d;
+            QString _eventId;
     };
 }  // namespace QMatrixClient

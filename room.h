@@ -27,6 +27,7 @@
 #include <QtCore/QJsonObject>
 
 #include "jobs/syncjob.h"
+#include "events/roommessageevent.h"
 #include "joinstate.h"
 
 namespace QMatrixClient
@@ -142,9 +143,12 @@ namespace QMatrixClient
             MemberSorter memberSorter() const;
 
         public slots:
+            void postMessage(const QString& plainText,
+                             MessageEventType type = MessageEventType::Text);
+            void postMessage(RoomMessageEvent* event);
+            /** @deprecated */
             void postMessage(const QString& type, const QString& plainText);
-            void postMessage(const QString& type, const QString& plainText,
-                             const QString& richText);
+
             void getPreviousContent(int limit = 10);
 
             void leaveRoom() const;

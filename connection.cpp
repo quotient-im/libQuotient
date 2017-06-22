@@ -23,7 +23,7 @@
 #include "room.h"
 #include "jobs/passwordlogin.h"
 #include "jobs/logoutjob.h"
-#include "jobs/postmessagejob.h"
+#include "jobs/sendeventjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/leaveroomjob.h"
@@ -187,7 +187,7 @@ void Connection::stopSync()
 
 void Connection::postMessage(Room* room, const QString& type, const QString& message) const
 {
-    callApi<PostMessageJob>(room->id(), type, message);
+    callApi<SendEventJob>(room->id(), type, message);
 }
 
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
