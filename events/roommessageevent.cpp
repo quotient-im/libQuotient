@@ -92,8 +92,8 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
 
         if (_msgtype == MsgType::Unknown)
         {
-            qCDebug(EVENTS) << "RoomMessageEvent: unknown msgtype" << msgtype
-                            << ", full content dump follows";
+            qCDebug(EVENTS) << "RoomMessageEvent: couldn't load content,"
+                            << " full content dump follows";
             qCDebug(EVENTS) << formatJson << content;
         }
     }
@@ -104,12 +104,25 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     }
 }
 
+QMimeType RoomMessageEvent::mimeType() const
+{
+    return _content ? _content->mimeType :
+                      QMimeDatabase().mimeTypeForName("text/plain");
+}
+
 QJsonObject RoomMessageEvent::toJson() const
 {
     QJsonObject obj = _content ? _content->toJson() : QJsonObject();
     obj.insert("msgtype", msgTypeToJson(msgtype()));
     obj.insert("body", plainBody());
     return obj;
+}
+
+QJsonObject Base::toJson() const
+{
+    QJsonObject o;
+    fillJson(&o);
+    return o;
 }
 
 QJsonObject InfoBase::toInfoJson() const
@@ -120,7 +133,7 @@ QJsonObject InfoBase::toInfoJson() const
 }
 
 TextContent::TextContent(const QString& text, const QString& contentType)
-    : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
+    : Base(QMimeDatabase().mimeTypeForName(contentType)), body(text)
 { }
 
 TextContent::TextContent(const QJsonObject& json)
@@ -136,8 +149,8 @@ TextContent::TextContent(const QJsonObject& json)
     } else {
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
-        body = json["body"].toString();
         mimeType = db.mimeTypeForName("text/plain");
+        body = json["body"].toString();
     }
 }
 
@@ -150,7 +163,7 @@ void TextContent::fillJson(QJsonObject* json) const
 
 FileInfo::FileInfo(const QUrl& u, int payloadSize, const QMimeType& mimeType,
                  const QString& originalFilename)
-    : url(u), payloadSize(payloadSize), mimetype(mimeType)
+    : InfoBase(mimeType), url(u), payloadSize(payloadSize)
     , originalName(originalFilename)
 { }
 
@@ -160,15 +173,15 @@ FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
               QMimeDatabase().mimeTypeForName(infoJson["mimetype"].toString()),
               originalFilename)
 {
-    if (!mimetype.isValid())
-        mimetype = QMimeDatabase().mimeTypeForData(QByteArray());
+    if (!mimeType.isValid())
+        mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
 }
 
 void FileInfo::fillInfoJson(QJsonObject* infoJson) const
 {
     Q_ASSERT(infoJson);
     infoJson->insert("size", payloadSize);
-    infoJson->insert("mimetype", mimetype.name());
+    infoJson->insert("mimetype", mimeType.name());
 }
 
 void FileInfo::fillJson(QJsonObject* json) const

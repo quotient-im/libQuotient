@@ -45,14 +45,15 @@ namespace QMatrixClient
         {
             public:
                 virtual ~Base() = default;
-                QJsonObject toJson() const
-                {
-                    QJsonObject o;
-                    fillJson(&o);
-                    return o;
-                }
+
+                QJsonObject toJson() const;
+
+                QMimeType mimeType;
 
             protected:
+                Base() = default;
+                explicit Base(const QMimeType& type) : mimeType(type) { }
+
                 virtual void fillJson(QJsonObject* o) const = 0;
         };
 
@@ -73,6 +74,8 @@ namespace QMatrixClient
                 QJsonObject toInfoJson() const;
 
             protected:
+                using Base::Base;
+
                 virtual void fillInfoJson(QJsonObject* infoJson) const { }
         };
     }  // namespace MessageEventContent
@@ -106,8 +109,8 @@ namespace QMatrixClient
 
             MsgType msgtype() const          { return _msgtype; }
             const QString& plainBody() const { return _plainBody; }
-            const MessageEventContent::Base* content() const
-                                             { return _content.data(); }
+            const MessageEventContent::Base* content() const { return _content.data(); }
+            QMimeType mimeType() const;
 
             QJsonObject toJson() const;
 
@@ -143,7 +146,6 @@ namespace QMatrixClient
 
                 void fillJson(QJsonObject* json) const override;
 
-                QMimeType mimeType;
                 QString body;
         };
 
@@ -165,7 +167,6 @@ namespace QMatrixClient
 
                 QUrl url;
                 int payloadSize;
-                QMimeType mimetype;
                 QString originalName;
 
             protected:
