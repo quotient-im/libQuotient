@@ -25,37 +25,56 @@
 using namespace QMatrixClient;
 using namespace MessageEventContent;
 
-using ContentPair = std::pair<CType, Base*>;
+using MsgType = RoomMessageEvent::MsgType;
 
-template <CType EnumType, typename ContentT>
-ContentPair make(const QJsonObject& json)
+template <typename ContentT>
+Base* make(const QJsonObject& json)
 {
-    return { EnumType, new ContentT(json) };
+    return new ContentT(json);
 }
 
-ContentPair makeVideo(const QJsonObject& json)
+struct MsgTypeDesc
 {
-    auto c = new VideoContent(json);
-    // Only for m.video, the spec puts a thumbnail inside "info" JSON key. Once
-    // this is fixed, VideoContent creation will switch to make<>().
-    const QJsonObject infoJson = json["info"].toObject();
-    if (infoJson.contains("thumbnail_url"))
-    {
-        c->thumbnail = ImageInfo(infoJson["thumbnail_url"].toString(),
-                                 infoJson["thumbnail_info"].toObject());
-    }
-    return { CType::Video, c };
+    QString jsonType;
+    MsgType enumType;
+    Base* (*maker)(const QJsonObject&);
 };
 
-ContentPair makeUnknown(const QJsonObject& json)
+const std::vector<MsgTypeDesc> msgTypes =
+    { { QStringLiteral("m.text"), MsgType::Text, make<TextContent> }
+    , { QStringLiteral("m.emote"), MsgType::Emote, make<TextContent> }
+    , { QStringLiteral("m.notice"), MsgType::Notice, make<TextContent> }
+    , { QStringLiteral("m.image"), MsgType::Image, make<ImageContent> }
+    , { QStringLiteral("m.file"), MsgType::File, make<FileContent> }
+    , { QStringLiteral("m.location"), MsgType::Location, make<LocationContent> }
+    , { QStringLiteral("m.video"), MsgType::Video, make<VideoContent> }
+    , { QStringLiteral("m.audio"), MsgType::Audio, make<AudioContent> }
+    };
+
+QJsonValue msgTypeToJson(MsgType enumType)
 {
-    qCDebug(EVENTS) << "RoomMessageEvent: couldn't resolve msgtype, JSON follows:";
-    qCDebug(EVENTS) << json;
-    return { CType::Unknown, new Base() };
+    auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
+        [=](const MsgTypeDesc& mtd) { return mtd.enumType == enumType; });
+    if (it != msgTypes.end())
+        return it->jsonType;
+
+    qCCritical(EVENTS) << "Unknown msgtype:" << enumType;
+    return {};
+}
+
+MsgType jsonToMsgType(const QString& jsonType)
+{
+    auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
+        [=](const MsgTypeDesc& mtd) { return mtd.jsonType == jsonType; });
+    if (it != msgTypes.end())
+        return it->enumType;
+
+    qCCritical(EVENTS) << "Unknown msgtype:" << jsonType;
+    return {};
 }
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
-    : RoomEvent(Type::RoomMessage, obj), _msgtype(CType::Unknown)
+    : RoomEvent(Type::RoomMessage, obj), _msgtype(MsgType::Unknown)
     , _content(nullptr)
 {
     const QJsonObject content = contentJson();
@@ -63,19 +82,20 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     {
         _plainBody = content["body"].toString();
 
-        auto factory = lookup(content["msgtype"].toString(),
-                            "m.text", &make<CType::Text, TextContent>,
-                            "m.emote", &make<CType::Emote, TextContent>,
-                            "m.notice", &make<CType::Notice, TextContent>,
-                            "m.image", &make<CType::Image, ImageContent>,
-                            "m.file", &make<CType::File, FileContent>,
-                            "m.location", &make<CType::Location, LocationContent>,
-                            "m.video", &makeVideo,
-                            "m.audio", &make<CType::Audio, AudioContent>,
-                            // Insert new message types before this line
-                            &makeUnknown
-                        );
-        std::tie(_msgtype, _content) = factory(content);
+        auto msgtype = content["msgtype"].toString();
+        for (auto mt: msgTypes)
+            if (mt.jsonType == msgtype)
+            {
+                _msgtype = mt.enumType;
+                _content.reset(mt.maker(content));
+            }
+
+        if (_msgtype == MsgType::Unknown)
+        {
+            qCDebug(EVENTS) << "RoomMessageEvent: unknown msgtype" << msgtype
+                            << ", full content dump follows";
+            qCDebug(EVENTS) << formatJson << content;
+        }
     }
     else
     {
@@ -84,11 +104,24 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     }
 }
 
-RoomMessageEvent::~RoomMessageEvent()
+QJsonObject RoomMessageEvent::toJson() const
 {
-    if (_content)
-        delete _content;
+    QJsonObject obj = _content ? _content->toJson() : QJsonObject();
+    obj.insert("msgtype", msgTypeToJson(msgtype()));
+    obj.insert("body", plainBody());
+    return obj;
 }
+
+QJsonObject InfoBase::toInfoJson() const
+{
+    QJsonObject info;
+    fillInfoJson(&info);
+    return info;
+}
+
+TextContent::TextContent(const QString& text, const QString& contentType)
+    : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
+{ }
 
 TextContent::TextContent(const QJsonObject& json)
 {
@@ -108,34 +141,77 @@ TextContent::TextContent(const QJsonObject& json)
     }
 }
 
-FileInfo::FileInfo(QUrl u, const QJsonObject& infoJson, QString originalFilename)
-    : url(u)
-    , fileSize(infoJson["size"].toInt())
-    , mimetype(QMimeDatabase().mimeTypeForName(infoJson["mimetype"].toString()))
+void TextContent::fillJson(QJsonObject* json) const
+{
+    Q_ASSERT(json);
+    json->insert("format", QStringLiteral("org.matrix.custom.html"));
+    json->insert("formatted_body", body);
+}
+
+FileInfo::FileInfo(const QUrl& u, int payloadSize, const QMimeType& mimeType,
+                 const QString& originalFilename)
+    : url(u), payloadSize(payloadSize), mimetype(mimeType)
     , originalName(originalFilename)
+{ }
+
+FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
+                 const QString& originalFilename)
+    : FileInfo(u, infoJson["size"].toInt(),
+              QMimeDatabase().mimeTypeForName(infoJson["mimetype"].toString()),
+              originalFilename)
 {
     if (!mimetype.isValid())
         mimetype = QMimeDatabase().mimeTypeForData(QByteArray());
 }
 
-ImageInfo::ImageInfo(QUrl u, const QJsonObject& infoJson)
-    : FileInfo(u, infoJson)
-    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
+void FileInfo::fillInfoJson(QJsonObject* infoJson) const
+{
+    Q_ASSERT(infoJson);
+    infoJson->insert("size", payloadSize);
+    infoJson->insert("mimetype", mimetype.name());
+}
+
+void FileInfo::fillJson(QJsonObject* json) const
+{
+    Q_ASSERT(json);
+    json->insert("url", url.toString());
+    if (!originalName.isEmpty())
+        json->insert("filename", originalName);
+    json->insert("info", toInfoJson());
+}
+
+LocationContent::LocationContent(const QString& geoUri,
+                                 const ImageInfo<>& thumbnail)
+    : Thumbnailed<>(thumbnail), geoUri(geoUri)
 { }
 
 LocationContent::LocationContent(const QJsonObject& json)
-    : geoUri(json["geo_uri"].toString())
-    , thumbnail(json["thumbnail_url"].toString(),
-                json["thumbnail_info"].toObject())
+    : Thumbnailed<>(json["info"].toObject())
+    , geoUri(json["geo_uri"].toString())
 { }
 
-VideoInfo::VideoInfo(QUrl u, const QJsonObject& infoJson)
-    : FileInfo(u, infoJson)
-    , duration(infoJson["duration"].toInt())
-    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
+void LocationContent::fillJson(QJsonObject* o) const
+{
+    Q_ASSERT(o);
+    o->insert("geo_uri", geoUri);
+    o->insert("info", Thumbnailed::toInfoJson());
+}
+
+PlayableInfo::PlayableInfo(const QUrl& u, int fileSize,
+                           const QMimeType& mimeType, int duration,
+                           const QString& originalFilename)
+    : FileInfo(u, fileSize, mimeType, originalFilename)
+    , duration(duration)
 { }
 
-AudioInfo::AudioInfo(QUrl u, const QJsonObject& infoJson)
-    : FileInfo(u, infoJson)
+PlayableInfo::PlayableInfo(const QUrl& u, const QJsonObject& infoJson,
+                           const QString& originalFilename)
+    : FileInfo(u, infoJson, originalFilename)
     , duration(infoJson["duration"].toInt())
 { }
+
+void PlayableInfo::fillInfoJson(QJsonObject* infoJson) const
+{
+    FileInfo::fillInfoJson(infoJson);
+    infoJson->insert("duration", duration);
+}
