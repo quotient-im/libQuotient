@@ -27,13 +27,6 @@ Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
 
-// Use LOGGING_CATEGORY instead of Q_LOGGING_CATEGORY in the rest of the code
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-#define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id), QtInfoMsg)
-#else
-#define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id))
-#endif
-
 namespace QMatrixClient
 {
     // QDebug manipulators
