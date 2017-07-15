@@ -16,35 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#include "sendeventjob.h"
 
-#include <QtCore/QUrl>
+#include "events/roommessageevent.h"
 
-class QNetworkAccessManager;
+using namespace QMatrixClient;
 
-namespace QMatrixClient
+SendEventJob::SendEventJob(const ConnectionData* connection,
+                           const QString& roomId, const QString& type,
+                           const QString& plainText)
+    : SendEventJob(connection, roomId,
+                   new RoomMessageEvent(plainText, type))
+{ }
+
+BaseJob::Status SendEventJob::parseJson(const QJsonDocument& data)
 {
-    class ConnectionData
-    {
-        public:
-            explicit ConnectionData(QUrl baseUrl);
-            virtual ~ConnectionData();
+    _eventId = data.object().value("event_id").toString();
+    if (!_eventId.isEmpty())
+        return Success;
 
-            QString accessToken() const;
-            QUrl baseUrl() const;
+    qCDebug(JOBS) << data;
+    return { UserDefinedError, "No event_id in the JSON response" };
+}
 
-            QNetworkAccessManager* nam() const;
-            void setToken( QString accessToken );
-            void setHost( QString host );
-            void setPort( int port );
-
-            QString lastEvent() const;
-            void setLastEvent( QString identifier );
-
-            QByteArray generateTxnId() const;
-
-        private:
-            struct Private;
-            Private* d;
-    };
-}  // namespace QMatrixClient

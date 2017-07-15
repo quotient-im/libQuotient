@@ -63,7 +63,7 @@ set(libqmatrixclient_SRCS
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
-   jobs/postmessagejob.cpp
+   jobs/sendeventjob.cpp
    jobs/postreceiptjob.cpp
    jobs/joinroomjob.cpp
    jobs/leaveroomjob.cpp

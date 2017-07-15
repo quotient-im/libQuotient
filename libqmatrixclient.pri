@@ -21,7 +21,7 @@ HEADERS += \
     $$PWD/jobs/basejob.h \
     $$PWD/jobs/checkauthmethods.h \
     $$PWD/jobs/passwordlogin.h \
-    $$PWD/jobs/postmessagejob.h \
+    $$PWD/jobs/sendeventjob.h \
     $$PWD/jobs/postreceiptjob.h \
     $$PWD/jobs/joinroomjob.h \
     $$PWD/jobs/leaveroomjob.h \
@@ -49,7 +49,7 @@ SOURCES += \
     $$PWD/jobs/basejob.cpp \
     $$PWD/jobs/checkauthmethods.cpp \
     $$PWD/jobs/passwordlogin.cpp \
-    $$PWD/jobs/postmessagejob.cpp \
+    $$PWD/jobs/sendeventjob.cpp \
     $$PWD/jobs/postreceiptjob.cpp \
     $$PWD/jobs/joinroomjob.cpp \
     $$PWD/jobs/leaveroomjob.cpp \

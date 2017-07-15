@@ -91,6 +91,11 @@ namespace QMatrixClient
                 return job;
             }
 
+            /** Generates a new transaction id. Transaction id's are unique within
+             * a single Connection object
+             */
+            Q_INVOKABLE QByteArray generateTxnId();
+
         signals:
             void resolved();
             void connected();

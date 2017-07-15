@@ -21,14 +21,12 @@
 #include <array>
 
 #include <QtCore/QHash>
-#include <QtCore/QJsonArray>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QElapsedTimer>
 
 #include "connection.h"
 #include "state.h"
 #include "user.h"
-#include "events/roommessageevent.h"
 #include "events/roomnameevent.h"
 #include "events/roomaliasesevent.h"
 #include "events/roomcanonicalaliasevent.h"
@@ -36,7 +34,7 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
-#include "jobs/postmessagejob.h"
+#include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/leaveroomjob.h"
@@ -560,13 +558,18 @@ void Room::updateData(SyncRoomData&& data)
 
 void Room::postMessage(const QString& type, const QString& plainText)
 {
-    connection()->callApi<PostMessageJob>(id(), type, plainText);
+    connection()->callApi<SendEventJob>(id(), type, plainText);
 }
 
-void Room::postMessage(const QString& type, const QString& plainText,
-                       const QString& richText)
+void Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    connection()->callApi<PostMessageJob>(id(), type, plainText, richText);
+    RoomMessageEvent rme(plainText, type);
+    postMessage(&rme);
+}
+
+void Room::postMessage(RoomMessageEvent* event)
+{
+    connection()->callApi<SendEventJob>(id(), event);
 }
 
 void Room::getPreviousContent(int limit)

@@ -21,6 +21,7 @@
 #include "logging.h"
 
 #include <QtNetwork/QNetworkAccessManager>
+#include <cstdlib>
 
 using namespace QMatrixClient;
 
@@ -35,6 +36,9 @@ struct ConnectionData::Private
     QUrl baseUrl;
     QString accessToken;
     QString lastEvent;
+
+    mutable unsigned int txnCounter = 0;
+    const int id = std::rand(); // We don't really care about pure randomness
 };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
@@ -88,4 +92,10 @@ QString ConnectionData::lastEvent() const
 void ConnectionData::setLastEvent(QString identifier)
 {
     d->lastEvent = identifier;
+}
+
+QByteArray ConnectionData::generateTxnId() const
+{
+    return QByteArray::number(d->id) + 'q' +
+            QByteArray::number(++d->txnCounter);
 }

@@ -95,6 +95,7 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     , _serverTimestamp(toTimestamp(rep["origin_server_ts"]))
     , _roomId(rep["room_id"].toString())
     , _senderId(rep["sender"].toString())
+    , _txnId(rep["unsigned"].toObject().value("transactionId").toString())
 {
     if (_id.isEmpty())
     {
@@ -103,14 +104,22 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     }
     if (!rep.contains("origin_server_ts"))
     {
-        qCWarning(EVENTS) << "Event: can't find server timestamp in a room event";
+        qCWarning(EVENTS) << "Can't find server timestamp in a room event";
         qCWarning(EVENTS) << formatJson << rep;
     }
     if (_senderId.isEmpty())
     {
-        qCWarning(EVENTS) << "user_id not found in a room event";
+        qCWarning(EVENTS) << "Can't find sender in a room event";
         qCWarning(EVENTS) << formatJson << rep;
     }
+    if (!_txnId.isEmpty())
+        qCDebug(EVENTS) << "Event transactionId:" << _txnId;
+}
+
+void RoomEvent::addId(const QString& id)
+{
+    Q_ASSERT(_id.isEmpty()); Q_ASSERT(!id.isEmpty());
+    _id = id;
 }
 
 RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)

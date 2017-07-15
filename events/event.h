@@ -37,14 +37,16 @@ namespace QMatrixClient
                 RoomMember, RoomTopic, Typing, Receipt, Unknown
             };
 
-            explicit Event(Type type, const QJsonObject& rep);
+            explicit Event(Type type) : _type(type) { }
+            Event(Type type, const QJsonObject& rep);
             Event(const Event&) = delete;
 
             Type type() const { return _type; }
             QByteArray originalJson() const;
 
-            // Every event also has a "content" object but since its structure is
-            // different for different types, we're implementing it per-event type
+            // According to the CS API spec, every event also has
+            // a "content" object; but since its structure is different for
+            // different types, we're implementing it per-event type
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
@@ -61,6 +63,8 @@ namespace QMatrixClient
             QJsonObject _originalJson;
 
             REGISTER_ENUM(Type)
+            Q_PROPERTY(Type type READ type CONSTANT)
+            Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventType = Event::Type;
     template <typename EventT>
@@ -91,13 +95,42 @@ namespace QMatrixClient
 
     class RoomEvent : public Event
     {
+            Q_GADGET
+            Q_PROPERTY(QString id READ id)
+            Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
+            Q_PROPERTY(QString roomId READ roomId CONSTANT)
+            Q_PROPERTY(QString senderId READ senderId CONSTANT)
+            Q_PROPERTY(QString transactionId READ transactionId CONSTANT)
         public:
+            explicit RoomEvent(Type type) : Event(type) { }
             RoomEvent(Type type, const QJsonObject& rep);
 
-            const QString& id() const          { return _id; }
+            const QString& id() const { return _id; }
             const QDateTime& timestamp() const { return _serverTimestamp; }
-            const QString& roomId() const      { return _roomId; }
-            const QString& senderId() const    { return _senderId; }
+            const QString& roomId() const { return _roomId; }
+            const QString& senderId() const { return _senderId; }
+            const QString& transactionId() const { return _txnId; }
+
+            /**
+             * Sets the transaction id for locally created events. This should be
+             * done before the event is exposed to any code using the respective
+             * Q_PROPERTY.
+             *
+             * \param txnId - transaction id, normally obtained from
+             * Connection::generateTxnId()
+             */
+            void setTransactionId(const QString& txnId) { _txnId = txnId; }
+
+            /**
+             * Sets event id for locally created events
+             *
+             * When a new event is created locally, it has no server id yet.
+             * This function allows to add the id once the confirmation from
+             * the server is received. There should be no id set previously
+             * in the event. It's the responsibility of the code calling addId()
+             * to notify clients that use Q_PROPERTY(id) about its change
+             */
+            void addId(const QString& id);
 
             // "Static override" of the one in Event
             static RoomEvent* fromJson(const QJsonObject& obj);
@@ -107,6 +140,11 @@ namespace QMatrixClient
             QDateTime _serverTimestamp;
             QString _roomId;
             QString _senderId;
+            QString _txnId;
     };
     using RoomEvents = EventsBatch<RoomEvent>;
 }  // namespace QMatrixClient
+Q_DECLARE_OPAQUE_POINTER(QMatrixClient::Event*)
+Q_DECLARE_METATYPE(QMatrixClient::Event*)
+Q_DECLARE_OPAQUE_POINTER(QMatrixClient::RoomEvent*)
+Q_DECLARE_METATYPE(QMatrixClient::RoomEvent*)
