@@ -50,14 +50,14 @@ QByteArray Event::originalJson() const
 
 QDateTime Event::toTimestamp(const QJsonValue& v)
 {
-    Q_ASSERT(v.isDouble() || v.isNull());
+    Q_ASSERT(v.isDouble() || v.isNull() || v.isUndefined());
     return QDateTime::fromMSecsSinceEpoch(
             static_cast<long long int>(v.toDouble()), Qt::UTC);
 }
 
 QStringList Event::toStringList(const QJsonValue& v)
 {
-    Q_ASSERT(v.isArray() || v.isNull());
+    Q_ASSERT(v.isArray() || v.isNull() || v.isUndefined());
 
     QStringList l;
     for( const QJsonValue& e : v.toArray() )
