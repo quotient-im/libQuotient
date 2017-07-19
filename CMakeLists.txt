@@ -19,6 +19,12 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+# Setup command line parameters for the compiler and linker
+CHECK_CXX_COMPILER_FLAG("-Wall" WALL_FLAG_SUPPORTED)
+if ( WALL_FLAG_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )-Wall($| )")
+    string(APPEND CMAKE_CXX_FLAGS " -Wall")
+endif ( WALL_FLAG_SUPPORTED )
+
 if ( CMAKE_VERSION VERSION_LESS "3.1" )
     CHECK_CXX_COMPILER_FLAG("-std=c++11" STD_FLAG_SUPPORTED)
     if ( STD_FLAG_SUPPORTED )
