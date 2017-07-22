@@ -33,8 +33,8 @@ namespace QMatrixClient
                          const EvT* event)
                 : BaseJob(connection, HttpVerb::Put, "SendEventJob",
                           QStringLiteral("_matrix/client/r0/rooms/%1/send/%2/%3")
-                              .arg(roomId).arg(EvT::TypeId)
-                              .arg(event->transactionId()),
+                              .arg(roomId, EvT::TypeId,
+                                   connection->generateTxnId()),
                           Query(),
                           Data(event->toJson()))
             { }
