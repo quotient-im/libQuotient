@@ -83,6 +83,10 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
+            /** call this before first sync */
+            Q_INVOKABLE void loadState();
+            Q_INVOKABLE void saveState();
+
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
             {

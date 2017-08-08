@@ -32,6 +32,8 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
+#include <QStandardPaths>
+#include <QFile>
 
 using namespace QMatrixClient;
 
@@ -319,4 +321,45 @@ Room* Connection::createRoom(const QString& roomId)
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
+}
+
+QFile Connection::getStateSaveFile() const {
+    return QFile(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/data.json");
+}
+
+void Connection::saveState() {
+    QJsonObject rooms;
+
+    for (auto i : this->roomMap()) {
+        QJsonObject roomObj;
+        i->toJson(roomObj);
+        rooms[i->id()] = roomObj;
+    }
+
+    QJsonObject rootObj{
+        {"next_batch", QJsonValue(d->data->lastEvent())},
+        {"presence", QJsonValue(QJsonObject())},
+        {"rooms", QJsonValue({
+             qMakePair(QString("leave"), QJsonValue(QJsonObject())),
+             qMakePair(QString("join"), QJsonValue(rooms)),
+             qMakePair(QString("invite"), QJsonValue(QJsonObject()))
+        })}
+    };
+    QJsonDocument doc { rootObj };
+    QByteArray data = doc.toJson();
+
+    QFile outfile = getStateSaveFile();
+    outfile.open(QFile::WriteOnly);
+    qInfo() << "Writing state to file=" << outfile.fileName();
+    //QFile outfile(path);
+    outfile.write(data.data(), data.size());
+}
+
+void Connection::loadState() {
+    QFile file = getStateSaveFile();
+    if (!file.exists()) return;
+    file.open(QFile::ReadOnly);
+    QByteArray data = file.readAll();
+
+    QJsonDocument doc = QJsonDocument.fromJson(data.data(), data.size());
 }

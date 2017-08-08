@@ -119,6 +119,8 @@ class Room::Private
         void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
 
+        void toJson(QJsonObject &out);
+
     private:
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
@@ -873,6 +875,69 @@ void Room::Private::updateDisplayname()
     displayname = calculateDisplayname();
     if (old_name != displayname)
         emit q->displaynameChanged(q);
+}
+
+void Room::Private::toJson(QJsonObject &out) {
+    QJsonValue nowTimestamp { QDateTime::currentMSecsSinceEpoch() };
+    QJsonArray stateEvents;
+
+    QJsonObject nameEvent {
+        {"type", QJsonValue("m.room.name")},
+        {"content", QJsonValue({qMakePair(QString("name"), QJsonValue(this->name))})}};
+    stateEvents.append(QJsonValue(nameEvent));
+
+    for (auto i : this->membersMap) {
+        QJsonObject content {
+            {"membership", QJsonValue("join")},
+            {"displayname", QJsonValue(i->displayname())}
+            // avatar URL is not available
+        };
+        QJsonObject memberEvent {
+            {"type", QJsonValue("m.room.member")},
+            {"sender", QJsonValue(i->id())},
+            {"state_key", QJsonValue(i->id())},
+            {"content", QJsonValue(content)},
+            {"membership", QJsonValue("join")},
+            {"origin_server_ts", nowTimestamp}
+        };
+        stateEvents.append(QJsonValue(memberEvent));
+    }
+
+    {
+        QJsonArray aliases;
+        for (auto i : this->aliases) {
+            aliases.append(QJsonValue(i));
+        }
+
+        QJsonObject content {
+            {"aliases", QJsonValue(aliases)}
+        };
+
+        QJsonObject aliasEvent {
+            {"type", QJsonValue("m.room.aliases")},
+            {"origin_server_ts", nowTimestamp},
+            {"content", QJsonValue(content)}
+        };
+
+        stateEvents.append(QJsonValue(aliasEvent));
+    }
+
+    {
+        QJsonObject content {
+            {"alias", QJsonValue(this->canonicalAlias)}
+        };
+        QJsonObject canonicalAliasEvent {
+            {"type", QJsonValue("m.room.canonical_alias")},
+            {"origin_server_ts", nowTimestamp}
+        };
+        stateEvents.append(QJsonValue(canonicalAliasEvent));
+    }
+
+    out["state"] = QJsonValue({qMakePair(QString("events"), QJsonValue(stateEvents))});
+}
+
+void Room::toJson(QJsonObject &out) const {
+    d->toJson(out);
 }
 
 MemberSorter Room::memberSorter() const
