@@ -146,7 +146,7 @@ TextContent::TextContent(const QJsonObject& json)
 {
     QMimeDatabase db;
 
-    // Special-casing the custom matrix.org's (actually, Vector's) way
+    // Special-casing the custom matrix.org's (actually, Riot's) way
     // of sending HTML messages.
     if (json["format"].toString() == "org.matrix.custom.html")
     {
