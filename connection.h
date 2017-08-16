@@ -31,6 +31,7 @@ namespace QMatrixClient
     class ConnectionData;
 
     class SyncJob;
+    class SyncData;
     class RoomMessagesJob;
     class PostReceiptJob;
     class MediaThumbnailJob;
@@ -143,6 +144,15 @@ namespace QMatrixClient
              */
             virtual Room* createRoom(const QString& roomId);
 
+            /**
+             * Returns the path to file for saving state (rooms, presence, ...)
+             */
+            QString getStateSaveFile() const;
+
+            /**
+             * Completes loading sync data.
+             */
+            void onSyncSuccess(SyncData &data);
         private:
             class Private;
             Private* d;

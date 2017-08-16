@@ -22,20 +22,13 @@
 
 using namespace QMatrixClient;
 
-class SyncJob::Private
-{
-    public:
-        QString nextBatch;
-        SyncData roomData;
-};
-
 static size_t jobId = 0;
 
 SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
                  const QString& filter, int timeout, const QString& presence)
     : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
-    , d(new Private)
+    , d(new SyncData)
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
@@ -57,21 +50,26 @@ SyncJob::~SyncJob()
     delete d;
 }
 
-QString SyncJob::nextBatch() const
+QString SyncData::nextBatch() const
 {
-    return d->nextBatch;
+    return nextBatch_;
 }
 
-SyncData&& SyncJob::takeRoomData()
+SyncDataList&& SyncData::takeRoomData()
 {
-    return std::move(d->roomData);
+    return std::move(roomData);
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
+    d->parseJson(data);
+    return Success;
+}
+
+void SyncData::parseJson(const QJsonDocument &data) {
     QElapsedTimer et; et.start();
     QJsonObject json = data.object();
-    d->nextBatch = json.value("next_batch").toString();
+    nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
     // TODO: account_data
     QJsonObject rooms = json.value("rooms").toObject();
@@ -86,13 +84,11 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
         // We have a Qt container on the right and an STL one on the left
-        d->roomData.reserve(static_cast<size_t>(rs.size()));
+        roomData.reserve(static_cast<size_t>(rs.size()));
         for( auto rkey: rs.keys() )
-            d->roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
+            roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
-    qCDebug(PROFILER) << "*** SyncJob::parseJson():" << et.elapsed() << "ms";
-
-    return Success;
+    qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,

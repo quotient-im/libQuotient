@@ -159,12 +159,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        d->data->setLastEvent(job->nextBatch());
-        for( auto&& roomData: job->takeRoomData() )
-        {
-            if ( auto* r = provideRoom(roomData.roomId) )
-                r->updateData(std::move(roomData));
-        }
+        onSyncSuccess(*job->data());
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -176,6 +171,17 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString());
     });
+}
+
+void Connection::onSyncSuccess(SyncData &data) {
+    d->data->setLastEvent(data.nextBatch());
+    qInfo() << "last event " << d->data->lastEvent();
+    for( auto&& roomData: data.takeRoomData() )
+    {
+        if ( auto* r = provideRoom(roomData.roomId) )
+            r->updateData(std::move(roomData));
+    }
+
 }
 
 void Connection::stopSync()
@@ -323,8 +329,8 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
-QFile Connection::getStateSaveFile() const {
-    return QFile(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/data.json");
+QString Connection::getStateSaveFile() const {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/state.json";
 }
 
 void Connection::saveState() {
@@ -348,18 +354,20 @@ void Connection::saveState() {
     QJsonDocument doc { rootObj };
     QByteArray data = doc.toJson();
 
-    QFile outfile = getStateSaveFile();
+    QFile outfile { getStateSaveFile() };
     outfile.open(QFile::WriteOnly);
     qInfo() << "Writing state to file=" << outfile.fileName();
-    //QFile outfile(path);
     outfile.write(data.data(), data.size());
 }
 
 void Connection::loadState() {
-    QFile file = getStateSaveFile();
+    QFile file { getStateSaveFile() };
     if (!file.exists()) return;
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
-    QJsonDocument doc = QJsonDocument.fromJson(data.data(), data.size());
+    QJsonDocument doc { QJsonDocument::fromJson(data) };
+    SyncData sync;
+    sync.parseJson(doc);
+    onSyncSuccess(sync);
 }
