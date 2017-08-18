@@ -881,25 +881,26 @@ void Room::Private::toJson(QJsonObject &out) {
     QJsonValue nowTimestamp { QDateTime::currentMSecsSinceEpoch() };
     QJsonArray stateEvents;
 
-    QJsonObject nameEvent {
-        {"type", QJsonValue("m.room.name")},
-        {"content", QJsonValue({qMakePair(QString("name"), QJsonValue(this->name))})}};
+    QJsonObject nameEvent;
+    nameEvent["type"] = QString("m.room.name");
+    QJsonObject nameEventContent;
+    nameEventContent["name"] = this->name;
+    nameEvent["content"] = nameEventContent;
     stateEvents.append(QJsonValue(nameEvent));
 
     for (auto i : this->membersMap) {
-        QJsonObject content {
-            {"membership", QJsonValue("join")},
-            {"displayname", QJsonValue(i->displayname())}
-            // avatar URL is not available
-        };
-        QJsonObject memberEvent {
-            {"type", QJsonValue("m.room.member")},
-            {"sender", QJsonValue(i->id())},
-            {"state_key", QJsonValue(i->id())},
-            {"content", QJsonValue(content)},
-            {"membership", QJsonValue("join")},
-            {"origin_server_ts", nowTimestamp}
-        };
+        QJsonObject content;
+        content["membership"] = QString("join");
+        content["displayname"] = i->displayname();
+        // avatar URL is not available
+
+        QJsonObject memberEvent;
+        memberEvent["type"] = QString("m.room.member");
+        memberEvent["sender"] = (i->id());
+        memberEvent["state_key"] = (i->id());
+        memberEvent["content"] = (content);
+        memberEvent["membership"] = QString("join");
+        memberEvent["origin_server_ts"] = nowTimestamp;
         stateEvents.append(QJsonValue(memberEvent));
     }
 
@@ -909,31 +910,30 @@ void Room::Private::toJson(QJsonObject &out) {
             aliases.append(QJsonValue(i));
         }
 
-        QJsonObject content {
-            {"aliases", QJsonValue(aliases)}
-        };
+        QJsonObject content;
+        content["aliases"] = QJsonValue(aliases);
 
-        QJsonObject aliasEvent {
-            {"type", QJsonValue("m.room.aliases")},
-            {"origin_server_ts", nowTimestamp},
-            {"content", QJsonValue(content)}
-        };
+        QJsonObject aliasEvent;
+        aliasEvent["type"] = QString("m.room.aliases");
+        aliasEvent["origin_server_ts"] = nowTimestamp;
+        aliasEvent["content"] = (content);
 
         stateEvents.append(QJsonValue(aliasEvent));
     }
 
     {
-        QJsonObject content {
-            {"alias", QJsonValue(this->canonicalAlias)}
-        };
-        QJsonObject canonicalAliasEvent {
-            {"type", QJsonValue("m.room.canonical_alias")},
-            {"origin_server_ts", nowTimestamp}
-        };
+        QJsonObject content;
+        content["alias"] = (this->canonicalAlias);
+
+        QJsonObject canonicalAliasEvent;
+        canonicalAliasEvent["type"] = QString("m.room.canonical_alias");
+        canonicalAliasEvent["origin_server_ts"] = nowTimestamp;
         stateEvents.append(QJsonValue(canonicalAliasEvent));
     }
 
-    out["state"] = QJsonValue({qMakePair(QString("events"), QJsonValue(stateEvents))});
+    QJsonObject roomStateObj;
+    roomStateObj["events"] = QJsonValue(stateEvents);
+    out["state"] = roomStateObj;
 }
 
 void Room::toJson(QJsonObject &out) const {

@@ -39,6 +39,7 @@ namespace QMatrixClient
 
     class Connection: public QObject {
             Q_OBJECT
+            Q_PROPERTY(QString stateSaveFile READ getStateSaveFile WRITE setStateSaveFile)
         public:
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
@@ -148,11 +149,13 @@ namespace QMatrixClient
              * Returns the path to file for saving state (rooms, presence, ...)
              */
             QString getStateSaveFile() const;
+            void setStateSaveFile(const QString &path);
 
             /**
              * Completes loading sync data.
              */
             void onSyncSuccess(SyncData &data);
+
         private:
             class Private;
             Private* d;

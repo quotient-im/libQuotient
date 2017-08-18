@@ -59,6 +59,7 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
+        QString stateSaveFile;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -175,7 +176,6 @@ void Connection::sync(int timeout)
 
 void Connection::onSyncSuccess(SyncData &data) {
     d->data->setLastEvent(data.nextBatch());
-    qInfo() << "last event " << d->data->lastEvent();
     for( auto&& roomData: data.takeRoomData() )
     {
         if ( auto* r = provideRoom(roomData.roomId) )
@@ -330,7 +330,11 @@ QByteArray Connection::generateTxnId()
 }
 
 QString Connection::getStateSaveFile() const {
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/state.json";
+    return d->stateSaveFile;
+}
+
+void Connection::setStateSaveFile(const QString &path) {
+    d->stateSaveFile = path;
 }
 
 void Connection::saveState() {
@@ -342,21 +346,25 @@ void Connection::saveState() {
         rooms[i->id()] = roomObj;
     }
 
-    QJsonObject rootObj{
-        {"next_batch", QJsonValue(d->data->lastEvent())},
-        {"presence", QJsonValue(QJsonObject())},
-        {"rooms", QJsonValue({
-             qMakePair(QString("leave"), QJsonValue(QJsonObject())),
-             qMakePair(QString("join"), QJsonValue(rooms)),
-             qMakePair(QString("invite"), QJsonValue(QJsonObject()))
-        })}
-    };
+    QJsonObject roomObj;
+    roomObj["leave"] = QJsonObject();
+    roomObj["join"] = rooms;
+    roomObj["invite"] = QJsonObject();
+
+    QJsonObject rootObj;
+    rootObj["next_batch"] = d->data->lastEvent();
+    rootObj["presence"] = QJsonObject();
+    rootObj["rooms"] = roomObj;
+
     QJsonDocument doc { rootObj };
     QByteArray data = doc.toJson();
 
-    QFile outfile { getStateSaveFile() };
+    QString filepath = getStateSaveFile();
+    if (filepath.isEmpty()) return;
+
+    QFile outfile { filepath };
     outfile.open(QFile::WriteOnly);
-    qInfo() << "Writing state to file=" << outfile.fileName();
+    qCDebug(MAIN) << "Writing state to file=" << outfile.fileName();
     outfile.write(data.data(), data.size());
 }
 
