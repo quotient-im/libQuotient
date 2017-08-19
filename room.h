@@ -64,7 +64,8 @@ namespace QMatrixClient
     class Room: public QObject
     {
             Q_OBJECT
-            Q_PROPERTY(const Connection* connection READ connection CONSTANT)
+            Q_PROPERTY(Connection* connection READ connection CONSTANT)
+            Q_PROPERTY(User* localUser READ localUser CONSTANT)
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
@@ -80,6 +81,7 @@ namespace QMatrixClient
             virtual ~Room();
 
             Connection* connection() const;
+            User* localUser() const;
             QString id() const;
             QString name() const;
             QStringList aliases() const;

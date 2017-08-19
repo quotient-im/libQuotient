@@ -128,6 +128,10 @@ class Room::Private
 
         void insertEvent(RoomEvent* e, Timeline::iterator where,
                          TimelineItem::index_t index);
+        bool isLocalUser(const User* u) const
+        {
+            return u == connection->user();
+        }
 };
 
 Room::Room(Connection* connection, QString id)
@@ -197,7 +201,7 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 {
     lastReadEventIds.insert(u, eventId);
     emit q->lastReadEventChanged(u);
-    if (u == connection->user())
+    if (isLocalUser(u))
         emit q->readMarkerMoved();
 }
 
@@ -219,7 +223,7 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
           [=](const TimelineItem& ti) { return ti->senderId() != u->id(); });
 
     setLastReadEvent(u, (*(eagerMarker - 1))->id());
-    if (u == connection->user() && unreadMessages)
+    if (isLocalUser(u) && unreadMessages)
     {
         auto stillUnreadMessagesCount =
             count_if(eagerMarker, timeline.cend(),
@@ -242,8 +246,7 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
 
 void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
 {
-    auto localUser = connection()->user();
-    Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser, upToMarker);
+    Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser(), upToMarker);
     if (markers.first != markers.second)
         qCDebug(MAIN) << "Marked messages as read until" << *readMarker();
 
@@ -252,7 +255,7 @@ void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
     // until the previous last-read message, whichever comes first.
     for (; markers.second < markers.first; ++markers.second)
     {
-        if ((*markers.second)->senderId() != localUser->id())
+        if ((*markers.second)->senderId() != localUser()->id())
         {
             connection()->callApi<PostReceiptJob>(id(), (*markers.second)->id());
             break;
@@ -319,12 +322,12 @@ Room::rev_iter_t Room::readMarker(const User* user) const
 
 Room::rev_iter_t Room::readMarker() const
 {
-    return readMarker(connection()->user());
+    return readMarker(localUser());
 }
 
 QString Room::readMarkerEventId() const
 {
-    return d->lastReadEventIds.value(d->connection->user());
+    return d->lastReadEventIds.value(localUser());
 }
 
 int Room::notificationCount() const
@@ -612,7 +615,13 @@ void Room::Private::dropDuplicateEvents(RoomEvents* events) const
 
 Connection* Room::connection() const
 {
+    Q_ASSERT(d->connection);
     return d->connection;
+}
+
+User* Room::localUser() const
+{
+    return connection()->user();
 }
 
 void Room::addNewMessageEvents(RoomEvents events)
@@ -718,7 +727,7 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::RoomMember: {
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
                 // Can't use d->member() below because the user may be not a member (yet)
-                User* u = d->connection->user(memberEvent->userId());
+                auto u = d->connection->user(memberEvent->userId());
                 u->processEvent(event);
                 if( memberEvent->membership() == MembershipType::Join )
                 {
@@ -810,12 +819,11 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
         first_two.begin(), first_two.end(),
         [this](const User* u1, const User* u2) {
             // Filter out the "me" user so that it never hits the room name
-            return u2 == connection->user() ||
-                    (u1 != connection->user() && u1->id() < u2->id());
+            return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
         }
     );
 
-    // i. One-on-one chat. first_two[1] == connection->user() in this case.
+    // i. One-on-one chat. first_two[1] == localUser() in this case.
     if (userlist.size() == 2)
         return q->roomMembername(first_two[0]);
 
