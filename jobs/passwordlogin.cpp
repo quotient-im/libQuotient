@@ -33,7 +33,7 @@ PasswordLogin::PasswordLogin(const ConnectionData* connection, QString user, QSt
             , "_matrix/client/r0/login"
             , Query()
             , Data(
-                { { "type", "m.login.password" }
+                { { "type", QStringLiteral("m.login.password") }
                 , { "user", user }
                 , { "password", password }
                 })
