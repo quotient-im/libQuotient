@@ -1,0 +1,54 @@
+env:
+  preamble: preamble.mustache
+  copyrightName: Kitsune Ral
+  copyrightEmail: <kitsune-ral@users.sf.net>
+  imports: { set: }
+  returnFile?: { bool: false }
+
+templates:
+- "{{base}}.h.mustache"
+- "{{base}}.cpp.mustache"
+
+outFilesList: apifiles.txt
+
+# Structure:
+# swaggerType: <targetTypeSpec>
+# OR
+# swaggerType:
+#   - swaggerFormat: <targetTypeSpec>
+#   - /swaggerFormatRegEx/: <targetTypeSpec>
+#   - //: <targetTypeSpec> # default, if the format doesn't mach anything above
+# WHERE
+# targetTypeSpec = targetType OR
+#   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
+types:
+  integer:
+  - int64: qint64
+  - int32: qint32
+  - //: int
+  number:
+  - float: float
+  - double: double
+  boolean: bool
+  string:
+  - /byte|binary/: { type: QByteArray, imports: <QtCore/QByteArray> }
+  - date:
+      type: QDate
+      avoidCopy?: true
+      imports: <QtCore/QDate>
+  - dateTime:
+      type: QDateTime
+      avoidCopy?: true
+      imports: <QtCore/QDateTime>
+  - //: { type: QString, imports: <QtCore/QString> }
+  file:
+    type: QByteArray
+    imports: <QtCore/QByteArray>
+    returnFile?: true
+    name: data
+  "[]": { type: "QVector<{{type}}>", imports: <QtCore/QVector> }
+  "{}":
+    type: "QHash<QString, {{type}}>"
+    imports: [ <QtCore/QHash>, <QtCore/QString> ]
+
+operations:

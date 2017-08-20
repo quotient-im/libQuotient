@@ -1,0 +1,65 @@
+{{#@filePartial}}preamble{{/@filePartial}}
+
+#pragma once
+
+{{#operations}}
+#include "../basejob.h"
+{{/operations}}
+
+{{#imports}}
+#include {{.}}
+{{/imports}}
+
+{{#models}}
+#include <QtCore/QJsonValue> {{! FIXME: This should probably go inside imports }}
+{{/models}}
+
+namespace QMatrixClient
+{
+{{#models}}
+    // Data structures
+    {{#model}}
+    struct {{classname}}
+    {
+        {{#vars}}
+        {{datatype}} {{name}};
+        {{/vars}}
+        operator QJsonValue() const { return {}; }
+    };
+    {{/model}}
+{{/models}}
+{{#operations}}
+    // Operations
+    {{#operation}}
+    class {{#@cap}}{{operationId}}{{/@cap}}Job : public BaseJob
+    {
+        public:
+            {{#@cap}}{{operationId}}{{/@cap}}Job(const ConnectionData* connection
+            {{#allParams}}
+                    , {{!}}
+                    {{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}
+                    {{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}
+            {{/allParams}});
+    {{#returns?}}
+            virtual {{className}}Job();
+
+        {{#returns}}
+            {{type}} {{name}}() const;
+        {{/returns}}
+
+        protected:
+        {{#returnFile?}}
+            Status parseReply(QByteArray data) override;
+        {{/returnFile?}}
+        {{^returnFile}}
+            Status parseJson(const JsonDocument& data) override;
+        {{/returnFile}}
+
+        private:
+            class Private;
+            Private* d;
+    {{/returns?}}
+    };
+    {{/operation}}
+{{/operations}}
+} // namespace QMatrixClient

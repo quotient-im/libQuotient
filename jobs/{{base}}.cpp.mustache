@@ -1,0 +1,75 @@
+{{#@filePartial}}preamble{{/@filePartial}}
+
+#include "{{filenameBase}}.h"
+
+{{#operations}}
+#include "../converters.h"
+
+#include <QtCore/QStringBuilder>
+
+using namespace QMatrixClient;
+
+    {{#returns?}}
+class {{#@cap}}{{operationId}}{{/@cap}}Job::Private
+{
+    public:
+        {{#returns}}
+        {{type}} {{name}};
+        {{/returns}}
+};
+    {{/returns?}}
+
+    {{#operation}}
+{{#@cap}}{{operationId}}{{/@cap}}Job::{{#@cap}}{{operationId}}{{/@cap}}Job(const ConnectionData* connection{{#allParams}}, {{!}}
+            {{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}
+            {{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}
+        {{/allParams}})
+    : BaseJob(connection, HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{#@cap}}{{operationId}}{{/@cap}}Job"
+        , {{#pathParts}}{{part}}{{#hasMore}} % {{/hasMore}}{{/pathParts}}
+        , Query { {{#queryParams}}
+              { "{{baseName}}", toJson({{paramName}}).toString() }{{#hasMore}}, {{/hasMore}}
+        {{/queryParams}} }
+        , Data { {{#bodyParams}}
+              { "{{baseName}}", toJson({{paramName}}) }{{#hasMore}}, {{/hasMore}}
+        {{/bodyParams}} }
+        {{#skipAuth}}, false{{/skipAuth}}
+    ){{#returns?}}, d(new Private){{/returns?}}
+{ }
+    {{/operation}}
+
+    {{#returns?}}
+{{className}}Job::~{{className}}Job()
+{
+    delete d;
+}
+
+        {{#returns}}
+{{type}} {{className}}Job::{{name}}() const
+{
+    return d->{{name}};
+}
+        {{/returns}}
+
+        {{#returnFile?}}
+BaseJob::Status {{className}}Job::parseReply(QByteArray data)
+{
+    {{#returns}}{{name}}{{/returns}} = data;
+    return Success;
+}
+        {{/returnFile?}}
+        {{^returnFile?}}
+BaseJob::Status {{className}}Job::parseJson(const QJsonDocument& data)
+{
+    auto json = data.object();
+            {{#returns}}
+                {{#required?}}
+    if (!json.contains("{{name}}")
+        return { JsonParseError, "{{name}} not found in the response" };
+                {{/required?}}
+    d->{{name}} = fromJson<{{type}}>(json.value("{{name}}"));
+            {{/returns}}
+    return Success;
+}
+        {{/returnFile?}}
+    {{/returns?}}
+{{/operations}}
