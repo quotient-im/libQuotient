@@ -34,6 +34,8 @@
 #include <QtNetwork/QDnsLookup>
 #include <QStandardPaths>
 #include <QFile>
+#include <QDir>
+#include <QFileInfo>
 
 using namespace QMatrixClient;
 
@@ -59,7 +61,7 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
-        QString stateSaveFile;
+        QUrl stateSaveFile;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -329,15 +331,17 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
-QString Connection::getStateSaveFile() const {
+QUrl Connection::getStateSaveFile() const {
     return d->stateSaveFile;
 }
 
-void Connection::setStateSaveFile(const QString &path) {
+void Connection::setStateSaveFile(const QUrl &path) {
     d->stateSaveFile = path;
 }
 
 void Connection::saveState() {
+    if (getStateSaveFile().isEmpty()) return;
+
     QJsonObject rooms;
 
     for (auto i : this->roomMap()) {
@@ -359,17 +363,21 @@ void Connection::saveState() {
     QJsonDocument doc { rootObj };
     QByteArray data = doc.toJson();
 
-    QString filepath = getStateSaveFile();
-    if (filepath.isEmpty()) return;
+    QFileInfo stateFile { getStateSaveFile().toLocalFile() };
+    QFile outfile { stateFile.absoluteFilePath() };
+    if (!stateFile.dir().exists()) stateFile.dir().mkpath(".");
 
-    QFile outfile { filepath };
-    outfile.open(QFile::WriteOnly);
-    qCDebug(MAIN) << "Writing state to file=" << outfile.fileName();
-    outfile.write(data.data(), data.size());
+    if (outfile.open(QFile::WriteOnly)) {
+        qCDebug(MAIN) << "Writing state to file=" << outfile.fileName();
+        outfile.write(data.data(), data.size());
+
+    } else {
+        qCWarning(MAIN) << outfile.errorString();
+    }
 }
 
 void Connection::loadState() {
-    QFile file { getStateSaveFile() };
+    QFile file { getStateSaveFile().toLocalFile() };
     if (!file.exists()) return;
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
