@@ -351,14 +351,14 @@ void Connection::saveState() {
     }
 
     QJsonObject roomObj;
-    roomObj["leave"] = QJsonObject();
-    roomObj["join"] = rooms;
-    roomObj["invite"] = QJsonObject();
+    roomObj.insert("leave", QJsonObject());
+    roomObj.insert("join", rooms);
+    roomObj.insert("invite", QJsonObject());
 
     QJsonObject rootObj;
-    rootObj["next_batch"] = d->data->lastEvent();
-    rootObj["presence"] = QJsonObject();
-    rootObj["rooms"] = roomObj;
+    rootObj.insert("next_batch", d->data->lastEvent());
+    rootObj.insert("presence", QJsonObject());
+    rootObj.insert("rooms", roomObj);
 
     QJsonDocument doc { rootObj };
     QByteArray data = doc.toJson();
