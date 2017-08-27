@@ -39,7 +39,6 @@ namespace QMatrixClient
 
     class Connection: public QObject {
             Q_OBJECT
-            Q_PROPERTY(QUrl stateSaveFile READ getStateSaveFile WRITE setStateSaveFile)
         public:
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
@@ -85,9 +84,12 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
-            /** call this before first sync */
-            Q_INVOKABLE void loadState();
-            Q_INVOKABLE void saveState();
+            /**
+             * Call this before first sync to load from previously saved file.
+             * Uses QUrl to be QML-friendly.
+            */
+            Q_INVOKABLE void loadState(const QUrl &fromFile);
+            Q_INVOKABLE void saveState(const QUrl &toFile);
 
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
@@ -145,11 +147,6 @@ namespace QMatrixClient
              */
             virtual Room* createRoom(const QString& roomId);
 
-            /**
-             * Returns the path to file for saving state (rooms, presence, ...)
-             */
-            QUrl getStateSaveFile() const;
-            void setStateSaveFile(const QUrl &path);
 
             /**
              * Completes loading sync data.

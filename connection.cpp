@@ -61,7 +61,6 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
-        QUrl stateSaveFile;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -331,17 +330,7 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
-QUrl Connection::getStateSaveFile() const {
-    return d->stateSaveFile;
-}
-
-void Connection::setStateSaveFile(const QUrl &path) {
-    d->stateSaveFile = path;
-}
-
-void Connection::saveState() {
-    if (getStateSaveFile().isEmpty()) return;
-
+void Connection::saveState(const QUrl &toFile) {
     QJsonObject rooms;
 
     for (auto i : this->roomMap()) {
@@ -363,7 +352,7 @@ void Connection::saveState() {
     QJsonDocument doc { rootObj };
     QByteArray data = doc.toJson();
 
-    QFileInfo stateFile { getStateSaveFile().toLocalFile() };
+    QFileInfo stateFile { toFile.toLocalFile() };
     QFile outfile { stateFile.absoluteFilePath() };
     if (!stateFile.dir().exists()) stateFile.dir().mkpath(".");
 
@@ -376,8 +365,8 @@ void Connection::saveState() {
     }
 }
 
-void Connection::loadState() {
-    QFile file { getStateSaveFile().toLocalFile() };
+void Connection::loadState(const QUrl &fromFile) {
+    QFile file { fromFile.toLocalFile() };
     if (!file.exists()) return;
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
