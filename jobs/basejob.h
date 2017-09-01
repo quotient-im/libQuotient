@@ -77,6 +77,7 @@ namespace QMatrixClient
             class Data : public QJsonObject
             {
                 public:
+                    using QJsonObject::QJsonObject;
                     Data() = default;
                     explicit Data(const QJsonObject& o) : QJsonObject(o) { }
 #if (QT_VERSION < QT_VERSION_CHECK(5, 4, 0))
