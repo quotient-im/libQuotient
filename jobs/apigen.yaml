@@ -1,3 +1,7 @@
+preprocess:
+  "%CLIENT_RELEASE_LABEL%": r0
+  "%CLIENT_MAJOR_VERSION%": r0
+
 env:
   preamble: preamble.mustache
   copyrightName: Kitsune Ral
