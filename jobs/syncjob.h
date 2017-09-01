@@ -71,7 +71,7 @@ namespace QMatrixClient
 
     class SyncData {
     public:
-        void parseJson(const QJsonDocument &data);
+        BaseJob::Status parseJson(const QJsonDocument &data);
         SyncDataList&& takeRoomData();
         QString nextBatch() const;
 

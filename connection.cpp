@@ -32,10 +32,9 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
-#include <QStandardPaths>
-#include <QFile>
-#include <QDir>
-#include <QFileInfo>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
 
 using namespace QMatrixClient;
 

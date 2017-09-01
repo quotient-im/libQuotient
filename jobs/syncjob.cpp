@@ -66,7 +66,7 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-void SyncData::parseJson(const QJsonDocument &data) {
+BaseJob::Status SyncData::parseJson(const QJsonDocument &data) {
     QElapsedTimer et; et.start();
     QJsonObject json = data.object();
     nextBatch_ = json.value("next_batch").toString();
@@ -89,6 +89,7 @@ void SyncData::parseJson(const QJsonDocument &data) {
             roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
     qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
+    return Success;
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
