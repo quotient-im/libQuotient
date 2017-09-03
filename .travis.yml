@@ -1,23 +1,38 @@
 language: cpp
 
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.8
+    packages:
+    - g++-5
+    - clang-3.8
+    - qt5-default
+
 matrix:
   include:
-    - { os: linux, dist: trusty, compiler: gcc }
-    - { os: linux, dist: trusty, compiler: clang }
-    - os: osx
+  - os: linux
+    env: [ ENV_EVAL="CC=gcc-5 && CXX=g++-5" ]
+  - os: linux
+    env: [ ENV_EVAL="CC=clang-3.8 && CXX=clang++-3.8" ]
+  - os: osx
+    env: [ ENV_EVAL="brew update && brew install qt5 && CMAKE_PREFIX_PATH=/usr/local/opt/qt" ]
 
 install:
- - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; else sudo apt-get update -qq; fi
- - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install qt5; export PATH="$PATH:/usr/local/opt/qt/bin"; else sudo apt-get install -y qt5-default; fi
- - git clone https://github.com/matrix.org/matrix-doc
- - git clone https://github.com/KitsuneRal/api-generator
- - cd api-generator && mkdir build && cd build && cmake .. && cmake --target all
+- eval "${ENV_EVAL}"
+- git clone https://github.com/matrix-org/matrix-doc.git
+- git clone --recursive https://github.com/KitsuneRal/api-generator.git
+- pushd api-generator
+- cmake -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
+- cmake --build .
+- popd
 
 before_script:
- - mkdir build && cd build
- - cmake -DMATRIX_DOC_PATH="matrix-doc" -DAPIGEN_PATH="api-generator/build/api-generator" ..
+- mkdir build && cd build
+- cmake -DMATRIX_DOC_PATH="matrix-doc" -DAPIGEN_PATH="api-generator/api-generator" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} ..
 
-script: cmake --build . --target all
+script: cmake --build .
 
 notifications:
     webhooks:
