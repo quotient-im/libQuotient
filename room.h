@@ -142,7 +142,7 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
-            void toJson(QJsonObject &out) const;
+            QJsonObject toJson() const;
 
         public slots:
             void postMessage(const QString& plainText,

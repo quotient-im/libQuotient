@@ -119,7 +119,7 @@ class Room::Private
         void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
 
-        void toJson(QJsonObject &out);
+        QJsonObject toJson() const;
 
     private:
         QString calculateDisplayname() const;
@@ -877,7 +877,7 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
-void Room::Private::toJson(QJsonObject &out) {
+QJsonObject Room::Private::toJson() const {
     QJsonValue nowTimestamp { QDateTime::currentMSecsSinceEpoch() };
     QJsonArray stateEvents;
 
@@ -890,7 +890,7 @@ void Room::Private::toJson(QJsonObject &out) {
     nameEvent.insert("content", nameEventContent);
     stateEvents.append(nameEvent);
 
-    for (auto i : this->membersMap) {
+    for (const auto &i : this->membersMap) {
         QJsonObject content;
         content.insert("membership", QStringLiteral("join"));
         content.insert("displayname", i->displayname());
@@ -908,7 +908,7 @@ void Room::Private::toJson(QJsonObject &out) {
 
     {
         QJsonArray aliases;
-        for (auto i : this->aliases) {
+        for (const auto &i : this->aliases) {
             aliases.append(QJsonValue(i));
         }
 
@@ -935,11 +935,14 @@ void Room::Private::toJson(QJsonObject &out) {
 
     QJsonObject roomStateObj;
     roomStateObj.insert("events", stateEvents);
-    out.insert("state", roomStateObj);
+
+    QJsonObject result;
+    result.insert("state", roomStateObj);
+    return result;
 }
 
-void Room::toJson(QJsonObject &out) const {
-    d->toJson(out);
+QJsonObject Room::toJson() const {
+    return d->toJson();
 }
 
 MemberSorter Room::memberSorter() const

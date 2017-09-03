@@ -62,8 +62,7 @@ SyncDataList&& SyncData::takeRoomData()
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
-    d->parseJson(data);
-    return Success;
+    return d->parseJson(data);
 }
 
 BaseJob::Status SyncData::parseJson(const QJsonDocument &data) {
@@ -89,7 +88,7 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data) {
             roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
     }
     qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
-    return Success;
+    return BaseJob::Success;
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,

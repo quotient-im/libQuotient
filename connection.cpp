@@ -333,8 +333,7 @@ void Connection::saveState(const QUrl &toFile) {
     QJsonObject rooms;
 
     for (auto i : this->roomMap()) {
-        QJsonObject roomObj;
-        i->toJson(roomObj);
+        QJsonObject roomObj = i->toJson();
         rooms[i->id()] = roomObj;
     }
 
