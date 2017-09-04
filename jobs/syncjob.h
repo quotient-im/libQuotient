@@ -87,7 +87,7 @@ namespace QMatrixClient
                              const QString& filter = {},
                              int timeout = -1, const QString& presence = {});
 
-            SyncData &data() { return d; }
+            SyncData &&takeData() { return std::move(d); }
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

@@ -160,7 +160,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        onSyncSuccess(job->data());
+        onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -174,7 +174,7 @@ void Connection::sync(int timeout)
     });
 }
 
-void Connection::onSyncSuccess(SyncData &data) {
+void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
     for( auto&& roomData: data.takeRoomData() )
     {
@@ -333,8 +333,7 @@ void Connection::saveState(const QUrl &toFile) {
     QJsonObject rooms;
 
     for (auto i : this->roomMap()) {
-        QJsonObject roomObj = i->toJson();
-        rooms[i->id()] = roomObj;
+        rooms[i->id()] = i->toJson();
     }
 
     QJsonObject roomObj;
@@ -372,5 +371,5 @@ void Connection::loadState(const QUrl &fromFile) {
     QJsonDocument doc { QJsonDocument::fromJson(data) };
     SyncData sync;
     sync.parseJson(doc);
-    onSyncSuccess(sync);
+    onSyncSuccess(std::move(sync));
 }

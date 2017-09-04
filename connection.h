@@ -151,7 +151,7 @@ namespace QMatrixClient
             /**
              * Completes loading sync data.
              */
-            void onSyncSuccess(SyncData &data);
+            void onSyncSuccess(SyncData &&data);
 
         private:
             class Private;
