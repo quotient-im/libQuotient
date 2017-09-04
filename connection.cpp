@@ -160,7 +160,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        onSyncSuccess(*job->data());
+        onSyncSuccess(job->data());
         d->syncJob = nullptr;
         emit syncDone();
     });

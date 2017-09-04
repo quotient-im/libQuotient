@@ -28,7 +28,6 @@ SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
                  const QString& filter, int timeout, const QString& presence)
     : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
-    , d(new SyncData)
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
@@ -45,11 +44,6 @@ SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
     setMaxRetries(std::numeric_limits<int>::max());
 }
 
-SyncJob::~SyncJob()
-{
-    delete d;
-}
-
 QString SyncData::nextBatch() const
 {
     return nextBatch_;
@@ -62,7 +56,7 @@ SyncDataList&& SyncData::takeRoomData()
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
-    return d->parseJson(data);
+    return d.parseJson(data);
 }
 
 BaseJob::Status SyncData::parseJson(const QJsonDocument &data) {

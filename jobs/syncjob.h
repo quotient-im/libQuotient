@@ -86,14 +86,13 @@ namespace QMatrixClient
             explicit SyncJob(const ConnectionData* connection, const QString& since = {},
                              const QString& filter = {},
                              int timeout = -1, const QString& presence = {});
-            virtual ~SyncJob();
 
-            SyncData *data() const { return d; }
+            SyncData &data() { return d; }
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
 
         private:
-            SyncData* d;
+            SyncData d;
     };
 }  // namespace QMatrixClient
