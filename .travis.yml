@@ -21,7 +21,7 @@ matrix:
 
 install:
 - eval "${ENV_EVAL}"
-- git clone https://github.com/matrix-org/matrix-doc.git
+- git clone https://github.com/QMatrixClient/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/api-generator.git
 - pushd api-generator
 - cmake -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
