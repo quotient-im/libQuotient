@@ -938,6 +938,12 @@ QJsonObject Room::Private::toJson() const {
 
     QJsonObject result;
     result.insert("state", roomStateObj);
+
+    QJsonObject unreadNotificationsObj;
+    unreadNotificationsObj.insert("highlight_count", highlightCount);
+    unreadNotificationsObj.insert("notification_count", notificationCount);
+    result.insert("unread_notifications", unreadNotificationsObj);
+
     return result;
 }
 
