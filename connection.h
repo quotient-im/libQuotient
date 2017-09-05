@@ -105,6 +105,7 @@ namespace QMatrixClient
             void syncDone();
             void newRoom(Room* room);
             void joinedRoom(Room* room);
+            void leftRoom(Room* room);
 
             void loginError(QString error);
             void networkError(size_t nextAttempt, int inMilliseconds);

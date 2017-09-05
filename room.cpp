@@ -371,14 +371,18 @@ QList< User* > Room::users() const
     return d->membersMap.values();
 }
 
-QStringList Room::memberNames() const {
+QStringList Room::memberNames() const
+{
     QStringList res;
-
-    for (auto u : d->membersMap.values()) {
+    for (auto u : d->membersMap)
         res.append( this->roomMembername(u) );
-    }
 
     return res;
+}
+
+int Room::memberCount() const
+{
+    return d->membersMap.size();
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
