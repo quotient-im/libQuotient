@@ -32,10 +32,11 @@ types:
   - //: int
   number:
   - float: float
-  - double: double
+  - //: double
   boolean: bool
   string:
-  - /byte|binary/: { type: QByteArray, imports: <QtCore/QByteArray> }
+  - byte: &QByteArray { type: QByteArray, imports: <QtCore/QByteArray> }
+  - binary: *QByteArray
   - date:
       type: QDate
       avoidCopy?: true
@@ -48,11 +49,8 @@ types:
   file:
     type: QByteArray
     imports: <QtCore/QByteArray>
-    returnFile?: true
-    name: data
-  "[]": { type: "QVector<{{type}}>", imports: <QtCore/QVector> }
-  "{}":
-    type: "QHash<QString, {{type}}>"
-    imports: [ <QtCore/QHash>, <QtCore/QString> ]
+    "returnFile?": true
+  object: { type: QJsonObject, "avoidCopy?": true, imports: <QtCore/QJsonObject> }
+  array: { type: "QVector<{{1}}>", "avoidCopy?": true, imports: <QtCore/QVector> }
 
 operations:
