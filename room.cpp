@@ -119,6 +119,8 @@ class Room::Private
         void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
 
+        QJsonObject toJson() const;
+
     private:
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
@@ -885,6 +887,74 @@ void Room::Private::updateDisplayname()
     displayname = calculateDisplayname();
     if (old_name != displayname)
         emit q->displaynameChanged(q);
+}
+
+QJsonObject Room::Private::toJson() const {
+    QJsonValue nowTimestamp { QDateTime::currentMSecsSinceEpoch() };
+    QJsonArray stateEvents;
+
+    QJsonObject nameEvent;
+    nameEvent.insert("type", QStringLiteral("m.room.name"));
+
+    QJsonObject nameEventContent;
+    nameEventContent.insert("name", this->name);
+
+    nameEvent.insert("content", nameEventContent);
+    stateEvents.append(nameEvent);
+
+    for (const auto &i : this->membersMap) {
+        QJsonObject content;
+        content.insert("membership", QStringLiteral("join"));
+        content.insert("displayname", i->displayname());
+        // avatar URL is not available
+
+        QJsonObject memberEvent;
+        memberEvent.insert("type", QStringLiteral("m.room.member"));
+        memberEvent.insert("sender", i->id());
+        memberEvent.insert("state_key", i->id());
+        memberEvent.insert("content", content);
+        memberEvent.insert("membership", QStringLiteral("join"));
+        memberEvent.insert("origin_server_ts", nowTimestamp);
+        stateEvents.append(memberEvent);
+    }
+
+    {
+        QJsonArray aliases;
+        for (const auto &i : this->aliases) {
+            aliases.append(QJsonValue(i));
+        }
+
+        QJsonObject content;
+        content.insert("aliases", aliases);
+
+        QJsonObject aliasEvent;
+        aliasEvent.insert("type", QStringLiteral("m.room.aliases"));
+        aliasEvent.insert("origin_server_ts", nowTimestamp);
+        aliasEvent.insert("content", content);
+
+        stateEvents.append(aliasEvent);
+    }
+
+    {
+        QJsonObject content;
+        content.insert("alias", this->canonicalAlias);
+
+        QJsonObject canonicalAliasEvent;
+        canonicalAliasEvent.insert("type", QStringLiteral("m.room.canonical_alias"));
+        canonicalAliasEvent.insert("origin_server_ts", nowTimestamp);
+        stateEvents.append(canonicalAliasEvent);
+    }
+
+    QJsonObject roomStateObj;
+    roomStateObj.insert("events", stateEvents);
+
+    QJsonObject result;
+    result.insert("state", roomStateObj);
+    return result;
+}
+
+QJsonObject Room::toJson() const {
+    return d->toJson();
 }
 
 MemberSorter Room::memberSorter() const

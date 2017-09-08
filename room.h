@@ -145,6 +145,8 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
+            QJsonObject toJson() const;
+
         public slots:
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);

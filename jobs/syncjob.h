@@ -67,7 +67,18 @@ Q_DECLARE_TYPEINFO(QMatrixClient::SyncRoomData, Q_MOVABLE_TYPE);
 namespace QMatrixClient
 {
     // QVector cannot work with non-copiable objects, std::vector can.
-    using SyncData = std::vector<SyncRoomData>;
+    using SyncDataList = std::vector<SyncRoomData>;
+
+    class SyncData {
+    public:
+        BaseJob::Status parseJson(const QJsonDocument &data);
+        SyncDataList&& takeRoomData();
+        QString nextBatch() const;
+
+    private:
+        QString nextBatch_;
+        SyncDataList roomData;
+    };
 
     class SyncJob: public BaseJob
     {
@@ -75,16 +86,13 @@ namespace QMatrixClient
             explicit SyncJob(const ConnectionData* connection, const QString& since = {},
                              const QString& filter = {},
                              int timeout = -1, const QString& presence = {});
-            virtual ~SyncJob();
 
-            SyncData&& takeRoomData();
-            QString nextBatch() const;
+            SyncData &&takeData() { return std::move(d); }
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            Private* d;
+            SyncData d;
     };
 }  // namespace QMatrixClient

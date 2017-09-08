@@ -32,6 +32,9 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
 
 using namespace QMatrixClient;
 
@@ -157,12 +160,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        d->data->setLastEvent(job->nextBatch());
-        for( auto&& roomData: job->takeRoomData() )
-        {
-            if ( auto* r = provideRoom(roomData.roomId) )
-                r->updateData(std::move(roomData));
-        }
+        onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -174,6 +172,16 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString());
     });
+}
+
+void Connection::onSyncSuccess(SyncData &&data) {
+    d->data->setLastEvent(data.nextBatch());
+    for( auto&& roomData: data.takeRoomData() )
+    {
+        if ( auto* r = provideRoom(roomData.roomId) )
+            r->updateData(std::move(roomData));
+    }
+
 }
 
 void Connection::stopSync()
@@ -322,4 +330,49 @@ Room* Connection::createRoom(const QString& roomId)
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
+}
+
+void Connection::saveState(const QUrl &toFile) {
+    QJsonObject rooms;
+
+    for (auto i : this->roomMap()) {
+        rooms[i->id()] = i->toJson();
+    }
+
+    QJsonObject roomObj;
+    roomObj.insert("leave", QJsonObject());
+    roomObj.insert("join", rooms);
+    roomObj.insert("invite", QJsonObject());
+
+    QJsonObject rootObj;
+    rootObj.insert("next_batch", d->data->lastEvent());
+    rootObj.insert("presence", QJsonObject());
+    rootObj.insert("rooms", roomObj);
+
+    QJsonDocument doc { rootObj };
+    QByteArray data = doc.toJson();
+
+    QFileInfo stateFile { toFile.toLocalFile() };
+    QFile outfile { stateFile.absoluteFilePath() };
+    if (!stateFile.dir().exists()) stateFile.dir().mkpath(".");
+
+    if (outfile.open(QFile::WriteOnly)) {
+        qCDebug(MAIN) << "Writing state to file=" << outfile.fileName();
+        outfile.write(data.data(), data.size());
+
+    } else {
+        qCWarning(MAIN) << outfile.errorString();
+    }
+}
+
+void Connection::loadState(const QUrl &fromFile) {
+    QFile file { fromFile.toLocalFile() };
+    if (!file.exists()) return;
+    file.open(QFile::ReadOnly);
+    QByteArray data = file.readAll();
+
+    QJsonDocument doc { QJsonDocument::fromJson(data) };
+    SyncData sync;
+    sync.parseJson(doc);
+    onSyncSuccess(std::move(sync));
 }

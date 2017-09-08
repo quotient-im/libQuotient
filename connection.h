@@ -31,6 +31,7 @@ namespace QMatrixClient
     class ConnectionData;
 
     class SyncJob;
+    class SyncData;
     class RoomMessagesJob;
     class PostReceiptJob;
     class MediaThumbnailJob;
@@ -82,6 +83,13 @@ namespace QMatrixClient
             Q_INVOKABLE QString accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
+
+            /**
+             * Call this before first sync to load from previously saved file.
+             * Uses QUrl to be QML-friendly.
+            */
+            Q_INVOKABLE void loadState(const QUrl &fromFile);
+            Q_INVOKABLE void saveState(const QUrl &toFile);
 
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
@@ -139,6 +147,12 @@ namespace QMatrixClient
              * makes it possible for derived classes to have its own Room class
              */
             virtual Room* createRoom(const QString& roomId);
+
+
+            /**
+             * Completes loading sync data.
+             */
+            void onSyncSuccess(SyncData &&data);
 
         private:
             class Private;
