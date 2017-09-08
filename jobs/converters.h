@@ -34,7 +34,8 @@ namespace QMatrixClient
     inline QJsonValue toJson(const QVector<T>& vals)
     {
         QJsonArray ar;
-        std::copy(vals.begin(), vals.end(), std::back_inserter(ar));
+        for (const auto& v: vals)
+            ar.push_back(toJson(v));
         return ar;
     }
 
