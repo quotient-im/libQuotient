@@ -263,13 +263,13 @@ void BaseJob::finishJob()
 
 BaseJob::duration_t BaseJob::getCurrentTimeout() const
 {
-    static const std::array<int, 4> timeouts ({ 90, 90, 120, 120 });
+    static const std::array<int, 4> timeouts = { 90, 90, 120, 120 };
     return timeouts[std::min(d->retriesTaken, timeouts.size() - 1)] * 1000;
 }
 
 BaseJob::duration_t BaseJob::getNextRetryInterval() const
 {
-    static const std::array<int, 3> intervals ({ 5, 10, 30 });
+    static const std::array<int, 3> intervals = { 5, 10, 30 };
     return intervals[std::min(d->retriesTaken, intervals.size() - 1)] * 1000;
 }
 
