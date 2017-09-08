@@ -19,13 +19,14 @@ class {{#@cap}}{{operationId}}{{/@cap}}Job::Private
 };
     {{/returns?}}
 
+static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
+
     {{#operation}}
 {{#@cap}}{{operationId}}{{/@cap}}Job::{{#@cap}}{{operationId}}{{/@cap}}Job(const ConnectionData* connection{{#allParams}}, {{!}}
-            {{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}
-            {{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}
+            {{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}
         {{/allParams}})
     : BaseJob(connection, HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{#@cap}}{{operationId}}{{/@cap}}Job"
-        , {{#pathParts}}{{part}}{{#hasMore}} % {{/hasMore}}{{/pathParts}}
+        , basePath{{#pathParts}} % {{part}}{{/pathParts}}
         , Query { {{#queryParams}}
               { "{{baseName}}", toJson({{paramName}}).toString() }{{#hasMore}}, {{/hasMore}}
         {{/queryParams}} }
