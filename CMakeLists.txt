@@ -81,11 +81,13 @@ set(libqmatrixclient_SRCS
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
    jobs/logoutjob.cpp
-    )
+)
+
+aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
-add_library(qmatrixclient ${libqmatrixclient_SRCS})
+add_library(qmatrixclient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
 set_property(TARGET qmatrixclient PROPERTY VERSION "0.0.0")
 set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
 
