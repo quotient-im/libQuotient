@@ -51,7 +51,6 @@ namespace QMatrixClient
             Batch<RoomEvent> timeline;
             Batch<Event> ephemeral;
             Batch<Event> accountData;
-            Batch<Event> inviteState;
 
             bool timelineLimited;
             QString timelinePrevBatch;

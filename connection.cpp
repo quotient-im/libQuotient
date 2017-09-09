@@ -50,7 +50,11 @@ class Connection::Private
 
         Connection* q;
         ConnectionData* data;
-        QHash<QString, Room*> roomMap;
+        // A complex key below is a pair of room name and whether its
+        // state is Invited. The spec mandates to keep Invited room state
+        // separately so we should, e.g., keep objects for Invite and
+        // Leave state of the same room.
+        QHash<QPair<QString, bool>, Room*> roomMap;
         QHash<QString, User*> userMap;
         QString username;
         QString password;
@@ -160,7 +164,7 @@ void Connection::sync(int timeout)
         d->data->setLastEvent(job->nextBatch());
         for( auto&& roomData: job->takeRoomData() )
         {
-            if ( auto* r = provideRoom(roomData.roomId) )
+            if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
                 r->updateData(std::move(roomData));
         }
         d->syncJob = nullptr;
@@ -197,20 +201,12 @@ PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 {
-    auto job = callApi<JoinRoomJob>(roomAlias);
-    connect( job, &BaseJob::success, [=] () {
-        if ( Room* r = provideRoom(job->roomId()) )
-            emit joinedRoom(r);
-    });
-    return job;
+    return callApi<JoinRoomJob>(roomAlias);
 }
 
 void Connection::leaveRoom(Room* room)
 {
-    auto job = callApi<LeaveRoomJob>(room->id());
-    connect( job, &BaseJob::success, [=] () {
-        emit leftRoom(room);
-    });
+    callApi<LeaveRoomJob>(room->id());
 }
 
 RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
@@ -275,7 +271,7 @@ int Connection::millisToReconnect() const
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
 }
 
-QHash< QString, Room* > Connection::roomMap() const
+const QHash< QPair<QString, bool>, Room* >& Connection::roomMap() const
 {
     return d->roomMap;
 }
@@ -285,36 +281,55 @@ const ConnectionData* Connection::connectionData() const
     return d->data;
 }
 
-Room* Connection::provideRoom(const QString& id)
+Room* Connection::provideRoom(const QString& id, JoinState joinState)
 {
+    // TODO: This whole function is a strong case for a RoomManager class.
     if (id.isEmpty())
     {
         qCDebug(MAIN) << "Connection::provideRoom() with empty id, doing nothing";
         return nullptr;
     }
 
-    if (d->roomMap.contains(id))
-        return d->roomMap.value(id);
-
-    // Not yet in the map, create a new one.
-    auto* room = createRoom(this, id);
-    if (room)
+    const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
+    auto* room = d->roomMap.value(roomKey, nullptr);
+    if (!room)
     {
-        d->roomMap.insert( id, room );
+        room = createRoom(this, id, joinState);
+        if (!room)
+        {
+            qCritical() << "Failed to create a room!!!" << id;
+            return nullptr;
+        }
+        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
+
+        d->roomMap.insert(roomKey, room);
         emit newRoom(room);
-    } else {
-        qCritical() << "Failed to create a room!!!" << id;
+    }
+    else if (room->joinState() != joinState)
+    {
+        room->setJoinState(joinState);
+        if (joinState == JoinState::Leave)
+            emit leftRoom(room);
+        else if (joinState == JoinState::Join)
+            emit joinedRoom(room);
+    }
+
+    if (joinState != JoinState::Invite && d->roomMap.contains({id, true}))
+    {
+        // Preempt the Invite room after it's been acted upon (joined or left).
+        qCDebug(MAIN) << "Deleting invited state";
+        delete d->roomMap.take({id, true});
     }
 
     return room;
 }
 
-std::function<Room*(Connection*, const QString&)> Connection::createRoom =
-    [](Connection* c, const QString& id) { return new Room(c, id); };
+Connection::room_factory_t Connection::createRoom =
+    [](Connection* c, const QString& id, JoinState joinState)
+    { return new Room(c, id, joinState); };
 
-std::function<User*(Connection*, const QString&)> Connection::createUser =
+Connection::user_factory_t Connection::createUser =
     [](Connection* c, const QString& id) { return new User(id, c); };
-
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();

@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "joinstate.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
@@ -41,11 +43,16 @@ namespace QMatrixClient
     class Connection: public QObject {
             Q_OBJECT
         public:
+            using room_factory_t =
+                std::function<Room*(Connection*, const QString&, JoinState joinState)>;
+            using user_factory_t =
+                std::function<User*(Connection*, const QString&)>;
+
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
             virtual ~Connection();
 
-            QHash<QString, Room*> roomMap() const;
+            const QHash<QPair<QString, bool>, Room*>& roomMap() const;
 
             Q_INVOKABLE virtual void resolveServer(const QString& domain);
             Q_INVOKABLE virtual void connectToServer(const QString& user,
@@ -102,7 +109,8 @@ namespace QMatrixClient
             static void setRoomType()
             {
                 createRoom =
-                    [](Connection* c, const QString& id) { return new T(c, id); };
+                    [](Connection* c, const QString& id, JoinState joinState)
+                    { return new T(c, id, joinState); };
             }
 
             template <typename T = User>
@@ -144,13 +152,13 @@ namespace QMatrixClient
              * @return a pointer to a Room object with the specified id; nullptr
              * if roomId is empty if createRoom() failed to create a Room object.
              */
-            Room* provideRoom(const QString& roomId);
+            Room* provideRoom(const QString& roomId, JoinState joinState);
 
         private:
             class Private;
             Private* d;
 
-            static std::function<Room*(Connection*, const QString&)> createRoom;
-            static std::function<User*(Connection*, const QString&)> createUser;
+            static room_factory_t createRoom;
+            static user_factory_t createUser;
     };
 }  // namespace QMatrixClient
