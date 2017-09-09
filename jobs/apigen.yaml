@@ -2,19 +2,6 @@ preprocess:
   "%CLIENT_RELEASE_LABEL%": r0
   "%CLIENT_MAJOR_VERSION%": r0
 
-env:
-  preamble: preamble.mustache
-  copyrightName: Kitsune Ral
-  copyrightEmail: <kitsune-ral@users.sf.net>
-  imports: { set: }
-  returnFile?: { bool: false }
-
-templates:
-- "{{base}}.h.mustache"
-- "{{base}}.cpp.mustache"
-
-outFilesList: apifiles.txt
-
 # Structure:
 # swaggerType: <targetTypeSpec>
 # OR
@@ -53,4 +40,18 @@ types:
   object: { type: QJsonObject, "avoidCopy?": true, imports: <QtCore/QJsonObject> }
   array: { type: "QVector<{{1}}>", "avoidCopy?": true, imports: <QtCore/QVector> }
 
-operations:
+#operations:
+
+env:
+#  preamble: preamble.mustache
+  copyrightName: Kitsune Ral
+  copyrightEmail: <kitsune-ral@users.sf.net>
+#  imports: { set: }
+#  returnFile?: { bool: false }
+
+templates:
+- "{{base}}.h.mustache"
+- "{{base}}.cpp.mustache"
+
+#outFilesList: apifiles.txt
+
