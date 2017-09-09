@@ -77,7 +77,7 @@ namespace QMatrixClient
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
 
-            Room(Connection* connection, QString id);
+            Room(Connection* connection, QString id, JoinState initialJoinState);
             virtual ~Room();
 
             Connection* connection() const;
@@ -154,7 +154,10 @@ namespace QMatrixClient
 
             void getPreviousContent(int limit = 10);
 
+            void inviteToRoom(const QString& memberId) const;
             void leaveRoom() const;
+            void kickMember(const QString& memberId, const QString& reason) const;
+
             void userRenamed(User* user, QString oldName);
 
             /** Mark all messages in the room as read */
