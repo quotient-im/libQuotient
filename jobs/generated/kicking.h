@@ -1,0 +1,45 @@
+/******************************************************************************
+ * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
+ */
+
+
+#pragma once
+
+
+#include "../basejob.h"
+
+
+
+#include <QtCore/QString>
+
+
+
+
+namespace QMatrixClient
+{
+
+
+    // Operations
+    
+    /**
+     
+     */
+    class KickJob : public BaseJob
+    {
+        public:
+            KickJob(const ConnectionData* connection
+            
+                    , 
+                    QString roomId
+            
+                    , 
+                    QString user_id
+            
+                    , 
+                    QString reason
+            );
+    
+    };
+    
+
+} // namespace QMatrixClient
