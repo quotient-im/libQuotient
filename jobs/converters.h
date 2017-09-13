@@ -21,6 +21,7 @@
 #include <QtCore/QJsonValue>
 #include <QtCore/QJsonArray>
 #include <QtCore/QDate>
+#include <QtCore/QVariant>
 
 namespace QMatrixClient
 {
@@ -83,7 +84,6 @@ namespace QMatrixClient
     template <>
     inline QDate fromJson<QDate>(const QJsonValue& jv)
     {
-        return QDateTime::fromMSecsSinceEpoch(
-            fromJson<qint64>(jv), Qt::UTC).date();
+        return fromJson<QDateTime>(jv).date();
     }
 }  // namespace QMatrixClient
