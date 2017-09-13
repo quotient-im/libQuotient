@@ -23,12 +23,6 @@
 
 using namespace QMatrixClient;
 
-class MediaThumbnailJob::Private
-{
-    public:
-        QPixmap thumbnail;
-};
-
 MediaThumbnailJob::MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
     : BaseJob(data, HttpVerb::Get, "MediaThumbnailJob",
@@ -39,22 +33,21 @@ MediaThumbnailJob::MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize
                 , { "method",
                     thumbnailType == ThumbnailType::Scale ? "scale" : "crop" }
                 }))
-    , d(new Private)
 { }
-
-MediaThumbnailJob::~MediaThumbnailJob()
-{
-    delete d;
-}
 
 QPixmap MediaThumbnailJob::thumbnail()
 {
-    return d->thumbnail;
+    return pixmap;
+}
+
+QPixmap MediaThumbnailJob::scaledThumbnail(QSize toSize)
+{
+    return pixmap.scaled(toSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
 BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)
 {
-    if( !d->thumbnail.loadFromData(data) )
+    if( !pixmap.loadFromData(data) )
     {
         qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }

@@ -31,15 +31,14 @@ namespace QMatrixClient
         public:
             MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
                               ThumbnailType thumbnailType=ThumbnailType::Scale);
-            virtual ~MediaThumbnailJob();
 
             QPixmap thumbnail();
+            QPixmap scaledThumbnail(QSize toSize);
 
         protected:
             Status parseReply(QByteArray data) override;
 
         private:
-            class Private;
-            Private* d;
+            QPixmap pixmap;
     };
 }
