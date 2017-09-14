@@ -271,9 +271,18 @@ int Connection::millisToReconnect() const
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
 }
 
-const QHash< QPair<QString, bool>, Room* >& Connection::roomMap() const
+QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 {
-    return d->roomMap;
+    // Copy-on-write-and-remove-elements is faster than copying elements one by one.
+    QHash< QPair<QString, bool>, Room* > roomMap = d->roomMap;
+    for (auto it = roomMap.begin(); it != roomMap.end(); )
+    {
+        if (it.value()->joinState() == JoinState::Leave)
+            it = roomMap.erase(it);
+        else
+            ++it;
+    }
+    return roomMap;
 }
 
 const ConnectionData* Connection::connectionData() const
@@ -290,6 +299,23 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
+    // Room transitions from the Connection standpoint:
+    // - none -> (new) Invite
+    // - none -> (new) Join
+    // - none -> (new) Leave
+    // - Invite -> (new) Join replaces Invite (deleted)
+    // - Invite -> (new) Leave (archived) replaces Invite (deleted)
+    // - Join -> (moves to) Leave
+    // - Leave -> (new) Invite, Leave
+    // - Leave -> (moves to) Join
+    // Room transitions from the user's standpoint (what's seen in signals):
+    // - none -> Invite: newRoom(Invite)
+    // - none -> Join: newRoom(Join) or Room::joinStateChanged(Join); joinedRoom
+    // - Invite -> Invite replaced with Join:
+    //      newRoom(Join); joinedRoom; aboutToDeleteRoom(Invite)
+    // - Invite -> Invite replaced with Leave (none):
+    //      newRoom(Leave); leftRoom; aboutToDeleteRoom(Invite)
+    // - Join -> Leave (none): leftRoom
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (!room)
@@ -297,7 +323,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         room = createRoom(this, id, joinState);
         if (!room)
         {
-            qCritical() << "Failed to create a room!!!" << id;
+            qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
         }
         qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
@@ -305,20 +331,21 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         d->roomMap.insert(roomKey, room);
         emit newRoom(room);
     }
-    else if (room->joinState() != joinState)
-    {
-        room->setJoinState(joinState);
-        if (joinState == JoinState::Leave)
-            emit leftRoom(room);
-        else if (joinState == JoinState::Join)
-            emit joinedRoom(room);
-    }
 
-    if (joinState != JoinState::Invite && d->roomMap.contains({id, true}))
+    if (joinState != JoinState::Invite)
     {
-        // Preempt the Invite room after it's been acted upon (joined or left).
-        qCDebug(MAIN) << "Deleting invited state";
-        delete d->roomMap.take({id, true});
+        // Preempt the Invite room (if any) with a room in Join/Leave state.
+        auto prevInvite = d->roomMap.take({id, true});
+        if (joinState == JoinState::Join)
+            joinedRoom(room, prevInvite);
+        else if (joinState == JoinState::Leave)
+            leftRoom(room, prevInvite);
+        if (prevInvite)
+        {
+            qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
+            emit aboutToDeleteRoom(prevInvite);
+            delete prevInvite;
+        }
     }
 
     return room;

@@ -52,7 +52,7 @@ namespace QMatrixClient
             Connection();
             virtual ~Connection();
 
-            const QHash<QPair<QString, bool>, Room*>& roomMap() const;
+            QHash<QPair<QString, bool>, Room*> roomMap() const;
 
             Q_INVOKABLE virtual void resolveServer(const QString& domain);
             Q_INVOKABLE virtual void connectToServer(const QString& user,
@@ -128,8 +128,9 @@ namespace QMatrixClient
 
             void syncDone();
             void newRoom(Room* room);
-            void joinedRoom(Room* room);
-            void leftRoom(Room* room);
+            void joinedRoom(Room* room, Room* prevInvite);
+            void leftRoom(Room* room, Room* prevInvite);
+            void aboutToDeleteRoom(Room* room);
 
             void loginError(QString error);
             void networkError(size_t nextAttempt, int inMilliseconds);
