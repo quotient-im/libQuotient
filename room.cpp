@@ -26,6 +26,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QElapsedTimer>
+#include <jobs/setroomstatejob.h>
 
 #include "connection.h"
 #include "state.h"
@@ -595,6 +596,12 @@ void Room::postMessage(RoomMessageEvent* event)
     connection()->callApi<SendEventJob>(id(), event);
 }
 
+void Room::setTopic(const QString& newTopic)
+{
+    RoomTopicEvent evt(newTopic);
+    connection()->callApi<SetRoomStateJob>(id(), &evt);
+}
+
 void Room::getPreviousContent(int limit)
 {
     d->getPreviousContent(limit);
@@ -1032,4 +1039,3 @@ bool MemberSorter::operator()(User *u1, User *u2) const
         n2.remove(0, 1);
     return n1.localeAwareCompare(n2) < 0;
 }
-

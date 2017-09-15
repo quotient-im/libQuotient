@@ -16,35 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#include "setroomstatejob.h"
 
-#include "event.h"
+using namespace QMatrixClient;
 
-namespace QMatrixClient
+BaseJob::Status SetRoomStateJob::parseJson(const QJsonDocument& data)
 {
-    class RoomTopicEvent: public RoomEvent
-    {
-        public:
-            explicit RoomTopicEvent(const QString& topic)
-                : RoomEvent(Type::RoomTopic), _topic(topic)
-            { }
-            explicit RoomTopicEvent(const QJsonObject& obj)
-                : RoomEvent(Type::RoomTopic, obj)
-                , _topic(contentJson()["topic"].toString())
-            { }
+    _eventId = data.object().value("event_id").toString();
+    if (!_eventId.isEmpty())
+        return Success;
 
-            QString topic() const { return _topic; }
+    qCDebug(JOBS) << data;
+    return { UserDefinedError, "No event_id in the JSON response" };
+}
 
-            QJsonObject toJson() const
-            {
-                QJsonObject obj;
-                obj.insert("topic", _topic);
-                return obj;
-            }
-
-            static constexpr const char* TypeId = "m.room.topic";
-
-        private:
-            QString _topic;
-    };
-}  // namespace QMatrixClient
