@@ -299,26 +299,28 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
-    // Room transitions from the Connection standpoint:
-    // - none -> (new) Invite
-    // - none -> (new) Join
-    // - none -> (new) Leave
-    // - Invite -> (new) Join replaces Invite (deleted)
-    // - Invite -> (new) Leave (archived) replaces Invite (deleted)
-    // - Join -> (moves to) Leave
-    // - Leave -> (new) Invite, Leave
-    // - Leave -> (moves to) Join
-    // Room transitions from the user's standpoint (what's seen in signals):
-    // - none -> Invite: newRoom(Invite)
-    // - none -> Join: newRoom(Join) or Room::joinStateChanged(Join); joinedRoom
-    // - Invite -> Invite replaced with Join:
-    //      newRoom(Join); joinedRoom; aboutToDeleteRoom(Invite)
-    // - Invite -> Invite replaced with Leave (none):
-    //      newRoom(Leave); leftRoom; aboutToDeleteRoom(Invite)
-    // - Join -> Leave (none): leftRoom
+    // Room transitions:
+    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
+    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
+    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
+    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
+    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
+    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
+    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
+    // 6. Join -> Leave: change state
+    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
+    // 8. Leave -> (changes to) Join
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
-    if (!room)
+    if (room)
+    {
+        // Leave is a special case because in transition (5a) above
+        // joinState == room->joinState but we still have to preempt the Invite
+        // and emit a signal. For Invite and Join, there's no such problem.
+        if (room->joinState() == joinState && joinState != JoinState::Leave)
+            return room;
+    }
+    else
     {
         room = createRoom(this, id, joinState);
         if (!room)
@@ -326,20 +328,25 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
             qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
         }
-        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
-
         d->roomMap.insert(roomKey, room);
+        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
         emit newRoom(room);
     }
-
-    if (joinState != JoinState::Invite)
+    if (joinState == JoinState::Invite)
     {
+        // prev is either Leave or nullptr
+        auto* prev = d->roomMap.value({id, false}, nullptr);
+        emit invitedRoom(room, prev);
+    }
+    else
+    {
+        room->setJoinState(joinState);
         // Preempt the Invite room (if any) with a room in Join/Leave state.
-        auto prevInvite = d->roomMap.take({id, true});
+        auto* prevInvite = d->roomMap.take({id, true});
         if (joinState == JoinState::Join)
-            joinedRoom(room, prevInvite);
+            emit joinedRoom(room, prevInvite);
         else if (joinState == JoinState::Leave)
-            leftRoom(room, prevInvite);
+            emit leftRoom(room, prevInvite);
         if (prevInvite)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();

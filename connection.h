@@ -128,8 +128,9 @@ namespace QMatrixClient
 
             void syncDone();
             void newRoom(Room* room);
-            void joinedRoom(Room* room, Room* prevInvite);
-            void leftRoom(Room* room, Room* prevInvite);
+            void invitedRoom(Room* room, Room* prev);
+            void joinedRoom(Room* room, Room* prev);
+            void leftRoom(Room* room, Room* prev);
             void aboutToDeleteRoom(Room* room);
 
             void loginError(QString error);
