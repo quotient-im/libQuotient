@@ -170,12 +170,11 @@ void User::requestAvatar()
 
 void User::Private::requestAvatar()
 {
-    MediaThumbnailJob* job = connection->getThumbnail(avatarUrl, requestedSize);
+    auto* job = connection->callApi<MediaThumbnailJob>(avatarUrl, requestedSize);
     connect( job, &MediaThumbnailJob::success, [=]() {
         avatarOngoingRequest = false;
         avatarValid = true;
-        avatar = job->thumbnail().scaled(requestedSize,
-                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        avatar = job->scaledThumbnail(requestedSize);
         scaledAvatars.clear();
         emit q->avatarChanged(q);
     });
