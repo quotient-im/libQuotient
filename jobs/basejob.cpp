@@ -219,16 +219,17 @@ BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
 void BaseJob::stop()
 {
     d->timer.stop();
-    if (!d->reply)
+    if (d->reply)
     {
-        qCWarning(d->logCat) << this << "stopped with empty network reply";
-    }
-    else if (d->reply->isRunning())
-    {
-        qCWarning(d->logCat) << this << "stopped without ready network reply";
         d->reply->disconnect(this); // Ignore whatever comes from the reply
-        d->reply->abort();
+        if (d->reply->isRunning())
+        {
+            qCWarning(d->logCat) << this << "stopped without ready network reply";
+            d->reply->abort();
+        }
     }
+    else
+        qCWarning(d->logCat) << this << "stopped with empty network reply";
 }
 
 void BaseJob::finishJob()
@@ -320,6 +321,9 @@ void BaseJob::setStatus(int code, QString message)
 
 void BaseJob::abandon()
 {
+    this->disconnect();
+    if (d->reply)
+        d->reply->disconnect(this);
     deleteLater();
 }
 
