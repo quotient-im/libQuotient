@@ -406,10 +406,9 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
         emit q->memberRenamed(formerNamesakes[0]);
 }
 
-inline QByteArray makeErrorStr(const Event* e, const char* msg)
+inline QByteArray makeErrorStr(const Event* e, QByteArray msg)
 {
-    return QString("%1; event dump follows:\n%2")
-            .arg(msg, QString(e->originalJson())).toUtf8();
+    return msg.append("; event dump follows:\n").append(e->originalJson());
 }
 
 void Room::Private::insertEvent(RoomEvent* e, Timeline::iterator where,
