@@ -35,6 +35,9 @@
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QStringBuilder>
+#include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
 
@@ -60,6 +63,8 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
+
+        bool cacheState = true;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -329,47 +334,101 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
-void Connection::saveState(const QUrl &toFile) {
-    QJsonObject rooms;
+void Connection::saveState(const QUrl &toFile) const
+{
+    if (!d->cacheState)
+        return;
 
-    for (auto i : this->roomMap()) {
-        rooms[i->id()] = i->toJson();
+    QElapsedTimer et; et.start();
+
+    QFileInfo stateFile {
+        toFile.isEmpty() ? stateCachePath() : toFile.toLocalFile()
+    };
+    if (!stateFile.dir().exists())
+        stateFile.dir().mkpath(".");
+
+    QFile outfile { stateFile.absoluteFilePath() };
+    if (!outfile.open(QFile::WriteOnly))
+    {
+        qCWarning(MAIN) << "Error opening" << stateFile.absoluteFilePath()
+                        << ":" << outfile.errorString();
+        qCWarning(MAIN) << "Caching the rooms state disabled";
+        d->cacheState = false;
+        return;
     }
 
     QJsonObject roomObj;
-    roomObj.insert("leave", QJsonObject());
-    roomObj.insert("join", rooms);
-    roomObj.insert("invite", QJsonObject());
+    {
+        QJsonObject rooms;
+        QJsonObject inviteRooms;
+        for (auto i : roomMap()) // Pass on rooms in Leave state
+        {
+            if (i->joinState() == JoinState::Invite)
+                inviteRooms.insert(i->id(), i->toJson());
+            else
+                rooms.insert(i->id(), i->toJson());
+        }
+
+        if (!rooms.isEmpty())
+            roomObj.insert("join", rooms);
+        if (!inviteRooms.isEmpty())
+            roomObj.insert("invite", inviteRooms);
+    }
 
     QJsonObject rootObj;
     rootObj.insert("next_batch", d->data->lastEvent());
-    rootObj.insert("presence", QJsonObject());
     rootObj.insert("rooms", roomObj);
 
-    QJsonDocument doc { rootObj };
-    QByteArray data = doc.toJson();
+    QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
 
-    QFileInfo stateFile { toFile.toLocalFile() };
-    QFile outfile { stateFile.absoluteFilePath() };
-    if (!stateFile.dir().exists()) stateFile.dir().mkpath(".");
-
-    if (outfile.open(QFile::WriteOnly)) {
-        qCDebug(MAIN) << "Writing state to file=" << outfile.fileName();
-        outfile.write(data.data(), data.size());
-
-    } else {
-        qCWarning(MAIN) << outfile.errorString();
-    }
+    qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
+    outfile.write(data.data(), data.size());
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "saved in" << et.elapsed() << "ms";
 }
 
-void Connection::loadState(const QUrl &fromFile) {
-    QFile file { fromFile.toLocalFile() };
-    if (!file.exists()) return;
+void Connection::loadState(const QUrl &fromFile)
+{
+    if (!d->cacheState)
+        return;
+
+    QElapsedTimer et; et.start();
+    QFile file {
+        fromFile.isEmpty() ? stateCachePath() : fromFile.toLocalFile()
+    };
+    if (!file.exists())
+    {
+        qCDebug(MAIN) << "No state cache file found";
+        return;
+    }
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
-    QJsonDocument doc { QJsonDocument::fromJson(data) };
     SyncData sync;
-    sync.parseJson(doc);
+    sync.parseJson(QJsonDocument::fromJson(data));
     onSyncSuccess(std::move(sync));
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "loaded in" << et.elapsed() << "ms";
+}
+
+QString Connection::stateCachePath() const
+{
+    auto safeUserId = userId();
+    safeUserId.replace(':', '_');
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+            % '/' % safeUserId % "_state.json";
+}
+
+bool Connection::cacheState() const
+{
+    return d->cacheState;
+}
+
+void Connection::setCacheState(bool newValue)
+{
+    if (d->cacheState != newValue)
+    {
+        d->cacheState = newValue;
+        emit cacheStateChanged();
+    }
 }

@@ -39,6 +39,11 @@ namespace QMatrixClient
 
     class Connection: public QObject {
             Q_OBJECT
+
+            /** Whether or not the rooms state should be cached locally
+             * \sa loadState(), saveState()
+             */
+            Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
@@ -86,10 +91,35 @@ namespace QMatrixClient
 
             /**
              * Call this before first sync to load from previously saved file.
-             * Uses QUrl to be QML-friendly.
-            */
-            Q_INVOKABLE void loadState(const QUrl &fromFile);
-            Q_INVOKABLE void saveState(const QUrl &toFile);
+             *
+             * \param fromFile A local path to read the state from. Uses QUrl
+             * to be QML-friendly. Empty parameter means using a path
+             * defined by stateCachePath().
+             */
+            Q_INVOKABLE void loadState(const QUrl &fromFile = {});
+            /**
+             * This method saves the current state of rooms (but not messages
+             * in them) to a local cache file, so that it could be loaded by
+             * loadState() on a next run of the client.
+             *
+             * \param toFile A local path to save the state to. Uses QUrl to be
+             * QML-friendly. Empty parameter means using a path defined by
+             * stateCachePath().
+             */
+            Q_INVOKABLE void saveState(const QUrl &toFile = {}) const;
+
+            /**
+             * The default path to store the cached room state, defined as
+             * follows:
+             *     QStandardPaths::writeableLocation(QStandardPaths::CacheLocation) + _safeUserId + "_state.json"
+             * where `_safeUserId` is userId() with `:` (colon) replaced with
+             * `_` (underscore)
+             * /see loadState(), saveState()
+             */
+            Q_INVOKABLE QString stateCachePath() const;
+
+            bool cacheState() const;
+            void setCacheState(bool newValue);
 
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
@@ -119,6 +149,8 @@ namespace QMatrixClient
             void resolveError(QString error);
             void syncError(QString error);
             //void jobError(BaseJob* job);
+
+            void cacheStateChanged();
 
         protected:
             /**
