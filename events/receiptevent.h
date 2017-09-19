@@ -41,9 +41,11 @@ namespace QMatrixClient
 
             EventsWithReceipts eventsWithReceipts() const
             { return _eventsWithReceipts; }
+            bool unreadMessages() const { return _unreadMessages; }
 
         private:
             EventsWithReceipts _eventsWithReceipts;
+            bool _unreadMessages; // Spec extension for caching purposes
 
             static constexpr const char * jsonType = "m.receipt";
     };
