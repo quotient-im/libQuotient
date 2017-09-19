@@ -48,6 +48,11 @@ QByteArray Event::originalJson() const
     return QJsonDocument(_originalJson).toJson();
 }
 
+QJsonObject Event::originalJsonObject() const
+{
+    return _originalJson;
+}
+
 QDateTime Event::toTimestamp(const QJsonValue& v)
 {
     Q_ASSERT(v.isDouble() || v.isNull() || v.isUndefined());
@@ -97,21 +102,21 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     , _senderId(rep["sender"].toString())
     , _txnId(rep["unsigned"].toObject().value("transactionId").toString())
 {
-    if (_id.isEmpty())
-    {
-        qCWarning(EVENTS) << "Can't find event_id in a room event";
-        qCWarning(EVENTS) << formatJson << rep;
-    }
-    if (!rep.contains("origin_server_ts"))
-    {
-        qCWarning(EVENTS) << "Can't find server timestamp in a room event";
-        qCWarning(EVENTS) << formatJson << rep;
-    }
-    if (_senderId.isEmpty())
-    {
-        qCWarning(EVENTS) << "Can't find sender in a room event";
-        qCWarning(EVENTS) << formatJson << rep;
-    }
+//    if (_id.isEmpty())
+//    {
+//        qCWarning(EVENTS) << "Can't find event_id in a room event";
+//        qCWarning(EVENTS) << formatJson << rep;
+//    }
+//    if (!rep.contains("origin_server_ts"))
+//    {
+//        qCWarning(EVENTS) << "Can't find server timestamp in a room event";
+//        qCWarning(EVENTS) << formatJson << rep;
+//    }
+//    if (_senderId.isEmpty())
+//    {
+//        qCWarning(EVENTS) << "Can't find sender in a room event";
+//        qCWarning(EVENTS) << formatJson << rep;
+//    }
     if (!_txnId.isEmpty())
         qCDebug(EVENTS) << "Event transactionId:" << _txnId;
 }
