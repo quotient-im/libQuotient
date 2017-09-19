@@ -117,7 +117,8 @@ class Room::Private
         void dropDuplicateEvents(RoomEvents* events) const;
 
         void setLastReadEvent(User* u, const QString& eventId);
-        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
+        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
+                                          bool force = false);
 
         QJsonObject toJson() const;
 
@@ -208,13 +209,14 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 }
 
 Room::Private::rev_iter_pair_t
-Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
+Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
+                                 bool force)
 {
     Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
     Q_ASSERT(newMarker >= timeline.crbegin() && newMarker <= timeline.crend());
 
     const auto prevMarker = q->readMarker(u);
-    if (prevMarker <= newMarker) // Remember, we deal with reverse iterators
+    if (!force && prevMarker <= newMarker) // Remember, we deal with reverse iterators
         return { prevMarker, prevMarker };
 
     Q_ASSERT(newMarker < timeline.crend());
@@ -687,9 +689,22 @@ void Room::addHistoricalMessageEvents(RoomEvents events)
 void Room::doAddHistoricalMessageEvents(const RoomEvents& events)
 {
     Q_ASSERT(!events.empty());
+
+    const bool thereWasNoReadMarker = readMarker() == timelineEdge();
     // Historical messages arrive in newest-to-oldest order
     for (auto e: events)
         d->prependEvent(e);
+
+    // Catch a special case when the last read event id refers to an event
+    // that was outside the loaded timeline and has just arrived. Depending on
+    // other messages next to the last read one, we might need to promote
+    // the read marker and update unreadMessages flag.
+    const auto curReadMarker = readMarker();
+    if (thereWasNoReadMarker && curReadMarker != timelineEdge())
+    {
+        qCDebug(MAIN) << "Discovered last read event in a historical batch";
+        d->promoteReadMarker(localUser(), curReadMarker, true);
+    }
     qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
                   << "past events; the oldest event is now" << d->timeline.front();
 }
