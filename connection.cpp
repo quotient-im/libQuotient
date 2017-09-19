@@ -220,7 +220,10 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 
 void Connection::leaveRoom(Room* room)
 {
-    callApi<LeaveRoomJob>(room->id());
+    auto job = callApi<LeaveRoomJob>(room->id());
+    connect( job, &BaseJob::success, [=] () {
+        emit leftRoom(room);
+    });
 }
 
 RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
@@ -248,7 +251,7 @@ User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
-    User* user = createUser(userId);
+    auto* user = createUser(this, userId);
     d->userMap.insert(userId, user);
     return user;
 }
@@ -307,7 +310,7 @@ Room* Connection::provideRoom(const QString& id)
         return d->roomMap.value(id);
 
     // Not yet in the map, create a new one.
-    Room* room = createRoom(id);
+    auto* room = createRoom(this, id);
     if (room)
     {
         d->roomMap.insert( id, room );
@@ -319,15 +322,11 @@ Room* Connection::provideRoom(const QString& id)
     return room;
 }
 
-User* Connection::createUser(const QString& userId)
-{
-    return new User(userId, this);
-}
+std::function<Room*(Connection*, const QString&)> Connection::createRoom =
+    [](Connection* c, const QString& id) { return new Room(c, id); };
 
-Room* Connection::createRoom(const QString& roomId)
-{
-    return new Room(this, roomId);
-}
+std::function<User*(Connection*, const QString&)> Connection::createUser =
+    [](Connection* c, const QString& id) { return new User(id, c); };
 
 QByteArray Connection::generateTxnId()
 {

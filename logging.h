@@ -50,7 +50,7 @@ namespace QMatrixClient
 #else
             return debug_object.noquote();
 #endif
-    };
+    }
 
     /**
      * @brief A helper operator to facilitate usage of formatJson (and possibly

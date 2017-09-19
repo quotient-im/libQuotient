@@ -22,6 +22,8 @@
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
 
+#include <functional>
+
 namespace QMatrixClient
 {
     class Room;
@@ -69,13 +71,16 @@ namespace QMatrixClient
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             Q_INVOKABLE virtual PostReceiptJob* postReceipt(Room* room,
                                                             RoomEvent* event) const;
+            /** @deprecated Use callApi<JoinRoomJob>() instead */
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
                                                              const QString& from) const;
+            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
                                                     QSize requestedSize) const;
+            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const;
 
@@ -121,6 +126,12 @@ namespace QMatrixClient
             bool cacheState() const;
             void setCacheState(bool newValue);
 
+            /**
+             * This is a universal method to start a job of a type passed
+             * as a template parameter. Arguments to callApi() are arguments
+             * to the job constructor _except_ the first ConnectionData*
+             * argument - callApi() will pass it automatically.
+             */
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
             {
@@ -134,6 +145,20 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QByteArray generateTxnId();
 
+            template <typename T = Room>
+            static void setRoomType()
+            {
+                createRoom =
+                    [](Connection* c, const QString& id) { return new T(c, id); };
+            }
+
+            template <typename T = User>
+            static void setUserType()
+            {
+                createUser =
+                    [](Connection* c, const QString& id) { return new T(id, c); };
+            }
+
         signals:
             void resolved();
             void connected();
@@ -143,6 +168,7 @@ namespace QMatrixClient
             void syncDone();
             void newRoom(Room* room);
             void joinedRoom(Room* room);
+            void leftRoom(Room* room);
 
             void loginError(QString error);
             void networkError(size_t nextAttempt, int inMilliseconds);
@@ -169,16 +195,6 @@ namespace QMatrixClient
              */
             Room* provideRoom(const QString& roomId);
 
-            /**
-             * makes it possible for derived classes to have its own User class
-             */
-            virtual User* createUser(const QString& userId);
-
-            /**
-             * makes it possible for derived classes to have its own Room class
-             */
-            virtual Room* createRoom(const QString& roomId);
-
 
             /**
              * Completes loading sync data.
@@ -188,5 +204,8 @@ namespace QMatrixClient
         private:
             class Private;
             Private* d;
+
+            static std::function<Room*(Connection*, const QString&)> createRoom;
+            static std::function<User*(Connection*, const QString&)> createUser;
     };
 }  // namespace QMatrixClient

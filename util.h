@@ -232,7 +232,7 @@ namespace QMatrixClient
     Dispatch<ResultT, ArgTs...> dispatch(ArgTs&& ... args)
     {
         return Dispatch<ResultT, ArgTs...>(std::forward<ArgTs...>(args)...);
-    };
+    }
 
     // The below enables pretty-printing of enums in logs
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
