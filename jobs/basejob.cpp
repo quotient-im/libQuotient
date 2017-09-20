@@ -164,8 +164,14 @@ void BaseJob::start()
     d->sendRequest();
     connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
-    d->timer.start(getCurrentTimeout());
-    emit started();
+    if (d->reply->isRunning())
+    {
+        d->timer.start(getCurrentTimeout());
+        qCDebug(d->logCat) << this << "request has been sent";
+        emit started();
+    }
+    else
+        qCWarning(d->logCat) << this << "request could not start";
 }
 
 void BaseJob::gotReply()
