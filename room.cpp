@@ -532,27 +532,35 @@ void Room::updateData(SyncRoomData&& data)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    QElapsedTimer et; et.start();
-
-    processStateEvents(data.state);
-    qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
-                      << et.elapsed() << "ms," << data.state.size() << "events";
-
-    et.restart();
-    // State changes can arrive in a timeline event; so check those.
-    processStateEvents(data.timeline);
-    qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
-                      << et.elapsed() << "ms," << data.timeline.size() << "events";
-    et.restart();
-    addNewMessageEvents(data.timeline.release());
-    qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et.elapsed() << "ms";
-
-    et.restart();
-    for( auto ephemeralEvent: data.ephemeral )
+    QElapsedTimer et;
+    if (!data.state.empty())
     {
-        processEphemeralEvent(ephemeralEvent);
+        et.start();
+        processStateEvents(data.state);
+        qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
+            << et.elapsed() << "ms," << data.state.size() << "events";
     }
-    qCDebug(PROFILER) << "*** Room::processEphemeralEvents():" << et.elapsed() << "ms";
+    if (!data.timeline.empty())
+    {
+        et.restart();
+        // State changes can arrive in a timeline event; so check those.
+        processStateEvents(data.timeline);
+        qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
+            << et.elapsed() << "ms," << data.timeline.size() << "events";
+
+        et.restart();
+        addNewMessageEvents(data.timeline.release());
+        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
+                          << et.elapsed() << "ms";
+    }
+    if (!data.ephemeral.empty())
+    {
+        et.restart();
+        for( auto ephemeralEvent: data.ephemeral )
+            processEphemeralEvent(ephemeralEvent);
+        qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
+                          << et.elapsed() << "ms";
+    }
 
     if( data.highlightCount != d->highlightCount )
     {
