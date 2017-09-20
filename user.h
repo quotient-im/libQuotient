@@ -53,7 +53,8 @@ namespace QMatrixClient
             Q_INVOKABLE QString bridged() const;
 
             QPixmap avatar(int requestedWidth, int requestedHeight);
-            QPixmap croppedAvatar(int requestedWidth, int requestedHeight);
+
+            const QUrl& avatarUrl() const;
 
             void processEvent(Event* event);
 
