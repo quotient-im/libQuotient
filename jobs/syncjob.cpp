@@ -59,27 +59,30 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
     return d.parseJson(data);
 }
 
-BaseJob::Status SyncData::parseJson(const QJsonDocument &data) {
+BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
+{
     QElapsedTimer et; et.start();
+
     QJsonObject json = data.object();
     nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
     // TODO: account_data
     QJsonObject rooms = json.value("rooms").toObject();
 
-    const struct { QString jsonKey; JoinState enumVal; } roomStates[]
+    static const struct { QString jsonKey; JoinState enumVal; } roomStates[]
     {
         { "join", JoinState::Join },
         { "invite", JoinState::Invite },
         { "leave", JoinState::Leave }
     };
-    for (auto roomState: roomStates)
+    for (const auto& roomState: roomStates)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(static_cast<size_t>(rs.size()));
-        for( auto rkey: rs.keys() )
-            roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
+        for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
+            roomData.emplace_back(roomIt.key(), roomState.enumVal,
+                                  roomIt.value().toObject());
     }
     qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
     return BaseJob::Success;
