@@ -944,7 +944,7 @@ QJsonObject Room::Private::toJson() const
             QJsonObject content;
             content.insert("membership", QStringLiteral("join"));
             content.insert("displayname", i->displayname());
-            // avatar URL is not available
+            content.insert("avatar_url", i->avatarUrl().toString());
 
             QJsonObject memberEvent;
             memberEvent.insert("type", QStringLiteral("m.room.member"));
