@@ -46,7 +46,7 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
 {
     Q_ASSERT(obj["type"].toString() == jsonType);
 
-    const QJsonObject contents = obj["content"].toObject();
+    const QJsonObject contents = contentJson();
     _eventsWithReceipts.reserve(static_cast<size_t>(contents.size()));
     for( auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt )
     {
@@ -66,5 +66,6 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
         }
         _eventsWithReceipts.push_back({eventIt.key(), receipts});
     }
+    _unreadMessages = obj["x-qmatrixclient.unread_messages"].toBool();
 }
 

@@ -43,6 +43,7 @@ namespace QMatrixClient
 
             Type type() const { return _type; }
             QByteArray originalJson() const;
+            QJsonObject originalJsonObject() const;
 
             // According to the CS API spec, every event also has
             // a "content" object; but since its structure is different for

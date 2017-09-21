@@ -22,20 +22,12 @@
 
 using namespace QMatrixClient;
 
-class SyncJob::Private
-{
-    public:
-        QString nextBatch;
-        SyncData roomData;
-};
-
 static size_t jobId = 0;
 
 SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
                  const QString& filter, int timeout, const QString& presence)
     : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
               "_matrix/client/r0/sync")
-    , d(new Private)
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
@@ -52,47 +44,48 @@ SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
     setMaxRetries(std::numeric_limits<int>::max());
 }
 
-SyncJob::~SyncJob()
+QString SyncData::nextBatch() const
 {
-    delete d;
+    return nextBatch_;
 }
 
-QString SyncJob::nextBatch() const
+SyncDataList&& SyncData::takeRoomData()
 {
-    return d->nextBatch;
-}
-
-SyncData&& SyncJob::takeRoomData()
-{
-    return std::move(d->roomData);
+    return std::move(roomData);
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
+    return d.parseJson(data);
+}
+
+BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
+{
     QElapsedTimer et; et.start();
+
     QJsonObject json = data.object();
-    d->nextBatch = json.value("next_batch").toString();
+    nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
     // TODO: account_data
     QJsonObject rooms = json.value("rooms").toObject();
 
-    const struct { QString jsonKey; JoinState enumVal; } roomStates[]
+    static const struct { QString jsonKey; JoinState enumVal; } roomStates[]
     {
         { "join", JoinState::Join },
         { "invite", JoinState::Invite },
         { "leave", JoinState::Leave }
     };
-    for (auto roomState: roomStates)
+    for (const auto& roomState: roomStates)
     {
         const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
         // We have a Qt container on the right and an STL one on the left
-        d->roomData.reserve(static_cast<size_t>(rs.size()));
-        for( auto rkey: rs.keys() )
-            d->roomData.emplace_back(rkey, roomState.enumVal, rs[rkey].toObject());
+        roomData.reserve(static_cast<size_t>(rs.size()));
+        for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
+            roomData.emplace_back(roomIt.key(), roomState.enumVal,
+                                  roomIt.value().toObject());
     }
-    qCDebug(PROFILER) << "*** SyncJob::parseJson():" << et.elapsed() << "ms";
-
-    return Success;
+    qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
+    return BaseJob::Success;
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,

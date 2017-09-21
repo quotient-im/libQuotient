@@ -32,6 +32,12 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QStringBuilder>
+#include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
 
@@ -61,6 +67,8 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
+
+        bool cacheState = true;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -161,12 +169,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        d->data->setLastEvent(job->nextBatch());
-        for( auto&& roomData: job->takeRoomData() )
-        {
-            if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
-                r->updateData(std::move(roomData));
-        }
+        onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -178,6 +181,16 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString());
     });
+}
+
+void Connection::onSyncSuccess(SyncData &&data) {
+    d->data->setLastEvent(data.nextBatch());
+    for( auto&& roomData: data.takeRoomData() )
+    {
+        if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
+            r->updateData(std::move(roomData));
+    }
+
 }
 
 void Connection::stopSync()
@@ -367,4 +380,103 @@ Connection::user_factory_t Connection::createUser =
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
+}
+
+void Connection::saveState(const QUrl &toFile) const
+{
+    if (!d->cacheState)
+        return;
+
+    QElapsedTimer et; et.start();
+
+    QFileInfo stateFile {
+        toFile.isEmpty() ? stateCachePath() : toFile.toLocalFile()
+    };
+    if (!stateFile.dir().exists())
+        stateFile.dir().mkpath(".");
+
+    QFile outfile { stateFile.absoluteFilePath() };
+    if (!outfile.open(QFile::WriteOnly))
+    {
+        qCWarning(MAIN) << "Error opening" << stateFile.absoluteFilePath()
+                        << ":" << outfile.errorString();
+        qCWarning(MAIN) << "Caching the rooms state disabled";
+        d->cacheState = false;
+        return;
+    }
+
+    QJsonObject roomObj;
+    {
+        QJsonObject rooms;
+        QJsonObject inviteRooms;
+        for (auto i : roomMap()) // Pass on rooms in Leave state
+        {
+            if (i->joinState() == JoinState::Invite)
+                inviteRooms.insert(i->id(), i->toJson());
+            else
+                rooms.insert(i->id(), i->toJson());
+        }
+
+        if (!rooms.isEmpty())
+            roomObj.insert("join", rooms);
+        if (!inviteRooms.isEmpty())
+            roomObj.insert("invite", inviteRooms);
+    }
+
+    QJsonObject rootObj;
+    rootObj.insert("next_batch", d->data->lastEvent());
+    rootObj.insert("rooms", roomObj);
+
+    QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+
+    qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
+    outfile.write(data.data(), data.size());
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "saved in" << et.elapsed() << "ms";
+}
+
+void Connection::loadState(const QUrl &fromFile)
+{
+    if (!d->cacheState)
+        return;
+
+    QElapsedTimer et; et.start();
+    QFile file {
+        fromFile.isEmpty() ? stateCachePath() : fromFile.toLocalFile()
+    };
+    if (!file.exists())
+    {
+        qCDebug(MAIN) << "No state cache file found";
+        return;
+    }
+    file.open(QFile::ReadOnly);
+    QByteArray data = file.readAll();
+
+    SyncData sync;
+    sync.parseJson(QJsonDocument::fromJson(data));
+    onSyncSuccess(std::move(sync));
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "loaded in" << et.elapsed() << "ms";
+}
+
+QString Connection::stateCachePath() const
+{
+    auto safeUserId = userId();
+    safeUserId.replace(':', '_');
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+            % '/' % safeUserId % "_state.json";
+}
+
+bool Connection::cacheState() const
+{
+    return d->cacheState;
+}
+
+void Connection::setCacheState(bool newValue)
+{
+    if (d->cacheState != newValue)
+    {
+        d->cacheState = newValue;
+        emit cacheStateChanged();
+    }
 }

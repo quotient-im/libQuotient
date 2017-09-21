@@ -35,6 +35,7 @@ namespace QMatrixClient
     class ConnectionData;
 
     class SyncJob;
+    class SyncData;
     class RoomMessagesJob;
     class PostReceiptJob;
     class MediaThumbnailJob;
@@ -42,6 +43,11 @@ namespace QMatrixClient
 
     class Connection: public QObject {
             Q_OBJECT
+
+            /** Whether or not the rooms state should be cached locally
+             * \sa loadState(), saveState()
+             */
+            Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
             using room_factory_t =
                 std::function<Room*(Connection*, const QString&, JoinState joinState)>;
@@ -72,13 +78,16 @@ namespace QMatrixClient
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             Q_INVOKABLE virtual PostReceiptJob* postReceipt(Room* room,
                                                             RoomEvent* event) const;
+            /** @deprecated Use callApi<JoinRoomJob>() instead */
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
             Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
                                                              const QString& from) const;
+            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
                                                     QSize requestedSize) const;
+            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const;
 
@@ -92,6 +101,44 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
+            /**
+             * Call this before first sync to load from previously saved file.
+             *
+             * \param fromFile A local path to read the state from. Uses QUrl
+             * to be QML-friendly. Empty parameter means using a path
+             * defined by stateCachePath().
+             */
+            Q_INVOKABLE void loadState(const QUrl &fromFile = {});
+            /**
+             * This method saves the current state of rooms (but not messages
+             * in them) to a local cache file, so that it could be loaded by
+             * loadState() on a next run of the client.
+             *
+             * \param toFile A local path to save the state to. Uses QUrl to be
+             * QML-friendly. Empty parameter means using a path defined by
+             * stateCachePath().
+             */
+            Q_INVOKABLE void saveState(const QUrl &toFile = {}) const;
+
+            /**
+             * The default path to store the cached room state, defined as
+             * follows:
+             *     QStandardPaths::writeableLocation(QStandardPaths::CacheLocation) + _safeUserId + "_state.json"
+             * where `_safeUserId` is userId() with `:` (colon) replaced with
+             * `_` (underscore)
+             * /see loadState(), saveState()
+             */
+            Q_INVOKABLE QString stateCachePath() const;
+
+            bool cacheState() const;
+            void setCacheState(bool newValue);
+
+            /**
+             * This is a universal method to start a job of a type passed
+             * as a template parameter. Arguments to callApi() are arguments
+             * to the job constructor _except_ the first ConnectionData*
+             * argument - callApi() will pass it automatically.
+             */
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
             {
@@ -139,6 +186,8 @@ namespace QMatrixClient
             void syncError(QString error);
             //void jobError(BaseJob* job);
 
+            void cacheStateChanged();
+
         protected:
             /**
              * @brief Access the underlying ConnectionData class
@@ -155,6 +204,12 @@ namespace QMatrixClient
              * if roomId is empty if createRoom() failed to create a Room object.
              */
             Room* provideRoom(const QString& roomId, JoinState joinState);
+
+
+            /**
+             * Completes loading sync data.
+             */
+            void onSyncSuccess(SyncData &&data);
 
         private:
             class Private;
