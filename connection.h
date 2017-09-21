@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "joinstate.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
@@ -47,11 +49,16 @@ namespace QMatrixClient
              */
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
+            using room_factory_t =
+                std::function<Room*(Connection*, const QString&, JoinState joinState)>;
+            using user_factory_t =
+                std::function<User*(Connection*, const QString&)>;
+
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             Connection();
             virtual ~Connection();
 
-            QHash<QString, Room*> roomMap() const;
+            QHash<QPair<QString, bool>, Room*> roomMap() const;
 
             Q_INVOKABLE virtual void resolveServer(const QString& domain);
             Q_INVOKABLE virtual void connectToServer(const QString& user,
@@ -149,7 +156,8 @@ namespace QMatrixClient
             static void setRoomType()
             {
                 createRoom =
-                    [](Connection* c, const QString& id) { return new T(c, id); };
+                    [](Connection* c, const QString& id, JoinState joinState)
+                    { return new T(c, id, joinState); };
             }
 
             template <typename T = User>
@@ -167,8 +175,10 @@ namespace QMatrixClient
 
             void syncDone();
             void newRoom(Room* room);
-            void joinedRoom(Room* room);
-            void leftRoom(Room* room);
+            void invitedRoom(Room* room, Room* prev);
+            void joinedRoom(Room* room, Room* prev);
+            void leftRoom(Room* room, Room* prev);
+            void aboutToDeleteRoom(Room* room);
 
             void loginError(QString error);
             void networkError(size_t nextAttempt, int inMilliseconds);
@@ -193,7 +203,7 @@ namespace QMatrixClient
              * @return a pointer to a Room object with the specified id; nullptr
              * if roomId is empty if createRoom() failed to create a Room object.
              */
-            Room* provideRoom(const QString& roomId);
+            Room* provideRoom(const QString& roomId, JoinState joinState);
 
 
             /**
@@ -205,7 +215,7 @@ namespace QMatrixClient
             class Private;
             Private* d;
 
-            static std::function<Room*(Connection*, const QString&)> createRoom;
-            static std::function<User*(Connection*, const QString&)> createUser;
+            static room_factory_t createRoom;
+            static user_factory_t createUser;
     };
 }  // namespace QMatrixClient

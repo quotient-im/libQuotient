@@ -18,6 +18,9 @@
 
 #include "room.h"
 
+#include "jobs/generated/kicking.h"
+#include "jobs/generated/inviting.h"
+
 #include <array>
 
 #include <QtCore/QHash>
@@ -48,9 +51,9 @@ class Room::Private
         typedef QMultiHash<QString, User*> members_map_t;
         typedef std::pair<rev_iter_t, rev_iter_t> rev_iter_pair_t;
 
-        Private(Connection* c, QString id_)
+        Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , joinState(JoinState::Join), unreadMessages(false)
+            , joinState(initialJoinState), unreadMessages(false)
             , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
         { }
 
@@ -137,8 +140,8 @@ class Room::Private
         }
 };
 
-Room::Room(Connection* connection, QString id)
-    : QObject(connection), d(new Private(connection, id))
+Room::Room(Connection* connection, QString id, JoinState initialJoinState)
+    : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
@@ -197,6 +200,8 @@ void Room::setJoinState(JoinState state)
     if( state == oldState )
         return;
     d->joinState = state;
+    qCDebug(MAIN) << "Room" << id() << "changed state: "
+                  << int(oldState) << "->" << int(state);
     emit joinStateChanged(oldState, state);
 }
 
@@ -612,9 +617,19 @@ void Room::Private::getPreviousContent(int limit)
     }
 }
 
+void Room::inviteToRoom(const QString& memberId) const
+{
+    connection()->callApi<InviteUserJob>(id(), memberId);
+}
+
 void Room::leaveRoom() const
 {
     connection()->callApi<LeaveRoomJob>(id());
+}
+
+void Room::kickMember(const QString& memberId, const QString& reason) const
+{
+    connection()->callApi<KickJob>(id(), memberId, reason);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const

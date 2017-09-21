@@ -92,15 +92,14 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
-    , state("state")
+    , state(joinState == JoinState::Invite ? "invite_state" : "state")
     , timeline("timeline")
     , ephemeral("ephemeral")
     , accountData("account_data")
-    , inviteState("invite_state")
 {
     switch (joinState) {
         case JoinState::Invite:
-            inviteState.fromJson(room_);
+            state.fromJson(room_);
             break;
         case JoinState::Join:
             state.fromJson(room_);

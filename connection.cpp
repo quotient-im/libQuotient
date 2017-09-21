@@ -56,7 +56,11 @@ class Connection::Private
 
         Connection* q;
         ConnectionData* data;
-        QHash<QString, Room*> roomMap;
+        // A complex key below is a pair of room name and whether its
+        // state is Invited. The spec mandates to keep Invited room state
+        // separately so we should, e.g., keep objects for Invite and
+        // Leave state of the same room.
+        QHash<QPair<QString, bool>, Room*> roomMap;
         QHash<QString, User*> userMap;
         QString username;
         QString password;
@@ -183,7 +187,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
     for( auto&& roomData: data.takeRoomData() )
     {
-        if ( auto* r = provideRoom(roomData.roomId) )
+        if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
             r->updateData(std::move(roomData));
     }
 
@@ -210,20 +214,12 @@ PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 {
-    auto job = callApi<JoinRoomJob>(roomAlias);
-    connect( job, &BaseJob::success, [=] () {
-        if ( Room* r = provideRoom(job->roomId()) )
-            emit joinedRoom(r);
-    });
-    return job;
+    return callApi<JoinRoomJob>(roomAlias);
 }
 
 void Connection::leaveRoom(Room* room)
 {
-    auto job = callApi<LeaveRoomJob>(room->id());
-    connect( job, &BaseJob::success, [=] () {
-        emit leftRoom(room);
-    });
+    callApi<LeaveRoomJob>(room->id());
 }
 
 RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
@@ -288,9 +284,18 @@ int Connection::millisToReconnect() const
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
 }
 
-QHash< QString, Room* > Connection::roomMap() const
+QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 {
-    return d->roomMap;
+    // Copy-on-write-and-remove-elements is faster than copying elements one by one.
+    QHash< QPair<QString, bool>, Room* > roomMap = d->roomMap;
+    for (auto it = roomMap.begin(); it != roomMap.end(); )
+    {
+        if (it.value()->joinState() == JoinState::Leave)
+            it = roomMap.erase(it);
+        else
+            ++it;
+    }
+    return roomMap;
 }
 
 const ConnectionData* Connection::connectionData() const
@@ -298,36 +303,80 @@ const ConnectionData* Connection::connectionData() const
     return d->data;
 }
 
-Room* Connection::provideRoom(const QString& id)
+Room* Connection::provideRoom(const QString& id, JoinState joinState)
 {
+    // TODO: This whole function is a strong case for a RoomManager class.
     if (id.isEmpty())
     {
         qCDebug(MAIN) << "Connection::provideRoom() with empty id, doing nothing";
         return nullptr;
     }
 
-    if (d->roomMap.contains(id))
-        return d->roomMap.value(id);
-
-    // Not yet in the map, create a new one.
-    auto* room = createRoom(this, id);
+    // Room transitions:
+    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
+    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
+    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
+    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
+    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
+    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
+    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
+    // 6. Join -> Leave: change state
+    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
+    // 8. Leave -> (changes to) Join
+    const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
+    auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
     {
-        d->roomMap.insert( id, room );
+        // Leave is a special case because in transition (5a) above
+        // joinState == room->joinState but we still have to preempt the Invite
+        // and emit a signal. For Invite and Join, there's no such problem.
+        if (room->joinState() == joinState && joinState != JoinState::Leave)
+            return room;
+    }
+    else
+    {
+        room = createRoom(this, id, joinState);
+        if (!room)
+        {
+            qCCritical(MAIN) << "Failed to create a room" << id;
+            return nullptr;
+        }
+        d->roomMap.insert(roomKey, room);
+        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
         emit newRoom(room);
-    } else {
-        qCritical() << "Failed to create a room!!!" << id;
+    }
+    if (joinState == JoinState::Invite)
+    {
+        // prev is either Leave or nullptr
+        auto* prev = d->roomMap.value({id, false}, nullptr);
+        emit invitedRoom(room, prev);
+    }
+    else
+    {
+        room->setJoinState(joinState);
+        // Preempt the Invite room (if any) with a room in Join/Leave state.
+        auto* prevInvite = d->roomMap.take({id, true});
+        if (joinState == JoinState::Join)
+            emit joinedRoom(room, prevInvite);
+        else if (joinState == JoinState::Leave)
+            emit leftRoom(room, prevInvite);
+        if (prevInvite)
+        {
+            qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
+            emit aboutToDeleteRoom(prevInvite);
+            delete prevInvite;
+        }
     }
 
     return room;
 }
 
-std::function<Room*(Connection*, const QString&)> Connection::createRoom =
-    [](Connection* c, const QString& id) { return new Room(c, id); };
+Connection::room_factory_t Connection::createRoom =
+    [](Connection* c, const QString& id, JoinState joinState)
+    { return new Room(c, id, joinState); };
 
-std::function<User*(Connection*, const QString&)> Connection::createUser =
+Connection::user_factory_t Connection::createUser =
     [](Connection* c, const QString& id) { return new User(id, c); };
-
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
