@@ -159,8 +159,9 @@ void BaseJob::start()
 {
     emit aboutToStart();
     d->retryTimer.stop(); // In case we were counting down at the moment
-    qCDebug(d->logCat) << this << "sending request to"
-                       << d->apiEndpoint % '?' % d->requestQuery.toString();
+    qCDebug(d->logCat) << this << "sending request to" << d->apiEndpoint;
+    if (!d->requestQuery.isEmpty())
+        qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
     d->sendRequest();
     connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
