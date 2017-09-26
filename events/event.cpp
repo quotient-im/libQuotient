@@ -26,7 +26,7 @@
 #include "roomtopicevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
-#include "unknownevent.h"
+#include "encryptedevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -136,6 +136,7 @@ RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
             "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
             "m.room.member", make<RoomMemberEvent>,
             "m.room.topic", make<RoomTopicEvent>,
+            "m.room.encryption", make<EncryptionEvent>,
             /* Insert new ROOM event types BEFORE this line */
             nullptr
         );

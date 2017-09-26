@@ -34,7 +34,8 @@ namespace QMatrixClient
             enum class Type
             {
                 RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
-                RoomMember, RoomTopic, Typing, Receipt, Unknown
+                RoomMember, RoomTopic, RoomEncryption, RoomEncryptedMessage,
+                Typing, Receipt, Unknown
             };
 
             explicit Event(Type type) : _type(type) { }
@@ -94,6 +95,7 @@ namespace QMatrixClient
         return evs;
     }
 
+    /** This class corresponds to m.room.* events */
     class RoomEvent : public Event
     {
             Q_GADGET
