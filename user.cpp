@@ -28,7 +28,6 @@
 #include <QtCore/QDebug>
 #include <QtGui/QIcon>
 #include <QtCore/QRegularExpression>
-#include <algorithm>
 
 using namespace QMatrixClient;
 
@@ -52,7 +51,9 @@ class User::Private
         QSize requestedSize;
         bool avatarValid;
         bool avatarOngoingRequest;
-        QVector<QPixmap> scaledAvatars;
+        /// Map of requested size to the actual pixmap used for it
+        /// (it's a shame that QSize has no predefined qHash()).
+        QHash<QPair<int,int>, QPixmap> scaledAvatars;
         QString bridged;
 
         void requestAvatar();
@@ -92,24 +93,21 @@ QString User::bridged() const {
 
 QPixmap User::avatar(int width, int height)
 {
-    return croppedAvatar(width, height); // FIXME: Return an uncropped avatar;
-}
-
-QPixmap User::croppedAvatar(int width, int height)
-{
     QSize size(width, height);
 
-    if( !d->avatarValid
+    // FIXME: Alternating between longer-width and longer-height requests
+    // is a sure way to trick the below code into constantly getting another
+    // image from the server because the existing one is alleged unsatisfactory.
+    // This is plain abuse by the client, though; so not critical for now.
+    if( (!d->avatarValid && d->avatarUrl.isValid() && !d->avatarOngoingRequest)
         || width > d->requestedSize.width()
         || height > d->requestedSize.height() )
     {
-        if( !d->avatarOngoingRequest && d->avatarUrl.isValid() )
-        {
-            qCDebug(MAIN) << "Getting avatar for" << id();
-            d->requestedSize = size;
-            d->avatarOngoingRequest = true;
-            QTimer::singleShot(0, this, SLOT(requestAvatar()));
-        }
+        qCDebug(MAIN) << "Getting avatar for" << id()
+                      << "from" << d->avatarUrl.toString();
+        d->requestedSize = size;
+        d->avatarOngoingRequest = true;
+        QTimer::singleShot(0, this, SLOT(requestAvatar()));
     }
 
     if( d->avatar.isNull() )
@@ -120,19 +118,18 @@ QPixmap User::croppedAvatar(int width, int height)
         d->avatar = d->defaultIcon.pixmap(size);
     }
 
-    for (const QPixmap& p: d->scaledAvatars)
+    auto& pixmap = d->scaledAvatars[{width, height}]; // Create the entry if needed
+    if (pixmap.isNull())
     {
-        if (p.size() == size)
-            return p;
+        pixmap = d->avatar.scaled(width, height,
+                    Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
-    QPixmap newlyScaled = d->avatar.scaled(size,
-        Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
-    QPixmap scaledAndCroped = newlyScaled.copy(
-        std::max((newlyScaled.width() - width)/2, 0),
-        std::max((newlyScaled.height() - height)/2, 0),
-        width, height);
-    d->scaledAvatars.push_back(scaledAndCroped);
-    return scaledAndCroped;
+    return pixmap;
+}
+
+const QUrl& User::avatarUrl() const
+{
+    return d->avatarUrl;
 }
 
 void User::processEvent(Event* event)
@@ -170,12 +167,11 @@ void User::requestAvatar()
 
 void User::Private::requestAvatar()
 {
-    MediaThumbnailJob* job = connection->getThumbnail(avatarUrl, requestedSize);
+    auto* job = connection->callApi<MediaThumbnailJob>(avatarUrl, requestedSize);
     connect( job, &MediaThumbnailJob::success, [=]() {
         avatarOngoingRequest = false;
         avatarValid = true;
-        avatar = job->thumbnail().scaled(requestedSize,
-                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        avatar = job->scaledThumbnail(requestedSize);
         scaledAvatars.clear();
         emit q->avatarChanged(q);
     });

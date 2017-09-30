@@ -25,12 +25,24 @@ namespace QMatrixClient
     class RoomTopicEvent: public RoomEvent
     {
         public:
+            explicit RoomTopicEvent(const QString& topic)
+                : RoomEvent(Type::RoomTopic), _topic(topic)
+            { }
             explicit RoomTopicEvent(const QJsonObject& obj)
                 : RoomEvent(Type::RoomTopic, obj)
                 , _topic(contentJson()["topic"].toString())
             { }
 
             QString topic() const { return _topic; }
+
+            QJsonObject toJson() const
+            {
+                QJsonObject obj;
+                obj.insert("topic", _topic);
+                return obj;
+            }
+
+            static constexpr const char* TypeId = "m.room.topic";
 
         private:
             QString _topic;

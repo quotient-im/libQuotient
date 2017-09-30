@@ -26,6 +26,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QElapsedTimer>
+#include <jobs/setroomstatejob.h>
 
 #include "connection.h"
 #include "state.h"
@@ -120,7 +121,10 @@ class Room::Private
         void dropDuplicateEvents(RoomEvents* events) const;
 
         void setLastReadEvent(User* u, const QString& eventId);
-        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker);
+        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
+                                          bool force = false);
+
+        QJsonObject toJson() const;
 
     private:
         QString calculateDisplayname() const;
@@ -211,13 +215,14 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 }
 
 Room::Private::rev_iter_pair_t
-Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker)
+Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
+                                 bool force)
 {
     Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
     Q_ASSERT(newMarker >= timeline.crbegin() && newMarker <= timeline.crend());
 
     const auto prevMarker = q->readMarker(u);
-    if (prevMarker <= newMarker) // Remember, we deal with reverse iterators
+    if (!force && prevMarker <= newMarker) // Remember, we deal with reverse iterators
         return { prevMarker, prevMarker };
 
     Q_ASSERT(newMarker < timeline.crend());
@@ -411,10 +416,9 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
         emit q->memberRenamed(formerNamesakes[0]);
 }
 
-inline QByteArray makeErrorStr(const Event* e, const char* msg)
+inline QByteArray makeErrorStr(const Event* e, QByteArray msg)
 {
-    return QString("%1; event dump follows:\n%2")
-            .arg(msg, QString(e->originalJson())).toUtf8();
+    return msg.append("; event dump follows:\n").append(e->originalJson());
 }
 
 void Room::Private::insertEvent(RoomEvent* e, Timeline::iterator where,
@@ -534,27 +538,35 @@ void Room::updateData(SyncRoomData&& data)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    QElapsedTimer et; et.start();
-
-    processStateEvents(data.state);
-    qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
-                      << et.elapsed() << "ms," << data.state.size() << "events";
-
-    et.restart();
-    // State changes can arrive in a timeline event; so check those.
-    processStateEvents(data.timeline);
-    qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
-                      << et.elapsed() << "ms," << data.timeline.size() << "events";
-    et.restart();
-    addNewMessageEvents(data.timeline.release());
-    qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et.elapsed() << "ms";
-
-    et.restart();
-    for( auto ephemeralEvent: data.ephemeral )
+    QElapsedTimer et;
+    if (!data.state.empty())
     {
-        processEphemeralEvent(ephemeralEvent);
+        et.start();
+        processStateEvents(data.state);
+        qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
+            << et.elapsed() << "ms," << data.state.size() << "events";
     }
-    qCDebug(PROFILER) << "*** Room::processEphemeralEvents():" << et.elapsed() << "ms";
+    if (!data.timeline.empty())
+    {
+        et.restart();
+        // State changes can arrive in a timeline event; so check those.
+        processStateEvents(data.timeline);
+        qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
+            << et.elapsed() << "ms," << data.timeline.size() << "events";
+
+        et.restart();
+        addNewMessageEvents(data.timeline.release());
+        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
+                          << et.elapsed() << "ms";
+    }
+    if (!data.ephemeral.empty())
+    {
+        et.restart();
+        for( auto ephemeralEvent: data.ephemeral )
+            processEphemeralEvent(ephemeralEvent);
+        qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
+                          << et.elapsed() << "ms";
+    }
 
     if( data.highlightCount != d->highlightCount )
     {
@@ -582,6 +594,12 @@ void Room::postMessage(const QString& plainText, MessageEventType type)
 void Room::postMessage(RoomMessageEvent* event)
 {
     connection()->callApi<SendEventJob>(id(), event);
+}
+
+void Room::setTopic(const QString& newTopic)
+{
+    RoomTopicEvent evt(newTopic);
+    connection()->callApi<SetRoomStateJob>(id(), &evt);
 }
 
 void Room::getPreviousContent(int limit)
@@ -701,9 +719,22 @@ void Room::addHistoricalMessageEvents(RoomEvents events)
 void Room::doAddHistoricalMessageEvents(const RoomEvents& events)
 {
     Q_ASSERT(!events.empty());
+
+    const bool thereWasNoReadMarker = readMarker() == timelineEdge();
     // Historical messages arrive in newest-to-oldest order
     for (auto e: events)
         d->prependEvent(e);
+
+    // Catch a special case when the last read event id refers to an event
+    // that was outside the loaded timeline and has just arrived. Depending on
+    // other messages next to the last read one, we might need to promote
+    // the read marker and update unreadMessages flag.
+    const auto curReadMarker = readMarker();
+    if (thereWasNoReadMarker && curReadMarker != timelineEdge())
+    {
+        qCDebug(MAIN) << "Discovered last read event in a historical batch";
+        d->promoteReadMarker(localUser(), curReadMarker, true);
+    }
     qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
                   << "past events; the oldest event is now" << d->timeline.front();
 }
@@ -815,6 +846,8 @@ void Room::processEphemeralEvent(Event* event)
                                 d->setLastReadEvent(m, p.evtId);
                 }
             }
+            if (receiptEvent->unreadMessages())
+                d->unreadMessages = true;
             break;
         }
         default:
@@ -902,6 +935,95 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
+QJsonObject stateEventToJson(const QString& type, const QString& name,
+                             const QJsonValue& content)
+{
+    QJsonObject contentObj;
+    contentObj.insert(name, content);
+
+    QJsonObject eventObj;
+    eventObj.insert("type", type);
+    eventObj.insert("content", contentObj);
+
+    return eventObj;
+}
+
+QJsonObject Room::Private::toJson() const
+{
+    QJsonObject result;
+    {
+        QJsonArray stateEvents;
+
+        stateEvents.append(stateEventToJson("m.room.name", "name", name));
+        stateEvents.append(stateEventToJson("m.room.topic", "topic", topic));
+        stateEvents.append(stateEventToJson("m.room.aliases", "aliases",
+                                            QJsonArray::fromStringList(aliases)));
+        stateEvents.append(stateEventToJson("m.room.canonical_alias", "alias",
+                                            canonicalAlias));
+
+        for (const auto &i : membersMap)
+        {
+            QJsonObject content;
+            content.insert("membership", QStringLiteral("join"));
+            content.insert("displayname", i->displayname());
+            content.insert("avatar_url", i->avatarUrl().toString());
+
+            QJsonObject memberEvent;
+            memberEvent.insert("type", QStringLiteral("m.room.member"));
+            memberEvent.insert("state_key", i->id());
+            memberEvent.insert("content", content);
+            stateEvents.append(memberEvent);
+        }
+
+        QJsonObject roomStateObj;
+        roomStateObj.insert("events", stateEvents);
+
+        result.insert("state", roomStateObj);
+    }
+
+    if (!q->readMarkerEventId().isEmpty())
+    {
+        QJsonArray ephemeralEvents;
+        {
+            // Don't dump the timestamp because it's useless in the cache.
+            QJsonObject user;
+            user.insert(connection->userId(), {});
+
+            QJsonObject receipt;
+            receipt.insert("m.read", user);
+
+            QJsonObject lastReadEvent;
+            lastReadEvent.insert(q->readMarkerEventId(), receipt);
+
+            QJsonObject receiptsObj;
+            receiptsObj.insert("type", QStringLiteral("m.receipt"));
+            receiptsObj.insert("content", lastReadEvent);
+            // In extension of the spec we add a hint to the receipt event
+            // to allow setting the unread indicator without downloading
+            // and analysing the timeline.
+            receiptsObj.insert("x-qmatrixclient.unread_messages", unreadMessages);
+            ephemeralEvents.append(receiptsObj);
+        }
+
+        QJsonObject ephemeralObj;
+        ephemeralObj.insert("events", ephemeralEvents);
+
+        result.insert("ephemeral", ephemeralObj);
+    }
+
+    QJsonObject unreadNotificationsObj;
+    unreadNotificationsObj.insert("highlight_count", highlightCount);
+    unreadNotificationsObj.insert("notification_count", notificationCount);
+    result.insert("unread_notifications", unreadNotificationsObj);
+
+    return result;
+}
+
+QJsonObject Room::toJson() const
+{
+    return d->toJson();
+}
+
 MemberSorter Room::memberSorter() const
 {
     return MemberSorter(this);
@@ -917,4 +1039,3 @@ bool MemberSorter::operator()(User *u1, User *u2) const
         n2.remove(0, 1);
     return n1.localeAwareCompare(n2) < 0;
 }
-

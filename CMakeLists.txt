@@ -74,6 +74,7 @@ set(libqmatrixclient_SRCS
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
    jobs/sendeventjob.cpp
+   jobs/setroomstatejob.cpp
    jobs/postreceiptjob.cpp
    jobs/joinroomjob.cpp
    jobs/leaveroomjob.cpp
@@ -81,7 +82,9 @@ set(libqmatrixclient_SRCS
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
    jobs/logoutjob.cpp
-    )
+)
+
+aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
 
 if (MATRIX_DOC_PATH AND APIGEN_PATH)
     add_custom_target(update-api

@@ -24,6 +24,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QtCore/QTimer>
+#include <QtCore/QStringBuilder>
 
 #include <array>
 
@@ -76,7 +77,7 @@ class BaseJob::Private
 
 inline QDebug operator<<(QDebug dbg, const BaseJob* j)
 {
-    return dbg << "Job" << j->objectName();
+    return dbg << j->objectName();
 }
 
 BaseJob::BaseJob(const ConnectionData* connection, HttpVerb verb,
@@ -89,7 +90,6 @@ BaseJob::BaseJob(const ConnectionData* connection, HttpVerb verb,
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);
     connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::start);
-    qCDebug(d->logCat) << this << "created";
 }
 
 BaseJob::~BaseJob()
@@ -159,11 +159,20 @@ void BaseJob::start()
 {
     emit aboutToStart();
     d->retryTimer.stop(); // In case we were counting down at the moment
+    qCDebug(d->logCat) << this << "sending request to" << d->apiEndpoint;
+    if (!d->requestQuery.isEmpty())
+        qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
     d->sendRequest();
     connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
-    d->timer.start(getCurrentTimeout());
-    emit started();
+    if (d->reply->isRunning())
+    {
+        d->timer.start(getCurrentTimeout());
+        qCDebug(d->logCat) << this << "request has been sent";
+        emit started();
+    }
+    else
+        qCWarning(d->logCat) << this << "request could not start";
 }
 
 void BaseJob::gotReply()
@@ -219,16 +228,17 @@ BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
 void BaseJob::stop()
 {
     d->timer.stop();
-    if (!d->reply)
+    if (d->reply)
     {
-        qCWarning(d->logCat) << this << "stopped with empty network reply";
-    }
-    else if (d->reply->isRunning())
-    {
-        qCWarning(d->logCat) << this << "stopped without ready network reply";
         d->reply->disconnect(this); // Ignore whatever comes from the reply
-        d->reply->abort();
+        if (d->reply->isRunning())
+        {
+            qCWarning(d->logCat) << this << "stopped without ready network reply";
+            d->reply->abort();
+        }
     }
+    else
+        qCWarning(d->logCat) << this << "stopped with empty network reply";
 }
 
 void BaseJob::finishJob()
@@ -320,6 +330,9 @@ void BaseJob::setStatus(int code, QString message)
 
 void BaseJob::abandon()
 {
+    this->disconnect();
+    if (d->reply)
+        d->reply->disconnect(this);
     deleteLater();
 }
 

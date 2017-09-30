@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,29 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#include "setroomstatejob.h"
 
-#include "basejob.h"
+using namespace QMatrixClient;
 
-#include <QtGui/QPixmap>
-
-namespace QMatrixClient
+BaseJob::Status SetRoomStateJob::parseJson(const QJsonDocument& data)
 {
-    enum class ThumbnailType {Crop, Scale};
+    _eventId = data.object().value("event_id").toString();
+    if (!_eventId.isEmpty())
+        return Success;
 
-    class MediaThumbnailJob: public BaseJob
-    {
-        public:
-            MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
-                              ThumbnailType thumbnailType=ThumbnailType::Scale);
-
-            QPixmap thumbnail();
-            QPixmap scaledThumbnail(QSize toSize);
-
-        protected:
-            Status parseReply(QByteArray data) override;
-
-        private:
-            QPixmap pixmap;
-    };
+    qCDebug(JOBS) << data;
+    return { UserDefinedError, "No event_id in the JSON response" };
 }
+

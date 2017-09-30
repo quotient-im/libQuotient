@@ -32,6 +32,12 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtNetwork/QDnsLookup>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QStringBuilder>
+#include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;
 
@@ -61,6 +67,8 @@ class Connection::Private
         QString userId;
 
         SyncJob* syncJob;
+
+        bool cacheState = true;
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -161,12 +169,7 @@ void Connection::sync(int timeout)
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, [=] () {
-        d->data->setLastEvent(job->nextBatch());
-        for( auto&& roomData: job->takeRoomData() )
-        {
-            if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
-                r->updateData(std::move(roomData));
-        }
+        onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -178,6 +181,16 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString());
     });
+}
+
+void Connection::onSyncSuccess(SyncData &&data) {
+    d->data->setLastEvent(data.nextBatch());
+    for( auto&& roomData: data.takeRoomData() )
+    {
+        if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
+            r->updateData(std::move(roomData));
+    }
+
 }
 
 void Connection::stopSync()
@@ -271,9 +284,18 @@ int Connection::millisToReconnect() const
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
 }
 
-const QHash< QPair<QString, bool>, Room* >& Connection::roomMap() const
+QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 {
-    return d->roomMap;
+    // Copy-on-write-and-remove-elements is faster than copying elements one by one.
+    QHash< QPair<QString, bool>, Room* > roomMap = d->roomMap;
+    for (auto it = roomMap.begin(); it != roomMap.end(); )
+    {
+        if (it.value()->joinState() == JoinState::Leave)
+            it = roomMap.erase(it);
+        else
+            ++it;
+    }
+    return roomMap;
 }
 
 const ConnectionData* Connection::connectionData() const
@@ -290,35 +312,60 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
+    // Room transitions:
+    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
+    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
+    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
+    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
+    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
+    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
+    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
+    // 6. Join -> Leave: change state
+    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
+    // 8. Leave -> (changes to) Join
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
-    if (!room)
+    if (room)
+    {
+        // Leave is a special case because in transition (5a) above
+        // joinState == room->joinState but we still have to preempt the Invite
+        // and emit a signal. For Invite and Join, there's no such problem.
+        if (room->joinState() == joinState && joinState != JoinState::Leave)
+            return room;
+    }
+    else
     {
         room = createRoom(this, id, joinState);
         if (!room)
         {
-            qCritical() << "Failed to create a room!!!" << id;
+            qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
         }
-        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
-
         d->roomMap.insert(roomKey, room);
+        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
         emit newRoom(room);
     }
-    else if (room->joinState() != joinState)
+    if (joinState == JoinState::Invite)
+    {
+        // prev is either Leave or nullptr
+        auto* prev = d->roomMap.value({id, false}, nullptr);
+        emit invitedRoom(room, prev);
+    }
+    else
     {
         room->setJoinState(joinState);
-        if (joinState == JoinState::Leave)
-            emit leftRoom(room);
-        else if (joinState == JoinState::Join)
-            emit joinedRoom(room);
-    }
-
-    if (joinState != JoinState::Invite && d->roomMap.contains({id, true}))
-    {
-        // Preempt the Invite room after it's been acted upon (joined or left).
-        qCDebug(MAIN) << "Deleting invited state";
-        delete d->roomMap.take({id, true});
+        // Preempt the Invite room (if any) with a room in Join/Leave state.
+        auto* prevInvite = d->roomMap.take({id, true});
+        if (joinState == JoinState::Join)
+            emit joinedRoom(room, prevInvite);
+        else if (joinState == JoinState::Leave)
+            emit leftRoom(room, prevInvite);
+        if (prevInvite)
+        {
+            qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
+            emit aboutToDeleteRoom(prevInvite);
+            delete prevInvite;
+        }
     }
 
     return room;
@@ -333,4 +380,103 @@ Connection::user_factory_t Connection::createUser =
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
+}
+
+void Connection::saveState(const QUrl &toFile) const
+{
+    if (!d->cacheState)
+        return;
+
+    QElapsedTimer et; et.start();
+
+    QFileInfo stateFile {
+        toFile.isEmpty() ? stateCachePath() : toFile.toLocalFile()
+    };
+    if (!stateFile.dir().exists())
+        stateFile.dir().mkpath(".");
+
+    QFile outfile { stateFile.absoluteFilePath() };
+    if (!outfile.open(QFile::WriteOnly))
+    {
+        qCWarning(MAIN) << "Error opening" << stateFile.absoluteFilePath()
+                        << ":" << outfile.errorString();
+        qCWarning(MAIN) << "Caching the rooms state disabled";
+        d->cacheState = false;
+        return;
+    }
+
+    QJsonObject roomObj;
+    {
+        QJsonObject rooms;
+        QJsonObject inviteRooms;
+        for (auto i : roomMap()) // Pass on rooms in Leave state
+        {
+            if (i->joinState() == JoinState::Invite)
+                inviteRooms.insert(i->id(), i->toJson());
+            else
+                rooms.insert(i->id(), i->toJson());
+        }
+
+        if (!rooms.isEmpty())
+            roomObj.insert("join", rooms);
+        if (!inviteRooms.isEmpty())
+            roomObj.insert("invite", inviteRooms);
+    }
+
+    QJsonObject rootObj;
+    rootObj.insert("next_batch", d->data->lastEvent());
+    rootObj.insert("rooms", roomObj);
+
+    QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+
+    qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
+    outfile.write(data.data(), data.size());
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "saved in" << et.elapsed() << "ms";
+}
+
+void Connection::loadState(const QUrl &fromFile)
+{
+    if (!d->cacheState)
+        return;
+
+    QElapsedTimer et; et.start();
+    QFile file {
+        fromFile.isEmpty() ? stateCachePath() : fromFile.toLocalFile()
+    };
+    if (!file.exists())
+    {
+        qCDebug(MAIN) << "No state cache file found";
+        return;
+    }
+    file.open(QFile::ReadOnly);
+    QByteArray data = file.readAll();
+
+    SyncData sync;
+    sync.parseJson(QJsonDocument::fromJson(data));
+    onSyncSuccess(std::move(sync));
+    qCDebug(PROFILER) << "*** Cached state for" << userId()
+                      << "loaded in" << et.elapsed() << "ms";
+}
+
+QString Connection::stateCachePath() const
+{
+    auto safeUserId = userId();
+    safeUserId.replace(':', '_');
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+            % '/' % safeUserId % "_state.json";
+}
+
+bool Connection::cacheState() const
+{
+    return d->cacheState;
+}
+
+void Connection::setCacheState(bool newValue)
+{
+    if (d->cacheState != newValue)
+    {
+        d->cacheState = newValue;
+        emit cacheStateChanged();
+    }
 }
