@@ -50,6 +50,11 @@ if (CMAKE_BUILD_TYPE)
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
+if (MATRIX_DOC_PATH AND GTAD_PATH)
+    message( STATUS "Generating API stubs enabled" )
+    message( STATUS "  Using GTAD at ${GTAD_PATH}" )
+    message( STATUS "  Using CS API files at ${MATRIX_DOC_PATH}/api/client-server" )
+endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
 
@@ -84,16 +89,14 @@ set(libqmatrixclient_SRCS
    jobs/logoutjob.cpp
 )
 
-aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
-
-if (MATRIX_DOC_PATH AND APIGEN_PATH)
+if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
-        ${APIGEN_PATH} --config jobs/apigen.yaml --out jobs/generated
+        ${GTAD_PATH} --config jobs/gtad.yaml --out jobs/generated
             ${MATRIX_DOC_PATH}/api/client-server
             content-repo.yaml- cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        SOURCES jobs/apigen.yaml jobs/{{base}}.h.mustache jobs/{{base}}.cpp.mustache
+        SOURCES jobs/gtad.yaml jobs/{{base}}.h.mustache jobs/{{base}}.cpp.mustache
         VERBATIM
     )
 endif()

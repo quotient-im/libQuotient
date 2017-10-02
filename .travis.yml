@@ -22,15 +22,15 @@ matrix:
 install:
 - eval "${ENV_EVAL}"
 - git clone https://github.com/QMatrixClient/matrix-doc.git
-- git clone --recursive https://github.com/KitsuneRal/api-generator.git
-- pushd api-generator
+- git clone --recursive https://github.com/KitsuneRal/gtad.git
+- pushd gtad
 - cmake -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
 - cmake --build .
 - popd
 
 before_script:
 - mkdir build && cd build
-- cmake -DMATRIX_DOC_PATH="matrix-doc" -DAPIGEN_PATH="api-generator/api-generator" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} ..
+- cmake -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} ..
 - cmake --build . --target update-api
 
 script: cmake --build .
