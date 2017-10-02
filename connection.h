@@ -72,6 +72,9 @@ namespace QMatrixClient
 
             Q_INVOKABLE void sync(int timeout = -1);
             Q_INVOKABLE void stopSync();
+
+            // Old API that will be abolished any time soon. DO NOT USE.
+
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage(Room* room, const QString& type,
                                                  const QString& message) const;
@@ -82,6 +85,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
+            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
             Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
                                                              const QString& from) const;
             /** @deprecated Use callApi<MediaThumbnailJob>() instead */
@@ -142,8 +146,8 @@ namespace QMatrixClient
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs... jobArgs) const
             {
-                auto job = new JobT(connectionData(), jobArgs...);
-                job->start();
+                auto job = new JobT(jobArgs...);
+                job->start(connectionData());
                 return job;
             }
 

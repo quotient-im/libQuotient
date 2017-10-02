@@ -25,13 +25,12 @@ namespace QMatrixClient
     class PasswordLogin : public BaseJob
     {
         public:
-            PasswordLogin(const ConnectionData* connection,
-                          QString user, QString password);
+            PasswordLogin(QString user, QString password);
             virtual ~PasswordLogin();
 
-            QString token();
-            QString id();
-            QString server();
+            QString token() const;
+            QString id() const;
+            QString server() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

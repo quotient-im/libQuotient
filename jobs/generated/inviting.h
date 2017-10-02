@@ -27,15 +27,7 @@ namespace QMatrixClient
     class InviteUserJob : public BaseJob
     {
         public:
-            InviteUserJob(const ConnectionData* connection
-            
-                    , 
-                    QString roomId
-            
-                    , 
-                    QString user_id
-            );
-    
+            InviteUserJob(QString roomId, QString user_id);
     };
     
 

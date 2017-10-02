@@ -18,8 +18,6 @@
 
 #include "roommessagesjob.h"
 
-#include "util.h"
-
 using namespace QMatrixClient;
 
 class RoomMessagesJob::Private
@@ -29,9 +27,9 @@ class RoomMessagesJob::Private
         QString end;
 };
 
-RoomMessagesJob::RoomMessagesJob(const ConnectionData* data, const QString& roomId,
-                                 const QString& from, int limit, FetchDirection dir)
-    : BaseJob(data, HttpVerb::Get, "RoomMessagesJob",
+RoomMessagesJob::RoomMessagesJob(const QString& roomId, const QString& from,
+                                 int limit, FetchDirection dir)
+    : BaseJob(HttpVerb::Get, "RoomMessagesJob",
               QString("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
               Query(
                 { { "from", from }
@@ -53,7 +51,7 @@ RoomEvents RoomMessagesJob::releaseEvents()
     return d->events.release();
 }
 
-QString RoomMessagesJob::end()
+QString RoomMessagesJob::end() const
 {
     return d->end;
 }

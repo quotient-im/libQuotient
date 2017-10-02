@@ -68,21 +68,22 @@ namespace QMatrixClient
     // QVector cannot work with non-copiable objects, std::vector can.
     using SyncDataList = std::vector<SyncRoomData>;
 
-    class SyncData {
-    public:
-        BaseJob::Status parseJson(const QJsonDocument &data);
-        SyncDataList&& takeRoomData();
-        QString nextBatch() const;
+    class SyncData
+    {
+        public:
+            BaseJob::Status parseJson(const QJsonDocument &data);
+            SyncDataList&& takeRoomData();
+            QString nextBatch() const;
 
-    private:
-        QString nextBatch_;
-        SyncDataList roomData;
+        private:
+            QString nextBatch_;
+            SyncDataList roomData;
     };
 
     class SyncJob: public BaseJob
     {
         public:
-            explicit SyncJob(const ConnectionData* connection, const QString& since = {},
+            explicit SyncJob(const QString& since = {},
                              const QString& filter = {},
                              int timeout = -1, const QString& presence = {});
 

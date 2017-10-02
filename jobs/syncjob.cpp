@@ -24,10 +24,10 @@ using namespace QMatrixClient;
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
-                 const QString& filter, int timeout, const QString& presence)
-    : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
-              "_matrix/client/r0/sync")
+SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
+                 const QString& presence)
+    : BaseJob(HttpVerb::Get, QStringLiteral("SyncJob-%1").arg(++jobId),
+              QStringLiteral("_matrix/client/r0/sync"))
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;

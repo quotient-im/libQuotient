@@ -20,8 +20,8 @@
 
 using namespace QMatrixClient;
 
-PostReceiptJob::PostReceiptJob(const ConnectionData* connection,
-                               const QString& roomId, const QString& eventId)
-    : BaseJob(connection, HttpVerb::Post, "PostReceiptJob",
-              QString("/_matrix/client/r0/rooms/%1/receipt/m.read/%2").arg(roomId, eventId))
+PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& eventId)
+    : BaseJob(HttpVerb::Post, "PostReceiptJob",
+              QStringLiteral("/_matrix/client/r0/rooms/%1/receipt/m.read/%2")
+                  .arg(roomId, eventId))
 { }

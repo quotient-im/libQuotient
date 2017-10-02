@@ -29,11 +29,11 @@ namespace QMatrixClient
     class MediaThumbnailJob: public BaseJob
     {
         public:
-            MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
-                              ThumbnailType thumbnailType=ThumbnailType::Scale);
+            MediaThumbnailJob(QUrl url, QSize requestedSize,
+                              ThumbnailType thumbnailType = ThumbnailType::Scale);
 
-            QPixmap thumbnail();
-            QPixmap scaledThumbnail(QSize toSize);
+            QPixmap thumbnail() const;
+            QPixmap scaledThumbnail(QSize toSize) const;
 
         protected:
             Status parseReply(QByteArray data) override;
@@ -41,4 +41,4 @@ namespace QMatrixClient
         private:
             QPixmap pixmap;
     };
-}
+}  // namespace QMatrixClient
