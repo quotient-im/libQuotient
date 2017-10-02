@@ -29,13 +29,13 @@ namespace QMatrixClient
     class RoomMessagesJob: public BaseJob
     {
         public:
-            RoomMessagesJob(const ConnectionData* data, const QString& roomId,
-                            const QString& from, int limit = 10,
+            RoomMessagesJob(const QString& roomId, const QString& from,
+                            int limit = 10,
                             FetchDirection dir = FetchDirection::Backward);
             virtual ~RoomMessagesJob();
 
             RoomEvents releaseEvents();
-            QString end();
+            QString end() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

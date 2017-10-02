@@ -27,17 +27,7 @@ namespace QMatrixClient
     class KickJob : public BaseJob
     {
         public:
-            KickJob(const ConnectionData* connection
-            
-                    , 
-                    QString roomId
-            
-                    , 
-                    QString user_id
-            
-                    , 
-                    QString reason
-            );
+            KickJob(QString roomId, QString user_id, QString reason);
     
     };
     

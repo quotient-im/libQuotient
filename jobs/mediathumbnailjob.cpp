@@ -23,10 +23,11 @@
 
 using namespace QMatrixClient;
 
-MediaThumbnailJob::MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize requestedSize,
+MediaThumbnailJob::MediaThumbnailJob(QUrl url, QSize requestedSize,
                                      ThumbnailType thumbnailType)
-    : BaseJob(data, HttpVerb::Get, "MediaThumbnailJob",
-              QString("/_matrix/media/v1/thumbnail/%1%2").arg(url.host(), url.path()),
+    : BaseJob(HttpVerb::Get, "MediaThumbnailJob",
+              QStringLiteral("/_matrix/media/v1/thumbnail/%1%2")
+                  .arg(url.host(), url.path()),
               Query(
                 { { "width", QString::number(requestedSize.width()) }
                 , { "height", QString::number(requestedSize.height()) }
@@ -35,12 +36,12 @@ MediaThumbnailJob::MediaThumbnailJob(const ConnectionData* data, QUrl url, QSize
                 }))
 { }
 
-QPixmap MediaThumbnailJob::thumbnail()
+QPixmap MediaThumbnailJob::thumbnail() const
 {
     return pixmap;
 }
 
-QPixmap MediaThumbnailJob::scaledThumbnail(QSize toSize)
+QPixmap MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 {
     return pixmap.scaled(toSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }

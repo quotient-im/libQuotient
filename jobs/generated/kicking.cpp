@@ -16,23 +16,14 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-    
-KickJob::KickJob(const ConnectionData* connection, 
-            QString roomId
-        , 
-            QString user_id
-        , 
-            QString reason
-        )
-    : BaseJob(connection, HttpVerb::Post, "KickJob"
+KickJob::KickJob(QString roomId, QString user_id, QString reason)
+    : BaseJob(HttpVerb::Post, "KickJob"
         , basePath % "/rooms/" % roomId % "/kick"
         , Query {  }
         , Data { 
               { "user_id", toJson(user_id) }, 
-        
               { "reason", toJson(reason) }
          }
-        
     )
 { }
     

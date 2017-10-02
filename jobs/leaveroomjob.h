@@ -25,6 +25,6 @@ namespace QMatrixClient
     class LeaveRoomJob: public BaseJob
     {
         public:
-            LeaveRoomJob(const ConnectionData* data, const QString& roomId);
+            explicit LeaveRoomJob(const QString& roomId);
     };
 }  // namespace QMatrixClient

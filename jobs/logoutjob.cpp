@@ -20,7 +20,7 @@
 
 using namespace QMatrixClient;
 
-LogoutJob::LogoutJob(const ConnectionData* connection)
-    : BaseJob(connection, HttpVerb::Post, "LogoutJob", "/_matrix/client/r0/logout")
+LogoutJob::LogoutJob()
+    : BaseJob(HttpVerb::Post, "LogoutJob", "/_matrix/client/r0/logout")
 {
 }

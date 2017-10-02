@@ -20,7 +20,7 @@
 
 using namespace QMatrixClient;
 
-LeaveRoomJob::LeaveRoomJob(const ConnectionData* data, const QString& roomId)
-    : BaseJob(data, HttpVerb::Post, "LeaveRoomJob",
+LeaveRoomJob::LeaveRoomJob(const QString& roomId)
+    : BaseJob(HttpVerb::Post, "LeaveRoomJob",
               QStringLiteral("_matrix/client/r0/rooms/%1/leave").arg(roomId))
 { }
