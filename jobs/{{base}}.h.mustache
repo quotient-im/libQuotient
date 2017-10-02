@@ -2,22 +2,14 @@
 
 #pragma once
 
-{{#operations}}
-#include "../basejob.h"
-{{/operations}}
-
+{{#operations}}#include "../basejob.h"{{/operations}}
 {{#imports}}
 #include {{.}}
 {{/imports}}
-
-{{#models}}
-#include <QtCore/QJsonValue> {{! FIXME: This should probably go inside imports }}
-{{/models}}
-
+{{#models}}#include <QtCore/QJsonValue>{{/models}}{{! FIXME: This should probably go inside imports }}
 namespace QMatrixClient
 {
-{{#models}}
-    // Data structures
+{{#models}}    // Data structures
     {{#model}}
     struct {{classname}}
     {
@@ -25,41 +17,27 @@ namespace QMatrixClient
         {{datatype}} {{name}};
         {{/vars}}
         operator QJsonValue() const { return {}; }
-    };
-    {{/model}}
+    };{{/model}}
 {{/models}}
-{{#operations}}
-    // Operations
+{{#operations}}    // Operations
     {{#operation}}
     class {{#@cap}}{{operationId}}{{/@cap}}Job : public BaseJob
     {
         public:
-            {{#@cap}}{{operationId}}{{/@cap}}Job(const ConnectionData* connection
-            {{#allParams}}
-                    , {{!}}
-                    {{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}
-                    {{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}
-            {{/allParams}});
-    {{#returns?}}
+            {{#@cap}}{{operationId}}{{/@cap}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+        {{#returns?}}
             virtual {{className}}Job();
 
-        {{#returns}}
-            {{type}} {{name}}() const;
-        {{/returns}}
+            {{#returns}}{{type}} {{name}}() const;{{/returns}}
 
         protected:
-        {{#returnFile?}}
-            Status parseReply(QByteArray data) override;
-        {{/returnFile?}}
-        {{^returnFile}}
-            Status parseJson(const JsonDocument& data) override;
-        {{/returnFile}}
+            {{#returnFile?}}Status parseReply(QByteArray data) override;{{/returnFile?}}
+            {{^returnFile}}Status parseJson(const JsonDocument& data) override;{{/returnFile}}
 
         private:
             class Private;
             Private* d;
-    {{/returns?}}
-    };
-    {{/operation}}
+        {{/returns?}}
+    };{{/operation}}
 {{/operations}}
 } // namespace QMatrixClient

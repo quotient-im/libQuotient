@@ -5,31 +5,21 @@
 
 #pragma once
 
-
 #include "../basejob.h"
 
-
-
 #include <QtCore/QString>
-
-
 
 
 namespace QMatrixClient
 {
 
-
     // Operations
     
-    /**
-     
-     */
     class KickJob : public BaseJob
     {
         public:
             KickJob(QString roomId, QString user_id, QString reason);
-    
+        
     };
-    
 
 } // namespace QMatrixClient
