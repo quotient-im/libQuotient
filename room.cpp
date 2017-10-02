@@ -155,7 +155,7 @@ Room::~Room()
     delete d;
 }
 
-QString Room::id() const
+const QString& Room::id() const
 {
     return d->id;
 }
