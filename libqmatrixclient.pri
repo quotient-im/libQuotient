@@ -1,7 +1,7 @@
 QT += network
 CONFIG += c++11
 
-INCLUDEPATH += $$PWD $$PWD/kcoreaddons/src/lib/jobs
+INCLUDEPATH += $$PWD
 
 HEADERS += \
     $$PWD/connectiondata.h \
@@ -29,6 +29,9 @@ HEADERS += \
     $$PWD/jobs/syncjob.h \
     $$PWD/jobs/mediathumbnailjob.h \
     $$PWD/jobs/logoutjob.h \
+    $$PWD/jobs/setroomstatejob.h \
+    $$PWD/jobs/generated/inviting.h \
+    $$PWD/jobs/generated/kicking.h \
     $$PWD/logging.h \
     $$PWD/settings.h
 
@@ -57,5 +60,8 @@ SOURCES += \
     $$PWD/jobs/syncjob.cpp \
     $$PWD/jobs/mediathumbnailjob.cpp \
     $$PWD/jobs/logoutjob.cpp \
+    $$PWD/jobs/setroomstatejob.cpp \
+    $$PWD/jobs/generated/inviting.cpp \
+    $$PWD/jobs/generated/kicking.cpp \
     $$PWD/logging.cpp \
     $$PWD/settings.cpp

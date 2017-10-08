@@ -155,7 +155,7 @@ Room::~Room()
     delete d;
 }
 
-QString Room::id() const
+const QString& Room::id() const
 {
     return d->id;
 }
@@ -994,14 +994,12 @@ QJsonObject Room::Private::toJson() const
 
             QJsonObject lastReadEvent;
             lastReadEvent.insert(q->readMarkerEventId(), receipt);
+            lastReadEvent.insert("x-qmatrixclient.unread_messages",
+                                 unreadMessages);
 
             QJsonObject receiptsObj;
             receiptsObj.insert("type", QStringLiteral("m.receipt"));
             receiptsObj.insert("content", lastReadEvent);
-            // In extension of the spec we add a hint to the receipt event
-            // to allow setting the unread indicator without downloading
-            // and analysing the timeline.
-            receiptsObj.insert("x-qmatrixclient.unread_messages", unreadMessages);
             ephemeralEvents.append(receiptsObj);
         }
 

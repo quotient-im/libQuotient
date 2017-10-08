@@ -82,7 +82,7 @@ namespace QMatrixClient
 
             Connection* connection() const;
             User* localUser() const;
-            QString id() const;
+            const QString& id() const;
             QString name() const;
             QStringList aliases() const;
             QString canonicalAlias() const;
