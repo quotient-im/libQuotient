@@ -14,12 +14,12 @@ namespace QMatrixClient
 {
 
     // Operations
-    
+
     class KickJob : public BaseJob
     {
         public:
-            KickJob(QString roomId, QString user_id, QString reason);
-        
+            explicit KickJob(QString roomId, QString user_id, QString reason = {});
+
     };
 
 } // namespace QMatrixClient

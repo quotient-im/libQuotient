@@ -1,23 +1,40 @@
 {{#@filePartial}}preamble{{/@filePartial}}
 
 #include "{{filenameBase}}.h"
-{{#operations}}
-#include "../converters.h"
 
-#include <QtCore/QStringBuilder>
+{{^models}}#include "jobs/converters.h"{{/models}}
+{{#operations}}#include <QtCore/QStringBuilder>{{/operations}}
 
 using namespace QMatrixClient;
-{{#    returns?}}
-class {{#@cap}}{{operationId}}{{/@cap}}Job::Private
+{{#models}}{{#model}}
+{{classname}}::operator QJsonValue() const
+{
+    QJsonObject o;
+    {{#vars}}o.insert("{{name}}", toJson({{name}}));
+    {{/vars}}
+    return o;
+}
+
+{{classname}} FromJson<{{classname}}>::operator()(QJsonValue jv)
+{
+    QJsonObject o = jv.toObject();
+    {{classname}} result;
+    {{#vars}}result.{{name}} = fromJson<{{datatype}}>(o.value("{{name}}"));
+    {{/vars}}
+    return result;
+}
+{{/model}}{{/models}}{{#operations}}
+static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
+{{#    operation}}{{#responses}}{{#normalResponse?}}{{#properties?}}
+class {{camelCaseOperationId}}Job::Private
 {
     public:
-        {{#returns}}{{type}} {{name}};{{/returns}}
+        {{#properties}}{{dataType}} {{paramName}};
+        {{/properties}}
 };
-{{/    returns?}}
-static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
-{{#    operation}}
-{{#@cap}}{{operationId}}{{/@cap}}Job::{{#@cap}}{{operationId}}{{/@cap}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})
-    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{#@cap}}{{operationId}}{{/@cap}}Job",
+{{/    properties?}}{{/normalResponse?}}{{/responses}}
+{{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})
+    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
         basePath{{#pathParts}} % {{part}}{{/pathParts}},
         Query {{^queryParams}}{ }{{/queryParams}}{{#queryParams?}}{
             {{#queryParams}}{ "{{baseName}}", toJson({{paramName}}).toString() }{{#hasMore}},
@@ -27,37 +44,32 @@ static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
             {{#bodyParams}}{ "{{baseName}}", toJson({{paramName}}) }{{#hasMore}},
             {{/hasMore}}{{/bodyParams}}
         }{{/bodyParams?}}{{#skipAuth}}, false{{/skipAuth}}
-    ){{#returns?}}, d(new Private){{/returns?}}
+    ){{#responses}}{{#normalResponse?}}{{#properties?}}, d(new Private){{/properties?}}{{/normalResponse?}}{{/responses}}
 { }
-{{/    operation}}
-{{#    returns?}}
-{{className}}Job::~{{className}}Job()
+{{#    responses}}{{#normalResponse?}}{{#properties?}}
+{{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job()
 {
     delete d;
 }
-{{#        returns}}
-{{type}} {{className}}Job::{{name}}() const
+{{#        properties}}
+{{dataType}} {{camelCaseOperationId}}Job::{{paramName}}() const
 {
-    return d->{{name}};
+    return d->{{paramName}};
 }
-{{/        returns}}
-{{#        returnFile?}}
-BaseJob::Status {{className}}Job::parseReply(QByteArray data)
+{{/        properties}}{{#returnFile?}}
+BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QByteArray data)
 {
-    {{#returns}}{{name}}{{/returns}} = data;
+    {{#properties}}{{paramName}}{{/properties}} = data;
     return Success;
-}
-{{/        returnFile?}}{{^returnFile?}}
-BaseJob::Status {{className}}Job::parseJson(const QJsonDocument& data)
+}{{/       returnFile?}}{{^returnFile?}}
+BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-            {{#returns}}
-    {{#required?}}if (!json.contains("{{name}}")
-        return { JsonParseError, "{{name}} not found in the response" };{{/required?}}
-    d->{{name}} = fromJson<{{type}}>(json.value("{{name}}"));
-            {{/returns}}
+    {{#        properties}}{{#required?}}if (!json.contains("{{paramName}}"))
+        return { JsonParseError,
+            "The key '{{paramName}}' not found in the response" };{{/required?}}
+    d->{{paramName}} = fromJson<{{dataType}}>(json.value("{{paramName}}"));
+{{/            properties}}
     return Success;
-}
-{{/        returnFile?}}
-{{/    returns?}}
-{{/operations}}
+}{{/       returnFile?}}
+{{/properties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

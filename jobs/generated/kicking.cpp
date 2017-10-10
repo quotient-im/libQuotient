@@ -5,8 +5,7 @@
 
 #include "kicking.h"
 
-#include "../converters.h"
-
+#include "jobs/converters.h"
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
@@ -23,6 +22,4 @@ KickJob::KickJob(QString roomId, QString user_id, QString reason)
         }
     )
 { }
-
-
 

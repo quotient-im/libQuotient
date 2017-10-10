@@ -5,8 +5,7 @@
 
 #include "inviting.h"
 
-#include "../converters.h"
-
+#include "jobs/converters.h"
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
@@ -22,6 +21,4 @@ InviteUserJob::InviteUserJob(QString roomId, QString user_id)
         }
     )
 { }
-
-
 
