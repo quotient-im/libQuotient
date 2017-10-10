@@ -1,6 +1,8 @@
 preprocess:
   "%CLIENT_RELEASE_LABEL%": r0
   "%CLIENT_MAJOR_VERSION%": r0
+  "unsigned:": "unsigned_:"
+  "default:": "default_:"
 
 # Structure:
 # swaggerType: <targetTypeSpec>
