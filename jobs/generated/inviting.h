@@ -5,30 +5,21 @@
 
 #pragma once
 
-
 #include "../basejob.h"
 
-
-
 #include <QtCore/QString>
-
-
 
 
 namespace QMatrixClient
 {
 
-
     // Operations
-    
-    /**
-     
-     */
+
     class InviteUserJob : public BaseJob
     {
         public:
-            InviteUserJob(QString roomId, QString user_id);
+            explicit InviteUserJob(QString roomId, QString user_id);
+
     };
-    
 
 } // namespace QMatrixClient
