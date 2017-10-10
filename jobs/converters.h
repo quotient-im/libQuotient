@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include <QtCore/QJsonValue>
-#include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray> // Includes <QtCore/QJsonValue>
 #include <QtCore/QDate>
-#include <QtCore/QVariant>
 
 namespace QMatrixClient
 {
@@ -46,44 +45,77 @@ namespace QMatrixClient
     }
 
     template <typename T>
+    struct FromJson
+    {
+        T operator()(QJsonValue jv) const { return static_cast<T>(jv); }
+    };
+
+    template <typename T>
     inline T fromJson(const QJsonValue& jv)
     {
-        return QVariant(jv).value<T>();
+        return FromJson<T>()(jv);
     }
 
-    template <>
-    inline int fromJson<int>(const QJsonValue& jv)
+    template <> struct FromJson<bool>
     {
-        return jv.toInt();
-    }
+        bool operator()(QJsonValue jv) const { return jv.toBool(); }
+    };
 
-    template <>
-    inline qint64 fromJson<qint64>(const QJsonValue& jv)
+    template <> struct FromJson<int>
     {
-        return static_cast<qint64>(jv.toDouble());
-    }
+        int operator()(QJsonValue jv) const { return jv.toInt(); }
+    };
 
-    template <>
-    inline double fromJson<double>(const QJsonValue& jv)
+    template <> struct FromJson<double>
     {
-        return jv.toDouble();
-    }
+        double operator()(QJsonValue jv) const { return jv.toDouble(); }
+    };
 
-    template <>
-    inline QString fromJson<QString>(const QJsonValue& jv)
+    template <> struct FromJson<qint64>
     {
-        return jv.toString();
-    }
+        qint64 operator()(QJsonValue jv) const { return qint64(jv.toDouble()); }
+    };
 
-    template <>
-    inline QDateTime fromJson<QDateTime>(const QJsonValue& jv)
+    template <> struct FromJson<QString>
     {
-        return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
-    }
+        QString operator()(QJsonValue jv) const { return jv.toString(); }
+    };
 
-    template <>
-    inline QDate fromJson<QDate>(const QJsonValue& jv)
+    template <> struct FromJson<QDateTime>
     {
-        return fromJson<QDateTime>(jv).date();
-    }
+        QDateTime operator()(QJsonValue jv) const
+        {
+            return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
+        }
+    };
+
+    template <> struct FromJson<QDate>
+    {
+        QDate operator()(QJsonValue jv) const
+        {
+            return fromJson<QDateTime>(jv).date();
+        }
+    };
+
+    template <> struct FromJson<QJsonObject>
+    {
+        QJsonObject operator()(QJsonValue jv) const { return jv.toObject(); }
+    };
+
+    template <> struct FromJson<QJsonArray>
+    {
+        QJsonArray operator()(QJsonValue jv) const { return jv.toArray(); }
+    };
+
+    template <typename T> struct FromJson<QVector<T>>
+    {
+        QVector<T> operator()(QJsonValue jv) const
+        {
+            const auto jsonArray = jv.toArray();
+            QVector<T> vect; vect.resize(jsonArray.size());
+            std::transform(jsonArray.begin(), jsonArray.end(),
+                           vect.begin(), FromJson<T>());
+            return vect;
+        }
+    };
 }  // namespace QMatrixClient
