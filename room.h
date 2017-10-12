@@ -159,7 +159,10 @@ namespace QMatrixClient
 
             void inviteToRoom(const QString& memberId) const;
             void leaveRoom() const;
-            void kickMember(const QString& memberId, const QString& reason) const;
+            void kickMember(const QString& memberId,
+                            const QString& reason = {}) const;
+            void ban(const QString& userId, const QString& reason = {}) const;
+            void unban(const QString& userId) const;
 
             void userRenamed(User* user, QString oldName);
 

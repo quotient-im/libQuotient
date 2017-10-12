@@ -20,17 +20,8 @@
 
 #include "jobs/generated/kicking.h"
 #include "jobs/generated/inviting.h"
-
-#include <array>
-
-#include <QtCore/QHash>
-#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
-#include <QtCore/QElapsedTimer>
-#include <jobs/setroomstatejob.h>
-
-#include "connection.h"
-#include "state.h"
-#include "user.h"
+#include "jobs/generated/banning.h"
+#include "jobs/setroomstatejob.h"
 #include "events/roomnameevent.h"
 #include "events/roomaliasesevent.h"
 #include "events/roomcanonicalaliasevent.h"
@@ -42,6 +33,14 @@
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/leaveroomjob.h"
+#include "connection.h"
+#include "user.h"
+
+#include <QtCore/QHash>
+#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
+#include <QtCore/QElapsedTimer>
+
+#include <array>
 
 using namespace QMatrixClient;
 
@@ -637,6 +636,16 @@ void Room::leaveRoom() const
 void Room::kickMember(const QString& memberId, const QString& reason) const
 {
     connection()->callApi<KickJob>(id(), memberId, reason);
+}
+
+void Room::ban(const QString& userId, const QString& reason) const
+{
+    connection()->callApi<BanJob>(id(), userId, reason);
+}
+
+void Room::unban(const QString& userId) const
+{
+    connection()->callApi<UnbanJob>(id(), userId);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const
