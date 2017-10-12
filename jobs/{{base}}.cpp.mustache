@@ -52,7 +52,7 @@ class {{camelCaseOperationId}}Job::Private
     delete d;
 }
 {{#        properties}}
-{{dataType}} {{camelCaseOperationId}}Job::{{paramName}}() const
+const {{dataType}}& {{camelCaseOperationId}}Job::{{paramName}}() const
 {
     return d->{{paramName}};
 }

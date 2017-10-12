@@ -32,9 +32,9 @@ namespace QMatrixClient
         public:
             explicit {{camelCaseOperationId}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{^required?}} = {{defaultValue}}{{^defaultValue}}{}{{/defaultValue}}{{/required?}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
 {{#        responses}}{{#normalResponse?}}{{#properties?}}
-            virtual ~{{camelCaseOperationId}}Job();
+            ~{{camelCaseOperationId}}Job() override;
 
-            {{#properties}}{{dataType}} {{paramName}}() const;
+            {{#properties}}const {{dataType}}& {{paramName}}() const;
             {{/properties}}
         protected:
             {{^returnFile}}Status parseJson(const QJsonDocument& data) override;{{/returnFile}}
