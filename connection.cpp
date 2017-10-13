@@ -26,7 +26,6 @@
 #include "jobs/sendeventjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
-#include "jobs/leaveroomjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"

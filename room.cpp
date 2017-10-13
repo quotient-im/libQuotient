@@ -445,7 +445,8 @@ void Room::Private::addMember(User *u)
     if (!hasMember(u))
     {
         insertMemberIntoMap(u);
-        connect(u, &User::nameChanged, q, &Room::userRenamed);
+        connect(u, &User::nameChanged, q,
+                [=] (User* u, const QString& newName) { renameMember(u, newName); });
         emit q->userAdded(u);
     }
 }
@@ -488,11 +489,6 @@ void Room::Private::removeMember(User* u)
         removeMemberFromMap(u->name(), u);
         emit q->userRemoved(u);
     }
-}
-
-void Room::userRenamed(User* user, QString oldName)
-{
-    d->renameMember(user, std::move(oldName));
 }
 
 QString Room::roomMembername(User *u) const
@@ -581,16 +577,15 @@ void Room::updateData(SyncRoomData&& data)
 
 void Room::postMessage(const QString& type, const QString& plainText)
 {
-    connection()->callApi<SendEventJob>(id(), type, plainText);
+    postMessage(RoomMessageEvent { plainText, type });
 }
 
 void Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    RoomMessageEvent rme(plainText, type);
-    postMessage(&rme);
+    postMessage(RoomMessageEvent { plainText, type });
 }
 
-void Room::postMessage(RoomMessageEvent* event)
+void Room::postMessage(const RoomMessageEvent& event)
 {
     connection()->callApi<SendEventJob>(id(), event);
 }
@@ -598,7 +593,7 @@ void Room::postMessage(RoomMessageEvent* event)
 void Room::setTopic(const QString& newTopic)
 {
     RoomTopicEvent evt(newTopic);
-    connection()->callApi<SetRoomStateJob>(id(), &evt);
+    connection()->callApi<SetRoomStateJob>(id(), evt);
 }
 
 void Room::getPreviousContent(int limit)
@@ -623,27 +618,27 @@ void Room::Private::getPreviousContent(int limit)
     }
 }
 
-void Room::inviteToRoom(const QString& memberId) const
+void Room::inviteToRoom(const QString& memberId)
 {
     connection()->callApi<InviteUserJob>(id(), memberId);
 }
 
-void Room::leaveRoom() const
+void Room::leaveRoom()
 {
     connection()->callApi<LeaveRoomJob>(id());
 }
 
-void Room::kickMember(const QString& memberId, const QString& reason) const
+void Room::kickMember(const QString& memberId, const QString& reason)
 {
     connection()->callApi<KickJob>(id(), memberId, reason);
 }
 
-void Room::ban(const QString& userId, const QString& reason) const
+void Room::ban(const QString& userId, const QString& reason)
 {
     connection()->callApi<BanJob>(id(), userId, reason);
 }
 
-void Room::unban(const QString& userId) const
+void Room::unban(const QString& userId)
 {
     connection()->callApi<UnbanJob>(id(), userId);
 }

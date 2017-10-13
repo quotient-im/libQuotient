@@ -150,21 +150,18 @@ namespace QMatrixClient
         public slots:
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);
-            void postMessage(RoomMessageEvent* event);
+            void postMessage(const RoomMessageEvent& event);
             /** @deprecated */
             void postMessage(const QString& type, const QString& plainText);
             void setTopic(const QString& newTopic);
 
             void getPreviousContent(int limit = 10);
 
-            void inviteToRoom(const QString& memberId) const;
-            void leaveRoom() const;
-            void kickMember(const QString& memberId,
-                            const QString& reason = {}) const;
-            void ban(const QString& userId, const QString& reason = {}) const;
-            void unban(const QString& userId) const;
-
-            void userRenamed(User* user, QString oldName);
+            void inviteToRoom(const QString& memberId);
+            void leaveRoom();
+            void kickMember(const QString& memberId, const QString& reason = {});
+            void ban(const QString& userId, const QString& reason = {});
+            void unban(const QString& userId);
 
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();

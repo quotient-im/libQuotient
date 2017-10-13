@@ -22,6 +22,9 @@
 
 using namespace QMatrixClient;
 
+static const auto membershipStrings =
+    { "invite", "join", "knock", "leave", "ban" };
+
 RoomMemberEvent::RoomMemberEvent(const QJsonObject& obj)
     : RoomEvent(Type::RoomMember, obj), _userId(obj["state_key"].toString())
 {
@@ -29,11 +32,10 @@ RoomMemberEvent::RoomMemberEvent(const QJsonObject& obj)
     _displayName = contentObj["displayname"].toString();
     _avatarUrl = contentObj["avatar_url"].toString();
     QString membershipString = contentObj["membership"].toString();
-    const auto supportedStrings = { "invite", "join", "knock", "leave", "ban" };
-    for (auto it = supportedStrings.begin(); it != supportedStrings.end(); ++it)
+    for (auto it = membershipStrings.begin(); it != membershipStrings.end(); ++it)
         if (membershipString == *it)
         {
-            _membership = MembershipType(it - supportedStrings.begin());
+            _membership = MembershipType(it - membershipStrings.begin());
             return;
         }
     qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
