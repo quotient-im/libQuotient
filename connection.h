@@ -144,9 +144,9 @@ namespace QMatrixClient
              * argument - callApi() will pass it automatically.
              */
             template <typename JobT, typename... JobArgTs>
-            JobT* callApi(JobArgTs... jobArgs) const
+            JobT* callApi(JobArgTs&&... jobArgs) const
             {
-                auto job = new JobT(jobArgs...);
+                auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
                 job->start(connectionData());
                 return job;
             }
