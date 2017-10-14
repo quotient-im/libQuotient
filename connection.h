@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "jobs/generated/leaving.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -94,6 +95,19 @@ namespace QMatrixClient
             /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const;
+            /** Sends /forget to the server and also deletes room locally.
+             * This method is in Connection, not in Room, since it's a
+             * room lifecycle operation, and Connection is an acting room manager.
+             * It ensures that the local user is not a member of a room (running /leave,
+             * if necessary) then issues a /forget request and if that one doesn't fail
+             * deletion of the local Room object is ensured.
+             * \param id - the room id to forget
+             * \return - the ongoing /forget request to the server; note that the
+             * success() signal of this request is connected to deleteLater()
+             * of a respective room so by the moment this finishes, there might be no
+             * Room object anymore.
+             */
+            ForgetRoomJob* forgetRoom(const QString& id) const;
 
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);

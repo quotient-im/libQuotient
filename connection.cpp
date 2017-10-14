@@ -237,6 +237,43 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
     return getThumbnail(url, QSize(requestedWidth, requestedHeight));
 }
 
+ForgetRoomJob* Connection::forgetRoom(const QString& id) const
+{
+    // To forget is hard :) First we should ensure the local user is not
+    // in the room (by leaving it, if necessary); once it's done, the /forget
+    // endpoint can be called; and once this is through, the local Room object
+    // (if any existed) is deleted. At the same time, we still have to
+    // (basically immediately) return a pointer to ForgetRoomJob. Therefore
+    // a ForgetRoomJob is created in advance and can be returned in a probably
+    // not-yet-started state (it will start once /leave completes).
+    auto forgetJob = new ForgetRoomJob(id);
+    auto joinedRoom = d->roomMap.value({id, false});
+    if (joinedRoom && joinedRoom->joinState() == JoinState::Join)
+    {
+        auto leaveJob = joinedRoom->leaveRoom();
+        connect(leaveJob, &BaseJob::success,
+                this, [=] { forgetJob->start(connectionData()); });
+        connect(leaveJob, &BaseJob::failure,
+                this, [=] { forgetJob->abandon(); });
+    }
+    else
+        forgetJob->start(connectionData());
+    connect(forgetJob, &BaseJob::success, this, [=]
+    {
+        // If the room happens to be in the map (possible in both forms),
+        // delete the found object(s).
+        for (auto f: {false, true})
+            if (auto r = d->roomMap.take({ id, f }))
+            {
+                qCDebug(MAIN) << "Room" << id
+                              << "in join state" << toCString(r->joinState())
+                              << "will be deleted";
+                r->deleteLater();
+            }
+    });
+    return forgetJob;
+}
+
 QUrl Connection::homeserver() const
 {
     return d->data->baseUrl();
