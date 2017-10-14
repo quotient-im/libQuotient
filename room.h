@@ -36,6 +36,7 @@ namespace QMatrixClient
     class Connection;
     class User;
     class MemberSorter;
+    class LeaveRoomJob;
 
     class TimelineItem
     {
@@ -158,7 +159,7 @@ namespace QMatrixClient
             void getPreviousContent(int limit = 10);
 
             void inviteToRoom(const QString& memberId);
-            void leaveRoom();
+            LeaveRoomJob* leaveRoom();
             void kickMember(const QString& memberId, const QString& reason = {});
             void ban(const QString& userId, const QString& reason = {});
             void unban(const QString& userId);

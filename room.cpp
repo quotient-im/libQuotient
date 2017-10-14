@@ -21,6 +21,7 @@
 #include "jobs/generated/kicking.h"
 #include "jobs/generated/inviting.h"
 #include "jobs/generated/banning.h"
+#include "jobs/generated/leaving.h"
 #include "jobs/setroomstatejob.h"
 #include "events/roomnameevent.h"
 #include "events/roomaliasesevent.h"
@@ -32,7 +33,6 @@
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
-#include "jobs/leaveroomjob.h"
 #include "connection.h"
 #include "user.h"
 
@@ -623,9 +623,9 @@ void Room::inviteToRoom(const QString& memberId)
     connection()->callApi<InviteUserJob>(id(), memberId);
 }
 
-void Room::leaveRoom()
+LeaveRoomJob* Room::leaveRoom()
 {
-    connection()->callApi<LeaveRoomJob>(id());
+    return connection()->callApi<LeaveRoomJob>(id());
 }
 
 void Room::kickMember(const QString& memberId, const QString& reason)
