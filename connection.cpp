@@ -237,7 +237,7 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
     return getThumbnail(url, QSize(requestedWidth, requestedHeight));
 }
 
-ForgetRoomJob* Connection::forgetRoom(const QString& id) const
+ForgetRoomJob* Connection::forgetRoom(const QString& id)
 {
     // To forget is hard :) First we should ensure the local user is not
     // in the room (by leaving it, if necessary); once it's done, the /forget
@@ -265,6 +265,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id) const
         for (auto f: {false, true})
             if (auto r = d->roomMap.take({ id, f }))
             {
+                emit aboutToDeleteRoom(r);
                 qCDebug(MAIN) << "Room" << id
                               << "in join state" << toCString(r->joinState())
                               << "will be deleted";

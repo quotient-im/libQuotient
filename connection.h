@@ -107,7 +107,7 @@ namespace QMatrixClient
              * of a respective room so by the moment this finishes, there might be no
              * Room object anymore.
              */
-            ForgetRoomJob* forgetRoom(const QString& id) const;
+            ForgetRoomJob* forgetRoom(const QString& id);
 
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
