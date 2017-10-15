@@ -31,10 +31,10 @@ namespace QMatrixClient
 
     // We cannot use REGISTER_ENUM outside of a Q_OBJECT and besides, we want
     // to use strings that match respective JSON keys.
-    static constexpr std::array<const char*, 3> JoinStateStrings
+    static const std::array<const char*, 3> JoinStateStrings
         { { "join", "invite", "leave" } };
 
-    inline constexpr const char* toCString(JoinState js)
+    inline const char* toCString(JoinState js)
     {
         return JoinStateStrings[size_t(js)];
     }
