@@ -969,7 +969,7 @@ QJsonObject Room::Private::toJson() const
         {
             QJsonObject content;
             content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", i->displayname());
+            content.insert("displayname", i->name());
             content.insert("avatar_url", i->avatarUrl().toString());
 
             QJsonObject memberEvent;
