@@ -67,7 +67,7 @@ namespace QMatrixClient
             void avatarChanged(User* user);
 
         private slots:
-            void setName(const QString& newName);
+            void updateName(const QString& newName);
 
         private:
             class Private;

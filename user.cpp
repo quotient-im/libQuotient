@@ -80,11 +80,13 @@ QString User::name() const
     return d->name;
 }
 
-void User::setName(const QString& newName)
+void User::updateName(const QString& newName)
 {
     const auto oldName = name();
-    if (d->name != oldName)
+    if (d->name != newName)
     {
+        qCDebug(MAIN) << "Renaming" << id()
+                      << "from" << oldName << "to" << newName;
         d->name = newName;
         emit nameChanged(this, oldName);
     }
@@ -93,7 +95,7 @@ void User::setName(const QString& newName)
 void User::rename(const QString& newName)
 {
     auto job = d->connection->callApi<SetDisplayNameJob>(id(), newName);
-    connect(job, &BaseJob::success, this, [=] { setName(newName); });
+    connect(job, &BaseJob::success, this, [=] { updateName(newName); });
 }
 
 QString User::displayname() const
@@ -164,7 +166,7 @@ void User::processEvent(Event* event)
             d->bridged = match.captured(1);
             newName.truncate(match.capturedStart(0));
         }
-        setName(newName);
+        updateName(newName);
         if( d->avatarUrl != e->avatarUrl() )
         {
             d->avatarUrl = e->avatarUrl();
