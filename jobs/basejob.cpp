@@ -24,6 +24,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QtCore/QTimer>
+#include <QtCore/QRegularExpression>
 //#include <QtCore/QStringBuilder>
 
 #include <array>
@@ -77,6 +78,13 @@ class BaseJob::Private
 inline QDebug operator<<(QDebug dbg, const BaseJob* j)
 {
     return dbg << j->objectName();
+}
+
+QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
+{
+    QRegularExpression filter { "(access_token)=[-_A-Za-z0-9]+" };
+    return dbg << s.code << ':'
+               << QString(s.message).replace(filter, "\1=HIDDEN");
 }
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
@@ -331,10 +339,7 @@ void BaseJob::setStatus(Status s)
 {
     d->status = s;
     if (!s.good())
-    {
-        qCWarning(d->logCat) << this << "status" << s.code
-                                     << ":" << s.message;
-    }
+        qCWarning(d->logCat) << this << "status" << s;
 }
 
 void BaseJob::setStatus(int code, QString message)
