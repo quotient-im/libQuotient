@@ -60,10 +60,14 @@ namespace QMatrixClient
 
         public slots:
             void requestAvatar();
+            void rename(const QString& newName);
 
         signals:
             void nameChanged(User*, QString);
             void avatarChanged(User* user);
+
+        private slots:
+            void updateName(const QString& newName);
 
         private:
             class Private;

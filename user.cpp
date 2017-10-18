@@ -22,7 +22,7 @@
 #include "events/event.h"
 #include "events/roommemberevent.h"
 #include "jobs/mediathumbnailjob.h"
-#include "util.h"
+#include "jobs/generated/profile.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QDebug>
@@ -78,6 +78,24 @@ QString User::id() const
 QString User::name() const
 {
     return d->name;
+}
+
+void User::updateName(const QString& newName)
+{
+    const auto oldName = name();
+    if (d->name != newName)
+    {
+        qCDebug(MAIN) << "Renaming" << id()
+                      << "from" << oldName << "to" << newName;
+        d->name = newName;
+        emit nameChanged(this, oldName);
+    }
+}
+
+void User::rename(const QString& newName)
+{
+    auto job = d->connection->callApi<SetDisplayNameJob>(id(), newName);
+    connect(job, &BaseJob::success, this, [=] { updateName(newName); });
 }
 
 QString User::displayname() const
@@ -140,18 +158,15 @@ void User::processEvent(Event* event)
         if (e->membership() == MembershipType::Leave)
             return;
 
-        if( d->name != e->displayName() )
+        auto newName = e->displayName();
+        QRegularExpression reSuffix(" \\((IRC|Gitter)\\)$");
+        auto match = reSuffix.match(d->name);
+        if (match.hasMatch())
         {
-            const auto oldName = d->name;
-            d->name = e->displayName();
-            QRegularExpression reSuffix(" \\((IRC|Gitter)\\)$");
-            auto match = reSuffix.match(d->name);
-            if (match.hasMatch()) {
-                d->bridged = match.captured(1);
-                d->name = d->name.left(match.capturedStart(0));
-            }
-            emit nameChanged(this, oldName);
+            d->bridged = match.captured(1);
+            newName.truncate(match.capturedStart(0));
         }
+        updateName(newName);
         if( d->avatarUrl != e->avatarUrl() )
         {
             d->avatarUrl = e->avatarUrl();
@@ -176,3 +191,4 @@ void User::Private::requestAvatar()
         emit q->avatarChanged(q);
     });
 }
+

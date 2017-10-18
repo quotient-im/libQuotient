@@ -110,6 +110,7 @@ namespace QMatrixClient
                     Status(int c, QString m) : code(c), message(std::move(m)) { }
 
                     bool good() const { return code < ErrorLevel; }
+                    friend QDebug operator<<(QDebug dbg, const Status& s);
 
                     int code;
                     QString message;

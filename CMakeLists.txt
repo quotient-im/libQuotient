@@ -83,11 +83,9 @@ set(libqmatrixclient_SRCS
    jobs/setroomstatejob.cpp
    jobs/postreceiptjob.cpp
    jobs/joinroomjob.cpp
-   jobs/leaveroomjob.cpp
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
-   jobs/logoutjob.cpp
 )
 
 if (MATRIX_DOC_PATH AND GTAD_PATH)

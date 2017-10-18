@@ -24,7 +24,7 @@ using namespace QMatrixClient;
 
 SendEventJob::SendEventJob(const QString& roomId, const QString& type,
                            const QString& plainText)
-    : SendEventJob(roomId, new RoomMessageEvent(plainText, type))
+    : SendEventJob(roomId, RoomMessageEvent(plainText, type))
 { }
 
 void SendEventJob::beforeStart(const ConnectionData* connData)

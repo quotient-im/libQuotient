@@ -29,12 +29,12 @@ namespace QMatrixClient
         public:
             /** Constructs a job that sends an arbitrary room event */
             template <typename EvT>
-            SendEventJob(const QString& roomId, const EvT* event)
+            SendEventJob(const QString& roomId, const EvT& event)
                 : BaseJob(HttpVerb::Put, QStringLiteral("SendEventJob"),
                           QStringLiteral("_matrix/client/r0/rooms/%1/send/%2/")
                               .arg(roomId, EvT::TypeId), // See also beforeStart()
                           Query(),
-                          Data(event->toJson()))
+                          Data(event.toJson()))
             { }
 
             /**

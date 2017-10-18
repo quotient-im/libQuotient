@@ -231,7 +231,7 @@ namespace QMatrixClient
     template <typename ResultT, typename... ArgTs>
     Dispatch<ResultT, ArgTs...> dispatch(ArgTs&& ... args)
     {
-        return Dispatch<ResultT, ArgTs...>(std::forward<ArgTs...>(args)...);
+        return Dispatch<ResultT, ArgTs...>(std::forward<ArgTs>(args)...);
     }
 
     // The below enables pretty-printing of enums in logs
