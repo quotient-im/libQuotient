@@ -35,6 +35,7 @@ struct ConnectionData::Private
     QUrl baseUrl;
     QString accessToken;
     QString lastEvent;
+    QString deviceId;
 
     mutable unsigned int txnCounter = 0;
     const qint64 id = QDateTime::currentMSecsSinceEpoch();
@@ -81,6 +82,17 @@ void ConnectionData::setPort(int port)
 {
     d->baseUrl.setPort(port);
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
+}
+
+const QString& ConnectionData::deviceId() const
+{
+    return d->deviceId;
+}
+
+void ConnectionData::setDeviceId(const QString& deviceId)
+{
+    d->deviceId = deviceId;
+    qCDebug(MAIN) << "updated deviceId to" << d->deviceId;
 }
 
 QString ConnectionData::lastEvent() const

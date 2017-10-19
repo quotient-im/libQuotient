@@ -21,8 +21,8 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
+#include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
-#include "jobs/passwordlogin.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
@@ -61,8 +61,6 @@ class Connection::Private
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
         QHash<QString, User*> userMap;
-        QString username;
-        QString password;
         QString userId;
 
         SyncJob* syncJob;
@@ -113,40 +111,31 @@ void Connection::resolveServer(const QString& domain)
     });
 }
 
-void Connection::connectToServer(const QString& user, const QString& password)
+void Connection::connectToServer(const QString& user, const QString& password,
+                                 const QString& initialDeviceName,
+                                 const QString& deviceId)
 {
-    auto loginJob = callApi<PasswordLogin>(user, password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        connectWithToken(loginJob->id(), loginJob->token());
+    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"), user,
+            /*medium*/ "", /*address*/ "", password, /*token*/ "",
+            deviceId, initialDeviceName);
+    connect( loginJob, &BaseJob::success, [=] () {
+        connectWithToken(loginJob->user_id(), loginJob->access_token(),
+                         loginJob->device_id());
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
+    connect( loginJob, &BaseJob::failure, [=] () {
         emit loginError(loginJob->errorString());
     });
-    d->username = user; // to be able to reconnect
-    d->password = password;
 }
 
-void Connection::connectWithToken(const QString& userId, const QString& token)
+void Connection::connectWithToken(const QString& userId,
+        const QString& accessToken, const QString& deviceId)
 {
     d->userId = userId;
-    d->data->setToken(token);
-    qCDebug(MAIN) << "Accessing" << d->data->baseUrl()
-             << "by user" << userId
-             << "with the following access token:";
-    qCDebug(MAIN) << token;
+    d->data->setToken(accessToken);
+    d->data->setDeviceId(deviceId);
+    qCDebug(MAIN) << "Using server" << d->data->baseUrl() << "by user" << userId
+                  << "from device" << deviceId;
     emit connected();
-}
-
-void Connection::reconnect()
-{
-    auto loginJob = callApi<PasswordLogin>(d->username, d->password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        d->userId = loginJob->id();
-        emit reconnected();
-    });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
-    });
 }
 
 void Connection::logout()
@@ -299,6 +288,11 @@ User *Connection::user()
 QString Connection::userId() const
 {
     return d->userId;
+}
+
+const QString& Connection::deviceId() const
+{
+    return d->data->deviceId();
 }
 
 QString Connection::token() const

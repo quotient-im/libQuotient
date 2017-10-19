@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
         return -1;
 
     auto conn = new Connection(QUrl("https://matrix.org"));
-    conn->connectToServer(argv[1], argv[2]);
+    conn->connectToServer(argv[1], argv[2], "QMatrixClient example application");
     QObject::connect(conn, &Connection::connected, [=] {
         cout << "Connected" << endl;
        conn->sync();
