@@ -36,7 +36,6 @@ namespace QMatrixClient
 #else
             using QSettings::QSettings;
 #endif
-            virtual ~Settings();
 
             Q_INVOKABLE void setValue(const QString &key,
                                       const QVariant &value);
@@ -52,7 +51,6 @@ namespace QMatrixClient
                 : Settings(qsettingsArgs...)
                 , groupPath(path)
             { }
-            virtual ~SettingsGroup();
 
             Q_INVOKABLE bool contains(const QString& key) const;
             Q_INVOKABLE QVariant value(const QString &key,
@@ -72,6 +70,8 @@ namespace QMatrixClient
     {
             Q_OBJECT
             Q_PROPERTY(QString userId READ userId)
+            Q_PROPERTY(QString deviceId READ deviceId WRITE setDeviceId)
+            Q_PROPERTY(QString deviceName READ deviceName WRITE setDeviceName)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver)
             Q_PROPERTY(bool keepLoggedIn READ keepLoggedIn WRITE setKeepLoggedIn)
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
@@ -80,9 +80,14 @@ namespace QMatrixClient
             explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
                 : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
             { }
-            virtual ~AccountSettings();
 
             QString userId() const;
+
+            QString deviceId() const;
+            void setDeviceId(const QString& deviceId);
+
+            QString deviceName() const;
+            void setDeviceName(const QString& deviceName);
 
             QUrl homeserver() const;
             void setHomeserver(const QUrl& url);
@@ -94,4 +99,4 @@ namespace QMatrixClient
             void setAccessToken(const QString& accessToken);
             Q_INVOKABLE void clearAccessToken();
     };
-}
+}  // namespace QMatrixClient

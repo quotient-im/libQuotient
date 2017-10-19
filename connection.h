@@ -61,19 +61,6 @@ namespace QMatrixClient
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;
 
-            Q_INVOKABLE virtual void resolveServer(const QString& domain);
-            Q_INVOKABLE virtual void connectToServer(const QString& user,
-                                                     const QString& password);
-            Q_INVOKABLE virtual void connectWithToken(const QString& userId,
-                                                      const QString& token);
-            Q_INVOKABLE virtual void reconnect();
-            /** @deprecated Use stopSync() instead */
-            Q_INVOKABLE virtual void disconnectFromServer() { stopSync(); }
-            Q_INVOKABLE virtual void logout();
-
-            Q_INVOKABLE void sync(int timeout = -1);
-            Q_INVOKABLE void stopSync();
-
             // Old API that will be abolished any time soon. DO NOT USE.
 
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
@@ -113,6 +100,7 @@ namespace QMatrixClient
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
             Q_INVOKABLE QString userId() const;
+            Q_INVOKABLE const QString& deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;
@@ -184,6 +172,21 @@ namespace QMatrixClient
                 createUser =
                     [](Connection* c, const QString& id) { return new T(id, c); };
             }
+
+        public slots:
+            void resolveServer(const QString& domain);
+            void connectToServer(const QString& user, const QString& password,
+                                             const QString& initialDeviceName,
+                                             const QString& deviceId = {});
+            void connectWithToken(const QString& userId, const QString& accessToken,
+                                              const QString& deviceId);
+
+            /** @deprecated Use stopSync() instead */
+            void disconnectFromServer() { stopSync(); }
+            void logout();
+
+            void sync(int timeout = -1);
+            void stopSync();
 
         signals:
             void resolved();

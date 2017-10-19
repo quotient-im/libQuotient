@@ -5,9 +5,6 @@
 
 using namespace QMatrixClient;
 
-Settings::~Settings()
-{ }
-
 void Settings::setValue(const QString& key, const QVariant& value)
 {
 //    qCDebug() << "Setting" << key << "to" << value;
@@ -18,9 +15,6 @@ QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
 {
     return QSettings::value(key, defaultValue);
 }
-
-SettingsGroup::~SettingsGroup()
-{ }
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
 {
@@ -58,9 +52,6 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-AccountSettings::~AccountSettings()
-{ }
-
 bool AccountSettings::keepLoggedIn() const
 {
     return value("keep_logged_in", false).toBool();
@@ -84,6 +75,26 @@ void AccountSettings::setHomeserver(const QUrl& url)
 QString AccountSettings::userId() const
 {
     return group().section('/', -1);
+}
+
+QString AccountSettings::deviceId() const
+{
+    return value("device_id").toString();
+}
+
+void AccountSettings::setDeviceId(const QString& deviceId)
+{
+    setValue("device_id", deviceId);
+}
+
+QString AccountSettings::deviceName() const
+{
+    return value("device_name").toString();
+}
+
+void AccountSettings::setDeviceName(const QString& deviceName)
+{
+    setValue("device_name", deviceName);
 }
 
 QString AccountSettings::accessToken() const
