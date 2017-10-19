@@ -15,16 +15,14 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 LeaveRoomJob::LeaveRoomJob(QString roomId)
     : BaseJob(HttpVerb::Post, "LeaveRoomJob",
         basePath % "/rooms/" % roomId % "/leave",
-        Query { },
-        Data { }
+        Query { }
     )
 { }
 
 ForgetRoomJob::ForgetRoomJob(QString roomId)
     : BaseJob(HttpVerb::Post, "ForgetRoomJob",
         basePath % "/rooms/" % roomId % "/forget",
-        Query { },
-        Data { }
+        Query { }
     )
 { }
 

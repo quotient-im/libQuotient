@@ -15,10 +15,11 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 InviteUserJob::InviteUserJob(QString roomId, QString user_id)
     : BaseJob(HttpVerb::Post, "InviteUserJob",
         basePath % "/rooms/" % roomId % "/invite",
-        Query { },
-        Data {
-            { "user_id", toJson(user_id) }
-        }
+        Query { }
     )
-{ }
+{
+    Data _data;
+    _data.insert("user_id", toJson(user_id));
+    setRequestData(_data);
+}
 

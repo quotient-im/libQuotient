@@ -15,11 +15,13 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 KickJob::KickJob(QString roomId, QString user_id, QString reason)
     : BaseJob(HttpVerb::Post, "KickJob",
         basePath % "/rooms/" % roomId % "/kick",
-        Query { },
-        Data {
-            { "user_id", toJson(user_id) },
-            { "reason", toJson(reason) }
-        }
+        Query { }
     )
-{ }
+{
+    Data _data;
+    _data.insert("user_id", toJson(user_id));
+    if (!reason.isEmpty())
+        _data.insert("reason", toJson(reason));
+    setRequestData(_data);
+}
 
