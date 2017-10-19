@@ -88,6 +88,12 @@ set(libqmatrixclient_SRCS
    jobs/mediathumbnailjob.cpp
 )
 
+set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server/)
+file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
+    ${API_DEF_PATH}/*.yaml
+    ${API_DEF_PATH}/definitions/*.yaml
+    ${MATRIX_DOC_PATH}/event-schemas/schema/*
+)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
         ${GTAD_PATH} --config jobs/gtad.yaml --out jobs/generated
@@ -95,7 +101,9 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             content-repo.yaml- cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        SOURCES jobs/gtad.yaml jobs/{{base}}.h.mustache jobs/{{base}}.cpp.mustache
+        SOURCES jobs/gtad.yaml
+                jobs/{{base}}.h.mustache jobs/{{base}}.cpp.mustache
+                ${API_DEFS}
         VERBATIM
     )
 endif()
