@@ -24,7 +24,10 @@ types:
   - //: double
   boolean: bool
   string:
-  - byte: &QByteArray { type: QByteArray, imports: <QtCore/QByteArray> }
+  - byte: &QByteArray
+      type: QByteArray
+      string?: true
+      imports: <QtCore/QByteArray>
   - binary: *QByteArray
   - date:
       type: QDate
@@ -34,7 +37,7 @@ types:
       type: QDateTime
       avoidCopy?: true
       imports: <QtCore/QDateTime>
-  - //: { type: QString, imports: <QtCore/QString> }
+  - //: { type: QString, "string?": true, imports: <QtCore/QString> }
   file:
     type: QByteArray
     imports: <QtCore/QByteArray>

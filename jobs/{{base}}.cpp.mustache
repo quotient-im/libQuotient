@@ -39,13 +39,14 @@ class {{camelCaseOperationId}}Job::Private
         Query {{^queryParams}}{ }{{/queryParams}}{{#queryParams?}}{
             {{#queryParams}}{ "{{baseName}}", toJson({{paramName}}).toString() }{{#hasMore}},
             {{/hasMore}}{{/queryParams}}
-        }{{/queryParams?}},
-        Data {{^bodyParams}}{ }{{/bodyParams}}{{#bodyParams?}}{
-            {{#bodyParams}}{ "{{baseName}}", toJson({{paramName}}) }{{#hasMore}},
-            {{/hasMore}}{{/bodyParams}}
-        }{{/bodyParams?}}{{#skipAuth}}, false{{/skipAuth}}
+        }{{/queryParams?}}{{#skipAuth}}, Data { }, false{{/skipAuth}}
     ){{#responses}}{{#normalResponse?}}{{#properties?}}, d(new Private){{/properties?}}{{/normalResponse?}}{{/responses}}
-{ }
+{{#bodyParams?}}{
+    Data _data;{{#bodyParams}}
+{{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
+    {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
+    setRequestData(_data);
+}{{/bodyParams?}}{{^bodyParams?}}{ }{{/bodyParams?}}
 {{#    responses}}{{#normalResponse?}}{{#properties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job()
 {

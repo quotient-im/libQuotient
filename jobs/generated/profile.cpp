@@ -15,12 +15,14 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 SetDisplayNameJob::SetDisplayNameJob(QString userId, QString displayname)
     : BaseJob(HttpVerb::Put, "SetDisplayNameJob",
         basePath % "/profile/" % userId % "/displayname",
-        Query { },
-        Data {
-            { "displayname", toJson(displayname) }
-        }
+        Query { }
     )
-{ }
+{
+    Data _data;
+    if (!displayname.isEmpty())
+        _data.insert("displayname", toJson(displayname));
+    setRequestData(_data);
+}
 
 class GetDisplayNameJob::Private
 {
@@ -32,8 +34,7 @@ class GetDisplayNameJob::Private
 GetDisplayNameJob::GetDisplayNameJob(QString userId)
     : BaseJob(HttpVerb::Get, "GetDisplayNameJob",
         basePath % "/profile/" % userId % "/displayname",
-        Query { },
-        Data { }
+        Query { }, Data { }, false
     ), d(new Private)
 { }
 
@@ -59,12 +60,14 @@ BaseJob::Status GetDisplayNameJob::parseJson(const QJsonDocument& data)
 SetAvatarUrlJob::SetAvatarUrlJob(QString userId, QString avatar_url)
     : BaseJob(HttpVerb::Put, "SetAvatarUrlJob",
         basePath % "/profile/" % userId % "/avatar_url",
-        Query { },
-        Data {
-            { "avatar_url", toJson(avatar_url) }
-        }
+        Query { }
     )
-{ }
+{
+    Data _data;
+    if (!avatar_url.isEmpty())
+        _data.insert("avatar_url", toJson(avatar_url));
+    setRequestData(_data);
+}
 
 class GetAvatarUrlJob::Private
 {
@@ -76,8 +79,7 @@ class GetAvatarUrlJob::Private
 GetAvatarUrlJob::GetAvatarUrlJob(QString userId)
     : BaseJob(HttpVerb::Get, "GetAvatarUrlJob",
         basePath % "/profile/" % userId % "/avatar_url",
-        Query { },
-        Data { }
+        Query { }, Data { }, false
     ), d(new Private)
 { }
 
@@ -111,8 +113,7 @@ class GetUserProfileJob::Private
 GetUserProfileJob::GetUserProfileJob(QString userId)
     : BaseJob(HttpVerb::Get, "GetUserProfileJob",
         basePath % "/profile/" % userId,
-        Query { },
-        Data { }
+        Query { }, Data { }, false
     ), d(new Private)
 { }
 
