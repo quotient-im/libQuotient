@@ -85,8 +85,6 @@ void User::updateName(const QString& newName)
     const auto oldName = name();
     if (d->name != newName)
     {
-        qCDebug(MAIN) << "Renaming" << id()
-                      << "from" << oldName << "to" << newName;
         d->name = newName;
         emit nameChanged(this, oldName);
     }
