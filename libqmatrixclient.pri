@@ -24,14 +24,11 @@ HEADERS += \
     $$PWD/jobs/sendeventjob.h \
     $$PWD/jobs/postreceiptjob.h \
     $$PWD/jobs/joinroomjob.h \
-    $$PWD/jobs/leaveroomjob.h \
     $$PWD/jobs/roommessagesjob.h \
     $$PWD/jobs/syncjob.h \
     $$PWD/jobs/mediathumbnailjob.h \
-    $$PWD/jobs/logoutjob.h \
     $$PWD/jobs/setroomstatejob.h \
-    $$PWD/jobs/generated/inviting.h \
-    $$PWD/jobs/generated/kicking.h \
+    $$files($$PWD/jobs/generated/*.h, false) \
     $$PWD/logging.h \
     $$PWD/settings.h
 
@@ -55,13 +52,10 @@ SOURCES += \
     $$PWD/jobs/sendeventjob.cpp \
     $$PWD/jobs/postreceiptjob.cpp \
     $$PWD/jobs/joinroomjob.cpp \
-    $$PWD/jobs/leaveroomjob.cpp \
     $$PWD/jobs/roommessagesjob.cpp \
     $$PWD/jobs/syncjob.cpp \
     $$PWD/jobs/mediathumbnailjob.cpp \
-    $$PWD/jobs/logoutjob.cpp \
     $$PWD/jobs/setroomstatejob.cpp \
-    $$PWD/jobs/generated/inviting.cpp \
-    $$PWD/jobs/generated/kicking.cpp \
+    $$files($$PWD/jobs/generated/*.cpp, false) \
     $$PWD/logging.cpp \
     $$PWD/settings.cpp
