@@ -76,7 +76,7 @@ namespace QMatrixClient
             protected:
                 using Base::Base;
 
-                virtual void fillInfoJson(QJsonObject* infoJson) const { }
+                virtual void fillInfoJson(QJsonObject* /*infoJson*/) const { }
         };
     }  // namespace MessageEventContent
 
