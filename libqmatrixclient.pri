@@ -1,5 +1,5 @@
 QT += network
-CONFIG += c++11
+CONFIG += c++11 warn_on rtti_off
 
 INCLUDEPATH += $$PWD
 
@@ -8,7 +8,7 @@ HEADERS += \
     $$PWD/connection.h \
     $$PWD/room.h \
     $$PWD/user.h \
-    $$PWD/state.h \
+    $$PWD/util.h \
     $$PWD/events/event.h \
     $$PWD/events/roommessageevent.h \
     $$PWD/events/roomnameevent.h \
