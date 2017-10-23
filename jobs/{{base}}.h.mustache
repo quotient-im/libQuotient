@@ -12,7 +12,7 @@ namespace QMatrixClient
 {
 {{#models}}    // Data structures
 {{#    model}}
-    struct {{classname}}
+    struct {{classname}}{{#parents?}} : {{#parents}}{{.}}{{#last?}}, {{/last?}}{{/parents}}{{/parents?}}
     {
         {{#vars}}{{datatype}} {{name}};
         {{/vars}}
