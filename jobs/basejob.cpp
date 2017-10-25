@@ -84,7 +84,7 @@ QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
 {
     QRegularExpression filter { "(access_token)=[-_A-Za-z0-9]+" };
     return dbg << s.code << ':'
-               << QString(s.message).replace(filter, "\1=HIDDEN");
+               << QString(s.message).replace(filter, "\\1=HIDDEN");
 }
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
