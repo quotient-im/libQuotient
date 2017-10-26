@@ -62,6 +62,7 @@ set(libqmatrixclient_SRCS
    user.cpp
    settings.cpp
    events/event.cpp
+   events/eventcontent.cpp
    events/roommessageevent.cpp
    events/roomnameevent.cpp
    events/roomaliasesevent.cpp
