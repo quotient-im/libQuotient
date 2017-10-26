@@ -30,7 +30,7 @@ namespace QMatrixClient
             Q_OBJECT
         public:
             User(QString userId, Connection* connection);
-            virtual ~User();
+            ~User() override;
 
             /**
              * Returns the id of the user
@@ -54,12 +54,11 @@ namespace QMatrixClient
 
             QPixmap avatar(int requestedWidth, int requestedHeight);
 
-            const QUrl& avatarUrl() const;
+            QUrl avatarUrl() const;
 
             void processEvent(Event* event);
 
         public slots:
-            void requestAvatar();
             void rename(const QString& newName);
 
         signals:

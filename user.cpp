@@ -19,14 +19,12 @@
 #include "user.h"
 
 #include "connection.h"
+#include "avatar.h"
 #include "events/event.h"
 #include "events/roommemberevent.h"
-#include "jobs/mediathumbnailjob.h"
 #include "jobs/generated/profile.h"
 
 #include <QtCore/QTimer>
-#include <QtCore/QDebug>
-#include <QtGui/QIcon>
 #include <QtCore/QRegularExpression>
 
 using namespace QMatrixClient;
@@ -35,35 +33,20 @@ class User::Private
 {
     public:
         Private(QString userId, Connection* connection)
-            : q(nullptr), userId(std::move(userId)), connection(connection)
-            , defaultIcon(QIcon::fromTheme(QStringLiteral("user-available")))
-            , avatarValid(false) , avatarOngoingRequest(false)
+            : userId(std::move(userId)), connection(connection)
+            , avatar(connection, QIcon::fromTheme(QStringLiteral("user-available")))
         { }
 
-        User* q;
         QString userId;
         QString name;
-        QUrl avatarUrl;
-        Connection* connection;
-
-        QPixmap avatar;
-        QIcon defaultIcon;
-        QSize requestedSize;
-        bool avatarValid;
-        bool avatarOngoingRequest;
-        /// Map of requested size to the actual pixmap used for it
-        /// (it's a shame that QSize has no predefined qHash()).
-        QHash<QPair<int,int>, QPixmap> scaledAvatars;
         QString bridged;
-
-        void requestAvatar();
+        Connection* connection;
+        Avatar avatar;
 };
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(new Private(userId, connection))
-{
-    d->q = this; // Initialization finished
-}
+    : QObject(connection), d(new Private(std::move(userId), connection))
+{ }
 
 User::~User()
 {
@@ -109,43 +92,12 @@ QString User::bridged() const {
 
 QPixmap User::avatar(int width, int height)
 {
-    QSize size(width, height);
-
-    // FIXME: Alternating between longer-width and longer-height requests
-    // is a sure way to trick the below code into constantly getting another
-    // image from the server because the existing one is alleged unsatisfactory.
-    // This is plain abuse by the client, though; so not critical for now.
-    if( (!d->avatarValid && d->avatarUrl.isValid() && !d->avatarOngoingRequest)
-        || width > d->requestedSize.width()
-        || height > d->requestedSize.height() )
-    {
-        qCDebug(MAIN) << "Getting avatar for" << id()
-                      << "from" << d->avatarUrl.toString();
-        d->requestedSize = size;
-        d->avatarOngoingRequest = true;
-        QTimer::singleShot(0, this, SLOT(requestAvatar()));
-    }
-
-    if( d->avatar.isNull() )
-    {
-        if (d->defaultIcon.isNull())
-            return d->avatar;
-
-        d->avatar = d->defaultIcon.pixmap(size);
-    }
-
-    auto& pixmap = d->scaledAvatars[{width, height}]; // Create the entry if needed
-    if (pixmap.isNull())
-    {
-        pixmap = d->avatar.scaled(width, height,
-                    Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
-    return pixmap;
+    return d->avatar.get(width, height, [=] { emit avatarChanged(this); });
 }
 
-const QUrl& User::avatarUrl() const
+QUrl User::avatarUrl() const
 {
-    return d->avatarUrl;
+    return d->avatar.url();
 }
 
 void User::processEvent(Event* event)
@@ -165,28 +117,7 @@ void User::processEvent(Event* event)
             newName.truncate(match.capturedStart(0));
         }
         updateName(newName);
-        if( d->avatarUrl != e->avatarUrl() )
-        {
-            d->avatarUrl = e->avatarUrl();
-            d->avatarValid = false;
-        }
+        if (d->avatar.updateUrl(e->avatarUrl()))
+            emit avatarChanged(this);
     }
 }
-
-void User::requestAvatar()
-{
-    d->requestAvatar();
-}
-
-void User::Private::requestAvatar()
-{
-    auto* job = connection->callApi<MediaThumbnailJob>(avatarUrl, requestedSize);
-    connect( job, &MediaThumbnailJob::success, [=]() {
-        avatarOngoingRequest = false;
-        avatarValid = true;
-        avatar = job->scaledThumbnail(requestedSize);
-        scaledAvatars.clear();
-        emit q->avatarChanged(q);
-    });
-}
-

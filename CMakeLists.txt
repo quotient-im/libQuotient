@@ -60,6 +60,7 @@ set(libqmatrixclient_SRCS
    logging.cpp
    room.cpp
    user.cpp
+   avatar.cpp
    settings.cpp
    events/event.cpp
    events/eventcontent.cpp
