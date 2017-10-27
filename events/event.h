@@ -34,7 +34,8 @@ namespace QMatrixClient
             enum class Type
             {
                 RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
-                RoomMember, RoomTopic, RoomEncryption, RoomEncryptedMessage,
+                RoomMember, RoomTopic, RoomAvatar,
+                RoomEncryption, RoomEncryptedMessage,
                 Typing, Receipt, Unknown
             };
 

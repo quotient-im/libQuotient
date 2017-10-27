@@ -24,6 +24,7 @@
 #include "roomcanonicalaliasevent.h"
 #include "roommemberevent.h"
 #include "roomtopicevent.h"
+#include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
 #include "encryptedevent.h"
@@ -136,6 +137,7 @@ RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
             "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
             "m.room.member", make<RoomMemberEvent>,
             "m.room.topic", make<RoomTopicEvent>,
+            "m.room.avatar", make<RoomAvatarEvent>,
             "m.room.encryption", make<EncryptionEvent>,
             /* Insert new ROOM event types BEFORE this line */
             nullptr

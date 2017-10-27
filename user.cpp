@@ -90,6 +90,11 @@ QString User::bridged() const {
     return d->bridged;
 }
 
+Avatar& User::avatarObject()
+{
+    return d->avatar;
+}
+
 QPixmap User::avatar(int width, int height)
 {
     return d->avatar.get(width, height, [=] { emit avatarChanged(this); });

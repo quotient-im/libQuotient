@@ -20,6 +20,7 @@
 
 #include <QtCore/QString>
 #include <QtCore/QObject>
+#include "avatar.h"
 
 namespace QMatrixClient
 {
@@ -52,6 +53,7 @@ namespace QMatrixClient
             */
             Q_INVOKABLE QString bridged() const;
 
+            Avatar& avatarObject();
             QPixmap avatar(int requestedWidth, int requestedHeight);
 
             QUrl avatarUrl() const;

@@ -1,0 +1,53 @@
+/******************************************************************************
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#pragma once
+
+#include "event.h"
+
+#include <utility>
+
+#include "eventcontent.h"
+
+namespace QMatrixClient
+{
+    class RoomAvatarEvent: public RoomEvent
+    {
+        public:
+            explicit RoomAvatarEvent(EventContent::ImageContent avatar)
+                : RoomEvent(Type::RoomAvatar), _avatar(std::move(avatar))
+            { }
+            explicit RoomAvatarEvent(const QJsonObject& obj)
+                : RoomEvent(Type::RoomAvatar, obj), _avatar(contentJson())
+            { }
+
+            const EventContent::ImageContent& content() const { return _avatar; }
+
+            QJsonObject toJson() const { return _avatar.toJson(); }
+
+            static constexpr const char* TypeId = "m.room.avatar";
+
+        private:
+            // It's a bit of an overkill to use a full-fledged ImageContent
+            // because in reality m.room.avatar usually only has a single URL,
+            // without a thumbnail. But The Spec says there be thumbnails, and
+            // we follow The Spec.
+            EventContent::ImageContent _avatar;
+    };
+
+}  // namespace QMatrixClient

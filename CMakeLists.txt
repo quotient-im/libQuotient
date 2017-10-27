@@ -70,6 +70,7 @@ set(libqmatrixclient_SRCS
    events/roomcanonicalaliasevent.cpp
    events/roommemberevent.cpp
    events/roomtopicevent.cpp
+   events/roomavatarevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
    events/encryptedevent.cpp

@@ -18,6 +18,7 @@ HEADERS += \
     $$PWD/events/roomcanonicalaliasevent.h \
     $$PWD/events/roommemberevent.h \
     $$PWD/events/roomtopicevent.h \
+    $$PWD/events/roomavatarevent.h \
     $$PWD/events/typingevent.h \
     $$PWD/events/receiptevent.h \
     $$PWD/jobs/basejob.h \
@@ -48,6 +49,7 @@ SOURCES += \
     $$PWD/events/roomcanonicalaliasevent.cpp \
     $$PWD/events/roommemberevent.cpp \
     $$PWD/events/roomtopicevent.cpp \
+    $$PWD/events/roomavatarevent.cpp \
     $$PWD/events/typingevent.cpp \
     $$PWD/events/receiptevent.cpp \
     $$PWD/jobs/basejob.cpp \
