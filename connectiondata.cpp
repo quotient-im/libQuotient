@@ -33,7 +33,7 @@ QNetworkAccessManager* getNam()
 struct ConnectionData::Private
 {
     QUrl baseUrl;
-    QString accessToken;
+    QByteArray accessToken;
     QString lastEvent;
     QString deviceId;
 
@@ -52,7 +52,7 @@ ConnectionData::~ConnectionData()
     delete d;
 }
 
-QString ConnectionData::accessToken() const
+QByteArray ConnectionData::accessToken() const
 {
     return d->accessToken;
 }
@@ -67,7 +67,7 @@ QNetworkAccessManager* ConnectionData::nam() const
     return getNam();
 }
 
-void ConnectionData::setToken(QString token)
+void ConnectionData::setToken(QByteArray token)
 {
     d->accessToken = token;
 }

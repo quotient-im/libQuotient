@@ -131,7 +131,7 @@ void Connection::connectWithToken(const QString& userId,
         const QString& accessToken, const QString& deviceId)
 {
     d->userId = userId;
-    d->data->setToken(accessToken);
+    d->data->setToken(accessToken.toLatin1());
     d->data->setDeviceId(deviceId);
     qCDebug(MAIN) << "Using server" << d->data->baseUrl() << "by user" << userId
                   << "from device" << deviceId;

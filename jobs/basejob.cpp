@@ -82,9 +82,9 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
 
 QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
 {
-    QRegularExpression filter { "(access_token)=[-_A-Za-z0-9]+" };
+    QRegularExpression filter { "(access_token)(=|: )[-_A-Za-z0-9]+" };
     return dbg << s.code << ':'
-               << QString(s.message).replace(filter, "\\1=HIDDEN");
+               << QString(s.message).replace(filter, "\\1 HIDDEN");
 }
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
@@ -138,13 +138,12 @@ void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
     url.setPath( url.path() + "/" + apiEndpoint );
-    QUrlQuery q = requestQuery;
-    if (needsToken)
-        q.addQueryItem("access_token", connection->accessToken());
-    url.setQuery(q);
+    url.setQuery(requestQuery);
 
     QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setRawHeader(QByteArray("Authorization"),
+                     QByteArray("Bearer ") + connection->accessToken());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
