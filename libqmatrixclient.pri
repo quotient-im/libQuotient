@@ -8,8 +8,10 @@ HEADERS += \
     $$PWD/connection.h \
     $$PWD/room.h \
     $$PWD/user.h \
+    $$PWD/avatar.h \
     $$PWD/util.h \
     $$PWD/events/event.h \
+    $$PWD/events/eventcontent.h \
     $$PWD/events/roommessageevent.h \
     $$PWD/events/roomnameevent.h \
     $$PWD/events/roomaliasesevent.h \
@@ -37,7 +39,9 @@ SOURCES += \
     $$PWD/connection.cpp \
     $$PWD/room.cpp \
     $$PWD/user.cpp \
+    $$PWD/avatar.cpp \
     $$PWD/events/event.cpp \
+    $$PWD/events/eventcontent.cpp \
     $$PWD/events/roommessageevent.cpp \
     $$PWD/events/roomnameevent.cpp \
     $$PWD/events/roomaliasesevent.cpp \
