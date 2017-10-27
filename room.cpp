@@ -995,7 +995,7 @@ QJsonObject Room::Private::toJson() const
 
         appendEventJson(stateEvents, "m.room.name", "name", name);
         appendEventJson(stateEvents, "m.room.topic", "topic", topic);
-        appendEventJson(stateEvents, "m.room.avatar", "avatar_url",
+        appendEventJson(stateEvents, "m.room.avatar", "url",
                         avatar.url().toString());
         appendEventJson(stateEvents, "m.room.aliases", "aliases",
                         QJsonArray::fromStringList(aliases));
