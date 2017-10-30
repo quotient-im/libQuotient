@@ -97,6 +97,7 @@ namespace QMatrixClient
             Q_INVOKABLE QList<User*> users() const;
             Q_INVOKABLE QStringList memberNames() const;
             Q_INVOKABLE int memberCount() const;
+            Q_INVOKABLE int timelineSize() const;
 
             /**
              * Returns a room avatar and requests it from the network if needed

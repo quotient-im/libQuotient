@@ -414,6 +414,11 @@ int Room::memberCount() const
     return d->membersMap.size();
 }
 
+int Room::timelineSize() const
+{
+    return int(d->timeline.size());
+}
+
 void Room::Private::insertMemberIntoMap(User *u)
 {
     auto namesakes = membersMap.values(u->name());
