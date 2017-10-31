@@ -40,19 +40,19 @@ namespace QMatrixClient
 
             RoomMessageEvent(const QString& plainBody,
                              const QString& jsonMsgType,
-                             EventContent::Base* content = nullptr)
+                             EventContent::TypedBase* content = nullptr)
                 : RoomEvent(Type::RoomMessage)
                 , _msgtype(jsonMsgType), _plainBody(plainBody), _content(content)
             { }
             explicit RoomMessageEvent(const QString& plainBody,
                                       MsgType msgType = MsgType::Text,
-                                      EventContent::Base* content = nullptr);
+                                      EventContent::TypedBase* content = nullptr);
             explicit RoomMessageEvent(const QJsonObject& obj);
 
             MsgType msgtype() const;
             QString rawMsgtype() const       { return _msgtype; }
             const QString& plainBody() const { return _plainBody; }
-            const EventContent::Base* content() const
+            const EventContent::TypedBase* content() const
                                              { return _content.data(); }
             QMimeType mimeType() const;
 
@@ -63,7 +63,7 @@ namespace QMatrixClient
         private:
             QString _msgtype;
             QString _plainBody;
-            QScopedPointer<EventContent::Base> _content;
+            QScopedPointer<EventContent::TypedBase> _content;
 
             REGISTER_ENUM(MsgType)
     };
@@ -79,15 +79,19 @@ namespace QMatrixClient
          * Available fields: mimeType, body. The body can be either rich text
          * or plain text, depending on what mimeType specifies.
          */
-        class TextContent: public Base
+        class TextContent: public TypedBase
         {
             public:
                 TextContent(const QString& text, const QString& contentType);
                 explicit TextContent(const QJsonObject& json);
 
-                void fillJson(QJsonObject* json) const override;
+                QMimeType type() const override { return mimeType; }
 
+                QMimeType mimeType;
                 QString body;
+
+            protected:
+                void fillJson(QJsonObject* json) const override;
         };
 
         /**
@@ -103,16 +107,19 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize
          */
-        class LocationContent: public Thumbnailed<>
+        class LocationContent: public TypedBase, public Thumbnailed<>
         {
             public:
                 LocationContent(const QString& geoUri,
                                 const ImageInfo<>& thumbnail);
                 explicit LocationContent(const QJsonObject& json);
 
-                void fillJson(QJsonObject* o) const override;
+                QMimeType type() const override;
 
                 QString geoUri;
+
+            protected:
+                void fillJson(QJsonObject* o) const override;
         };
 
         /**
@@ -127,9 +134,10 @@ namespace QMatrixClient
                 PlayableInfo(const QUrl& u, const QJsonObject& infoJson,
                              const QString& originalFilename = {});
 
-                void fillInfoJson(QJsonObject* infoJson) const override;
-
                 int duration;
+
+            protected:
+                void fillInfoJson(QJsonObject* infoJson) const override;
         };
 
         /**

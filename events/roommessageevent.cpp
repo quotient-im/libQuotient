@@ -28,7 +28,7 @@ using namespace EventContent;
 using MsgType = RoomMessageEvent::MsgType;
 
 template <typename ContentT>
-Base* make(const QJsonObject& json)
+TypedBase* make(const QJsonObject& json)
 {
     return new ContentT(json);
 }
@@ -37,7 +37,7 @@ struct MsgTypeDesc
 {
     QString jsonType;
     MsgType enumType;
-    Base* (*maker)(const QJsonObject&);
+    TypedBase* (*maker)(const QJsonObject&);
 };
 
 const std::vector<MsgTypeDesc> msgTypes =
@@ -74,7 +74,7 @@ MsgType jsonToMsgType(const QString& jsonType)
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
-                                   MsgType msgType, Base* content)
+                                   MsgType msgType, TypedBase* content)
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
 { }
 
@@ -112,7 +112,7 @@ RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 
 QMimeType RoomMessageEvent::mimeType() const
 {
-    return _content ? _content->mimeType :
+    return _content ? _content->type() :
                       QMimeDatabase().mimeTypeForName("text/plain");
 }
 
@@ -125,7 +125,7 @@ QJsonObject RoomMessageEvent::toJson() const
 }
 
 TextContent::TextContent(const QString& text, const QString& contentType)
-    : Base(QMimeDatabase().mimeTypeForName(contentType)), body(text)
+    : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
 { }
 
 TextContent::TextContent(const QJsonObject& json)
@@ -168,6 +168,11 @@ void LocationContent::fillJson(QJsonObject* o) const
     Q_ASSERT(o);
     o->insert("geo_uri", geoUri);
     o->insert("info", Thumbnailed::toInfoJson());
+}
+
+QMimeType LocationContent::type() const
+{
+    return QMimeDatabase().mimeTypeForData(geoUri.toLatin1());
 }
 
 PlayableInfo::PlayableInfo(const QUrl& u, int fileSize,

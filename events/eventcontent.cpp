@@ -37,6 +37,8 @@ QJsonObject InfoBase::toInfoJson() const
     return info;
 }
 
+void InfoBase::fillInfoJson(QJsonObject*) const { }
+
 FileInfo::FileInfo(const QUrl& u, int payloadSize, const QMimeType& mimeType,
                    const QString& originalFilename)
     : InfoBase(mimeType), url(u), payloadSize(payloadSize)
@@ -59,13 +61,3 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
     infoJson->insert("size", payloadSize);
     infoJson->insert("mimetype", mimeType.name());
 }
-
-void FileInfo::fillJson(QJsonObject* json) const
-{
-    Q_ASSERT(json);
-    json->insert("url", url.toString());
-    if (!originalName.isEmpty())
-        json->insert("filename", originalName);
-    json->insert("info", toInfoJson());
-}
-

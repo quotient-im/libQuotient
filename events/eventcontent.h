@@ -50,13 +50,14 @@ namespace QMatrixClient
 
                 QJsonObject toJson() const;
 
-                QMimeType mimeType;
-
             protected:
-                Base() = default;
-                explicit Base(const QMimeType& type) : mimeType(type) { }
-
                 virtual void fillJson(QJsonObject* o) const = 0;
+        };
+
+        class TypedBase: public Base
+        {
+            public:
+                virtual QMimeType type() const = 0;
         };
 
         /**
@@ -70,15 +71,20 @@ namespace QMatrixClient
          * have a constructor that accepts two parameters, QUrl and QJsonObject,
          * in order to load the URL+info part from JSON.
          */
-        class InfoBase: public Base
+        class InfoBase
         {
             public:
+                virtual ~InfoBase() = default;
+
                 QJsonObject toInfoJson() const;
 
-            protected:
-                using Base::Base;
+                QMimeType mimeType;
 
-                virtual void fillInfoJson(QJsonObject* /*infoJson*/) const { }
+            protected:
+                InfoBase() = default;
+                explicit InfoBase(const QMimeType& type) : mimeType(type) { }
+
+                virtual void fillInfoJson(QJsonObject* /*infoJson*/) const = 0;
         };
 
         // The below structures fairly follow CS spec 11.2.1.6. The overall
@@ -105,7 +111,6 @@ namespace QMatrixClient
                 QString originalName;
 
             protected:
-                void fillJson(QJsonObject* json) const override;
                 void fillInfoJson(QJsonObject* infoJson) const override;
         };
 
@@ -129,14 +134,15 @@ namespace QMatrixClient
                     , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
                 { }
 
+                QSize imageSize;
+
+            protected:
                 void fillInfoJson(QJsonObject* infoJson) const override
                 {
                     InfoT::fillInfoJson(infoJson);
                     infoJson->insert("w", imageSize.width());
                     infoJson->insert("h", imageSize.height());
                 }
-
-                QSize imageSize;
         };
 
         /**
@@ -172,14 +178,15 @@ namespace QMatrixClient
                                 infoJson["thumbnail_info"].toObject())
                 { }
 
+                ImageInfo<> thumbnail;
+
+            protected:
                 void fillInfoJson(QJsonObject* infoJson) const override
                 {
                     InfoT::fillInfoJson(infoJson);
                     infoJson->insert("thumbnail_url", thumbnail.url.toString());
                     infoJson->insert("thumbnail_info", thumbnail.toInfoJson());
                 }
-
-                ImageInfo<> thumbnail;
         };
 
         /**
@@ -194,7 +201,7 @@ namespace QMatrixClient
          * provide a constructor with a compatible signature
          */
         template <class InfoT> // InfoT : public FileInfo
-        class UrlWith : public InfoT
+        class UrlWith : public TypedBase, public InfoT
         {
             public:
                 using InfoT::InfoT;
@@ -202,6 +209,18 @@ namespace QMatrixClient
                     : InfoT(json["url"].toString(), json["info"].toObject(),
                             json["filename"].toString())
                 { }
+
+                QMimeType type() const override { return InfoT::mimeType; }
+
+            protected:
+                void fillJson(QJsonObject* json) const override
+                {
+                    Q_ASSERT(json);
+                    json->insert("url", InfoT::url.toString());
+                    if (!InfoT::originalName.isEmpty())
+                        json->insert("filename", InfoT::originalName);
+                    json->insert("info", InfoT::toInfoJson());
+                }
         };
 
         /**
