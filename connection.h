@@ -100,7 +100,7 @@ namespace QMatrixClient
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
             Q_INVOKABLE QString userId() const;
-            Q_INVOKABLE const QString& deviceId() const;
+            Q_INVOKABLE QString deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;

@@ -290,7 +290,7 @@ QString Connection::userId() const
     return d->userId;
 }
 
-const QString& Connection::deviceId() const
+QString Connection::deviceId() const
 {
     return d->data->deviceId();
 }
