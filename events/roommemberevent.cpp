@@ -20,6 +20,8 @@
 
 #include "logging.h"
 
+#include <array>
+
 using namespace QMatrixClient;
 
 static const std::array<QString, 5> membershipStrings = { {
