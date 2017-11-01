@@ -22,8 +22,11 @@
 
 using namespace QMatrixClient;
 
-static const std::array<const char*, 5> membershipStrings =
-    { { "invite", "join", "knock", "leave", "ban" } };
+static const std::array<QString, 5> membershipStrings = { {
+    QStringLiteral("invite"), QStringLiteral("join"),
+    QStringLiteral("knock"), QStringLiteral("leave"),
+    QStringLiteral("ban")
+} };
 
 namespace QMatrixClient
 {
@@ -32,7 +35,7 @@ namespace QMatrixClient
     {
         MembershipType operator()(const QJsonValue& jv) const
         {
-            const auto membershipString = jv.toString();
+            const auto& membershipString = jv.toString();
             for (auto it = membershipStrings.begin();
                     it != membershipStrings.end(); ++it)
                 if (membershipString == *it)
