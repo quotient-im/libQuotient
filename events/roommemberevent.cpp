@@ -22,21 +22,38 @@
 
 using namespace QMatrixClient;
 
-static const auto membershipStrings =
-    { "invite", "join", "knock", "leave", "ban" };
+static const std::array<const char*, 5> membershipStrings =
+    { { "invite", "join", "knock", "leave", "ban" } };
 
-RoomMemberEvent::RoomMemberEvent(const QJsonObject& obj)
-    : RoomEvent(Type::RoomMember, obj), _userId(obj["state_key"].toString())
+namespace QMatrixClient
 {
-    const auto contentObj = contentJson();
-    _displayName = contentObj["displayname"].toString();
-    _avatarUrl = contentObj["avatar_url"].toString();
-    QString membershipString = contentObj["membership"].toString();
-    for (auto it = membershipStrings.begin(); it != membershipStrings.end(); ++it)
-        if (membershipString == *it)
+    template <>
+    struct FromJson<MembershipType>
+    {
+        MembershipType operator()(const QJsonValue& jv) const
         {
-            _membership = MembershipType(it - membershipStrings.begin());
-            return;
+            const auto membershipString = jv.toString();
+            for (auto it = membershipStrings.begin();
+                    it != membershipStrings.end(); ++it)
+                if (membershipString == *it)
+                    return MembershipType(it - membershipStrings.begin());
+
+            qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
+            return MembershipType::Join;
         }
-    qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
+    };
+}
+
+MemberEventContent::MemberEventContent(const QJsonObject& json)
+    : membership(fromJson<MembershipType>(json["membership"]))
+    , displayName(json["displayname"].toString())
+    , avatarUrl(json["avatar_url"].toString())
+{ }
+
+void MemberEventContent::fillJson(QJsonObject* o) const
+{
+    Q_ASSERT(o);
+    o->insert("membership", membershipStrings[membership]);
+    o->insert("displayname", displayName);
+    o->insert("avatar_url", avatarUrl.toString());
 }
