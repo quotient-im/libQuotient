@@ -26,28 +26,18 @@
 
 namespace QMatrixClient
 {
-    class RoomAvatarEvent: public RoomEvent
+    class RoomAvatarEvent: public StateEvent<EventContent::ImageContent>
     {
-        public:
-            explicit RoomAvatarEvent(EventContent::ImageContent avatar)
-                : RoomEvent(Type::RoomAvatar), _avatar(std::move(avatar))
-            { }
-            explicit RoomAvatarEvent(const QJsonObject& obj)
-                : RoomEvent(Type::RoomAvatar, obj), _avatar(contentJson())
-            { }
-
-            const EventContent::ImageContent& content() const { return _avatar; }
-
-            QJsonObject toJson() const { return _avatar.toJson(); }
-
-            static constexpr const char* TypeId = "m.room.avatar";
-
-        private:
             // It's a bit of an overkill to use a full-fledged ImageContent
             // because in reality m.room.avatar usually only has a single URL,
             // without a thumbnail. But The Spec says there be thumbnails, and
             // we follow The Spec.
-            EventContent::ImageContent _avatar;
+        public:
+            explicit RoomAvatarEvent(const QJsonObject& obj)
+                : StateEvent(Type::RoomAvatar, obj)
+            { }
+
+            static constexpr const char* TypeId = "m.room.avatar";
     };
 
 }  // namespace QMatrixClient

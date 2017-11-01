@@ -65,15 +65,10 @@ set(libqmatrixclient_SRCS
    events/event.cpp
    events/eventcontent.cpp
    events/roommessageevent.cpp
-   events/roomnameevent.cpp
-   events/roomaliasesevent.cpp
-   events/roomcanonicalaliasevent.cpp
    events/roommemberevent.cpp
-   events/roomtopicevent.cpp
    events/roomavatarevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
-   events/encryptedevent.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp

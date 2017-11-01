@@ -19,15 +19,11 @@
 #include "event.h"
 
 #include "roommessageevent.h"
-#include "roomnameevent.h"
-#include "roomaliasesevent.h"
-#include "roomcanonicalaliasevent.h"
+#include "simplestateevents.h"
 #include "roommemberevent.h"
-#include "roomtopicevent.h"
 #include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
-#include "encryptedevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -54,32 +50,24 @@ QJsonObject Event::originalJsonObject() const
     return _originalJson;
 }
 
-QDateTime Event::toTimestamp(const QJsonValue& v)
-{
-    Q_ASSERT(v.isDouble() || v.isNull() || v.isUndefined());
-    return QDateTime::fromMSecsSinceEpoch(
-            static_cast<long long int>(v.toDouble()), Qt::UTC);
-}
-
-QStringList Event::toStringList(const QJsonValue& v)
-{
-    Q_ASSERT(v.isArray() || v.isNull() || v.isUndefined());
-
-    QStringList l;
-    for( const QJsonValue& e : v.toArray() )
-        l.push_back(e.toString());
-    return l;
-}
-
 const QJsonObject Event::contentJson() const
 {
     return _originalJson["content"].toObject();
 }
 
-template <typename EventT>
-EventT* make(const QJsonObject& o)
+template <typename BaseEventT>
+inline BaseEventT* makeIfMatches(const QJsonObject&, const QString&)
 {
-    return new EventT(o);
+    return nullptr;
+}
+
+template <typename BaseEventT, typename EventT, typename... EventTs>
+inline BaseEventT* makeIfMatches(const QJsonObject& o, const QString& selector)
+{
+    if (selector == EventT::TypeId)
+        return new EventT(o);
+
+    return makeIfMatches<BaseEventT, EventTs...>(o, selector);
 }
 
 Event* Event::fromJson(const QJsonObject& obj)
@@ -88,17 +76,14 @@ Event* Event::fromJson(const QJsonObject& obj)
     if (auto e = RoomEvent::fromJson(obj))
         return e;
 
-    return dispatch<Event*>(obj).to(obj["type"].toString(),
-            "m.typing", make<TypingEvent>,
-            "m.receipt", make<ReceiptEvent>,
-            /* Insert new event types (except room events) BEFORE this line */
-            nullptr
-            );
+    return makeIfMatches<Event,
+        TypingEvent, ReceiptEvent>(obj, obj["type"].toString());
 }
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     : Event(type, rep), _id(rep["event_id"].toString())
-    , _serverTimestamp(toTimestamp(rep["origin_server_ts"]))
+    , _serverTimestamp(
+          QMatrixClient::fromJson<QDateTime>(rep["origin_server_ts"]))
     , _roomId(rep["room_id"].toString())
     , _senderId(rep["sender"].toString())
     , _txnId(rep["unsigned"].toObject().value("transactionId").toString())
@@ -130,16 +115,8 @@ void RoomEvent::addId(const QString& id)
 
 RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
 {
-    return dispatch<RoomEvent*>(obj).to(obj["type"].toString(),
-            "m.room.message", make<RoomMessageEvent>,
-            "m.room.name", make<RoomNameEvent>,
-            "m.room.aliases", make<RoomAliasesEvent>,
-            "m.room.canonical_alias", make<RoomCanonicalAliasEvent>,
-            "m.room.member", make<RoomMemberEvent>,
-            "m.room.topic", make<RoomTopicEvent>,
-            "m.room.avatar", make<RoomAvatarEvent>,
-            "m.room.encryption", make<EncryptionEvent>,
-            /* Insert new ROOM event types BEFORE this line */
-            nullptr
-        );
+    return makeIfMatches<RoomEvent,
+        RoomMessageEvent, RoomNameEvent, RoomAliasesEvent,
+        RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
+        RoomAvatarEvent, EncryptionEvent>(obj, obj["type"].toString());
 }

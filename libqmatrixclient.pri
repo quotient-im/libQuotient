@@ -13,11 +13,8 @@ HEADERS += \
     $$PWD/events/event.h \
     $$PWD/events/eventcontent.h \
     $$PWD/events/roommessageevent.h \
-    $$PWD/events/roomnameevent.h \
-    $$PWD/events/roomaliasesevent.h \
-    $$PWD/events/roomcanonicalaliasevent.h \
+    $$PWD/events/simplestateevents.h \
     $$PWD/events/roommemberevent.h \
-    $$PWD/events/roomtopicevent.h \
     $$PWD/events/roomavatarevent.h \
     $$PWD/events/typingevent.h \
     $$PWD/events/receiptevent.h \
@@ -44,12 +41,7 @@ SOURCES += \
     $$PWD/events/event.cpp \
     $$PWD/events/eventcontent.cpp \
     $$PWD/events/roommessageevent.cpp \
-    $$PWD/events/roomnameevent.cpp \
-    $$PWD/events/roomaliasesevent.cpp \
-    $$PWD/events/roomcanonicalaliasevent.cpp \
     $$PWD/events/roommemberevent.cpp \
-    $$PWD/events/roomtopicevent.cpp \
-    $$PWD/events/roomavatarevent.cpp \
     $$PWD/events/typingevent.cpp \
     $$PWD/events/receiptevent.cpp \
     $$PWD/jobs/basejob.cpp \
