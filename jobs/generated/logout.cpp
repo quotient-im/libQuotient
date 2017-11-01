@@ -5,7 +5,7 @@
 
 #include "logout.h"
 
-#include "jobs/converters.h"
+#include "converters.h"
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
