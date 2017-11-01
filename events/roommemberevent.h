@@ -28,6 +28,8 @@ namespace QMatrixClient
     {
             Q_GADGET
         public:
+            static constexpr const char* TypeId = "m.room.member";
+
             enum MembershipType : int {Invite = 0, Join, Knock, Leave, Ban};
 
             explicit RoomMemberEvent(const QJsonObject& obj);
