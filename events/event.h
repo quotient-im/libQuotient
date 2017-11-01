@@ -31,12 +31,18 @@ namespace QMatrixClient
     {
             Q_GADGET
         public:
-            enum class Type
+            enum class Type : quint16
             {
-                RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
-                RoomMember, RoomTopic, RoomAvatar,
-                RoomEncryption, RoomEncryptedMessage,
-                Typing, Receipt, Unknown
+                Unknown = 0,
+                Typing, Receipt,
+                RoomEventBase = 0x1000,
+                RoomMessage = RoomEventBase + 1,
+                RoomEncryptedMessage,
+                RoomStateEventBase = 0x1800,
+                RoomName = RoomStateEventBase + 1,
+                RoomAliases, RoomCanonicalAlias, RoomMember, RoomTopic,
+                RoomAvatar, RoomEncryption,
+                Reserved = 0x2000
             };
 
             explicit Event(Type type) : _type(type) { }
@@ -44,6 +50,10 @@ namespace QMatrixClient
             Event(const Event&) = delete;
 
             Type type() const { return _type; }
+            bool isStateEvent() const
+            {
+                return (quint16(_type) & 0x1800) == 0x1800;
+            }
             QByteArray originalJson() const;
             QJsonObject originalJsonObject() const;
 
@@ -152,9 +162,12 @@ namespace QMatrixClient
                 : RoomEvent(type, obj)
                 , _content(contentJson(),
                            std::forward<ContentParamTs>(contentParams)...)
-                , _prev(new ContentT(obj["prev_content"].toObject(),
-                            std::forward<ContentParamTs>(contentParams)...))
-            { }
+            {
+                if (obj.contains("prev_content"))
+                    _prev.reset(new ContentT(
+                            obj["prev_content"].toObject(),
+                            std::forward<ContentParamTs>(contentParams)...));
+            }
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, ContentParamTs&&... contentParams)
                 : RoomEvent(type)
