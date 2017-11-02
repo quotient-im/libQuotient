@@ -343,22 +343,11 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
-    // Room transitions:
-    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
-    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
-    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
-    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
-    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
-    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
-    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
-    // 6. Join -> Leave: change state
-    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
-    // 8. Leave -> (changes to) Join
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
     {
-        // Leave is a special case because in transition (5a) above
+        // Leave is a special case because in transition (5a) (see the .h file)
         // joinState == room->joinState but we still have to preempt the Invite
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)

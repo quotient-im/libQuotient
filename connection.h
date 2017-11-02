@@ -191,14 +191,67 @@ namespace QMatrixClient
         signals:
             void resolved();
             void connected();
-            void reconnected();
+            void reconnected(); //< Unused; use connected() instead
             void loggedOut();
 
             void syncDone();
+
+            /**
+             * \group Signals emitted on room transitions
+             *
+             * Note: Rooms in Invite state are always stored separately from
+             * rooms in Join/Leave state, because of special treatment of
+             * invite_state in Matrix CS API (see The Spec on /sync for details).
+             * Therefore, objects below are: r - room in Join/Leave state;
+             * i - room in Invite state
+             *
+             * 1. none -> Invite: newRoom(r), invitedRoom(r,nullptr)
+             * 2. none -> Join: newRoom(r), joinedRoom(r,nullptr)
+             * 3. none -> Leave: newRoom(r), leftRoom(r,nullptr)
+             * 4. Invite -> Join:
+             *      newRoom(r), joinedRoom(r,i), aboutToDeleteRoom(i)
+             * 4a. Leave and Invite -> Join:
+             *      joinedRoom(r,i), aboutToDeleteRoom(i)
+             * 5. Invite -> Leave:
+             *      newRoom(r), leftRoom(r,i), aboutToDeleteRoom(i)
+             * 5a. Leave and Invite -> Leave:
+             *      leftRoom(r,i), aboutToDeleteRoom(i)
+             * 6. Join -> Leave: leftRoom(r)
+             * 7. Leave -> Invite: newRoom(i), invitedRoom(i,r)
+             * 8. Leave -> Join: joinedRoom(r)
+             * The following transitions are only possible via forgetRoom()
+             * so far; if a room gets forgotten externally, sync won't tell
+             * about it:
+             * 9. any -> none: as any -> Leave, then aboutToDeleteRoom(r)
+             */
+
+            /** A new room object has been created */
             void newRoom(Room* room);
+
+            /** Invitation to a room received
+             *
+             * If the same room is in Left state, it's passed in prev.
+             */
             void invitedRoom(Room* room, Room* prev);
+
+            /** A room has just been joined
+             *
+             * It's not the same as receiving a room in "join" section of sync
+             * response (rooms will be there even after joining). If this room
+             * was in Invite state before, the respective object is passed in
+             * prev (and it will be deleted shortly afterwards).
+             */
             void joinedRoom(Room* room, Room* prev);
+
+            /** A room has just been left
+             *
+             * If this room has been in Invite state (as in case of rejecting
+             * an invitation), the respective object will be passed in prev
+             * (and will be deleted shortly afterwards).
+             */
             void leftRoom(Room* room, Room* prev);
+
+            /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
 
             void loginError(QString error);
