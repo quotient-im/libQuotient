@@ -116,9 +116,6 @@ namespace QMatrixClient
              */
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-            void updateData(SyncRoomData&& data );
-            Q_INVOKABLE void setJoinState( JoinState state );
-
             const Timeline& messageEvents() const;
             /**
              * A convenience method returning the read marker to the before-oldest
@@ -155,6 +152,8 @@ namespace QMatrixClient
             MemberSorter memberSorter() const;
 
             QJsonObject toJson() const;
+            void updateData(SyncRoomData&& data );
+            void setJoinState( JoinState state );
 
         public slots:
             void postMessage(const QString& plainText,
