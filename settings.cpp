@@ -5,6 +5,16 @@
 
 using namespace QMatrixClient;
 
+QString Settings::legacyOrganizationName {};
+QString Settings::legacyApplicationName {};
+
+void Settings::setLegacyNames(const QString& organizationName,
+                              const QString& applicationName)
+{
+    legacyOrganizationName = organizationName;
+    legacyApplicationName = applicationName;
+}
+
 void Settings::setValue(const QString& key, const QVariant& value)
 {
 //    qCDebug() << "Setting" << key << "to" << value;
@@ -13,22 +23,33 @@ void Settings::setValue(const QString& key, const QVariant& value)
 
 QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
 {
-    return QSettings::value(key, defaultValue);
+    return QSettings::value(key, legacySettings.value(key, defaultValue));
+}
+
+bool Settings::contains(const QString& key) const
+{
+    return QSettings::contains(key) || legacySettings.contains(key);
+}
+
+QStringList Settings::childGroups() const
+{
+    auto l = QSettings::childGroups();
+    return !l.isEmpty() ? l : legacySettings.childGroups();
 }
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
 {
-    Settings::setValue(groupPath + "/" + key, value);
+    Settings::setValue(groupPath + '/' + key, value);
 }
 
 bool SettingsGroup::contains(const QString& key) const
 {
-    return Settings::contains(groupPath + "/" + key);
+    return Settings::contains(groupPath + '/' + key);
 }
 
 QVariant SettingsGroup::value(const QString& key, const QVariant& defaultValue) const
 {
-    return Settings::value(groupPath + "/" + key, defaultValue);
+    return Settings::value(groupPath + '/' + key, defaultValue);
 }
 
 QString SettingsGroup::group() const
@@ -39,8 +60,10 @@ QString SettingsGroup::group() const
 QStringList SettingsGroup::childGroups() const
 {
     const_cast<SettingsGroup*>(this)->beginGroup(groupPath);
-    QStringList l { Settings::childGroups() };
+    const_cast<QSettings&>(legacySettings).beginGroup(groupPath);
+    QStringList l = Settings::childGroups();
     const_cast<SettingsGroup*>(this)->endGroup();
+    const_cast<QSettings&>(legacySettings).endGroup();
     return l;
 }
 
