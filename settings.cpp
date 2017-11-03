@@ -23,7 +23,13 @@ void Settings::setValue(const QString& key, const QVariant& value)
 
 QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
 {
-    return QSettings::value(key, legacySettings.value(key, defaultValue));
+    auto value = QSettings::value(key, legacySettings.value(key, defaultValue));
+    // QML's Qt.labs.Settings stores boolean values as strings, which, if loaded
+    // through the usual QSettings interface, confuses QML
+    // (QVariant("false") == true in JavaScript). Since we have a mixed
+    // environment where both QSettings and Qt.labs.Settings may potentially
+    // work with same settings, better ensure compatibility.
+    return value.toString() == QStringLiteral("false") ? QVariant(false) : value;
 }
 
 bool Settings::contains(const QString& key) const
