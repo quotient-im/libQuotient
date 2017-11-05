@@ -2,13 +2,13 @@
 
 [![license](https://img.shields.io/github/license/QMatrixClient/libqmatrixclient.svg)](https://github.com/QMatrixClient/libqmatrixclient/blob/master/COPYING)
 ![status](https://img.shields.io/badge/status-beta-yellow.svg)
-[![release](https://img.shields.io/github/release/QMatrixClient/libqmatrixclient/all.svg)](https://github.com/QMatrixClient/Quaternion/releases/latest)
+[![release](https://img.shields.io/github/release/QMatrixClient/libqmatrixclient/all.svg)](https://github.com/QMatrixClient/libqmatrixclient/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 libqmatrixclient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Tensor](https://matrix.org/docs/projects/client/tensor.html) and some other projects.
 
 ## Contacts
-You can find authors of libqmatrixclient in the Quaternion Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
+You can find authors of libqmatrixclient in the Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
 
 You can also file issues at [the project's issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues). If you have what looks like a security issue, please see respective instructions in CONTRIBUTING.md.
 
