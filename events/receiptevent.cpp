@@ -35,9 +35,8 @@ Example of a Receipt Event:
 
 #include "receiptevent.h"
 
+#include "converters.h"
 #include "logging.h"
-
-#include <QtCore/QJsonArray>
 
 using namespace QMatrixClient;
 
@@ -62,7 +61,8 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
         for( auto userIt = reads.begin(); userIt != reads.end(); ++userIt )
         {
             const QJsonObject user = userIt.value().toObject();
-            receipts.push_back({userIt.key(), toTimestamp(user["ts"])});
+            receipts.push_back({userIt.key(),
+                                QMatrixClient::fromJson<QDateTime>(user["ts"])});
         }
         _eventsWithReceipts.push_back({eventIt.key(), receipts});
     }

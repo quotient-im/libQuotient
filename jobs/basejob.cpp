@@ -24,7 +24,8 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QtCore/QTimer>
-#include <QtCore/QStringBuilder>
+#include <QtCore/QRegularExpression>
+//#include <QtCore/QStringBuilder>
 
 #include <array>
 
@@ -45,16 +46,15 @@ class BaseJob::Private
     public:
         // Using an idiom from clang-tidy:
         // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-        Private(const ConnectionData* c, HttpVerb v,
-                QString endpoint, QUrlQuery q, Data data, bool nt)
-            : connection(c), verb(v), apiEndpoint(std::move(endpoint))
+        Private(HttpVerb v, QString endpoint, QUrlQuery q, Data data, bool nt)
+            : verb(v), apiEndpoint(std::move(endpoint))
             , requestQuery(std::move(q)), requestData(std::move(data))
             , needsToken(nt)
         { }
         
         void sendRequest();
 
-        const ConnectionData* connection;
+        const ConnectionData* connection = nullptr;
 
         // Contents for the network request
         HttpVerb verb;
@@ -80,16 +80,22 @@ inline QDebug operator<<(QDebug dbg, const BaseJob* j)
     return dbg << j->objectName();
 }
 
-BaseJob::BaseJob(const ConnectionData* connection, HttpVerb verb,
-                 const QString& name, const QString& endpoint,
+QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
+{
+    QRegularExpression filter { "(access_token)(=|: )[-_A-Za-z0-9]+" };
+    return dbg << s.code << ':'
+               << QString(s.message).replace(filter, "\\1 HIDDEN");
+}
+
+BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  const Query& query, const Data& data, bool needsToken)
-    : d(new Private(connection, verb, endpoint, query, data, needsToken))
+    : d(new Private(verb, endpoint, query, data, needsToken))
 {
     setObjectName(name);
     d->timer.setSingleShot(true);
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);
-    connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::start);
+    connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::sendRequest);
 }
 
 BaseJob::~BaseJob()
@@ -98,9 +104,14 @@ BaseJob::~BaseJob()
     qCDebug(d->logCat) << this << "destroyed";
 }
 
-const ConnectionData* BaseJob::connection() const
+const QString& BaseJob::apiEndpoint() const
 {
-    return d->connection;
+    return d->apiEndpoint;
+}
+
+void BaseJob::setApiEndpoint(const QString& apiEndpoint)
+{
+    d->apiEndpoint = apiEndpoint;
 }
 
 const QUrlQuery& BaseJob::query() const
@@ -127,13 +138,12 @@ void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
     url.setPath( url.path() + "/" + apiEndpoint );
-    QUrlQuery q = requestQuery;
-    if (needsToken)
-        q.addQueryItem("access_token", connection->accessToken());
-    url.setQuery(q);
+    url.setQuery(requestQuery);
 
     QNetworkRequest req {url};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setRawHeader(QByteArray("Authorization"),
+                     QByteArray("Bearer ") + connection->accessToken());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
@@ -155,7 +165,18 @@ void BaseJob::Private::sendRequest()
     }
 }
 
-void BaseJob::start()
+void BaseJob::beforeStart(const ConnectionData* connData)
+{
+}
+
+void BaseJob::start(const ConnectionData* connData)
+{
+    d->connection = connData;
+    beforeStart(connData);
+    sendRequest();
+}
+
+void BaseJob::sendRequest()
 {
     emit aboutToStart();
     d->retryTimer.stop(); // In case we were counting down at the moment
@@ -317,10 +338,7 @@ void BaseJob::setStatus(Status s)
 {
     d->status = s;
     if (!s.good())
-    {
-        qCWarning(d->logCat) << this << "status" << s.code
-                                     << ":" << s.message;
-    }
+        qCWarning(d->logCat) << this << "status" << s;
 }
 
 void BaseJob::setStatus(int code, QString message)

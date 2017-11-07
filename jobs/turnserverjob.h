@@ -25,7 +25,7 @@ namespace QMatrixClient
     class TurnServerJob: public BaseJob
     {
         public:
-            TurnServerJob(const ConnectionData* data);
+            TurnServerJob();
             virtual ~TurnServerJob();
 
             QJsonObject toJson() const;

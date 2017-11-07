@@ -28,8 +28,8 @@ class PasswordLogin::Private
         QString returned_token;
 };
 
-PasswordLogin::PasswordLogin(const ConnectionData* connection, QString user, QString password)
-    : BaseJob(connection, HttpVerb::Post, "PasswordLogin"
+PasswordLogin::PasswordLogin(QString user, QString password)
+    : BaseJob(HttpVerb::Post, "PasswordLogin"
             , "_matrix/client/r0/login"
             , Query()
             , Data(
@@ -48,17 +48,17 @@ PasswordLogin::~PasswordLogin()
     delete d;
 }
 
-QString PasswordLogin::token()
+QString PasswordLogin::token() const
 {
     return d->returned_token;
 }
 
-QString PasswordLogin::id()
+QString PasswordLogin::id() const
 {
     return d->returned_id;
 }
 
-QString PasswordLogin::server()
+QString PasswordLogin::server() const
 {
     return d->returned_server;
 }

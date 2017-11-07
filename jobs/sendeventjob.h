@@ -29,22 +29,20 @@ namespace QMatrixClient
         public:
             /** Constructs a job that sends an arbitrary room event */
             template <typename EvT>
-            SendEventJob(const ConnectionData* connection, const QString& roomId,
-                         const EvT* event)
-                : BaseJob(connection, HttpVerb::Put, "SendEventJob",
-                          QStringLiteral("_matrix/client/r0/rooms/%1/send/%2/%3")
-                              .arg(roomId, EvT::TypeId,
-                                   connection->generateTxnId()),
+            SendEventJob(const QString& roomId, const EvT& event)
+                : BaseJob(HttpVerb::Put, QStringLiteral("SendEventJob"),
+                          QStringLiteral("_matrix/client/r0/rooms/%1/send/%2/")
+                              .arg(roomId, EvT::TypeId), // See also beforeStart()
                           Query(),
-                          Data(event->toJson()))
+                          Data(event.toJson()))
             { }
 
             /**
              * Constructs a plain text message job (for compatibility with
              * the old PostMessageJob API).
              */
-            SendEventJob(const ConnectionData* connection, const QString& roomId,
-                         const QString& type, const QString& plainText);
+            SendEventJob(const QString& roomId, const QString& type,
+                         const QString& plainText);
 
             QString eventId() const { return _eventId; }
 
@@ -53,5 +51,7 @@ namespace QMatrixClient
 
         private:
             QString _eventId;
+
+            void beforeStart(const ConnectionData* connData) override;
     };
 }  // namespace QMatrixClient

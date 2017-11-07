@@ -15,10 +15,16 @@ namespace QMatrixClient
 
     // Operations
 
-    class KickJob : public BaseJob
+    class LeaveRoomJob : public BaseJob
     {
         public:
-            explicit KickJob(QString roomId, QString user_id, QString reason = {});
+            explicit LeaveRoomJob(QString roomId);
+
+    };
+    class ForgetRoomJob : public BaseJob
+    {
+        public:
+            explicit ForgetRoomJob(QString roomId);
 
     };
 

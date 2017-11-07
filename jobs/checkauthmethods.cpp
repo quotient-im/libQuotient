@@ -29,9 +29,9 @@ class CheckAuthMethods::Private
         QString session;
 };
 
-CheckAuthMethods::CheckAuthMethods(const ConnectionData* connection)
-    : BaseJob(connection, HttpVerb::Get, "CheckAuthMethods",
-              "_matrix/client/r0/login", Query(), Data(), false)
+CheckAuthMethods::CheckAuthMethods()
+    : BaseJob(HttpVerb::Get, "CheckAuthMethods",
+              QStringLiteral("_matrix/client/r0/login"), Query(), Data(), false)
     , d(new Private)
 {
 }

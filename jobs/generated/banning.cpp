@@ -3,7 +3,7 @@
  */
 
 
-#include "kicking.h"
+#include "banning.h"
 
 #include "converters.h"
 #include <QtCore/QStringBuilder>
@@ -12,13 +12,23 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-KickJob::KickJob(QString roomId, QString user_id, QString reason)
-    : BaseJob(HttpVerb::Post, "KickJob",
-        basePath % "/rooms/" % roomId % "/kick",
+BanJob::BanJob(QString roomId, QString user_id, QString reason)
+    : BaseJob(HttpVerb::Post, "BanJob",
+        basePath % "/rooms/" % roomId % "/ban",
         Query { },
         Data {
             { "user_id", toJson(user_id) },
             { "reason", toJson(reason) }
+        }
+    )
+{ }
+
+UnbanJob::UnbanJob(QString roomId, QString user_id)
+    : BaseJob(HttpVerb::Post, "UnbanJob",
+        basePath % "/rooms/" % roomId % "/unban",
+        Query { },
+        Data {
+            { "user_id", toJson(user_id) }
         }
     )
 { }

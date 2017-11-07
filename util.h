@@ -39,8 +39,8 @@ namespace QMatrixClient
     {
         public:
             Owning() = default;
-            Owning(Owning&) = delete;
-            Owning(Owning&& other) = default;
+            Owning(const Owning&) = delete;
+            Owning(Owning&&) = default;
             Owning& operator=(Owning&& other)
             {
                 assign(other.release());
@@ -231,7 +231,7 @@ namespace QMatrixClient
     template <typename ResultT, typename... ArgTs>
     Dispatch<ResultT, ArgTs...> dispatch(ArgTs&& ... args)
     {
-        return Dispatch<ResultT, ArgTs...>(std::forward<ArgTs...>(args)...);
+        return Dispatch<ResultT, ArgTs...>(std::forward<ArgTs>(args)...);
     }
 
     // The below enables pretty-printing of enums in logs

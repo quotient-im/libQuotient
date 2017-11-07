@@ -25,7 +25,7 @@ namespace QMatrixClient
     class JoinRoomJob: public BaseJob
     {
         public:
-            JoinRoomJob(const ConnectionData* data, const QString& roomAlias);
+            explicit JoinRoomJob(const QString& roomAlias);
             virtual ~JoinRoomJob();
 
             QString roomId();

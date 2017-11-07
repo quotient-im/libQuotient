@@ -27,9 +27,9 @@ class TurnServerJob::Private
         QJsonObject _turnObject;
 };
 
-TurnServerJob::TurnServerJob(const ConnectionData* data)
-    : BaseJob(data, HttpVerb::Get, "TurnServerJob",
-              QString("/_matrix/client/r0/voip/turnServer"))
+TurnServerJob::TurnServerJob()
+    : BaseJob(HttpVerb::Get, "TurnServerJob",
+              QStringLiteral("/_matrix/client/r0/voip/turnServer"))
     , d(new Private)
 {
 }

@@ -18,22 +18,40 @@
 
 #pragma once
 
-#include "event.h"
+#include <QtGui/QIcon>
+#include <QtCore/QUrl>
+
+#include <functional>
 
 namespace QMatrixClient
 {
-    class EncryptionEvent : public RoomEvent
+    class MediaThumbnailJob;
+    class Connection;
+
+    class Avatar
     {
         public:
-            explicit EncryptionEvent(const QJsonObject& obj)
-                : RoomEvent(Type::RoomEncryption, obj)
-                , _algorithm(contentJson()["algorithm"].toString())
+            explicit Avatar(Connection* connection, QIcon defaultIcon = {})
+                : _defaultIcon(std::move(defaultIcon)), _connection(connection)
             { }
 
-            QString algorithm() const { return _algorithm; }
+            QPixmap get(int w, int h, std::function<void()> continuation);
+
+            QUrl url() const { return _url; }
+            bool updateUrl(const QUrl& newUrl);
 
         private:
-            QString _algorithm;
+            QUrl _url;
+            QPixmap _originalPixmap;
+            QIcon _defaultIcon;
+
+            /// Map of requested size to the actual pixmap used for it
+            /// (it's a shame that QSize has no predefined qHash()).
+            QHash<QPair<int,int>, QPixmap> _scaledPixmaps;
+
+            QSize _requestedSize;
+            bool _valid = false;
+            Connection* _connection;
+            MediaThumbnailJob* _ongoingRequest = nullptr;
     };
 }  // namespace QMatrixClient
-

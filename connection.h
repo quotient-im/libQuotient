@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "jobs/generated/leaving.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -60,18 +61,8 @@ namespace QMatrixClient
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;
 
-            Q_INVOKABLE virtual void resolveServer(const QString& domain);
-            Q_INVOKABLE virtual void connectToServer(const QString& user,
-                                                     const QString& password);
-            Q_INVOKABLE virtual void connectWithToken(const QString& userId,
-                                                      const QString& token);
-            Q_INVOKABLE virtual void reconnect();
-            /** @deprecated Use stopSync() instead */
-            Q_INVOKABLE virtual void disconnectFromServer() { stopSync(); }
-            Q_INVOKABLE virtual void logout();
+            // Old API that will be abolished any time soon. DO NOT USE.
 
-            Q_INVOKABLE void sync(int timeout = -1);
-            Q_INVOKABLE void stopSync();
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
             Q_INVOKABLE virtual void postMessage(Room* room, const QString& type,
                                                  const QString& message) const;
@@ -82,6 +73,7 @@ namespace QMatrixClient
             Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             Q_INVOKABLE virtual void leaveRoom( Room* room );
+            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
             Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
                                                              const QString& from) const;
             /** @deprecated Use callApi<MediaThumbnailJob>() instead */
@@ -90,12 +82,26 @@ namespace QMatrixClient
             /** @deprecated Use callApi<MediaThumbnailJob>() instead */
             MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const;
+            /** Sends /forget to the server and also deletes room locally.
+             * This method is in Connection, not in Room, since it's a
+             * room lifecycle operation, and Connection is an acting room manager.
+             * It ensures that the local user is not a member of a room (running /leave,
+             * if necessary) then issues a /forget request and if that one doesn't fail
+             * deletion of the local Room object is ensured.
+             * \param id - the room id to forget
+             * \return - the ongoing /forget request to the server; note that the
+             * success() signal of this request is connected to deleteLater()
+             * of a respective room so by the moment this finishes, there might be no
+             * Room object anymore.
+             */
+            ForgetRoomJob* forgetRoom(const QString& id);
 
 
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
             Q_INVOKABLE QString userId() const;
+            Q_INVOKABLE QString deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE QString accessToken() const;
@@ -143,10 +149,10 @@ namespace QMatrixClient
              * argument - callApi() will pass it automatically.
              */
             template <typename JobT, typename... JobArgTs>
-            JobT* callApi(JobArgTs... jobArgs) const
+            JobT* callApi(JobArgTs&&... jobArgs) const
             {
-                auto job = new JobT(connectionData(), jobArgs...);
-                job->start();
+                auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
+                job->start(connectionData());
                 return job;
             }
 
@@ -170,17 +176,85 @@ namespace QMatrixClient
                     [](Connection* c, const QString& id) { return new T(id, c); };
             }
 
+        public slots:
+            void resolveServer(const QString& domain);
+            void connectToServer(const QString& user, const QString& password,
+                                             const QString& initialDeviceName,
+                                             const QString& deviceId = {});
+            void connectWithToken(const QString& userId, const QString& accessToken,
+                                              const QString& deviceId);
+
+            /** @deprecated Use stopSync() instead */
+            void disconnectFromServer() { stopSync(); }
+            void logout();
+
+            void sync(int timeout = -1);
+            void stopSync();
+
         signals:
             void resolved();
             void connected();
-            void reconnected();
+            void reconnected(); //< Unused; use connected() instead
             void loggedOut();
 
             void syncDone();
+
+            /**
+             * \group Signals emitted on room transitions
+             *
+             * Note: Rooms in Invite state are always stored separately from
+             * rooms in Join/Leave state, because of special treatment of
+             * invite_state in Matrix CS API (see The Spec on /sync for details).
+             * Therefore, objects below are: r - room in Join/Leave state;
+             * i - room in Invite state
+             *
+             * 1. none -> Invite: newRoom(r), invitedRoom(r,nullptr)
+             * 2. none -> Join: newRoom(r), joinedRoom(r,nullptr)
+             * 3. none -> Leave: newRoom(r), leftRoom(r,nullptr)
+             * 4. Invite -> Join:
+             *      newRoom(r), joinedRoom(r,i), aboutToDeleteRoom(i)
+             * 4a. Leave and Invite -> Join:
+             *      joinedRoom(r,i), aboutToDeleteRoom(i)
+             * 5. Invite -> Leave:
+             *      newRoom(r), leftRoom(r,i), aboutToDeleteRoom(i)
+             * 5a. Leave and Invite -> Leave:
+             *      leftRoom(r,i), aboutToDeleteRoom(i)
+             * 6. Join -> Leave: leftRoom(r)
+             * 7. Leave -> Invite: newRoom(i), invitedRoom(i,r)
+             * 8. Leave -> Join: joinedRoom(r)
+             * The following transitions are only possible via forgetRoom()
+             * so far; if a room gets forgotten externally, sync won't tell
+             * about it:
+             * 9. any -> none: as any -> Leave, then aboutToDeleteRoom(r)
+             */
+
+            /** A new room object has been created */
             void newRoom(Room* room);
+
+            /** Invitation to a room received
+             *
+             * If the same room is in Left state, it's passed in prev.
+             */
             void invitedRoom(Room* room, Room* prev);
+
+            /** A room has just been joined
+             *
+             * It's not the same as receiving a room in "join" section of sync
+             * response (rooms will be there even after joining). If this room
+             * was in Invite state before, the respective object is passed in
+             * prev (and it will be deleted shortly afterwards).
+             */
             void joinedRoom(Room* room, Room* prev);
+
+            /** A room has just been left
+             *
+             * If this room has been in Invite state (as in case of rejecting
+             * an invitation), the respective object will be passed in prev
+             * (and will be deleted shortly afterwards).
+             */
             void leftRoom(Room* room, Room* prev);
+
+            /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
 
             void loginError(QString error);

@@ -24,10 +24,10 @@ using namespace QMatrixClient;
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(const ConnectionData* connection, const QString& since,
-                 const QString& filter, int timeout, const QString& presence)
-    : BaseJob(connection, HttpVerb::Get, QString("SyncJob-%1").arg(++jobId),
-              "_matrix/client/r0/sync")
+SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
+                 const QString& presence)
+    : BaseJob(HttpVerb::Get, QStringLiteral("SyncJob-%1").arg(++jobId),
+              QStringLiteral("_matrix/client/r0/sync"))
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
@@ -69,19 +69,13 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
     // TODO: account_data
     QJsonObject rooms = json.value("rooms").toObject();
 
-    static const struct { QString jsonKey; JoinState enumVal; } roomStates[]
+    for (size_t i = 0; i < JoinStateStrings.size(); ++i)
     {
-        { "join", JoinState::Join },
-        { "invite", JoinState::Invite },
-        { "leave", JoinState::Leave }
-    };
-    for (const auto& roomState: roomStates)
-    {
-        const QJsonObject rs = rooms.value(roomState.jsonKey).toObject();
+        const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(static_cast<size_t>(rs.size()));
         for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
-            roomData.emplace_back(roomIt.key(), roomState.enumVal,
+            roomData.emplace_back(roomIt.key(), JoinState(i),
                                   roomIt.value().toObject());
     }
     qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";

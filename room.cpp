@@ -20,21 +20,11 @@
 
 #include "jobs/generated/kicking.h"
 #include "jobs/generated/inviting.h"
-
-#include <array>
-
-#include <QtCore/QHash>
-#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
-#include <QtCore/QElapsedTimer>
-#include <jobs/setroomstatejob.h>
-
-#include "connection.h"
-#include "state.h"
-#include "user.h"
-#include "events/roomnameevent.h"
-#include "events/roomaliasesevent.h"
-#include "events/roomcanonicalaliasevent.h"
-#include "events/roomtopicevent.h"
+#include "jobs/generated/banning.h"
+#include "jobs/generated/leaving.h"
+#include "jobs/setroomstatejob.h"
+#include "events/simplestateevents.h"
+#include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
@@ -45,7 +35,15 @@
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
-#include "jobs/leaveroomjob.h"
+#include "avatar.h"
+#include "connection.h"
+#include "user.h"
+
+#include <QtCore/QHash>
+#include <QtCore/QStringBuilder> // for efficient string concats (operator%)
+#include <QtCore/QElapsedTimer>
+
+#include <array>
 
 using namespace QMatrixClient;
 
@@ -58,7 +56,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , joinState(initialJoinState), unreadMessages(false)
+            , avatar(c), joinState(initialJoinState), unreadMessages(false)
             , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
         { }
 
@@ -78,6 +76,7 @@ class Room::Private
         QString name;
         QString displayname;
         QString topic;
+        Avatar avatar;
         JoinState joinState;
         bool unreadMessages;
         int highlightCount;
@@ -192,6 +191,23 @@ QString Room::displayName() const
 QString Room::topic() const
 {
     return d->topic;
+}
+
+QPixmap Room::avatar(int width, int height)
+{
+    if (!d->avatar.url().isEmpty())
+        return d->avatar.get(width, height, [=] { emit avatarChanged(); });
+
+    // Use the other side's avatar for 1:1's
+    if (d->membersMap.size() == 2)
+    {
+        auto theOtherOneIt = d->membersMap.begin();
+        if (theOtherOneIt.value() == localUser())
+            ++theOtherOneIt;
+        return theOtherOneIt.value()->avatarObject()
+                .get(width, height, [=] { emit avatarChanged(); });
+    }
+    return {};
 }
 
 JoinState Room::joinState() const
@@ -399,6 +415,11 @@ int Room::memberCount() const
     return d->membersMap.size();
 }
 
+int Room::timelineSize() const
+{
+    return int(d->timeline.size());
+}
+
 void Room::Private::insertMemberIntoMap(User *u)
 {
     auto namesakes = membersMap.values(u->name());
@@ -450,7 +471,8 @@ void Room::Private::addMember(User *u)
     if (!hasMember(u))
     {
         insertMemberIntoMap(u);
-        connect(u, &User::nameChanged, q, &Room::userRenamed);
+        connect(u, &User::nameChanged, q,
+                [=] (User* u, const QString& newName) { renameMember(u, newName); });
         emit q->userAdded(u);
     }
 }
@@ -493,11 +515,6 @@ void Room::Private::removeMember(User* u)
         removeMemberFromMap(u->name(), u);
         emit q->userRemoved(u);
     }
-}
-
-void Room::userRenamed(User* user, QString oldName)
-{
-    d->renameMember(user, std::move(oldName));
 }
 
 QString Room::roomMembername(User *u) const
@@ -586,16 +603,15 @@ void Room::updateData(SyncRoomData&& data)
 
 void Room::postMessage(const QString& type, const QString& plainText)
 {
-    connection()->callApi<SendEventJob>(id(), type, plainText);
+    postMessage(RoomMessageEvent { plainText, type });
 }
 
 void Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    RoomMessageEvent rme(plainText, type);
-    postMessage(&rme);
+    postMessage(RoomMessageEvent { plainText, type });
 }
 
-void Room::postMessage(RoomMessageEvent* event)
+void Room::postMessage(const RoomMessageEvent& event)
 {
     connection()->callApi<SendEventJob>(id(), event);
 }
@@ -604,39 +620,39 @@ void Room::inviteCall(const QString& callId, const int& lifetime,
                 const QString& sdp)
 {
       CallInviteEvent rme(callId, lifetime, sdp);
-      connection()->callApi<SendEventJob>(id(), &rme);
+      connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::callCandidates(const QString& callId,
                     const QJsonArray& candidates)
 {
       CallCandidatesEvent rme(callId, candidates);
-      connection()->callApi<SendEventJob>(id(), &rme);
+      connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::answerCall(const QString& callId, const int& lifetime,
                 const QString& sdp)
 {
       CallAnswerEvent rme(callId, lifetime, sdp);
-      connection()->callApi<SendEventJob>(id(), &rme);
+      connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
       CallAnswerEvent rme(callId, sdp);
-      connection()->callApi<SendEventJob>(id(), &rme);
+      connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::hangupCall(const QString& callId)
 {
       CallHangupEvent rme(callId);
-      connection()->callApi<SendEventJob>(id(), &rme);
+      connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::setTopic(const QString& newTopic)
 {
     RoomTopicEvent evt(newTopic);
-    connection()->callApi<SetRoomStateJob>(id(), &evt);
+    connection()->callApi<SetRoomStateJob>(id(), evt);
 }
 
 void Room::getPreviousContent(int limit)
@@ -661,19 +677,29 @@ void Room::Private::getPreviousContent(int limit)
     }
 }
 
-void Room::inviteToRoom(const QString& memberId) const
+void Room::inviteToRoom(const QString& memberId)
 {
     connection()->callApi<InviteUserJob>(id(), memberId);
 }
 
-void Room::leaveRoom() const
+LeaveRoomJob* Room::leaveRoom()
 {
-    connection()->callApi<LeaveRoomJob>(id());
+    return connection()->callApi<LeaveRoomJob>(id());
 }
 
-void Room::kickMember(const QString& memberId, const QString& reason) const
+void Room::kickMember(const QString& memberId, const QString& reason)
 {
     connection()->callApi<KickJob>(id(), memberId, reason);
+}
+
+void Room::ban(const QString& userId, const QString& reason)
+{
+    connection()->callApi<BanJob>(id(), userId, reason);
+}
+
+void Room::unban(const QString& userId)
+{
+    connection()->callApi<UnbanJob>(id(), userId);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const
@@ -809,6 +835,17 @@ void Room::processStateEvents(const RoomEvents& events)
                 d->topic = topicEvent->topic();
                 qCDebug(MAIN) << "Room topic updated:" << d->topic;
                 emit topicChanged();
+                break;
+            }
+            case EventType::RoomAvatar: {
+                const auto& avatarEventContent =
+                        static_cast<RoomAvatarEvent*>(event)->content();
+                if (d->avatar.updateUrl(avatarEventContent.url))
+                {
+                    qCDebug(MAIN) << "Room avatar URL updated:"
+                                  << avatarEventContent.url.toString();
+                    emit avatarChanged();
+                }
                 break;
             }
             case EventType::RoomMember: {
@@ -979,9 +1016,13 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
-QJsonObject stateEventToJson(const QString& type, const QString& name,
-                             const QJsonValue& content)
+template <typename T>
+void appendEventJson(QJsonArray& events, const QString& type,
+                     const QString& name, const T& content)
 {
+    if (content.isEmpty())
+        return;
+
     QJsonObject contentObj;
     contentObj.insert(name, content);
 
@@ -989,7 +1030,7 @@ QJsonObject stateEventToJson(const QString& type, const QString& name,
     eventObj.insert("type", type);
     eventObj.insert("content", contentObj);
 
-    return eventObj;
+    events.append(eventObj);
 }
 
 QJsonObject Room::Private::toJson() const
@@ -998,18 +1039,20 @@ QJsonObject Room::Private::toJson() const
     {
         QJsonArray stateEvents;
 
-        stateEvents.append(stateEventToJson("m.room.name", "name", name));
-        stateEvents.append(stateEventToJson("m.room.topic", "topic", topic));
-        stateEvents.append(stateEventToJson("m.room.aliases", "aliases",
-                                            QJsonArray::fromStringList(aliases)));
-        stateEvents.append(stateEventToJson("m.room.canonical_alias", "alias",
-                                            canonicalAlias));
+        appendEventJson(stateEvents, "m.room.name", "name", name);
+        appendEventJson(stateEvents, "m.room.topic", "topic", topic);
+        appendEventJson(stateEvents, "m.room.avatar", "url",
+                        avatar.url().toString());
+        appendEventJson(stateEvents, "m.room.aliases", "aliases",
+                        QJsonArray::fromStringList(aliases));
+        appendEventJson(stateEvents, "m.room.canonical_alias", "alias",
+                        canonicalAlias);
 
         for (const auto &i : membersMap)
         {
             QJsonObject content;
             content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", i->displayname());
+            content.insert("displayname", i->name());
             content.insert("avatar_url", i->avatarUrl().toString());
 
             QJsonObject memberEvent;

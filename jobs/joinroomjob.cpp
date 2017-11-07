@@ -27,8 +27,8 @@ class JoinRoomJob::Private
         QString roomId;
 };
 
-JoinRoomJob::JoinRoomJob(const ConnectionData* data, const QString& roomAlias)
-    : BaseJob(data, HttpVerb::Post, "JoinRoomJob",
+JoinRoomJob::JoinRoomJob(const QString& roomAlias)
+    : BaseJob(HttpVerb::Post, "JoinRoomJob",
               QString("_matrix/client/r0/join/%1").arg(roomAlias))
     , d(new Private)
 {

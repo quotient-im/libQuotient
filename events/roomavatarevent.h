@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "roomtopicevent.h"
+#pragma once
 
-using namespace QMatrixClient;
+#include "event.h"
 
+#include <utility>
+
+#include "eventcontent.h"
+
+namespace QMatrixClient
+{
+    class RoomAvatarEvent: public StateEvent<EventContent::ImageContent>
+    {
+            // It's a bit of an overkill to use a full-fledged ImageContent
+            // because in reality m.room.avatar usually only has a single URL,
+            // without a thumbnail. But The Spec says there be thumbnails, and
+            // we follow The Spec.
+        public:
+            explicit RoomAvatarEvent(const QJsonObject& obj)
+                : StateEvent(Type::RoomAvatar, obj)
+            { }
+
+            static constexpr const char* TypeId = "m.room.avatar";
+    };
+
+}  // namespace QMatrixClient

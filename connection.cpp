@@ -21,12 +21,11 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
-#include "jobs/passwordlogin.h"
-#include "jobs/logoutjob.h"
+#include "jobs/generated/login.h"
+#include "jobs/generated/logout.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
-#include "jobs/leaveroomjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
@@ -63,8 +62,6 @@ class Connection::Private
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
         QHash<QString, User*> userMap;
-        QString username;
-        QString password;
         QString userId;
 
         SyncJob* syncJob;
@@ -115,40 +112,31 @@ void Connection::resolveServer(const QString& domain)
     });
 }
 
-void Connection::connectToServer(const QString& user, const QString& password)
+void Connection::connectToServer(const QString& user, const QString& password,
+                                 const QString& initialDeviceName,
+                                 const QString& deviceId)
 {
-    auto loginJob = callApi<PasswordLogin>(user, password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        connectWithToken(loginJob->id(), loginJob->token());
+    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"), user,
+            /*medium*/ "", /*address*/ "", password, /*token*/ "",
+            deviceId, initialDeviceName);
+    connect( loginJob, &BaseJob::success, [=] () {
+        connectWithToken(loginJob->user_id(), loginJob->access_token(),
+                         loginJob->device_id());
     });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
+    connect( loginJob, &BaseJob::failure, [=] () {
         emit loginError(loginJob->errorString());
     });
-    d->username = user; // to be able to reconnect
-    d->password = password;
 }
 
-void Connection::connectWithToken(const QString& userId, const QString& token)
+void Connection::connectWithToken(const QString& userId,
+        const QString& accessToken, const QString& deviceId)
 {
     d->userId = userId;
-    d->data->setToken(token);
-    qCDebug(MAIN) << "Accessing" << d->data->baseUrl()
-             << "by user" << userId
-             << "with the following access token:";
-    qCDebug(MAIN) << token;
+    d->data->setToken(accessToken.toLatin1());
+    d->data->setDeviceId(deviceId);
+    qCDebug(MAIN) << "Using server" << d->data->baseUrl() << "by user" << userId
+                  << "from device" << deviceId;
     emit connected();
-}
-
-void Connection::reconnect()
-{
-    auto loginJob = callApi<PasswordLogin>(d->username, d->password);
-    connect( loginJob, &PasswordLogin::success, [=] () {
-        d->userId = loginJob->id();
-        emit reconnected();
-    });
-    connect( loginJob, &PasswordLogin::failure, [=] () {
-        emit loginError(loginJob->errorString());
-    });
 }
 
 void Connection::logout()
@@ -245,6 +233,45 @@ void Connection::getTurnServers()
   connect( job, &TurnServerJob::success, [=] {
       emit turnServersChanged(job->toJson());
   });
+
+}
+
+ForgetRoomJob* Connection::forgetRoom(const QString& id)
+{
+    // To forget is hard :) First we should ensure the local user is not
+    // in the room (by leaving it, if necessary); once it's done, the /forget
+    // endpoint can be called; and once this is through, the local Room object
+    // (if any existed) is deleted. At the same time, we still have to
+    // (basically immediately) return a pointer to ForgetRoomJob. Therefore
+    // a ForgetRoomJob is created in advance and can be returned in a probably
+    // not-yet-started state (it will start once /leave completes).
+    auto forgetJob = new ForgetRoomJob(id);
+    auto joinedRoom = d->roomMap.value({id, false});
+    if (joinedRoom && joinedRoom->joinState() == JoinState::Join)
+    {
+        auto leaveJob = joinedRoom->leaveRoom();
+        connect(leaveJob, &BaseJob::success,
+                this, [=] { forgetJob->start(connectionData()); });
+        connect(leaveJob, &BaseJob::failure,
+                this, [=] { forgetJob->abandon(); });
+    }
+    else
+        forgetJob->start(connectionData());
+    connect(forgetJob, &BaseJob::success, this, [=]
+    {
+        // If the room happens to be in the map (possible in both forms),
+        // delete the found object(s).
+        for (auto f: {false, true})
+            if (auto r = d->roomMap.take({ id, f }))
+            {
+                emit aboutToDeleteRoom(r);
+                qCDebug(MAIN) << "Room" << id
+                              << "in join state" << toCString(r->joinState())
+                              << "will be deleted";
+                r->deleteLater();
+            }
+    });
+    return forgetJob;
 }
 
 QUrl Connection::homeserver() const
@@ -271,6 +298,11 @@ User *Connection::user()
 QString Connection::userId() const
 {
     return d->userId;
+}
+
+QString Connection::deviceId() const
+{
+    return d->data->deviceId();
 }
 
 QString Connection::token() const
@@ -321,22 +353,11 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
-    // Room transitions:
-    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
-    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
-    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
-    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
-    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
-    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
-    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
-    // 6. Join -> Leave: change state
-    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
-    // 8. Leave -> (changes to) Join
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
     {
-        // Leave is a special case because in transition (5a) above
+        // Leave is a special case because in transition (5a) (see the .h file)
         // joinState == room->joinState but we still have to preempt the Invite
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)

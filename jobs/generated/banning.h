@@ -15,10 +15,16 @@ namespace QMatrixClient
 
     // Operations
 
-    class KickJob : public BaseJob
+    class BanJob : public BaseJob
     {
         public:
-            explicit KickJob(QString roomId, QString user_id, QString reason = {});
+            explicit BanJob(QString roomId, QString user_id, QString reason = {});
+
+    };
+    class UnbanJob : public BaseJob
+    {
+        public:
+            explicit UnbanJob(QString roomId, QString user_id);
 
     };
 

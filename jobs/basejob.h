@@ -110,6 +110,7 @@ namespace QMatrixClient
                     Status(int c, QString m) : code(c), message(std::move(m)) { }
 
                     bool good() const { return code < ErrorLevel; }
+                    friend QDebug operator<<(QDebug dbg, const Status& s);
 
                     int code;
                     QString message;
@@ -118,8 +119,7 @@ namespace QMatrixClient
             using duration_t = int; // milliseconds
 
         public:
-            BaseJob(const ConnectionData* connection, HttpVerb verb,
-                    const QString& name, const QString& endpoint,
+            BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                     const Query& query = {}, const Data& data = {},
                     bool needsToken = true);
 
@@ -135,7 +135,7 @@ namespace QMatrixClient
             Q_INVOKABLE duration_t millisToRetry() const;
 
         public slots:
-            void start();
+            void start(const ConnectionData* connData);
 
             /**
              * Abandons the result of this job, arrived or unarrived.
@@ -205,12 +205,14 @@ namespace QMatrixClient
             void failure(BaseJob*);
 
         protected:
-            const ConnectionData* connection() const;
-
+            const QString& apiEndpoint() const;
+            void setApiEndpoint(const QString& apiEndpoint);
             const QUrlQuery& query() const;
             void setRequestQuery(const QUrlQuery& query);
             const Data& requestData() const;
             void setRequestData(const Data& data);
+
+            virtual void beforeStart(const ConnectionData* connData);
 
             /**
              * Used by gotReply() to check the received reply for general
@@ -260,6 +262,7 @@ namespace QMatrixClient
             void sslErrors(const QList<QSslError>& errors);
 
         private slots:
+            void sendRequest();
             void gotReply();
 
         private:

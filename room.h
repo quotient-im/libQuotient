@@ -25,6 +25,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QObject>
 #include <QtCore/QJsonObject>
+#include <QtGui/QPixmap>
 
 #include "jobs/syncjob.h"
 #include "events/roommessageevent.h"
@@ -36,6 +37,7 @@ namespace QMatrixClient
     class Connection;
     class User;
     class MemberSorter;
+    class LeaveRoomJob;
 
     class TimelineItem
     {
@@ -78,7 +80,7 @@ namespace QMatrixClient
             using rev_iter_t = Timeline::const_reverse_iterator;
 
             Room(Connection* connection, QString id, JoinState initialJoinState);
-            virtual ~Room();
+            ~Room() override;
 
             Connection* connection() const;
             User* localUser() const;
@@ -95,7 +97,14 @@ namespace QMatrixClient
             Q_INVOKABLE QList<User*> users() const;
             Q_INVOKABLE QStringList memberNames() const;
             Q_INVOKABLE int memberCount() const;
+            Q_INVOKABLE int timelineSize() const;
 
+            /**
+             * Returns a room avatar and requests it from the network if needed
+             * @return a pixmap with the avatar or a placeholder if there's none
+             * available yet
+             */
+            Q_INVOKABLE QPixmap avatar(int width, int height);
             /**
              * @brief Produces a disambiguated name for a given user in
              * the context of the room
@@ -106,9 +115,6 @@ namespace QMatrixClient
              * the context of the room
              */
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
-
-            void updateData(SyncRoomData&& data );
-            Q_INVOKABLE void setJoinState( JoinState state );
 
             const Timeline& messageEvents() const;
             /**
@@ -146,22 +152,24 @@ namespace QMatrixClient
             MemberSorter memberSorter() const;
 
             QJsonObject toJson() const;
+            void updateData(SyncRoomData&& data );
+            void setJoinState( JoinState state );
 
         public slots:
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);
-            void postMessage(RoomMessageEvent* event);
+            void postMessage(const RoomMessageEvent& event);
             /** @deprecated */
             void postMessage(const QString& type, const QString& plainText);
             void setTopic(const QString& newTopic);
 
             void getPreviousContent(int limit = 10);
 
-            void inviteToRoom(const QString& memberId) const;
-            void leaveRoom() const;
-            void kickMember(const QString& memberId, const QString& reason) const;
-
-            void userRenamed(User* user, QString oldName);
+            void inviteToRoom(const QString& memberId);
+            LeaveRoomJob* leaveRoom();
+            void kickMember(const QString& memberId, const QString& reason = {});
+            void ban(const QString& userId, const QString& reason = {});
+            void unban(const QString& userId);
 
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();
@@ -189,6 +197,7 @@ namespace QMatrixClient
             /** @brief The room displayname changed */
             void displaynameChanged(Room* room);
             void topicChanged();
+            void avatarChanged();
             void userAdded(User* user);
             void userRemoved(User* user);
             void memberRenamed(User* user);

@@ -28,7 +28,17 @@ namespace QMatrixClient
 {
     class Settings: public QSettings
     {
+            Q_OBJECT
         public:
+            /**
+             * Use this function before creating any Settings objects in order
+             * to setup a read-only location where configuration has previously
+             * been stored. This will provide an additional fallback in case of
+             * renaming the organisation/application.
+             */
+            static void setLegacyNames(const QString& organizationName,
+                                       const QString& applicationName = {});
+
 #if defined(_MSC_VER) && _MSC_VER < 1900
             // VS 2013 (and probably older) aren't friends with 'using' statements
             // that involve private constructors
@@ -36,12 +46,21 @@ namespace QMatrixClient
 #else
             using QSettings::QSettings;
 #endif
-            virtual ~Settings();
 
             Q_INVOKABLE void setValue(const QString &key,
                                       const QVariant &value);
             Q_INVOKABLE QVariant value(const QString &key,
                                        const QVariant &defaultValue = {}) const;
+            Q_INVOKABLE bool contains(const QString& key) const;
+            Q_INVOKABLE QStringList childGroups() const;
+
+        private:
+            static QString legacyOrganizationName;
+            static QString legacyApplicationName;
+
+        protected:
+            const QSettings legacySettings { legacyOrganizationName,
+                                             legacyApplicationName };
     };
 
     class SettingsGroup: public Settings
@@ -52,7 +71,6 @@ namespace QMatrixClient
                 : Settings(qsettingsArgs...)
                 , groupPath(path)
             { }
-            virtual ~SettingsGroup();
 
             Q_INVOKABLE bool contains(const QString& key) const;
             Q_INVOKABLE QVariant value(const QString &key,
@@ -71,7 +89,9 @@ namespace QMatrixClient
     class AccountSettings: public SettingsGroup
     {
             Q_OBJECT
-            Q_PROPERTY(QString userId READ userId)
+            Q_PROPERTY(QString userId READ userId CONSTANT)
+            Q_PROPERTY(QString deviceId READ deviceId WRITE setDeviceId)
+            Q_PROPERTY(QString deviceName READ deviceName WRITE setDeviceName)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver)
             Q_PROPERTY(bool keepLoggedIn READ keepLoggedIn WRITE setKeepLoggedIn)
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
@@ -80,9 +100,14 @@ namespace QMatrixClient
             explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
                 : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
             { }
-            virtual ~AccountSettings();
 
             QString userId() const;
+
+            QString deviceId() const;
+            void setDeviceId(const QString& deviceId);
+
+            QString deviceName() const;
+            void setDeviceName(const QString& deviceName);
 
             QUrl homeserver() const;
             void setHomeserver(const QUrl& url);
@@ -94,4 +119,4 @@ namespace QMatrixClient
             void setAccessToken(const QString& accessToken);
             Q_INVOKABLE void clearAccessToken();
     };
-}
+}  // namespace QMatrixClient

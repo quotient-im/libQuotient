@@ -32,26 +32,25 @@ namespace QMatrixClient
              * with a state key.
              */
             template <typename EvT>
-            SetRoomStateJob(const ConnectionData* connection, const QString& roomId,
-                            const EvT* event, const QString& stateKey)
-                : BaseJob(connection, HttpVerb::Put, "SetRoomStateJob",
+            SetRoomStateJob(const QString& roomId, const QString& stateKey,
+                            const EvT& event)
+                : BaseJob(HttpVerb::Put, "SetRoomStateJob",
                           QStringLiteral("_matrix/client/r0/rooms/%1/state/%2/%3")
                               .arg(roomId, EvT::TypeId, stateKey),
                           Query(),
-                          Data(event->toJson()))
+                          Data(event.toJson()))
             { }
             /**
              * Constructs a job that sets a state using an arbitrary room event
              * without a state key.
              */
             template <typename EvT>
-            SetRoomStateJob(const ConnectionData* connection, const QString& roomId,
-                            const EvT* event)
-                : BaseJob(connection, HttpVerb::Put, "SetRoomStateJob",
+            SetRoomStateJob(const QString& roomId, const EvT& event)
+                : BaseJob(HttpVerb::Put, "SetRoomStateJob",
                           QStringLiteral("_matrix/client/r0/rooms/%1/state/%2")
                               .arg(roomId, EvT::TypeId),
                           Query(),
-                          Data(event->toJson()))
+                          Data(event.toJson()))
             { }
 
             QString eventId() const { return _eventId; }

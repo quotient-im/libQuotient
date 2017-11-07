@@ -7,7 +7,6 @@
 
 #include "../basejob.h"
 
-#include <QtCore/QString>
 
 
 namespace QMatrixClient
@@ -15,10 +14,10 @@ namespace QMatrixClient
 
     // Operations
 
-    class KickJob : public BaseJob
+    class LogoutJob : public BaseJob
     {
         public:
-            explicit KickJob(QString roomId, QString user_id, QString reason = {});
+            explicit LogoutJob();
 
     };
 

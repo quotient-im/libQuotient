@@ -30,13 +30,15 @@ namespace QMatrixClient
             explicit ConnectionData(QUrl baseUrl);
             virtual ~ConnectionData();
 
-            QString accessToken() const;
+            QByteArray accessToken() const;
             QUrl baseUrl() const;
+            const QString& deviceId() const;
 
             QNetworkAccessManager* nam() const;
-            void setToken( QString accessToken );
+            void setToken(QByteArray accessToken);
             void setHost( QString host );
             void setPort( int port );
+            void setDeviceId(const QString& deviceId);
 
             QString lastEvent() const;
             void setLastEvent( QString identifier );

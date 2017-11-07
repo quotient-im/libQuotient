@@ -22,12 +22,16 @@
 
 using namespace QMatrixClient;
 
-SendEventJob::SendEventJob(const ConnectionData* connection,
-                           const QString& roomId, const QString& type,
+SendEventJob::SendEventJob(const QString& roomId, const QString& type,
                            const QString& plainText)
-    : SendEventJob(connection, roomId,
-                   new RoomMessageEvent(plainText, type))
+    : SendEventJob(roomId, RoomMessageEvent(plainText, type))
 { }
+
+void SendEventJob::beforeStart(const ConnectionData* connData)
+{
+    BaseJob::beforeStart(connData);
+    setApiEndpoint(apiEndpoint() + connData->generateTxnId());
+}
 
 BaseJob::Status SendEventJob::parseJson(const QJsonDocument& data)
 {
