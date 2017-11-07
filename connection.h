@@ -91,6 +91,7 @@ namespace QMatrixClient
             MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const;
 
+
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
@@ -100,6 +101,8 @@ namespace QMatrixClient
             Q_INVOKABLE QString accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
+
+            Q_INVOKABLE void getTurnServers();
 
             /**
              * Call this before first sync to load from previously saved file.
@@ -187,6 +190,7 @@ namespace QMatrixClient
             //void jobError(BaseJob* job);
 
             void cacheStateChanged();
+            void turnServersChanged(const QJsonObject& servers);
 
         protected:
             /**

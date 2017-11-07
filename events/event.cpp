@@ -27,6 +27,10 @@
 #include "typingevent.h"
 #include "receiptevent.h"
 #include "encryptedevent.h"
+#include "callinviteevent.h"
+#include "callcandidatesevent.h"
+#include "callanswerevent.h"
+#include "callhangupevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -137,6 +141,10 @@ RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
             "m.room.member", make<RoomMemberEvent>,
             "m.room.topic", make<RoomTopicEvent>,
             "m.room.encryption", make<EncryptionEvent>,
+            "m.call.invite", make<CallInviteEvent>,
+            "m.call.candidates", make<CallCandidatesEvent>,
+            "m.call.answer", make<CallAnswerEvent>,
+            "m.call.hangup", make<CallHangupEvent>,
             /* Insert new ROOM event types BEFORE this line */
             nullptr
         );

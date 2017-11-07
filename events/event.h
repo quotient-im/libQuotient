@@ -35,6 +35,7 @@ namespace QMatrixClient
             {
                 RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
                 RoomMember, RoomTopic, RoomEncryption, RoomEncryptedMessage,
+                CallInvite, CallCandidates, CallAnswer, CallHangup,
                 Typing, Receipt, Unknown
             };
 
