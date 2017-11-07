@@ -50,7 +50,7 @@ using namespace QMatrixClient;
 CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
     : RoomEvent(Type::CallAnswer, obj)
     , _lifetime(contentJson()["lifetime"].toInt())
-    , _answer(contentJson()["answer"].toObject())
+    , _sdp(contentJson()["answer"].toObject()["sdp"].toString())
     , _callId(contentJson()["call_id"].toString())
     , _version(contentJson()["version"].toInt())
 {
@@ -64,13 +64,7 @@ CallAnswerEvent::CallAnswerEvent(const QString& callId, const int& lifetime,
     _version = 0;
     _callId = callId;
     _lifetime = lifetime;
-
-    QJsonObject answer
-    {
-      {"sdp", sdp},
-      {"type", "answer"},
-    };
-    _answer = answer;
+    _sdp = sdp;
 }
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
@@ -78,11 +72,5 @@ CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
 {
     _version = 0;
     _callId = callId;
-
-    QJsonObject answer
-    {
-      {"sdp", sdp},
-      {"type", "answer"},
-    };
-    _answer = answer;
+    _sdp = sdp;
 }

@@ -32,18 +32,24 @@ namespace QMatrixClient
         explicit CallAnswerEvent(const QString& callId, const QString& sdp);
 
         const int& lifetime() const { return _lifetime; }
-        const QString& sdp() const { return _answer["sdp"].toString(); }
+        const QString& sdp() const { return _sdp; }
         const QString& callId() const { return _callId; }
         const int& version() const { return _version; }
 
         QJsonObject toJson() const
         {
+            QJsonObject answer
+            {
+              {"sdp", _sdp},
+              {"type", "answer"},
+            };
+
             QJsonObject obj;
             obj.insert("call_id", _callId);
             obj.insert("version", _version);
             if (_lifetime != NULL)
               obj.insert("lifetime", _lifetime);
-            obj.insert("answer", _answer);
+            obj.insert("answer", answer);
             return obj;
         }
 
@@ -52,6 +58,7 @@ namespace QMatrixClient
     private:
         int _lifetime;
         QJsonObject _answer;
+        QString _sdp;
         QString _callId;
         int _version;
     };

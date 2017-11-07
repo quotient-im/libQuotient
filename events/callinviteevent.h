@@ -31,17 +31,23 @@ namespace QMatrixClient
                                const QString& sdp);
 
       const int& lifetime() const { return _lifetime; }
-      const QString& sdp() const { return _offer["sdp"].toString(); }
+      const QString& sdp() const { return _sdp; }
       const QString& callId() const { return _callId; }
       const int& version() const { return _version; }
 
       QJsonObject toJson() const
       {
+          QJsonObject offer
+          {
+            {"sdp", _sdp},
+            {"type", "offer"},
+          };
+
           QJsonObject obj;
           obj.insert("call_id", _callId);
           obj.insert("version", _version);
           obj.insert("lifetime", _lifetime);
-          obj.insert("offer", _offer);
+          obj.insert("offer", offer);
           return obj;
       }
 
@@ -49,7 +55,7 @@ namespace QMatrixClient
 
   private:
       int _lifetime;
-      QJsonObject _offer;
+      QString _sdp;
       QString _callId;
       int _version;
   };
