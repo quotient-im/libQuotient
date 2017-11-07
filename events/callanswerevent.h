@@ -40,7 +40,7 @@ namespace QMatrixClient
         {
             QJsonObject answer;
             answer.insert("sdp", _sdp);
-            answer.insert("type", "answer");
+            answer.insert("type", QString("answer"));
 
             QJsonObject obj;
             obj.insert("call_id", _callId);

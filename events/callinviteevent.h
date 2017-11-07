@@ -39,7 +39,7 @@ namespace QMatrixClient
       {
           QJsonObject offer;
           offer.insert("sdp", _sdp);
-          offer.insert("type", "offer");
+          offer.insert("type", QString("offer"));
 
           QJsonObject obj;
           obj.insert("call_id", _callId);
