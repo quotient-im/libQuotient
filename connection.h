@@ -96,7 +96,6 @@ namespace QMatrixClient
              */
             ForgetRoomJob* forgetRoom(const QString& id);
 
-
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
