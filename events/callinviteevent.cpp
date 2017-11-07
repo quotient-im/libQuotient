@@ -57,7 +57,7 @@ CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
     qCDebug(EVENTS) << "Call Invite event";
 }
 
-CallInviteEvent::CallInviteEvent(const QString& callId, const int& lifetime,
+CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
      : RoomEvent(Type::CallInvite)
 {

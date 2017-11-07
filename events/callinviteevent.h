@@ -27,13 +27,13 @@ namespace QMatrixClient
   public:
       explicit CallInviteEvent(const QJsonObject& obj);
 
-      explicit CallInviteEvent(const QString& callId, const int& lifetime,
+      explicit CallInviteEvent(const QString& callId, const int lifetime,
                                const QString& sdp);
 
-      const int& lifetime() const { return _lifetime; }
+      const int lifetime() const { return _lifetime; }
       const QString& sdp() const { return _sdp; }
       const QString& callId() const { return _callId; }
-      const int& version() const { return _version; }
+      const int version() const { return _version; }
 
       QJsonObject toJson() const
       {

@@ -32,7 +32,7 @@ namespace QMatrixClient
 
             const QJsonArray& candidates() const { return _candidates; }
             const QString& callId() const { return _callId; }
-            const int& version() const { return _version; }
+            const int version() const { return _version; }
 
             QJsonObject toJson() const
             {

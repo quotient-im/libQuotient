@@ -174,14 +174,16 @@ namespace QMatrixClient
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();
 
-            void inviteCall(const QString& callId, const int& lifetime,
-                            const QString& sdp);
-            void callCandidates(const QString& callId,
-                                const QJsonArray& candidates);
-            void answerCall(const QString& callId, const int& lifetime,
-                            const QString& sdp);
-            void answerCall(const QString& callId, const QString& sdp);
-            void hangupCall(const QString& callId);
+            Q_INVOKABLE void inviteCall(const QString& callId,
+                                        const int lifetime, const QString& sdp);
+            Q_INVOKABLE void callCandidates(const QString& callId,
+                                            const QJsonArray& candidates);
+            Q_INVOKABLE void answerCall(const QString& callId, const int lifetime,
+                                        const QString& sdp);
+            Q_INVOKABLE void answerCall(const QString& callId,
+                                        const QString& sdp);
+            Q_INVOKABLE void hangupCall(const QString& callId);
+            Q_INVOKABLE bool isCallSupported() const;
 
         signals:
             void aboutToAddHistoricalMessages(const RoomEvents& events);

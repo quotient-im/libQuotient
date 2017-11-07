@@ -57,7 +57,7 @@ CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
     qCDebug(EVENTS) << "Call Answer event";
 }
 
-CallAnswerEvent::CallAnswerEvent(const QString& callId, const int& lifetime,
+CallAnswerEvent::CallAnswerEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
      : RoomEvent(Type::CallAnswer)
 {

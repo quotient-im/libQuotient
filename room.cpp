@@ -616,37 +616,47 @@ void Room::postMessage(const RoomMessageEvent& event)
     connection()->callApi<SendEventJob>(id(), event);
 }
 
-void Room::inviteCall(const QString& callId, const int& lifetime,
+bool Room::isCallSupported() const
+{
+  return d->membersMap.size() == 2;
+}
+
+void Room::inviteCall(const QString& callId, const int lifetime,
                 const QString& sdp)
 {
-      CallInviteEvent rme(callId, lifetime, sdp);
-      connection()->callApi<SendEventJob>(id(), rme);
+    Q_ASSERT(isCallSupported());
+    CallInviteEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::callCandidates(const QString& callId,
                     const QJsonArray& candidates)
 {
-      CallCandidatesEvent rme(callId, candidates);
-      connection()->callApi<SendEventJob>(id(), rme);
+    Q_ASSERT(isCallSupported());
+    CallCandidatesEvent rme(callId, candidates);
+    connection()->callApi<SendEventJob>(id(), rme);
 }
 
-void Room::answerCall(const QString& callId, const int& lifetime,
+void Room::answerCall(const QString& callId, const int lifetime,
                 const QString& sdp)
 {
-      CallAnswerEvent rme(callId, lifetime, sdp);
-      connection()->callApi<SendEventJob>(id(), rme);
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
-      CallAnswerEvent rme(callId, sdp);
-      connection()->callApi<SendEventJob>(id(), rme);
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::hangupCall(const QString& callId)
 {
-      CallHangupEvent rme(callId);
-      connection()->callApi<SendEventJob>(id(), rme);
+    Q_ASSERT(isCallSupported());
+    CallHangupEvent rme(callId);
+    connection()->callApi<SendEventJob>(id(), rme);
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -867,6 +877,12 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::CallCandidates:
             case EventType::CallAnswer:
             case EventType::CallHangup: {
+              if (!isCallSupported()) {
+                qCDebug(MAIN) << "Got call event in room with more then two"
+                              << "members, Ignoring this event!";
+                break;
+              }
+
               emit callEvent(this, event);
               break;
             }

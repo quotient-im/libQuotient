@@ -27,14 +27,14 @@ namespace QMatrixClient
     public:
         explicit CallAnswerEvent(const QJsonObject& obj);
 
-        explicit CallAnswerEvent(const QString& callId, const int& lifetime,
+        explicit CallAnswerEvent(const QString& callId, const int lifetime,
                                  const QString& sdp);
         explicit CallAnswerEvent(const QString& callId, const QString& sdp);
 
-        const int& lifetime() const { return _lifetime; }
+        const int lifetime() const { return _lifetime; }
         const QString& sdp() const { return _sdp; }
         const QString& callId() const { return _callId; }
-        const int& version() const { return _version; }
+        const int version() const { return _version; }
 
         QJsonObject toJson() const
         {

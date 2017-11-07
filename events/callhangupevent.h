@@ -30,7 +30,7 @@ namespace QMatrixClient
         explicit CallHangupEvent(const QString& callId);
 
         const QString& callId() const { return _callId; }
-        const int& version() const { return _version; }
+        const int version() const { return _version; }
 
         QJsonObject toJson() const
         {
