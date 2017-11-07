@@ -38,11 +38,9 @@ namespace QMatrixClient
 
         QJsonObject toJson() const
         {
-            QJsonObject answer
-            {
-              {"sdp", _sdp},
-              {"type", "answer"},
-            };
+            QJsonObject answer;
+            answer.insert("sdp", _sdp);
+            answer.insert("type", "answer");
 
             QJsonObject obj;
             obj.insert("call_id", _callId);
