@@ -42,7 +42,7 @@ namespace QMatrixClient
                 RoomName = RoomStateEventBase + 1,
                 RoomAliases, RoomCanonicalAlias, RoomMember, RoomTopic,
                 RoomAvatar, RoomEncryption,
-                CallInvite = RoomMessage + 1,
+                CallInvite = 0x1200 + 1,
                 CallCandidates = CallInvite + 1,
                 CallAnswer = CallCandidates + 1,
                 CallHangup = CallAnswer + 1,
