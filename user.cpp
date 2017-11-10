@@ -114,7 +114,7 @@ void User::processEvent(Event* event)
             return;
 
         auto newName = e->displayName();
-        QRegularExpression reSuffix(" \\((IRC|Gitter)\\)$");
+        QRegularExpression reSuffix(" \\((IRC|Gitter|Telegram)\\)$");
         auto match = reSuffix.match(newName);
         if (match.hasMatch())
         {
