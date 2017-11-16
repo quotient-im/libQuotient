@@ -58,8 +58,8 @@ QString RoomMessagesJob::end() const
 
 BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
-    QJsonObject obj = data.object();
-    d->events.assign(makeEvents<RoomEvent>(obj.value("chunk").toArray()));
+    const auto obj = data.object();
+    d->events.fromJson(obj, "chunk");
     d->end = obj.value("end").toString();
     return Success;
 }

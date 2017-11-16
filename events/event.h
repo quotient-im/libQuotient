@@ -63,6 +63,10 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
+            /** Create an event with proper type from a JSON object
+             * Use this factory to detect the type from the JSON object contents
+             * and create an event object of that type.
+             */
             static Event* fromJson(const QJsonObject& obj);
 
         protected:
@@ -77,26 +81,27 @@ namespace QMatrixClient
             Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventType = Event::Type;
-    template <typename EventT>
-    using EventsBatch = std::vector<EventT*>;
-    using Events = EventsBatch<Event>;
 
-    template <typename BaseEventT = Event,
-              typename BatchT = EventsBatch<BaseEventT> >
-    inline BatchT makeEvents(const QJsonArray& objs)
+    template <typename EventT>
+    class EventsBatch : public std::vector<EventT*>
     {
-        BatchT evs;
-        // The below line accommodates the difference in size types of
-        // STL and Qt containers.
-        evs.reserve(static_cast<typename BatchT::size_type>(objs.size()));
-        for (auto objValue: objs)
-        {
-            const auto o = objValue.toObject();
-            auto e = BaseEventT::fromJson(o);
-            evs.push_back(e ? e : new BaseEventT(EventType::Unknown, o));
-        }
-        return evs;
-    }
+        public:
+            void fromJson(const QJsonObject& container, const QString& node)
+            {
+                const auto objs = container.value(node).toArray();
+                using size_type = typename std::vector<EventT*>::size_type;
+                // The below line accommodates the difference in size types of
+                // STL and Qt containers.
+                this->reserve(static_cast<size_type>(objs.size()));
+                for (auto objValue: objs)
+                {
+                    const auto o = objValue.toObject();
+                    auto e = EventT::fromJson(o);
+                    this->push_back(e ? e : new EventT(EventType::Unknown, o));
+                }
+            }
+    };
+    using Events = EventsBatch<Event>;
 
     /** This class corresponds to m.room.* events */
     class RoomEvent : public Event
