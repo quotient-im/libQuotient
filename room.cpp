@@ -973,7 +973,7 @@ void Room::Private::updateDisplayname()
 }
 
 template <typename T>
-void appendEventJson(QJsonArray& events, const QString& type,
+void appendStateEvent(QJsonArray& events, const QString& type,
                      const QString& name, const T& content)
 {
     if (content.isEmpty())
@@ -985,6 +985,7 @@ void appendEventJson(QJsonArray& events, const QString& type,
     QJsonObject eventObj;
     eventObj.insert("type", type);
     eventObj.insert("content", contentObj);
+    eventObj.insert("state_key", ""); // Mandatory for state events
 
     events.append(eventObj);
 }
@@ -995,14 +996,14 @@ QJsonObject Room::Private::toJson() const
     {
         QJsonArray stateEvents;
 
-        appendEventJson(stateEvents, "m.room.name", "name", name);
-        appendEventJson(stateEvents, "m.room.topic", "topic", topic);
-        appendEventJson(stateEvents, "m.room.avatar", "url",
-                        avatar.url().toString());
-        appendEventJson(stateEvents, "m.room.aliases", "aliases",
-                        QJsonArray::fromStringList(aliases));
-        appendEventJson(stateEvents, "m.room.canonical_alias", "alias",
-                        canonicalAlias);
+        appendStateEvent(stateEvents, "m.room.name", "name", name);
+        appendStateEvent(stateEvents, "m.room.topic", "topic", topic);
+        appendStateEvent(stateEvents, "m.room.avatar", "url",
+                         avatar.url().toString());
+        appendStateEvent(stateEvents, "m.room.aliases", "aliases",
+                         QJsonArray::fromStringList(aliases));
+        appendStateEvent(stateEvents, "m.room.canonical_alias", "alias",
+                         canonicalAlias);
 
         for (const auto &i : membersMap)
         {

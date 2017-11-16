@@ -402,7 +402,7 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 0;
+static constexpr int CACHE_VERSION_MAJOR = 1;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const

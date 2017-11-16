@@ -159,7 +159,8 @@ namespace QMatrixClient
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, const QJsonObject& obj,
                                 ContentParamTs&&... contentParams)
-                : RoomEvent(type, obj)
+                : RoomEvent(obj.contains("state_key") ? type : Type::Unknown,
+                            obj)
                 , _content(contentJson(),
                            std::forward<ContentParamTs>(contentParams)...)
             {
