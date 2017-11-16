@@ -402,6 +402,9 @@ QByteArray Connection::generateTxnId()
     return d->data->generateTxnId();
 }
 
+static constexpr int CACHE_VERSION_MAJOR = 0;
+static constexpr int CACHE_VERSION_MINOR = 0;
+
 void Connection::saveState(const QUrl &toFile) const
 {
     if (!d->cacheState)
@@ -447,6 +450,11 @@ void Connection::saveState(const QUrl &toFile) const
     rootObj.insert("next_batch", d->data->lastEvent());
     rootObj.insert("rooms", roomObj);
 
+    QJsonObject versionObj;
+    versionObj.insert("major", CACHE_VERSION_MAJOR);
+    versionObj.insert("minor", CACHE_VERSION_MINOR);
+    rootObj.insert("cache_version", versionObj);
+
     QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
 
     qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
@@ -472,8 +480,22 @@ void Connection::loadState(const QUrl &fromFile)
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
+    auto jsonDoc = QJsonDocument::fromJson(data);
+    auto actualCacheVersionMajor =
+            jsonDoc.object()
+            .value("cache_version").toObject()
+            .value("major").toInt();
+    if (actualCacheVersionMajor < CACHE_VERSION_MAJOR)
+    {
+        qCWarning(MAIN) << "Major version of the cache file is"
+                        << actualCacheVersionMajor << "but"
+                        << CACHE_VERSION_MAJOR
+                        << "required; discarding the cache";
+        return;
+    }
+
     SyncData sync;
-    sync.parseJson(QJsonDocument::fromJson(data));
+    sync.parseJson(jsonDoc);
     onSyncSuccess(std::move(sync));
     qCDebug(PROFILER) << "*** Cached state for" << userId()
                       << "loaded in" << et.elapsed() << "ms";
