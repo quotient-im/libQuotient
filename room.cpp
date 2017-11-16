@@ -985,7 +985,7 @@ void appendStateEvent(QJsonArray& events, const QString& type,
     QJsonObject eventObj;
     eventObj.insert("type", type);
     eventObj.insert("content", contentObj);
-    eventObj.insert("state_key", ""); // Mandatory for state events
+    eventObj.insert("state_key", {}); // Mandatory for state events
 
     events.append(eventObj);
 }
