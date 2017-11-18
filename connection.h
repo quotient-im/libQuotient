@@ -24,6 +24,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
+#include <QtNetwork/QDnsLookup>
 
 #include <functional>
 
@@ -174,6 +175,7 @@ namespace QMatrixClient
             }
 
         public slots:
+            void setServer(const QString& domain, int tlsPort = 443);
             void resolveServer(const QString& domain);
             void connectToServer(const QString& user, const QString& password,
                                              const QString& initialDeviceName,
@@ -291,5 +293,9 @@ namespace QMatrixClient
 
             static room_factory_t createRoom;
             static user_factory_t createUser;
+            QDnsLookup* dns;
+    private slots:
+            void handleServerSRV();
+            void handleServerA();
     };
 }  // namespace QMatrixClient
