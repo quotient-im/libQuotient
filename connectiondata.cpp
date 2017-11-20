@@ -24,10 +24,9 @@
 
 using namespace QMatrixClient;
 
-QNetworkAccessManager* getNam()
+QNetworkAccessManager* createNam()
 {
-    static QNetworkAccessManager* _nam = new QNetworkAccessManager();
-    return _nam;
+    return new QNetworkAccessManager();
 }
 
 struct ConnectionData::Private
@@ -64,7 +63,8 @@ QUrl ConnectionData::baseUrl() const
 
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    return getNam();
+    static auto nam = createNam();
+    return nam;
 }
 
 void ConnectionData::setToken(QByteArray token)
