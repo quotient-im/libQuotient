@@ -137,7 +137,11 @@ void BaseJob::setRequestData(const BaseJob::Data& data)
 void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
-    url.setPath( url.path() + "/" + apiEndpoint );
+    QString path = url.path();
+    if (!path.endsWith('/') && !apiEndpoint.startsWith('/'))
+        path.push_back('/');
+
+    url.setPath( path + apiEndpoint );
     url.setQuery(requestQuery);
 
     QNetworkRequest req {url};
@@ -207,6 +211,7 @@ void BaseJob::gotReply()
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
+    qCDebug(d->logCat) << this << "returned from" << reply->url().toDisplayString();
     if (reply->error() != QNetworkReply::NoError)
         qCDebug(d->logCat) << this << "returned" << reply->error();
     switch( reply->error() )
