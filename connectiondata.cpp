@@ -26,7 +26,14 @@ using namespace QMatrixClient;
 
 QNetworkAccessManager* createNam()
 {
-    return new QNetworkAccessManager();
+    auto nam = new QNetworkAccessManager();
+    // See #109. Once Qt bearer management gets better, this workaround
+    // should become unnecessary.
+    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
+                 nam, [=] {
+        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
+    });
+    return nam;
 }
 
 struct ConnectionData::Private
