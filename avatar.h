@@ -35,7 +35,9 @@ namespace QMatrixClient
                 : _defaultIcon(std::move(defaultIcon)), _connection(connection)
             { }
 
-            QPixmap get(int w, int h, std::function<void()> continuation);
+            using notifier_t = std::function<void()>;
+
+            QPixmap get(int w, int h, notifier_t notifier);
 
             QUrl url() const { return _url; }
             bool updateUrl(const QUrl& newUrl);
@@ -45,13 +47,12 @@ namespace QMatrixClient
             QPixmap _originalPixmap;
             QIcon _defaultIcon;
 
-            /// Map of requested size to the actual pixmap used for it
-            /// (it's a shame that QSize has no predefined qHash()).
-            QHash<QPair<int,int>, QPixmap> _scaledPixmaps;
+            std::vector<QPair<QSize, QPixmap>> _scaledPixmaps;
 
             QSize _requestedSize;
             bool _valid = false;
             Connection* _connection;
             MediaThumbnailJob* _ongoingRequest = nullptr;
+            std::vector<notifier_t> notifiers;
     };
 }  // namespace QMatrixClient

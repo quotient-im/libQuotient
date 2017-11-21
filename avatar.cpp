@@ -24,7 +24,7 @@
 
 using namespace QMatrixClient;
 
-QPixmap Avatar::get(int width, int height, std::function<void()> continuation)
+QPixmap Avatar::get(int width, int height, Avatar::notifier_t notifier)
 {
     QSize size(width, height);
 
@@ -32,12 +32,15 @@ QPixmap Avatar::get(int width, int height, std::function<void()> continuation)
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
     // This is plain abuse by the client, though; so not critical for now.
-    if( (!_valid && _url.isValid() && !_ongoingRequest)
-        || width > _requestedSize.width()
-        || height > _requestedSize.height() )
+    if( ( !(_valid || _ongoingRequest)
+          || width > _requestedSize.width()
+          || height > _requestedSize.height() ) && _url.isValid() )
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
+        if (_ongoingRequest)
+            _ongoingRequest->abandon();
+        notifiers.emplace_back(std::move(notifier));
         _ongoingRequest = _connection->callApi<MediaThumbnailJob>(_url, size);
         _ongoingRequest->connect( _ongoingRequest, &MediaThumbnailJob::finished,
                                  _connection, [=]() {
@@ -46,7 +49,8 @@ QPixmap Avatar::get(int width, int height, std::function<void()> continuation)
                 _valid = true;
                 _originalPixmap = _ongoingRequest->scaledThumbnail(_requestedSize);
                 _scaledPixmaps.clear();
-                continuation();
+                for (auto n: notifiers)
+                    n();
             }
             _ongoingRequest = nullptr;
         });
@@ -60,12 +64,12 @@ QPixmap Avatar::get(int width, int height, std::function<void()> continuation)
         _originalPixmap = _defaultIcon.pixmap(size);
     }
 
-    auto& pixmap = _scaledPixmaps[{width, height}]; // Create if needed
-    if (pixmap.isNull())
-    {
-        pixmap = _originalPixmap.scaled(size,
+    for (auto p: _scaledPixmaps)
+        if (p.first == size)
+            return p.second;
+    auto pixmap = _originalPixmap.scaled(size,
                     Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
+    _scaledPixmaps.emplace_back(size, pixmap);
     return pixmap;
 }
 
