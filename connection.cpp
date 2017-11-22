@@ -46,15 +46,13 @@ class Connection::Private
         explicit Private(const QUrl& serverUrl)
             : q(nullptr)
             , data(new ConnectionData(serverUrl))
-            , syncJob(nullptr)
         { }
         Q_DISABLE_COPY(Private)
         Private(Private&&) = delete;
         Private operator=(Private&&) = delete;
-        ~Private() { delete data; }
 
         Connection* q;
-        ConnectionData* data;
+        std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
         // separately so we should, e.g., keep objects for Invite and
@@ -63,7 +61,7 @@ class Connection::Private
         QHash<QString, User*> userMap;
         QString userId;
 
-        SyncJob* syncJob;
+        SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
 };
@@ -331,7 +329,7 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 
 const ConnectionData* Connection::connectionData() const
 {
-    return d->data;
+    return d->data.get();
 }
 
 Room* Connection::provideRoom(const QString& id, JoinState joinState)
