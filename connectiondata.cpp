@@ -50,6 +50,7 @@ struct ConnectionData::Private
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(new Private)
 {
+    nam(); // Just to ensure NAM is created
     d->baseUrl = baseUrl;
 }
 
