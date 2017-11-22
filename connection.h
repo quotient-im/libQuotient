@@ -61,27 +61,6 @@ namespace QMatrixClient
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;
 
-            // Old API that will be abolished any time soon. DO NOT USE.
-
-            /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
-            Q_INVOKABLE virtual void postMessage(Room* room, const QString& type,
-                                                 const QString& message) const;
-            /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
-            Q_INVOKABLE virtual PostReceiptJob* postReceipt(Room* room,
-                                                            RoomEvent* event) const;
-            /** @deprecated Use callApi<JoinRoomJob>() instead */
-            Q_INVOKABLE virtual JoinRoomJob* joinRoom(const QString& roomAlias);
-            /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
-            Q_INVOKABLE virtual void leaveRoom( Room* room );
-            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
-            Q_INVOKABLE virtual RoomMessagesJob* getMessages(Room* room,
-                                                             const QString& from) const;
-            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
-            virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
-                                                    QSize requestedSize) const;
-            /** @deprecated Use callApi<MediaThumbnailJob>() instead */
-            MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
-                                            int requestedHeight) const;
             /** Sends /forget to the server and also deletes room locally.
              * This method is in Connection, not in Room, since it's a
              * room lifecycle operation, and Connection is an acting room manager.
@@ -188,6 +167,27 @@ namespace QMatrixClient
             void sync(int timeout = -1);
             void stopSync();
 
+            virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
+                                                    QSize requestedSize) const;
+            MediaThumbnailJob* getThumbnail(const QUrl& url,
+                                            int requestedWidth,
+                                            int requestedHeight) const;
+
+            // Old API that will be abolished any time soon. DO NOT USE.
+
+            /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
+            virtual void postMessage(Room* room, const QString& type,
+                                                 const QString& message) const;
+            /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
+            virtual PostReceiptJob* postReceipt(Room* room,
+                                                RoomEvent* event) const;
+            /** @deprecated Use callApi<JoinRoomJob>() instead */
+            virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+            /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
+            virtual void leaveRoom( Room* room );
+            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
+            virtual RoomMessagesJob* getMessages(Room* room,
+                                                 const QString& from) const;
         signals:
             void resolved();
             void connected();
