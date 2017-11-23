@@ -30,7 +30,6 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 
-#include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
@@ -85,28 +84,72 @@ Connection::~Connection()
     delete d;
 }
 
+void Connection::setServer(const QString &domain, int tlsPort)
+{
+    d->data->setHost(domain);
+    d->data->setPort(tlsPort);
+}
+
 void Connection::resolveServer(const QString& domain)
 {
+    qDebug() << "ResolveServer:" << domain;
+
     // Find the Matrix server for the given domain.
-    QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
+    dns = new QDnsLookup();
+
+    connect(dns, SIGNAL(finished()),this, SLOT(handleServerSRV()));
+
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
-
     dns->lookup();
-    connect(dns.data(), &QDnsLookup::finished, [&]() {
-        // Check the lookup succeeded.
-        if (dns->error() != QDnsLookup::NoError ||
-                dns->serviceRecords().isEmpty()) {
-            emit resolveError("DNS lookup failed");
-            return;
-        }
+}
 
-        // Handle the results.
-        auto record = dns->serviceRecords().front();
-        d->data->setHost(record.target());
-        d->data->setPort(record.port());
-        emit resolved();
-    });
+void Connection::handleServerSRV()
+{
+    qDebug() << "dnslookup finished";
+
+    disconnect(dns, SIGNAL(finished()),this, SLOT(handleServerSRV()));
+
+    // Check the lookup succeeded.
+    if (dns->error() != QDnsLookup::NoError ) {
+        connect(dns, SIGNAL(finished()),this, SLOT(handleServerA()));
+
+        dns->setType(QDnsLookup::A);
+        dns->lookup();
+        qDebug() << "Resolve SRV Failed";
+        return;
+    }
+
+    qDebug() << "Resolved:" << dns->name();
+
+    // Handle the results.
+    auto record = dns->serviceRecords().front();
+
+    this->setServer(record.target(), record.port());
+    emit resolved();
+    dns->deleteLater();
+}
+
+void Connection::handleServerA()
+{
+    qDebug() << "dnslookup finished";
+
+    disconnect(dns, SIGNAL(finished()),this, SLOT(handleServerA()));
+
+    // Check the lookup succeeded.
+    if (dns->error() != QDnsLookup::NoError ) {
+        qDebug() << "Resolve A Failed";
+        emit resolveError("DNS lookup failed");
+        dns->deleteLater();
+        return;
+    }
+
+    qDebug() << "Resolved:" << dns->name();
+
+    // Handle the results.
+    this->setServer(dns->name());
+    emit resolved();
+    dns->deleteLater();
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
