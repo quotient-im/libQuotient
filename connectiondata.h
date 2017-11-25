@@ -35,6 +35,7 @@ namespace QMatrixClient
             const QString& deviceId() const;
 
             QNetworkAccessManager* nam() const;
+            void setBaseUrl(QUrl baseUrl);
             void setToken(QByteArray accessToken);
             void setHost( QString host );
             void setPort( int port );
