@@ -37,6 +37,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QRegularExpression>
 
 using namespace QMatrixClient;
 
@@ -85,27 +86,61 @@ Connection::~Connection()
     delete d;
 }
 
-void Connection::resolveServer(const QString& domain)
+void Connection::resolveServer(const QString& mxidOrDomain)
 {
-    // Find the Matrix server for the given domain.
-    QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
+    // At this point we may have something as complex as
+    // @username:[IPv6:address]:port, or as simple as a plain domain name.
+
+    // Try to parse as an FQID; if there's no @ part, assume it's a domain name.
+    QRegularExpression parser(
+        "^(@.+?:)?" // Optional username (allow everything for compatibility)
+        "((\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+        "(:\\d{1,5})?)$", // Optional port
+        QRegularExpression::UseUnicodePropertiesOption); // Because asian digits
+    auto match = parser.match(mxidOrDomain);
+
+    QUrl maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    if (!match.hasMatch() || !maybeBaseUrl.isValid())
+    {
+        emit resolveError(
+            tr("%1 is not a valid homeserver address")
+                    .arg(maybeBaseUrl.toString()));
+        return;
+    }
+
+    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
+    if (maybeBaseUrl.port() != -1)
+    {
+        setHomeserver(maybeBaseUrl);
+        emit resolved();
+        return;
+    }
+
+    auto domain = maybeBaseUrl.host();
+    qCDebug(MAIN) << "Resolving server" << domain;
+    // Check if the Matrix server has a dedicated service record.
+    QDnsLookup* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
     dns->lookup();
-    connect(dns.data(), &QDnsLookup::finished, [&]() {
-        // Check the lookup succeeded.
-        if (dns->error() != QDnsLookup::NoError ||
-                dns->serviceRecords().isEmpty()) {
-            emit resolveError("DNS lookup failed");
-            return;
+    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
+        QUrl baseUrl { maybeBaseUrl };
+        if (dns->error() == QDnsLookup::NoError &&
+                dns->serviceRecords().isEmpty())
+        {
+            auto record = dns->serviceRecords().front();
+            baseUrl.setHost(record.target());
+            baseUrl.setPort(record.port());
+            qCDebug(MAIN) << "SRV record for" << maybeBaseUrl.host()
+                          << "is" << baseUrl.authority();
+        } else {
+            qCDebug(MAIN) << baseUrl.host() << "doesn't have SRV record"
+                          << dns->name() << "- using the hostname as is";
         }
-
-        // Handle the results.
-        auto record = dns->serviceRecords().front();
-        d->data->setHost(record.target());
-        d->data->setPort(record.port());
+        setHomeserver(baseUrl);
         emit resolved();
+        dns->deleteLater();
     });
 }
 
@@ -395,9 +430,19 @@ Connection::room_factory_t Connection::createRoom =
 
 Connection::user_factory_t Connection::createUser =
     [](Connection* c, const QString& id) { return new User(id, c); };
+
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
+}
+
+void Connection::setHomeserver(const QUrl& url)
+{
+    if (d->data->baseUrl() == url)
+        return;
+
+    d->data->setBaseUrl(url);
+    emit homeserverChanged(url);
 }
 
 static constexpr int CACHE_VERSION_MAJOR = 1;

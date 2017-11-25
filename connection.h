@@ -75,6 +75,8 @@ namespace QMatrixClient
              */
             ForgetRoomJob* forgetRoom(const QString& id);
 
+            // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
+            // (breaks back-compatibility)
             Q_INVOKABLE QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
             Q_INVOKABLE User* user();
@@ -153,7 +155,12 @@ namespace QMatrixClient
             }
 
         public slots:
-            void resolveServer(const QString& domain);
+            /** Set the homeserver base URL */
+            void setHomeserver(const QUrl& baseUrl);
+
+            /** Determine and set the homeserver from domain or MXID */
+            void resolveServer(const QString& mxidOrDomain);
+
             void connectToServer(const QString& user, const QString& password,
                                              const QString& initialDeviceName,
                                              const QString& deviceId = {});
@@ -190,6 +197,7 @@ namespace QMatrixClient
                                                  const QString& from) const;
         signals:
             void resolved();
+            void homeserverChanged(QUrl baseUrl);
             void connected();
             void reconnected(); //< Unused; use connected() instead
             void loggedOut();
