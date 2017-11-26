@@ -28,6 +28,10 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
+#include "events/callinviteevent.h"
+#include "events/callcandidatesevent.h"
+#include "events/callanswerevent.h"
+#include "events/callhangupevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
@@ -612,6 +616,49 @@ void Room::postMessage(const RoomMessageEvent& event)
     connection()->callApi<SendEventJob>(id(), event);
 }
 
+bool Room::isCallSupported() const
+{
+  return d->membersMap.size() == 2;
+}
+
+void Room::inviteCall(const QString& callId, const int lifetime,
+                const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallInviteEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
+}
+
+void Room::callCandidates(const QString& callId,
+                    const QJsonArray& candidates)
+{
+    Q_ASSERT(isCallSupported());
+    CallCandidatesEvent rme(callId, candidates);
+    connection()->callApi<SendEventJob>(id(), rme);
+}
+
+void Room::answerCall(const QString& callId, const int lifetime,
+                const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
+}
+
+void Room::answerCall(const QString& callId, const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, sdp);
+    connection()->callApi<SendEventJob>(id(), rme);
+}
+
+void Room::hangupCall(const QString& callId)
+{
+    Q_ASSERT(isCallSupported());
+    CallHangupEvent rme(callId);
+    connection()->callApi<SendEventJob>(id(), rme);
+}
+
 void Room::setTopic(const QString& newTopic)
 {
     RoomTopicEvent evt(newTopic);
@@ -825,6 +872,19 @@ void Room::processStateEvents(const RoomEvents& events)
                     d->removeMember(u);
                 }
                 break;
+            }
+            case EventType::CallInvite:
+            case EventType::CallCandidates:
+            case EventType::CallAnswer:
+            case EventType::CallHangup: {
+              if (!isCallSupported()) {
+                qCDebug(MAIN) << "Got call event in room with more then two"
+                              << "members, Ignoring this event!";
+                break;
+              }
+
+              emit callEvent(this, event);
+              break;
             }
             default: /* Ignore events of other types */;
         }

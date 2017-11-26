@@ -90,6 +90,8 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
+            Q_INVOKABLE void getTurnServers();
+
             /**
              * Call this before first sync to load from previously saved file.
              *
@@ -281,6 +283,7 @@ namespace QMatrixClient
             void aboutToDeleteRoom(Room* room);
 
             void cacheStateChanged();
+            void turnServersChanged(const QJsonObject& servers);
 
         protected:
             /**

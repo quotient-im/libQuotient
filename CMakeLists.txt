@@ -69,6 +69,10 @@ set(libqmatrixclient_SRCS
    events/roomavatarevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
+   events/callanswerevent.cpp
+   events/callcandidatesevent.cpp
+   events/callhangupevent.cpp
+   events/callinviteevent.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
@@ -79,6 +83,7 @@ set(libqmatrixclient_SRCS
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
+   jobs/turnserverjob.cpp
 )
 
 aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)

@@ -29,6 +29,7 @@
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "jobs/turnserverjob.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
@@ -307,6 +308,15 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const
 {
     return getThumbnail(url, QSize(requestedWidth, requestedHeight));
+}
+
+void Connection::getTurnServers()
+{
+  auto job = callApi<TurnServerJob>();
+  connect( job, &TurnServerJob::success, [=] {
+      emit turnServersChanged(job->toJson());
+  });
+
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)

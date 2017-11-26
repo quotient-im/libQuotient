@@ -24,6 +24,10 @@
 #include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
+#include "callinviteevent.h"
+#include "callcandidatesevent.h"
+#include "callanswerevent.h"
+#include "callhangupevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -118,5 +122,7 @@ RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
     return makeIfMatches<RoomEvent,
         RoomMessageEvent, RoomNameEvent, RoomAliasesEvent,
         RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
-        RoomAvatarEvent, EncryptionEvent>(obj, obj["type"].toString());
+        RoomAvatarEvent, CallInviteEvent, CallCandidatesEvent,
+        CallAnswerEvent, CallHangupEvent,
+        EncryptionEvent>(obj, obj["type"].toString());
 }
