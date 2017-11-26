@@ -27,6 +27,8 @@
 
 #include <functional>
 
+class QDnsLookup;
+
 namespace QMatrixClient
 {
     class Room;
@@ -162,10 +164,10 @@ namespace QMatrixClient
             void resolveServer(const QString& mxidOrDomain);
 
             void connectToServer(const QString& user, const QString& password,
-                                             const QString& initialDeviceName,
-                                             const QString& deviceId = {});
+                                 const QString& initialDeviceName,
+                                 const QString& deviceId = {});
             void connectWithToken(const QString& userId, const QString& accessToken,
-                                              const QString& deviceId);
+                                  const QString& deviceId);
 
             /** @deprecated Use stopSync() instead */
             void disconnectFromServer() { stopSync(); }
@@ -306,6 +308,23 @@ namespace QMatrixClient
         private:
             class Private;
             Private* d;
+
+            /**
+             * A single entry for functions that need to check whether the
+             * homeserver is valid before running. May either execute connectFn
+             * synchronously or asynchronously (if tryResolve is true and
+             * a DNS lookup is initiated); in case of errors, emits resolveError
+             * if the homeserver URL is not valid and cannot be resolved from
+             * userId.
+             *
+             * @param userId - fully-qualified MXID to resolve HS from
+             * @param connectFn - a function to execute once the HS URL is good
+             */
+            void checkAndConnect(const QString& userId,
+                                 std::function<void()> connectFn);
+            void doConnectToServer(const QString& user, const QString& password,
+                                   const QString& initialDeviceName,
+                                   const QString& deviceId = {});
 
             static room_factory_t createRoom;
             static user_factory_t createUser;

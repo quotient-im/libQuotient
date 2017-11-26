@@ -65,6 +65,9 @@ class Connection::Private
         SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
+
+        void connectWithToken(const QString& user, const QString& accessToken,
+                              const QString& deviceId);
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -123,7 +126,6 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
-    dns->lookup();
     connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
         QUrl baseUrl { maybeBaseUrl };
         if (dns->error() == QDnsLookup::NoError &&
@@ -142,33 +144,81 @@ void Connection::resolveServer(const QString& mxidOrDomain)
         emit resolved();
         dns->deleteLater();
     });
+    dns->lookup();
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
                                  const QString& initialDeviceName,
                                  const QString& deviceId)
 {
-    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"), user,
-            /*medium*/ "", /*address*/ "", password, /*token*/ "",
+    checkAndConnect(user,
+        [=] {
+            doConnectToServer(user, password, initialDeviceName, deviceId);
+        });
+}
+void Connection::doConnectToServer(const QString& user, const QString& password,
+                                   const QString& initialDeviceName,
+                                   const QString& deviceId)
+{
+    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"),
+            user, /*medium*/ "", /*address*/ "", password, /*token*/ "",
             deviceId, initialDeviceName);
-    connect( loginJob, &BaseJob::success, [=] () {
-        connectWithToken(loginJob->user_id(), loginJob->access_token(),
-                         loginJob->device_id());
-    });
-    connect( loginJob, &BaseJob::failure, [=] () {
-        emit loginError(loginJob->errorString());
-    });
+    connect(loginJob, &BaseJob::success, this,
+        [=] {
+            d->connectWithToken(loginJob->user_id(), loginJob->access_token(),
+                                loginJob->device_id());
+        });
+    connect(loginJob, &BaseJob::failure, this,
+        [=] {
+            emit loginError(loginJob->errorString());
+        });
 }
 
 void Connection::connectWithToken(const QString& userId,
-        const QString& accessToken, const QString& deviceId)
+                                  const QString& accessToken,
+                                  const QString& deviceId)
 {
-    d->userId = userId;
-    d->data->setToken(accessToken.toLatin1());
-    d->data->setDeviceId(deviceId);
-    qCDebug(MAIN) << "Using server" << d->data->baseUrl() << "by user" << userId
+    checkAndConnect(userId,
+        [=] { d->connectWithToken(userId, accessToken, deviceId); });
+}
+
+void Connection::Private::connectWithToken(const QString& user,
+                                           const QString& accessToken,
+                                           const QString& deviceId)
+{
+    userId = user;
+    data->setToken(accessToken.toLatin1());
+    data->setDeviceId(deviceId);
+    qCDebug(MAIN) << "Using server" << data->baseUrl() << "by user"
+                  << userId
                   << "from device" << deviceId;
-    emit connected();
+    emit q->connected();
+
+}
+
+void Connection::checkAndConnect(const QString& userId,
+                                 std::function<void()> connectFn)
+{
+    if (d->data->baseUrl().isValid())
+    {
+        connectFn();
+        return;
+    }
+    // Not good to go, try to fix the homeserver URL.
+    if (userId.startsWith('@') && userId.indexOf(':') != -1)
+    {
+        // The below construct makes a single-shot connection that triggers
+        // on the signal and then self-disconnects.
+        // NB: doResolveServer can emit resolveError, so this is a part of
+        // checkAndConnect function contract.
+        QMetaObject::Connection connection;
+        connection = connect(this, &Connection::homeserverChanged,
+                        this, [=] { connectFn(); disconnect(connection); });
+        resolveServer(userId);
+    } else
+        emit resolveError(
+            tr("%1 is an invalid homeserver URL")
+                .arg(d->data->baseUrl().toString()));
 }
 
 void Connection::logout()
@@ -565,3 +615,4 @@ void Connection::setCacheState(bool newValue)
         emit cacheStateChanged();
     }
 }
+
