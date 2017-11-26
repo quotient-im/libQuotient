@@ -196,13 +196,29 @@ namespace QMatrixClient
             virtual RoomMessagesJob* getMessages(Room* room,
                                                  const QString& from) const;
         signals:
+            /**
+             * @deprecated
+             * This was a signal resulting from a successful resolveServer().
+             * Since Connection now provides setHomeserver(), the HS URL
+             * may change even without resolveServer() invocation. Use
+             * homeserverChanged() instead of resolved(). You can also use
+             * connectToServer and connectWithToken without the HS URL set in
+             * advance (i.e. without calling resolveServer), as they now trigger
+             * server name resolution from MXID if the server URL is not valid.
+             */
             void resolved();
+            void resolveError(QString error);
+
             void homeserverChanged(QUrl baseUrl);
+
             void connected();
             void reconnected(); //< Unused; use connected() instead
             void loggedOut();
+            void loginError(QString error);
+            void networkError(size_t nextAttempt, int inMilliseconds);
 
             void syncDone();
+            void syncError(QString error);
 
             /**
              * \group Signals emitted on room transitions
@@ -261,12 +277,6 @@ namespace QMatrixClient
 
             /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
-
-            void loginError(QString error);
-            void networkError(size_t nextAttempt, int inMilliseconds);
-            void resolveError(QString error);
-            void syncError(QString error);
-            //void jobError(BaseJob* job);
 
             void cacheStateChanged();
 
