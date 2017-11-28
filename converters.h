@@ -118,4 +118,19 @@ namespace QMatrixClient
             return vect;
         }
     };
+
+    template <typename T> struct FromJson<QList<T>>
+    {
+        QList<T> operator()(QJsonValue jv) const
+        {
+            const auto jsonArray = jv.toArray();
+            QList<T> sl; sl.reserve(jsonArray.size());
+            std::transform(jsonArray.begin(), jsonArray.end(),
+                           std::back_inserter(sl), FromJson<T>());
+            return sl;
+        }
+    };
+
+    template <> struct FromJson<QStringList> : FromJson<QList<QString>> { };
+
 }  // namespace QMatrixClient

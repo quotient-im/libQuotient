@@ -33,7 +33,10 @@ before_script:
 - cmake -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} ..
 - cmake --build . --target update-api
 
-script: cmake --build .
+script:
+ - cmake --build .
+ - cd ..
+ - qmake qmc-example.pro && make all
 
 notifications:
     webhooks:

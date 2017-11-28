@@ -36,10 +36,9 @@ namespace QMatrixClient
                     explicit Batch(QString k) : jsonKey(std::move(k)) { }
                     void fromJson(const QJsonObject& roomContents)
                     {
-                        this->assign(makeEvents<EventT>(
-                            roomContents[jsonKey].toObject()["events"].toArray()));
+                        EventsBatch<EventT>::fromJson(
+                                    roomContents[jsonKey].toObject(), "events");
                     }
-
 
                 private:
                     QString jsonKey;

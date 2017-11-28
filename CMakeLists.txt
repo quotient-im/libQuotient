@@ -65,17 +65,15 @@ set(libqmatrixclient_SRCS
    logging.cpp
    room.cpp
    user.cpp
+   avatar.cpp
    settings.cpp
    events/event.cpp
+   events/eventcontent.cpp
    events/roommessageevent.cpp
-   events/roomnameevent.cpp
-   events/roomaliasesevent.cpp
-   events/roomcanonicalaliasevent.cpp
    events/roommemberevent.cpp
-   events/roomtopicevent.cpp
+   events/roomavatarevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
-   events/encryptedevent.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/passwordlogin.cpp
@@ -113,7 +111,7 @@ aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(qmatrixclient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
-set_property(TARGET qmatrixclient PROPERTY VERSION "0.0.0")
+set_property(TARGET qmatrixclient PROPERTY VERSION "0.2.0")
 set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
 
 target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)

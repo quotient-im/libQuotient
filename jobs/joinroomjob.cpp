@@ -29,7 +29,7 @@ class JoinRoomJob::Private
 
 JoinRoomJob::JoinRoomJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Post, "JoinRoomJob",
-              QString("_matrix/client/r0/join/%1").arg(roomAlias))
+              QStringLiteral("_matrix/client/r0/join/%1").arg(roomAlias))
     , d(new Private)
 {
 }

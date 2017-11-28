@@ -31,11 +31,18 @@ namespace QMatrixClient
     {
             Q_GADGET
         public:
-            enum class Type
+            enum class Type : quint16
             {
-                RoomMessage, RoomName, RoomAliases, RoomCanonicalAlias,
-                RoomMember, RoomTopic, RoomEncryption, RoomEncryptedMessage,
-                Typing, Receipt, Unknown
+                Unknown = 0,
+                Typing, Receipt,
+                RoomEventBase = 0x1000,
+                RoomMessage = RoomEventBase + 1,
+                RoomEncryptedMessage,
+                RoomStateEventBase = 0x1800,
+                RoomName = RoomStateEventBase + 1,
+                RoomAliases, RoomCanonicalAlias, RoomMember, RoomTopic,
+                RoomAvatar, RoomEncryption,
+                Reserved = 0x2000
             };
 
             explicit Event(Type type) : _type(type) { }
@@ -43,6 +50,10 @@ namespace QMatrixClient
             Event(const Event&) = delete;
 
             Type type() const { return _type; }
+            bool isStateEvent() const
+            {
+                return (quint16(_type) & 0x1800) == 0x1800;
+            }
             QByteArray originalJson() const;
             QJsonObject originalJsonObject() const;
 
@@ -52,12 +63,13 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
+            /** Create an event with proper type from a JSON object
+             * Use this factory to detect the type from the JSON object contents
+             * and create an event object of that type.
+             */
             static Event* fromJson(const QJsonObject& obj);
 
         protected:
-            static QDateTime toTimestamp(const QJsonValue& v);
-            static QStringList toStringList(const QJsonValue& v);
-
             const QJsonObject contentJson() const;
 
         private:
@@ -69,31 +81,27 @@ namespace QMatrixClient
             Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventType = Event::Type;
+
     template <typename EventT>
-    using EventsBatch = std::vector<EventT*>;
+    class EventsBatch : public std::vector<EventT*>
+    {
+        public:
+            void fromJson(const QJsonObject& container, const QString& node)
+            {
+                const auto objs = container.value(node).toArray();
+                using size_type = typename std::vector<EventT*>::size_type;
+                // The below line accommodates the difference in size types of
+                // STL and Qt containers.
+                this->reserve(static_cast<size_type>(objs.size()));
+                for (auto objValue: objs)
+                {
+                    const auto o = objValue.toObject();
+                    auto e = EventT::fromJson(o);
+                    this->push_back(e ? e : new EventT(EventType::Unknown, o));
+                }
+            }
+    };
     using Events = EventsBatch<Event>;
-
-    template <typename BaseEventT>
-    BaseEventT* makeEvent(const QJsonObject& obj)
-    {
-        if (auto e = BaseEventT::fromJson(obj))
-            return e;
-
-        return new BaseEventT(EventType::Unknown, obj);
-    }
-
-    template <typename BaseEventT = Event,
-              typename BatchT = EventsBatch<BaseEventT> >
-    BatchT makeEvents(const QJsonArray& objs)
-    {
-        BatchT evs;
-        // The below line accommodates the difference in size types of
-        // STL and Qt containers.
-        evs.reserve(static_cast<typename BatchT::size_type>(objs.size()));
-        for (auto obj: objs)
-            evs.push_back(makeEvent<BaseEventT>(obj.toObject()));
-        return evs;
-    }
 
     /** This class corresponds to m.room.* events */
     class RoomEvent : public Event
@@ -146,6 +154,41 @@ namespace QMatrixClient
             QString _txnId;
     };
     using RoomEvents = EventsBatch<RoomEvent>;
+
+    template <typename ContentT>
+    class StateEvent: public RoomEvent
+    {
+        public:
+            using content_type = ContentT;
+
+            template <typename... ContentParamTs>
+            explicit StateEvent(Type type, const QJsonObject& obj,
+                                ContentParamTs&&... contentParams)
+                : RoomEvent(obj.contains("state_key") ? type : Type::Unknown,
+                            obj)
+                , _content(contentJson(),
+                           std::forward<ContentParamTs>(contentParams)...)
+            {
+                if (obj.contains("prev_content"))
+                    _prev.reset(new ContentT(
+                            obj["prev_content"].toObject(),
+                            std::forward<ContentParamTs>(contentParams)...));
+            }
+            template <typename... ContentParamTs>
+            explicit StateEvent(Type type, ContentParamTs&&... contentParams)
+                : RoomEvent(type)
+                , _content(std::forward<ContentParamTs>(contentParams)...)
+            { }
+
+            QJsonObject toJson() const { return _content.toJson(); }
+
+            ContentT content() const { return _content; }
+            ContentT* prev_content() const { return _prev.data(); }
+
+        protected:
+            ContentT _content;
+            QScopedPointer<ContentT> _prev;
+    };
 }  // namespace QMatrixClient
 Q_DECLARE_OPAQUE_POINTER(QMatrixClient::Event*)
 Q_DECLARE_METATYPE(QMatrixClient::Event*)

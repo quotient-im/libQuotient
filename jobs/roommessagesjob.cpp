@@ -30,7 +30,7 @@ class RoomMessagesJob::Private
 RoomMessagesJob::RoomMessagesJob(const QString& roomId, const QString& from,
                                  int limit, FetchDirection dir)
     : BaseJob(HttpVerb::Get, "RoomMessagesJob",
-              QString("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
+              QStringLiteral("/_matrix/client/r0/rooms/%1/messages").arg(roomId),
               Query(
                 { { "from", from }
                 , { "dir", dir == FetchDirection::Backward ? "b" : "f" }
@@ -58,8 +58,8 @@ QString RoomMessagesJob::end() const
 
 BaseJob::Status RoomMessagesJob::parseJson(const QJsonDocument& data)
 {
-    QJsonObject obj = data.object();
-    d->events.assign(makeEvents<RoomEvent>(obj.value("chunk").toArray()));
+    const auto obj = data.object();
+    d->events.fromJson(obj, "chunk");
     d->end = obj.value("end").toString();
     return Success;
 }

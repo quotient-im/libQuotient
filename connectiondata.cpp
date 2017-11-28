@@ -24,16 +24,22 @@
 
 using namespace QMatrixClient;
 
-QNetworkAccessManager* getNam()
+QNetworkAccessManager* createNam()
 {
-    static QNetworkAccessManager* _nam = new QNetworkAccessManager();
-    return _nam;
+    auto nam = new QNetworkAccessManager();
+    // See #109. Once Qt bearer management gets better, this workaround
+    // should become unnecessary.
+    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
+                 nam, [=] {
+        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
+    });
+    return nam;
 }
 
 struct ConnectionData::Private
 {
     QUrl baseUrl;
-    QString accessToken;
+    QByteArray accessToken;
     QString lastEvent;
     QString deviceId;
 
@@ -44,6 +50,7 @@ struct ConnectionData::Private
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(new Private)
 {
+    nam(); // Just to ensure NAM is created
     d->baseUrl = baseUrl;
 }
 
@@ -52,7 +59,7 @@ ConnectionData::~ConnectionData()
     delete d;
 }
 
-QString ConnectionData::accessToken() const
+QByteArray ConnectionData::accessToken() const
 {
     return d->accessToken;
 }
@@ -64,10 +71,17 @@ QUrl ConnectionData::baseUrl() const
 
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    return getNam();
+    static auto nam = createNam();
+    return nam;
 }
 
-void ConnectionData::setToken(QString token)
+void ConnectionData::setBaseUrl(QUrl baseUrl)
+{
+    d->baseUrl = baseUrl;
+    qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
+}
+
+void ConnectionData::setToken(QByteArray token)
 {
     d->accessToken = token;
 }

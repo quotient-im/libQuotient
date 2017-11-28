@@ -20,30 +20,49 @@
 
 #include "event.h"
 
+#include "eventcontent.h"
+
 #include <QtCore/QUrl>
 
 namespace QMatrixClient
 {
-    class RoomMemberEvent: public RoomEvent
+    class MemberEventContent: public EventContent::Base
+    {
+        public:
+            enum MembershipType : size_t {Invite = 0, Join, Knock, Leave, Ban};
+
+            MemberEventContent(const QJsonObject& json);
+
+            MembershipType membership;
+            QString displayName;
+            QUrl avatarUrl;
+
+        protected:
+            void fillJson(QJsonObject* o) const override;
+    };
+
+    using MembershipType = MemberEventContent::MembershipType;
+
+    class RoomMemberEvent: public StateEvent<MemberEventContent>
     {
             Q_GADGET
         public:
-            enum MembershipType : int {Invite = 0, Join, Knock, Leave, Ban};
+            static constexpr const char* TypeId = "m.room.member";
 
-            explicit RoomMemberEvent(const QJsonObject& obj);
+            using MembershipType = MemberEventContent::MembershipType;
 
-            MembershipType membership() const  { return _membership; }
-            const QString& userId() const      { return _userId; }
-            const QString& displayName() const { return _displayName; }
-            const QUrl& avatarUrl() const      { return _avatarUrl; }
+            explicit RoomMemberEvent(const QJsonObject& obj)
+                : StateEvent(Type::RoomMember, obj)
+                , _userId(obj["state_key"].toString())
+            { }
+
+            MembershipType membership() const  { return content().membership; }
+            QString userId() const      { return _userId; }
+            QString displayName() const { return content().displayName; }
+            QUrl avatarUrl() const      { return content().avatarUrl; }
 
         private:
-            MembershipType _membership;
             QString _userId;
-            QString _displayName;
-            QUrl _avatarUrl;
-
             REGISTER_ENUM(MembershipType)
     };
-    using MembershipType = RoomMemberEvent::MembershipType;
 }  // namespace QMatrixClient

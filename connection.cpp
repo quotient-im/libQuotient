@@ -37,6 +37,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QRegularExpression>
 
 using namespace QMatrixClient;
 
@@ -46,15 +47,13 @@ class Connection::Private
         explicit Private(const QUrl& serverUrl)
             : q(nullptr)
             , data(new ConnectionData(serverUrl))
-            , syncJob(nullptr)
         { }
         Q_DISABLE_COPY(Private)
         Private(Private&&) = delete;
         Private operator=(Private&&) = delete;
-        ~Private() { delete data; }
 
         Connection* q;
-        ConnectionData* data;
+        std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
         // separately so we should, e.g., keep objects for Invite and
@@ -63,9 +62,12 @@ class Connection::Private
         QHash<QString, User*> userMap;
         QString userId;
 
-        SyncJob* syncJob;
+        SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
+
+        void connectWithToken(const QString& user, const QString& accessToken,
+                              const QString& deviceId);
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -87,55 +89,135 @@ Connection::~Connection()
     delete d;
 }
 
-void Connection::resolveServer(const QString& domain)
+void Connection::resolveServer(const QString& mxidOrDomain)
 {
-    // Find the Matrix server for the given domain.
-    QScopedPointer<QDnsLookup, QScopedPointerDeleteLater> dns { new QDnsLookup() };
+    // At this point we may have something as complex as
+    // @username:[IPv6:address]:port, or as simple as a plain domain name.
+
+    // Try to parse as an FQID; if there's no @ part, assume it's a domain name.
+    QRegularExpression parser(
+        "^(@.+?:)?" // Optional username (allow everything for compatibility)
+        "((\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+        "(:\\d{1,5})?)$", // Optional port
+        QRegularExpression::UseUnicodePropertiesOption); // Because asian digits
+    auto match = parser.match(mxidOrDomain);
+
+    QUrl maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    if (!match.hasMatch() || !maybeBaseUrl.isValid())
+    {
+        emit resolveError(
+            tr("%1 is not a valid homeserver address")
+                    .arg(maybeBaseUrl.toString()));
+        return;
+    }
+
+    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
+    if (maybeBaseUrl.port() != -1)
+    {
+        setHomeserver(maybeBaseUrl);
+        emit resolved();
+        return;
+    }
+
+    auto domain = maybeBaseUrl.host();
+    qCDebug(MAIN) << "Resolving server" << domain;
+    // Check if the Matrix server has a dedicated service record.
+    QDnsLookup* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
-    dns->lookup();
-    connect(dns.data(), &QDnsLookup::finished, [&]() {
-        // Check the lookup succeeded.
-        if (dns->error() != QDnsLookup::NoError ||
-                dns->serviceRecords().isEmpty()) {
-            emit resolveError("DNS lookup failed");
-            return;
+    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
+        QUrl baseUrl { maybeBaseUrl };
+        if (dns->error() == QDnsLookup::NoError &&
+                dns->serviceRecords().isEmpty())
+        {
+            auto record = dns->serviceRecords().front();
+            baseUrl.setHost(record.target());
+            baseUrl.setPort(record.port());
+            qCDebug(MAIN) << "SRV record for" << maybeBaseUrl.host()
+                          << "is" << baseUrl.authority();
+        } else {
+            qCDebug(MAIN) << baseUrl.host() << "doesn't have SRV record"
+                          << dns->name() << "- using the hostname as is";
         }
-
-        // Handle the results.
-        auto record = dns->serviceRecords().front();
-        d->data->setHost(record.target());
-        d->data->setPort(record.port());
+        setHomeserver(baseUrl);
         emit resolved();
+        dns->deleteLater();
     });
+    dns->lookup();
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
                                  const QString& initialDeviceName,
                                  const QString& deviceId)
 {
-    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"), user,
-            /*medium*/ "", /*address*/ "", password, /*token*/ "",
+    checkAndConnect(user,
+        [=] {
+            doConnectToServer(user, password, initialDeviceName, deviceId);
+        });
+}
+void Connection::doConnectToServer(const QString& user, const QString& password,
+                                   const QString& initialDeviceName,
+                                   const QString& deviceId)
+{
+    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"),
+            user, /*medium*/ "", /*address*/ "", password, /*token*/ "",
             deviceId, initialDeviceName);
-    connect( loginJob, &BaseJob::success, [=] () {
-        connectWithToken(loginJob->user_id(), loginJob->access_token(),
-                         loginJob->device_id());
-    });
-    connect( loginJob, &BaseJob::failure, [=] () {
-        emit loginError(loginJob->errorString());
-    });
+    connect(loginJob, &BaseJob::success, this,
+        [=] {
+            d->connectWithToken(loginJob->user_id(), loginJob->access_token(),
+                                loginJob->device_id());
+        });
+    connect(loginJob, &BaseJob::failure, this,
+        [=] {
+            emit loginError(loginJob->errorString());
+        });
 }
 
 void Connection::connectWithToken(const QString& userId,
-        const QString& accessToken, const QString& deviceId)
+                                  const QString& accessToken,
+                                  const QString& deviceId)
 {
-    d->userId = userId;
-    d->data->setToken(accessToken);
-    d->data->setDeviceId(deviceId);
-    qCDebug(MAIN) << "Using server" << d->data->baseUrl() << "by user" << userId
-                  << "from device" << deviceId;
-    emit connected();
+    checkAndConnect(userId,
+        [=] { d->connectWithToken(userId, accessToken, deviceId); });
+}
+
+void Connection::Private::connectWithToken(const QString& user,
+                                           const QString& accessToken,
+                                           const QString& deviceId)
+{
+    userId = user;
+    data->setToken(accessToken.toLatin1());
+    data->setDeviceId(deviceId);
+    qCDebug(MAIN) << "Using server" << data->baseUrl() << "by user"
+                  << userId << "from device" << deviceId;
+    emit q->connected();
+
+}
+
+void Connection::checkAndConnect(const QString& userId,
+                                 std::function<void()> connectFn)
+{
+    if (d->data->baseUrl().isValid())
+    {
+        connectFn();
+        return;
+    }
+    // Not good to go, try to fix the homeserver URL.
+    if (userId.startsWith('@') && userId.indexOf(':') != -1)
+    {
+        // The below construct makes a single-shot connection that triggers
+        // on the signal and then self-disconnects.
+        // NB: doResolveServer can emit resolveError, so this is a part of
+        // checkAndConnect function contract.
+        QMetaObject::Connection connection;
+        connection = connect(this, &Connection::homeserverChanged,
+                        this, [=] { connectFn(); disconnect(connection); });
+        resolveServer(userId);
+    } else
+        emit resolveError(
+            tr("%1 is an invalid homeserver URL")
+                .arg(d->data->baseUrl().toString()));
 }
 
 void Connection::logout()
@@ -290,7 +372,7 @@ QString Connection::userId() const
     return d->userId;
 }
 
-const QString& Connection::deviceId() const
+QString Connection::deviceId() const
 {
     return d->data->deviceId();
 }
@@ -331,7 +413,7 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 
 const ConnectionData* Connection::connectionData() const
 {
-    return d->data;
+    return d->data.get();
 }
 
 Room* Connection::provideRoom(const QString& id, JoinState joinState)
@@ -343,22 +425,11 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         return nullptr;
     }
 
-    // Room transitions:
-    // 1. none -> Invite: r=createRoom, emit invitedRoom(r,null)
-    // 2. none -> Join: r=createRoom, emit joinedRoom(r,null)
-    // 3. none -> Leave: r=createRoom, emit leftRoom(r,null)
-    // 4. inv=Invite -> Join: r=createRoom, emit joinedRoom(r,inv), delete Invite
-    // 4a. Leave, inv=Invite -> Join: change state, emit joinedRoom(r,inv), delete Invite
-    // 5. inv=Invite -> Leave: r=createRoom, emit leftRoom(r,inv), delete Invite
-    // 5a. r=Leave, inv=Invite -> Leave: emit leftRoom(r,inv), delete Invite
-    // 6. Join -> Leave: change state
-    // 7. r=Leave -> Invite: inv=createRoom, emit invitedRoom(inv,r)
-    // 8. Leave -> (changes to) Join
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
     {
-        // Leave is a special case because in transition (5a) above
+        // Leave is a special case because in transition (5a) (see the .h file)
         // joinState == room->joinState but we still have to preempt the Invite
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)
@@ -408,10 +479,23 @@ Connection::room_factory_t Connection::createRoom =
 
 Connection::user_factory_t Connection::createUser =
     [](Connection* c, const QString& id) { return new User(id, c); };
+
 QByteArray Connection::generateTxnId()
 {
     return d->data->generateTxnId();
 }
+
+void Connection::setHomeserver(const QUrl& url)
+{
+    if (d->data->baseUrl() == url)
+        return;
+
+    d->data->setBaseUrl(url);
+    emit homeserverChanged(url);
+}
+
+static constexpr int CACHE_VERSION_MAJOR = 1;
+static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
 {
@@ -458,6 +542,11 @@ void Connection::saveState(const QUrl &toFile) const
     rootObj.insert("next_batch", d->data->lastEvent());
     rootObj.insert("rooms", roomObj);
 
+    QJsonObject versionObj;
+    versionObj.insert("major", CACHE_VERSION_MAJOR);
+    versionObj.insert("minor", CACHE_VERSION_MINOR);
+    rootObj.insert("cache_version", versionObj);
+
     QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
 
     qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
@@ -483,8 +572,22 @@ void Connection::loadState(const QUrl &fromFile)
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
+    auto jsonDoc = QJsonDocument::fromJson(data);
+    auto actualCacheVersionMajor =
+            jsonDoc.object()
+            .value("cache_version").toObject()
+            .value("major").toInt();
+    if (actualCacheVersionMajor < CACHE_VERSION_MAJOR)
+    {
+        qCWarning(MAIN) << "Major version of the cache file is"
+                        << actualCacheVersionMajor << "but"
+                        << CACHE_VERSION_MAJOR
+                        << "required; discarding the cache";
+        return;
+    }
+
     SyncData sync;
-    sync.parseJson(QJsonDocument::fromJson(data));
+    sync.parseJson(jsonDoc);
     onSyncSuccess(std::move(sync));
     qCDebug(PROFILER) << "*** Cached state for" << userId()
                       << "loaded in" << et.elapsed() << "ms";
@@ -511,3 +614,4 @@ void Connection::setCacheState(bool newValue)
         emit cacheStateChanged();
     }
 }
+

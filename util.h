@@ -39,8 +39,8 @@ namespace QMatrixClient
     {
         public:
             Owning() = default;
-            Owning(Owning&) = delete;
-            Owning(Owning&& other) = default;
+            Owning(const Owning&) = delete;
+            Owning(Owning&&) = default;
             Owning& operator=(Owning&& other)
             {
                 assign(other.release());

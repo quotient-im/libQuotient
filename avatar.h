@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,21 +18,41 @@
 
 #pragma once
 
-#include "event.h"
+#include <QtGui/QIcon>
+#include <QtCore/QUrl>
+
+#include <functional>
 
 namespace QMatrixClient
 {
-    class RoomCanonicalAliasEvent : public RoomEvent
+    class MediaThumbnailJob;
+    class Connection;
+
+    class Avatar
     {
         public:
-            explicit RoomCanonicalAliasEvent(const QJsonObject& obj)
-                : RoomEvent(Type::RoomCanonicalAlias, obj)
-                , _canonicalAlias(contentJson()["alias"].toString())
+            explicit Avatar(Connection* connection, QIcon defaultIcon = {})
+                : _defaultIcon(std::move(defaultIcon)), _connection(connection)
             { }
 
-            QString alias() const { return _canonicalAlias; }
+            using notifier_t = std::function<void()>;
+
+            QPixmap get(int w, int h, notifier_t notifier);
+
+            QUrl url() const { return _url; }
+            bool updateUrl(const QUrl& newUrl);
 
         private:
-            QString _canonicalAlias;
+            QUrl _url;
+            QPixmap _originalPixmap;
+            QIcon _defaultIcon;
+
+            std::vector<QPair<QSize, QPixmap>> _scaledPixmaps;
+
+            QSize _requestedSize;
+            bool _valid = false;
+            Connection* _connection;
+            MediaThumbnailJob* _ongoingRequest = nullptr;
+            std::vector<notifier_t> notifiers;
     };
 }  // namespace QMatrixClient

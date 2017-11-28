@@ -23,16 +23,15 @@
 #include "jobs/generated/banning.h"
 #include "jobs/generated/leaving.h"
 #include "jobs/setroomstatejob.h"
-#include "events/roomnameevent.h"
-#include "events/roomaliasesevent.h"
-#include "events/roomcanonicalaliasevent.h"
-#include "events/roomtopicevent.h"
+#include "events/simplestateevents.h"
+#include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/postreceiptjob.h"
+#include "avatar.h"
 #include "connection.h"
 #include "user.h"
 
@@ -53,7 +52,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , joinState(initialJoinState), unreadMessages(false)
+            , avatar(c), joinState(initialJoinState), unreadMessages(false)
             , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
         { }
 
@@ -73,6 +72,7 @@ class Room::Private
         QString name;
         QString displayname;
         QString topic;
+        Avatar avatar;
         JoinState joinState;
         bool unreadMessages;
         int highlightCount;
@@ -187,6 +187,23 @@ QString Room::displayName() const
 QString Room::topic() const
 {
     return d->topic;
+}
+
+QPixmap Room::avatar(int width, int height)
+{
+    if (!d->avatar.url().isEmpty())
+        return d->avatar.get(width, height, [=] { emit avatarChanged(); });
+
+    // Use the other side's avatar for 1:1's
+    if (d->membersMap.size() == 2)
+    {
+        auto theOtherOneIt = d->membersMap.begin();
+        if (theOtherOneIt.value() == localUser())
+            ++theOtherOneIt;
+        return theOtherOneIt.value()->avatarObject()
+                .get(width, height, [=] { emit avatarChanged(); });
+    }
+    return {};
 }
 
 JoinState Room::joinState() const
@@ -392,6 +409,11 @@ QStringList Room::memberNames() const
 int Room::memberCount() const
 {
     return d->membersMap.size();
+}
+
+int Room::timelineSize() const
+{
+    return int(d->timeline.size());
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
@@ -778,6 +800,17 @@ void Room::processStateEvents(const RoomEvents& events)
                 emit topicChanged();
                 break;
             }
+            case EventType::RoomAvatar: {
+                const auto& avatarEventContent =
+                        static_cast<RoomAvatarEvent*>(event)->content();
+                if (d->avatar.updateUrl(avatarEventContent.url))
+                {
+                    qCDebug(MAIN) << "Room avatar URL updated:"
+                                  << avatarEventContent.url.toString();
+                    emit avatarChanged();
+                }
+                break;
+            }
             case EventType::RoomMember: {
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
                 // Can't use d->member() below because the user may be not a member (yet)
@@ -939,17 +972,22 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
-QJsonObject stateEventToJson(const QString& type, const QString& name,
-                             const QJsonValue& content)
+template <typename T>
+void appendStateEvent(QJsonArray& events, const QString& type,
+                     const QString& name, const T& content)
 {
+    if (content.isEmpty())
+        return;
+
     QJsonObject contentObj;
     contentObj.insert(name, content);
 
     QJsonObject eventObj;
     eventObj.insert("type", type);
     eventObj.insert("content", contentObj);
+    eventObj.insert("state_key", {}); // Mandatory for state events
 
-    return eventObj;
+    events.append(eventObj);
 }
 
 QJsonObject Room::Private::toJson() const
@@ -958,12 +996,14 @@ QJsonObject Room::Private::toJson() const
     {
         QJsonArray stateEvents;
 
-        stateEvents.append(stateEventToJson("m.room.name", "name", name));
-        stateEvents.append(stateEventToJson("m.room.topic", "topic", topic));
-        stateEvents.append(stateEventToJson("m.room.aliases", "aliases",
-                                            QJsonArray::fromStringList(aliases)));
-        stateEvents.append(stateEventToJson("m.room.canonical_alias", "alias",
-                                            canonicalAlias));
+        appendStateEvent(stateEvents, "m.room.name", "name", name);
+        appendStateEvent(stateEvents, "m.room.topic", "topic", topic);
+        appendStateEvent(stateEvents, "m.room.avatar", "url",
+                         avatar.url().toString());
+        appendStateEvent(stateEvents, "m.room.aliases", "aliases",
+                         QJsonArray::fromStringList(aliases));
+        appendStateEvent(stateEvents, "m.room.canonical_alias", "alias",
+                         canonicalAlias);
 
         for (const auto &i : membersMap)
         {
