@@ -199,12 +199,7 @@ void Connection::Private::connectWithToken(const QString& user,
 void Connection::checkAndConnect(const QString& userId,
                                  std::function<void()> connectFn)
 {
-    if (d->data->baseUrl().isValid())
-    {
-        connectFn();
-        return;
-    }
-    // Not good to go, try to fix the homeserver URL.
+    // Check if we have a FQMXID
     if (userId.startsWith('@') && userId.indexOf(':') != -1)
     {
         // The below construct makes a single-shot connection that triggers
@@ -215,6 +210,11 @@ void Connection::checkAndConnect(const QString& userId,
         connection = connect(this, &Connection::homeserverChanged,
                         this, [=] { connectFn(); disconnect(connection); });
         resolveServer(userId);
+    }
+    // or have we got a baseUrl set
+    else if (d->data->baseUrl().isValid())
+    {
+        connectFn();
     } else
         emit resolveError(
             tr("%1 is an invalid homeserver URL")
