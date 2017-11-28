@@ -86,7 +86,7 @@ aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(qmatrixclient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
-set_property(TARGET qmatrixclient PROPERTY VERSION "0.1.0")
+set_property(TARGET qmatrixclient PROPERTY VERSION "0.2.0")
 set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
 
 target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
