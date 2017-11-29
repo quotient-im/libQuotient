@@ -2,7 +2,7 @@
 
 #include "{{filenameBase}}.h"
 
-{{^models}}#include "jobs/converters.h"{{/models}}
+{{^models}}#include "converters.h"{{/models}}
 {{#operations}}#include <QtCore/QStringBuilder>{{/operations}}
 
 using namespace QMatrixClient;
@@ -35,7 +35,7 @@ class {{camelCaseOperationId}}Job::Private
 {{/    properties?}}{{/normalResponse?}}{{/responses}}
 {{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})
     : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
-        basePath{{#pathParts}} % {{part}}{{/pathParts}},
+        basePath{{#pathParts}} % {{.}}{{/pathParts}},
         Query {{^queryParams}}{ }{{/queryParams}}{{#queryParams?}}{
             {{#queryParams}}{ "{{baseName}}", toJson({{paramName}}).toString() }{{#hasMore}},
             {{/hasMore}}{{/queryParams}}
@@ -69,7 +69,7 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data
     {{#        properties}}{{#required?}}if (!json.contains("{{paramName}}"))
         return { JsonParseError,
             "The key '{{paramName}}' not found in the response" };{{/required?}}
-    d->{{paramName}} = fromJson<{{dataType}}>(json.value("{{paramName}}"));
+    d->{{paramName}} = fromJson<{{dataType}}>(json.value("{{baseName}}"));
 {{/            properties}}
     return Success;
 }{{/       returnFile?}}

@@ -12,14 +12,14 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-InviteUserJob::InviteUserJob(QString roomId, QString user_id)
+InviteUserJob::InviteUserJob(QString roomId, QString userId)
     : BaseJob(HttpVerb::Post, "InviteUserJob",
         basePath % "/rooms/" % roomId % "/invite",
         Query { }
     )
 {
     Data _data;
-    _data.insert("user_id", toJson(user_id));
+    _data.insert("user_id", toJson(userId));
     setRequestData(_data);
 }
 

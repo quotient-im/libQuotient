@@ -18,7 +18,7 @@ namespace QMatrixClient
     class KickJob : public BaseJob
     {
         public:
-            explicit KickJob(QString roomId, QString user_id, QString reason = {});
+            explicit KickJob(QString roomId, QString userId, QString reason = {});
 
     };
 

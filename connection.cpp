@@ -165,8 +165,8 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [=] {
-            d->connectWithToken(loginJob->user_id(), loginJob->access_token(),
-                                loginJob->device_id());
+            d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
+                                loginJob->deviceId());
         });
     connect(loginJob, &BaseJob::failure, this,
         [=] {

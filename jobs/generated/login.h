@@ -18,14 +18,14 @@ namespace QMatrixClient
     class LoginJob : public BaseJob
     {
         public:
-            explicit LoginJob(QString type, QString user = {}, QString medium = {}, QString address = {}, QString password = {}, QString token = {}, QString device_id = {}, QString initial_device_display_name = {});
+            explicit LoginJob(QString type, QString user = {}, QString medium = {}, QString address = {}, QString password = {}, QString token = {}, QString deviceId = {}, QString initialDeviceDisplayName = {});
 
             ~LoginJob() override;
 
-            const QString& user_id() const;
-            const QString& access_token() const;
-            const QString& home_server() const;
-            const QString& device_id() const;
+            const QString& userId() const;
+            const QString& accessToken() const;
+            const QString& homeServer() const;
+            const QString& deviceId() const;
             
         protected:
             Status parseJson(const QJsonDocument& data) override;
