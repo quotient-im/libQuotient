@@ -18,7 +18,7 @@ namespace QMatrixClient
     class InviteUserJob : public BaseJob
     {
         public:
-            explicit InviteUserJob(QString roomId, QString user_id);
+            explicit InviteUserJob(QString roomId, QString userId);
 
     };
 

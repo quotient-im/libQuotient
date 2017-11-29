@@ -40,7 +40,7 @@ namespace QMatrixClient
     class SetAvatarUrlJob : public BaseJob
     {
         public:
-            explicit SetAvatarUrlJob(QString userId, QString avatar_url = {});
+            explicit SetAvatarUrlJob(QString userId, QString avatarUrl = {});
 
     };
     class GetAvatarUrlJob : public BaseJob
@@ -50,7 +50,7 @@ namespace QMatrixClient
 
             ~GetAvatarUrlJob() override;
 
-            const QString& avatar_url() const;
+            const QString& avatarUrl() const;
             
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -66,7 +66,7 @@ namespace QMatrixClient
 
             ~GetUserProfileJob() override;
 
-            const QString& avatar_url() const;
+            const QString& avatarUrl() const;
             const QString& displayname() const;
             
         protected:

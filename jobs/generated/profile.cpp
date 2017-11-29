@@ -57,22 +57,22 @@ BaseJob::Status GetDisplayNameJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-SetAvatarUrlJob::SetAvatarUrlJob(QString userId, QString avatar_url)
+SetAvatarUrlJob::SetAvatarUrlJob(QString userId, QString avatarUrl)
     : BaseJob(HttpVerb::Put, "SetAvatarUrlJob",
         basePath % "/profile/" % userId % "/avatar_url",
         Query { }
     )
 {
     Data _data;
-    if (!avatar_url.isEmpty())
-        _data.insert("avatar_url", toJson(avatar_url));
+    if (!avatarUrl.isEmpty())
+        _data.insert("avatar_url", toJson(avatarUrl));
     setRequestData(_data);
 }
 
 class GetAvatarUrlJob::Private
 {
     public:
-        QString avatar_url;
+        QString avatarUrl;
         
 };
 
@@ -88,16 +88,16 @@ GetAvatarUrlJob::~GetAvatarUrlJob()
     delete d;
 }
 
-const QString& GetAvatarUrlJob::avatar_url() const
+const QString& GetAvatarUrlJob::avatarUrl() const
 {
-    return d->avatar_url;
+    return d->avatarUrl;
 }
 
 BaseJob::Status GetAvatarUrlJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     
-    d->avatar_url = fromJson<QString>(json.value("avatar_url"));
+    d->avatarUrl = fromJson<QString>(json.value("avatar_url"));
 
     return Success;
 }
@@ -105,7 +105,7 @@ BaseJob::Status GetAvatarUrlJob::parseJson(const QJsonDocument& data)
 class GetUserProfileJob::Private
 {
     public:
-        QString avatar_url;
+        QString avatarUrl;
         QString displayname;
         
 };
@@ -122,9 +122,9 @@ GetUserProfileJob::~GetUserProfileJob()
     delete d;
 }
 
-const QString& GetUserProfileJob::avatar_url() const
+const QString& GetUserProfileJob::avatarUrl() const
 {
-    return d->avatar_url;
+    return d->avatarUrl;
 }
 
 const QString& GetUserProfileJob::displayname() const
@@ -136,7 +136,7 @@ BaseJob::Status GetUserProfileJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     
-    d->avatar_url = fromJson<QString>(json.value("avatar_url"));
+    d->avatarUrl = fromJson<QString>(json.value("avatar_url"));
 
     d->displayname = fromJson<QString>(json.value("displayname"));
 

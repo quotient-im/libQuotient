@@ -18,13 +18,13 @@ namespace QMatrixClient
     class BanJob : public BaseJob
     {
         public:
-            explicit BanJob(QString roomId, QString user_id, QString reason = {});
+            explicit BanJob(QString roomId, QString userId, QString reason = {});
 
     };
     class UnbanJob : public BaseJob
     {
         public:
-            explicit UnbanJob(QString roomId, QString user_id);
+            explicit UnbanJob(QString roomId, QString userId);
 
     };
 

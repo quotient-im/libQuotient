@@ -15,14 +15,14 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class LoginJob::Private
 {
     public:
-        QString user_id;
-        QString access_token;
-        QString home_server;
-        QString device_id;
+        QString userId;
+        QString accessToken;
+        QString homeServer;
+        QString deviceId;
         
 };
 
-LoginJob::LoginJob(QString type, QString user, QString medium, QString address, QString password, QString token, QString device_id, QString initial_device_display_name)
+LoginJob::LoginJob(QString type, QString user, QString medium, QString address, QString password, QString token, QString deviceId, QString initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, "LoginJob",
         basePath % "/login",
         Query { }, Data { }, false
@@ -40,10 +40,10 @@ LoginJob::LoginJob(QString type, QString user, QString medium, QString address, 
         _data.insert("password", toJson(password));
     if (!token.isEmpty())
         _data.insert("token", toJson(token));
-    if (!device_id.isEmpty())
-        _data.insert("device_id", toJson(device_id));
-    if (!initial_device_display_name.isEmpty())
-        _data.insert("initial_device_display_name", toJson(initial_device_display_name));
+    if (!deviceId.isEmpty())
+        _data.insert("device_id", toJson(deviceId));
+    if (!initialDeviceDisplayName.isEmpty())
+        _data.insert("initial_device_display_name", toJson(initialDeviceDisplayName));
     setRequestData(_data);
 }
 
@@ -52,37 +52,37 @@ LoginJob::~LoginJob()
     delete d;
 }
 
-const QString& LoginJob::user_id() const
+const QString& LoginJob::userId() const
 {
-    return d->user_id;
+    return d->userId;
 }
 
-const QString& LoginJob::access_token() const
+const QString& LoginJob::accessToken() const
 {
-    return d->access_token;
+    return d->accessToken;
 }
 
-const QString& LoginJob::home_server() const
+const QString& LoginJob::homeServer() const
 {
-    return d->home_server;
+    return d->homeServer;
 }
 
-const QString& LoginJob::device_id() const
+const QString& LoginJob::deviceId() const
 {
-    return d->device_id;
+    return d->deviceId;
 }
 
 BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     
-    d->user_id = fromJson<QString>(json.value("user_id"));
+    d->userId = fromJson<QString>(json.value("user_id"));
 
-    d->access_token = fromJson<QString>(json.value("access_token"));
+    d->accessToken = fromJson<QString>(json.value("access_token"));
 
-    d->home_server = fromJson<QString>(json.value("home_server"));
+    d->homeServer = fromJson<QString>(json.value("home_server"));
 
-    d->device_id = fromJson<QString>(json.value("device_id"));
+    d->deviceId = fromJson<QString>(json.value("device_id"));
 
     return Success;
 }
