@@ -57,8 +57,8 @@ namespace QMatrixClient
             using user_factory_t =
                 std::function<User*(Connection*, const QString&)>;
 
+            explicit Connection(QObject* parent = nullptr);
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
-            Connection();
             virtual ~Connection();
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;

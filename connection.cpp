@@ -77,10 +77,9 @@ Connection::Connection(const QUrl& server, QObject* parent)
     d->q = this; // All d initialization should occur before this line
 }
 
-Connection::Connection()
-    : Connection(QUrl("https://matrix.org"))
-{
-}
+Connection::Connection(QObject* parent)
+    : Connection({}, parent)
+{ }
 
 Connection::~Connection()
 {
@@ -165,6 +164,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [=] {
+            setHomeserver(loginJob->homeServer());
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
         });
