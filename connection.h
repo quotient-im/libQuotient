@@ -182,6 +182,8 @@ namespace QMatrixClient
                                             int requestedWidth,
                                             int requestedHeight) const;
 
+            virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+
             // Old API that will be abolished any time soon. DO NOT USE.
 
             /** @deprecated Use callApi<PostMessageJob>() or Room::postMessage() instead */
@@ -190,8 +192,6 @@ namespace QMatrixClient
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             virtual PostReceiptJob* postReceipt(Room* room,
                                                 RoomEvent* event) const;
-            /** @deprecated Use callApi<JoinRoomJob>() instead */
-            virtual JoinRoomJob* joinRoom(const QString& roomAlias);
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             virtual void leaveRoom( Room* room );
             /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
