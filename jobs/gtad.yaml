@@ -56,6 +56,8 @@ types:
       avoidCopy?: true
       imports: <QtCore/QVector>
   - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
+  schema:
+    avoidCopy?: true
 
 #operations:
 

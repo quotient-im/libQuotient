@@ -18,7 +18,7 @@ namespace QMatrixClient
     {
         {{#vars}}{{dataType.name}} {{nameCamelCase}};
         {{/vars}}
-        operator QJsonValue() const;
+        operator QJsonObject() const;
     };
 
     template <> struct FromJson<{{name}}>
@@ -39,7 +39,7 @@ namespace QMatrixClient
             {
                 {{#vars}}{{dataType.name}} {{nameCamelCase}};
                 {{/vars}}
-                operator QJsonValue() const;
+                operator QJsonObject() const;
             };
 {{/        trivial?}}{{/model}}
             // End of inner data structures

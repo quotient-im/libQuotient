@@ -28,7 +28,7 @@ using namespace QMatrixClient;
 {{/trivial?}}{{/models.model}}{{#operations}}
 static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
 {{#    operation}}{{#models.model}}{{^trivial?}}
-{{qualifiedName}}::operator QJsonValue() const
+{{qualifiedName}}::operator QJsonObject() const
 {
     QJsonObject o;
     {{#vars}}o.insert("{{baseName}}", toJson({{nameCamelCase}}));
@@ -49,7 +49,7 @@ namespace QMatrixClient
             return result;
         }
     };
-}
+} // namespace QMatrixClient
 {{/    trivial?}}{{/models.model}}{{#responses}}{{#normalResponse?}}{{#properties?}}
 class {{camelCaseOperationId}}Job::Private
 {
@@ -67,10 +67,11 @@ class {{camelCaseOperationId}}Job::Private
         }{{/queryParams?}}{{#skipAuth}}, Data { }, false{{/skipAuth}}
     ){{#responses}}{{#normalResponse?}}{{#properties?}}, d(new Private){{/properties?}}{{/normalResponse?}}{{/responses}}
 {{#bodyParams?}}{
-    Data _data;{{#bodyParams}}
+{{#inlineBody}}    setRequestData(Data({{paramName}}));{{/inlineBody}}{{!
+}}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
-    setRequestData(_data);
+    setRequestData(_data);{{/inlineBody}}
 }{{/bodyParams?}}{{^bodyParams?}}{ }{{/bodyParams?}}
 {{#    responses}}{{#normalResponse?}}{{#properties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job()
