@@ -12,20 +12,18 @@
 
 namespace QMatrixClient
 {
-
     // Operations
 
     class SetDisplayNameJob : public BaseJob
     {
         public:
-            explicit SetDisplayNameJob(QString userId, QString displayname = {});
-
+            explicit SetDisplayNameJob(const QString& userId, const QString& displayname = {});
     };
+
     class GetDisplayNameJob : public BaseJob
     {
         public:
-            explicit GetDisplayNameJob(QString userId);
-
+            explicit GetDisplayNameJob(const QString& userId);
             ~GetDisplayNameJob() override;
 
             const QString& displayname() const;
@@ -37,17 +35,17 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+
     class SetAvatarUrlJob : public BaseJob
     {
         public:
-            explicit SetAvatarUrlJob(QString userId, QString avatarUrl = {});
-
+            explicit SetAvatarUrlJob(const QString& userId, const QString& avatarUrl = {});
     };
+
     class GetAvatarUrlJob : public BaseJob
     {
         public:
-            explicit GetAvatarUrlJob(QString userId);
-
+            explicit GetAvatarUrlJob(const QString& userId);
             ~GetAvatarUrlJob() override;
 
             const QString& avatarUrl() const;
@@ -59,11 +57,11 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
+
     class GetUserProfileJob : public BaseJob
     {
         public:
-            explicit GetUserProfileJob(QString userId);
-
+            explicit GetUserProfileJob(const QString& userId);
             ~GetUserProfileJob() override;
 
             const QString& avatarUrl() const;
@@ -76,5 +74,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-
 } // namespace QMatrixClient

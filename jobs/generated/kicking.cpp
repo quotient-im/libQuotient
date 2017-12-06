@@ -6,13 +6,14 @@
 #include "kicking.h"
 
 #include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-KickJob::KickJob(QString roomId, QString userId, QString reason)
+KickJob::KickJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, "KickJob",
         basePath % "/rooms/" % roomId % "/kick",
         Query { }

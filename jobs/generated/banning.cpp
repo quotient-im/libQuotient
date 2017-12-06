@@ -6,13 +6,14 @@
 #include "banning.h"
 
 #include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-BanJob::BanJob(QString roomId, QString userId, QString reason)
+BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, "BanJob",
         basePath % "/rooms/" % roomId % "/ban",
         Query { }
@@ -25,7 +26,7 @@ BanJob::BanJob(QString roomId, QString userId, QString reason)
     setRequestData(_data);
 }
 
-UnbanJob::UnbanJob(QString roomId, QString userId)
+UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
     : BaseJob(HttpVerb::Post, "UnbanJob",
         basePath % "/rooms/" % roomId % "/unban",
         Query { }
