@@ -44,6 +44,11 @@ namespace QMatrixClient
         return QJsonArray::fromStringList(strings);
     }
 
+    inline QJsonValue toJson(const QByteArray& bytes)
+    {
+        return QJsonValue(static_cast<const char*>(bytes));
+    }
+
     template <typename T>
     struct FromJson
     {
@@ -132,5 +137,13 @@ namespace QMatrixClient
     };
 
     template <> struct FromJson<QStringList> : FromJson<QList<QString>> { };
+
+    template <> struct FromJson<QByteArray>
+    {
+        QByteArray operator()(QJsonValue jv) const
+        {
+            return fromJson<QString>(jv).toLatin1();
+        }
+    };
 
 }  // namespace QMatrixClient
