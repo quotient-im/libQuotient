@@ -28,7 +28,7 @@ LoginJob::LoginJob(const QString& type, const QString& user, const QString& medi
         Query { }, Data { }, false
     ), d(new Private)
 {
-    Data _data;
+    QJsonObject _data;
     _data.insert("type", toJson(type));
     if (!user.isEmpty())
         _data.insert("user", toJson(user));
