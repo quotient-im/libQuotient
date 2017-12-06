@@ -4,37 +4,51 @@
 
 {{#operations}}#include "../basejob.h"
 {{/operations}}
-{{#imports}}#include {{.}}
+{{#imports}}#include {{_}}
 {{/imports}}
-{{#models}}#include "converters.h"
-{{/models}}
+{{#allModels}}#include "converters.h"
+{{/allModels}}
 namespace QMatrixClient
 {
 {{#models}}    // Data structures
-{{#    model}}
-    struct {{classname}}{{#parents?}} : {{#parents}}{{.}}{{#last?}}, {{/last?}}{{/parents}}{{/parents?}}
+{{#    model}}{{#trivial?}}
+    using {{name}} = {{parent.name}};
+{{/    trivial?}}{{^trivial?}}
+    struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
     {
-        {{#vars}}{{datatype}} {{name}};
+        {{#vars}}{{dataType.name}} {{nameCamelCase}};
         {{/vars}}
         operator QJsonValue() const;
     };
 
-    template <> struct FromJson<{{classname}}>
+    template <> struct FromJson<{{name}}>
     {
-        {{classname}} operator()(QJsonValue jv);
+        {{name}} operator()(QJsonValue jv);
     };
-{{/    model}}
-{{/models}}
-{{#operations}}    // Operations
+{{/    trivial?}}{{/model}}
+{{/models}}{{#operations}}    // Operations
 {{#    operation}}
     class {{camelCaseOperationId}}Job : public BaseJob
     {
-        public:
-            explicit {{camelCaseOperationId}}Job({{#allParams}}{{#avoidCopy?}}const {{dataType}}&{{/avoidCopy?}}{{^avoidCopy?}}{{dataType}}{{/avoidCopy?}} {{paramName}}{{^required?}} = {{defaultValue}}{{^defaultValue}}{}{{/defaultValue}}{{/required?}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
-{{#        responses}}{{#normalResponse?}}{{#properties?}}
+        public:{{#        models}}
+            // Inner data structures
+{{#            model}}{{#trivial?}}
+            using {{name}} = {{parent.name}};
+{{/                trivial?}}{{^trivial?}}
+            struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
+            {
+                {{#vars}}{{dataType.name}} {{nameCamelCase}};
+                {{/vars}}
+                operator QJsonValue() const;
+            };
+{{/        trivial?}}{{/model}}
+            // End of inner data structures
+{{/models}}
+            explicit {{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{^required?}} = {{defaultValue}}{{^defaultValue}}{}{{/defaultValue}}{{/required?}}{{#@join}}, {{/@join}}{{/allParams}});{{!skip EOL
+}}{{#        responses}}{{#normalResponse?}}{{#properties?}}
             ~{{camelCaseOperationId}}Job() override;
 
-            {{#properties}}const {{dataType}}& {{paramName}}() const;
+            {{#properties}}{{>maybeCrefType}} {{paramName}}() const;
             {{/properties}}
         protected:
             {{^returnFile}}Status parseJson(const QJsonDocument& data) override;{{/returnFile}}
@@ -42,6 +56,6 @@ namespace QMatrixClient
         private:
             class Private;
             Private* d;{{/properties?}}{{/normalResponse?}}{{/responses}}
-    };{{/operation}}
-{{/operations}}
-} // namespace QMatrixClient
+    };
+{{/operation}}{{/operations}}{{!skip EOL
+}}} // namespace QMatrixClient

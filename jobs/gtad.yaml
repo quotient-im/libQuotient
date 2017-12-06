@@ -1,8 +1,11 @@
 preprocess:
   "%CLIENT_RELEASE_LABEL%": r0
   "%CLIENT_MAJOR_VERSION%": r0
-  "unsigned:": "unsigned_:"
-  "default:": "default_:"
+  # FIXME: the below only fixes C++ compilation but not actual work - the code
+  # will try to reach out for wrong values in JSON payloads
+  "signed:": "signedData:"
+  "unsigned:": "unsignedData:"
+  "default:": "isDefault:"
 
 # Structure:
 # swaggerType: <targetTypeSpec>
@@ -29,25 +32,37 @@ types:
       string?: true
       imports: <QtCore/QByteArray>
   - binary: *QByteArray
-  - date:
-      type: QDate
-      avoidCopy?: true
-      imports: <QtCore/QDate>
+  - date: { type: QDate, "avoidCopy?": true, imports: <QtCore/QDate> }
   - dateTime:
       type: QDateTime
       avoidCopy?: true
       imports: <QtCore/QDateTime>
-  - //: { type: QString, "string?": true, imports: <QtCore/QString> }
+  - //:
+      type: QString
+      string?: true
+      avoidCopy?: true
+      imports: <QtCore/QString>
   file:
     type: QByteArray
     imports: <QtCore/QByteArray>
-    "returnFile?": true
-  object: { type: QJsonObject, "avoidCopy?": true, imports: <QtCore/QJsonObject> }
-  array: { type: "QVector<{{1}}>", "avoidCopy?": true, imports: <QtCore/QVector> }
+    returnFile?: true
+  object:
+    type: QJsonObject
+    avoidCopy?: true
+    imports: <QtCore/QJsonObject>
+  array:
+  - /.+/:
+      type: "QVector<{{1}}>"
+      avoidCopy?: true
+      imports: <QtCore/QVector>
+  - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
 
 #operations:
 
 env:
+  _typeRenderer: "{{#scope}}{{scopeCamelCase}}Job::{{/scope}}{{name}}"
+  maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
+  qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
 #  preamble: preamble.mustache
   copyrightName: Kitsune Ral
   copyrightEmail: <kitsune-ral@users.sf.net>
