@@ -12,14 +12,11 @@
 
 namespace QMatrixClient
 {
-
     // Operations
 
     class InviteUserJob : public BaseJob
     {
         public:
-            explicit InviteUserJob(QString roomId, QString userId);
-
+            explicit InviteUserJob(const QString& roomId, const QString& userId);
     };
-
 } // namespace QMatrixClient

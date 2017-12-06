@@ -11,14 +11,11 @@
 
 namespace QMatrixClient
 {
-
     // Operations
 
     class LogoutJob : public BaseJob
     {
         public:
             explicit LogoutJob();
-
     };
-
 } // namespace QMatrixClient

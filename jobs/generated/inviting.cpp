@@ -6,13 +6,14 @@
 #include "inviting.h"
 
 #include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-InviteUserJob::InviteUserJob(QString roomId, QString userId)
+InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
     : BaseJob(HttpVerb::Post, "InviteUserJob",
         basePath % "/rooms/" % roomId % "/invite",
         Query { }

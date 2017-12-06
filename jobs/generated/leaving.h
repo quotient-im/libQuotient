@@ -12,20 +12,17 @@
 
 namespace QMatrixClient
 {
-
     // Operations
 
     class LeaveRoomJob : public BaseJob
     {
         public:
-            explicit LeaveRoomJob(QString roomId);
-
+            explicit LeaveRoomJob(const QString& roomId);
     };
+
     class ForgetRoomJob : public BaseJob
     {
         public:
-            explicit ForgetRoomJob(QString roomId);
-
+            explicit ForgetRoomJob(const QString& roomId);
     };
-
 } // namespace QMatrixClient

@@ -12,14 +12,12 @@
 
 namespace QMatrixClient
 {
-
     // Operations
 
     class LoginJob : public BaseJob
     {
         public:
-            explicit LoginJob(QString type, QString user = {}, QString medium = {}, QString address = {}, QString password = {}, QString token = {}, QString deviceId = {}, QString initialDeviceDisplayName = {});
-
+            explicit LoginJob(const QString& type, const QString& user = {}, const QString& medium = {}, const QString& address = {}, const QString& password = {}, const QString& token = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
             ~LoginJob() override;
 
             const QString& userId() const;
@@ -34,5 +32,4 @@ namespace QMatrixClient
             class Private;
             Private* d;
     };
-
 } // namespace QMatrixClient

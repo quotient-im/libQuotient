@@ -6,6 +6,7 @@
 #include "login.h"
 
 #include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;
@@ -19,10 +20,9 @@ class LoginJob::Private
         QString accessToken;
         QString homeServer;
         QString deviceId;
-        
 };
 
-LoginJob::LoginJob(QString type, QString user, QString medium, QString address, QString password, QString token, QString deviceId, QString initialDeviceDisplayName)
+LoginJob::LoginJob(const QString& type, const QString& user, const QString& medium, const QString& address, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, "LoginJob",
         basePath % "/login",
         Query { }, Data { }, false
@@ -75,15 +75,10 @@ const QString& LoginJob::deviceId() const
 BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    
     d->userId = fromJson<QString>(json.value("user_id"));
-
     d->accessToken = fromJson<QString>(json.value("access_token"));
-
     d->homeServer = fromJson<QString>(json.value("home_server"));
-
     d->deviceId = fromJson<QString>(json.value("device_id"));
-
     return Success;
 }
 
