@@ -96,7 +96,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
         ${GTAD_PATH} --config jobs/gtad.yaml --out jobs/generated
             ${MATRIX_DOC_PATH}/api/client-server
-            content-repo.yaml- cas_login_redirect.yaml- cas_login_ticket.yaml-
+            cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         SOURCES jobs/gtad.yaml
