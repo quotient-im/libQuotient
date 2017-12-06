@@ -19,7 +19,7 @@ InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     setRequestData(_data);
 }

@@ -19,7 +19,7 @@ KickJob::KickJob(const QString& roomId, const QString& userId, const QString& re
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));

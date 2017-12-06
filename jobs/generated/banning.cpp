@@ -19,7 +19,7 @@ BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reas
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));
@@ -32,7 +32,7 @@ UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     setRequestData(_data);
 }

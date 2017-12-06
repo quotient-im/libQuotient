@@ -23,6 +23,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 #include <QtCore/QUrlQuery>
 #include <QtCore/QScopedPointer>
 
@@ -69,29 +70,31 @@ namespace QMatrixClient
                     }
             };
             /**
-             * A simple wrapper around QJsonObject that represents a JSON data
-             * section of an HTTP request to a Matrix server. Facilitates
-             * creation from a list of key-value string pairs and dumping of
-             * a resulting JSON to a QByteArray.
+             * A simple wrapper that represents the request body.
+             * Provides a unified interface to dump an unstructured byte stream
+             * as well as JSON (and possibly other structures in the future) to
+             * a QByteArray consumed by QNetworkAccessManager request methods.
              */
-            class Data : public QJsonObject
+            class Data
             {
                 public:
-                    using QJsonObject::QJsonObject;
                     Data() = default;
-                    explicit Data(const QJsonObject& o) : QJsonObject(o) { }
-#if (QT_VERSION < QT_VERSION_CHECK(5, 4, 0))
-                    // This method exists in QJsonObject of newer Qt versions
-                    Data(const std::initializer_list< QPair<QString, QJsonValue> >& l)
-                    {
-                        for (auto i: l)
-                            insert(i.first, i.second);
-                    }
-#endif
+                    Data(const QByteArray& a) : _payload(a) { }
+                    Data(const QJsonObject& jo)
+                        : _payload(fromJson(QJsonDocument(jo)))  { }
+                    Data(const QJsonArray& ja)
+                        : _payload(fromJson(QJsonDocument(ja)))  { }
                     QByteArray serialize() const
                     {
-                        return QJsonDocument(*this).toJson();
+                        return _payload;
                     }
+
+                private:
+                    static QByteArray fromJson(const QJsonDocument& jd)
+                    {
+                        return jd.toJson(QJsonDocument::Compact);
+                    }
+                    QByteArray _payload;
             };
 
             /**

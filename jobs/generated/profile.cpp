@@ -19,7 +19,7 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displ
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     if (!displayname.isEmpty())
         _data.insert("displayname", toJson(displayname));
     setRequestData(_data);
@@ -61,7 +61,7 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl
         Query { }
     )
 {
-    Data _data;
+    QJsonObject _data;
     if (!avatarUrl.isEmpty())
         _data.insert("avatar_url", toJson(avatarUrl));
     setRequestData(_data);
