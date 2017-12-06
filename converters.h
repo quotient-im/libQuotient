@@ -25,9 +25,9 @@
 namespace QMatrixClient
 {
     template <typename T>
-    inline QJsonValue toJson(T val)
+    inline QJsonValue toJson(T&& val)
     {
-        return QJsonValue(val);
+        return QJsonValue(std::forward<T>(val));
     }
 
     template <typename T>
