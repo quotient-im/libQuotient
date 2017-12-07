@@ -46,7 +46,11 @@ namespace QMatrixClient
 
     inline QJsonValue toJson(const QByteArray& bytes)
     {
-        return QJsonValue(static_cast<const char*>(bytes));
+#if QT_VERSION < QT_VERSION_CHECK(5, 3, 0)
+        return QJsonValue(QLatin1String(bytes.constData()));
+#else
+        return QJsonValue(bytes.constData());
+#endif
     }
 
     template <typename T>
