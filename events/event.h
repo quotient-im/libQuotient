@@ -37,11 +37,12 @@ namespace QMatrixClient
                 Typing, Receipt,
                 RoomEventBase = 0x1000,
                 RoomMessage = RoomEventBase + 1,
-                RoomEncryptedMessage,
+                RoomEncryptedMessage, Redaction,
                 RoomStateEventBase = 0x1800,
                 RoomName = RoomStateEventBase + 1,
                 RoomAliases, RoomCanonicalAlias, RoomMember, RoomTopic,
-                RoomAvatar, RoomEncryption,
+                RoomAvatar, RoomEncryption, RoomCreate, RoomJoinRules,
+                RoomPowerLevels,
                 Reserved = 0x2000
             };
 
