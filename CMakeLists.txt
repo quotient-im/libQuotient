@@ -71,10 +71,8 @@ set(libqmatrixclient_SRCS
    events/receiptevent.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
-   jobs/passwordlogin.cpp
    jobs/sendeventjob.cpp
    jobs/setroomstatejob.cpp
-   jobs/postreceiptjob.cpp
    jobs/joinroomjob.cpp
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp

@@ -22,6 +22,7 @@
 #include "jobs/generated/inviting.h"
 #include "jobs/generated/banning.h"
 #include "jobs/generated/leaving.h"
+#include "jobs/generated/receipts.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -30,7 +31,6 @@
 #include "events/receiptevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
-#include "jobs/postreceiptjob.h"
 #include "avatar.h"
 #include "connection.h"
 #include "user.h"
@@ -283,7 +283,8 @@ void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
     {
         if ((*markers.second)->senderId() != localUser()->id())
         {
-            connection()->callApi<PostReceiptJob>(id(), (*markers.second)->id());
+            connection()->callApi<PostReceiptJob>(
+                id(), "m.read", (*markers.second)->id());
             break;
         }
     }

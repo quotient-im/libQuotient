@@ -23,8 +23,8 @@
 #include "room.h"
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
+#include "jobs/generated/receipts.h"
 #include "jobs/sendeventjob.h"
-#include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
@@ -281,7 +281,7 @@ void Connection::postMessage(Room* room, const QString& type, const QString& mes
 
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
-    return callApi<PostReceiptJob>(room->id(), event->id());
+    return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
 }
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
