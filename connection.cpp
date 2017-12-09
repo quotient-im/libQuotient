@@ -395,7 +395,6 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
             return nullptr;
         }
         d->roomMap.insert(roomKey, room);
-        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)
