@@ -156,6 +156,27 @@ namespace QMatrixClient
     };
     using RoomEvents = EventsBatch<RoomEvent>;
 
+    /**
+     * Conceptually similar to QStringView (but much more primitive), it's a
+     * simple abstraction over a pair of RoomEvents::const_iterator values
+     * referring to the beginning and the end of a range in a RoomEvents
+     * container.
+     */
+    struct RoomEventsView
+    {
+        RoomEvents::const_iterator from;
+        RoomEvents::const_iterator to;
+
+        RoomEvents::size_type size() const
+        {
+            Q_ASSERT(std::distance(from, to) >= 0);
+            return RoomEvents::size_type(std::distance(from, to));
+        }
+        bool empty() const { return from == to; }
+        RoomEvents::const_iterator begin() const { return from; }
+        RoomEvents::const_iterator end() const { return to; }
+    };
+
     template <typename ContentT>
     class StateEvent: public RoomEvent
     {
