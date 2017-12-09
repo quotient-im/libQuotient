@@ -146,7 +146,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
-    qCDebug(MAIN) << "New Room:" << id;
+    qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
 Room::~Room()
