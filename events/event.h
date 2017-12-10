@@ -104,6 +104,8 @@ namespace QMatrixClient
     };
     using Events = EventsBatch<Event>;
 
+    class RedactionEvent;
+
     /** This class corresponds to m.room.* events */
     class RoomEvent : public Event
     {
@@ -112,15 +114,26 @@ namespace QMatrixClient
             Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
             Q_PROPERTY(QString roomId READ roomId CONSTANT)
             Q_PROPERTY(QString senderId READ senderId CONSTANT)
-            Q_PROPERTY(QString transactionId READ transactionId CONSTANT)
+            Q_PROPERTY(QString redactionReason READ redactionReason)
+            Q_PROPERTY(bool isRedacted READ isRedacted)
+            Q_PROPERTY(QString transactionId READ transactionId)
         public:
-            explicit RoomEvent(Type type) : Event(type) { }
+            // RedactionEvent is an incomplete type here so we cannot inline
+            // constructors and destructors
+            explicit RoomEvent(Type type);
             RoomEvent(Type type, const QJsonObject& rep);
+            ~RoomEvent();
 
             const QString& id() const { return _id; }
             const QDateTime& timestamp() const { return _serverTimestamp; }
             const QString& roomId() const { return _roomId; }
             const QString& senderId() const { return _senderId; }
+            bool isRedacted() const { return redactedBecause(); }
+            RedactionEvent* redactedBecause() const
+            {
+                return _redactedBecause.data();
+            }
+            QString redactionReason() const;
             const QString& transactionId() const { return _txnId; }
 
             /**
@@ -152,6 +165,7 @@ namespace QMatrixClient
             QDateTime _serverTimestamp;
             QString _roomId;
             QString _senderId;
+            QScopedPointer<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
     using RoomEvents = EventsBatch<RoomEvent>;
