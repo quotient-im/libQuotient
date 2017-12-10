@@ -29,7 +29,7 @@ void onNewRoom(Room* r)
                  << r->roomMembername(e->senderId()).toStdString()
                  << endl << "Timestamp:"
                  << e->timestamp().toString().toStdString() << endl
-                 << "JSON:" << endl << e->originalJson().toStdString() << endl;
+                 << "JSON:" << endl << string(e->originalJson()) << endl;
         }
     });
 }
