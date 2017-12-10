@@ -164,7 +164,8 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [=] {
-            setHomeserver(loginJob->homeServer());
+            setHomeserver(QUrl::fromUserInput(
+                    homeserver().scheme() + "://" + loginJob->homeServer()));
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
         });
@@ -488,11 +489,11 @@ QByteArray Connection::generateTxnId()
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (d->data->baseUrl() == url)
+    if (homeserver() == url)
         return;
 
     d->data->setBaseUrl(url);
-    emit homeserverChanged(url);
+    emit homeserverChanged(homeserver());
 }
 
 static constexpr int CACHE_VERSION_MAJOR = 1;
