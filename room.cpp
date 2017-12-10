@@ -29,6 +29,7 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
+#include "events/redactionevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
 #include "avatar.h"
@@ -99,8 +100,9 @@ class Room::Private
 
         bool isEventNotable(const RoomEvent* e) const
         {
-            return e->senderId() != connection->userId() &&
-                    e->type() == EventType::RoomMessage;
+            return !e->isRedacted() &&
+                e->senderId() != connection->userId() &&
+                e->type() == EventType::RoomMessage;
         }
 
         void appendEvent(RoomEvent* e)
@@ -118,10 +120,13 @@ class Room::Private
          * Removes events from the passed container that are already in the timeline
          */
         void dropDuplicateEvents(RoomEvents* events) const;
+        void checkUnreadMessages(RoomEventsView events);
 
         void setLastReadEvent(User* u, const QString& eventId);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
                                           bool force = false);
+
+        void processRedaction(const RedactionEvent* redaction);
 
         QJsonObject toJson() const;
 
@@ -677,6 +682,83 @@ void Room::Private::dropDuplicateEvents(RoomEvents* events) const
     events->erase(dupsBegin, events->end());
 }
 
+void Room::Private::processRedaction(const RedactionEvent* redaction)
+{
+    Q_ASSERT(redaction && redaction->type() == EventType::Redaction);
+
+    const auto pIdx = eventsIndex.find(redaction->redactedEvent());
+    if (pIdx == eventsIndex.end())
+    {
+        qCDebug(MAIN) << "Redaction" << redaction->id()
+                      << "ignored: target event not found";
+        return; // If the target events comes later, it comes already redacted.
+    }
+    Q_ASSERT(q->isValidIndex(*pIdx));
+
+    auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
+
+    // Apply the redaction procedure from chapter 6.5 of The Spec
+    auto originalJson = ti->originalJsonObject();
+    if (originalJson.value("unsigned").toObject()
+            .value("redacted_because").toObject()
+            .value("event_id") == redaction->id())
+    {
+        qCDebug(MAIN) << "Redaction" << redaction->id()
+            << "of event" << ti.event()->id() << "already done, skipping";
+        return;
+    }
+    static const QStringList keepKeys =
+        { "event_id", "type", "room_id", "sender", "state_key",
+          "prev_content", "content" };
+    static const
+        std::vector<std::pair<EventType, QStringList>> keepContentKeysMap
+        { { Event::Type::RoomMember,    { "membership" } }
+        , { Event::Type::RoomCreate,    { "creator" } }
+        , { Event::Type::RoomJoinRules, { "join_rule" } }
+        , { Event::Type::RoomPowerLevels,
+            { "ban", "events", "events_default", "kick", "redact",
+              "state_default", "users", "users_default" } }
+        , { Event::Type::RoomAliases,   { "alias" } }
+        };
+    for (auto it = originalJson.begin(); it != originalJson.end();)
+    {
+        if (!keepKeys.contains(it.key()))
+            it = originalJson.erase(it); // TODO: shred the value
+        else
+            ++it;
+    }
+    auto keepContentKeys =
+            find_if(keepContentKeysMap.begin(), keepContentKeysMap.end(),
+                         [&](const std::pair<EventType,QStringList>& t)
+                            { return ti->type() == t.first; } );
+    if (keepContentKeys == keepContentKeysMap.end())
+    {
+        originalJson.remove("content");
+        originalJson.remove("prev_content");
+    } else {
+        auto content = originalJson.take("content").toObject();
+        for (auto it = content.begin(); it != content.end(); )
+        {
+            if (!keepContentKeys->second.contains(it.key()))
+                it = content.erase(it);
+            else
+                ++it;
+        }
+        originalJson.insert("content", content);
+    }
+    auto unsignedData = originalJson.take("unsigned").toObject();
+    unsignedData["redacted_because"] = redaction->originalJsonObject();
+    originalJson.insert("unsigned", unsignedData);
+
+    // Make a new event from the redacted JSON, exchange events,
+    // notify everyone and delete the old event
+    auto oldEvent = ti.replaceEvent(RoomEvent::fromJson(originalJson));
+    q->onRedaction(oldEvent, ti);
+    qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction->id();
+    emit q->replacedEvent(oldEvent, ti.event());
+    delete oldEvent;
+}
+
 Connection* Room::connection() const
 {
     Q_ASSERT(d->connection);
@@ -688,62 +770,94 @@ User* Room::localUser() const
     return connection()->user();
 }
 
-void Room::addNewMessageEvents(RoomEvents events)
+inline bool isRedaction(Event* e)
 {
-    d->dropDuplicateEvents(&events);
-    if (events.empty())
-        return;
-    emit aboutToAddNewMessages(events);
-    doAddNewMessageEvents(events);
-    emit addedMessages();
+    return e->type() == EventType::Redaction;
 }
 
-void Room::doAddNewMessageEvents(const RoomEvents& events)
+void Room::addNewMessageEvents(RoomEvents events)
+{
+    auto timelineSize = d->timeline.size();
+
+    d->dropDuplicateEvents(&events);
+    // We want to process redactions in the order of arrival (covering the
+    // case of one redaction superseding another one), hence stable partition.
+    const auto normalsBegin =
+            std::stable_partition(events.begin(), events.end(), isRedaction);
+    RoomEventsView redactions { events.begin(), normalsBegin },
+                   normalEvents { normalsBegin, events.end() };
+    if (!normalEvents.empty())
+    {
+        emit aboutToAddNewMessages(normalEvents);
+        doAddNewMessageEvents(normalEvents);
+    }
+    for (auto* r: redactions)
+        d->processRedaction(static_cast<const RedactionEvent*>(r));
+    if (!normalEvents.empty())
+    {
+        d->checkUnreadMessages(normalEvents);
+        emit addedMessages();
+    }
+
+    Q_ASSERT(d->timeline.size() == timelineSize + normalEvents.size());
+}
+
+void Room::doAddNewMessageEvents(RoomEventsView events)
 {
     Q_ASSERT(!events.empty());
-
-    Timeline::size_type newUnreadMessages = 0;
     for (auto e: events)
-    {
         d->appendEvent(e);
-        newUnreadMessages += d->isEventNotable(e);
-    }
-    qCDebug(MAIN) << "Room" << displayName() << "received" << events.size()
-                  << "(with" << newUnreadMessages << "notable)"
-                  << "new events; the last event is now" << d->timeline.back();
+    qCDebug(MAIN)
+            << "Room" << displayName() << "received" << events.size()
+            << "new events; the last event is now" << d->timeline.back();
+}
+
+void Room::Private::checkUnreadMessages(RoomEventsView events)
+{
+    auto newUnreadMessages =
+        count_if(events.from, events.to,
+                 [=] (const RoomEvent* e) { return isEventNotable(e); });
 
     // The first event in the batch defines whose read marker can possibly be
     // promoted any further over the same author's events newly arrived.
     // Others will need explicit read receipts from the server (or, for
     // the local user, markMessagesAsRead() invocation) to promote their
     // read markers over the new message events.
-    User* firstWriter = connection()->user(events.front()->senderId());
-    if (readMarker(firstWriter) != timelineEdge())
+    User* firstWriter = connection->user((*events.from)->senderId());
+    if (q->readMarker(firstWriter) != timeline.crend())
     {
-        d->promoteReadMarker(firstWriter, findInTimeline(events.front()->id()));
+        promoteReadMarker(firstWriter, q->findInTimeline((*events.from)->id()));
         qCDebug(MAIN) << "Auto-promoted read marker for" << firstWriter->id()
-                      << "to" << *readMarker(firstWriter);
+                      << "to" << *q->readMarker(firstWriter);
     }
 
-    if( !d->unreadMessages && newUnreadMessages > 0)
+    if(!unreadMessages && newUnreadMessages > 0)
     {
-        d->unreadMessages = true;
-        emit unreadMessagesChanged(this);
-        qCDebug(MAIN) << "Room" << displayName() << "has unread messages";
+        unreadMessages = true;
+        emit q->unreadMessagesChanged(q);
+        qCDebug(MAIN) << "Room" << displayname << "has unread messages";
     }
 }
 
 void Room::addHistoricalMessageEvents(RoomEvents events)
 {
+    auto timelineSize = d->timeline.size();
+
     d->dropDuplicateEvents(&events);
-    if (events.empty())
+    auto redactionsBegin =
+            std::remove_if(events.begin(), events.end(), isRedaction);
+    RoomEventsView normalEvents { events.begin(), redactionsBegin };
+    if (normalEvents.empty())
         return;
-    emit aboutToAddHistoricalMessages(events);
-    doAddHistoricalMessageEvents(events);
+
+    emit aboutToAddHistoricalMessages(normalEvents);
+    doAddHistoricalMessageEvents(normalEvents);
     emit addedMessages();
+
+    Q_ASSERT(d->timeline.size() == timelineSize + normalEvents.size());
 }
 
-void Room::doAddHistoricalMessageEvents(const RoomEvents& events)
+void Room::doAddHistoricalMessageEvents(RoomEventsView events)
 {
     Q_ASSERT(!events.empty());
 

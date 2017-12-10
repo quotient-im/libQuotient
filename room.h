@@ -38,6 +38,8 @@ namespace QMatrixClient
     class User;
     class MemberSorter;
     class LeaveRoomJob;
+    class RedactEventJob;
+    class Room;
 
     class TimelineItem
     {
@@ -49,8 +51,16 @@ namespace QMatrixClient
             TimelineItem(RoomEvent* e, index_t number) : evt(e), idx(number) { }
 
             RoomEvent* event() const { return evt.get(); }
-            RoomEvent* operator->() const { return event(); } //< Synonym for event()
+            RoomEvent* operator->() const { return event(); } //< Synonym for event()->
             index_t index() const { return idx; }
+
+            // Used for event redaction
+            RoomEvent* replaceEvent(RoomEvent* other)
+            {
+                auto* old = evt.release();
+                evt.reset(other);
+                return old;
+            }
 
         private:
             std::unique_ptr<RoomEvent> evt;
@@ -176,8 +186,8 @@ namespace QMatrixClient
             void markAllMessagesAsRead();
 
         signals:
-            void aboutToAddHistoricalMessages(const RoomEvents& events);
-            void aboutToAddNewMessages(const RoomEvents& events);
+            void aboutToAddHistoricalMessages(RoomEventsView events);
+            void aboutToAddNewMessages(RoomEventsView events);
             void addedMessages();
 
             /**
@@ -200,12 +210,14 @@ namespace QMatrixClient
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
+            void replacedEvent(RoomEvent* before, RoomEvent* after);
 
         protected:
-            virtual void doAddNewMessageEvents(const RoomEvents& events);
-            virtual void doAddHistoricalMessageEvents(const RoomEvents& events);
+            virtual void doAddNewMessageEvents(RoomEventsView events);
+            virtual void doAddHistoricalMessageEvents(RoomEventsView events);
             virtual void processStateEvents(const RoomEvents& events);
             virtual void processEphemeralEvent(Event* event);
+            virtual void onRedaction(RoomEvent*, TimelineItem&) { }
 
         private:
             class Private;
