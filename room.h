@@ -159,7 +159,8 @@ namespace QMatrixClient
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);
             void postMessage(const RoomMessageEvent& event);
-            /** @deprecated */
+            /** @deprecated If you have a custom event type, construct the event
+             * and pass it as a whole to postMessage() */
             void postMessage(const QString& type, const QString& plainText);
             void setTopic(const QString& newTopic);
 
