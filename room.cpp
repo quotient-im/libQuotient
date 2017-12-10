@@ -23,6 +23,7 @@
 #include "jobs/generated/banning.h"
 #include "jobs/generated/leaving.h"
 #include "jobs/generated/receipts.h"
+#include "jobs/generated/redaction.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -669,6 +670,12 @@ void Room::ban(const QString& userId, const QString& reason)
 void Room::unban(const QString& userId)
 {
     connection()->callApi<UnbanJob>(id(), userId);
+}
+
+void Room::redactEvent(const QString& eventId, const QString& reason)
+{
+    connection()->callApi<RedactEventJob>(
+        id(), eventId, connection()->generateTxnId(), reason);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const

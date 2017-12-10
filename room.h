@@ -181,6 +181,8 @@ namespace QMatrixClient
             void kickMember(const QString& memberId, const QString& reason = {});
             void ban(const QString& userId, const QString& reason = {});
             void unban(const QString& userId);
+            void redactEvent(const QString& eventId,
+                             const QString& reason = {});
 
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();
