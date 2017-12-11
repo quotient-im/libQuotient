@@ -716,7 +716,7 @@ void Room::Private::processRedaction(const RedactionEvent* redaction)
     }
     static const QStringList keepKeys =
         { "event_id", "type", "room_id", "sender", "state_key",
-          "prev_content", "content" };
+          "prev_content", "content", "origin_server_ts" };
     static const
         std::vector<std::pair<EventType, QStringList>> keepContentKeysMap
         { { Event::Type::RoomMember,    { "membership" } }
