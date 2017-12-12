@@ -460,8 +460,8 @@ void Room::Private::insertEvent(RoomEvent* e, Timeline::iterator where,
     if (eventsIndex.contains(e->id()))
     {
         qCWarning(MAIN) << "Event" << e->id() << "is already in the timeline.";
-        qCWarning(MAIN) << "Either dropDuplicateEvents() wasn't called or duplicate "
-                           "events within the same batch arrived from the server.";
+        qCWarning(MAIN)
+            << "Room::dropDuplicateEvents() wasn't called or has a bug.";
         return;
     }
     timeline.emplace(where, e, index);
@@ -680,10 +680,30 @@ void Room::redactEvent(const QString& eventId, const QString& reason)
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const
 {
+    if (events->empty())
+        return;
+
     // Collect all duplicate events at the end of the container
     auto dupsBegin =
             std::stable_partition(events->begin(), events->end(),
                   [&] (RoomEvent* e) { return !eventsIndex.contains(e->id()); });
+
+    if (dupsBegin != events->begin())
+    {
+        // Check the batch itself for dups
+        auto eIt = events->begin();
+        for (auto baseId = (*eIt)->id(); ++eIt < dupsBegin; baseId = (*eIt)->id())
+        {
+            dupsBegin =
+                std::stable_partition(eIt, dupsBegin,
+                    [&] (const RoomEvent* e) { return e->id() != baseId; });
+        }
+    }
+    if (dupsBegin == events->end())
+        return;
+
+    qCDebug(EVENTS) << "Dropping" << distance(dupsBegin, events->end())
+                    << "duplicate event(s)";
     // Dispose of those dups
     std::for_each(dupsBegin, events->end(), [] (Event* e) { delete e; });
     events->erase(dupsBegin, events->end());
