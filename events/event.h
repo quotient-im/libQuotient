@@ -162,9 +162,9 @@ namespace QMatrixClient
 
         private:
             QString _id;
-            QDateTime _serverTimestamp;
             QString _roomId;
             QString _senderId;
+            QDateTime _serverTimestamp;
             QScopedPointer<RedactionEvent> _redactedBecause;
             QString _txnId;
     };

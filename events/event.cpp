@@ -87,9 +87,9 @@ RoomEvent::RoomEvent(Event::Type type) : Event(type) { }
 RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     : Event(type, rep), _id(rep["event_id"].toString())
     , _roomId(rep["room_id"].toString())
+    , _senderId(rep["sender"].toString())
     , _serverTimestamp(
             QMatrixClient::fromJson<QDateTime>(rep["origin_server_ts"]))
-    , _senderId(rep["sender"].toString())
 {
 //    if (_id.isEmpty())
 //    {
