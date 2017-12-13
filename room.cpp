@@ -123,6 +123,8 @@ class Room::Private
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
                                           bool force = false);
 
+        void markMessagesAsRead(rev_iter_t upToMarker);
+
         QJsonObject toJson() const;
 
     private:
@@ -270,20 +272,20 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
     return { prevMarker, newMarker };
 }
 
-void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
+void Room::Private::markMessagesAsRead(Room::rev_iter_t upToMarker)
 {
-    Private::rev_iter_pair_t markers = d->promoteReadMarker(localUser(), upToMarker);
+    rev_iter_pair_t markers = promoteReadMarker(q->localUser(), upToMarker);
     if (markers.first != markers.second)
-        qCDebug(MAIN) << "Marked messages as read until" << *readMarker();
+        qCDebug(MAIN) << "Marked messages as read until" << *q->readMarker();
 
     // We shouldn't send read receipts for the local user's own messages - so
     // search earlier messages for the latest message not from the local user
     // until the previous last-read message, whichever comes first.
     for (; markers.second < markers.first; ++markers.second)
     {
-        if ((*markers.second)->senderId() != localUser()->id())
+        if ((*markers.second)->senderId() != q->localUser()->id())
         {
-            connection()->callApi<PostReceiptJob>(id(), (*markers.second)->id());
+            connection->callApi<PostReceiptJob>(id, (*markers.second)->id());
             break;
         }
     }
@@ -291,13 +293,13 @@ void Room::markMessagesAsRead(Room::rev_iter_t upToMarker)
 
 void Room::markMessagesAsRead(QString uptoEventId)
 {
-    markMessagesAsRead(findInTimeline(uptoEventId));
+    d->markMessagesAsRead(findInTimeline(uptoEventId));
 }
 
 void Room::markAllMessagesAsRead()
 {
     if (!d->timeline.empty())
-        markMessagesAsRead(d->timeline.crbegin());
+        d->markMessagesAsRead(d->timeline.crbegin());
 }
 
 bool Room::hasUnreadMessages()

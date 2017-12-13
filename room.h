@@ -213,8 +213,6 @@ namespace QMatrixClient
 
             void addNewMessageEvents(RoomEvents events);
             void addHistoricalMessageEvents(RoomEvents events);
-
-            void markMessagesAsRead(rev_iter_t upToMarker);
     };
 
     class MemberSorter
