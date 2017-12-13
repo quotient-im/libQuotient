@@ -45,6 +45,8 @@
 
 using namespace QMatrixClient;
 
+enum EventsPlacement : int { Older = -1, Newer = 1 };
+
 class Room::Private
 {
     public:
@@ -106,16 +108,7 @@ class Room::Private
                 e->type() == EventType::RoomMessage;
         }
 
-        void appendEvent(RoomEvent* e)
-        {
-            insertEvent(e, timeline.end(),
-                        timeline.empty() ? 0 : q->maxTimelineIndex() + 1);
-        }
-        void prependEvent(RoomEvent* e)
-        {
-            insertEvent(e, timeline.begin(),
-                        timeline.empty() ? 0 : q->minTimelineIndex() - 1);
-        }
+        void insertEvents(RoomEventsView events, EventsPlacement placement);
 
         /**
          * Removes events from the passed container that are already in the timeline
@@ -138,8 +131,6 @@ class Room::Private
         void insertMemberIntoMap(User* u);
         void removeMemberFromMap(const QString& username, User* u);
 
-        void insertEvent(RoomEvent* e, Timeline::iterator where,
-                         TimelineItem::index_t index);
         bool isLocalUser(const User* u) const
         {
             return u == connection->user();
@@ -449,24 +440,30 @@ inline QByteArray makeErrorStr(const Event* e, QByteArray msg)
     return msg.append("; event dump follows:\n").append(e->originalJson());
 }
 
-void Room::Private::insertEvent(RoomEvent* e, Timeline::iterator where,
-                                TimelineItem::index_t index)
+void Room::Private::insertEvents(RoomEventsView events, EventsPlacement placement)
 {
-    Q_ASSERT_X(e, __FUNCTION__, "Attempt to add nullptr to timeline");
-    Q_ASSERT_X(!e->id().isEmpty(), __FUNCTION__,
-               makeErrorStr(e, "Event with empty id cannot be in the timeline"));
-    Q_ASSERT_X(where == timeline.end() || where == timeline.begin(), __FUNCTION__,
-               "Events can only be appended or prepended to the timeline");
-    if (eventsIndex.contains(e->id()))
+    // Historical messages arrive in newest-to-oldest order, so the process for
+    // them is symmetric to the one for new messages.
+    auto index = timeline.empty() ? -int(placement) :
+                 placement == Older ? timeline.front().index() :
+                 timeline.back().index();
+    auto baseIndex = index;
+    for (const auto e: events)
     {
-        qCWarning(MAIN) << "Event" << e->id() << "is already in the timeline.";
-        qCWarning(MAIN)
-            << "Room::dropDuplicateEvents() wasn't called or has a bug.";
-        return;
+        Q_ASSERT_X(e, __FUNCTION__, "Attempt to add nullptr to timeline");
+        Q_ASSERT_X(!e->id().isEmpty(), __FUNCTION__,
+                   makeErrorStr(e, "Event with empty id cannot be in the timeline"));
+        Q_ASSERT_X(!eventsIndex.contains(e->id()), __FUNCTION__,
+                   makeErrorStr(e, "Event is already in the timeline; "
+                       "incoming events were not properly deduplicated"));
+        if (placement == Older)
+            timeline.emplace_front(e, --index);
+        else
+            timeline.emplace_back(e, ++index);
+        eventsIndex.insert(e->id(), index);
+        Q_ASSERT(q->findInTimeline(e->id())->event() == e);
     }
-    timeline.emplace(where, e, index);
-    eventsIndex.insert(e->id(), index);
-    Q_ASSERT(q->findInTimeline(e->id())->event() == e);
+    Q_ASSERT(int(events.size()) == (index - baseIndex) * int(placement));
 }
 
 void Room::Private::addMember(User *u)
@@ -832,8 +829,7 @@ void Room::addNewMessageEvents(RoomEvents events)
 void Room::doAddNewMessageEvents(RoomEventsView events)
 {
     Q_ASSERT(!events.empty());
-    for (auto e: events)
-        d->appendEvent(e);
+    d->insertEvents(events, Newer);
     qCDebug(MAIN)
             << "Room" << displayName() << "received" << events.size()
             << "new events; the last event is now" << d->timeline.back();
@@ -889,9 +885,7 @@ void Room::doAddHistoricalMessageEvents(RoomEventsView events)
     Q_ASSERT(!events.empty());
 
     const bool thereWasNoReadMarker = readMarker() == timelineEdge();
-    // Historical messages arrive in newest-to-oldest order
-    for (auto e: events)
-        d->prependEvent(e);
+    d->insertEvents(events, Older);
 
     // Catch a special case when the last read event id refers to an event
     // that was outside the loaded timeline and has just arrived. Depending on
