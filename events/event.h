@@ -83,10 +83,33 @@ namespace QMatrixClient
     };
     using EventType = Event::Type;
 
+    /**
+     * \brief A vector of pointers to events with deserialisation capabilities
+     *
+     * This is a simple wrapper over a generic vector type that adds
+     * a convenience method to deserialise events from QJsonArray.
+     * Note that this type does not own pointers to events. If owning
+     * semantics is needed, one should use the Owning<> wrapper around
+     * the container (e.g. \code Owning<EventsBatch<Event>> \endcode).
+     * \tparam EventT base type of all events in the vector
+     */
     template <typename EventT>
     class EventsBatch : public std::vector<EventT*>
     {
         public:
+            /**
+             * \brief Deserialise events from an array
+             *
+             * Given the following JSON construct, creates events from
+             * the array stored at key "node":
+             * \code
+             * "container": {
+             *     "node": [ { "event_id": "!evt1:srv.org", ... }, ... ]
+             * }
+             * \endcode
+             * \param container - the wrapping JSON object
+             * \param node - the key in container that holds the array of events
+             */
             void fromJson(const QJsonObject& container, const QString& node)
             {
                 const auto objs = container.value(node).toArray();
