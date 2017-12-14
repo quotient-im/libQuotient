@@ -42,6 +42,8 @@ Event::Event(Type type, const QJsonObject& rep)
     }
 }
 
+Event::~Event() = default;
+
 QByteArray Event::originalJson() const
 {
     return QJsonDocument(_originalJson).toJson();
@@ -72,14 +74,15 @@ inline BaseEventT* makeIfMatches(const QJsonObject& o, const QString& selector)
     return makeIfMatches<BaseEventT, EventTs...>(o, selector);
 }
 
-Event* Event::fromJson(const QJsonObject& obj)
+template <>
+EventPtr QMatrixClient::makeEvent<Event>(const QJsonObject& obj)
 {
     // Check more specific event types first
-    if (auto e = RoomEvent::fromJson(obj))
-        return e;
+    if (auto e = makeEvent<RoomEvent>(obj))
+        return EventPtr(move(e));
 
-    return makeIfMatches<Event,
-        TypingEvent, ReceiptEvent>(obj, obj["type"].toString());
+    return EventPtr { makeIfMatches<Event,
+        TypingEvent, ReceiptEvent>(obj, obj["type"].toString()) };
 }
 
 RoomEvent::RoomEvent(Event::Type type) : Event(type) { }
@@ -119,8 +122,7 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
         qCDebug(EVENTS) << "Event transactionId:" << _txnId;
 }
 
-RoomEvent::~RoomEvent()
-{ /* Let QScopedPointer<RedactionEvent> do its job */ }
+RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
 QString RoomEvent::redactionReason() const
 {
@@ -133,11 +135,12 @@ void RoomEvent::addId(const QString& id)
     _id = id;
 }
 
-RoomEvent* RoomEvent::fromJson(const QJsonObject& obj)
+template <>
+RoomEventPtr QMatrixClient::makeEvent<RoomEvent>(const QJsonObject& obj)
 {
-    return makeIfMatches<RoomEvent,
+    return RoomEventPtr { makeIfMatches<RoomEvent,
         RoomMessageEvent, RoomNameEvent, RoomAliasesEvent,
         RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
         RoomAvatarEvent, EncryptionEvent, RedactionEvent>
-            (obj, obj["type"].toString());
+            (obj, obj["type"].toString()) };
 }

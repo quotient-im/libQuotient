@@ -23,7 +23,7 @@ using namespace QMatrixClient;
 class RoomMessagesJob::Private
 {
     public:
-        Owning<RoomEvents> events;
+        RoomEvents events;
         QString end;
 };
 
@@ -46,9 +46,9 @@ RoomMessagesJob::~RoomMessagesJob()
     delete d;
 }
 
-RoomEvents RoomMessagesJob::releaseEvents()
+RoomEvents&& RoomMessagesJob::releaseEvents()
 {
-    return d->events.release();
+    return move(d->events);
 }
 
 QString RoomMessagesJob::end() const

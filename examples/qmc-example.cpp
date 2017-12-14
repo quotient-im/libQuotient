@@ -20,16 +20,16 @@ void onNewRoom(Room* r)
              << "  Canonical alias: " << r->canonicalAlias().toStdString()
              << endl << endl;
     });
-    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEventsView events) {
-        cout << events.size() << " new event(s) in room "
+    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEventsRange timeline) {
+        cout << timeline.size() << " new event(s) in room "
              << r->id().toStdString() << ":" << endl;
-        for (auto e: events)
+        for (const auto& item: timeline)
         {
             cout << "From: "
-                 << r->roomMembername(e->senderId()).toStdString()
+                 << r->roomMembername(item->senderId()).toStdString()
                  << endl << "Timestamp:"
-                 << e->timestamp().toString().toStdString() << endl
-                 << "JSON:" << endl << string(e->originalJson()) << endl;
+                 << item->timestamp().toString().toStdString() << endl
+                 << "JSON:" << endl << string(item->originalJson()) << endl;
         }
     });
 }

@@ -30,7 +30,7 @@ namespace QMatrixClient
     {
         public:
             template <typename EventT>
-            class Batch : public Owning<EventsBatch<EventT>>
+            class Batch : public EventsBatch<EventT>
             {
                 public:
                     explicit Batch(QString k) : jsonKey(std::move(k)) { }

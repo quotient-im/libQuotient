@@ -25,8 +25,21 @@
 
 #include "util.h"
 
+#include <memory>
+
 namespace QMatrixClient
 {
+    template <typename EventT>
+    using event_ptr_tt = std::unique_ptr<EventT>;
+
+    /** Create an event with proper type from a JSON object
+     * Use this factory template to detect the type from the JSON object
+     * contents (the detected event type should derive from the template
+     * parameter type) and create an event object of that type.
+     */
+    template <typename EventT>
+    event_ptr_tt<EventT> makeEvent(const QJsonObject& obj);
+
     class Event
     {
             Q_GADGET
@@ -64,12 +77,6 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
-            /** Create an event with proper type from a JSON object
-             * Use this factory to detect the type from the JSON object contents
-             * and create an event object of that type.
-             */
-            static Event* fromJson(const QJsonObject& obj);
-
         protected:
             const QJsonObject contentJson() const;
 
@@ -82,6 +89,10 @@ namespace QMatrixClient
             Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventType = Event::Type;
+    using EventPtr = event_ptr_tt<Event>;
+
+    template <>
+    EventPtr makeEvent<Event>(const QJsonObject& obj);
 
     /**
      * \brief A vector of pointers to events with deserialisation capabilities
@@ -94,7 +105,7 @@ namespace QMatrixClient
      * \tparam EventT base type of all events in the vector
      */
     template <typename EventT>
-    class EventsBatch : public std::vector<EventT*>
+    class EventsBatch : public std::vector<event_ptr_tt<EventT>>
     {
         public:
             /**
@@ -120,8 +131,10 @@ namespace QMatrixClient
                 for (auto objValue: objs)
                 {
                     const auto o = objValue.toObject();
-                    auto e = EventT::fromJson(o);
-                    this->push_back(e ? e : new EventT(EventType::Unknown, o));
+                    auto e { makeEvent<EventT>(o) };
+                    if (!e)
+                        e.reset(new EventT(EventType::Unknown, o));
+                    this->emplace_back(std::move(e));
                 }
             }
     };
@@ -151,10 +164,10 @@ namespace QMatrixClient
             const QDateTime& timestamp() const { return _serverTimestamp; }
             const QString& roomId() const { return _roomId; }
             const QString& senderId() const { return _senderId; }
-            bool isRedacted() const { return redactedBecause(); }
-            RedactionEvent* redactedBecause() const
+            bool isRedacted() const { return bool(_redactedBecause); }
+            const RedactionEvent* redactedBecause() const
             {
-                return _redactedBecause.data();
+                return _redactedBecause.get();
             }
             QString redactionReason() const;
             const QString& transactionId() const { return _txnId; }
@@ -180,18 +193,19 @@ namespace QMatrixClient
              */
             void addId(const QString& id);
 
-            // "Static override" of the one in Event
-            static RoomEvent* fromJson(const QJsonObject& obj);
-
         private:
             QString _id;
             QString _roomId;
             QString _senderId;
             QDateTime _serverTimestamp;
-            QScopedPointer<RedactionEvent> _redactedBecause;
+            event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
     using RoomEvents = EventsBatch<RoomEvent>;
+    using RoomEventPtr = event_ptr_tt<RoomEvent>;
+
+    template <>
+    RoomEventPtr makeEvent<RoomEvent>(const QJsonObject& obj);
 
     /**
      * Conceptually similar to QStringView (but much more primitive), it's a
@@ -199,10 +213,10 @@ namespace QMatrixClient
      * referring to the beginning and the end of a range in a RoomEvents
      * container.
      */
-    struct RoomEventsView
+    struct RoomEventsRange
     {
-        RoomEvents::const_iterator from;
-        RoomEvents::const_iterator to;
+        RoomEvents::iterator from;
+        RoomEvents::iterator to;
 
         RoomEvents::size_type size() const
         {
@@ -212,6 +226,8 @@ namespace QMatrixClient
         bool empty() const { return from == to; }
         RoomEvents::const_iterator begin() const { return from; }
         RoomEvents::const_iterator end() const { return to; }
+        RoomEvents::iterator begin() { return from; }
+        RoomEvents::iterator end() { return to; }
     };
 
     template <typename ContentT>
