@@ -803,7 +803,8 @@ void Room::Private::processRedaction(RoomEventPtr redactionEvent)
 
     // Make a new event from the redacted JSON, exchange events,
     // notify everyone and delete the old event
-    auto oldEvent { ti.replaceEvent(makeEvent<RoomEvent>(originalJson)) };
+    RoomEventPtr oldEvent
+        { ti.replaceEvent(makeEvent<RoomEvent>(originalJson)) };
     q->onRedaction(oldEvent.get(), ti.event());
     qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction->id();
     emit q->replacedEvent(ti.event(), oldEvent.get());
