@@ -42,6 +42,7 @@
 #include <QtCore/QElapsedTimer>
 
 #include <array>
+#include <functional>
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
