@@ -48,6 +48,7 @@ namespace QMatrixClient
             explicit Event(Type type) : _type(type) { }
             Event(Type type, const QJsonObject& rep);
             Event(const Event&) = delete;
+            virtual ~Event();
 
             Type type() const { return _type; }
             bool isStateEvent() const
