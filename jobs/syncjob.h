@@ -58,12 +58,9 @@ namespace QMatrixClient
 
             SyncRoomData(const QString& roomId, JoinState joinState_,
                          const QJsonObject& room_);
+            SyncRoomData(SyncRoomData&&) = default;
+            SyncRoomData& operator=(SyncRoomData&&) = default;
     };
-}  // namespace QMatrixClient
-Q_DECLARE_TYPEINFO(QMatrixClient::SyncRoomData, Q_MOVABLE_TYPE);
-
-namespace QMatrixClient
-{
     // QVector cannot work with non-copiable objects, std::vector can.
     using SyncDataList = std::vector<SyncRoomData>;
 
