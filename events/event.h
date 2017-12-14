@@ -132,7 +132,7 @@ namespace QMatrixClient
                 for (auto objValue: objs)
                 {
                     const auto o = objValue.toObject();
-                    auto e { makeEvent<EventT>(o) };
+                    auto&& e = makeEvent<EventT>(o);
                     if (!e)
                         e.reset(new EventT(EventType::Unknown, o));
                     this->emplace_back(std::move(e));
