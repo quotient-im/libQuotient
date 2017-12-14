@@ -42,7 +42,6 @@
 #include <QtCore/QElapsedTimer>
 
 #include <array>
-#include <functional>
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
@@ -273,7 +272,7 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
     if (isLocalUser(u) && unreadMessages)
     {
         auto stillUnreadMessagesCount = count_if(eagerMarker, timeline.cend(),
-                bind(&Room::Private::isEventNotable, this, _1));
+                std::bind(&Room::Private::isEventNotable, this, _1));
 
         if (stillUnreadMessagesCount == 0)
         {
@@ -859,7 +858,7 @@ void Room::Private::checkUnreadMessages(timeline_iter_t from)
 {
     Q_ASSERT(from < timeline.cend());
     const auto newUnreadMessages = count_if(from, timeline.cend(),
-            bind(&Room::Private::isEventNotable, this, _1));
+            std::bind(&Room::Private::isEventNotable, this, _1));
 
     // The first event in the just-added batch (referred to by upTo.base())
     // defines whose read marker can possibly be promoted any further over
