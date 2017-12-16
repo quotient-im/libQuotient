@@ -75,10 +75,10 @@ inline BaseEventT* makeIfMatches(const QJsonObject& o, const QString& selector)
 }
 
 template <>
-EventPtr QMatrixClient::makeEvent<Event>(const QJsonObject& obj)
+EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
 {
     // Check more specific event types first
-    if (auto e = makeEvent<RoomEvent>(obj))
+    if (auto e = doMakeEvent<RoomEvent>(obj))
         return EventPtr(move(e));
 
     return EventPtr { makeIfMatches<Event,
@@ -136,7 +136,7 @@ void RoomEvent::addId(const QString& id)
 }
 
 template <>
-RoomEventPtr QMatrixClient::makeEvent<RoomEvent>(const QJsonObject& obj)
+RoomEventPtr _impl::doMakeEvent(const QJsonObject& obj)
 {
     return RoomEventPtr { makeIfMatches<RoomEvent,
         RoomMessageEvent, RoomNameEvent, RoomAliasesEvent,

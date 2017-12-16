@@ -32,13 +32,11 @@ namespace QMatrixClient
     template <typename EventT>
     using event_ptr_tt = std::unique_ptr<EventT>;
 
-    /** Create an event with proper type from a JSON object
-     * Use this factory template to detect the type from the JSON object
-     * contents (the detected event type should derive from the template
-     * parameter type) and create an event object of that type.
-     */
-    template <typename EventT>
-    event_ptr_tt<EventT> makeEvent(const QJsonObject& obj);
+    namespace _impl
+    {
+        template <typename EventT>
+        event_ptr_tt<EventT> doMakeEvent(const QJsonObject& obj);
+    }
 
     class Event
     {
@@ -92,8 +90,25 @@ namespace QMatrixClient
     using EventType = Event::Type;
     using EventPtr = event_ptr_tt<Event>;
 
-    template <>
-    EventPtr makeEvent<Event>(const QJsonObject& obj);
+    /** Create an event with proper type from a JSON object
+     * Use this factory template to detect the type from the JSON object
+     * contents (the detected event type should derive from the template
+     * parameter type) and create an event object of that type.
+     */
+    template <typename EventT>
+    event_ptr_tt<EventT> makeEvent(const QJsonObject& obj)
+    {
+        auto e = _impl::doMakeEvent<EventT>(obj);
+        if (!e)
+            e.reset(new EventT(EventType::Unknown, obj));
+        return e;
+    }
+
+    namespace _impl
+    {
+        template <>
+        EventPtr doMakeEvent<Event>(const QJsonObject& obj);
+    }
 
     /**
      * \brief A vector of pointers to events with deserialisation capabilities
@@ -130,13 +145,7 @@ namespace QMatrixClient
                 // STL and Qt containers.
                 this->reserve(static_cast<size_type>(objs.size()));
                 for (auto objValue: objs)
-                {
-                    const auto o = objValue.toObject();
-                    auto&& e = makeEvent<EventT>(o);
-                    if (!e)
-                        e.reset(new EventT(EventType::Unknown, o));
-                    this->emplace_back(std::move(e));
-                }
+                    this->emplace_back(makeEvent<EventT>(objValue.toObject()));
             }
     };
     using Events = EventsBatch<Event>;
@@ -205,8 +214,11 @@ namespace QMatrixClient
     using RoomEvents = EventsBatch<RoomEvent>;
     using RoomEventPtr = event_ptr_tt<RoomEvent>;
 
-    template <>
-    RoomEventPtr makeEvent<RoomEvent>(const QJsonObject& obj);
+    namespace _impl
+    {
+        template <>
+        RoomEventPtr doMakeEvent<RoomEvent>(const QJsonObject& obj);
+    }
 
     /**
      * Conceptually similar to QStringView (but much more primitive), it's a
