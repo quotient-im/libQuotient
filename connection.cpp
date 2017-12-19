@@ -164,8 +164,6 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [=] {
-            setHomeserver(QUrl::fromUserInput(
-                    homeserver().scheme() + "://" + loginJob->homeServer()));
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
         });
