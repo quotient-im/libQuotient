@@ -385,7 +385,7 @@ QString Connection::token() const
     return accessToken();
 }
 
-QString Connection::accessToken() const
+QByteArray Connection::accessToken() const
 {
     return d->data->accessToken();
 }
