@@ -59,8 +59,8 @@ namespace QMatrixClient
             static QString legacyApplicationName;
 
         protected:
-            const QSettings legacySettings { legacyOrganizationName,
-                                             legacyApplicationName };
+            QSettings legacySettings { legacyOrganizationName,
+                                       legacyApplicationName };
     };
 
     class SettingsGroup: public Settings
@@ -94,6 +94,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString deviceName READ deviceName WRITE setDeviceName)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver)
             Q_PROPERTY(bool keepLoggedIn READ keepLoggedIn WRITE setKeepLoggedIn)
+            /** \deprecated \sa setToken */
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
         public:
             template <typename... ArgTs>
@@ -115,7 +116,10 @@ namespace QMatrixClient
             bool keepLoggedIn() const;
             void setKeepLoggedIn(bool newSetting);
 
+            /** \deprecated \sa setToken */
             QString accessToken() const;
+            /** \deprecated Storing accessToken in QSettings is unsafe,
+             * see QMatrixClient/Quaternion#181 */
             void setAccessToken(const QString& accessToken);
             Q_INVOKABLE void clearAccessToken();
     };
