@@ -223,7 +223,7 @@ void Connection::checkAndConnect(const QString& userId,
 void Connection::logout()
 {
     auto job = callApi<LogoutJob>();
-    connect( job, &LogoutJob::success, [=] {
+    connect( job, &LogoutJob::success, this, [=] {
         stopSync();
         emit loggedOut();
     });
