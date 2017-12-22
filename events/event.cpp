@@ -40,6 +40,8 @@ Event::Event(Type type, const QJsonObject& rep)
     }
 }
 
+Event::~Event() = default;
+
 QByteArray Event::originalJson() const
 {
     return QJsonDocument(_originalJson).toJson();
