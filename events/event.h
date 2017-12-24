@@ -88,9 +88,6 @@ namespace QMatrixClient
      *
      * This is a simple wrapper over a generic vector type that adds
      * a convenience method to deserialise events from QJsonArray.
-     * Note that this type does not own pointers to events. If owning
-     * semantics is needed, one should use the Owning<> wrapper around
-     * the container (e.g. \code Owning<EventsBatch<Event>> \endcode).
      * \tparam EventT base type of all events in the vector
      */
     template <typename EventT>
@@ -113,7 +110,7 @@ namespace QMatrixClient
             void fromJson(const QJsonObject& container, const QString& node)
             {
                 const auto objs = container.value(node).toArray();
-                using size_type = typename std::vector<EventT*>::size_type;
+                using size_type = typename std::vector<event_ptr_tt<EventT>>::size_type;
                 // The below line accommodates the difference in size types of
                 // STL and Qt containers.
                 this->reserve(static_cast<size_type>(objs.size()));
