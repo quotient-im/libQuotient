@@ -1,5 +1,5 @@
 QT += network
-CONFIG += c++11 warn_on rtti_off
+CONFIG += c++14 warn_on rtti_off
 
 INCLUDEPATH += $$PWD
 
