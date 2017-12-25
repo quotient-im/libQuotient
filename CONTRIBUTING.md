@@ -96,13 +96,47 @@ Any components proposed for reuse should have a license that permits releasing a
 
 If you find a significant vulnerability, or evidence of one,
 use either of the following contacts:
-* send an email to Kitsune Ral <Kitsune-Ral@users.sf.net>
-* reach out in Matrix to #kitsune:matrix.org (with encryption switched on)
+* send an email to Kitsune Ral [Kitsune-Ral@users.sf.net](mailto:Kitsune-Ral@users.sf.net)
+* reach out in Matrix to #kitsune:matrix.org (if you can, switch encryption **on**)
 
 In any of these two options, _indicate that you have such
 information_ (do not share the information yet), and we'll tell you the next steps.
 
 We will gladly give credit to anyone who reports a vulnerability so that we can fix it. If you want to remain anonymous or pseudonymous instead, please let us know that; we will gladly respect your wishes.
+
+## Code changes
+
+The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
+
+### Qt-flavoured C++
+
+This is our primary language. We don't have a particular code style _as of yet_ but some rules-of-thumb are below:
+* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you spot the code abusing these - we'll thank you for fixing it.
+* Lines within 80 characters are preferred.
+* Braces after if's, while's, do's, function signatures etc. take a separate line.
+* A historical deviation from the usual Qt code format conventions is an extra indent inside _classes_ (access specifiers go at +4 spaces to the base, members at +8 spaces) but not _structs_ (members at +4 spaces). This may change in the future for something more conventional.
+* Please don't make hypocritical structs with protected or private members. Just make them classes instead.
+* Qt containers are generally preferred to STL containers; however, there are notable exceptions, and libqmatrixclient already uses them:
+  * `std::array` and `std::deque` have no direct counterparts in Qt.
+  * Because of COW semantics, Qt containers cannot hold uncopyable classes. Classes without a default constructor are a problem too. An example of that is `SyncRoomData` and `EventsBatch<>`. Use standard containers for those but see the next point and also consider if you can supply a reasonable copy/default constructor.
+  * Standard containers can be used in code internal to a translation unit (i.e., in a certain .cpp file) _as long as it's not exposed in the interface_. It's ok to use, e.g., `std::vector` instead of `QVector` in tighter code, or when dealing with uncopyable (see the previous point) elements. However, exposing standard containers in the API that might be used by QML will not work at all and will never be accepted.
+* Use `QVector` instead of `QList` where possible - see a [great article of Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/) for details. 
+
+### Automated tests
+
+There's no testing framework as of now; either Catch or QTest or both will be used eventually (PRs welcome, just don't expect a quick merge of one - we'll hunt you down to actually write some tests first :-D ).
+
+### Security, privacy, and performance
+
+Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++). `char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead.
+
+Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
+
+Protect private information, in particular passwords and email addresses. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking.
+
+We want the software to have decent performance for typical users. At the same time we keep libqmatrixclient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline - it can easily be several thousands elements long so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing.
+
+Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm.
 
 ## Documentation changes
 
@@ -116,43 +150,11 @@ In practice we use the version of Markdown implemented by GitHub when it renders
 This version of markdown is sometimes called
 [GitHub-flavored markdown](https://help.github.com/articles/github-flavored-markdown/).
 In particular, blank lines separate paragraphs; newlines inside a paragraph do *not* force a line break.
-Beware - this is *not* the same markdown algorithm used by GitHub when it renders issue or pull comments; in those cases [newlines in paragraph-like content are considered as real line breaks](https://help.github.com/articles/writing-on-github/); unfortunately this other algorithm is *also* called GitHub rendered markdown. (Yes, it'd be better if there were standard different names
-for different things.)
+Beware - this is *not* the same markdown algorithm used by GitHub when it renders issue or pull comments; in those cases [newlines in paragraph-like content are considered as real line breaks](https://help.github.com/articles/writing-on-github/); unfortunately this other algorithm is *also* called GitHub rendered markdown. (Yes, it'd be better if there were standard different names for different things.)
 
 In your markdown, please don't use tab characters and avoid "bare" URLs (in a hypertext link, the link text and URL should be on the same line). We do not care about the line length in markdown texts (and more often than not put the whole paragraph into one line). This is actually negotiable, and absolutely not enforceable. If you want to fit in a 70-character limit, go ahead, just don't reformat the whole text along the way. Take care to not break URLs when breaking lines.
 
 Do not use trailing two spaces for line breaks, since these cannot be seen and may be silently removed by some tools. Instead, use <tt>&lt;br&nbsp;/&gt;</tt> (an HTML break).
-
-## Code changes
-
-The code should strive to be DRY (don't repeat yourself), clear, and obviously correct.
-Some technical debt is inevitable, just don't bankrupt us with it.
-Improved refactorizations are welcome.
-
-Below are guidelines for specific languages.
-
-### Qt-flavoured C++
-
-This is our primary language. We don't have a particular code style _as of yet_ but some rules-of-thumb are below:
-* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you spot abusing code in the existing code base - we'll thank you for fixing it.
-* A notable deviation from the usual Qt code format conventions is an extra indent inside _classes_ (access specifiers go at +4 spaces to the base, members at +8 spaces) but not _structs_ (members at +4 spaces).
-* While we are at it - please don't make hypocritical structs with protected or private members. Just do them classes instead.
-*
-
-### Automated tests
-
-There's no testing framework as of now; either Catch or QTest will be used eventually (PRs welcome, just don't expect a quick merge of one - we'll hunt you down to actually write some tests first :-D ).
-
-### Security, privacy, and performance
-
-Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++). `char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least std::array<> instead.
-Protect private information, in particular passwords and email addresses. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state).
-Avoid mechanisms that could be used for tracking where possible
-(we do need to verify people are logged in for some operations),
-and ensure that third parties can't use interactions for tracking.
-
-We want the software to have decent performance for typical users. And the same time we keep libqmatrixclient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline - it can easily be several thousands elements long so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing.
-Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm.
 
 ## How to check proposed changes before submitting them
 
@@ -160,7 +162,7 @@ Checking the code on at least one configuration is essential; if you only have a
 
 ### Standard checks
 
--Wall -pedantic is used with GCC and Clang. We don't turn those warnings to errors but please treat them as such.
+`-Wall -pedantic` is used with GCC and Clang. We don't turn those warnings to errors but please treat them as such.
 
 ### Continuous Integration
 
@@ -192,9 +194,9 @@ Regardless of the above paragraph (and as mentioned earlier in the text), we're 
 
 Some cases need additional explanation:
 * Before rolling out your own super-optimised container or algorithm written from scratch, take a good long look through documentation on Qt and C++ standard library (including the experimental/future sections). Please try to reuse the existing facilities as much as possible.
-* You should have a very good reason (or better several ones) to add a component from KDE Frameworks. We don't rule this out and there's no prejudice against KDE; it just so happened that KDE Frameworks is one of most obvious reuse candidates for us but so far none of these components survived as libqmatrixclient deps.
+* You should have a good reason (or better several ones) to add a component from KDE Frameworks. We don't rule this out and there's no prejudice against KDE; it just so happened that KDE Frameworks is one of most obvious reuse candidates for us but so far none of these components survived as libqmatrixclient deps.
 * Never forget that libqmatrixclient is aimed to be a non-visual library; QtGui in dependencies is only driven by (entirely offscreen) dealing with QPixmaps. While there's a bunch of visual code (in C++ and QML) shared between libqmatrixclient-enabled _applications_, this is likely to end up in a separate (libqmatrixclient-enabled) library, rather than libqmatrixclient.
 
 ## Attribution
 
-This text is largely based on CONTRIBUTING.md from CII Best Practices Badge project, which is a collective work of its contributors. The text itself is licensed under CC-BY-4.0.
+This text is largely based on CONTRIBUTING.md from CII Best Practices Badge project, which is a collective work of its contributors (many thanks!). The text itself is licensed under CC-BY-4.0.
