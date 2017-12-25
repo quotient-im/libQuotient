@@ -31,28 +31,18 @@ namespace QMatrixClient
     class Avatar
     {
         public:
-            explicit Avatar(Connection* connection, QIcon defaultIcon = {})
-                : _defaultIcon(std::move(defaultIcon)), _connection(connection)
-            { }
+            explicit Avatar(Connection* connection, QIcon defaultIcon = {});
+            ~Avatar();
 
             using notifier_t = std::function<void()>;
 
             QPixmap get(int w, int h, notifier_t notifier);
 
-            QUrl url() const { return _url; }
+            QUrl url() const;
             bool updateUrl(const QUrl& newUrl);
 
         private:
-            QUrl _url;
-            QPixmap _originalPixmap;
-            QIcon _defaultIcon;
-
-            std::vector<QPair<QSize, QPixmap>> _scaledPixmaps;
-
-            QSize _requestedSize;
-            bool _valid = false;
-            Connection* _connection;
-            MediaThumbnailJob* _ongoingRequest = nullptr;
-            std::vector<notifier_t> notifiers;
+            class Private;
+            QScopedPointer<Private> d;
     };
 }  // namespace QMatrixClient
