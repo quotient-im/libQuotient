@@ -86,7 +86,7 @@ namespace QMatrixClient
             Q_INVOKABLE QString deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
-            Q_INVOKABLE QString accessToken() const;
+            Q_INVOKABLE QByteArray accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 

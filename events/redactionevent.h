@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,30 +18,26 @@
 
 #pragma once
 
-#include "basejob.h"
-
-#include "../events/event.h"
+#include "event.h"
 
 namespace QMatrixClient
 {
-    enum class FetchDirection { Backward, Forward };
-
-    class RoomMessagesJob: public BaseJob
+    class RedactionEvent : public RoomEvent
     {
         public:
-            RoomMessagesJob(const QString& roomId, const QString& from,
-                            int limit = 10,
-                            FetchDirection dir = FetchDirection::Backward);
-            virtual ~RoomMessagesJob();
+            static constexpr const char* const TypeId = "m.room.redaction";
 
-            RoomEvents&& releaseEvents();
-            QString end() const;
+            RedactionEvent(const QJsonObject& obj)
+                : RoomEvent(Type::Redaction, obj)
+                , _redactedEvent(obj.value("redacts").toString())
+                , _reason(contentJson().value("reason").toString())
+            { }
 
-        protected:
-            Status parseJson(const QJsonDocument& data) override;
+            const QString& redactedEvent() const { return _redactedEvent; }
+            const QString& reason() const { return _reason; }
 
         private:
-            class Private;
-            Private* d;
+            QString _redactedEvent;
+            QString _reason;
     };
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

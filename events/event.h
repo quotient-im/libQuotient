@@ -25,8 +25,19 @@
 
 #include "util.h"
 
+#include <memory>
+
 namespace QMatrixClient
 {
+    template <typename EventT>
+    using event_ptr_tt = std::unique_ptr<EventT>;
+
+    namespace _impl
+    {
+        template <typename EventT>
+        event_ptr_tt<EventT> doMakeEvent(const QJsonObject& obj);
+    }
+
     class Event
     {
             Q_GADGET
@@ -37,17 +48,19 @@ namespace QMatrixClient
                 Typing, Receipt,
                 RoomEventBase = 0x1000,
                 RoomMessage = RoomEventBase + 1,
-                RoomEncryptedMessage,
+                RoomEncryptedMessage, Redaction,
                 RoomStateEventBase = 0x1800,
                 RoomName = RoomStateEventBase + 1,
                 RoomAliases, RoomCanonicalAlias, RoomMember, RoomTopic,
-                RoomAvatar, RoomEncryption,
+                RoomAvatar, RoomEncryption, RoomCreate, RoomJoinRules,
+                RoomPowerLevels,
                 Reserved = 0x2000
             };
 
             explicit Event(Type type) : _type(type) { }
             Event(Type type, const QJsonObject& rep);
             Event(const Event&) = delete;
+            virtual ~Event();
 
             Type type() const { return _type; }
             bool isStateEvent() const
@@ -63,12 +76,6 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
-            /** Create an event with proper type from a JSON object
-             * Use this factory to detect the type from the JSON object contents
-             * and create an event object of that type.
-             */
-            static Event* fromJson(const QJsonObject& obj);
-
         protected:
             const QJsonObject contentJson() const;
 
@@ -81,27 +88,66 @@ namespace QMatrixClient
             Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventType = Event::Type;
+    using EventPtr = event_ptr_tt<Event>;
 
+    /** Create an event with proper type from a JSON object
+     * Use this factory template to detect the type from the JSON object
+     * contents (the detected event type should derive from the template
+     * parameter type) and create an event object of that type.
+     */
     template <typename EventT>
-    class EventsBatch : public std::vector<EventT*>
+    event_ptr_tt<EventT> makeEvent(const QJsonObject& obj)
+    {
+        auto e = _impl::doMakeEvent<EventT>(obj);
+        if (!e)
+            e.reset(new EventT(EventType::Unknown, obj));
+        return e;
+    }
+
+    namespace _impl
+    {
+        template <>
+        EventPtr doMakeEvent<Event>(const QJsonObject& obj);
+    }
+
+    /**
+     * \brief A vector of pointers to events with deserialisation capabilities
+     *
+     * This is a simple wrapper over a generic vector type that adds
+     * a convenience method to deserialise events from QJsonArray.
+     * \tparam EventT base type of all events in the vector
+     */
+    template <typename EventT>
+    class EventsBatch : public std::vector<event_ptr_tt<EventT>>
     {
         public:
+            /**
+             * \brief Deserialise events from an array
+             *
+             * Given the following JSON construct, creates events from
+             * the array stored at key "node":
+             * \code
+             * "container": {
+             *     "node": [ { "event_id": "!evt1:srv.org", ... }, ... ]
+             * }
+             * \endcode
+             * \param container - the wrapping JSON object
+             * \param node - the key in container that holds the array of events
+             */
             void fromJson(const QJsonObject& container, const QString& node)
             {
                 const auto objs = container.value(node).toArray();
-                using size_type = typename std::vector<EventT*>::size_type;
+                using size_type = typename std::vector<event_ptr_tt<EventT>>::size_type;
                 // The below line accommodates the difference in size types of
                 // STL and Qt containers.
                 this->reserve(static_cast<size_type>(objs.size()));
                 for (auto objValue: objs)
-                {
-                    const auto o = objValue.toObject();
-                    auto e = EventT::fromJson(o);
-                    this->push_back(e ? e : new EventT(EventType::Unknown, o));
-                }
+                    this->emplace_back(makeEvent<EventT>(objValue.toObject()));
             }
     };
     using Events = EventsBatch<Event>;
+
+    class RedactionEvent;
 
     /** This class corresponds to m.room.* events */
     class RoomEvent : public Event
@@ -111,15 +157,26 @@ namespace QMatrixClient
             Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
             Q_PROPERTY(QString roomId READ roomId CONSTANT)
             Q_PROPERTY(QString senderId READ senderId CONSTANT)
-            Q_PROPERTY(QString transactionId READ transactionId CONSTANT)
+            Q_PROPERTY(QString redactionReason READ redactionReason)
+            Q_PROPERTY(bool isRedacted READ isRedacted)
+            Q_PROPERTY(QString transactionId READ transactionId)
         public:
-            explicit RoomEvent(Type type) : Event(type) { }
+            // RedactionEvent is an incomplete type here so we cannot inline
+            // constructors and destructors
+            explicit RoomEvent(Type type);
             RoomEvent(Type type, const QJsonObject& rep);
+            ~RoomEvent();
 
             const QString& id() const { return _id; }
             const QDateTime& timestamp() const { return _serverTimestamp; }
             const QString& roomId() const { return _roomId; }
             const QString& senderId() const { return _senderId; }
+            bool isRedacted() const { return bool(_redactedBecause); }
+            const RedactionEvent* redactedBecause() const
+            {
+                return _redactedBecause.get();
+            }
+            QString redactionReason() const;
             const QString& transactionId() const { return _txnId; }
 
             /**
@@ -143,17 +200,45 @@ namespace QMatrixClient
              */
             void addId(const QString& id);
 
-            // "Static override" of the one in Event
-            static RoomEvent* fromJson(const QJsonObject& obj);
-
         private:
             QString _id;
-            QDateTime _serverTimestamp;
             QString _roomId;
             QString _senderId;
+            QDateTime _serverTimestamp;
+            event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
     using RoomEvents = EventsBatch<RoomEvent>;
+    using RoomEventPtr = event_ptr_tt<RoomEvent>;
+
+    namespace _impl
+    {
+        template <>
+        RoomEventPtr doMakeEvent<RoomEvent>(const QJsonObject& obj);
+    }
+
+    /**
+     * Conceptually similar to QStringView (but much more primitive), it's a
+     * simple abstraction over a pair of RoomEvents::const_iterator values
+     * referring to the beginning and the end of a range in a RoomEvents
+     * container.
+     */
+    struct RoomEventsRange
+    {
+        RoomEvents::iterator from;
+        RoomEvents::iterator to;
+
+        RoomEvents::size_type size() const
+        {
+            Q_ASSERT(std::distance(from, to) >= 0);
+            return RoomEvents::size_type(std::distance(from, to));
+        }
+        bool empty() const { return from == to; }
+        RoomEvents::const_iterator begin() const { return from; }
+        RoomEvents::const_iterator end() const { return to; }
+        RoomEvents::iterator begin() { return from; }
+        RoomEvents::iterator end() { return to; }
+    };
 
     template <typename ContentT>
     class StateEvent: public RoomEvent

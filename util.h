@@ -26,53 +26,6 @@
 namespace QMatrixClient
 {
     /**
-     * @brief A crude wrapper around a container of pointers that owns pointers
-     * to contained objects
-     *
-     * Similar to vector<unique_ptr<>>, upon deletion, this wrapper
-     * will delete all events contained in it. This wrapper can be used
-     * over Qt containers, which are incompatible with unique_ptr and even
-     * with QScopedPointer (which is the reason of its creation).
-     */
-    template <typename ContainerT>
-    class Owning : public ContainerT
-    {
-        public:
-            Owning() = default;
-            Owning(const Owning&) = delete;
-            Owning(Owning&&) = default;
-            Owning& operator=(Owning&& other)
-            {
-                assign(other.release());
-                return *this;
-            }
-
-            ~Owning() { cleanup(); }
-
-            void assign(ContainerT&& other)
-            {
-                if (&other == this)
-                    return;
-                cleanup();
-                ContainerT::operator=(other);
-            }
-
-            /**
-             * @brief returns the underlying container and releases the ownership
-             *
-             * Acts similar to unique_ptr::release.
-             */
-            ContainerT release()
-            {
-                ContainerT c;
-                ContainerT::swap(c);
-                return c;
-            }
-        private:
-            void cleanup() { for (auto e: *this) delete e; }
-    };
-
-    /**
      * @brief Lookup a value by a key in a varargs list
      *
      * This function template takes the value of its first argument (selector)

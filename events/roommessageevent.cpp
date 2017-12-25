@@ -58,7 +58,6 @@ QString msgTypeToJson(MsgType enumType)
     if (it != msgTypes.end())
         return it->jsonType;
 
-    qCCritical(EVENTS) << "Unknown msgtype:" << enumType;
     return {};
 }
 
@@ -69,8 +68,7 @@ MsgType jsonToMsgType(const QString& jsonType)
     if (it != msgTypes.end())
         return it->enumType;
 
-    qCCritical(EVENTS) << "Unknown msgtype:" << jsonType;
-    return {};
+    return MsgType::Unknown;
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
@@ -81,6 +79,8 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : RoomEvent(Type::RoomMessage, obj), _content(nullptr)
 {
+    if (isRedacted())
+        return;
     const QJsonObject content = contentJson();
     if ( content.contains("msgtype") && content.contains("body") )
     {

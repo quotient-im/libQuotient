@@ -24,7 +24,37 @@
 
 using namespace QMatrixClient;
 
+class Avatar::Private
+{
+    public:
+        Private(Connection* c, QIcon di) : _connection(c), _defaultIcon(di) { }
+        QPixmap get(int width, int height, Avatar::notifier_t notifier);
+
+        Connection* _connection;
+        const QIcon _defaultIcon;
+        QUrl _url;
+        QPixmap _originalPixmap;
+
+        std::vector<QPair<QSize, QPixmap>> _scaledPixmaps;
+
+        QSize _requestedSize;
+        bool _valid = false;
+        MediaThumbnailJob* _ongoingRequest = nullptr;
+        std::vector<notifier_t> notifiers;
+};
+
+Avatar::Avatar(Connection* connection, QIcon defaultIcon)
+    : d(new Private { connection, std::move(defaultIcon) })
+{ }
+
+Avatar::~Avatar() = default;
+
 QPixmap Avatar::get(int width, int height, Avatar::notifier_t notifier)
+{
+    return d->get(width, height, notifier);
+}
+
+QPixmap Avatar::Private::get(int width, int height, Avatar::notifier_t notifier)
 {
     QSize size(width, height);
 
@@ -73,12 +103,15 @@ QPixmap Avatar::get(int width, int height, Avatar::notifier_t notifier)
     return pixmap;
 }
 
+QUrl Avatar::url() const { return d->_url; }
+
 bool Avatar::updateUrl(const QUrl& newUrl)
 {
-    if (newUrl == _url)
+    if (newUrl == d->_url)
         return false;
 
-    _url = newUrl;
-    _valid = false;
+    d->_url = newUrl;
+    d->_valid = false;
     return true;
 }
+

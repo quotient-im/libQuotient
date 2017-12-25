@@ -15,15 +15,21 @@ void onNewRoom(Room* r)
 {
     cout << "New room: " << r->id().toStdString() << endl;
     QObject::connect(r, &Room::namesChanged, [=] {
-        cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl;
-        cout << "  Name: " << r->name().toStdString() << endl;
-        cout << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl;
+        cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl
+             << "  Name: " << r->name().toStdString() << endl
+             << "  Canonical alias: " << r->canonicalAlias().toStdString()
+             << endl << endl;
     });
-    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEvents evs) {
-        cout << "New events in room " << r->id().toStdString() << ":" << endl;
-        for (auto e: evs)
+    QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEventsRange timeline) {
+        cout << timeline.size() << " new event(s) in room "
+             << r->id().toStdString() << ":" << endl;
+        for (const auto& item: timeline)
         {
-            cout << string(e->originalJson()) << endl;
+            cout << "From: "
+                 << r->roomMembername(item->senderId()).toStdString()
+                 << endl << "Timestamp:"
+                 << item->timestamp().toString().toStdString() << endl
+                 << "JSON:" << endl << string(item->originalJson()) << endl;
         }
     });
 }
@@ -36,7 +42,7 @@ int main(int argc, char* argv[])
 
     auto conn = new Connection(QUrl("https://matrix.org"));
     conn->connectToServer(argv[1], argv[2], "QMatrixClient example application");
-    QObject::connect(conn, &Connection::connected, [=] {
+    auto c = QObject::connect(conn, &Connection::connected, [=] {
         cout << "Connected" << endl;
        conn->sync();
     });

@@ -1,7 +1,8 @@
 #include "settings.h"
 
+#include "logging.h"
+
 #include <QtCore/QUrl>
-#include <QtCore/QDebug>
 
 using namespace QMatrixClient;
 
@@ -19,6 +20,8 @@ void Settings::setValue(const QString& key, const QVariant& value)
 {
 //    qCDebug() << "Setting" << key << "to" << value;
     QSettings::setValue(key, value);
+    if (legacySettings.contains(key))
+        legacySettings.remove(key);
 }
 
 QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
@@ -133,10 +136,14 @@ QString AccountSettings::accessToken() const
 
 void AccountSettings::setAccessToken(const QString& accessToken)
 {
+    qCWarning(MAIN) << "Saving access_token to QSettings is insecure."
+                       " Developers, please save access_token separately.";
     setValue("access_token", accessToken);
 }
 
 void AccountSettings::clearAccessToken()
 {
+    legacySettings.remove("access_token");
+    legacySettings.remove("device_id"); // Force the server to re-issue it
     remove("access_token");
 }

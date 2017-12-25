@@ -23,8 +23,8 @@
 #include "room.h"
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
+#include "jobs/generated/receipts.h"
 #include "jobs/sendeventjob.h"
-#include "jobs/postreceiptjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
@@ -164,7 +164,6 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [=] {
-            setHomeserver(loginJob->homeServer());
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
         });
@@ -223,7 +222,7 @@ void Connection::checkAndConnect(const QString& userId,
 void Connection::logout()
 {
     auto job = callApi<LogoutJob>();
-    connect( job, &LogoutJob::success, [=] {
+    connect( job, &LogoutJob::success, this, [=] {
         stopSync();
         emit loggedOut();
     });
@@ -279,12 +278,15 @@ void Connection::postMessage(Room* room, const QString& type, const QString& mes
 
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
-    return callApi<PostReceiptJob>(room->id(), event->id());
+    return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
 }
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 {
-    return callApi<JoinRoomJob>(roomAlias);
+    auto job = callApi<JoinRoomJob>(roomAlias);
+    connect(job, &JoinRoomJob::success,
+            this, [=] { provideRoom(job->roomId(), JoinState::Join); });
+    return job;
 }
 
 void Connection::leaveRoom(Room* room)
@@ -382,7 +384,7 @@ QString Connection::token() const
     return accessToken();
 }
 
-QString Connection::accessToken() const
+QByteArray Connection::accessToken() const
 {
     return d->data->accessToken();
 }
@@ -444,7 +446,6 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
             return nullptr;
         }
         d->roomMap.insert(roomKey, room);
-        qCDebug(MAIN) << "Created Room" << id << ", invited:" << roomKey.second;
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)
@@ -487,11 +488,11 @@ QByteArray Connection::generateTxnId()
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (d->data->baseUrl() == url)
+    if (homeserver() == url)
         return;
 
     d->data->setBaseUrl(url);
-    emit homeserverChanged(url);
+    emit homeserverChanged(homeserver());
 }
 
 static constexpr int CACHE_VERSION_MAJOR = 1;

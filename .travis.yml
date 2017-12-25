@@ -1,26 +1,26 @@
 language: cpp
 
+os: [ linux, osx ]
+
+compiler: [ gcc, clang ]
+
 addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.8
+    - sourceline: 'ppa:beineri/opt-qt563-trusty'
     packages:
     - g++-5
-    - clang-3.8
-    - qt5-default
+    - qt56base
 
 matrix:
-  include:
-  - os: linux
-    env: [ ENV_EVAL="CC=gcc-5 && CXX=g++-5" ]
-  - os: linux
-    env: [ ENV_EVAL="CC=clang-3.8 && CXX=clang++-3.8" ]
-  - os: osx
-    env: [ ENV_EVAL="brew update && brew install qt5 && CMAKE_PREFIX_PATH=/usr/local/opt/qt" ]
+  exclude: [ { os: osx, compiler: gcc } ]
+
+before_install:
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; brew install qt5; export PATH="$PATH:/usr/local/opt/qt/bin"; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then . /opt/qt56/bin/qt56-env.sh; fi
 
 install:
-- eval "${ENV_EVAL}"
 - git clone https://github.com/QMatrixClient/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad
@@ -34,14 +34,14 @@ before_script:
 - cmake --build . --target update-api
 
 script:
- - cmake --build .
- - cd ..
- - qmake qmc-example.pro && make all
+- cmake --build . --target all
+- cd ..
+- qmake qmc-example.pro && make all
 
 notifications:
-    webhooks:
-        urls:
-            - "https://scalar.vector.im/api/neb/services/hooks/dHJhdmlzLWNpLyU0MGtpdHN1bmUlM0FtYXRyaXgub3JnLyUyMVBDelV0eHRPalV5U3hTZWxvZiUzQW1hdHJpeC5vcmc"
-        on_success: change  # always|never|change
-        on_failure: always
-        on_start: never
+  webhooks:
+    urls:
+    - "https://scalar.vector.im/api/neb/services/hooks/dHJhdmlzLWNpLyU0MGtpdHN1bmUlM0FtYXRyaXgub3JnLyUyMVBDelV0eHRPalV5U3hTZWxvZiUzQW1hdHJpeC5vcmc"
+    on_success: change  # always|never|change
+    on_failure: always
+    on_start: never

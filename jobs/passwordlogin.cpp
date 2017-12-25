@@ -29,18 +29,15 @@ class PasswordLogin::Private
 };
 
 PasswordLogin::PasswordLogin(QString user, QString password)
-    : BaseJob(HttpVerb::Post, "PasswordLogin"
-            , "_matrix/client/r0/login"
-            , Query()
-            , Data(
-                { { "type", QStringLiteral("m.login.password") }
-                , { "user", user }
-                , { "password", password }
-                })
-            , false
-            )
+    : BaseJob(HttpVerb::Post, "PasswordLogin",
+              "_matrix/client/r0/login", Query(), Data(), false)
     , d(new Private)
 {
+    QJsonObject _data;
+    _data.insert("type", QStringLiteral("m.login.password"));
+    _data.insert("user", user);
+    _data.insert("password", password);
+    setRequestData(_data);
 }
 
 PasswordLogin::~PasswordLogin()

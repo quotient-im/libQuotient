@@ -38,22 +38,32 @@ namespace QMatrixClient
     class User;
     class MemberSorter;
     class LeaveRoomJob;
+    class RedactEventJob;
+    class Room;
 
     class TimelineItem
     {
         public:
             // For compatibility with Qt containers, even though we use
-            // a std:: container now
+            // a std:: container now for the room timeline
             using index_t = int;
 
-            TimelineItem(RoomEvent* e, index_t number) : evt(e), idx(number) { }
+            TimelineItem(RoomEventPtr&& e, index_t number)
+                : evt(move(e)), idx(number) { }
 
             RoomEvent* event() const { return evt.get(); }
-            RoomEvent* operator->() const { return event(); } //< Synonym for event()
+            RoomEvent* operator->() const { return evt.operator->(); }
             index_t index() const { return idx; }
 
+            // Used for event redaction
+            RoomEventPtr replaceEvent(RoomEventPtr&& other)
+            {
+                evt.swap(other);
+                return move(other);
+            }
+
         private:
-            std::unique_ptr<RoomEvent> evt;
+            RoomEventPtr evt;
             index_t idx;
     };
     inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
@@ -78,6 +88,7 @@ namespace QMatrixClient
         public:
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
+            using timeline_iter_t = Timeline::const_iterator;
 
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
@@ -159,7 +170,8 @@ namespace QMatrixClient
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);
             void postMessage(const RoomMessageEvent& event);
-            /** @deprecated */
+            /** @deprecated If you have a custom event type, construct the event
+             * and pass it as a whole to postMessage() */
             void postMessage(const QString& type, const QString& plainText);
             void setTopic(const QString& newTopic);
 
@@ -170,13 +182,15 @@ namespace QMatrixClient
             void kickMember(const QString& memberId, const QString& reason = {});
             void ban(const QString& userId, const QString& reason = {});
             void unban(const QString& userId);
+            void redactEvent(const QString& eventId,
+                             const QString& reason = {});
 
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();
 
         signals:
-            void aboutToAddHistoricalMessages(const RoomEvents& events);
-            void aboutToAddNewMessages(const RoomEvents& events);
+            void aboutToAddHistoricalMessages(RoomEventsRange events);
+            void aboutToAddNewMessages(RoomEventsRange events);
             void addedMessages();
 
             /**
@@ -199,21 +213,20 @@ namespace QMatrixClient
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
+            void replacedEvent(const RoomEvent* newEvent,
+                               const RoomEvent* oldEvent);
 
         protected:
-            virtual void doAddNewMessageEvents(const RoomEvents& events);
-            virtual void doAddHistoricalMessageEvents(const RoomEvents& events);
             virtual void processStateEvents(const RoomEvents& events);
-            virtual void processEphemeralEvent(Event* event);
+            virtual void processEphemeralEvent(EventPtr event);
+            virtual void onAddNewTimelineEvents(timeline_iter_t from) { }
+            virtual void onAddHistoricalTimelineEvents(rev_iter_t from) { }
+            virtual void onRedaction(const RoomEvent* prevEvent,
+                                     const RoomEvent* after) { }
 
         private:
             class Private;
             Private* d;
-
-            void addNewMessageEvents(RoomEvents events);
-            void addHistoricalMessageEvents(RoomEvents events);
-
-            void markMessagesAsRead(rev_iter_t upToMarker);
     };
 
     class MemberSorter

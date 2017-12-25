@@ -46,7 +46,7 @@ namespace QMatrixClient
 
     inline QJsonValue toJson(const QByteArray& bytes)
     {
-        return QJsonValue(static_cast<const char*>(bytes));
+        return QJsonValue(bytes.constData());
     }
 
     template <typename T>
