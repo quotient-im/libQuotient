@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <memory>
-#include <deque>
+#include "jobs/syncjob.h"
+#include "events/roommessageevent.h"
+#include "joinstate.h"
 
 #include <QtCore/QList>
 #include <QtCore/QStringList>
@@ -27,9 +28,9 @@
 #include <QtCore/QJsonObject>
 #include <QtGui/QPixmap>
 
-#include "jobs/syncjob.h"
-#include "events/roommessageevent.h"
-#include "joinstate.h"
+#include <memory>
+#include <deque>
+#include <utility>
 
 namespace QMatrixClient
 {
@@ -58,8 +59,7 @@ namespace QMatrixClient
             // Used for event redaction
             RoomEventPtr replaceEvent(RoomEventPtr&& other)
             {
-                evt.swap(other);
-                return move(other);
+                return std::exchange(evt, std::move(other));
             }
 
         private:

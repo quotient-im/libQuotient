@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 2.8.11) # Maybe works with even older versions
+cmake_minimum_required(VERSION 3.1)
 
-project(qmatrixclient)
-enable_language(CXX)
+project(qmatrixclient CXX)
 
 include(CheckCXXCompilerFlag)
 
@@ -19,30 +18,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# Setup command line parameters for the compiler and linker
-CHECK_CXX_COMPILER_FLAG("-Wall" WALL_FLAG_SUPPORTED)
-if ( WALL_FLAG_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )-Wall($| )")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-endif ( )
-CHECK_CXX_COMPILER_FLAG("-Wpedantic" PEDANTIC_FLAG_SUPPORTED)
-if ( PEDANTIC_FLAG_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )pedantic($| )")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
-endif ( )
-CHECK_CXX_COMPILER_FLAG("-Werror=return-type" WERROR_FLAG_SUPPORTED)
-if ( WERROR_FLAG_SUPPORTED )
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
-endif ( )
+foreach (FLAG all pedantic error=return-type)
+    CHECK_CXX_COMPILER_FLAG("-W${FLAG}" WARN_${FLAG}_SUPPORTED)
+    if ( WARN_${FLAG}_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )-W?${FLAG}($| )")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W${FLAG}")
+    endif ()
+endforeach ()
 
-if ( CMAKE_VERSION VERSION_LESS "3.1" )
-    CHECK_CXX_COMPILER_FLAG("-std=c++11" STD_FLAG_SUPPORTED)
-    if ( STD_FLAG_SUPPORTED )
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    endif ( STD_FLAG_SUPPORTED )
-else ( CMAKE_VERSION VERSION_LESS "3.1" )
-    set(CMAKE_CXX_STANDARD 11)
-endif ( CMAKE_VERSION VERSION_LESS "3.1" )
+set(CMAKE_CXX_STANDARD 14)
 
-find_package(Qt5 5.2.1 REQUIRED Network Gui)
+find_package(Qt5 5.6 REQUIRED Network Gui)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 message( STATUS )
