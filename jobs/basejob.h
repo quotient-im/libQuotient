@@ -36,6 +36,12 @@ namespace QMatrixClient
 
     enum class HttpVerb { Get, Put, Post, Delete };
 
+    struct JobTimeoutConfig
+    {
+        int jobTimeout;
+        int nextRetryInterval;
+    };
+
     class BaseJob: public QObject
     {
             Q_OBJECT
