@@ -56,15 +56,15 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
             continue;
         }
         const QJsonObject reads = eventIt.value().toObject().value("m.read").toObject();
-        std::vector<Receipt> receipts;
-        receipts.reserve(static_cast<size_t>(reads.size()));
+        QVector<Receipt> receipts;
+        receipts.reserve(reads.size());
         for( auto userIt = reads.begin(); userIt != reads.end(); ++userIt )
         {
             const QJsonObject user = userIt.value().toObject();
             receipts.push_back({userIt.key(),
                                 QMatrixClient::fromJson<QDateTime>(user["ts"])});
         }
-        _eventsWithReceipts.push_back({eventIt.key(), receipts});
+        _eventsWithReceipts.push_back({eventIt.key(), std::move(receipts)});
     }
     static const auto UnreadMsgsKey =
         QStringLiteral("x-qmatrixclient.unread_messages");

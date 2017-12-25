@@ -30,9 +30,9 @@ namespace QMatrixClient
     struct ReceiptsForEvent
     {
         QString evtId;
-        std::vector<Receipt> receipts;
+        QVector<Receipt> receipts;
     };
-    using EventsWithReceipts = std::vector<ReceiptsForEvent>;
+    using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
     class ReceiptEvent: public Event
     {
