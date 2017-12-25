@@ -57,10 +57,7 @@ namespace QMatrixClient
             index_t index() const { return idx; }
 
             // Used for event redaction
-            RoomEventPtr replaceEvent(RoomEventPtr&& other)
-            {
-                return std::exchange(evt, std::move(other));
-            }
+            RoomEventPtr replaceEvent(RoomEventPtr&& other);
 
         private:
             RoomEventPtr evt;

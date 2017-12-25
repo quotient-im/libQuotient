@@ -160,6 +160,11 @@ class Room::Private
         }
 };
 
+RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
+{
+    return std::exchange(evt, std::move(other));
+}
+
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
