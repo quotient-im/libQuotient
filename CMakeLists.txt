@@ -18,14 +18,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-foreach (FLAG all pedantic error=return-type)
+set(CMAKE_CXX_STANDARD 14)
+
+foreach (FLAG all pedantic extra error=return-type no-unused-parameter no-gnu-zero-variadic-macro-arguments)
     CHECK_CXX_COMPILER_FLAG("-W${FLAG}" WARN_${FLAG}_SUPPORTED)
     if ( WARN_${FLAG}_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )-W?${FLAG}($| )")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W${FLAG}")
     endif ()
 endforeach ()
-
-set(CMAKE_CXX_STANDARD 14)
 
 find_package(Qt5 5.6 REQUIRED Network Gui)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
