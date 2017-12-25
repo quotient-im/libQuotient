@@ -1,6 +1,6 @@
 QT += network
-CONFIG += warn_on rtti_off
-QMAKE_CXXFLAGS += -std=c++14 -Wno-unused-parameter
+CONFIG += c++14 warn_on rtti_off
+QMAKE_CXXFLAGS += -Wno-unused-parameter
 
 INCLUDEPATH += $$PWD
 

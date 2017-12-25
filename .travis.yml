@@ -28,7 +28,7 @@ script:
 - cmake ..
 - cmake --build . --target all
 - cd ..
-- qmake qmc-example.pro && make all
+- qmake qmc-example.pro "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" && make all
 
 notifications:
   webhooks:
