@@ -217,7 +217,7 @@ namespace QMatrixClient
             void reconnected(); //< Unused; use connected() instead
             void loggedOut();
             void loginError(QString error);
-            void networkError(size_t nextAttempt, int inMilliseconds);
+            void networkError(int retriesTaken, int inMilliseconds);
 
             void syncDone();
             void syncError(QString error);
