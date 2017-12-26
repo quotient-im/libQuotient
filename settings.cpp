@@ -84,15 +84,9 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-bool AccountSettings::keepLoggedIn() const
-{
-    return value("keep_logged_in", false).toBool();
-}
-
-void AccountSettings::setKeepLoggedIn(bool newSetting)
-{
-    setValue("keep_logged_in", newSetting);
-}
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", "", setDeviceId)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", "", setDeviceName)
+QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false, setKeepLoggedIn)
 
 QUrl AccountSettings::homeserver() const
 {
@@ -107,26 +101,6 @@ void AccountSettings::setHomeserver(const QUrl& url)
 QString AccountSettings::userId() const
 {
     return group().section('/', -1);
-}
-
-QString AccountSettings::deviceId() const
-{
-    return value("device_id").toString();
-}
-
-void AccountSettings::setDeviceId(const QString& deviceId)
-{
-    setValue("device_id", deviceId);
-}
-
-QString AccountSettings::deviceName() const
-{
-    return value("device_name").toString();
-}
-
-void AccountSettings::setDeviceName(const QString& deviceName)
-{
-    setValue("device_name", deviceName);
 }
 
 QString AccountSettings::accessToken() const
