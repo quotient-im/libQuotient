@@ -32,7 +32,8 @@ HEADERS += \
     $$PWD/jobs/setroomstatejob.h \
     $$files($$PWD/jobs/generated/*.h, false) \
     $$PWD/logging.h \
-    $$PWD/settings.h
+    $$PWD/settings.h \
+    $$PWD/networksettings.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
@@ -59,4 +60,5 @@ SOURCES += \
     $$PWD/jobs/setroomstatejob.cpp \
     $$files($$PWD/jobs/generated/*.cpp, false) \
     $$PWD/logging.cpp \
-    $$PWD/settings.cpp
+    $$PWD/settings.cpp \
+    $$PWD/networksettings.cpp
