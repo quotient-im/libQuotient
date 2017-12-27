@@ -144,3 +144,13 @@ RoomEventPtr _impl::doMakeEvent(const QJsonObject& obj)
         RoomAvatarEvent, EncryptionEvent, RedactionEvent>
             (obj, obj["type"].toString()) };
 }
+
+StateEventBase::~StateEventBase() = default;
+
+bool StateEventBase::repeatsState() const
+{
+    auto contentJson = originalJsonObject().value("content");
+    auto prevContentJson = originalJsonObject().value("unsigned")
+                                .toObject().value("prev_content");
+    return contentJson == prevContentJson;
+}
