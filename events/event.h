@@ -110,7 +110,7 @@ namespace QMatrixClient
             void fromJson(const QJsonObject& container, const QString& node)
             {
                 const auto objs = container.value(node).toArray();
-                using size_type = typename std::vector<event_ptr_tt<EventT>>::size_type;
+                using size_type = typename std::vector<EventT*>::size_type;
                 // The below line accommodates the difference in size types of
                 // STL and Qt containers.
                 this->reserve(static_cast<size_type>(objs.size()));
