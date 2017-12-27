@@ -193,9 +193,10 @@ namespace QMatrixClient
                 , _content(contentJson(),
                            std::forward<ContentParamTs>(contentParams)...)
             {
-                if (obj.contains("prev_content"))
+                auto unsignedData = obj.value("unsigned").toObject();
+                if (unsignedData.contains("prev_content"))
                     _prev.reset(new ContentT(
-                            obj["prev_content"].toObject(),
+                            unsignedData.value("prev_content").toObject(),
                             std::forward<ContentParamTs>(contentParams)...));
             }
             template <typename... ContentParamTs>
