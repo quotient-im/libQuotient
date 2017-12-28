@@ -20,6 +20,12 @@
 
 using namespace QMatrixClient;
 
-QMC_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType, "proxy_type", QNetworkProxy::NoProxy, setProxyType)
+void NetworkSettings::setupApplicationProxy() const
+{
+    QNetworkProxy::setApplicationProxy(
+        { proxyType(), proxyHostName(), proxyPort() });
+}
+
+QMC_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType, "proxy_type", QNetworkProxy::DefaultProxy, setProxyType)
 QMC_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname", "", setProxyHostName)
-QMC_DEFINE_SETTING(NetworkSettings, int, proxyPort, "proxy_port", -1, setProxyPort)
+QMC_DEFINE_SETTING(NetworkSettings, quint16, proxyPort, "proxy_port", -1, setProxyPort)

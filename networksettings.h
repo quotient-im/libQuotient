@@ -30,7 +30,7 @@ namespace QMatrixClient {
             Q_OBJECT
             QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
             QMC_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
-            QMC_DECLARE_SETTING(int, proxyPort, setProxyPort)
+            QMC_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
             Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
         public:
             template <typename... ArgTs>
@@ -38,5 +38,7 @@ namespace QMatrixClient {
                 : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
             { }
             ~NetworkSettings() override = default;
+
+            Q_INVOKABLE void setupApplicationProxy() const;
     };
 }
