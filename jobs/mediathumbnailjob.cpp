@@ -36,19 +36,20 @@ MediaThumbnailJob::MediaThumbnailJob(QUrl url, QSize requestedSize,
                 }))
 { }
 
-QPixmap MediaThumbnailJob::thumbnail() const
+QImage MediaThumbnailJob::thumbnail() const
 {
-    return pixmap;
+    return _thumbnail;
 }
 
-QPixmap MediaThumbnailJob::scaledThumbnail(QSize toSize) const
+QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 {
-    return pixmap.scaled(toSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    return _thumbnail.scaled(toSize,
+                             Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
 BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)
 {
-    if( !pixmap.loadFromData(data) )
+    if( !_thumbnail.loadFromData(data) )
     {
         qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }

@@ -22,20 +22,22 @@
 #include "events/eventcontent.h"
 #include "connection.h"
 
+#include <QtGui/QPainter>
+
 using namespace QMatrixClient;
 
 class Avatar::Private
 {
     public:
         Private(Connection* c, QIcon di) : _connection(c), _defaultIcon(di) { }
-        QPixmap get(int width, int height, Avatar::notifier_t notifier);
+        QImage get(QSize size, Avatar::notifier_t notifier);
 
         Connection* _connection;
         const QIcon _defaultIcon;
         QUrl _url;
-        QPixmap _originalPixmap;
+        QImage _originalImage;
 
-        std::vector<QPair<QSize, QPixmap>> _scaledPixmaps;
+        std::vector<QPair<QSize, QImage>> _scaledImages;
 
         QSize _requestedSize;
         bool _valid = false;
@@ -49,22 +51,25 @@ Avatar::Avatar(Connection* connection, QIcon defaultIcon)
 
 Avatar::~Avatar() = default;
 
-QPixmap Avatar::get(int width, int height, Avatar::notifier_t notifier)
+QImage Avatar::get(int dimension, Avatar::notifier_t notifier)
 {
-    return d->get(width, height, notifier);
+    return d->get({dimension, dimension}, notifier);
 }
 
-QPixmap Avatar::Private::get(int width, int height, Avatar::notifier_t notifier)
+QImage Avatar::get(int width, int height, Avatar::notifier_t notifier)
 {
-    QSize size(width, height);
+    return d->get({width, height}, notifier);
+}
 
+QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier)
+{
     // FIXME: Alternating between longer-width and longer-height requests
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
     // This is plain abuse by the client, though; so not critical for now.
     if( ( !(_valid || _ongoingRequest)
-          || width > _requestedSize.width()
-          || height > _requestedSize.height() ) && _url.isValid() )
+          || size.width() > _requestedSize.width()
+          || size.height() > _requestedSize.height() ) && _url.isValid() )
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
@@ -77,8 +82,9 @@ QPixmap Avatar::Private::get(int width, int height, Avatar::notifier_t notifier)
             if (_ongoingRequest->status().good())
             {
                 _valid = true;
-                _originalPixmap = _ongoingRequest->scaledThumbnail(_requestedSize);
-                _scaledPixmaps.clear();
+                _originalImage =
+                        _ongoingRequest->scaledThumbnail(_requestedSize);
+                _scaledImages.clear();
                 for (auto n: notifiers)
                     n();
             }
@@ -86,21 +92,22 @@ QPixmap Avatar::Private::get(int width, int height, Avatar::notifier_t notifier)
         });
     }
 
-    if( _originalPixmap.isNull() )
+    if( _originalImage.isNull() )
     {
         if (_defaultIcon.isNull())
-            return _originalPixmap;
+            return _originalImage;
 
-        _originalPixmap = _defaultIcon.pixmap(size);
+        QPainter p { &_originalImage };
+        _defaultIcon.paint(&p, { QPoint(), _defaultIcon.actualSize(size) });
     }
 
-    for (auto p: _scaledPixmaps)
+    for (auto p: _scaledImages)
         if (p.first == size)
             return p.second;
-    auto pixmap = _originalPixmap.scaled(size,
+    auto result = _originalImage.scaled(size,
                     Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    _scaledPixmaps.emplace_back(size, pixmap);
-    return pixmap;
+    _scaledImages.emplace_back(size, result);
+    return result;
 }
 
 QUrl Avatar::url() const { return d->_url; }

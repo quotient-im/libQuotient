@@ -214,7 +214,12 @@ QString Room::topic() const
     return d->topic;
 }
 
-QPixmap Room::avatar(int width, int height)
+QImage Room::avatar(int dimension)
+{
+    return avatar(dimension, dimension);
+}
+
+QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
         return d->avatar.get(width, height, [=] { emit avatarChanged(); });

@@ -108,11 +108,20 @@ namespace QMatrixClient
             Q_INVOKABLE int timelineSize() const;
 
             /**
-             * Returns a room avatar and requests it from the network if needed
+             * Returns a square room avatar with the given size and requests it
+             * from the network if needed
              * @return a pixmap with the avatar or a placeholder if there's none
              * available yet
              */
-            Q_INVOKABLE QPixmap avatar(int width, int height);
+            Q_INVOKABLE QImage avatar(int dimension);
+            /**
+             * Returns a room avatar with the given dimensions and requests it
+             * from the network if needed
+             * @return a pixmap with the avatar or a placeholder if there's none
+             * available yet
+             */
+            Q_INVOKABLE QImage avatar(int width, int height);
+
             /**
              * @brief Produces a disambiguated name for a given user in
              * the context of the room

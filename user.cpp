@@ -95,7 +95,12 @@ Avatar& User::avatarObject()
     return d->avatar;
 }
 
-QPixmap User::avatar(int width, int height)
+QImage User::avatar(int dimension)
+{
+    return avatar(dimension, dimension);
+}
+
+QImage User::avatar(int width, int height)
 {
     return d->avatar.get(width, height, [=] { emit avatarChanged(this); });
 }

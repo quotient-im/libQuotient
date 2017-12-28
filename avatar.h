@@ -36,7 +36,8 @@ namespace QMatrixClient
 
             using notifier_t = std::function<void()>;
 
-            QPixmap get(int w, int h, notifier_t notifier);
+            QImage get(int dimension, notifier_t notifier);
+            QImage get(int w, int h, notifier_t notifier);
 
             QUrl url() const;
             bool updateUrl(const QUrl& newUrl);
