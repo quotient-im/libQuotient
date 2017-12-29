@@ -20,6 +20,7 @@
 
 #include <QtCore/QUrl>
 
+#include <functional>
 #include <memory>
 
 class QNetworkAccessManager;
