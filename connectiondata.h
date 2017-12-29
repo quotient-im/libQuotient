@@ -20,6 +20,8 @@
 
 #include <QtCore/QUrl>
 
+#include <memory>
+
 class QNetworkAccessManager;
 
 namespace QMatrixClient
@@ -46,8 +48,12 @@ namespace QMatrixClient
 
             QByteArray generateTxnId() const;
 
+            using nam_customizer_t =
+                std::function<void(QNetworkAccessManager*)>;
+            static void customizeNetworkAccess(nam_customizer_t customizer);
+
         private:
             struct Private;
-            Private* d;
+            std::unique_ptr<Private> d;
     };
 }  // namespace QMatrixClient

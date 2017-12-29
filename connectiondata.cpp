@@ -24,20 +24,10 @@
 
 using namespace QMatrixClient;
 
-QNetworkAccessManager* createNam()
-{
-    auto nam = new QNetworkAccessManager();
-    // See #109. Once Qt bearer management gets better, this workaround
-    // should become unnecessary.
-    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
-                 nam, [=] {
-        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
-    });
-    return nam;
-}
-
 struct ConnectionData::Private
 {
+    explicit Private(const QUrl& url) : baseUrl(url) { }
+
     QUrl baseUrl;
     QByteArray accessToken;
     QString lastEvent;
@@ -45,19 +35,19 @@ struct ConnectionData::Private
 
     mutable unsigned int txnCounter = 0;
     const qint64 id = QDateTime::currentMSecsSinceEpoch();
+
+    static QNetworkAccessManager* createNam();
+    static nam_customizer_t customizeNam;
 };
 
-ConnectionData::ConnectionData(QUrl baseUrl)
-    : d(new Private)
-{
-    nam(); // Just to ensure NAM is created
-    d->baseUrl = baseUrl;
-}
+ConnectionData::nam_customizer_t ConnectionData::Private::customizeNam =
+    [] (auto* /* unused */) { };
 
-ConnectionData::~ConnectionData()
-{
-    delete d;
-}
+ConnectionData::ConnectionData(QUrl baseUrl)
+    : d(std::make_unique<Private>(baseUrl))
+{ }
+
+ConnectionData::~ConnectionData() = default;
 
 QByteArray ConnectionData::accessToken() const
 {
@@ -69,9 +59,21 @@ QUrl ConnectionData::baseUrl() const
     return d->baseUrl;
 }
 
+QNetworkAccessManager* ConnectionData::Private::createNam()
+{
+    auto nam = new QNetworkAccessManager;
+    // See #109. Once Qt bearer management gets better, this workaround
+    // should become unnecessary.
+    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
+                 [nam] { nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
+                 });
+    customizeNam(nam);
+    return nam;
+}
+
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    static auto nam = createNam();
+    static auto nam = d->createNam();
     return nam;
 }
 
@@ -124,3 +126,10 @@ QByteArray ConnectionData::generateTxnId() const
     return QByteArray::number(d->id) + 'q' +
             QByteArray::number(++d->txnCounter);
 }
+
+void
+ConnectionData::customizeNetworkAccess(ConnectionData::nam_customizer_t customizer)
+{
+    Private::customizeNam = customizer;
+}
+
