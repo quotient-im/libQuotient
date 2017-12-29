@@ -41,7 +41,7 @@ struct ConnectionData::Private
 };
 
 ConnectionData::nam_customizer_t ConnectionData::Private::customizeNam =
-    [] (auto* /* unused */) { };
+    [] (QNetworkAccessManager* /* unused */) { };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(std::make_unique<Private>(baseUrl))
