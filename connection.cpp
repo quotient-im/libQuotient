@@ -44,15 +44,14 @@ using namespace QMatrixClient;
 class Connection::Private
 {
     public:
-        explicit Private(const QUrl& serverUrl)
-            : q(nullptr)
-            , data(new ConnectionData(serverUrl))
+        explicit Private(std::unique_ptr<ConnectionData>&& connection)
+            : data(move(connection))
         { }
         Q_DISABLE_COPY(Private)
         Private(Private&&) = delete;
         Private operator=(Private&&) = delete;
 
-        Connection* q;
+        Connection* q = nullptr;
         std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
@@ -72,7 +71,7 @@ class Connection::Private
 
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
-    , d(new Private(server))
+    , d(std::make_unique<Private>(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
 }
@@ -85,7 +84,6 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << d->userId;
     stopSync();
-    delete d;
 }
 
 void Connection::resolveServer(const QString& mxidOrDomain)

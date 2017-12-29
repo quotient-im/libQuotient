@@ -26,15 +26,13 @@
 #include <QtCore/QSize>
 
 #include <functional>
-
-class QDnsLookup;
+#include <memory>
 
 namespace QMatrixClient
 {
     class Room;
     class User;
     class RoomEvent;
-    class ConnectionPrivate;
     class ConnectionData;
 
     class SyncJob;
@@ -307,7 +305,7 @@ namespace QMatrixClient
 
         private:
             class Private;
-            Private* d;
+            std::unique_ptr<Private> d;
 
             /**
              * A single entry for functions that need to check whether the
