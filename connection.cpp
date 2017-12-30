@@ -44,15 +44,14 @@ using namespace QMatrixClient;
 class Connection::Private
 {
     public:
-        explicit Private(const QUrl& serverUrl)
-            : q(nullptr)
-            , data(new ConnectionData(serverUrl))
+        explicit Private(std::unique_ptr<ConnectionData>&& connection)
+            : data(move(connection))
         { }
         Q_DISABLE_COPY(Private)
         Private(Private&&) = delete;
         Private operator=(Private&&) = delete;
 
-        Connection* q;
+        Connection* q = nullptr;
         std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
@@ -72,7 +71,7 @@ class Connection::Private
 
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
-    , d(new Private(server))
+    , d(std::make_unique<Private>(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
 }
@@ -85,7 +84,6 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << d->userId;
     stopSync();
-    delete d;
 }
 
 void Connection::resolveServer(const QString& mxidOrDomain)
@@ -125,7 +123,7 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
-    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
+    connect(dns, &QDnsLookup::finished, [this,dns,&maybeBaseUrl]() {
         QUrl baseUrl { maybeBaseUrl };
         if (dns->error() == QDnsLookup::NoError &&
                 dns->serviceRecords().isEmpty())
@@ -151,7 +149,7 @@ void Connection::connectToServer(const QString& user, const QString& password,
                                  const QString& deviceId)
 {
     checkAndConnect(user,
-        [=] {
+        [&] {
             doConnectToServer(user, password, initialDeviceName, deviceId);
         });
 }
@@ -163,12 +161,12 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
             user, /*medium*/ "", /*address*/ "", password, /*token*/ "",
             deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
-        [=] {
+        [this, loginJob] {
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
         });
     connect(loginJob, &BaseJob::failure, this,
-        [=] {
+        [this, loginJob] {
             emit loginError(loginJob->errorString());
         });
 }
@@ -178,7 +176,7 @@ void Connection::connectWithToken(const QString& userId,
                                   const QString& deviceId)
 {
     checkAndConnect(userId,
-        [=] { d->connectWithToken(userId, accessToken, deviceId); });
+        [&] { d->connectWithToken(userId, accessToken, deviceId); });
 }
 
 void Connection::Private::connectWithToken(const QString& user,
@@ -222,7 +220,7 @@ void Connection::checkAndConnect(const QString& userId,
 void Connection::logout()
 {
     auto job = callApi<LogoutJob>();
-    connect( job, &LogoutJob::success, this, [=] {
+    connect( job, &LogoutJob::success, this, [this] {
         stopSync();
         emit loggedOut();
     });
@@ -237,13 +235,13 @@ void Connection::sync(int timeout)
     const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
-    connect( job, &SyncJob::success, [=] () {
+    connect( job, &SyncJob::success, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
     connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
-    connect( job, &SyncJob::failure, [=] () {
+    connect( job, &SyncJob::failure, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
             emit loginError(job->errorString());
@@ -285,7 +283,7 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 {
     auto job = callApi<JoinRoomJob>(roomAlias);
     connect(job, &JoinRoomJob::success,
-            this, [=] { provideRoom(job->roomId(), JoinState::Join); });
+            this, [this, job] { provideRoom(job->roomId(), JoinState::Join); });
     return job;
 }
 
@@ -325,13 +323,12 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     {
         auto leaveJob = joinedRoom->leaveRoom();
         connect(leaveJob, &BaseJob::success,
-                this, [=] { forgetJob->start(connectionData()); });
-        connect(leaveJob, &BaseJob::failure,
-                this, [=] { forgetJob->abandon(); });
+                this, [this, forgetJob] { forgetJob->start(connectionData()); });
+        connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
         forgetJob->start(connectionData());
-    connect(forgetJob, &BaseJob::success, this, [=]
+    connect(forgetJob, &BaseJob::success, this, [this, &id]
     {
         // If the room happens to be in the map (possible in both forms),
         // delete the found object(s).

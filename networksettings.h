@@ -18,32 +18,27 @@
 
 #pragma once
 
-#include <QtGui/QIcon>
-#include <QtCore/QUrl>
+#include "settings.h"
 
-#include <functional>
+#include <QtNetwork/QNetworkProxy>
 
-namespace QMatrixClient
-{
-    class MediaThumbnailJob;
-    class Connection;
+Q_DECLARE_METATYPE(QNetworkProxy::ProxyType)
 
-    class Avatar
+namespace QMatrixClient {
+    class NetworkSettings: public SettingsGroup
     {
+            Q_OBJECT
+            QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
+            QMC_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
+            QMC_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
+            Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
         public:
-            explicit Avatar(Connection* connection, QIcon defaultIcon = {});
-            ~Avatar();
+            template <typename... ArgTs>
+            explicit NetworkSettings(ArgTs... qsettingsArgs)
+                : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
+            { }
+            ~NetworkSettings() override = default;
 
-            using notifier_t = std::function<void()>;
-
-            QImage get(int dimension, notifier_t notifier);
-            QImage get(int w, int h, notifier_t notifier);
-
-            QUrl url() const;
-            bool updateUrl(const QUrl& newUrl);
-
-        private:
-            class Private;
-            QScopedPointer<Private> d;
+            Q_INVOKABLE void setupApplicationProxy() const;
     };
-}  // namespace QMatrixClient
+}

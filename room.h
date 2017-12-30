@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <memory>
-#include <deque>
+#include "jobs/syncjob.h"
+#include "events/roommessageevent.h"
+#include "joinstate.h"
 
 #include <QtCore/QList>
 #include <QtCore/QStringList>
@@ -27,9 +28,9 @@
 #include <QtCore/QJsonObject>
 #include <QtGui/QPixmap>
 
-#include "jobs/syncjob.h"
-#include "events/roommessageevent.h"
-#include "joinstate.h"
+#include <memory>
+#include <deque>
+#include <utility>
 
 namespace QMatrixClient
 {
@@ -56,11 +57,7 @@ namespace QMatrixClient
             index_t index() const { return idx; }
 
             // Used for event redaction
-            RoomEventPtr replaceEvent(RoomEventPtr&& other)
-            {
-                evt.swap(other);
-                return move(other);
-            }
+            RoomEventPtr replaceEvent(RoomEventPtr&& other);
 
         private:
             RoomEventPtr evt;
@@ -111,11 +108,20 @@ namespace QMatrixClient
             Q_INVOKABLE int timelineSize() const;
 
             /**
-             * Returns a room avatar and requests it from the network if needed
+             * Returns a square room avatar with the given size and requests it
+             * from the network if needed
              * @return a pixmap with the avatar or a placeholder if there's none
              * available yet
              */
-            Q_INVOKABLE QPixmap avatar(int width, int height);
+            Q_INVOKABLE QImage avatar(int dimension);
+            /**
+             * Returns a room avatar with the given dimensions and requests it
+             * from the network if needed
+             * @return a pixmap with the avatar or a placeholder if there's none
+             * available yet
+             */
+            Q_INVOKABLE QImage avatar(int width, int height);
+
             /**
              * @brief Produces a disambiguated name for a given user in
              * the context of the room

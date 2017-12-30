@@ -86,15 +86,32 @@ namespace QMatrixClient
             QString groupPath;
     };
 
+#define QMC_DECLARE_SETTING(type, propname, setter) \
+        Q_PROPERTY(type propname READ propname WRITE setter) \
+    public: \
+        type propname() const; \
+        void setter(type newValue); \
+    private:
+
+#define QMC_DEFINE_SETTING(classname, type, propname, qsettingname, defaultValue, setter) \
+type classname::propname() const \
+{ \
+    return value(QStringLiteral(qsettingname), defaultValue).value<type>(); \
+} \
+\
+void classname::setter(type newValue) \
+{ \
+    setValue(QStringLiteral(qsettingname), newValue); \
+} \
+
     class AccountSettings: public SettingsGroup
     {
             Q_OBJECT
             Q_PROPERTY(QString userId READ userId CONSTANT)
-            Q_PROPERTY(QString deviceId READ deviceId WRITE setDeviceId)
-            Q_PROPERTY(QString deviceName READ deviceName WRITE setDeviceName)
-            Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver)
-            Q_PROPERTY(bool keepLoggedIn READ keepLoggedIn WRITE setKeepLoggedIn)
-            /** \deprecated \sa setToken */
+            QMC_DECLARE_SETTING(QString, deviceId, setDeviceId)
+            QMC_DECLARE_SETTING(QString, deviceName, setDeviceName)
+            QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
+            /** \deprecated \sa setAccessToken */
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
         public:
             template <typename... ArgTs>
@@ -104,17 +121,8 @@ namespace QMatrixClient
 
             QString userId() const;
 
-            QString deviceId() const;
-            void setDeviceId(const QString& deviceId);
-
-            QString deviceName() const;
-            void setDeviceName(const QString& deviceName);
-
             QUrl homeserver() const;
             void setHomeserver(const QUrl& url);
-
-            bool keepLoggedIn() const;
-            void setKeepLoggedIn(bool newSetting);
 
             /** \deprecated \sa setToken */
             QString accessToken() const;

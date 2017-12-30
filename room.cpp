@@ -160,6 +160,11 @@ class Room::Private
         }
 };
 
+RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
+{
+    return std::exchange(evt, std::move(other));
+}
+
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
@@ -209,7 +214,12 @@ QString Room::topic() const
     return d->topic;
 }
 
-QPixmap Room::avatar(int width, int height)
+QImage Room::avatar(int dimension)
+{
+    return avatar(dimension, dimension);
+}
+
+QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
         return d->avatar.get(width, height, [=] { emit avatarChanged(); });
@@ -457,7 +467,7 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
         emit q->memberRenamed(formerNamesakes[0]);
 }
 
-inline QByteArray makeErrorStr(const Event& e, QByteArray msg)
+inline auto makeErrorStr(const Event& e, QByteArray msg)
 {
     return msg.append("; event dump follows:\n").append(e.originalJson());
 }
@@ -499,7 +509,7 @@ void Room::Private::addMember(User *u)
     {
         insertMemberIntoMap(u);
         connect(u, &User::nameChanged, q,
-                [=] (User* u, const QString& newName) { renameMember(u, newName); });
+                bind(&Private::renameMember, this, _1, _2));
         emit q->userAdded(u);
     }
 }
@@ -660,7 +670,7 @@ void Room::Private::getPreviousContent(int limit)
     {
         roomMessagesJob =
                 connection->callApi<RoomMessagesJob>(id, prevBatch, limit);
-        connect( roomMessagesJob, &RoomMessagesJob::result, [=]() {
+        connect( roomMessagesJob, &RoomMessagesJob::result, [=] {
             if( !roomMessagesJob->error() )
             {
                 addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
@@ -780,8 +790,7 @@ void Room::Private::processRedaction(RoomEventPtr redactionEvent)
     }
     auto keepContentKeys =
             find_if(keepContentKeysMap.begin(), keepContentKeysMap.end(),
-                         [&](const std::pair<EventType,QStringList>& t)
-                            { return ti->type() == t.first; } );
+                    [&ti](const auto& t) { return ti->type() == t.first; } );
     if (keepContentKeys == keepContentKeysMap.end())
     {
         originalJson.remove("content");
@@ -1226,9 +1235,9 @@ bool MemberSorter::operator()(User *u1, User *u2) const
 {
     auto n1 = room->roomMembername(u1);
     auto n2 = room->roomMembername(u2);
-    if (n1[0] == '@')
+    if (n1.startsWith('@'))
         n1.remove(0, 1);
-    if (n2[0] == '@')
+    if (n2.startsWith('@'))
         n2.remove(0, 1);
     return n1.localeAwareCompare(n2) < 0;
 }

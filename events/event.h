@@ -240,8 +240,23 @@ namespace QMatrixClient
         RoomEvents::iterator end() { return to; }
     };
 
+    class StateEventBase: public RoomEvent
+    {
+        public:
+            explicit StateEventBase(Type type, const QJsonObject& obj)
+                : RoomEvent(obj.contains("state_key") ? type : Type::Unknown,
+                            obj)
+            { }
+            explicit StateEventBase(Type type)
+                : RoomEvent(type)
+            { }
+            ~StateEventBase() override = 0;
+
+            virtual bool repeatsState() const;
+    };
+
     template <typename ContentT>
-    class StateEvent: public RoomEvent
+    class StateEvent: public StateEventBase
     {
         public:
             using content_type = ContentT;
@@ -249,19 +264,19 @@ namespace QMatrixClient
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, const QJsonObject& obj,
                                 ContentParamTs&&... contentParams)
-                : RoomEvent(obj.contains("state_key") ? type : Type::Unknown,
-                            obj)
+                : StateEventBase(type, obj)
                 , _content(contentJson(),
                            std::forward<ContentParamTs>(contentParams)...)
             {
-                if (obj.contains("prev_content"))
+                auto unsignedData = obj.value("unsigned").toObject();
+                if (unsignedData.contains("prev_content"))
                     _prev.reset(new ContentT(
-                            obj["prev_content"].toObject(),
+                            unsignedData.value("prev_content").toObject(),
                             std::forward<ContentParamTs>(contentParams)...));
             }
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, ContentParamTs&&... contentParams)
-                : RoomEvent(type)
+                : StateEventBase(type)
                 , _content(std::forward<ContentParamTs>(contentParams)...)
             { }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2018 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,38 +18,32 @@
 
 #pragma once
 
-#include <QtCore/QUrl>
+#include <QtNetwork/QNetworkAccessManager>
 
 #include <memory>
 
-class QNetworkAccessManager;
-
 namespace QMatrixClient
 {
-    class ConnectionData
+    class NetworkAccessManager : public QNetworkAccessManager
     {
+            Q_OBJECT
         public:
-            explicit ConnectionData(QUrl baseUrl);
-            virtual ~ConnectionData();
+            NetworkAccessManager();
+            ~NetworkAccessManager() override;
 
-            QByteArray accessToken() const;
-            QUrl baseUrl() const;
-            const QString& deviceId() const;
+            QList<QSslError> ignoredSslErrors() const;
+            void addIgnoredSslError(const QSslError& error);
+            void clearIgnoredSslErrors();
 
-            QNetworkAccessManager* nam() const;
-            void setBaseUrl(QUrl baseUrl);
-            void setToken(QByteArray accessToken);
-            void setHost( QString host );
-            void setPort( int port );
-            void setDeviceId(const QString& deviceId);
-
-            QString lastEvent() const;
-            void setLastEvent( QString identifier );
-
-            QByteArray generateTxnId() const;
+            /** Get a pointer to the singleton */
+            static NetworkAccessManager* instance();
 
         private:
-            struct Private;
+            QNetworkReply * createRequest(Operation op,
+                                const QNetworkRequest &request,
+                                QIODevice *outgoingData = Q_NULLPTR) override;
+
+            class Private;
             std::unique_ptr<Private> d;
     };
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

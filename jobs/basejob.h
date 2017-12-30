@@ -36,6 +36,12 @@ namespace QMatrixClient
 
     enum class HttpVerb { Get, Put, Post, Delete };
 
+    struct JobTimeoutConfig
+    {
+        int jobTimeout;
+        int nextRetryInterval;
+    };
+
     class BaseJob: public QObject
     {
             Q_OBJECT
@@ -162,7 +168,7 @@ namespace QMatrixClient
              * @param nextAttempt the 1-based number of attempt (will always be more than 1)
              * @param inMilliseconds the interval after which the next attempt will be taken
              */
-            void retryScheduled(size_t nextAttempt, int inMilliseconds);
+            void retryScheduled(int nextAttempt, int inMilliseconds);
 
             /**
              * Emitted when the job is finished, in any case. It is used to notify
@@ -179,7 +185,6 @@ namespace QMatrixClient
              * to avoid dangling pointers in your list.
              *
              * @param job the job that emitted this signal
-             * @internal
              *
              * @see success, failure
              */
@@ -262,7 +267,6 @@ namespace QMatrixClient
             virtual ~BaseJob();
         protected slots:
             void timeout();
-            void sslErrors(const QList<QSslError>& errors);
 
         private slots:
             void sendRequest();

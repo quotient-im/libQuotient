@@ -18,26 +18,15 @@
 
 #include "connectiondata.h"
 
+#include "networkaccessmanager.h"
 #include "logging.h"
-
-#include <QtNetwork/QNetworkAccessManager>
 
 using namespace QMatrixClient;
 
-QNetworkAccessManager* createNam()
-{
-    auto nam = new QNetworkAccessManager();
-    // See #109. Once Qt bearer management gets better, this workaround
-    // should become unnecessary.
-    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
-                 nam, [=] {
-        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
-    });
-    return nam;
-}
-
 struct ConnectionData::Private
 {
+    explicit Private(const QUrl& url) : baseUrl(url) { }
+
     QUrl baseUrl;
     QByteArray accessToken;
     QString lastEvent;
@@ -48,16 +37,10 @@ struct ConnectionData::Private
 };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
-    : d(new Private)
-{
-    nam(); // Just to ensure NAM is created
-    d->baseUrl = baseUrl;
-}
+    : d(std::make_unique<Private>(baseUrl))
+{ }
 
-ConnectionData::~ConnectionData()
-{
-    delete d;
-}
+ConnectionData::~ConnectionData() = default;
 
 QByteArray ConnectionData::accessToken() const
 {
@@ -71,8 +54,7 @@ QUrl ConnectionData::baseUrl() const
 
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    static auto nam = createNam();
-    return nam;
+    return NetworkAccessManager::instance();
 }
 
 void ConnectionData::setBaseUrl(QUrl baseUrl)

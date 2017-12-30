@@ -32,13 +32,13 @@ namespace QMatrixClient
             MediaThumbnailJob(QUrl url, QSize requestedSize,
                               ThumbnailType thumbnailType = ThumbnailType::Scale);
 
-            QPixmap thumbnail() const;
-            QPixmap scaledThumbnail(QSize toSize) const;
+            QImage thumbnail() const;
+            QImage scaledThumbnail(QSize toSize) const;
 
         protected:
             Status parseReply(QByteArray data) override;
 
         private:
-            QPixmap pixmap;
+            QImage _thumbnail;
     };
 }  // namespace QMatrixClient

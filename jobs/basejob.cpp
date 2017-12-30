@@ -52,6 +52,7 @@ class BaseJob::Private
         { }
         
         void sendRequest();
+        const JobTimeoutConfig& getCurrentTimeoutConfig() const;
 
         const ConnectionData* connection = nullptr;
 
@@ -68,8 +69,10 @@ class BaseJob::Private
         QTimer timer;
         QTimer retryTimer;
 
-        size_t maxRetries = 3;
-        size_t retriesTaken = 0;
+        QVector<JobTimeoutConfig> errorStrategy =
+            { { 90, 5 }, { 90, 10 }, { 120, 30 } };
+        int maxRetries = errorStrategy.size();
+        int retriesTaken = 0;
 
         LoggingCategory logCat = JOBS;
 };
@@ -187,7 +190,6 @@ void BaseJob::sendRequest()
     if (!d->requestQuery.isEmpty())
         qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
     d->sendRequest();
-    connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     if (d->reply->isRunning())
     {
@@ -296,16 +298,19 @@ void BaseJob::finishJob()
     deleteLater();
 }
 
+const JobTimeoutConfig& BaseJob::Private::getCurrentTimeoutConfig() const
+{
+    return errorStrategy[std::min(retriesTaken, errorStrategy.size() - 1)];
+}
+
 BaseJob::duration_t BaseJob::getCurrentTimeout() const
 {
-    static const std::array<int, 4> timeouts = { 90, 90, 120, 120 };
-    return timeouts[std::min(d->retriesTaken, timeouts.size() - 1)] * 1000;
+    return d->getCurrentTimeoutConfig().jobTimeout * 1000;
 }
 
 BaseJob::duration_t BaseJob::getNextRetryInterval() const
 {
-    static const std::array<int, 3> intervals = { 5, 10, 30 };
-    return intervals[std::min(d->retriesTaken, intervals.size() - 1)] * 1000;
+    return d->getCurrentTimeoutConfig().nextRetryInterval * 1000;
 }
 
 BaseJob::duration_t BaseJob::millisToRetry() const
@@ -362,14 +367,6 @@ void BaseJob::timeout()
 {
     setStatus( TimeoutError, "The job has timed out" );
     finishJob();
-}
-
-void BaseJob::sslErrors(const QList<QSslError>& errors)
-{
-    foreach (const QSslError &error, errors) {
-        qCWarning(d->logCat) << "SSL ERROR" << error.errorString();
-    }
-    d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }
 
 void BaseJob::setLoggingCategory(LoggingCategory lcf)

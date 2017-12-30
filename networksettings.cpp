@@ -16,34 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#include "networksettings.h"
 
-#include <QtGui/QIcon>
-#include <QtCore/QUrl>
+using namespace QMatrixClient;
 
-#include <functional>
-
-namespace QMatrixClient
+void NetworkSettings::setupApplicationProxy() const
 {
-    class MediaThumbnailJob;
-    class Connection;
+    QNetworkProxy::setApplicationProxy(
+        { proxyType(), proxyHostName(), proxyPort() });
+}
 
-    class Avatar
-    {
-        public:
-            explicit Avatar(Connection* connection, QIcon defaultIcon = {});
-            ~Avatar();
-
-            using notifier_t = std::function<void()>;
-
-            QImage get(int dimension, notifier_t notifier);
-            QImage get(int w, int h, notifier_t notifier);
-
-            QUrl url() const;
-            bool updateUrl(const QUrl& newUrl);
-
-        private:
-            class Private;
-            QScopedPointer<Private> d;
-    };
-}  // namespace QMatrixClient
+QMC_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType, "proxy_type", QNetworkProxy::DefaultProxy, setProxyType)
+QMC_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname", "", setProxyHostName)
+QMC_DEFINE_SETTING(NetworkSettings, quint16, proxyPort, "proxy_port", -1, setProxyPort)
