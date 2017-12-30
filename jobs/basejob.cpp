@@ -191,7 +191,6 @@ void BaseJob::sendRequest()
     if (!d->requestQuery.isEmpty())
         qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
     d->sendRequest();
-    connect( d->reply.data(), &QNetworkReply::sslErrors, this, &BaseJob::sslErrors );
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     if (d->reply->isRunning())
     {
@@ -369,14 +368,6 @@ void BaseJob::timeout()
 {
     setStatus( TimeoutError, "The job has timed out" );
     finishJob();
-}
-
-void BaseJob::sslErrors(const QList<QSslError>& errors)
-{
-    foreach (const QSslError &error, errors) {
-        qCWarning(d->logCat) << "SSL ERROR" << error.errorString();
-    }
-    d->reply->ignoreSslErrors(); // TODO: insecure! should prompt user first
 }
 
 void BaseJob::setLoggingCategory(LoggingCategory lcf)

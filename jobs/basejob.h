@@ -267,7 +267,6 @@ namespace QMatrixClient
             virtual ~BaseJob();
         protected slots:
             void timeout();
-            void sslErrors(const QList<QSslError>& errors);
 
         private slots:
             void sendRequest();
