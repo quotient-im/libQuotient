@@ -33,7 +33,8 @@ HEADERS += \
     $$files($$PWD/jobs/generated/*.h, false) \
     $$PWD/logging.h \
     $$PWD/settings.h \
-    $$PWD/networksettings.h
+    $$PWD/networksettings.h \
+    $$PWD/networkaccessmanager.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
@@ -61,4 +62,5 @@ SOURCES += \
     $$files($$PWD/jobs/generated/*.cpp, false) \
     $$PWD/logging.cpp \
     $$PWD/settings.cpp \
-    $$PWD/networksettings.cpp
+    $$PWD/networksettings.cpp \
+    $$PWD/networkaccessmanager.cpp

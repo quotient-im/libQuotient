@@ -18,9 +18,8 @@
 
 #include "connectiondata.h"
 
+#include "networkaccessmanager.h"
 #include "logging.h"
-
-#include <QtNetwork/QNetworkAccessManager>
 
 using namespace QMatrixClient;
 
@@ -35,13 +34,7 @@ struct ConnectionData::Private
 
     mutable unsigned int txnCounter = 0;
     const qint64 id = QDateTime::currentMSecsSinceEpoch();
-
-    static QNetworkAccessManager* createNam();
-    static nam_customizer_t customizeNam;
 };
-
-ConnectionData::nam_customizer_t ConnectionData::Private::customizeNam =
-    [] (QNetworkAccessManager* /* unused */) { };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(std::make_unique<Private>(baseUrl))
@@ -59,22 +52,9 @@ QUrl ConnectionData::baseUrl() const
     return d->baseUrl;
 }
 
-QNetworkAccessManager* ConnectionData::Private::createNam()
-{
-    auto nam = new QNetworkAccessManager;
-    // See #109. Once Qt bearer management gets better, this workaround
-    // should become unnecessary.
-    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
-                 [nam] { nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
-                 });
-    customizeNam(nam);
-    return nam;
-}
-
 QNetworkAccessManager* ConnectionData::nam() const
 {
-    static auto nam = d->createNam();
-    return nam;
+    return NetworkAccessManager::instance();
 }
 
 void ConnectionData::setBaseUrl(QUrl baseUrl)
@@ -126,10 +106,3 @@ QByteArray ConnectionData::generateTxnId() const
     return QByteArray::number(d->id) + 'q' +
             QByteArray::number(++d->txnCounter);
 }
-
-void
-ConnectionData::customizeNetworkAccess(ConnectionData::nam_customizer_t customizer)
-{
-    Private::customizeNam = customizer;
-}
-

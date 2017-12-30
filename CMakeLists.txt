@@ -44,6 +44,7 @@ message( STATUS )
 
 # Set up source files
 set(libqmatrixclient_SRCS
+   networkaccessmanager.cpp
    connectiondata.cpp
    connection.cpp
    logging.cpp
