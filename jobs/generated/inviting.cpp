@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "inviting.h"
 
 #include "converters.h"

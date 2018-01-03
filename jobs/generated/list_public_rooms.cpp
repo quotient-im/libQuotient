@@ -2,10 +2,7 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "list_public_rooms.h"
-
-#include "converters.h"
 
 #include <QtCore/QStringBuilder>
 
@@ -80,10 +77,7 @@ GetPublicRoomsJob::GetPublicRoomsJob(double limit, const QString& since, const Q
     ), d(new Private)
 { }
 
-GetPublicRoomsJob::~GetPublicRoomsJob()
-{
-    delete d;
-}
+GetPublicRoomsJob::~GetPublicRoomsJob() = default;
 
 const QVector<GetPublicRoomsJob::PublicRoomsChunk>& GetPublicRoomsJob::chunk() const
 {
@@ -213,10 +207,7 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, co
     setRequestData(_data);
 }
 
-QueryPublicRoomsJob::~QueryPublicRoomsJob()
-{
-    delete d;
-}
+QueryPublicRoomsJob::~QueryPublicRoomsJob() = default;
 
 const QVector<QueryPublicRoomsJob::PublicRoomsChunk>& QueryPublicRoomsJob::chunk() const
 {

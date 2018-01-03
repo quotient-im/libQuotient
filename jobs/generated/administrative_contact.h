@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #pragma once
 
 #include "../basejob.h"
@@ -34,13 +33,13 @@ namespace QMatrixClient
             ~GetAccount3PIDsJob() override;
 
             const QVector<ThirdPartyIdentifier>& threepids() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 
     class Post3PIDsJob : public BaseJob

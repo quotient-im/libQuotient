@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "redaction.h"
 
 #include "converters.h"
@@ -31,10 +30,7 @@ RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, co
     setRequestData(_data);
 }
 
-RedactEventJob::~RedactEventJob()
-{
-    delete d;
-}
+RedactEventJob::~RedactEventJob() = default;
 
 const QString& RedactEventJob::eventId() const
 {

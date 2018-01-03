@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "login.h"
 
 #include "converters.h"
@@ -47,10 +46,7 @@ LoginJob::LoginJob(const QString& type, const QString& user, const QString& medi
     setRequestData(_data);
 }
 
-LoginJob::~LoginJob()
-{
-    delete d;
-}
+LoginJob::~LoginJob() = default;
 
 const QString& LoginJob::userId() const
 {

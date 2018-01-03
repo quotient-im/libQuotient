@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #pragma once
 
 #include "../basejob.h"
@@ -24,12 +23,12 @@ namespace QMatrixClient
             const QString& accessToken() const;
             const QString& homeServer() const;
             const QString& deviceId() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

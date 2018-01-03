@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #pragma once
 
 #include "../basejob.h"
@@ -29,13 +28,13 @@ namespace QMatrixClient
 
             const QString& roomId() const;
             const QVector<QString>& servers() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 
     class DeleteRoomAliasJob : public BaseJob

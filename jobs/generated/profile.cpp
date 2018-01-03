@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "profile.h"
 
 #include "converters.h"
@@ -38,10 +37,7 @@ GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
     ), d(new Private)
 { }
 
-GetDisplayNameJob::~GetDisplayNameJob()
-{
-    delete d;
-}
+GetDisplayNameJob::~GetDisplayNameJob() = default;
 
 const QString& GetDisplayNameJob::displayname() const
 {
@@ -80,10 +76,7 @@ GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
     ), d(new Private)
 { }
 
-GetAvatarUrlJob::~GetAvatarUrlJob()
-{
-    delete d;
-}
+GetAvatarUrlJob::~GetAvatarUrlJob() = default;
 
 const QString& GetAvatarUrlJob::avatarUrl() const
 {
@@ -111,10 +104,7 @@ GetUserProfileJob::GetUserProfileJob(const QString& userId)
     ), d(new Private)
 { }
 
-GetUserProfileJob::~GetUserProfileJob()
-{
-    delete d;
-}
+GetUserProfileJob::~GetUserProfileJob() = default;
 
 const QString& GetUserProfileJob::avatarUrl() const
 {

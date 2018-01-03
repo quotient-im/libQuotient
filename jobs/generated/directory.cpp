@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "directory.h"
 
 #include "converters.h"
@@ -39,10 +38,7 @@ GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     ), d(new Private)
 { }
 
-GetRoomIdByAliasJob::~GetRoomIdByAliasJob()
-{
-    delete d;
-}
+GetRoomIdByAliasJob::~GetRoomIdByAliasJob() = default;
 
 const QString& GetRoomIdByAliasJob::roomId() const
 {

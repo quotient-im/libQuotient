@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "whoami.h"
 
 #include "converters.h"
@@ -26,10 +25,7 @@ GetTokenOwnerJob::GetTokenOwnerJob()
     ), d(new Private)
 { }
 
-GetTokenOwnerJob::~GetTokenOwnerJob()
-{
-    delete d;
-}
+GetTokenOwnerJob::~GetTokenOwnerJob() = default;
 
 const QString& GetTokenOwnerJob::userId() const
 {
