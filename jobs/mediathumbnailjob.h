@@ -36,7 +36,7 @@ namespace QMatrixClient
             QImage scaledThumbnail(QSize toSize) const;
 
         protected:
-            Status parseReply(QByteArray data) override;
+            Status parseReply(QNetworkReply* reply) override;
 
         private:
             QImage _thumbnail;
