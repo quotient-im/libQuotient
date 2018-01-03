@@ -1,5 +1,4 @@
 {{#@filePartial}}preamble{{/@filePartial}}
-
 #pragma once
 
 {{#operations}}#include "../basejob.h"
@@ -45,17 +44,17 @@ namespace QMatrixClient
             // End of inner data structures
 {{/models}}
             explicit {{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{^required?}} = {{defaultValue}}{{^defaultValue}}{}{{/defaultValue}}{{/required?}}{{#@join}}, {{/@join}}{{/allParams}});{{!skip EOL
-}}{{#        responses}}{{#normalResponse?}}{{#properties?}}
+}}{{#        responses}}{{#normalResponse?}}{{#allProperties?}}
             ~{{camelCaseOperationId}}Job() override;
+{{#allProperties}}
+            {{>maybeCrefType}} {{paramName}}() const;{{/allProperties}}
 
-            {{#properties}}{{>maybeCrefType}} {{paramName}}() const;
-            {{/properties}}
         protected:
-            {{^returnFile}}Status parseJson(const QJsonDocument& data) override;{{/returnFile}}
-            {{#returnFile?}}Status parseReply(QByteArray data) override;{{/returnFile?}}
+            Status {{#producesNotJson?}}parseReply(QNetworkReply* reply){{/producesNotJson?}}{{^producesNotJson?}}parseJson(const QJsonDocument& data){{/producesNotJson?}} override;
+
         private:
             class Private;
-            Private* d;{{/properties?}}{{/normalResponse?}}{{/responses}}
+            QScopedPointer<Private> d;{{/allProperties?}}{{/normalResponse?}}{{/responses}}
     };
 {{/operation}}{{/operations}}{{!skip EOL
 }}} // namespace QMatrixClient

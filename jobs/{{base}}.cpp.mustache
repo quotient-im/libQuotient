@@ -1,10 +1,10 @@
 {{#@filePartial}}preamble{{/@filePartial}}
-
 #include "{{filenameBase}}.h"
-
+{{^allModels}}
 #include "converters.h"
-{{#operations}}
-#include <QtCore/QStringBuilder>
+{{/allModels}}{{#operations}}
+{{#producesNotJson?}}#include <QtNetwork/QNetworkReply>
+{{/producesNotJson?}}#include <QtCore/QStringBuilder>
 {{/operations}}
 using namespace QMatrixClient;
 {{#models.model}}{{^trivial?}}
@@ -50,14 +50,13 @@ namespace QMatrixClient
         }
     };
 } // namespace QMatrixClient
-{{/    trivial?}}{{/models.model}}{{#responses}}{{#normalResponse?}}{{#properties?}}
+{{/    trivial?}}{{/models.model}}{{#responses}}{{#normalResponse?}}{{#allProperties?}}
 class {{camelCaseOperationId}}Job::Private
 {
-    public:
-        {{#properties}}{{dataType.name}} {{paramName}};{{#@join}}{{!EOL except the last line}}
-        {{/@join}}{{/properties}}
+    public:{{#allProperties}}
+        {{dataType.name}} {{paramName}};{{/allProperties}}
 };
-{{/    properties?}}{{/normalResponse?}}{{/responses}}
+{{/    allProperties?}}{{/normalResponse?}}{{/responses}}
 {{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}{{/allParams}})
     : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
         basePath{{#pathParts}} % {{_}}{{/pathParts}},
@@ -65,30 +64,32 @@ class {{camelCaseOperationId}}Job::Private
             {{#queryParams}}{ "{{baseName}}", toJson({{paramName}}).toString() }{{#@join}},
             {{/@join}}{{/queryParams}}
         }{{/queryParams?}}{{#skipAuth}}, Data { }, false{{/skipAuth}}
-    ){{#responses}}{{#normalResponse?}}{{#properties?}}, d(new Private){{/properties?}}{{/normalResponse?}}{{/responses}}
+    ){{#responses}}{{#normalResponse?}}{{#allProperties?}}, d(new Private){{/allProperties?}}{{/normalResponse?}}{{/responses}}
 {{#bodyParams?}}{
-{{#inlineBody}}    setRequestData(Data({{paramName}}));{{/inlineBody}}{{!
+{{#headerParams?}}{{#headerParams}}    setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
+{{/headerParams}}
+{{/headerParams?}}{{#inlineBody}}    setRequestData(Data({{paramName}}));{{/inlineBody}}{{!
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
-    setRequestData(_data);{{/inlineBody}}
+    setRequestData(_data);{{/inlineBody}}{{#produces?}}
+{{#produces}}
+    addExpectedContentType({{_}});{{/produces}}{{/produces?}}
 }{{/bodyParams?}}{{^bodyParams?}}{ }{{/bodyParams?}}
-{{#    responses}}{{#normalResponse?}}{{#properties?}}
-{{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job()
-{
-    delete d;
-}
-{{#        properties}}
+{{#    responses}}{{#normalResponse?}}{{#allProperties?}}
+{{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
+{{#        allProperties}}
 {{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}() const
 {
     return d->{{paramName}};
 }
-{{/        properties}}{{#returnFile?}}
-BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QByteArray data)
+{{/        allProperties}}{{#producesNotJson?}}
+BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
 {
-    {{properties.nameCamelCase}} = data;
+    {{#headers}}d->{{paramName}} = reply->rawHeader("{{baseName}}"); {{! We don't check for required headers yet }}
+    {{/headers}}{{#properties}}d->{{paramName}} = reply->readAll();{{/properties}}
     return Success;
-}{{/       returnFile?}}{{^returnFile?}}
+}{{/       producesNotJson?}}{{^producesNotJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
@@ -97,5 +98,5 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data
             "The key '{{baseName}}' not found in the response" };
     {{/required?}}d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"));
     {{/        properties}}return Success;
-}{{/       returnFile?}}
-{{/properties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}
+}{{/       producesNotJson?}}
+{{/allProperties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

@@ -45,7 +45,6 @@ types:
   file:
     type: QByteArray
     imports: <QtCore/QByteArray>
-    returnFile?: true
   object:
     type: QJsonObject
     avoidCopy?: true
