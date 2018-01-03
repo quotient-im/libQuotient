@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #pragma once
 
 #include "../basejob.h"
@@ -27,13 +26,13 @@ namespace QMatrixClient
             ~GetDisplayNameJob() override;
 
             const QString& displayname() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 
     class SetAvatarUrlJob : public BaseJob
@@ -49,13 +48,13 @@ namespace QMatrixClient
             ~GetAvatarUrlJob() override;
 
             const QString& avatarUrl() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 
     class GetUserProfileJob : public BaseJob
@@ -66,12 +65,12 @@ namespace QMatrixClient
 
             const QString& avatarUrl() const;
             const QString& displayname() const;
-            
+
         protected:
             Status parseJson(const QJsonDocument& data) override;
-            
+
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

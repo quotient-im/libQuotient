@@ -2,7 +2,6 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "versions.h"
 
 #include "converters.h"
@@ -26,10 +25,7 @@ GetVersionsJob::GetVersionsJob()
     ), d(new Private)
 { }
 
-GetVersionsJob::~GetVersionsJob()
-{
-    delete d;
-}
+GetVersionsJob::~GetVersionsJob() = default;
 
 const QVector<QString>& GetVersionsJob::versions() const
 {

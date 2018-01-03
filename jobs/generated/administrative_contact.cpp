@@ -2,10 +2,7 @@
  * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
  */
 
-
 #include "administrative_contact.h"
-
-#include "converters.h"
 
 #include <QtCore/QStringBuilder>
 
@@ -52,10 +49,7 @@ GetAccount3PIDsJob::GetAccount3PIDsJob()
     ), d(new Private)
 { }
 
-GetAccount3PIDsJob::~GetAccount3PIDsJob()
-{
-    delete d;
-}
+GetAccount3PIDsJob::~GetAccount3PIDsJob() = default;
 
 const QVector<GetAccount3PIDsJob::ThirdPartyIdentifier>& GetAccount3PIDsJob::threepids() const
 {
