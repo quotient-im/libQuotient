@@ -17,8 +17,8 @@
  */
 
 #include "mediathumbnailjob.h"
-#include "util.h"
 
+#include <QtNetwork/QNetworkReply>
 #include <QtCore/QDebug>
 
 using namespace QMatrixClient;
@@ -47,9 +47,9 @@ QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
                              Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
-BaseJob::Status MediaThumbnailJob::parseReply(QByteArray data)
+BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
 {
-    if( !_thumbnail.loadFromData(data) )
+    if( !_thumbnail.loadFromData(reply->readAll()) )
     {
         qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }

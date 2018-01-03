@@ -25,7 +25,6 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QUrlQuery>
-#include <QtCore/QScopedPointer>
 
 class QNetworkReply;
 class QSslError;
@@ -58,6 +57,7 @@ namespace QMatrixClient
                 , ContentAccessError
                 , NotFoundError
                 , IncorrectRequestError
+                , IncorrectResponseError
                 , UserDefinedError = 200
             };
 
@@ -213,12 +213,21 @@ namespace QMatrixClient
             void failure(BaseJob*);
 
         protected:
+            using headers_t = QHash<QByteArray, QByteArray>;
+
             const QString& apiEndpoint() const;
             void setApiEndpoint(const QString& apiEndpoint);
+            const headers_t& requestHeaders() const;
+            void setRequestHeader(const headers_t::key_type& headerName,
+                                  const headers_t::mapped_type& headerValue);
+            void setRequestHeaders(const headers_t& headers);
             const QUrlQuery& query() const;
             void setRequestQuery(const QUrlQuery& query);
             const Data& requestData() const;
             void setRequestData(const Data& data);
+            const QByteArrayList& expectedContentTypes() const;
+            void addExpectedContentType(const QByteArray& contentType);
+            void setExpectedContentTypes(const QByteArrayList& contentTypes);
 
             virtual void beforeStart(const ConnectionData* connData);
 
@@ -239,11 +248,11 @@ namespace QMatrixClient
              * Processes the reply. By default, parses the reply into
              * a QJsonDocument and calls parseJson() if it's a valid JSON.
              *
-             * @param data raw contents of a HTTP reply from the server (without headers)
+             * @param reply raw contents of a HTTP reply from the server (without headers)
              *
              * @see gotReply, parseJson
              */
-            virtual Status parseReply(QByteArray data);
+            virtual Status parseReply(QNetworkReply* reply);
 
             /**
              * Processes the JSON document received from the Matrix server.
@@ -264,7 +273,8 @@ namespace QMatrixClient
             void setLoggingCategory(LoggingCategory lcf);
 
             // Job objects should only be deleted via QObject::deleteLater
-            virtual ~BaseJob();
+            ~BaseJob() override;
+
         protected slots:
             void timeout();
 

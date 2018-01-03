@@ -59,9 +59,15 @@ class BaseJob::Private
         // Contents for the network request
         HttpVerb verb;
         QString apiEndpoint;
+        QHash<QByteArray, QByteArray> requestHeaders;
         QUrlQuery requestQuery;
         Data requestData;
         bool needsToken;
+
+        // There's no use of QMimeType here because we don't want to match
+        // content types against the known MIME type hierarchy; and at the same
+        // type QMimeType is of little help with MIME type globs (`text/*` etc.)
+        QByteArrayList expectedContentTypes;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         Status status = NoError;
@@ -116,6 +122,22 @@ void BaseJob::setApiEndpoint(const QString& apiEndpoint)
     d->apiEndpoint = apiEndpoint;
 }
 
+const BaseJob::headers_t&BaseJob::requestHeaders() const
+{
+    return d->requestHeaders;
+}
+
+void BaseJob::setRequestHeader(const headers_t::key_type& headerName,
+                               const headers_t::mapped_type& headerValue)
+{
+    d->requestHeaders[headerName] = headerValue;
+}
+
+void BaseJob::setRequestHeaders(const BaseJob::headers_t& headers)
+{
+    d->requestHeaders = headers;
+}
+
 const QUrlQuery& BaseJob::query() const
 {
     return d->requestQuery;
@@ -136,6 +158,21 @@ void BaseJob::setRequestData(const BaseJob::Data& data)
     d->requestData = data;
 }
 
+const QByteArrayList& BaseJob::expectedContentTypes() const
+{
+    return d->expectedContentTypes;
+}
+
+void BaseJob::addExpectedContentType(const QByteArray& contentType)
+{
+    d->expectedContentTypes << contentType;
+}
+
+void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
+{
+    d->expectedContentTypes = contentTypes;
+}
+
 void BaseJob::Private::sendRequest()
 {
     QUrl url = connection->baseUrl();
@@ -147,13 +184,16 @@ void BaseJob::Private::sendRequest()
     url.setQuery(requestQuery);
 
     QNetworkRequest req {url};
-    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    if (!requestHeaders.contains("Content-Type"))
+        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setRawHeader(QByteArray("Authorization"),
                      QByteArray("Bearer ") + connection->accessToken());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
+    for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
+        req.setRawHeader(it.key(), it.value());
     switch( verb )
     {
         case HttpVerb::Get:
@@ -205,9 +245,32 @@ void BaseJob::gotReply()
 {
     setStatus(checkReply(d->reply.data()));
     if (status().good())
-        setStatus(parseReply(d->reply->readAll()));
+        setStatus(parseReply(d->reply.data()));
 
     finishJob();
+}
+
+bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
+{
+    if (patterns.isEmpty())
+        return true;
+
+    for (const auto& pattern: patterns)
+    {
+        if (pattern.startsWith('*') || type == pattern) // Fast lane
+            return true;
+
+        auto patternParts = pattern.split('/');
+        Q_ASSERT_X(patternParts.size() <= 2, __FUNCTION__,
+            "BaseJob: Expected content type should have up to two"
+            " /-separated parts; violating pattern: " + pattern);
+
+        if (type.split('/').front() == patternParts.front() &&
+                patternParts.back() == "*")
+            return true; // Exact match already went on fast lane
+    }
+
+    return false;
 }
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
@@ -217,30 +280,35 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
         qCDebug(d->logCat) << this << "returned" << reply->error();
     switch( reply->error() )
     {
-    case QNetworkReply::NoError:
-        return NoError;
+        case QNetworkReply::NoError:
+            if (checkContentType(reply->rawHeader("Content-Type"),
+                                 d->expectedContentTypes))
+                return NoError;
+            else
+                return { IncorrectResponseError,
+                         "Incorrect content type of the response" };
 
-    case QNetworkReply::AuthenticationRequiredError:
-    case QNetworkReply::ContentAccessDenied:
-    case QNetworkReply::ContentOperationNotPermittedError:
-        return { ContentAccessError, reply->errorString() };
+        case QNetworkReply::AuthenticationRequiredError:
+        case QNetworkReply::ContentAccessDenied:
+        case QNetworkReply::ContentOperationNotPermittedError:
+            return { ContentAccessError, reply->errorString() };
 
-    case QNetworkReply::ProtocolInvalidOperationError:
-    case QNetworkReply::UnknownContentError:
-        return { IncorrectRequestError, reply->errorString() };
+        case QNetworkReply::ProtocolInvalidOperationError:
+        case QNetworkReply::UnknownContentError:
+            return { IncorrectRequestError, reply->errorString() };
 
-    case QNetworkReply::ContentNotFoundError:
-        return { NotFoundError, reply->errorString() };
+        case QNetworkReply::ContentNotFoundError:
+            return { NotFoundError, reply->errorString() };
 
-    default:
-        return { NetworkError, reply->errorString() };
+        default:
+            return { NetworkError, reply->errorString() };
     }
 }
 
-BaseJob::Status BaseJob::parseReply(QByteArray data)
+BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 {
     QJsonParseError error;
-    QJsonDocument json = QJsonDocument::fromJson(data, &error);
+    QJsonDocument json = QJsonDocument::fromJson(reply->readAll(), &error);
     if( error.error == QJsonParseError::NoError )
         return parseJson(json);
     else
