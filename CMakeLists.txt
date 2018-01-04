@@ -87,6 +87,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             ${MATRIX_DOC_PATH}/api/client-server
             cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml-
+            sync.yaml- room_state.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         SOURCES jobs/gtad.yaml
                 jobs/{{base}}.h.mustache jobs/{{base}}.cpp.mustache
