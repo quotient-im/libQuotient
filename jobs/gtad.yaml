@@ -69,7 +69,6 @@ env:
   copyrightName: Kitsune Ral
   copyrightEmail: <kitsune-ral@users.sf.net>
 #  imports: { set: }
-#  returnFile?: { bool: false }
 
 templates:
 - "{{base}}.h.mustache"
