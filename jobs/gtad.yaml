@@ -61,7 +61,8 @@ types:
 #operations:
 
 env:
-  _typeRenderer: "{{#scope}}{{scopeCamelCase}}Job::{{/scope}}{{name}}"
+  _scopeRenderer: "{{scopeCamelCase}}Job::"
+  _literalQuote: '"'
   maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
 #  preamble: preamble.mustache
