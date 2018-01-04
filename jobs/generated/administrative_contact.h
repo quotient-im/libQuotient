@@ -7,6 +7,7 @@
 #include "../basejob.h"
 
 #include <QtCore/QVector>
+#include <QtCore/QString>
 
 #include "converters.h"
 
