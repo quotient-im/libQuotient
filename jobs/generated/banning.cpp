@@ -14,29 +14,21 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, "BanJob",
-        basePath % "/rooms/" % roomId % "/ban",
-        Query { }
-    )
+        basePath % "/rooms/" % roomId % "/ban")
 {
     QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
     : BaseJob(HttpVerb::Post, "UnbanJob",
-        basePath % "/rooms/" % roomId % "/unban",
-        Query { }
-    )
+        basePath % "/rooms/" % roomId % "/unban")
 {
     QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 

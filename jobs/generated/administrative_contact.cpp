@@ -44,10 +44,10 @@ class GetAccount3PIDsJob::Private
 
 GetAccount3PIDsJob::GetAccount3PIDsJob()
     : BaseJob(HttpVerb::Get, "GetAccount3PIDsJob",
-        basePath % "/account/3pid",
-        Query { }
-    ), d(new Private)
-{ }
+        basePath % "/account/3pid")
+    , d(new Private)
+{
+}
 
 GetAccount3PIDsJob::~GetAccount3PIDsJob() = default;
 
@@ -94,22 +94,17 @@ namespace QMatrixClient
 
 Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
     : BaseJob(HttpVerb::Post, "Post3PIDsJob",
-        basePath % "/account/3pid",
-        Query { }
-    )
+        basePath % "/account/3pid")
 {
     QJsonObject _data;
     _data.insert("three_pid_creds", toJson(threePidCreds));
     _data.insert("bind", toJson(bind));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 RequestTokenTo3PIDJob::RequestTokenTo3PIDJob()
     : BaseJob(HttpVerb::Post, "RequestTokenTo3PIDJob",
-        basePath % "/account/3pid/email/requestToken",
-        Query { }, Data { }, false
-    )
-{ }
+        basePath % "/account/3pid/email/requestToken", false)
+{
+}
 

@@ -105,6 +105,7 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     : d(new Private(verb, endpoint, query, data, needsToken))
 {
     setObjectName(name);
+    setExpectedContentTypes({ "application/json" });
     d->timer.setSingleShot(true);
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     d->retryTimer.setSingleShot(true);

@@ -20,10 +20,10 @@ class GetTokenOwnerJob::Private
 
 GetTokenOwnerJob::GetTokenOwnerJob()
     : BaseJob(HttpVerb::Get, "GetTokenOwnerJob",
-        basePath % "/account/whoami",
-        Query { }
-    ), d(new Private)
-{ }
+        basePath % "/account/whoami")
+    , d(new Private)
+{
+}
 
 GetTokenOwnerJob::~GetTokenOwnerJob() = default;
 

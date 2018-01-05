@@ -14,12 +14,8 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& receiptType, const QString& eventId, const QJsonObject& receipt)
     : BaseJob(HttpVerb::Post, "PostReceiptJob",
-        basePath % "/rooms/" % roomId % "/receipt/" % receiptType % "/" % eventId,
-        Query { }
-    )
+        basePath % "/rooms/" % roomId % "/receipt/" % receiptType % "/" % eventId)
 {
     setRequestData(Data(receipt));
-
-    addExpectedContentType("application/json");
 }
 
