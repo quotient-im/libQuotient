@@ -3,9 +3,9 @@ preprocess:
   "%CLIENT_MAJOR_VERSION%": r0
   # FIXME: the below only fixes C++ compilation but not actual work - the code
   # will try to reach out for wrong values in JSON payloads
-  "signed:": "signedData:"
-  "unsigned:": "unsignedData:"
-  "default:": "isDefault:"
+  #"signed:": "signedData:"
+  #"unsigned:": "unsignedData:"
+  #"default:": "isDefault:"
 
 # Structure:
 # swaggerType: <targetTypeSpec>
@@ -29,16 +29,23 @@ types:
   string:
   - byte: &QByteArray
       type: QByteArray
+      initializer: '"{{defaultValue}}"'
       string?: true
       imports: <QtCore/QByteArray>
   - binary: *QByteArray
-  - date: { type: QDate, "avoidCopy?": true, imports: <QtCore/QDate> }
+  - date:
+      type: QDate
+      initializer: QDate::fromString("{{defaultValue}}")
+      avoidCopy?: true
+      imports: <QtCore/QDate>
   - dateTime:
       type: QDateTime
+      initializer: QDateTime::fromString("{{defaultValue}}")
       avoidCopy?: true
       imports: <QtCore/QDateTime>
   - //:
       type: QString
+      initializer: QStringLiteral("{{defaultValue}}")
       string?: true
       avoidCopy?: true
       imports: <QtCore/QString>
@@ -65,6 +72,7 @@ env:
   _literalQuote: '"'
   maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
+  initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
 #  preamble: preamble.mustache
   copyrightName: Kitsune Ral
   copyrightEmail: <kitsune-ral@users.sf.net>

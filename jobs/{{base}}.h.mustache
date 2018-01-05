@@ -43,7 +43,7 @@ namespace QMatrixClient
 {{/        trivial?}}{{/model}}
             // End of inner data structures
 {{/models}}
-            explicit {{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{^required?}} = {{defaultValue}}{{^defaultValue}}{}{{/defaultValue}}{{/required?}}{{#@join}}, {{/@join}}{{/allParams}});{{!skip EOL
+            explicit {{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}{{/allParams}});{{!skip EOL
 }}{{#        responses}}{{#normalResponse?}}{{#allProperties?}}
             ~{{camelCaseOperationId}}Job() override;
 {{#allProperties}}
