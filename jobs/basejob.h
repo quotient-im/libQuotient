@@ -129,7 +129,9 @@ namespace QMatrixClient
 
         public:
             BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                    const Query& query = {}, const Data& data = {},
+                    bool needsToken = true);
+            BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+                    const Query& query, const Data& data = {},
                     bool needsToken = true);
 
             Status status() const;

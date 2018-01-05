@@ -95,6 +95,10 @@ QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
                << QString(s.message).replace(filter, "\\1 HIDDEN");
 }
 
+BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint, bool needsToken)
+    : BaseJob(verb, name, endpoint, Query { }, Data { }, needsToken)
+{ }
+
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  const Query& query, const Data& data, bool needsToken)
     : d(new Private(verb, endpoint, query, data, needsToken))
