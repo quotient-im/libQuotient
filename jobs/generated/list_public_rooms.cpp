@@ -205,6 +205,8 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, co
         _data.insert("since", toJson(since));
     _data.insert("filter", toJson(filter));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 QueryPublicRoomsJob::~QueryPublicRoomsJob() = default;

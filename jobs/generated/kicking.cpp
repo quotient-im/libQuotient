@@ -23,5 +23,7 @@ KickJob::KickJob(const QString& roomId, const QString& userId, const QString& re
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 

@@ -22,5 +22,7 @@ SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool ty
     _data.insert("typing", toJson(typing));
     _data.insert("timeout", toJson(timeout));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 

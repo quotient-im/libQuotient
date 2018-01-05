@@ -44,6 +44,8 @@ LoginJob::LoginJob(const QString& type, const QString& user, const QString& medi
     if (!initialDeviceDisplayName.isEmpty())
         _data.insert("initial_device_display_name", toJson(initialDeviceDisplayName));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 LoginJob::~LoginJob() = default;

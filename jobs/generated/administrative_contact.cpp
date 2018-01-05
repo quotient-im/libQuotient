@@ -102,6 +102,8 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
     _data.insert("three_pid_creds", toJson(threePidCreds));
     _data.insert("bind", toJson(bind));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 RequestTokenTo3PIDJob::RequestTokenTo3PIDJob()
