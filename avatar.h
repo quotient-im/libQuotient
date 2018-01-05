@@ -25,7 +25,6 @@
 
 namespace QMatrixClient
 {
-    class MediaThumbnailJob;
     class Connection;
 
     class Avatar

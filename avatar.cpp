@@ -76,7 +76,7 @@ QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier)
         if (_ongoingRequest)
             _ongoingRequest->abandon();
         notifiers.emplace_back(std::move(notifier));
-        _ongoingRequest = _connection->callApi<MediaThumbnailJob>(_url, size);
+        _ongoingRequest = _connection->getThumbnail(_url, size);
         _ongoingRequest->connect( _ongoingRequest, &MediaThumbnailJob::finished,
                                  _connection, [=]() {
             if (_ongoingRequest->status().good())
