@@ -18,19 +18,16 @@
 
 #pragma once
 
-#include "basejob.h"
+#include "generated/content-repo.h"
 
 #include <QtGui/QPixmap>
 
 namespace QMatrixClient
 {
-    enum class ThumbnailType {Crop, Scale};
-
-    class MediaThumbnailJob: public BaseJob
+    class MediaThumbnailJob: public GetContentThumbnailJob
     {
         public:
-            MediaThumbnailJob(QUrl url, QSize requestedSize,
-                              ThumbnailType thumbnailType = ThumbnailType::Scale);
+            MediaThumbnailJob(QUrl url, QSize requestedSize);
 
             QImage thumbnail() const;
             QImage scaledThumbnail(QSize toSize) const;

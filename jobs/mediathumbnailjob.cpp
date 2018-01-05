@@ -18,22 +18,11 @@
 
 #include "mediathumbnailjob.h"
 
-#include <QtNetwork/QNetworkReply>
-#include <QtCore/QDebug>
-
 using namespace QMatrixClient;
 
-MediaThumbnailJob::MediaThumbnailJob(QUrl url, QSize requestedSize,
-                                     ThumbnailType thumbnailType)
-    : BaseJob(HttpVerb::Get, "MediaThumbnailJob",
-              QStringLiteral("/_matrix/media/v1/thumbnail/%1%2")
-                  .arg(url.host(), url.path()),
-              Query(
-                { { "width", QString::number(requestedSize.width()) }
-                , { "height", QString::number(requestedSize.height()) }
-                , { "method",
-                    thumbnailType == ThumbnailType::Scale ? "scale" : "crop" }
-                }))
+MediaThumbnailJob::MediaThumbnailJob(QUrl url, QSize requestedSize)
+    : GetContentThumbnailJob(url.host(), url.path().mid(1),
+                             requestedSize.width(), requestedSize.height())
 { }
 
 QImage MediaThumbnailJob::thumbnail() const
@@ -49,7 +38,8 @@ QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 
 BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
 {
-    if( !_thumbnail.loadFromData(reply->readAll()) )
+    GetContentThumbnailJob::parseReply(reply);
+    if( !_thumbnail.loadFromData(content()) )
     {
         qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }
