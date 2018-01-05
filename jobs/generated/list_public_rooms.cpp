@@ -68,14 +68,17 @@ class GetPublicRoomsJob::Private
 
 GetPublicRoomsJob::GetPublicRoomsJob(double limit, const QString& since, const QString& server)
     : BaseJob(HttpVerb::Get, "GetPublicRoomsJob",
-        basePath % "/publicRooms",
-        Query {
-            { "limit", toJson(limit).toString() },
-            { "since", toJson(since).toString() },
-            { "server", toJson(server).toString() }
-        }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/publicRooms", false)
+    , d(new Private)
+{
+    QUrlQuery _q;
+    _q.addQueryItem("limit", QString("%1").arg(limit));
+    if (!since.isEmpty())
+        _q.addQueryItem("since", since);
+    if (!server.isEmpty())
+        _q.addQueryItem("server", server);
+    setRequestQuery(_q);
+}
 
 GetPublicRoomsJob::~GetPublicRoomsJob() = default;
 
@@ -193,20 +196,19 @@ class QueryPublicRoomsJob::Private
 
 QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, const QString& since, const Filter& filter)
     : BaseJob(HttpVerb::Post, "QueryPublicRoomsJob",
-        basePath % "/publicRooms",
-        Query {
-            { "server", toJson(server).toString() }
-        }
-    ), d(new Private)
+        basePath % "/publicRooms")
+    , d(new Private)
 {
+    QUrlQuery _q;
+    if (!server.isEmpty())
+        _q.addQueryItem("server", server);
+    setRequestQuery(_q);
     QJsonObject _data;
     _data.insert("limit", toJson(limit));
     if (!since.isEmpty())
         _data.insert("since", toJson(since));
     _data.insert("filter", toJson(filter));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 QueryPublicRoomsJob::~QueryPublicRoomsJob() = default;

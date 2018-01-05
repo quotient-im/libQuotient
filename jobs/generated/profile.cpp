@@ -14,16 +14,12 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displayname)
     : BaseJob(HttpVerb::Put, "SetDisplayNameJob",
-        basePath % "/profile/" % userId % "/displayname",
-        Query { }
-    )
+        basePath % "/profile/" % userId % "/displayname")
 {
     QJsonObject _data;
     if (!displayname.isEmpty())
         _data.insert("displayname", toJson(displayname));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 class GetDisplayNameJob::Private
@@ -34,10 +30,10 @@ class GetDisplayNameJob::Private
 
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetDisplayNameJob",
-        basePath % "/profile/" % userId % "/displayname",
-        Query { }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/profile/" % userId % "/displayname", false)
+    , d(new Private)
+{
+}
 
 GetDisplayNameJob::~GetDisplayNameJob() = default;
 
@@ -55,16 +51,12 @@ BaseJob::Status GetDisplayNameJob::parseJson(const QJsonDocument& data)
 
 SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl)
     : BaseJob(HttpVerb::Put, "SetAvatarUrlJob",
-        basePath % "/profile/" % userId % "/avatar_url",
-        Query { }
-    )
+        basePath % "/profile/" % userId % "/avatar_url")
 {
     QJsonObject _data;
     if (!avatarUrl.isEmpty())
         _data.insert("avatar_url", toJson(avatarUrl));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 class GetAvatarUrlJob::Private
@@ -75,10 +67,10 @@ class GetAvatarUrlJob::Private
 
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetAvatarUrlJob",
-        basePath % "/profile/" % userId % "/avatar_url",
-        Query { }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/profile/" % userId % "/avatar_url", false)
+    , d(new Private)
+{
+}
 
 GetAvatarUrlJob::~GetAvatarUrlJob() = default;
 
@@ -103,10 +95,10 @@ class GetUserProfileJob::Private
 
 GetUserProfileJob::GetUserProfileJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetUserProfileJob",
-        basePath % "/profile/" % userId,
-        Query { }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/profile/" % userId, false)
+    , d(new Private)
+{
+}
 
 GetUserProfileJob::~GetUserProfileJob() = default;
 

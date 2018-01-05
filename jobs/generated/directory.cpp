@@ -14,16 +14,12 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0/directory");
 
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
     : BaseJob(HttpVerb::Put, "SetRoomAliasJob",
-        basePath % "/room/" % roomAlias,
-        Query { }
-    )
+        basePath % "/room/" % roomAlias)
 {
     QJsonObject _data;
     if (!roomId.isEmpty())
         _data.insert("room_id", toJson(roomId));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 class GetRoomIdByAliasJob::Private
@@ -35,10 +31,10 @@ class GetRoomIdByAliasJob::Private
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, "GetRoomIdByAliasJob",
-        basePath % "/room/" % roomAlias,
-        Query { }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/room/" % roomAlias, false)
+    , d(new Private)
+{
+}
 
 GetRoomIdByAliasJob::~GetRoomIdByAliasJob() = default;
 
@@ -62,8 +58,7 @@ BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Delete, "DeleteRoomAliasJob",
-        basePath % "/room/" % roomAlias,
-        Query { }
-    )
-{ }
+        basePath % "/room/" % roomAlias)
+{
+}
 

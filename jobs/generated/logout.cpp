@@ -14,8 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 LogoutJob::LogoutJob()
     : BaseJob(HttpVerb::Post, "LogoutJob",
-        basePath % "/logout",
-        Query { }
-    )
-{ }
+        basePath % "/logout")
+{
+}
 

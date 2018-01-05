@@ -23,9 +23,8 @@ class LoginJob::Private
 
 LoginJob::LoginJob(const QString& type, const QString& user, const QString& medium, const QString& address, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, "LoginJob",
-        basePath % "/login",
-        Query { }, Data { }, false
-    ), d(new Private)
+        basePath % "/login", false)
+    , d(new Private)
 {
     QJsonObject _data;
     _data.insert("type", toJson(type));
@@ -44,8 +43,6 @@ LoginJob::LoginJob(const QString& type, const QString& user, const QString& medi
     if (!initialDeviceDisplayName.isEmpty())
         _data.insert("initial_device_display_name", toJson(initialDeviceDisplayName));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 LoginJob::~LoginJob() = default;

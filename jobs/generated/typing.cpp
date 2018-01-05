@@ -14,15 +14,11 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool typing, int timeout)
     : BaseJob(HttpVerb::Put, "SetTypingJob",
-        basePath % "/rooms/" % roomId % "/typing/" % userId,
-        Query { }
-    )
+        basePath % "/rooms/" % roomId % "/typing/" % userId)
 {
     QJsonObject _data;
     _data.insert("typing", toJson(typing));
     _data.insert("timeout", toJson(timeout));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 

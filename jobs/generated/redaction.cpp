@@ -20,16 +20,13 @@ class RedactEventJob::Private
 
 RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, const QString& txnId, const QString& reason)
     : BaseJob(HttpVerb::Put, "RedactEventJob",
-        basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId,
-        Query { }
-    ), d(new Private)
+        basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
+    , d(new Private)
 {
     QJsonObject _data;
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));
     setRequestData(_data);
-
-    addExpectedContentType("application/json");
 }
 
 RedactEventJob::~RedactEventJob() = default;

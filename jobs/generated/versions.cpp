@@ -20,10 +20,10 @@ class GetVersionsJob::Private
 
 GetVersionsJob::GetVersionsJob()
     : BaseJob(HttpVerb::Get, "GetVersionsJob",
-        basePath % "/versions",
-        Query { }, Data { }, false
-    ), d(new Private)
-{ }
+        basePath % "/versions", false)
+    , d(new Private)
+{
+}
 
 GetVersionsJob::~GetVersionsJob() = default;
 
