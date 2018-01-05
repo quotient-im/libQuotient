@@ -73,6 +73,7 @@ env:
   maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
+  paramToString: '{{#string?}}{{nameCamelCase}}{{/string?}}{{^string?}}QString("%1").arg({{nameCamelCase}}){{/string?}}'
 #  preamble: preamble.mustache
   copyrightName: Kitsune Ral
   copyrightEmail: <kitsune-ral@users.sf.net>

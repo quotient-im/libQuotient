@@ -59,23 +59,24 @@ class {{camelCaseOperationId}}Job::Private
 {{/    allProperties?}}{{/normalResponse?}}{{/responses}}
 {{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}{{/allParams}})
     : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
-        basePath{{#pathParts}} % {{_}}{{/pathParts}},
-        Query {{^queryParams}}{ }{{/queryParams}}{{#queryParams?}}{
-            {{#queryParams}}{ "{{baseName}}", toJson({{paramName}}).toString() }{{#@join}},
-            {{/@join}}{{/queryParams}}
-        }{{/queryParams?}}{{#skipAuth}}, Data { }, false{{/skipAuth}}
-    ){{#responses}}{{#normalResponse?}}{{#allProperties?}}, d(new Private){{/allProperties?}}{{/normalResponse?}}{{/responses}}
-{{#bodyParams?}}{
+        basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#skipAuth}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
+    , d(new Private){{/allProperties?}}{{/normalResponse?}}{{/responses}}
+{
 {{#headerParams?}}{{#headerParams}}    setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
 {{/headerParams}}
-{{/headerParams?}}{{#inlineBody}}    setRequestData(Data({{paramName}}));{{/inlineBody}}{{!
+{{/headerParams?}}{{!
+}}{{#queryParams?}}    QUrlQuery _q;{{#queryParams}}
+{{^required?}}{{#string?}}    if (!{{nameCamelCase}}.isEmpty())
+    {{/string?}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+    setRequestQuery(_q);
+{{/queryParams?}}{{#bodyParams?}}{{!
+}}{{#inlineBody}}    setRequestData(Data({{nameCamelCase}}));{{/inlineBody}}{{!
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
-    setRequestData(_data);{{/inlineBody}}{{#produces?}}
-{{#produces}}
-    addExpectedContentType("{{_}}");{{/produces}}{{/produces?}}
-}{{/bodyParams?}}{{^bodyParams?}}{ }{{/bodyParams?}}
+    setRequestData(_data);{{/inlineBody}}
+{{/bodyParams?}}{{#producesNotJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
+{{/producesNotJson?}}}{{!<- mind the actual brace}}
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
 {{#        allProperties}}
