@@ -74,7 +74,7 @@ class {{camelCaseOperationId}}Job::Private
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}{{#produces?}}
 {{#produces}}
-    addExpectedContentType({{_}});{{/produces}}{{/produces?}}
+    addExpectedContentType("{{_}}");{{/produces}}{{/produces?}}
 }{{/bodyParams?}}{{^bodyParams?}}{ }{{/bodyParams?}}
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
