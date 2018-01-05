@@ -19,5 +19,7 @@ PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& receiptType
     )
 {
     setRequestData(Data(receipt));
+
+    addExpectedContentType("application/json");
 }
 

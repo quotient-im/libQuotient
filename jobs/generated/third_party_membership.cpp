@@ -23,5 +23,7 @@ InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
     _data.insert("medium", toJson(medium));
     _data.insert("address", toJson(address));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 

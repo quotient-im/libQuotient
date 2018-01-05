@@ -22,6 +22,8 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displ
     if (!displayname.isEmpty())
         _data.insert("displayname", toJson(displayname));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 class GetDisplayNameJob::Private
@@ -61,6 +63,8 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl
     if (!avatarUrl.isEmpty())
         _data.insert("avatar_url", toJson(avatarUrl));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 class GetAvatarUrlJob::Private

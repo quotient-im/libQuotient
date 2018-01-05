@@ -21,5 +21,7 @@ InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
     QJsonObject _data;
     _data.insert("user_id", toJson(userId));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 

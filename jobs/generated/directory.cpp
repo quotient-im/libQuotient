@@ -22,6 +22,8 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
     if (!roomId.isEmpty())
         _data.insert("room_id", toJson(roomId));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 class GetRoomIdByAliasJob::Private

@@ -28,6 +28,8 @@ RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, co
     if (!reason.isEmpty())
         _data.insert("reason", toJson(reason));
     setRequestData(_data);
+
+    addExpectedContentType("application/json");
 }
 
 RedactEventJob::~RedactEventJob() = default;
