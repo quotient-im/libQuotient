@@ -51,6 +51,7 @@ namespace QMatrixClient
              * (which BaseJob used to inherit from). */
             enum StatusCode { NoError = 0 // To be compatible with Qt conventions
                 , Success = 0
+                , Pending = 1
                 , ErrorLevel = 100 // Errors have codes starting from this
                 , NetworkError = 100
                 , JsonParseError
@@ -279,4 +280,9 @@ namespace QMatrixClient
             class Private;
             QScopedPointer<Private> d;
     };
+
+    inline bool isJobRunning(BaseJob* job)
+    {
+        return job && job->error() == BaseJob::Pending;
+    }
 }  // namespace QMatrixClient
