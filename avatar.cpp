@@ -23,6 +23,7 @@
 #include "connection.h"
 
 #include <QtGui/QPainter>
+#include <QtCore/QPointer>
 
 using namespace QMatrixClient;
 
@@ -41,7 +42,7 @@ class Avatar::Private
         mutable std::vector<QPair<QSize, QImage>> _scaledImages;
         mutable QSize _requestedSize;
         mutable bool _valid = false;
-        mutable MediaThumbnailJob* _ongoingRequest = nullptr;
+        mutable QPointer<MediaThumbnailJob> _ongoingRequest = nullptr;
         mutable std::vector<notifier_t> notifiers;
 };
 
@@ -73,22 +74,17 @@ QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier) const
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
-        if (_ongoingRequest)
+        if (isJobRunning(_ongoingRequest))
             _ongoingRequest->abandon();
         notifiers.emplace_back(std::move(notifier));
         _ongoingRequest = _connection->getThumbnail(_url, size);
-        _ongoingRequest->connect( _ongoingRequest, &MediaThumbnailJob::finished,
-                                 _connection, [=]() {
-            if (_ongoingRequest->status().good())
-            {
-                _valid = true;
-                _originalImage =
-                        _ongoingRequest->scaledThumbnail(_requestedSize);
-                _scaledImages.clear();
-                for (auto n: notifiers)
-                    n();
-            }
-            _ongoingRequest = nullptr;
+        QObject::connect( _ongoingRequest, &MediaThumbnailJob::success, [this]
+        {
+            _valid = true;
+            _originalImage = _ongoingRequest->scaledThumbnail(_requestedSize);
+            _scaledImages.clear();
+            for (auto n: notifiers)
+                n();
         });
     }
 
