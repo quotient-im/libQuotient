@@ -65,7 +65,7 @@ class BaseJob::Private
         bool needsToken;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
-        Status status = NoError;
+        Status status = Pending;
 
         QTimer timer;
         QTimer retryTimer;
