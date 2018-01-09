@@ -27,12 +27,12 @@ types:
   - //: double
   boolean: bool
   string:
-  - byte: &QByteArray
-      type: QByteArray
-      initializer: '"{{defaultValue}}"'
-      string?: true
-      imports: <QtCore/QByteArray>
-  - binary: *QByteArray
+  - byte: &ByteStream
+      type: QIODevice*
+      #initializer: '"{{defaultValue}}"'
+      #string?: true
+      imports: <QtCore/QIODevice>
+  - binary: *ByteStream
   - date:
       type: QDate
       initializer: QDate::fromString("{{defaultValue}}")
@@ -48,10 +48,7 @@ types:
       initializer: QStringLiteral("{{defaultValue}}")
       string?: true
       avoidCopy?: true
-      imports: <QtCore/QString>
-  file:
-    type: QByteArray
-    imports: <QtCore/QByteArray>
+  file: *ByteStream
   object:
     type: QJsonObject
     avoidCopy?: true

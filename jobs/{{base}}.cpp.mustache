@@ -88,7 +88,7 @@ class {{camelCaseOperationId}}Job::Private
 BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
 {
     {{#headers}}d->{{paramName}} = reply->rawHeader("{{baseName}}"); {{! We don't check for required headers yet }}
-    {{/headers}}{{#properties}}d->{{paramName}} = reply->readAll();{{/properties}}
+    {{/headers}}{{#properties}}d->{{paramName}} = reply;{{/properties}}
     return Success;
 }{{/       producesNotJson?}}{{^producesNotJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
