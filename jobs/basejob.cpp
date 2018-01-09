@@ -70,7 +70,7 @@ class BaseJob::Private
         QByteArrayList expectedContentTypes;
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
-        Status status = NoError;
+        Status status = Pending;
 
         QTimer timer;
         QTimer retryTimer;

@@ -23,6 +23,7 @@
 #include "connection.h"
 
 #include <QtGui/QPainter>
+#include <QtCore/QPointer>
 
 using namespace QMatrixClient;
 
@@ -30,19 +31,19 @@ class Avatar::Private
 {
     public:
         Private(Connection* c, QIcon di) : _connection(c), _defaultIcon(di) { }
-        QImage get(QSize size, Avatar::notifier_t notifier);
+        QImage get(QSize size, Avatar::notifier_t notifier) const;
 
         Connection* _connection;
         const QIcon _defaultIcon;
         QUrl _url;
-        QImage _originalImage;
 
-        std::vector<QPair<QSize, QImage>> _scaledImages;
-
-        QSize _requestedSize;
-        bool _valid = false;
-        MediaThumbnailJob* _ongoingRequest = nullptr;
-        std::vector<notifier_t> notifiers;
+        // The below are related to image caching, hence mutable
+        mutable QImage _originalImage;
+        mutable std::vector<QPair<QSize, QImage>> _scaledImages;
+        mutable QSize _requestedSize;
+        mutable bool _valid = false;
+        mutable QPointer<MediaThumbnailJob> _ongoingRequest = nullptr;
+        mutable std::vector<notifier_t> notifiers;
 };
 
 Avatar::Avatar(Connection* connection, QIcon defaultIcon)
@@ -51,17 +52,17 @@ Avatar::Avatar(Connection* connection, QIcon defaultIcon)
 
 Avatar::~Avatar() = default;
 
-QImage Avatar::get(int dimension, Avatar::notifier_t notifier)
+QImage Avatar::get(int dimension, notifier_t notifier) const
 {
     return d->get({dimension, dimension}, notifier);
 }
 
-QImage Avatar::get(int width, int height, Avatar::notifier_t notifier)
+QImage Avatar::get(int width, int height, notifier_t notifier) const
 {
     return d->get({width, height}, notifier);
 }
 
-QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier)
+QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier) const
 {
     // FIXME: Alternating between longer-width and longer-height requests
     // is a sure way to trick the below code into constantly getting another
@@ -73,22 +74,17 @@ QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier)
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
-        if (_ongoingRequest)
+        if (isJobRunning(_ongoingRequest))
             _ongoingRequest->abandon();
         notifiers.emplace_back(std::move(notifier));
         _ongoingRequest = _connection->getThumbnail(_url, size);
-        _ongoingRequest->connect( _ongoingRequest, &MediaThumbnailJob::finished,
-                                 _connection, [=]() {
-            if (_ongoingRequest->status().good())
-            {
-                _valid = true;
-                _originalImage =
-                        _ongoingRequest->scaledThumbnail(_requestedSize);
-                _scaledImages.clear();
-                for (auto n: notifiers)
-                    n();
-            }
-            _ongoingRequest = nullptr;
+        QObject::connect( _ongoingRequest, &MediaThumbnailJob::success, [this]
+        {
+            _valid = true;
+            _originalImage = _ongoingRequest->scaledThumbnail(_requestedSize);
+            _scaledImages.clear();
+            for (auto n: notifiers)
+                n();
         });
     }
 
