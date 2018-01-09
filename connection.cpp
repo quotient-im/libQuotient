@@ -123,7 +123,7 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
-    connect(dns, &QDnsLookup::finished, [this,dns,&maybeBaseUrl]() {
+    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
         QUrl baseUrl { maybeBaseUrl };
         if (dns->error() == QDnsLookup::NoError &&
                 dns->serviceRecords().isEmpty())
