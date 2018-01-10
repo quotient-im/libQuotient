@@ -290,7 +290,7 @@ namespace QMatrixClient
             QScopedPointer<ContentT> _prev;
     };
 }  // namespace QMatrixClient
-Q_DECLARE_OPAQUE_POINTER(QMatrixClient::Event*)
 Q_DECLARE_METATYPE(QMatrixClient::Event*)
-Q_DECLARE_OPAQUE_POINTER(QMatrixClient::RoomEvent*)
 Q_DECLARE_METATYPE(QMatrixClient::RoomEvent*)
+Q_DECLARE_METATYPE(const QMatrixClient::Event*)
+Q_DECLARE_METATYPE(const QMatrixClient::RoomEvent*)
