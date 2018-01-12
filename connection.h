@@ -174,8 +174,10 @@ namespace QMatrixClient
             void sync(int timeout = -1);
             void stopSync();
 
-            virtual MediaThumbnailJob* getThumbnail(const QUrl& url,
+            virtual MediaThumbnailJob* getThumbnail(const QString& mediaId,
                                                     QSize requestedSize) const;
+            MediaThumbnailJob* getThumbnail(const QUrl& url,
+                                            QSize requestedSize) const;
             MediaThumbnailJob* getThumbnail(const QUrl& url,
                                             int requestedWidth,
                                             int requestedHeight) const;
@@ -296,7 +298,6 @@ namespace QMatrixClient
              * if roomId is empty if createRoom() failed to create a Room object.
              */
             Room* provideRoom(const QString& roomId, JoinState joinState);
-
 
             /**
              * Completes loading sync data.

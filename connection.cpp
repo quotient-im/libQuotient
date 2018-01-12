@@ -298,9 +298,24 @@ RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
     return callApi<RoomMessagesJob>(room->id(), from);
 }
 
+inline auto splitMediaId(const QString& mediaId)
+{
+    auto idParts = mediaId.split('/');
+    Q_ASSERT_X(idParts.size() == 2, __FUNCTION__,
+               "mediaId should have a form 'serverName/localMediaId' (without apostrophes)");
+    return idParts;
+}
+
+MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId, QSize requestedSize) const
+{
+    auto idParts = splitMediaId(mediaId);
+    return callApi<MediaThumbnailJob>(idParts.front(), idParts.back(),
+                                      requestedSize);
+}
+
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, QSize requestedSize) const
 {
-    return callApi<MediaThumbnailJob>(url, requestedSize);
+    return getThumbnail(url.authority() + url.path(), requestedSize);
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
