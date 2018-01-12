@@ -29,6 +29,7 @@
 #include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "jobs/downloadfilejob.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
@@ -321,6 +322,47 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight) const
 {
     return getThumbnail(url, QSize(requestedWidth, requestedHeight));
+}
+
+UploadContentJob* Connection::uploadContent(QIODevice* contentSource,
+        const QString& filename, const QString& contentType) const
+{
+    return callApi<UploadContentJob>(contentSource, filename, contentType);
+}
+
+UploadContentJob* Connection::uploadFile(const QString& fileName,
+                                         const QString& contentType)
+{
+    auto sourceFile = new QFile(fileName);
+    if (sourceFile->open(QIODevice::ReadOnly))
+    {
+        qCWarning(MAIN) << "Couldn't open" << sourceFile->fileName()
+                        << "for reading";
+        return nullptr;
+    }
+    return uploadContent(sourceFile, QFileInfo(*sourceFile).fileName(),
+                         contentType);
+}
+
+GetContentJob* Connection::getContent(const QString& mediaId) const
+{
+    auto idParts = splitMediaId(mediaId);
+    return callApi<GetContentJob>(idParts.front(), idParts.back());
+}
+
+GetContentJob* Connection::getContent(const QUrl& url) const
+{
+    return getContent(url.authority() + url.path());
+}
+
+DownloadFileJob* Connection::downloadFile(const QUrl& url,
+                                          const QString& localFilename) const
+{
+    auto mediaId = url.authority() + url.path();
+    auto idParts = splitMediaId(mediaId);
+    auto* job = callApi<DownloadFileJob>(idParts.front(), idParts.back(),
+                                         localFilename);
+    return job;
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
