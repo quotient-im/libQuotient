@@ -41,6 +41,9 @@ namespace QMatrixClient
     class PostReceiptJob;
     class MediaThumbnailJob;
     class JoinRoomJob;
+    class UploadContentJob;
+    class GetContentJob;
+    class DownloadFileJob;
 
     class Connection: public QObject {
             Q_OBJECT
@@ -181,6 +184,18 @@ namespace QMatrixClient
             MediaThumbnailJob* getThumbnail(const QUrl& url,
                                             int requestedWidth,
                                             int requestedHeight) const;
+
+            // QIODevice* should already be open
+            virtual UploadContentJob* uploadContent(QIODevice* contentSource,
+                            const QString& filename = {},
+                            const QString& contentType = {}) const;
+            virtual UploadContentJob* uploadFile(const QString& fileName,
+                                                 const QString& contentType = {});
+            virtual GetContentJob* getContent(const QString& mediaId) const;
+            GetContentJob* getContent(const QUrl& url) const;
+            // If localFilename is empty, a temporary file will be created
+            virtual DownloadFileJob* downloadFile(const QUrl& url,
+                            const QString& localFilename = {}) const;
 
             virtual JoinRoomJob* joinRoom(const QString& roomAlias);
 
