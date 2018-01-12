@@ -216,15 +216,21 @@ void BaseJob::Private::sendRequest()
     }
 }
 
-void BaseJob::beforeStart(const ConnectionData* connData)
-{
-}
+void BaseJob::beforeStart(const ConnectionData*)
+{ }
+
+void BaseJob::afterStart(const ConnectionData*, QNetworkReply*)
+{ }
+
+void BaseJob::beforeAbandon(QNetworkReply*)
+{ }
 
 void BaseJob::start(const ConnectionData* connData)
 {
     d->connection = connData;
     beforeStart(connData);
     sendRequest();
+    afterStart(connData, d->reply.data());
 }
 
 void BaseJob::sendRequest()
@@ -238,6 +244,10 @@ void BaseJob::sendRequest()
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     if (d->reply->isRunning())
     {
+        connect( d->reply.data(), &QNetworkReply::uploadProgress,
+                 this, &BaseJob::uploadProgress);
+        connect( d->reply.data(), &QNetworkReply::downloadProgress,
+                 this, &BaseJob::downloadProgress);
         d->timer.start(getCurrentTimeout());
         qCDebug(d->logCat) << this << "request has been sent";
         emit started();
@@ -430,6 +440,7 @@ void BaseJob::setStatus(int code, QString message)
 
 void BaseJob::abandon()
 {
+    beforeAbandon(d->reply.data());
     this->disconnect();
     if (d->reply)
         d->reply->disconnect(this);
