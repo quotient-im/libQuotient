@@ -27,7 +27,9 @@ namespace QMatrixClient
     class MediaThumbnailJob: public GetContentThumbnailJob
     {
         public:
-            MediaThumbnailJob(QUrl url, QSize requestedSize);
+            MediaThumbnailJob(const QString& serverName, const QString& mediaId,
+                              QSize requestedSize);
+            MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize);
 
             QImage thumbnail() const;
             QImage scaledThumbnail(QSize toSize) const;

@@ -20,8 +20,15 @@
 
 using namespace QMatrixClient;
 
-MediaThumbnailJob::MediaThumbnailJob(QUrl url, QSize requestedSize)
-    : GetContentThumbnailJob(url.host(), url.path().mid(1),
+MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
+                                     const QString& mediaId, QSize requestedSize)
+    : GetContentThumbnailJob(serverName, mediaId,
+                             requestedSize.width(), requestedSize.height())
+{ }
+
+MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
+    : GetContentThumbnailJob(mxcUri.authority(),
+                             mxcUri.path().mid(1), // sans leading '/'
                              requestedSize.width(), requestedSize.height())
 { }
 
@@ -39,7 +46,7 @@ QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
 {
     GetContentThumbnailJob::parseReply(reply);
-    if( !_thumbnail.loadFromData(content()) )
+    if( !_thumbnail.loadFromData(content()->readAll()) )
     {
         qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
     }

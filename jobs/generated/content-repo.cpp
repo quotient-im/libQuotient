@@ -19,7 +19,7 @@ class UploadContentJob::Private
         QString contentUri;
 };
 
-UploadContentJob::UploadContentJob(QByteArray content, const QString& filename, const QString& contentType)
+UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename, const QString& contentType)
     : BaseJob(HttpVerb::Post, "UploadContentJob",
         basePath % "/upload")
     , d(new Private)
@@ -55,7 +55,7 @@ class GetContentJob::Private
     public:
         QString contentType;
         QString contentDisposition;
-        QByteArray content;
+        QIODevice* content;
 };
 
 GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId)
@@ -78,7 +78,7 @@ const QString& GetContentJob::contentDisposition() const
     return d->contentDisposition;
 }
 
-QByteArray GetContentJob::content() const
+QIODevice* GetContentJob::content() const
 {
     return d->content;
 }
@@ -87,7 +87,7 @@ BaseJob::Status GetContentJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
     d->contentDisposition = reply->rawHeader("Content-Disposition"); 
-    d->content = reply->readAll();
+    d->content = reply;
     return Success;
 }
 
@@ -96,7 +96,7 @@ class GetContentOverrideNameJob::Private
     public:
         QString contentType;
         QString contentDisposition;
-        QByteArray content;
+        QIODevice* content;
 };
 
 GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName)
@@ -119,7 +119,7 @@ const QString& GetContentOverrideNameJob::contentDisposition() const
     return d->contentDisposition;
 }
 
-QByteArray GetContentOverrideNameJob::content() const
+QIODevice* GetContentOverrideNameJob::content() const
 {
     return d->content;
 }
@@ -128,7 +128,7 @@ BaseJob::Status GetContentOverrideNameJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
     d->contentDisposition = reply->rawHeader("Content-Disposition"); 
-    d->content = reply->readAll();
+    d->content = reply;
     return Success;
 }
 
@@ -136,7 +136,7 @@ class GetContentThumbnailJob::Private
 {
     public:
         QString contentType;
-        QByteArray content;
+        QIODevice* content;
 };
 
 GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width, int height, const QString& method)
@@ -160,7 +160,7 @@ const QString& GetContentThumbnailJob::contentType() const
     return d->contentType;
 }
 
-QByteArray GetContentThumbnailJob::content() const
+QIODevice* GetContentThumbnailJob::content() const
 {
     return d->content;
 }
@@ -168,7 +168,7 @@ QByteArray GetContentThumbnailJob::content() const
 BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
-    d->content = reply->readAll();
+    d->content = reply;
     return Success;
 }
 

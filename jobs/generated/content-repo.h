@@ -6,8 +6,7 @@
 
 #include "../basejob.h"
 
-#include <QtCore/QByteArray>
-#include <QtCore/QString>
+#include <QtCore/QIODevice>
 
 
 namespace QMatrixClient
@@ -17,7 +16,7 @@ namespace QMatrixClient
     class UploadContentJob : public BaseJob
     {
         public:
-            explicit UploadContentJob(QByteArray content, const QString& filename = {}, const QString& contentType = {});
+            explicit UploadContentJob(QIODevice* content, const QString& filename = {}, const QString& contentType = {});
             ~UploadContentJob() override;
 
             const QString& contentUri() const;
@@ -38,7 +37,7 @@ namespace QMatrixClient
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
-            QByteArray content() const;
+            QIODevice* content() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
@@ -56,7 +55,7 @@ namespace QMatrixClient
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
-            QByteArray content() const;
+            QIODevice* content() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
@@ -73,7 +72,7 @@ namespace QMatrixClient
             ~GetContentThumbnailJob() override;
 
             const QString& contentType() const;
-            QByteArray content() const;
+            QIODevice* content() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
