@@ -6,9 +6,8 @@
 
 #include "../basejob.h"
 
-#include <QtCore/QVector>
 #include <QtCore/QJsonObject>
-#include <QtCore/QString>
+#include <QtCore/QVector>
 
 #include "converters.h"
 
