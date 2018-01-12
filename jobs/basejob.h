@@ -192,6 +192,9 @@ namespace QMatrixClient
              */
             void failure(BaseJob*);
 
+            void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+            void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
+
         protected:
             using headers_t = QHash<QByteArray, QByteArray>;
 
@@ -210,6 +213,9 @@ namespace QMatrixClient
             void setExpectedContentTypes(const QByteArrayList& contentTypes);
 
             virtual void beforeStart(const ConnectionData* connData);
+            virtual void afterStart(const ConnectionData* connData,
+                                    QNetworkReply* reply);
+            virtual void beforeAbandon(QNetworkReply*);
 
             /**
              * Used by gotReply() to check the received reply for general
