@@ -319,12 +319,12 @@ BaseJob::duration_t BaseJob::millisToRetry() const
     return d->retryTimer.isActive() ? d->retryTimer.remainingTime() : 0;
 }
 
-size_t BaseJob::maxRetries() const
+int BaseJob::maxRetries() const
 {
     return d->maxRetries;
 }
 
-void BaseJob::setMaxRetries(size_t newMaxRetries)
+void BaseJob::setMaxRetries(int newMaxRetries)
 {
     d->maxRetries = newMaxRetries;
 }
