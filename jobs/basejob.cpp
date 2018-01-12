@@ -45,7 +45,7 @@ class BaseJob::Private
     public:
         // Using an idiom from clang-tidy:
         // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-        Private(HttpVerb v, QString endpoint, QUrlQuery q, Data data, bool nt)
+        Private(HttpVerb v, QString endpoint, QUrlQuery q, Data&& data, bool nt)
             : verb(v), apiEndpoint(std::move(endpoint))
             , requestQuery(std::move(q)), requestData(std::move(data))
             , needsToken(nt)
@@ -100,8 +100,8 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint, bo
 { }
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                 const Query& query, const Data& data, bool needsToken)
-    : d(new Private(verb, endpoint, query, data, needsToken))
+                 const Query& query, Data&& data, bool needsToken)
+    : d(new Private(verb, endpoint, query, std::move(data), needsToken))
 {
     setObjectName(name);
     setExpectedContentTypes({ "application/json" });
@@ -158,9 +158,9 @@ const BaseJob::Data& BaseJob::requestData() const
     return d->requestData;
 }
 
-void BaseJob::setRequestData(const BaseJob::Data& data)
+void BaseJob::setRequestData(Data&& data)
 {
-    d->requestData = data;
+    std::swap(d->requestData, data);
 }
 
 const QByteArrayList& BaseJob::expectedContentTypes() const
@@ -205,10 +205,10 @@ void BaseJob::Private::sendRequest()
             reply.reset( connection->nam()->get(req) );
             break;
         case HttpVerb::Post:
-            reply.reset( connection->nam()->post(req, requestData.serialize()) );
+            reply.reset( connection->nam()->post(req, requestData.source()) );
             break;
         case HttpVerb::Put:
-            reply.reset( connection->nam()->put(req, requestData.serialize()) );
+            reply.reset( connection->nam()->put(req, requestData.source()) );
             break;
         case HttpVerb::Delete:
             reply.reset( connection->nam()->deleteResource(req) );
@@ -446,4 +446,3 @@ void BaseJob::setLoggingCategory(LoggingCategory lcf)
 {
     d->logCat = lcf;
 }
-

@@ -18,13 +18,15 @@
 
 #pragma once
 
-#include "logging.h"
+#include "../logging.h"
+#include "requestdata.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QUrlQuery>
+
+// Any job that parses the response will need the below two.
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
-#include <QtCore/QJsonArray>
-#include <QtCore/QUrlQuery>
 
 class QNetworkReply;
 class QSslError;
@@ -76,33 +78,8 @@ namespace QMatrixClient
                         setQueryItems(l);
                     }
             };
-            /**
-             * A simple wrapper that represents the request body.
-             * Provides a unified interface to dump an unstructured byte stream
-             * as well as JSON (and possibly other structures in the future) to
-             * a QByteArray consumed by QNetworkAccessManager request methods.
-             */
-            class Data
-            {
-                public:
-                    Data() = default;
-                    Data(const QByteArray& a) : _payload(a) { }
-                    Data(const QJsonObject& jo)
-                        : _payload(fromJson(QJsonDocument(jo)))  { }
-                    Data(const QJsonArray& ja)
-                        : _payload(fromJson(QJsonDocument(ja)))  { }
-                    QByteArray serialize() const
-                    {
-                        return _payload;
-                    }
 
-                private:
-                    static QByteArray fromJson(const QJsonDocument& jd)
-                    {
-                        return jd.toJson(QJsonDocument::Compact);
-                    }
-                    QByteArray _payload;
-            };
+            using Data = RequestData;
 
             /**
              * This structure stores the status of a server call job. The status consists
@@ -132,7 +109,7 @@ namespace QMatrixClient
             BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                     bool needsToken = true);
             BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                    const Query& query, const Data& data = {},
+                    const Query& query, Data&& data = {},
                     bool needsToken = true);
 
             Status status() const;
@@ -227,7 +204,7 @@ namespace QMatrixClient
             const QUrlQuery& query() const;
             void setRequestQuery(const QUrlQuery& query);
             const Data& requestData() const;
-            void setRequestData(const Data& data);
+            void setRequestData(Data&& data);
             const QByteArrayList& expectedContentTypes() const;
             void addExpectedContentType(const QByteArray& contentType);
             void setExpectedContentTypes(const QByteArrayList& contentTypes);

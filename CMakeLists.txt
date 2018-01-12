@@ -65,6 +65,7 @@ set(libqmatrixclient_SRCS
    events/roomavatarevent.cpp
    events/typingevent.cpp
    events/receiptevent.cpp
+   jobs/requestdata.cpp
    jobs/basejob.cpp
    jobs/checkauthmethods.cpp
    jobs/sendeventjob.cpp
