@@ -74,6 +74,7 @@ set(libqmatrixclient_SRCS
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
+   jobs/downloadfilejob.cpp
 )
 
 set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server/)
