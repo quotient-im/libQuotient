@@ -69,6 +69,7 @@ set(libqmatrixclient_SRCS
    jobs/roommessagesjob.cpp
    jobs/syncjob.cpp
    jobs/mediathumbnailjob.cpp
+   jobs/downloadfilejob.cpp
 )
 
 aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
