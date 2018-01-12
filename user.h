@@ -29,6 +29,10 @@ namespace QMatrixClient
     class User: public QObject
     {
             Q_OBJECT
+            Q_PROPERTY(QString id READ id CONSTANT)
+            Q_PROPERTY(QString name READ name NOTIFY nameChanged)
+            Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
+            Q_PROPERTY(QString bridgeName READ bridged NOTIFY nameChanged STORED false)
         public:
             User(QString userId, Connection* connection);
             ~User() override;
@@ -36,40 +40,43 @@ namespace QMatrixClient
             /**
              * Returns the id of the user
              */
-            Q_INVOKABLE QString id() const;
+            QString id() const;
 
             /**
              * Returns the name chosen by the user
              */
-            Q_INVOKABLE QString name() const;
+            QString name() const;
 
             /**
              * Returns the name that should be used to display the user.
              */
-            Q_INVOKABLE QString displayname() const;
+            QString displayname() const;
 
             /**
              * Returns the name of bridge the user is connected from or empty.
             */
-            Q_INVOKABLE QString bridged() const;
+            QString bridged() const;
 
-            Avatar& avatarObject();
-            QImage avatar(int dimension);
-            QImage avatar(int requestedWidth, int requestedHeight);
+            const Avatar& avatarObject();
+            Q_INVOKABLE QImage avatar(int dimension);
+            Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight);
 
-            QUrl avatarUrl() const;
+            Q_INVOKABLE QUrl avatarUrl() const;
 
             void processEvent(Event* event);
 
         public slots:
             void rename(const QString& newName);
+            bool setAvatar(const QString& fileName);
+            bool setAvatar(QIODevice* source);
 
         signals:
-            void nameChanged(User*, QString);
+            void nameChanged(QString newName, QString oldName);
             void avatarChanged(User* user);
 
         private slots:
             void updateName(const QString& newName);
+            void updateAvatarUrl(const QUrl& newUrl);
 
         private:
             class Private;
