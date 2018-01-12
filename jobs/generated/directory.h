@@ -7,7 +7,6 @@
 #include "../basejob.h"
 
 #include <QtCore/QVector>
-#include <QtCore/QString>
 
 
 namespace QMatrixClient
