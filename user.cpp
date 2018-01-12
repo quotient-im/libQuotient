@@ -23,9 +23,11 @@
 #include "events/event.h"
 #include "events/roommemberevent.h"
 #include "jobs/generated/profile.h"
+#include "jobs/generated/content-repo.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QPointer>
 
 using namespace QMatrixClient;
 
@@ -42,6 +44,9 @@ class User::Private
         QString bridged;
         Connection* connection;
         Avatar avatar;
+        QPointer<UploadContentJob> avatarUploadJob = nullptr;
+
+        void setAvatar(UploadContentJob* job, User* q);
 };
 
 User::User(QString userId, Connection* connection)
@@ -66,17 +71,49 @@ QString User::name() const
 void User::updateName(const QString& newName)
 {
     const auto oldName = name();
-    if (d->name != newName)
+    if (oldName != newName)
     {
         d->name = newName;
-        emit nameChanged(this, oldName);
+        emit nameChanged(newName, oldName);
     }
+}
+
+void User::updateAvatarUrl(const QUrl& newUrl)
+{
+    if (d->avatar.updateUrl(newUrl))
+        emit avatarChanged(this);
 }
 
 void User::rename(const QString& newName)
 {
     auto job = d->connection->callApi<SetDisplayNameJob>(id(), newName);
     connect(job, &BaseJob::success, this, [=] { updateName(newName); });
+}
+
+bool User::setAvatar(const QString& fileName)
+{
+    if (isJobRunning(d->avatarUploadJob))
+        return false;
+    d->setAvatar(d->connection->uploadFile(fileName), this);
+    return true;
+}
+
+bool User::setAvatar(QIODevice* source)
+{
+    if (isJobRunning(d->avatarUploadJob) || !source->isReadable())
+        return false;
+    d->setAvatar(d->connection->uploadContent(source), this);
+    return true;
+}
+
+void User::Private::setAvatar(UploadContentJob* job, User* q)
+{
+    avatarUploadJob = job;
+    connect(job, &BaseJob::success, q, [this,q] {
+        auto* j = connection->callApi<SetAvatarUrlJob>(
+                        userId, avatarUploadJob->contentUri());
+        connect(j, &BaseJob::success, q, [q] { emit q->avatarChanged(q); });
+    });
 }
 
 QString User::displayname() const
@@ -90,7 +127,7 @@ QString User::bridged() const {
     return d->bridged;
 }
 
-Avatar& User::avatarObject()
+const Avatar& User::avatarObject()
 {
     return d->avatar;
 }
@@ -127,7 +164,6 @@ void User::processEvent(Event* event)
             newName.truncate(match.capturedStart(0));
         }
         updateName(newName);
-        if (d->avatar.updateUrl(e->avatarUrl()))
-            emit avatarChanged(this);
+        updateAvatarUrl(e->avatarUrl());
     }
 }
