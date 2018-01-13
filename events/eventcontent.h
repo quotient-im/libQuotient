@@ -23,7 +23,6 @@
 
 #include "converters.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QMimeType>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
@@ -40,26 +39,21 @@ namespace QMatrixClient
          * a QJsonObject and override fillJson() with an implementation
          * that will fill the target QJsonObject with stored values. It is
          * assumed but not required that a content object can also be created
-         * from plain data. fillJson() should only fill the main JSON object
-         * but not the "info" subobject if it exists for a certain content type;
-         * use \p InfoBase to de/serialize "info" parts with an optional URL
-         * on the top level.
+         * from plain data.
          */
         class Base
         {
             public:
+                explicit Base (const QJsonObject& o = {}) : originalJson(o) { }
                 virtual ~Base() = default;
 
                 QJsonObject toJson() const;
 
+            public:
+                QJsonObject originalJson;
+
             protected:
                 virtual void fillJson(QJsonObject* o) const = 0;
-        };
-
-        class TypedBase: public Base
-        {
-            public:
-                virtual QMimeType type() const = 0;
         };
 
         template <typename T = QString>
@@ -74,10 +68,12 @@ namespace QMatrixClient
                     : value(std::forward<TT>(value)), key(std::move(keyName))
                 { }
                 SimpleContent(const QJsonObject& json, QString keyName)
-                    : value(QMatrixClient::fromJson<T>(json[keyName]))
+                    : Base(json)
+                    , value(QMatrixClient::fromJson<T>(json[keyName]))
                     , key(std::move(keyName))
                 { }
 
+            public:
                 T value;
 
             protected:
@@ -91,44 +87,36 @@ namespace QMatrixClient
                 }
         };
 
-        /**
-         * A base class for content types that have an "info" object in their
-         * JSON representation
-         *
-         * These include most multimedia types currently in the CS API spec.
-         * Derived classes should override fillInfoJson() to fill the "info"
-         * subobject, BUT NOT the main JSON object. Most but not all "info"
-         * classes (specifically, those deriving from FileInfo) should also
-         * have a constructor that accepts two parameters, QUrl and QJsonObject,
-         * in order to load the URL+info part from JSON.
-         */
-        class InfoBase
-        {
-            public:
-                virtual ~InfoBase() = default;
-
-                QJsonObject toInfoJson() const;
-
-                QMimeType mimeType;
-
-            protected:
-                InfoBase() = default;
-                explicit InfoBase(const QMimeType& type) : mimeType(type) { }
-
-                virtual void fillInfoJson(QJsonObject* /*infoJson*/) const = 0;
-        };
-
         // The below structures fairly follow CS spec 11.2.1.6. The overall
         // set of attributes for each content types is a superset of the spec
         // but specific aggregation structure is altered. See doc comments to
         // each type for the list of available attributes.
 
+        // A quick classes inheritance structure follows:
+        // FileInfo
+        //   FileContent : UrlBasedContent<FileInfo, Thumbnail>
+        //   AudioContent : UrlBasedContent<FileInfo, Duration>
+        //   ImageInfo : FileInfo + imageSize attribute
+        //     ImageContent : UrlBasedContent<ImageInfo, Thumbnail>
+        //     VideoContent : UrlBasedContent<ImageInfo, Thumbnail, Duration>
+
         /**
-         * Base class for content types that consist of a URL along with
-         * additional information. Most of message types except textual fall
-         * under this category.
+         * A base/mixin class for structures representing an "info" object for
+         * some content types. These include most attachment types currently in
+         * the CS API spec.
+         *
+         * In order to use it in a content class, derive both from TypedBase
+         * (or Base) and from FileInfo (or its derivative, such as \p ImageInfo)
+         * and call fillInfoJson() to fill the "info" subobject. Make sure
+         * to pass an "info" part of JSON to FileInfo constructor, not the whole
+         * JSON content, as well as contents of "url" (or a similar key) and
+         * optionally "filename" node from the main JSON content. Assuming you
+         * don't do unusual things, you should use \p UrlBasedContent<> instead
+         * of doing multiple inheritance and overriding Base::fillJson() by hand.
+         *
+         * This class is not polymorphic.
          */
-        class FileInfo: public InfoBase
+        class FileInfo
         {
             public:
                 explicit FileInfo(const QUrl& u, int payloadSize = -1,
@@ -137,111 +125,101 @@ namespace QMatrixClient
                 FileInfo(const QUrl& u, const QJsonObject& infoJson,
                          const QString& originalFilename = {});
 
+                void fillInfoJson(QJsonObject* infoJson) const;
+
+                /**
+                 * \brief Extract media id from the URL
+                 *
+                 * This can be used, e.g., to construct a QML-facing image://
+                 * URI as follows:
+                 * \code "image://provider/" + info.mediaId() \endcode
+                 */
+                QString mediaId() const { return url.authority() + url.path(); }
+
+            public:
+                QJsonObject originalInfoJson;
+                QMimeType mimeType;
                 QUrl url;
                 int payloadSize;
                 QString originalName;
-
-            protected:
-                void fillInfoJson(QJsonObject* infoJson) const override;
         };
 
         /**
-         * A base class for image info types: image, thumbnail, video
-         *
-         * \tparam InfoT base info class; should derive from \p InfoBase
+         * A content info class for image content types: image, thumbnail, video
          */
-        template <class InfoT = FileInfo>
-        class ImageInfo : public InfoT
+        class ImageInfo : public FileInfo
         {
             public:
                 explicit ImageInfo(const QUrl& u, int fileSize = -1,
                                    QMimeType mimeType = {},
-                                   const QSize& imageSize = {})
-                    : InfoT(u, fileSize, mimeType), imageSize(imageSize)
-                { }
+                                   const QSize& imageSize = {});
                 ImageInfo(const QUrl& u, const QJsonObject& infoJson,
-                          const QString& originalFilename = {})
-                    : InfoT(u, infoJson, originalFilename)
-                    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
-                { }
+                          const QString& originalFilename = {});
 
+                void fillInfoJson(QJsonObject* infoJson) const;
+
+            public:
                 QSize imageSize;
-
-            protected:
-                void fillInfoJson(QJsonObject* infoJson) const override
-                {
-                    InfoT::fillInfoJson(infoJson);
-                    infoJson->insert("w", imageSize.width());
-                    infoJson->insert("h", imageSize.height());
-                }
         };
 
         /**
-         * A base class for an info type that carries a thumbnail
+         * A mixin class for an info type that carries a thumbnail
          *
-         * This class decorates the underlying type, adding ability to save/load
-         * a thumbnail to/from "info" subobject of the JSON representation of
-         * event content; namely, "info/thumbnail_url" and "info/thumbnail_info"
-         * fields are used.
-         *
-         * \tparam InfoT base info class; should derive from \p InfoBase
+         * This class saves/loads a thumbnail to/from "info" subobject of
+         * the JSON representation of event content; namely,
+         * "info/thumbnail_url" and "info/thumbnail_info" fields are used.
          */
-        template <class InfoT = InfoBase>
-        class Thumbnailed : public InfoT
+        class WithThumbnail
         {
             public:
-                template <typename... ArgTs>
-                explicit Thumbnailed(const ImageInfo<>& thumbnail,
-                                     ArgTs&&... infoArgs)
-                    : InfoT(std::forward<ArgTs>(infoArgs)...)
-                    , thumbnail(thumbnail)
+                WithThumbnail(const QJsonObject& infoJson);
+                WithThumbnail(const ImageInfo& info)
+                    : thumbnail(info)
                 { }
 
-                explicit Thumbnailed(const QJsonObject& infoJson)
-                    : thumbnail(infoJson["thumbnail_url"].toString(),
-                                infoJson["thumbnail_info"].toObject())
-                { }
+                /**
+                 * Writes thumbnail information to "thumbnail_info" subobject
+                 * and thumbnail URL to "thumbnail_url" node inside "info".
+                 */
+                void fillInfoJson(QJsonObject* infoJson) const;
 
-                Thumbnailed(const QUrl& u, const QJsonObject& infoJson,
-                            const QString& originalFilename = {})
-                    : InfoT(u, infoJson, originalFilename)
-                    , thumbnail(infoJson["thumbnail_url"].toString(),
-                                infoJson["thumbnail_info"].toObject())
-                { }
+            public:
+                ImageInfo thumbnail;
+        };
 
-                ImageInfo<> thumbnail;
-
-            protected:
-                void fillInfoJson(QJsonObject* infoJson) const override
-                {
-                    InfoT::fillInfoJson(infoJson);
-                    infoJson->insert("thumbnail_url", thumbnail.url.toString());
-                    infoJson->insert("thumbnail_info", thumbnail.toInfoJson());
-                }
+        class TypedBase: public Base
+        {
+            public:
+                explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
+                virtual QMimeType type() const = 0;
+                virtual const FileInfo* fileInfo() const { return nullptr; }
         };
 
         /**
-         * One more facility base class for content types that have a URL and
-         * additional info
+         * A base class for content types that have a URL and additional info
          *
-         * Types that derive from UrlWith<InfoT> take "url" and, optionally,
-         * "filename" values from the top-level JSON object and the rest of
-         * information from the "info" subobject.
+         * Types that derive from this class template take "url" and,
+         * optionally, "filename" values from the top-level JSON object and
+         * the rest of information from the "info" subobject, as defined by
+         * the parameter type.
          *
-         * \tparam InfoT base info class; should derive from \p FileInfo or
-         * provide a constructor with a compatible signature
+         * \tparam InfoT base info class
+         * \tparam InfoMixinTs... additional info mixin classes (e.g. WithThumbnail)
          */
-        template <class InfoT> // InfoT : public FileInfo
-        class UrlWith : public TypedBase, public InfoT
+        template <class InfoT, class... InfoMixinTs>
+        class UrlBasedContent :
+                public TypedBase, public InfoT, public InfoMixinTs...
         {
             public:
-                using InfoT::InfoT;
-                explicit UrlWith(const QJsonObject& json)
-                    : InfoT(json["url"].toString(), json["info"].toObject(),
+                explicit UrlBasedContent(const QJsonObject& json)
+                    : TypedBase(json)
+                    , InfoT(json["url"].toString(), json["info"].toObject(),
                             json["filename"].toString())
+                    , InfoMixinTs(InfoT::originalInfoJson)...
                 { }
 
                 QMimeType type() const override { return InfoT::mimeType; }
+                const FileInfo* fileInfo() const override { return this; }
 
             protected:
                 void fillJson(QJsonObject* json) const override
@@ -250,7 +228,13 @@ namespace QMatrixClient
                     json->insert("url", InfoT::url.toString());
                     if (!InfoT::originalName.isEmpty())
                         json->insert("filename", InfoT::originalName);
-                    json->insert("info", InfoT::toInfoJson());
+                    QJsonObject infoJson;
+                    InfoT::fillInfoJson(&infoJson);
+                    // http://en.cppreference.com/w/cpp/language/parameter_pack#Brace-enclosed_initializers
+                    // Looking forward to C++17 and its folding awesomeness.
+                    int d[] = { (InfoMixinTs::fillInfoJson(&infoJson), 0)... };
+                    Q_UNUSED(d);
+                    json->insert("info", infoJson);
                 }
         };
 
@@ -272,7 +256,7 @@ namespace QMatrixClient
          *   - mimeType
          *   - imageSize
          */
-        using ImageContent = UrlWith<Thumbnailed<ImageInfo<>>>;
+        using ImageContent = UrlBasedContent<ImageInfo, WithThumbnail>;
 
         /**
          * Content class for m.file
@@ -290,6 +274,6 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize (QSize for "h" and "w" in JSON)
          */
-        using FileContent = UrlWith<Thumbnailed<FileInfo>>;
+        using FileContent = UrlBasedContent<FileInfo, WithThumbnail>;
     }  // namespace EventContent
 }  // namespace QMatrixClient

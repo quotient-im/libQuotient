@@ -32,6 +32,10 @@ namespace QMatrixClient
     class RoomMessageEvent: public RoomEvent
     {
             Q_GADGET
+            Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
+            Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
+            Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
+            Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
         public:
             enum class MsgType
             {
@@ -52,9 +56,10 @@ namespace QMatrixClient
             MsgType msgtype() const;
             QString rawMsgtype() const       { return _msgtype; }
             const QString& plainBody() const { return _plainBody; }
-            const EventContent::TypedBase* content() const
+            EventContent::TypedBase* content() const
                                              { return _content.data(); }
             QMimeType mimeType() const;
+            bool hasFileContent() const;
 
             QJsonObject toJson() const;
 
@@ -107,15 +112,16 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize
          */
-        class LocationContent: public TypedBase, public Thumbnailed<>
+        class LocationContent: public TypedBase, public WithThumbnail
         {
             public:
                 LocationContent(const QString& geoUri,
-                                const ImageInfo<>& thumbnail);
+                                const ImageInfo& thumbnail);
                 explicit LocationContent(const QJsonObject& json);
 
                 QMimeType type() const override;
 
+            public:
                 QString geoUri;
 
             protected:
@@ -123,21 +129,18 @@ namespace QMatrixClient
         };
 
         /**
-         * A base class for "playable" info types: audio and video
+         * A mixin class for info types that include duration: audio and video
          */
-        class PlayableInfo : public FileInfo
+        class WithDuration
         {
             public:
-                explicit PlayableInfo(const QUrl& u, int fileSize,
-                                      const QMimeType& mimeType, int duration,
-                                      const QString& originalFilename = {});
-                PlayableInfo(const QUrl& u, const QJsonObject& infoJson,
-                             const QString& originalFilename = {});
+                explicit WithDuration(int duration) : duration(duration) { }
+                WithDuration(const QJsonObject& infoJson);
 
+                void fillInfoJson(QJsonObject* infoJson) const;
+
+            public:
                 int duration;
-
-            protected:
-                void fillInfoJson(QJsonObject* infoJson) const override;
         };
 
         /**
@@ -159,7 +162,8 @@ namespace QMatrixClient
          *   - mimeType
          *   - imageSize
          */
-        using VideoContent = UrlWith<Thumbnailed<ImageInfo<PlayableInfo>>>;
+        using VideoContent =
+            UrlBasedContent<ImageInfo, WithThumbnail, WithDuration>;
 
         /**
          * Content class for m.audio
@@ -173,6 +177,6 @@ namespace QMatrixClient
          *   - mimeType ("mimetype" in JSON)
          *   - duration
          */
-        using AudioContent = UrlWith<PlayableInfo>;
+        using AudioContent = UrlBasedContent<FileInfo, WithDuration>;
     }  // namespace EventContent
 }  // namespace QMatrixClient
