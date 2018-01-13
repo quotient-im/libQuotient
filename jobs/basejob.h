@@ -46,7 +46,7 @@ namespace QMatrixClient
     class BaseJob: public QObject
     {
             Q_OBJECT
-            Q_PROPERTY(size_t maxRetries READ maxRetries WRITE setMaxRetries)
+            Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
         public:
             /* Just in case, the values are compatible with KJob
              * (which BaseJob used to inherit from). */
@@ -116,8 +116,8 @@ namespace QMatrixClient
             int error() const;
             virtual QString errorString() const;
 
-            size_t maxRetries() const;
-            void setMaxRetries(size_t newMaxRetries);
+            int maxRetries() const;
+            void setMaxRetries(int newMaxRetries);
 
             Q_INVOKABLE duration_t getCurrentTimeout() const;
             Q_INVOKABLE duration_t getNextRetryInterval() const;
