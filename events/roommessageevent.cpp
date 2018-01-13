@@ -116,6 +116,11 @@ QMimeType RoomMessageEvent::mimeType() const
                       QMimeDatabase().mimeTypeForName("text/plain");
 }
 
+bool RoomMessageEvent::hasFileContent() const
+{
+    return content() && content()->fileInfo();
+}
+
 QJsonObject RoomMessageEvent::toJson() const
 {
     QJsonObject obj = _content ? _content->toJson() : QJsonObject();
@@ -153,43 +158,35 @@ void TextContent::fillJson(QJsonObject* json) const
     json->insert("formatted_body", body);
 }
 
-LocationContent::LocationContent(const QString& geoUri,
-                                 const ImageInfo<>& thumbnail)
-    : Thumbnailed<>(thumbnail), geoUri(geoUri)
+LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
+    : WithThumbnail(thumbnail), geoUri(geoUri)
 { }
 
 LocationContent::LocationContent(const QJsonObject& json)
-    : Thumbnailed<>(json["info"].toObject())
+    : TypedBase(json)
+    , WithThumbnail(json["info"].toObject())
     , geoUri(json["geo_uri"].toString())
 { }
-
-void LocationContent::fillJson(QJsonObject* o) const
-{
-    Q_ASSERT(o);
-    o->insert("geo_uri", geoUri);
-    o->insert("info", Thumbnailed::toInfoJson());
-}
 
 QMimeType LocationContent::type() const
 {
     return QMimeDatabase().mimeTypeForData(geoUri.toLatin1());
 }
 
-PlayableInfo::PlayableInfo(const QUrl& u, int fileSize,
-                           const QMimeType& mimeType, int duration,
-                           const QString& originalFilename)
-    : FileInfo(u, fileSize, mimeType, originalFilename)
-    , duration(duration)
-{ }
-
-PlayableInfo::PlayableInfo(const QUrl& u, const QJsonObject& infoJson,
-                           const QString& originalFilename)
-    : FileInfo(u, infoJson, originalFilename)
-    , duration(infoJson["duration"].toInt())
-{ }
-
-void PlayableInfo::fillInfoJson(QJsonObject* infoJson) const
+void LocationContent::fillJson(QJsonObject* o) const
 {
-    FileInfo::fillInfoJson(infoJson);
+    Q_ASSERT(o);
+    o->insert("geo_uri", geoUri);
+    QJsonObject infoJson;
+    WithThumbnail::fillInfoJson(&infoJson);
+    o->insert("info", infoJson);
+}
+
+WithDuration::WithDuration(const QJsonObject& infoJson)
+    : duration(infoJson["duration"].toInt())
+{ }
+
+void WithDuration::fillInfoJson(QJsonObject* infoJson) const
+{
     infoJson->insert("duration", duration);
 }
