@@ -70,6 +70,30 @@ namespace QMatrixClient
         return d;
     }
 
+    class FileTransferInfo
+    {
+            Q_GADGET
+            Q_PROPERTY(bool active READ active CONSTANT)
+            Q_PROPERTY(bool completed READ completed CONSTANT)
+            Q_PROPERTY(bool failed READ failed CONSTANT)
+            Q_PROPERTY(int progress MEMBER progress CONSTANT)
+            Q_PROPERTY(int total MEMBER total CONSTANT)
+            Q_PROPERTY(QUrl localDir MEMBER localDir CONSTANT)
+            Q_PROPERTY(QUrl localPath MEMBER localPath CONSTANT)
+        public:
+            enum Status { None, Started, Completed, Failed };
+            Status status = None;
+            int progress = 0;
+            int total = -1;
+            QUrl localDir { };
+            QUrl localPath { };
+
+            bool active() const
+            { return status == Started || status == Completed; }
+            bool completed() const { return status == Completed; }
+            bool failed() const { return status == Failed; }
+    };
+
     class Room: public QObject
     {
             Q_OBJECT
@@ -166,6 +190,8 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+
             MemberSorter memberSorter() const;
 
             QJsonObject toJson() const;
@@ -190,6 +216,13 @@ namespace QMatrixClient
             void unban(const QString& userId);
             void redactEvent(const QString& eventId,
                              const QString& reason = {});
+
+            void uploadFile(const QString& id, const QUrl& localFilename,
+                            const QString& overrideContentType = {});
+            // If localFilename is empty a temporary file is created
+            void downloadFile(const QString& eventId,
+                              const QUrl& localFilename = {});
+            void cancelFileTransfer(const QString& id);
 
             /** Mark all messages in the room as read */
             void markAllMessagesAsRead();
@@ -219,8 +252,15 @@ namespace QMatrixClient
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
+
             void replacedEvent(const RoomEvent* newEvent,
                                const RoomEvent* oldEvent);
+
+            void newFileTransfer(QString id, QUrl localFile);
+            void fileTransferProgress(QString id, qint64 progress, qint64 total);
+            void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
+            void fileTransferFailed(QString id, QString errorMessage = {});
+            void fileTransferCancelled(QString id);
 
         protected:
             virtual void processStateEvents(const RoomEvents& events);
@@ -253,3 +293,4 @@ namespace QMatrixClient
             const Room* room;
     };
 }  // namespace QMatrixClient
+Q_DECLARE_METATYPE(QMatrixClient::FileTransferInfo)
