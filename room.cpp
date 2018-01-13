@@ -33,6 +33,7 @@
 #include "events/redactionevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
+#include "jobs/downloadfilejob.h"
 #include "avatar.h"
 #include "connection.h"
 #include "user.h"
@@ -40,9 +41,12 @@
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QPointer>
+#include <QtCore/QDir>
 
 #include <array>
 #include <functional>
+#include <cmath>
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
@@ -89,6 +93,37 @@ class Room::Private
         QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
         RoomMessagesJob* roomMessagesJob;
+
+        struct FileTransferPrivateInfo
+        {
+            QPointer<BaseJob> job = nullptr;
+            QFileInfo localFileInfo { };
+            FileTransferInfo::Status status = FileTransferInfo::Started;
+            qint64 progress = 0;
+            qint64 total = -1;
+
+            void update(qint64 p, qint64 t)
+            {
+                progress = p; total = t;
+                if (t == 0)
+                {
+                    t = -1;
+                    if (p == 0)
+                        p = -1;
+                }
+            }
+        };
+        void failedTransfer(const QString& tid, const QString& errorMessage = {})
+        {
+            qCWarning(MAIN) << "File transfer failed for id" << tid;
+            if (!errorMessage.isEmpty())
+                qCWarning(MAIN) << "Message:" << errorMessage;
+            fileTransfers[tid].status = FileTransferInfo::Failed;
+            emit q->fileTransferFailed(tid, errorMessage);
+        }
+        // A map from event/txn ids to information about the long operation;
+        // used for both download and upload operations
+        QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
         // Convenience methods to work with the membersMap and usersLeft.
         // addMember() and removeMember() emit respective Room:: signals
@@ -413,6 +448,30 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+FileTransferInfo Room::fileTransferInfo(const QString& id) const
+{
+    auto infoIt = d->fileTransfers.find(id);
+    if (infoIt == d->fileTransfers.end())
+        return {};
+
+    // FIXME: Add lib tests to make sure FileTransferInfo::status stays
+    // consistent with FileTransferInfo::job
+
+    qint64 progress = infoIt->progress;
+    qint64 total = infoIt->total;
+    if (total > INT_MAX)
+    {
+        // JavaScript doesn't deal with 64-bit integers; scale down if necessary
+        progress = std::llround(double(progress) / total * INT_MAX);
+        total = INT_MAX;
+    }
+
+    return { infoIt->status, int(progress), int(total),
+        QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
+        QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
+    };
+}
+
 QList< User* > Room::usersTyping() const
 {
     return d->usersTyping;
@@ -711,6 +770,94 @@ void Room::redactEvent(const QString& eventId, const QString& reason)
 {
     connection()->callApi<RedactEventJob>(
         id(), eventId, connection()->generateTxnId(), reason);
+}
+
+void Room::uploadFile(const QString& id, const QUrl& localFilename,
+                      const QString& overrideContentType)
+{
+    Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
+               "localFilename should point at a local file");
+    auto fileName = localFilename.toLocalFile();
+    auto job = connection()->uploadFile(fileName, overrideContentType);
+    if (isJobRunning(job))
+    {
+        d->fileTransfers.insert(id, { job, fileName });
+        connect(job, &BaseJob::uploadProgress, this,
+                [this,id] (qint64 sent, qint64 total) {
+                    d->fileTransfers[id].update(sent, total);
+                    emit fileTransferProgress(id, sent, total);
+                });
+        connect(job, &BaseJob::success, this, [this,id,localFilename,job] {
+                d->fileTransfers[id].status = FileTransferInfo::Completed;
+                emit fileTransferCompleted(id, localFilename, job->contentUri());
+            });
+        connect(job, &BaseJob::failure, this,
+                std::bind(&Private::failedTransfer, d, id, job->errorString()));
+        emit newFileTransfer(id, localFilename);
+    } else
+        d->failedTransfer(id);
+}
+
+void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
+{
+    Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
+               __FUNCTION__, "localFilename should point at a local file");
+    auto evtIt = findInTimeline(eventId);
+    if (evtIt == timelineEdge() ||
+            evtIt->event()->type() != EventType::RoomMessage)
+    {
+        qCritical() << "Cannot download a file from event" << eventId
+                    << "(there's no such message event in the local timeline)";
+        Q_ASSERT(false);
+        return;
+    }
+    auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
+    if (!event->hasFileContent())
+    {
+        qCritical() << eventId << "has no file content; nothing to download";
+        Q_ASSERT(false);
+        return;
+    }
+    auto* fileInfo = event->content()->fileInfo();
+    auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
+        !fileInfo->originalName.isEmpty() ?
+            (QDir::tempPath() + '/' + fileInfo->originalName) :
+        !event->plainBody().isEmpty() ?
+            (QDir::tempPath() + '/' + event->plainBody()) : QString();
+    auto job = connection()->downloadFile(fileInfo->url, fileName);
+    if (isJobRunning(job))
+    {
+        d->fileTransfers.insert(eventId, { job, job->targetFileName() });
+        connect(job, &BaseJob::downloadProgress, this,
+            [this,eventId] (qint64 received, qint64 total) {
+                d->fileTransfers[eventId].update(received, total);
+                emit fileTransferProgress(eventId, received, total);
+            });
+        connect(job, &BaseJob::success, this, [this,eventId,fileInfo,job] {
+                d->fileTransfers[eventId].status = FileTransferInfo::Completed;
+                emit fileTransferCompleted(eventId, fileInfo->url,
+                        QUrl::fromLocalFile(job->targetFileName()));
+            });
+        connect(job, &BaseJob::failure, this,
+                std::bind(&Private::failedTransfer, d,
+                          eventId, job->errorString()));
+    } else
+        d->failedTransfer(eventId);
+}
+
+void Room::cancelFileTransfer(const QString& id)
+{
+    auto it = d->fileTransfers.find(id);
+    if (it == d->fileTransfers.end())
+    {
+        qCWarning(MAIN) << "No information on file transfer" << id
+                        << "in room" << d->id;
+        return;
+    }
+    if (isJobRunning(it->job))
+        it->job->abandon();
+    d->fileTransfers.remove(id);
+    emit fileTransferCancelled(id);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents* events) const
