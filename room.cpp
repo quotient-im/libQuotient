@@ -510,7 +510,7 @@ void Room::Private::addMember(User *u)
     {
         insertMemberIntoMap(u);
         connect(u, &User::nameChanged, q,
-                bind(&Private::renameMember, this, _1, _2));
+                std::bind(&Private::renameMember, this, u, _2));
         emit q->userAdded(u);
     }
 }
