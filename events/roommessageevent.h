@@ -112,7 +112,7 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize
          */
-        class LocationContent: public TypedBase, public WithThumbnail
+        class LocationContent: public TypedBase
         {
             public:
                 LocationContent(const QString& geoUri,
@@ -123,21 +123,32 @@ namespace QMatrixClient
 
             public:
                 QString geoUri;
+                Thumbnail thumbnail;
 
             protected:
                 void fillJson(QJsonObject* o) const override;
         };
 
         /**
-         * A mixin class for info types that include duration: audio and video
+         * A base class for info types that include duration: audio and video
          */
-        class WithDuration
+        template <typename ContentT>
+        class PlayableContent : public ContentT
         {
             public:
-                explicit WithDuration(int duration) : duration(duration) { }
-                WithDuration(const QJsonObject& infoJson);
+                PlayableContent(const QJsonObject& json)
+                    : ContentT(json)
+                    , duration(ContentT::originalInfoJson["duration"].toInt())
+                { }
 
-                void fillInfoJson(QJsonObject* infoJson) const;
+            protected:
+                void fillJson(QJsonObject* json) const override
+                {
+                    ContentT::fillJson(json);
+                    auto infoJson = json->take("info").toObject();
+                    infoJson.insert("duration", duration);
+                    json->insert("info", infoJson);
+                }
 
             public:
                 int duration;
@@ -162,8 +173,7 @@ namespace QMatrixClient
          *   - mimeType
          *   - imageSize
          */
-        using VideoContent =
-            UrlBasedContent<ImageInfo, WithThumbnail, WithDuration>;
+        using VideoContent = PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
 
         /**
          * Content class for m.audio
@@ -177,6 +187,6 @@ namespace QMatrixClient
          *   - mimeType ("mimetype" in JSON)
          *   - duration
          */
-        using AudioContent = UrlBasedContent<FileInfo, WithDuration>;
+        using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
     }  // namespace EventContent
 }  // namespace QMatrixClient

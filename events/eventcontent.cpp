@@ -74,15 +74,13 @@ void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
     infoJson->insert("h", imageSize.height());
 }
 
-WithThumbnail::WithThumbnail(const QJsonObject& infoJson)
-    : thumbnail(infoJson["thumbnail_url"].toString(),
-      infoJson["thumbnail_info"].toObject())
+Thumbnail::Thumbnail(const QJsonObject& infoJson)
+    : ImageInfo(infoJson["thumbnail_url"].toString(),
+                infoJson["thumbnail_info"].toObject())
 { }
 
-void WithThumbnail::fillInfoJson(QJsonObject* infoJson) const
+void Thumbnail::fillInfoJson(QJsonObject* infoJson) const
 {
-    infoJson->insert("thumbnail_url", thumbnail.url.toString());
-    QJsonObject thumbnailInfoJson;
-    thumbnail.fillInfoJson(&thumbnailInfoJson);
-    infoJson->insert("thumbnail_info", thumbnailInfoJson);
+    infoJson->insert("thumbnail_url", url.toString());
+    infoJson->insert("thumbnail_info", toInfoJson<ImageInfo>(*this));
 }
