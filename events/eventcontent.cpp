@@ -44,7 +44,6 @@ FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
     , payloadSize(infoJson["size"].toInt())
     , originalName(originalFilename)
 {
-    originalInfoJson.insert("mediaId", url.authority() + url.path());
     if (!mimeType.isValid())
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
 }

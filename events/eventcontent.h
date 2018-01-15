@@ -223,7 +223,10 @@ namespace QMatrixClient
                     : TypedBase(json)
                     , InfoT(json["url"].toString(), json["info"].toObject(),
                             json["filename"].toString())
-                { }
+                {
+                    // A small hack to facilitate links creation in QML.
+                    originalJson.insert("mediaId", InfoT::mediaId());
+                }
 
                 QMimeType type() const override { return InfoT::mimeType; }
                 const FileInfo* fileInfo() const override { return this; }
