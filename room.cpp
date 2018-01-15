@@ -96,6 +96,12 @@ class Room::Private
 
         struct FileTransferPrivateInfo
         {
+#if defined(_MSC_VER) && _MSC_VER < 1910
+            FileTransferPrivateInfo() = default;
+            FileTransferPrivateInfo(BaseJob* j, QString fileName)
+                : job(j), localFileInfo(fileName)
+            { }
+#endif
             QPointer<BaseJob> job = nullptr;
             QFileInfo localFileInfo { };
             FileTransferInfo::Status status = FileTransferInfo::Started;
@@ -466,10 +472,22 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
+#if defined(_MSC_VER) && _MSC_VER < 1910
+    // A workaround for MSVC 2015 that fails with "error C2440: 'return':
+    // cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
+    FileTransferInfo fti;
+    fti.status = infoIt->status;
+    fti.progress = int(progress);
+    fti.total = int(total);
+    fti.localDir = QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath());
+    fti.localPath = QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
+    return fti;
+#else
     return { infoIt->status, int(progress), int(total),
         QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
         QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
     };
+#endif
 }
 
 QList< User* > Room::usersTyping() const
