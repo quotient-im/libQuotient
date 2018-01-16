@@ -247,10 +247,14 @@ namespace QMatrixClient
         {
             public:
                 // TODO: POD constructor
-                UrlWithThumbnailContent(const QJsonObject& json)
+                explicit UrlWithThumbnailContent(const QJsonObject& json)
                     : UrlBasedContent<InfoT>(json)
                     , thumbnail(InfoT::originalInfoJson)
-                { }
+                {
+                    // Another small hack, to simplify making a thumbnail link
+                    UrlBasedContent<InfoT>::originalJson.insert(
+                                "thumbnailMediaId", thumbnail.mediaId());
+                }
 
             public:
                 Thumbnail thumbnail;
