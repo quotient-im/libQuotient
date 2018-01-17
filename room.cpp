@@ -110,13 +110,13 @@ class Room::Private
 
             void update(qint64 p, qint64 t)
             {
-                progress = p; total = t;
                 if (t == 0)
                 {
                     t = -1;
                     if (p == 0)
                         p = -1;
                 }
+                progress = p; total = t;
             }
         };
         void failedTransfer(const QString& tid, const QString& errorMessage = {})
