@@ -744,17 +744,13 @@ void Room::getPreviousContent(int limit)
 
 void Room::Private::getPreviousContent(int limit)
 {
-    if( !roomMessagesJob )
+    if( !isJobRunning(roomMessagesJob) )
     {
         roomMessagesJob =
                 connection->callApi<RoomMessagesJob>(id, prevBatch, limit);
-        connect( roomMessagesJob, &RoomMessagesJob::result, [=] {
-            if( !roomMessagesJob->error() )
-            {
-                addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
-                prevBatch = roomMessagesJob->end();
-            }
-            roomMessagesJob = nullptr;
+        connect( roomMessagesJob, &RoomMessagesJob::success, [=] {
+            prevBatch = roomMessagesJob->end();
+            addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
         });
     }
 }
