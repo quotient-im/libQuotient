@@ -43,6 +43,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
+#include <QtCore/QRegularExpression>
 
 #include <array>
 #include <functional>
@@ -488,6 +489,48 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
     };
 #endif
+}
+
+static const auto RegExpOptions =
+    QRegularExpression::CaseInsensitiveOption
+    | QRegularExpression::OptimizeOnFirstUsageOption
+    | QRegularExpression::UseUnicodePropertiesOption;
+
+// regexp is originally taken from Konsole (https://github.com/KDE/konsole)
+// full url:
+// protocolname:// or www. followed by anything other than whitespaces,
+// <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
+// comma or dot
+// Note: outer parentheses are a part of C++ raw string delimiters, not of
+// the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
+static const QRegularExpression FullUrlRegExp(QStringLiteral(
+        R"(((www\.(?!\.)|[a-z][a-z0-9+.-]*://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
+    ), RegExpOptions);
+// email address:
+// [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
+static const QRegularExpression EmailAddressRegExp(QStringLiteral(
+        R"((mailto:)?(\b(\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
+    ), RegExpOptions);
+
+/** Converts all that looks like a URL into HTML links */
+static void linkifyUrls(QString& htmlEscapedText)
+{
+    // NOTE: htmlEscapedText is already HTML-escaped (no literal <,>,&)!
+
+    htmlEscapedText.replace(EmailAddressRegExp,
+                 QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
+    htmlEscapedText.replace(FullUrlRegExp,
+                 QStringLiteral(R"(<a href="\1">\1</a>")"));
+}
+
+QString Room::prettyPrint(const QString& plainText) const
+{
+    auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
+            plainText.toHtmlEscaped() + QStringLiteral("</span>");
+    pt.replace('\n', "<br/>");
+
+    linkifyUrls(pt);
+    return pt;
 }
 
 QList< User* > Room::usersTyping() const

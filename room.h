@@ -192,6 +192,11 @@ namespace QMatrixClient
 
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
 
+            /** Pretty-prints plain text into HTML
+             * This includes HTML escaping of <,>,",& and URLs linkification.
+             */
+            QString prettyPrint(const QString& plainText) const;
+
             MemberSorter memberSorter() const;
 
             QJsonObject toJson() const;
