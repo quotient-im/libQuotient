@@ -837,11 +837,14 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         return;
     }
     auto* fileInfo = event->content()->fileInfo();
+    auto safeTempPrefix = eventId;
+    safeTempPrefix.replace(':', '_');
+    safeTempPrefix = QDir::tempPath() + '/' + safeTempPrefix + '#';
     auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
         !fileInfo->originalName.isEmpty() ?
-            (QDir::tempPath() + '/' + fileInfo->originalName) :
+            (safeTempPrefix + fileInfo->originalName) :
         !event->plainBody().isEmpty() ?
-            (QDir::tempPath() + '/' + event->plainBody()) : QString();
+            (safeTempPrefix + event->plainBody()) : QString();
     auto job = connection()->downloadFile(fileInfo->url, fileName);
     if (isJobRunning(job))
     {
