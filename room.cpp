@@ -63,7 +63,7 @@ class Room::Private
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
             , avatar(c), joinState(initialJoinState), unreadMessages(false)
-            , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
+            , highlightCount(0), notificationCount(0)
         { }
 
         Room* q;
@@ -92,7 +92,7 @@ class Room::Private
         QList<User*> membersLeft;
         QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
-        RoomMessagesJob* roomMessagesJob;
+        QPointer<RoomMessagesJob> roomMessagesJob;
 
         struct FileTransferPrivateInfo
         {
