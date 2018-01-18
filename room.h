@@ -105,6 +105,13 @@ namespace QMatrixClient
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
+            Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
+            Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
+
+            Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY displayedChanged)
+            Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventIdChanged)
+
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
             using Timeline = std::deque<TimelineItem>;
@@ -127,9 +134,9 @@ namespace QMatrixClient
             QList<User*> membersLeft() const;
 
             Q_INVOKABLE QList<User*> users() const;
-            Q_INVOKABLE QStringList memberNames() const;
-            Q_INVOKABLE int memberCount() const;
-            Q_INVOKABLE int timelineSize() const;
+            QStringList memberNames() const;
+            int memberCount() const;
+            int timelineSize() const;
 
             /**
              * Returns a square room avatar with the given size and requests it
@@ -170,6 +177,11 @@ namespace QMatrixClient
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
             rev_iter_t findInTimeline(const QString& evtId) const;
 
+            bool displayed() const;
+            void setDisplayed(bool displayed = true);
+            QString lastDisplayedEventId() const;
+            void setLastDisplayedEventId(const QString& eventId);
+            void setLastDisplayedEvent(TimelineItem::index_t index);
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
             QString readMarkerEventId() const;
@@ -250,10 +262,16 @@ namespace QMatrixClient
             void userAdded(User* user);
             void userRemoved(User* user);
             void memberRenamed(User* user);
+            void memberListChanged();
+
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
+
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
+
+            void displayedChanged(bool displayed);
+            void lastDisplayedEventIdChanged();
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);

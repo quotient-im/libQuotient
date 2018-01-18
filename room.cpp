@@ -63,8 +63,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , avatar(c), joinState(initialJoinState), unreadMessages(false)
-            , highlightCount(0), notificationCount(0)
+            , avatar(c), joinState(initialJoinState)
         { }
 
         Room* q;
@@ -85,12 +84,14 @@ class Room::Private
         QString topic;
         Avatar avatar;
         JoinState joinState;
-        bool unreadMessages;
-        int highlightCount;
-        int notificationCount;
+        int highlightCount = 0;
+        int notificationCount = 0;
         members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
+        bool unreadMessages = false;
+        bool displayed = false;
+        QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
@@ -214,6 +215,9 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
+    connect(this, &Room::userAdded, this, &Room::memberListChanged);
+    connect(this, &Room::userRemoved, this, &Room::memberListChanged);
+    connect(this, &Room::memberRenamed, this, &Room::memberListChanged);
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -411,6 +415,45 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     if (!d->timeline.empty() && d->eventsIndex.contains(evtId))
         return findInTimeline(d->eventsIndex.value(evtId));
     return timelineEdge();
+}
+
+bool Room::displayed() const
+{
+    return d->displayed;
+}
+
+void Room::setDisplayed(bool displayed)
+{
+    if (d->displayed == displayed)
+        return;
+
+    d->displayed = displayed;
+    emit displayedChanged(displayed);
+    if( displayed )
+    {
+        resetHighlightCount();
+        resetNotificationCount();
+    }
+}
+
+QString Room::lastDisplayedEventId() const
+{
+    return d->lastDisplayedEventId;
+}
+
+void Room::setLastDisplayedEventId(const QString& eventId)
+{
+    if (d->lastDisplayedEventId == eventId)
+        return;
+
+    d->lastDisplayedEventId = eventId;
+    emit lastDisplayedEventIdChanged();
+}
+
+void Room::setLastDisplayedEvent(TimelineItem::index_t index)
+{
+    Q_ASSERT(isValidIndex(index));
+    setLastDisplayedEventId(findInTimeline(index)->event()->id());
 }
 
 Room::rev_iter_t Room::readMarker(const User* user) const
