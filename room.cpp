@@ -563,7 +563,7 @@ static void linkifyUrls(QString& htmlEscapedText)
     htmlEscapedText.replace(EmailAddressRegExp,
                  QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
     htmlEscapedText.replace(FullUrlRegExp,
-                 QStringLiteral(R"(<a href="\1">\1</a>")"));
+                 QStringLiteral(R"(<a href="\1">\1</a>)"));
 }
 
 QString Room::prettyPrint(const QString& plainText) const
