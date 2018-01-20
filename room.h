@@ -110,7 +110,8 @@ namespace QMatrixClient
             Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
 
             Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY displayedChanged)
-            Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventIdChanged)
+            Q_PROPERTY(QString firstDisplayedEventId READ firstDisplayedEventId WRITE setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
+            Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
 
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
@@ -179,9 +180,15 @@ namespace QMatrixClient
 
             bool displayed() const;
             void setDisplayed(bool displayed = true);
+            QString firstDisplayedEventId() const;
+            rev_iter_t firstDisplayedMarker() const;
+            void setFirstDisplayedEventId(const QString& eventId);
+            void setFirstDisplayedEvent(TimelineItem::index_t index);
             QString lastDisplayedEventId() const;
+            rev_iter_t lastDisplayedMarker() const;
             void setLastDisplayedEventId(const QString& eventId);
             void setLastDisplayedEvent(TimelineItem::index_t index);
+
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
             QString readMarkerEventId() const;
@@ -271,7 +278,8 @@ namespace QMatrixClient
             void notificationCountChanged(Room* room);
 
             void displayedChanged(bool displayed);
-            void lastDisplayedEventIdChanged();
+            void firstDisplayedEventChanged();
+            void lastDisplayedEventChanged();
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);

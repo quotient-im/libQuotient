@@ -91,6 +91,7 @@ class Room::Private
         QList<User*> membersLeft;
         bool unreadMessages = false;
         bool displayed = false;
+        QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
@@ -436,9 +437,39 @@ void Room::setDisplayed(bool displayed)
     }
 }
 
+QString Room::firstDisplayedEventId() const
+{
+    return d->firstDisplayedEventId;
+}
+
+Room::rev_iter_t Room::firstDisplayedMarker() const
+{
+    return findInTimeline(firstDisplayedEventId());
+}
+
+void Room::setFirstDisplayedEventId(const QString& eventId)
+{
+    if (d->firstDisplayedEventId == eventId)
+        return;
+
+    d->firstDisplayedEventId = eventId;
+    emit firstDisplayedEventChanged();
+}
+
+void Room::setFirstDisplayedEvent(TimelineItem::index_t index)
+{
+    Q_ASSERT(isValidIndex(index));
+    setFirstDisplayedEventId(findInTimeline(index)->event()->id());
+}
+
 QString Room::lastDisplayedEventId() const
 {
     return d->lastDisplayedEventId;
+}
+
+Room::rev_iter_t Room::lastDisplayedMarker() const
+{
+    return findInTimeline(lastDisplayedEventId());
 }
 
 void Room::setLastDisplayedEventId(const QString& eventId)
@@ -447,7 +478,7 @@ void Room::setLastDisplayedEventId(const QString& eventId)
         return;
 
     d->lastDisplayedEventId = eventId;
-    emit lastDisplayedEventIdChanged();
+    emit lastDisplayedEventChanged();
 }
 
 void Room::setLastDisplayedEvent(TimelineItem::index_t index)
