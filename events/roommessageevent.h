@@ -59,6 +59,7 @@ namespace QMatrixClient
             EventContent::TypedBase* content() const
                                              { return _content.data(); }
             QMimeType mimeType() const;
+            bool hasTextContent() const;
             bool hasFileContent() const;
 
             QJsonObject toJson() const;

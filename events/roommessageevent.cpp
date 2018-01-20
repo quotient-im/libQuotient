@@ -116,6 +116,13 @@ QMimeType RoomMessageEvent::mimeType() const
                       QMimeDatabase().mimeTypeForName("text/plain");
 }
 
+bool RoomMessageEvent::hasTextContent() const
+{
+    return content() &&
+        (msgtype() == MsgType::Text || msgtype() == MsgType::Emote ||
+         msgtype() == MsgType::Notice); // FIXME: Unbind from specific msgtypes
+}
+
 bool RoomMessageEvent::hasFileContent() const
 {
     return content() && content()->fileInfo();
