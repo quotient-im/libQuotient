@@ -1141,8 +1141,8 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         processRedaction(move(r));
     if (insertedSize > 0)
     {
-        checkUnreadMessages(timeline.cend() - insertedSize);
         emit q->addedMessages();
+        checkUnreadMessages(timeline.cend() - insertedSize);
     }
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
