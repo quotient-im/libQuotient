@@ -302,7 +302,10 @@ void Room::setJoinState(JoinState state)
 
 void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 {
-    lastReadEventIds.insert(u, eventId);
+    auto& storedId = lastReadEventIds[u];
+    if (storedId == eventId)
+        return;
+    storedId = eventId;
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
         emit q->readMarkerMoved();
@@ -1151,7 +1154,7 @@ void Room::Private::checkUnreadMessages(timeline_iter_t from)
     const auto newUnreadMessages = count_if(from, timeline.cend(),
             std::bind(&Room::Private::isEventNotable, this, _1));
 
-    // The first event in the just-added batch (referred to by upTo.base())
+    // The first event in the just-added batch (referred to by `from`)
     // defines whose read marker can possibly be promoted any further over
     // the same author's events newly arrived. Others will need explicit
     // read receipts from the server (or, for the local user,
