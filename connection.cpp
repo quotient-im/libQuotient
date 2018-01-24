@@ -150,7 +150,7 @@ void Connection::connectToServer(const QString& user, const QString& password,
                                  const QString& deviceId)
 {
     checkAndConnect(user,
-        [&] {
+        [=] {
             doConnectToServer(user, password, initialDeviceName, deviceId);
         });
 }
@@ -177,7 +177,7 @@ void Connection::connectWithToken(const QString& userId,
                                   const QString& deviceId)
 {
     checkAndConnect(userId,
-        [&] { d->connectWithToken(userId, accessToken, deviceId); });
+        [=] { d->connectWithToken(userId, accessToken, deviceId); });
 }
 
 void Connection::Private::connectWithToken(const QString& user,
