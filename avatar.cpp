@@ -115,7 +115,7 @@ bool Avatar::updateUrl(const QUrl& newUrl)
 
     // FIXME: Make it a library-wide constant and maybe even make the URL checker
     // a Connection(?) method.
-    if (newUrl.scheme() != "mxc://"  || newUrl.path().count('/') != 2)
+    if (newUrl.scheme() != "mxc"  || newUrl.path().count('/') != 1)
     {
         qCWarning(MAIN) << "Malformed avatar URL:" << newUrl.toDisplayString();
         return false;
