@@ -59,6 +59,7 @@ class Connection::Private
         // separately so we should, e.g., keep objects for Invite and
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
+        QVector<QString> justForgottenRoomIds;
         QHash<QString, User*> userMap;
         QString userId;
 
@@ -383,16 +384,17 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (room && room->joinState() != JoinState::Leave)
     {
         auto leaveJob = room->leaveRoom();
-        connect(leaveJob, &BaseJob::success,
-                this, [this, forgetJob] { forgetJob->start(connectionData()); });
+        connect(leaveJob, &BaseJob::success, this, [this, forgetJob, id] {
+            forgetJob->start(connectionData());
+            d->justForgottenRoomIds.push_back(id);
+        });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
         forgetJob->start(connectionData());
     connect(forgetJob, &BaseJob::success, this, [this, id]
     {
-        // If the room happens to be in the map (possible in both forms),
-        // delete the found object(s).
+        // If the room is in the map (possibly in both forms), delete all forms.
         for (auto f: {false, true})
             if (auto r = d->roomMap.take({ id, f }))
             {
@@ -479,11 +481,7 @@ const ConnectionData* Connection::connectionData() const
 Room* Connection::provideRoom(const QString& id, JoinState joinState)
 {
     // TODO: This whole function is a strong case for a RoomManager class.
-    if (id.isEmpty())
-    {
-        qCDebug(MAIN) << "Connection::provideRoom() with empty id, doing nothing";
-        return nullptr;
-    }
+    Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
