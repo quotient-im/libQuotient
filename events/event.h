@@ -256,6 +256,21 @@ namespace QMatrixClient
     };
 
     template <typename ContentT>
+    struct Prev
+    {
+        template <typename... ContentParamTs>
+        explicit Prev(const QJsonObject& unsignedJson,
+                      ContentParamTs&&... contentParams)
+            : senderId(unsignedJson.value("prev_sender").toString())
+            , content(unsignedJson.value("prev_content").toObject(),
+                       std::forward<ContentParamTs>(contentParams)...)
+        { }
+
+        QString senderId;
+        ContentT content;
+    };
+
+    template <typename ContentT>
     class StateEvent: public StateEventBase
     {
         public:
@@ -270,9 +285,8 @@ namespace QMatrixClient
             {
                 auto unsignedData = obj.value("unsigned").toObject();
                 if (unsignedData.contains("prev_content"))
-                    _prev.reset(new ContentT(
-                            unsignedData.value("prev_content").toObject(),
-                            std::forward<ContentParamTs>(contentParams)...));
+                    _prev = std::make_unique<Prev<ContentT>>(unsignedData,
+                        std::forward<ContentParamTs>(contentParams)...);
             }
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, ContentParamTs&&... contentParams)
@@ -283,11 +297,15 @@ namespace QMatrixClient
             QJsonObject toJson() const { return _content.toJson(); }
 
             ContentT content() const { return _content; }
-            ContentT* prev_content() const { return _prev.data(); }
+            /** @deprecated Use prevContent instead */
+            ContentT* prev_content() const { return prevContent(); }
+            ContentT* prevContent() const
+            { return _prev ? &_prev->content : nullptr; }
+            QString prevSenderId() const { return _prev ? _prev->senderId : ""; }
 
         protected:
             ContentT _content;
-            QScopedPointer<ContentT> _prev;
+            std::unique_ptr<Prev<ContentT>> _prev;
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Event*)
