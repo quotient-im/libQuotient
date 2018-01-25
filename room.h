@@ -40,7 +40,6 @@ namespace QMatrixClient
     class MemberSorter;
     class LeaveRoomJob;
     class RedactEventJob;
-    class Room;
 
     class TimelineItem
     {
@@ -162,7 +161,7 @@ namespace QMatrixClient
              * @brief Produces a disambiguated name for a given user in
              * the context of the room
              */
-            Q_INVOKABLE QString roomMembername(User* u) const;
+            Q_INVOKABLE QString roomMembername(const User* u) const;
             /**
              * @brief Produces a disambiguated name for a user with this id in
              * the context of the room

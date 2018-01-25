@@ -58,7 +58,7 @@ namespace QMatrixClient
             */
             QString bridged() const;
 
-            const Avatar& avatarObject();
+            const Avatar& avatarObject() const;
             Q_INVOKABLE QImage avatar(int dimension);
             Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight);
 
