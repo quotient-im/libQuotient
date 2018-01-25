@@ -262,6 +262,11 @@ QString Room::topic() const
     return d->topic;
 }
 
+QUrl Room::avatarUrl() const
+{
+    return d->avatar.url();
+}
+
 QImage Room::avatar(int dimension)
 {
     return avatar(dimension, dimension);

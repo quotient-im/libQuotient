@@ -33,6 +33,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString name READ name NOTIFY nameChanged)
             Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString bridgeName READ bridged NOTIFY nameChanged STORED false)
+            Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
         public:
             User(QString userId, Connection* connection);
             ~User() override;
@@ -61,7 +62,7 @@ namespace QMatrixClient
             Q_INVOKABLE QImage avatar(int dimension);
             Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight);
 
-            Q_INVOKABLE QUrl avatarUrl() const;
+            QUrl avatarUrl() const;
 
             void processEvent(Event* event);
 
