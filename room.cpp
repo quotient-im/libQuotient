@@ -1467,7 +1467,9 @@ QJsonObject Room::Private::toJson() const
         QJsonObject roomStateObj;
         roomStateObj.insert("events", stateEvents);
 
-        result.insert("state", roomStateObj);
+        result.insert(
+            joinState == JoinState::Invite ? "invite_state" : "state",
+            roomStateObj);
     }
 
     if (!q->readMarkerEventId().isEmpty())
