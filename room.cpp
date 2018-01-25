@@ -213,6 +213,7 @@ RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
+    setObjectName(id);
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
@@ -262,6 +263,16 @@ QString Room::topic() const
     return d->topic;
 }
 
+QString Room::avatarMediaId() const
+{
+    return d->avatar.mediaId();
+}
+
+QUrl Room::avatarUrl() const
+{
+    return d->avatar.url();
+}
+
 QImage Room::avatar(int dimension)
 {
     return avatar(dimension, dimension);
@@ -278,8 +289,8 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return theOtherOneIt.value()->avatarObject()
-                .get(width, height, [=] { emit avatarChanged(); });
+        return (*theOtherOneIt)->avatarObject()
+                    .get(width, height, [=] { emit avatarChanged(); });
     }
     return {};
 }
@@ -752,7 +763,7 @@ void Room::Private::removeMember(User* u)
     }
 }
 
-QString Room::roomMembername(User *u) const
+QString Room::roomMembername(const User* u) const
 {
     // See the CS spec, section 11.2.2.3
 
@@ -1234,6 +1245,7 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::RoomCanonicalAlias: {
                 auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
                 d->canonicalAlias = aliasEvent->alias();
+                setObjectName(d->canonicalAlias);
                 qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
                 emitNamesChanged = true;
                 break;

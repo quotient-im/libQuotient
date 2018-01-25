@@ -40,7 +40,6 @@ namespace QMatrixClient
     class MemberSorter;
     class LeaveRoomJob;
     class RedactEventJob;
-    class Room;
 
     class TimelineItem
     {
@@ -105,6 +104,9 @@ namespace QMatrixClient
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
+            Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
             Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
@@ -122,6 +124,8 @@ namespace QMatrixClient
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
 
+            // Property accessors
+
             Connection* connection() const;
             User* localUser() const;
             const QString& id() const;
@@ -130,6 +134,8 @@ namespace QMatrixClient
             QString canonicalAlias() const;
             QString displayName() const;
             QString topic() const;
+            QString avatarMediaId() const;
+            QUrl avatarUrl() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
             QList<User*> membersLeft() const;
@@ -158,7 +164,7 @@ namespace QMatrixClient
              * @brief Produces a disambiguated name for a given user in
              * the context of the room
              */
-            Q_INVOKABLE QString roomMembername(User* u) const;
+            Q_INVOKABLE QString roomMembername(const User* u) const;
             /**
              * @brief Produces a disambiguated name for a user with this id in
              * the context of the room

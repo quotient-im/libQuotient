@@ -38,6 +38,7 @@ namespace QMatrixClient
             QImage get(int dimension, notifier_t notifier) const;
             QImage get(int w, int h, notifier_t notifier) const;
 
+            QString mediaId() const;
             QUrl url() const;
             bool updateUrl(const QUrl& newUrl);
 
