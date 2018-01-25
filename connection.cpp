@@ -377,17 +377,19 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     // a ForgetRoomJob is created in advance and can be returned in a probably
     // not-yet-started state (it will start once /leave completes).
     auto forgetJob = new ForgetRoomJob(id);
-    auto joinedRoom = d->roomMap.value({id, false});
-    if (joinedRoom && joinedRoom->joinState() == JoinState::Join)
+    auto room = d->roomMap.value({id, false});
+    if (!room)
+        room = d->roomMap.value({id, true});
+    if (room && room->joinState() != JoinState::Leave)
     {
-        auto leaveJob = joinedRoom->leaveRoom();
+        auto leaveJob = room->leaveRoom();
         connect(leaveJob, &BaseJob::success,
                 this, [this, forgetJob] { forgetJob->start(connectionData()); });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
         forgetJob->start(connectionData());
-    connect(forgetJob, &BaseJob::success, this, [this, &id]
+    connect(forgetJob, &BaseJob::success, this, [this, id]
     {
         // If the room happens to be in the map (possible in both forms),
         // delete the found object(s).
