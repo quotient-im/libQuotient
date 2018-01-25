@@ -1467,7 +1467,9 @@ QJsonObject Room::Private::toJson() const
         QJsonObject roomStateObj;
         roomStateObj.insert("events", stateEvents);
 
-        result.insert("state", roomStateObj);
+        result.insert(
+            joinState == JoinState::Invite ? "invite_state" : "state",
+            roomStateObj);
     }
 
     if (!q->readMarkerEventId().isEmpty())
@@ -1499,9 +1501,12 @@ QJsonObject Room::Private::toJson() const
     }
 
     QJsonObject unreadNotificationsObj;
-    unreadNotificationsObj.insert("highlight_count", highlightCount);
-    unreadNotificationsObj.insert("notification_count", notificationCount);
-    result.insert("unread_notifications", unreadNotificationsObj);
+    if (highlightCount > 0)
+        unreadNotificationsObj.insert("highlight_count", highlightCount);
+    if (notificationCount > 0)
+        unreadNotificationsObj.insert("notification_count", notificationCount);
+    if (!unreadNotificationsObj.isEmpty())
+        result.insert("unread_notifications", unreadNotificationsObj);
 
     return result;
 }
