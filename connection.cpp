@@ -59,7 +59,7 @@ class Connection::Private
         // separately so we should, e.g., keep objects for Invite and
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
-        QVector<QString> justForgottenRoomIds;
+        QVector<QString> roomIdsToForget;
         QHash<QString, User*> userMap;
         QString userId;
 
@@ -257,6 +257,21 @@ void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
     for( auto&& roomData: data.takeRoomData() )
     {
+        const auto forgetIdx = d->roomIdsToForget.indexOf(roomData.roomId);
+        if (forgetIdx != -1)
+        {
+            d->roomIdsToForget.removeAt(forgetIdx);
+            if (roomData.joinState == JoinState::Leave)
+            {
+                qDebug(MAIN) << "Room" << roomData.roomId
+                    << "has been forgotten, ignoring /sync response for it";
+                continue;
+            }
+            qWarning(MAIN) << "Room" << roomData.roomId
+                 << "has just been forgotten but /sync returned it in"
+                 << toCString(roomData.joinState)
+                 << "state - suspiciously fast turnaround";
+        }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
             r->updateData(std::move(roomData));
     }
@@ -384,9 +399,12 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (room && room->joinState() != JoinState::Leave)
     {
         auto leaveJob = room->leaveRoom();
-        connect(leaveJob, &BaseJob::success, this, [this, forgetJob, id] {
+        connect(leaveJob, &BaseJob::success, this, [this, forgetJob, room] {
             forgetJob->start(connectionData());
-            d->justForgottenRoomIds.push_back(id);
+            // If the matching /sync response hasn't arrived yet, mark the room
+            // for explicit deletion
+            if (room->joinState() != JoinState::Leave)
+                d->roomIdsToForget.push_back(room->id());
         });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
