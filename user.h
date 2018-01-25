@@ -33,6 +33,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString name READ name NOTIFY nameChanged)
             Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString bridgeName READ bridged NOTIFY nameChanged STORED false)
+            Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
             Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
         public:
             User(QString userId, Connection* connection);
@@ -62,6 +63,7 @@ namespace QMatrixClient
             Q_INVOKABLE QImage avatar(int dimension);
             Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight);
 
+            QString avatarMediaId() const;
             QUrl avatarUrl() const;
 
             void processEvent(Event* event);
@@ -84,3 +86,4 @@ namespace QMatrixClient
             Private* d;
     };
 }
+Q_DECLARE_METATYPE(QMatrixClient::User*)

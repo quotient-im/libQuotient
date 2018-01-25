@@ -145,6 +145,11 @@ QImage User::avatar(int width, int height)
     return d->avatar.get(width, height, [=] { emit avatarChanged(this); });
 }
 
+QString User::avatarMediaId() const
+{
+    return d->avatar.mediaId();
+}
+
 QUrl User::avatarUrl() const
 {
     return d->avatar.url();

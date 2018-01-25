@@ -263,6 +263,11 @@ QString Room::topic() const
     return d->topic;
 }
 
+QString Room::avatarMediaId() const
+{
+    return d->avatar.mediaId();
+}
+
 QUrl Room::avatarUrl() const
 {
     return d->avatar.url();
@@ -284,8 +289,8 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return theOtherOneIt.value()->avatarObject()
-                .get(width, height, [=] { emit avatarChanged(); });
+        return (*theOtherOneIt)->avatarObject()
+                    .get(width, height, [=] { emit avatarChanged(); });
     }
     return {};
 }

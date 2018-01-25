@@ -104,7 +104,9 @@ namespace QMatrixClient
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
             Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
             Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
@@ -132,6 +134,7 @@ namespace QMatrixClient
             QString canonicalAlias() const;
             QString displayName() const;
             QString topic() const;
+            QString avatarMediaId() const;
             QUrl avatarUrl() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;

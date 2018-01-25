@@ -62,6 +62,11 @@ QImage Avatar::get(int width, int height, notifier_t notifier) const
     return d->get({width, height}, notifier);
 }
 
+QString Avatar::mediaId() const
+{
+    return d->_url.authority() + d->_url.path();
+}
+
 QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier) const
 {
     // FIXME: Alternating between longer-width and longer-height requests
