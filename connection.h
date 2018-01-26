@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "jobs/generated/create_room.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -57,6 +58,8 @@ namespace QMatrixClient
                 std::function<Room*(Connection*, const QString&, JoinState joinState)>;
             using user_factory_t =
                 std::function<User*(Connection*, const QString&)>;
+
+            enum RoomVisibility { PublishRoom, UnpublishRoom }; // FIXME: Should go inside CreateRoomJob
 
             explicit Connection(QObject* parent = nullptr);
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
@@ -196,6 +199,23 @@ namespace QMatrixClient
             // If localFilename is empty, a temporary file will be created
             DownloadFileJob* downloadFile(const QUrl& url,
                             const QString& localFilename = {}) const;
+
+            /**
+             * \brief Create a room (generic method)
+             * This method allows to customize room entirely to your liking,
+             * providing all the attributes the original CS API provides.
+             */
+            CreateRoomJob* createRoom(RoomVisibility visibility,
+                const QString& alias, const QString& name, const QString& topic,
+                const QVector<QString>& invites, const QString& presetName = {}, bool isDirect = false,
+                bool guestsCanJoin = false,
+                const QVector<CreateRoomJob::StateEvent>& initialState = {},
+                const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
+                const QJsonObject creationContent = {});
+
+            /** Create a direct chat with a single user, optional name and topic */
+            CreateRoomJob* createDirectChat(const QString& userId,
+                const QString& topic = {}, const QString& name = {});
 
             virtual JoinRoomJob* joinRoom(const QString& roomAlias);
 

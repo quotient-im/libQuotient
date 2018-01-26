@@ -386,6 +386,27 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
     return job;
 }
 
+CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
+    const QString& alias, const QString& name, const QString& topic,
+    const QVector<QString>& invites, const QString& presetName,
+    bool isDirect, bool guestsCanJoin,
+    const QVector<CreateRoomJob::StateEvent>& initialState,
+    const QVector<CreateRoomJob::Invite3pid>& invite3pids,
+    const QJsonObject creationContent)
+{
+    return callApi<CreateRoomJob>(
+            visibility == PublishRoom ? "public" : "private", alias, name,
+            topic, invites, invite3pids, creationContent, initialState,
+            presetName, isDirect, guestsCanJoin);
+}
+
+CreateRoomJob* Connection::createDirectChat(const QString& userId,
+    const QString& topic, const QString& name)
+{
+    return createRoom(UnpublishRoom, "", name, topic, {userId},
+                      "trusted_private_chat", true);
+}
+
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
 {
     // To forget is hard :) First we should ensure the local user is not
