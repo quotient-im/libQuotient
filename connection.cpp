@@ -24,6 +24,7 @@
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
 #include "jobs/generated/receipts.h"
+#include "jobs/generated/leaving.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
@@ -437,7 +438,7 @@ User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
-    auto* user = createUser(this, userId);
+    auto* user = userFactory(this, userId);
     d->userMap.insert(userId, user);
     return user;
 }
@@ -515,7 +516,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room = createRoom(this, id, joinState);
+        room = roomFactory(this, id, joinState);
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -550,11 +551,11 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     return room;
 }
 
-Connection::room_factory_t Connection::createRoom =
+Connection::room_factory_t Connection::roomFactory =
     [](Connection* c, const QString& id, JoinState joinState)
     { return new Room(c, id, joinState); };
 
-Connection::user_factory_t Connection::createUser =
+Connection::user_factory_t Connection::userFactory =
     [](Connection* c, const QString& id) { return new User(id, c); };
 
 QByteArray Connection::generateTxnId()

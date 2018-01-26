@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "jobs/generated/leaving.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -39,6 +38,7 @@ namespace QMatrixClient
     class SyncData;
     class RoomMessagesJob;
     class PostReceiptJob;
+    class ForgetRoomJob;
     class MediaThumbnailJob;
     class JoinRoomJob;
     class UploadContentJob;
@@ -145,7 +145,7 @@ namespace QMatrixClient
             template <typename T = Room>
             static void setRoomType()
             {
-                createRoom =
+                roomFactory =
                     [](Connection* c, const QString& id, JoinState joinState)
                     { return new T(c, id, joinState); };
             }
@@ -153,7 +153,7 @@ namespace QMatrixClient
             template <typename T = User>
             static void setUserType()
             {
-                createUser =
+                userFactory =
                     [](Connection* c, const QString& id) { return new T(id, c); };
             }
 
@@ -186,15 +186,15 @@ namespace QMatrixClient
                                             int requestedHeight) const;
 
             // QIODevice* should already be open
-            virtual UploadContentJob* uploadContent(QIODevice* contentSource,
+            UploadContentJob* uploadContent(QIODevice* contentSource,
                             const QString& filename = {},
                             const QString& contentType = {}) const;
-            virtual UploadContentJob* uploadFile(const QString& fileName,
-                                                 const QString& contentType = {});
-            virtual GetContentJob* getContent(const QString& mediaId) const;
+            UploadContentJob* uploadFile(const QString& fileName,
+                                         const QString& contentType = {});
+            GetContentJob* getContent(const QString& mediaId) const;
             GetContentJob* getContent(const QUrl& url) const;
             // If localFilename is empty, a temporary file will be created
-            virtual DownloadFileJob* downloadFile(const QUrl& url,
+            DownloadFileJob* downloadFile(const QUrl& url,
                             const QString& localFilename = {}) const;
 
             virtual JoinRoomJob* joinRoom(const QString& roomAlias);
@@ -310,7 +310,7 @@ namespace QMatrixClient
              * the server; in particular, does not automatically create rooms
              * on the server.
              * @return a pointer to a Room object with the specified id; nullptr
-             * if roomId is empty if createRoom() failed to create a Room object.
+             * if roomId is empty if roomFactory() failed to create a Room object.
              */
             Room* provideRoom(const QString& roomId, JoinState joinState);
 
@@ -340,7 +340,7 @@ namespace QMatrixClient
                                    const QString& initialDeviceName,
                                    const QString& deviceId = {});
 
-            static room_factory_t createRoom;
-            static user_factory_t createUser;
+            static room_factory_t roomFactory;
+            static user_factory_t userFactory;
     };
 }  // namespace QMatrixClient
