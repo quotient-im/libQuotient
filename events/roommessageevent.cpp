@@ -116,6 +116,13 @@ QMimeType RoomMessageEvent::mimeType() const
                       QMimeDatabase().mimeTypeForName("text/plain");
 }
 
+bool RoomMessageEvent::hasTextContent() const
+{
+    return content() &&
+        (msgtype() == MsgType::Text || msgtype() == MsgType::Emote ||
+         msgtype() == MsgType::Notice); // FIXME: Unbind from specific msgtypes
+}
+
 bool RoomMessageEvent::hasFileContent() const
 {
     return content() && content()->fileInfo();
@@ -159,13 +166,13 @@ void TextContent::fillJson(QJsonObject* json) const
 }
 
 LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
-    : WithThumbnail(thumbnail), geoUri(geoUri)
+    : geoUri(geoUri), thumbnail(thumbnail)
 { }
 
 LocationContent::LocationContent(const QJsonObject& json)
     : TypedBase(json)
-    , WithThumbnail(json["info"].toObject())
     , geoUri(json["geo_uri"].toString())
+    , thumbnail(json["info"].toObject())
 { }
 
 QMimeType LocationContent::type() const
@@ -177,16 +184,5 @@ void LocationContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
     o->insert("geo_uri", geoUri);
-    QJsonObject infoJson;
-    WithThumbnail::fillInfoJson(&infoJson);
-    o->insert("info", infoJson);
-}
-
-WithDuration::WithDuration(const QJsonObject& infoJson)
-    : duration(infoJson["duration"].toInt())
-{ }
-
-void WithDuration::fillInfoJson(QJsonObject* infoJson) const
-{
-    infoJson->insert("duration", duration);
+    o->insert("info", toInfoJson(thumbnail));
 }

@@ -40,7 +40,6 @@ namespace QMatrixClient
     class MemberSorter;
     class LeaveRoomJob;
     class RedactEventJob;
-    class Room;
 
     class TimelineItem
     {
@@ -105,6 +104,17 @@ namespace QMatrixClient
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
+            Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
+            Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+
+            Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
+            Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
+            Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
+
+            Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY displayedChanged)
+            Q_PROPERTY(QString firstDisplayedEventId READ firstDisplayedEventId WRITE setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
+            Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
+
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
         public:
             using Timeline = std::deque<TimelineItem>;
@@ -114,6 +124,8 @@ namespace QMatrixClient
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
 
+            // Property accessors
+
             Connection* connection() const;
             User* localUser() const;
             const QString& id() const;
@@ -122,14 +134,16 @@ namespace QMatrixClient
             QString canonicalAlias() const;
             QString displayName() const;
             QString topic() const;
+            QString avatarMediaId() const;
+            QUrl avatarUrl() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
             QList<User*> membersLeft() const;
 
             Q_INVOKABLE QList<User*> users() const;
-            Q_INVOKABLE QStringList memberNames() const;
-            Q_INVOKABLE int memberCount() const;
-            Q_INVOKABLE int timelineSize() const;
+            QStringList memberNames() const;
+            int memberCount() const;
+            int timelineSize() const;
 
             /**
              * Returns a square room avatar with the given size and requests it
@@ -150,7 +164,7 @@ namespace QMatrixClient
              * @brief Produces a disambiguated name for a given user in
              * the context of the room
              */
-            Q_INVOKABLE QString roomMembername(User* u) const;
+            Q_INVOKABLE QString roomMembername(const User* u) const;
             /**
              * @brief Produces a disambiguated name for a user with this id in
              * the context of the room
@@ -169,6 +183,17 @@ namespace QMatrixClient
 
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
             rev_iter_t findInTimeline(const QString& evtId) const;
+
+            bool displayed() const;
+            void setDisplayed(bool displayed = true);
+            QString firstDisplayedEventId() const;
+            rev_iter_t firstDisplayedMarker() const;
+            void setFirstDisplayedEventId(const QString& eventId);
+            void setFirstDisplayedEvent(TimelineItem::index_t index);
+            QString lastDisplayedEventId() const;
+            rev_iter_t lastDisplayedMarker() const;
+            void setLastDisplayedEventId(const QString& eventId);
+            void setLastDisplayedEvent(TimelineItem::index_t index);
 
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
@@ -191,6 +216,11 @@ namespace QMatrixClient
             Q_INVOKABLE void resetHighlightCount();
 
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+
+            /** Pretty-prints plain text into HTML
+             * This includes HTML escaping of <,>,",& and URLs linkification.
+             */
+            QString prettyPrint(const QString& plainText) const;
 
             MemberSorter memberSorter() const;
 
@@ -245,10 +275,17 @@ namespace QMatrixClient
             void userAdded(User* user);
             void userRemoved(User* user);
             void memberRenamed(User* user);
+            void memberListChanged();
+
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
+
             void highlightCountChanged(Room* room);
             void notificationCountChanged(Room* room);
+
+            void displayedChanged(bool displayed);
+            void firstDisplayedEventChanged();
+            void lastDisplayedEventChanged();
             void lastReadEventChanged(User* user);
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);

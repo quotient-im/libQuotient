@@ -36,14 +36,15 @@ QString DownloadFileJob::targetFileName() const
 
 void DownloadFileJob::beforeStart(const ConnectionData*)
 {
-    if (d->targetFile && !d->targetFile->open(QIODevice::WriteOnly))
+    if (d->targetFile && !d->targetFile->isReadable() &&
+            !d->targetFile->open(QIODevice::WriteOnly))
     {
         qCWarning(JOBS) << "Couldn't open the file"
                         << d->targetFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the target file for writing");
         return;
     }
-    if (!d->tempFile->open(QIODevice::WriteOnly))
+    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly))
     {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";

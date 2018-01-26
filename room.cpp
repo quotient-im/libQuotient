@@ -43,9 +43,11 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
+#include <QtCore/QRegularExpression>
 
 #include <array>
 #include <functional>
+#include <cmath>
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
@@ -61,8 +63,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , avatar(c), joinState(initialJoinState), unreadMessages(false)
-            , highlightCount(0), notificationCount(0), roomMessagesJob(nullptr)
+            , avatar(c), joinState(initialJoinState)
         { }
 
         Room* q;
@@ -83,18 +84,27 @@ class Room::Private
         QString topic;
         Avatar avatar;
         JoinState joinState;
-        bool unreadMessages;
-        int highlightCount;
-        int notificationCount;
+        int highlightCount = 0;
+        int notificationCount = 0;
         members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
+        bool unreadMessages = false;
+        bool displayed = false;
+        QString firstDisplayedEventId;
+        QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
         QString prevBatch;
-        RoomMessagesJob* roomMessagesJob;
+        QPointer<RoomMessagesJob> roomMessagesJob;
 
         struct FileTransferPrivateInfo
         {
+#if defined(_MSC_VER) && _MSC_VER < 1910
+            FileTransferPrivateInfo() = default;
+            FileTransferPrivateInfo(BaseJob* j, QString fileName)
+                : job(j), localFileInfo(fileName)
+            { }
+#endif
             QPointer<BaseJob> job = nullptr;
             QFileInfo localFileInfo { };
             FileTransferInfo::Status status = FileTransferInfo::Started;
@@ -103,13 +113,13 @@ class Room::Private
 
             void update(qint64 p, qint64 t)
             {
-                progress = p; total = t;
                 if (t == 0)
                 {
                     t = -1;
                     if (p == 0)
                         p = -1;
                 }
+                progress = p; total = t;
             }
         };
         void failedTransfer(const QString& tid, const QString& errorMessage = {})
@@ -203,9 +213,13 @@ RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
+    setObjectName(id);
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
+    connect(this, &Room::userAdded, this, &Room::memberListChanged);
+    connect(this, &Room::userRemoved, this, &Room::memberListChanged);
+    connect(this, &Room::memberRenamed, this, &Room::memberListChanged);
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -249,6 +263,16 @@ QString Room::topic() const
     return d->topic;
 }
 
+QString Room::avatarMediaId() const
+{
+    return d->avatar.mediaId();
+}
+
+QUrl Room::avatarUrl() const
+{
+    return d->avatar.url();
+}
+
 QImage Room::avatar(int dimension)
 {
     return avatar(dimension, dimension);
@@ -265,8 +289,8 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return theOtherOneIt.value()->avatarObject()
-                .get(width, height, [=] { emit avatarChanged(); });
+        return (*theOtherOneIt)->avatarObject()
+                    .get(width, height, [=] { emit avatarChanged(); });
     }
     return {};
 }
@@ -289,7 +313,10 @@ void Room::setJoinState(JoinState state)
 
 void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 {
-    lastReadEventIds.insert(u, eventId);
+    auto& storedId = lastReadEventIds[u];
+    if (storedId == eventId)
+        return;
+    storedId = eventId;
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
         emit q->readMarkerMoved();
@@ -405,6 +432,75 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     return timelineEdge();
 }
 
+bool Room::displayed() const
+{
+    return d->displayed;
+}
+
+void Room::setDisplayed(bool displayed)
+{
+    if (d->displayed == displayed)
+        return;
+
+    d->displayed = displayed;
+    emit displayedChanged(displayed);
+    if( displayed )
+    {
+        resetHighlightCount();
+        resetNotificationCount();
+    }
+}
+
+QString Room::firstDisplayedEventId() const
+{
+    return d->firstDisplayedEventId;
+}
+
+Room::rev_iter_t Room::firstDisplayedMarker() const
+{
+    return findInTimeline(firstDisplayedEventId());
+}
+
+void Room::setFirstDisplayedEventId(const QString& eventId)
+{
+    if (d->firstDisplayedEventId == eventId)
+        return;
+
+    d->firstDisplayedEventId = eventId;
+    emit firstDisplayedEventChanged();
+}
+
+void Room::setFirstDisplayedEvent(TimelineItem::index_t index)
+{
+    Q_ASSERT(isValidIndex(index));
+    setFirstDisplayedEventId(findInTimeline(index)->event()->id());
+}
+
+QString Room::lastDisplayedEventId() const
+{
+    return d->lastDisplayedEventId;
+}
+
+Room::rev_iter_t Room::lastDisplayedMarker() const
+{
+    return findInTimeline(lastDisplayedEventId());
+}
+
+void Room::setLastDisplayedEventId(const QString& eventId)
+{
+    if (d->lastDisplayedEventId == eventId)
+        return;
+
+    d->lastDisplayedEventId = eventId;
+    emit lastDisplayedEventChanged();
+}
+
+void Room::setLastDisplayedEvent(TimelineItem::index_t index)
+{
+    Q_ASSERT(isValidIndex(index));
+    setLastDisplayedEventId(findInTimeline(index)->event()->id());
+}
+
 Room::rev_iter_t Room::readMarker(const User* user) const
 {
     Q_ASSERT(user);
@@ -465,10 +561,64 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
+#if defined(_MSC_VER) && _MSC_VER < 1910
+    // A workaround for MSVC 2015 that fails with "error C2440: 'return':
+    // cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
+    FileTransferInfo fti;
+    fti.status = infoIt->status;
+    fti.progress = int(progress);
+    fti.total = int(total);
+    fti.localDir = QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath());
+    fti.localPath = QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
+    return fti;
+#else
     return { infoIt->status, int(progress), int(total),
         QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
         QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
     };
+#endif
+}
+
+static const auto RegExpOptions =
+    QRegularExpression::CaseInsensitiveOption
+    | QRegularExpression::OptimizeOnFirstUsageOption
+    | QRegularExpression::UseUnicodePropertiesOption;
+
+// regexp is originally taken from Konsole (https://github.com/KDE/konsole)
+// full url:
+// protocolname:// or www. followed by anything other than whitespaces,
+// <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
+// comma or dot
+// Note: outer parentheses are a part of C++ raw string delimiters, not of
+// the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
+static const QRegularExpression FullUrlRegExp(QStringLiteral(
+        R"(((www\.(?!\.)|[a-z][a-z0-9+.-]*://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
+    ), RegExpOptions);
+// email address:
+// [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
+static const QRegularExpression EmailAddressRegExp(QStringLiteral(
+        R"((mailto:)?(\b(\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
+    ), RegExpOptions);
+
+/** Converts all that looks like a URL into HTML links */
+static void linkifyUrls(QString& htmlEscapedText)
+{
+    // NOTE: htmlEscapedText is already HTML-escaped (no literal <,>,&)!
+
+    htmlEscapedText.replace(EmailAddressRegExp,
+                 QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
+    htmlEscapedText.replace(FullUrlRegExp,
+                 QStringLiteral(R"(<a href="\1">\1</a>)"));
+}
+
+QString Room::prettyPrint(const QString& plainText) const
+{
+    auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
+            plainText.toHtmlEscaped() + QStringLiteral("</span>");
+    pt.replace('\n', "<br/>");
+
+    linkifyUrls(pt);
+    return pt;
 }
 
 QList< User* > Room::usersTyping() const
@@ -613,7 +763,7 @@ void Room::Private::removeMember(User* u)
     }
 }
 
-QString Room::roomMembername(User *u) const
+QString Room::roomMembername(const User* u) const
 {
     // See the CS spec, section 11.2.2.3
 
@@ -725,17 +875,13 @@ void Room::getPreviousContent(int limit)
 
 void Room::Private::getPreviousContent(int limit)
 {
-    if( !roomMessagesJob )
+    if( !isJobRunning(roomMessagesJob) )
     {
         roomMessagesJob =
                 connection->callApi<RoomMessagesJob>(id, prevBatch, limit);
-        connect( roomMessagesJob, &RoomMessagesJob::result, [=] {
-            if( !roomMessagesJob->error() )
-            {
-                addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
-                prevBatch = roomMessagesJob->end();
-            }
-            roomMessagesJob = nullptr;
+        connect( roomMessagesJob, &RoomMessagesJob::success, [=] {
+            prevBatch = roomMessagesJob->end();
+            addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
         });
     }
 }
@@ -818,11 +964,14 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         return;
     }
     auto* fileInfo = event->content()->fileInfo();
+    auto safeTempPrefix = eventId;
+    safeTempPrefix.replace(':', '_');
+    safeTempPrefix = QDir::tempPath() + '/' + safeTempPrefix + '#';
     auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
         !fileInfo->originalName.isEmpty() ?
-            (QDir::tempPath() + '/' + fileInfo->originalName) :
+            (safeTempPrefix + fileInfo->originalName) :
         !event->plainBody().isEmpty() ?
-            (QDir::tempPath() + '/' + event->plainBody()) : QString();
+            (safeTempPrefix + event->plainBody()) : QString();
     auto job = connection()->downloadFile(fileInfo->url, fileName);
     if (isJobRunning(job))
     {
@@ -1003,8 +1152,8 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         processRedaction(move(r));
     if (insertedSize > 0)
     {
-        checkUnreadMessages(timeline.cend() - insertedSize);
         emit q->addedMessages();
+        checkUnreadMessages(timeline.cend() - insertedSize);
     }
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
@@ -1016,7 +1165,7 @@ void Room::Private::checkUnreadMessages(timeline_iter_t from)
     const auto newUnreadMessages = count_if(from, timeline.cend(),
             std::bind(&Room::Private::isEventNotable, this, _1));
 
-    // The first event in the just-added batch (referred to by upTo.base())
+    // The first event in the just-added batch (referred to by `from`)
     // defines whose read marker can possibly be promoted any further over
     // the same author's events newly arrived. Others will need explicit
     // read receipts from the server (or, for the local user,
@@ -1096,6 +1245,7 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::RoomCanonicalAlias: {
                 auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
                 d->canonicalAlias = aliasEvent->alias();
+                setObjectName(d->canonicalAlias);
                 qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
                 emitNamesChanged = true;
                 break;
@@ -1329,7 +1479,9 @@ QJsonObject Room::Private::toJson() const
         QJsonObject roomStateObj;
         roomStateObj.insert("events", stateEvents);
 
-        result.insert("state", roomStateObj);
+        result.insert(
+            joinState == JoinState::Invite ? "invite_state" : "state",
+            roomStateObj);
     }
 
     if (!q->readMarkerEventId().isEmpty())
@@ -1361,9 +1513,12 @@ QJsonObject Room::Private::toJson() const
     }
 
     QJsonObject unreadNotificationsObj;
-    unreadNotificationsObj.insert("highlight_count", highlightCount);
-    unreadNotificationsObj.insert("notification_count", notificationCount);
-    result.insert("unread_notifications", unreadNotificationsObj);
+    if (highlightCount > 0)
+        unreadNotificationsObj.insert("highlight_count", highlightCount);
+    if (notificationCount > 0)
+        unreadNotificationsObj.insert("notification_count", notificationCount);
+    if (!unreadNotificationsObj.isEmpty())
+        result.insert("unread_notifications", unreadNotificationsObj);
 
     return result;
 }

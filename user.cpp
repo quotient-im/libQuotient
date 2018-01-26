@@ -51,7 +51,9 @@ class User::Private
 
 User::User(QString userId, Connection* connection)
     : QObject(connection), d(new Private(std::move(userId), connection))
-{ }
+{
+    setObjectName(userId);
+}
 
 User::~User()
 {
@@ -74,6 +76,7 @@ void User::updateName(const QString& newName)
     if (oldName != newName)
     {
         d->name = newName;
+        setObjectName(displayname());
         emit nameChanged(newName, oldName);
     }
 }
@@ -127,7 +130,7 @@ QString User::bridged() const {
     return d->bridged;
 }
 
-const Avatar& User::avatarObject()
+const Avatar& User::avatarObject() const
 {
     return d->avatar;
 }
@@ -140,6 +143,11 @@ QImage User::avatar(int dimension)
 QImage User::avatar(int width, int height)
 {
     return d->avatar.get(width, height, [=] { emit avatarChanged(this); });
+}
+
+QString User::avatarMediaId() const
+{
+    return d->avatar.mediaId();
 }
 
 QUrl User::avatarUrl() const

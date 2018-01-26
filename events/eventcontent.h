@@ -27,6 +27,8 @@
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
 
+#include <functional>
+
 namespace QMatrixClient
 {
     namespace EventContent
@@ -144,6 +146,14 @@ namespace QMatrixClient
                 QString originalName;
         };
 
+        template <typename InfoT>
+        QJsonObject toInfoJson(const InfoT& info)
+        {
+            QJsonObject infoJson;
+            info.fillInfoJson(&infoJson);
+            return infoJson;
+        }
+
         /**
          * A content info class for image content types: image, thumbnail, video
          */
@@ -163,18 +173,18 @@ namespace QMatrixClient
         };
 
         /**
-         * A mixin class for an info type that carries a thumbnail
+         * An auxiliary class for an info type that carries a thumbnail
          *
          * This class saves/loads a thumbnail to/from "info" subobject of
          * the JSON representation of event content; namely,
          * "info/thumbnail_url" and "info/thumbnail_info" fields are used.
          */
-        class WithThumbnail
+        class Thumbnail : public ImageInfo
         {
             public:
-                WithThumbnail(const QJsonObject& infoJson);
-                WithThumbnail(const ImageInfo& info)
-                    : thumbnail(info)
+                Thumbnail(const QJsonObject& infoJson);
+                Thumbnail(const ImageInfo& info)
+                    : ImageInfo(info)
                 { }
 
                 /**
@@ -182,9 +192,6 @@ namespace QMatrixClient
                  * and thumbnail URL to "thumbnail_url" node inside "info".
                  */
                 void fillInfoJson(QJsonObject* infoJson) const;
-
-            public:
-                ImageInfo thumbnail;
         };
 
         class TypedBase: public Base
@@ -204,19 +211,22 @@ namespace QMatrixClient
          * the parameter type.
          *
          * \tparam InfoT base info class
-         * \tparam InfoMixinTs... additional info mixin classes (e.g. WithThumbnail)
          */
-        template <class InfoT, class... InfoMixinTs>
-        class UrlBasedContent :
-                public TypedBase, public InfoT, public InfoMixinTs...
+        template <class InfoT>
+        class UrlBasedContent : public TypedBase, public InfoT
         {
             public:
+                UrlBasedContent(QUrl url, InfoT&& info, QString filename = {})
+                    : InfoT(url, std::forward<InfoT>(info), filename)
+                { }
                 explicit UrlBasedContent(const QJsonObject& json)
                     : TypedBase(json)
                     , InfoT(json["url"].toString(), json["info"].toObject(),
                             json["filename"].toString())
-                    , InfoMixinTs(InfoT::originalInfoJson)...
-                { }
+                {
+                    // A small hack to facilitate links creation in QML.
+                    originalJson.insert("mediaId", InfoT::mediaId());
+                }
 
                 QMimeType type() const override { return InfoT::mimeType; }
                 const FileInfo* fileInfo() const override { return this; }
@@ -228,12 +238,33 @@ namespace QMatrixClient
                     json->insert("url", InfoT::url.toString());
                     if (!InfoT::originalName.isEmpty())
                         json->insert("filename", InfoT::originalName);
-                    QJsonObject infoJson;
-                    InfoT::fillInfoJson(&infoJson);
-                    // http://en.cppreference.com/w/cpp/language/parameter_pack#Brace-enclosed_initializers
-                    // Looking forward to C++17 and its folding awesomeness.
-                    int d[] = { (InfoMixinTs::fillInfoJson(&infoJson), 0)... };
-                    Q_UNUSED(d);
+                    json->insert("info", toInfoJson<InfoT>(*this));
+                }
+        };
+
+        template <typename InfoT>
+        class UrlWithThumbnailContent : public UrlBasedContent<InfoT>
+        {
+            public:
+                // TODO: POD constructor
+                explicit UrlWithThumbnailContent(const QJsonObject& json)
+                    : UrlBasedContent<InfoT>(json)
+                    , thumbnail(InfoT::originalInfoJson)
+                {
+                    // Another small hack, to simplify making a thumbnail link
+                    UrlBasedContent<InfoT>::originalJson.insert(
+                                "thumbnailMediaId", thumbnail.mediaId());
+                }
+
+            public:
+                Thumbnail thumbnail;
+
+            protected:
+                void fillJson(QJsonObject* json) const override
+                {
+                    UrlBasedContent<InfoT>::fillJson(json);
+                    auto infoJson = json->take("info").toObject();
+                    thumbnail.fillInfoJson(&infoJson);
                     json->insert("info", infoJson);
                 }
         };
@@ -256,7 +287,7 @@ namespace QMatrixClient
          *   - mimeType
          *   - imageSize
          */
-        using ImageContent = UrlBasedContent<ImageInfo, WithThumbnail>;
+        using ImageContent = UrlWithThumbnailContent<ImageInfo>;
 
         /**
          * Content class for m.file
@@ -274,6 +305,6 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize (QSize for "h" and "w" in JSON)
          */
-        using FileContent = UrlBasedContent<FileInfo, WithThumbnail>;
+        using FileContent = UrlWithThumbnailContent<FileInfo>;
     }  // namespace EventContent
 }  // namespace QMatrixClient

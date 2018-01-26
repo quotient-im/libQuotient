@@ -290,9 +290,10 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
-    qCDebug(d->logCat) << this << "returned from" << reply->url().toDisplayString();
-    if (reply->error() != QNetworkReply::NoError)
-        qCDebug(d->logCat) << this << "returned" << reply->error();
+    qCDebug(d->logCat) << this << "returned"
+        << (reply->error() == QNetworkReply::NoError ?
+                "Success" : reply->errorString())
+        << "from" << reply->url().toDisplayString();
     switch( reply->error() )
     {
         case QNetworkReply::NoError:
