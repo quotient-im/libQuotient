@@ -73,7 +73,7 @@ bool User::isGuest() const
     Q_ASSERT(!d->userId.isEmpty() && d->userId.startsWith('@'));
     auto it = std::find_if_not(d->userId.begin() + 1, d->userId.end(),
                                [] (QChar c) { return c.isDigit(); });
-    Q_ASSERT(it == d->userId.end());
+    Q_ASSERT(it != d->userId.end());
     return *it == ':';
 }
 
@@ -139,7 +139,7 @@ QString User::displayname() const
 QString User::fullName() const
 {
     return d->name.isEmpty() ? d->userId :
-                               d->name % '(' % d->userId % ')';
+                               d->name % " (" % d->userId % ')';
 }
 
 QString User::bridged() const
