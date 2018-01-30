@@ -862,6 +862,17 @@ void Room::postMessage(const RoomMessageEvent& event)
     connection()->callApi<SendEventJob>(id(), event);
 }
 
+void Room::setName(const QString& newName)
+{
+    connection()->callApi<SetRoomStateJob>(id(), RoomNameEvent(newName));
+}
+
+void Room::setCanonicalAlias(const QString& newAlias)
+{
+    connection()->callApi<SetRoomStateJob>(id(),
+                                           RoomCanonicalAliasEvent(newAlias));
+}
+
 void Room::setTopic(const QString& newTopic)
 {
     RoomTopicEvent evt(newTopic);

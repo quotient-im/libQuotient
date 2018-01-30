@@ -74,7 +74,7 @@ class CreateRoomJob::Private
         QString roomId;
 };
 
-CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QVector<QString>& invite, const QVector<Invite3pid>& invite3pid, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect)
+CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QVector<QString>& invite, const QVector<Invite3pid>& invite3pid, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect, bool guestCanJoin)
     : BaseJob(HttpVerb::Post, "CreateRoomJob",
         basePath % "/createRoom")
     , d(new Private)
@@ -95,6 +95,7 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
     if (!preset.isEmpty())
         _data.insert("preset", toJson(preset));
     _data.insert("is_direct", toJson(isDirect));
+    _data.insert("guest_can_join", toJson(guestCanJoin));
     setRequestData(_data);
 }
 

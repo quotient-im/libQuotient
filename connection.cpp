@@ -24,6 +24,7 @@
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
 #include "jobs/generated/receipts.h"
+#include "jobs/generated/leaving.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
@@ -61,7 +62,7 @@ class Connection::Private
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
-        QHash<QString, User*> userMap;
+        QMap<QString, User*> userMap;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -385,6 +386,27 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
     return job;
 }
 
+CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
+    const QString& alias, const QString& name, const QString& topic,
+    const QVector<QString>& invites, const QString& presetName,
+    bool isDirect, bool guestsCanJoin,
+    const QVector<CreateRoomJob::StateEvent>& initialState,
+    const QVector<CreateRoomJob::Invite3pid>& invite3pids,
+    const QJsonObject creationContent)
+{
+    return callApi<CreateRoomJob>(
+            visibility == PublishRoom ? "public" : "private", alias, name,
+            topic, invites, invite3pids, creationContent, initialState,
+            presetName, isDirect, guestsCanJoin);
+}
+
+CreateRoomJob* Connection::createDirectChat(const QString& userId,
+    const QString& topic, const QString& name)
+{
+    return createRoom(UnpublishRoom, "", name, topic, {userId},
+                      "trusted_private_chat", true);
+}
+
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
 {
     // To forget is hard :) First we should ensure the local user is not
@@ -437,8 +459,9 @@ User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
-    auto* user = createUser(this, userId);
+    auto* user = userFactory(this, userId);
     d->userMap.insert(userId, user);
+    emit newUser(user);
     return user;
 }
 
@@ -493,6 +516,11 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
     return roomMap;
 }
 
+QMap<QString, User*> Connection::users() const
+{
+    return d->userMap;
+}
+
 const ConnectionData* Connection::connectionData() const
 {
     return d->data.get();
@@ -515,7 +543,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room = createRoom(this, id, joinState);
+        room = roomFactory(this, id, joinState);
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -550,11 +578,11 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     return room;
 }
 
-Connection::room_factory_t Connection::createRoom =
+Connection::room_factory_t Connection::roomFactory =
     [](Connection* c, const QString& id, JoinState joinState)
     { return new Room(c, id, joinState); };
 
-Connection::user_factory_t Connection::createUser =
+Connection::user_factory_t Connection::userFactory =
     [](Connection* c, const QString& id) { return new User(id, c); };
 
 QByteArray Connection::generateTxnId()
