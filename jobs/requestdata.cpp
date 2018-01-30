@@ -8,7 +8,7 @@
 
 using namespace QMatrixClient;
 
-std::unique_ptr<QIODevice> fromData(const QByteArray& data)
+auto fromData(const QByteArray& data)
 {
     auto source = std::make_unique<QBuffer>();
     source->open(QIODevice::WriteOnly);
@@ -18,7 +18,7 @@ std::unique_ptr<QIODevice> fromData(const QByteArray& data)
 }
 
 template <typename JsonDataT>
-inline std::unique_ptr<QIODevice> fromJson(const JsonDataT& jdata)
+inline auto fromJson(const JsonDataT& jdata)
 {
     return fromData(QJsonDocument(jdata).toJson(QJsonDocument::Compact));
 }
