@@ -52,6 +52,11 @@ namespace QMatrixClient
             /** Whether or not the rooms state should be cached locally
              * \sa loadState(), saveState()
              */
+            Q_PROPERTY(User* localUser READ user CONSTANT)
+            Q_PROPERTY(QString localUserId READ userId CONSTANT)
+            Q_PROPERTY(QString deviceId READ deviceId CONSTANT)
+            Q_PROPERTY(QByteArray accessToken READ accessToken CONSTANT)
+            Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
             using room_factory_t =
@@ -83,14 +88,14 @@ namespace QMatrixClient
 
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
             // (breaks back-compatibility)
-            Q_INVOKABLE QUrl homeserver() const;
+            QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
-            Q_INVOKABLE User* user();
-            Q_INVOKABLE QString userId() const;
-            Q_INVOKABLE QString deviceId() const;
+            User* user();
+            QString userId() const;
+            QString deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
-            Q_INVOKABLE QByteArray accessToken() const;
+            QByteArray accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
@@ -257,6 +262,8 @@ namespace QMatrixClient
             void syncDone();
             void syncError(QString error);
 
+            void newUser(User* user);
+
             /**
              * \group Signals emitted on room transitions
              *
@@ -364,3 +371,4 @@ namespace QMatrixClient
             static user_factory_t userFactory;
     };
 }  // namespace QMatrixClient
+Q_DECLARE_METATYPE(QMatrixClient::Connection*)

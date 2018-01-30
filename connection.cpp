@@ -461,6 +461,7 @@ User* Connection::user(const QString& userId)
         return d->userMap.value(userId);
     auto* user = userFactory(this, userId);
     d->userMap.insert(userId, user);
+    emit newUser(user);
     return user;
 }
 
