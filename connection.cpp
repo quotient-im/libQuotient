@@ -39,6 +39,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QCoreApplication>
 
 using namespace QMatrixClient;
 
@@ -274,6 +275,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
             r->updateData(std::move(roomData));
+        QCoreApplication::instance()->processEvents();
     }
 
 }
