@@ -790,8 +790,8 @@ QString Room::roomMembername(const User* u) const
 //            << "is not a member of the room" << id();
 //    }
 
-    // In case of more than one namesake, disambiguate with user id.
-    return username % " (" % u->id() % ")";
+    // In case of more than one namesake, use the full name to disambiguate
+    return u->fullName();
 }
 
 QString Room::roomMembername(const QString& userId) const
