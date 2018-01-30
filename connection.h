@@ -71,6 +71,7 @@ namespace QMatrixClient
             virtual ~Connection();
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;
+            QMap<QString, User*> users() const;
 
             /** Sends /forget to the server and also deletes room locally.
              * This method is in Connection, not in Room, since it's a

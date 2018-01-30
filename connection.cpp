@@ -62,7 +62,7 @@ class Connection::Private
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
-        QHash<QString, User*> userMap;
+        QMap<QString, User*> userMap;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -514,6 +514,11 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
             ++it;
     }
     return roomMap;
+}
+
+QMap<QString, User*> Connection::users() const
+{
+    return d->userMap;
 }
 
 const ConnectionData* Connection::connectionData() const
