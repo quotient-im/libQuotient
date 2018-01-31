@@ -323,6 +323,13 @@ namespace QMatrixClient
             /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
 
+            /** The room has just been created by createRoom or createDirectChat
+             * This signal is not emitted in usual room state transitions,
+             * only as an outcome of room creation operations invoked by
+             * the client.
+             */
+            void createdRoom(Room* room);
+
             void cacheStateChanged();
 
         protected:

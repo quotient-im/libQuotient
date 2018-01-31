@@ -394,10 +394,14 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
     const QJsonObject creationContent)
 {
-    return callApi<CreateRoomJob>(
+    auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? "public" : "private", alias, name,
             topic, invites, invite3pids, creationContent, initialState,
             presetName, isDirect, guestsCanJoin);
+    connect(job, &BaseJob::success, this, [this,job] {
+        emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
+    });
+    return job;
 }
 
 CreateRoomJob* Connection::createDirectChat(const QString& userId,
