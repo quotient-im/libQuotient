@@ -1,6 +1,11 @@
 QT += network
 CONFIG += c++14 warn_on rtti_off
-QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
+
+win32-msvc* {
+    QMAKE_CXXFLAGS_WARN_ON += -wd4100
+} else {
+    QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
+}
 
 INCLUDEPATH += $$PWD
 
