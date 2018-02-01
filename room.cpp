@@ -1005,6 +1005,14 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
             (safeTempPrefix + fileInfo->originalName) :
         !event->plainBody().isEmpty() ? (safeTempPrefix + event->plainBody()) :
         (safeTempPrefix + fileInfo->mimeType.preferredSuffix());
+    if (QSysInfo::productType() == "windows")
+    {
+        const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (!suffixes.isEmpty() &&
+                std::none_of(suffixes.begin(), suffixes.end(),
+                    [fileName] (const QString& s) { return fileName.endsWith(s); }))
+            fileName += '.' + fileInfo->mimeType.preferredSuffix();
+    }
     auto job = connection()->downloadFile(fileInfo->url, fileName);
     if (isJobRunning(job))
     {
