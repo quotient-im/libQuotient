@@ -119,6 +119,9 @@ class Room::Private
                     if (p == 0)
                         p = -1;
                 }
+                if (p != -1)
+                    qCDebug(PROFILER) << "Transfer progress:" << p << "/" << t
+                        << "=" << llround(double(p) / t * 100) << "%";
                 progress = p; total = t;
             }
         };
