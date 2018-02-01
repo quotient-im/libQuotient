@@ -99,7 +99,7 @@ class Room::Private
 
         struct FileTransferPrivateInfo
         {
-#if defined(_MSC_VER) && _MSC_VER < 1910
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
             FileTransferPrivateInfo() = default;
             FileTransferPrivateInfo(BaseJob* j, QString fileName)
                 : job(j), localFileInfo(fileName)
@@ -561,7 +561,7 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
-#if defined(_MSC_VER) && _MSC_VER < 1910
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
     // A workaround for MSVC 2015 that fails with "error C2440: 'return':
     // cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
     FileTransferInfo fti;
