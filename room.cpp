@@ -543,6 +543,25 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+QString Room::fileNameToDownload(const QString& eventId)
+{
+    auto evtIt = findInTimeline(eventId);
+    if (evtIt != timelineEdge() &&
+            evtIt->event()->type() == EventType::RoomMessage)
+    {
+        auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
+        if (event->hasFileContent())
+        {
+            auto* fileInfo = event->content()->fileInfo();
+            return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
+                   !event->plainBody().isEmpty() ? event->plainBody() :
+                   QString();
+        }
+    }
+    qWarning() << "No files to download in event" << eventId;
+    return {};
+}
+
 FileTransferInfo Room::fileTransferInfo(const QString& id) const
 {
     auto infoIt = d->fileTransfers.find(id);
@@ -981,8 +1000,8 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
         !fileInfo->originalName.isEmpty() ?
             (safeTempPrefix + fileInfo->originalName) :
-        !event->plainBody().isEmpty() ?
-            (safeTempPrefix + event->plainBody()) : QString();
+        !event->plainBody().isEmpty() ? (safeTempPrefix + event->plainBody()) :
+        (safeTempPrefix + fileInfo->mimeType.preferredSuffix());
     auto job = connection()->downloadFile(fileInfo->url, fileName);
     if (isJobRunning(job))
     {

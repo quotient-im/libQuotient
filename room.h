@@ -215,6 +215,7 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
