@@ -66,18 +66,31 @@ class GetPublicRoomsJob::Private
         double totalRoomCountEstimate;
 };
 
-GetPublicRoomsJob::GetPublicRoomsJob(double limit, const QString& since, const QString& server)
-    : BaseJob(HttpVerb::Get, "GetPublicRoomsJob",
-        basePath % "/publicRooms", false)
-    , d(new Private)
+BaseJob::Query queryToGetPublicRooms(double limit, const QString& since, const QString& server)
 {
-    QUrlQuery _q;
+    BaseJob::Query _q;
     _q.addQueryItem("limit", QString("%1").arg(limit));
     if (!since.isEmpty())
         _q.addQueryItem("since", since);
     if (!server.isEmpty())
         _q.addQueryItem("server", server);
-    setRequestQuery(_q);
+    return _q;
+}
+
+QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, double limit, const QString& since, const QString& server)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/publicRooms",
+            queryToGetPublicRooms(limit, since, server));
+}
+
+GetPublicRoomsJob::GetPublicRoomsJob(double limit, const QString& since, const QString& server)
+    : BaseJob(HttpVerb::Get, "GetPublicRoomsJob",
+        basePath % "/publicRooms",
+        queryToGetPublicRooms(limit, since, server),
+        {}, false)
+    , d(new Private)
+{
 }
 
 GetPublicRoomsJob::~GetPublicRoomsJob() = default;
@@ -194,15 +207,20 @@ class QueryPublicRoomsJob::Private
         double totalRoomCountEstimate;
 };
 
-QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, const QString& since, const Filter& filter)
-    : BaseJob(HttpVerb::Post, "QueryPublicRoomsJob",
-        basePath % "/publicRooms")
-    , d(new Private)
+BaseJob::Query queryToQueryPublicRooms(const QString& server)
 {
-    QUrlQuery _q;
+    BaseJob::Query _q;
     if (!server.isEmpty())
         _q.addQueryItem("server", server);
-    setRequestQuery(_q);
+    return _q;
+}
+
+QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, const QString& since, const Filter& filter)
+    : BaseJob(HttpVerb::Post, "QueryPublicRoomsJob",
+        basePath % "/publicRooms",
+        queryToQueryPublicRooms(server))
+    , d(new Private)
+{
     QJsonObject _data;
     _data.insert("limit", toJson(limit));
     if (!since.isEmpty())

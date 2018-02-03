@@ -36,6 +36,13 @@ namespace QMatrixClient
 
             // End of inner data structures
 
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetPublicRoomsJob. This function can be used when
+             * a URL for GetPublicRoomsJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, double limit = {}, const QString& since = {}, const QString& server = {});
+
             explicit GetPublicRoomsJob(double limit = {}, const QString& since = {}, const QString& server = {});
             ~GetPublicRoomsJob() override;
 

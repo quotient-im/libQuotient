@@ -12,6 +12,12 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+QUrl LogoutJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/logout");
+}
+
 LogoutJob::LogoutJob()
     : BaseJob(HttpVerb::Post, "LogoutJob",
         basePath % "/logout")

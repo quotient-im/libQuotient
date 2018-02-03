@@ -32,6 +32,13 @@ namespace QMatrixClient
     class GetContentJob : public BaseJob
     {
         public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetContentJob. This function can be used when
+             * a URL for GetContentJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId);
+
             explicit GetContentJob(const QString& serverName, const QString& mediaId);
             ~GetContentJob() override;
 
@@ -50,6 +57,13 @@ namespace QMatrixClient
     class GetContentOverrideNameJob : public BaseJob
     {
         public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetContentOverrideNameJob. This function can be used when
+             * a URL for GetContentOverrideNameJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName);
+
             explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName);
             ~GetContentOverrideNameJob() override;
 
@@ -68,6 +82,13 @@ namespace QMatrixClient
     class GetContentThumbnailJob : public BaseJob
     {
         public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetContentThumbnailJob. This function can be used when
+             * a URL for GetContentThumbnailJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
+
             explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
             ~GetContentThumbnailJob() override;
 
@@ -85,6 +106,13 @@ namespace QMatrixClient
     class GetUrlPreviewJob : public BaseJob
     {
         public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetUrlPreviewJob. This function can be used when
+             * a URL for GetUrlPreviewJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, double ts = {});
+
             explicit GetUrlPreviewJob(const QString& url, double ts = {});
             ~GetUrlPreviewJob() override;
 

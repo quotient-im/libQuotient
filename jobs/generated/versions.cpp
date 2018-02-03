@@ -18,6 +18,12 @@ class GetVersionsJob::Private
         QVector<QString> versions;
 };
 
+QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/versions");
+}
+
 GetVersionsJob::GetVersionsJob()
     : BaseJob(HttpVerb::Get, "GetVersionsJob",
         basePath % "/versions", false)

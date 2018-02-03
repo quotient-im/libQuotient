@@ -200,6 +200,7 @@ namespace QMatrixClient
                 explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
                 virtual QMimeType type() const = 0;
                 virtual const FileInfo* fileInfo() const { return nullptr; }
+                virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
         };
 
         /**
@@ -255,6 +256,9 @@ namespace QMatrixClient
                     UrlBasedContent<InfoT>::originalJson.insert(
                                 "thumbnailMediaId", thumbnail.mediaId());
                 }
+
+                const Thumbnail* thumbnailInfo() const override
+                { return &thumbnail; }
 
             public:
                 Thumbnail thumbnail;

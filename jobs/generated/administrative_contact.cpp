@@ -42,6 +42,12 @@ class GetAccount3PIDsJob::Private
         QVector<ThirdPartyIdentifier> threepids;
 };
 
+QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/account/3pid");
+}
+
 GetAccount3PIDsJob::GetAccount3PIDsJob()
     : BaseJob(HttpVerb::Get, "GetAccount3PIDsJob",
         basePath % "/account/3pid")
@@ -100,6 +106,12 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
     _data.insert("three_pid_creds", toJson(threePidCreds));
     _data.insert("bind", toJson(bind));
     setRequestData(_data);
+}
+
+QUrl RequestTokenTo3PIDJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/account/3pid/email/requestToken");
 }
 
 RequestTokenTo3PIDJob::RequestTokenTo3PIDJob()

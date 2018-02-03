@@ -20,6 +20,11 @@ class DownloadFileJob::Private
         QScopedPointer<QFile> tempFile;
 };
 
+QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
+{
+    return makeRequestUrl(baseUrl, mxcUri.authority(), mxcUri.path().mid(1));
+}
+
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
                                  const QString& localFilename)

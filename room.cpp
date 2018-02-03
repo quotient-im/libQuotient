@@ -33,6 +33,7 @@
 #include "events/redactionevent.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/roommessagesjob.h"
+#include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
 #include "avatar.h"
 #include "connection.h"
@@ -136,6 +137,8 @@ class Room::Private
         // A map from event/txn ids to information about the long operation;
         // used for both download and upload operations
         QHash<QString, FileTransferPrivateInfo> fileTransfers;
+
+        const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
 
         // Convenience methods to work with the membersMap and usersLeft.
         // addMember() and removeMember() emit respective Room:: signals
@@ -546,22 +549,57 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
-QString Room::fileNameToDownload(const QString& eventId)
+const RoomMessageEvent*
+Room::Private::getEventWithFile(const QString& eventId) const
 {
-    auto evtIt = findInTimeline(eventId);
-    if (evtIt != timelineEdge() &&
+    auto evtIt = q->findInTimeline(eventId);
+    if (evtIt != timeline.rend() &&
             evtIt->event()->type() == EventType::RoomMessage)
     {
         auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
         if (event->hasFileContent())
-        {
-            auto* fileInfo = event->content()->fileInfo();
-            return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
-                   !event->plainBody().isEmpty() ? event->plainBody() :
-                   QString();
-        }
+            return event;
     }
     qWarning() << "No files to download in event" << eventId;
+    return nullptr;
+}
+
+QUrl Room::urlToThumbnail(const QString& eventId)
+{
+    if (auto* event = d->getEventWithFile(eventId))
+        if (event->hasThumbnail())
+        {
+            auto* thumbnail = event->content()->thumbnailInfo();
+            Q_ASSERT(thumbnail != nullptr);
+            return MediaThumbnailJob::makeRequestUrl(connection()->homeserver(),
+                    thumbnail->url, thumbnail->imageSize);
+        }
+    qDebug() << "Event" << eventId << "has no thumbnail";
+    return {};
+}
+
+QUrl Room::urlToDownload(const QString& eventId)
+{
+    if (auto* event = d->getEventWithFile(eventId))
+    {
+        auto* fileInfo = event->content()->fileInfo();
+        Q_ASSERT(fileInfo != nullptr);
+        return DownloadFileJob::makeRequestUrl(connection()->homeserver(),
+                                               fileInfo->url);
+    }
+    return {};
+}
+
+QString Room::fileNameToDownload(const QString& eventId)
+{
+    if (auto* event = d->getEventWithFile(eventId))
+    {
+        auto* fileInfo = event->content()->fileInfo();
+        Q_ASSERT(fileInfo != nullptr);
+        return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
+               !event->plainBody().isEmpty() ? event->plainBody() :
+               QString();
+    }
     return {};
 }
 
