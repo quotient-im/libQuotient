@@ -99,7 +99,7 @@ class Room::Private
 
         struct FileTransferPrivateInfo
         {
-#if defined(_MSC_VER) && _MSC_VER < 1910
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
             FileTransferPrivateInfo() = default;
             FileTransferPrivateInfo(BaseJob* j, QString fileName)
                 : job(j), localFileInfo(fileName)
@@ -119,6 +119,9 @@ class Room::Private
                     if (p == 0)
                         p = -1;
                 }
+                if (p != -1)
+                    qCDebug(PROFILER) << "Transfer progress:" << p << "/" << t
+                        << "=" << llround(double(p) / t * 100) << "%";
                 progress = p; total = t;
             }
         };
@@ -543,6 +546,25 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+QString Room::fileNameToDownload(const QString& eventId)
+{
+    auto evtIt = findInTimeline(eventId);
+    if (evtIt != timelineEdge() &&
+            evtIt->event()->type() == EventType::RoomMessage)
+    {
+        auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
+        if (event->hasFileContent())
+        {
+            auto* fileInfo = event->content()->fileInfo();
+            return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
+                   !event->plainBody().isEmpty() ? event->plainBody() :
+                   QString();
+        }
+    }
+    qWarning() << "No files to download in event" << eventId;
+    return {};
+}
+
 FileTransferInfo Room::fileTransferInfo(const QString& id) const
 {
     auto infoIt = d->fileTransfers.find(id);
@@ -561,7 +583,7 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
-#if defined(_MSC_VER) && _MSC_VER < 1910
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
     // A workaround for MSVC 2015 that fails with "error C2440: 'return':
     // cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
     FileTransferInfo fti;
@@ -790,8 +812,8 @@ QString Room::roomMembername(const User* u) const
 //            << "is not a member of the room" << id();
 //    }
 
-    // In case of more than one namesake, disambiguate with user id.
-    return username % " (" % u->id() % ")";
+    // In case of more than one namesake, use the full name to disambiguate
+    return u->fullName();
 }
 
 QString Room::roomMembername(const QString& userId) const
@@ -860,6 +882,17 @@ void Room::postMessage(const QString& plainText, MessageEventType type)
 void Room::postMessage(const RoomMessageEvent& event)
 {
     connection()->callApi<SendEventJob>(id(), event);
+}
+
+void Room::setName(const QString& newName)
+{
+    connection()->callApi<SetRoomStateJob>(id(), RoomNameEvent(newName));
+}
+
+void Room::setCanonicalAlias(const QString& newAlias)
+{
+    connection()->callApi<SetRoomStateJob>(id(),
+                                           RoomCanonicalAliasEvent(newAlias));
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -970,8 +1003,16 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
         !fileInfo->originalName.isEmpty() ?
             (safeTempPrefix + fileInfo->originalName) :
-        !event->plainBody().isEmpty() ?
-            (safeTempPrefix + event->plainBody()) : QString();
+        !event->plainBody().isEmpty() ? (safeTempPrefix + event->plainBody()) :
+        (safeTempPrefix + fileInfo->mimeType.preferredSuffix());
+    if (QSysInfo::productType() == "windows")
+    {
+        const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (!suffixes.isEmpty() &&
+                std::none_of(suffixes.begin(), suffixes.end(),
+                    [fileName] (const QString& s) { return fileName.endsWith(s); }))
+            fileName += '.' + fileInfo->mimeType.preferredSuffix();
+    }
     auto job = connection()->downloadFile(fileInfo->url, fileName);
     if (isJobRunning(job))
     {

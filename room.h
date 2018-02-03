@@ -215,6 +215,7 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
@@ -235,6 +236,8 @@ namespace QMatrixClient
             /** @deprecated If you have a custom event type, construct the event
              * and pass it as a whole to postMessage() */
             void postMessage(const QString& type, const QString& plainText);
+            void setName(const QString& newName);
+            void setCanonicalAlias(const QString& newAlias);
             void setTopic(const QString& newTopic);
 
             void getPreviousContent(int limit = 10);

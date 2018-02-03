@@ -28,6 +28,9 @@
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QPointer>
+#include <QtCore/QStringBuilder>
+
+#include <functional>
 
 using namespace QMatrixClient;
 
@@ -63,6 +66,15 @@ User::~User()
 QString User::id() const
 {
     return d->userId;
+}
+
+bool User::isGuest() const
+{
+    Q_ASSERT(!d->userId.isEmpty() && d->userId.startsWith('@'));
+    auto it = std::find_if_not(d->userId.begin() + 1, d->userId.end(),
+                               [] (QChar c) { return c.isDigit(); });
+    Q_ASSERT(it != d->userId.end());
+    return *it == ':';
 }
 
 QString User::name() const
@@ -121,12 +133,17 @@ void User::Private::setAvatar(UploadContentJob* job, User* q)
 
 QString User::displayname() const
 {
-    if( !d->name.isEmpty() )
-        return d->name;
-    return d->userId;
+    return d->name.isEmpty() ? d->userId : d->name;
 }
 
-QString User::bridged() const {
+QString User::fullName() const
+{
+    return d->name.isEmpty() ? d->userId :
+                               d->name % " (" % d->userId % ')';
+}
+
+QString User::bridged() const
+{
     return d->bridged;
 }
 

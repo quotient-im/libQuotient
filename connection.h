@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "jobs/generated/leaving.h"
+#include "jobs/generated/create_room.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -39,6 +39,7 @@ namespace QMatrixClient
     class SyncData;
     class RoomMessagesJob;
     class PostReceiptJob;
+    class ForgetRoomJob;
     class MediaThumbnailJob;
     class JoinRoomJob;
     class UploadContentJob;
@@ -51,6 +52,11 @@ namespace QMatrixClient
             /** Whether or not the rooms state should be cached locally
              * \sa loadState(), saveState()
              */
+            Q_PROPERTY(User* localUser READ user CONSTANT)
+            Q_PROPERTY(QString localUserId READ userId CONSTANT)
+            Q_PROPERTY(QString deviceId READ deviceId CONSTANT)
+            Q_PROPERTY(QByteArray accessToken READ accessToken CONSTANT)
+            Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
             using room_factory_t =
@@ -58,36 +64,25 @@ namespace QMatrixClient
             using user_factory_t =
                 std::function<User*(Connection*, const QString&)>;
 
+            enum RoomVisibility { PublishRoom, UnpublishRoom }; // FIXME: Should go inside CreateRoomJob
+
             explicit Connection(QObject* parent = nullptr);
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             virtual ~Connection();
 
             QHash<QPair<QString, bool>, Room*> roomMap() const;
-
-            /** Sends /forget to the server and also deletes room locally.
-             * This method is in Connection, not in Room, since it's a
-             * room lifecycle operation, and Connection is an acting room manager.
-             * It ensures that the local user is not a member of a room (running /leave,
-             * if necessary) then issues a /forget request and if that one doesn't fail
-             * deletion of the local Room object is ensured.
-             * \param id - the room id to forget
-             * \return - the ongoing /forget request to the server; note that the
-             * success() signal of this request is connected to deleteLater()
-             * of a respective room so by the moment this finishes, there might be no
-             * Room object anymore.
-             */
-            ForgetRoomJob* forgetRoom(const QString& id);
+            QMap<QString, User*> users() const;
 
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
             // (breaks back-compatibility)
-            Q_INVOKABLE QUrl homeserver() const;
+            QUrl homeserver() const;
             Q_INVOKABLE User* user(const QString& userId);
-            Q_INVOKABLE User* user();
-            Q_INVOKABLE QString userId() const;
-            Q_INVOKABLE QString deviceId() const;
+            User* user();
+            QString userId() const;
+            QString deviceId() const;
             /** @deprecated Use accessToken() instead. */
             Q_INVOKABLE QString token() const;
-            Q_INVOKABLE QByteArray accessToken() const;
+            QByteArray accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
@@ -145,7 +140,7 @@ namespace QMatrixClient
             template <typename T = Room>
             static void setRoomType()
             {
-                createRoom =
+                roomFactory =
                     [](Connection* c, const QString& id, JoinState joinState)
                     { return new T(c, id, joinState); };
             }
@@ -153,7 +148,7 @@ namespace QMatrixClient
             template <typename T = User>
             static void setUserType()
             {
-                createUser =
+                userFactory =
                     [](Connection* c, const QString& id) { return new T(id, c); };
             }
 
@@ -186,18 +181,49 @@ namespace QMatrixClient
                                             int requestedHeight) const;
 
             // QIODevice* should already be open
-            virtual UploadContentJob* uploadContent(QIODevice* contentSource,
+            UploadContentJob* uploadContent(QIODevice* contentSource,
                             const QString& filename = {},
                             const QString& contentType = {}) const;
-            virtual UploadContentJob* uploadFile(const QString& fileName,
-                                                 const QString& contentType = {});
-            virtual GetContentJob* getContent(const QString& mediaId) const;
+            UploadContentJob* uploadFile(const QString& fileName,
+                                         const QString& contentType = {});
+            GetContentJob* getContent(const QString& mediaId) const;
             GetContentJob* getContent(const QUrl& url) const;
             // If localFilename is empty, a temporary file will be created
-            virtual DownloadFileJob* downloadFile(const QUrl& url,
+            DownloadFileJob* downloadFile(const QUrl& url,
                             const QString& localFilename = {}) const;
 
+            /**
+             * \brief Create a room (generic method)
+             * This method allows to customize room entirely to your liking,
+             * providing all the attributes the original CS API provides.
+             */
+            CreateRoomJob* createRoom(RoomVisibility visibility,
+                const QString& alias, const QString& name, const QString& topic,
+                const QVector<QString>& invites, const QString& presetName = {}, bool isDirect = false,
+                bool guestsCanJoin = false,
+                const QVector<CreateRoomJob::StateEvent>& initialState = {},
+                const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
+                const QJsonObject creationContent = {});
+
+            /** Create a direct chat with a single user, optional name and topic */
+            CreateRoomJob* createDirectChat(const QString& userId,
+                const QString& topic = {}, const QString& name = {});
+
             virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+
+            /** Sends /forget to the server and also deletes room locally.
+             * This method is in Connection, not in Room, since it's a
+             * room lifecycle operation, and Connection is an acting room manager.
+             * It ensures that the local user is not a member of a room (running /leave,
+             * if necessary) then issues a /forget request and if that one doesn't fail
+             * deletion of the local Room object is ensured.
+             * \param id - the room id to forget
+             * \return - the ongoing /forget request to the server; note that the
+             * success() signal of this request is connected to deleteLater()
+             * of a respective room so by the moment this finishes, there might be no
+             * Room object anymore.
+             */
+            ForgetRoomJob* forgetRoom(const QString& id);
 
             // Old API that will be abolished any time soon. DO NOT USE.
 
@@ -236,6 +262,8 @@ namespace QMatrixClient
 
             void syncDone();
             void syncError(QString error);
+
+            void newUser(User* user);
 
             /**
              * \group Signals emitted on room transitions
@@ -295,6 +323,13 @@ namespace QMatrixClient
             /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
 
+            /** The room has just been created by createRoom or createDirectChat
+             * This signal is not emitted in usual room state transitions,
+             * only as an outcome of room creation operations invoked by
+             * the client.
+             */
+            void createdRoom(Room* room);
+
             void cacheStateChanged();
 
         protected:
@@ -310,7 +345,7 @@ namespace QMatrixClient
              * the server; in particular, does not automatically create rooms
              * on the server.
              * @return a pointer to a Room object with the specified id; nullptr
-             * if roomId is empty if createRoom() failed to create a Room object.
+             * if roomId is empty if roomFactory() failed to create a Room object.
              */
             Room* provideRoom(const QString& roomId, JoinState joinState);
 
@@ -340,7 +375,8 @@ namespace QMatrixClient
                                    const QString& initialDeviceName,
                                    const QString& deviceId = {});
 
-            static room_factory_t createRoom;
-            static user_factory_t createUser;
+            static room_factory_t roomFactory;
+            static user_factory_t userFactory;
     };
 }  // namespace QMatrixClient
+Q_DECLARE_METATYPE(QMatrixClient::Connection*)

@@ -1,0 +1,46 @@
+image: Visual Studio 2015
+
+environment:
+  #DEPLOY_DIR: libqmatrixclient-%APPVEYOR_BUILD_VERSION%
+  matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    QTDIR: C:\Qt\5.9\msvc2017_64
+    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+    PLATFORM:
+    MAKETOOL: cmake
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    QTDIR: C:\Qt\5.9\msvc2017_64
+    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+    PLATFORM:
+    MAKETOOL: qmake
+  - QTDIR: C:\Qt\5.9\msvc2015
+    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat"
+    PLATFORM: x86
+    MAKETOOL: cmake
+
+init:
+- call "%QTDIR%\bin\qtenv2.bat"
+- set PATH=C:\Qt\Tools\QtCreator\bin;%PATH%
+- call "%VCVARS%" %platform%
+- cd /D "%APPVEYOR_BUILD_FOLDER%"
+
+before_build:
+- git submodule update --init --recursive
+- if %MAKETOOL% == cmake cmake -G "NMake Makefiles JOM" -H. -Bbuild -DCMAKE_CXX_FLAGS="/EHsc /W3" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
+
+build_script:
+- if %MAKETOOL% == cmake cmake --build build
+- if %MAKETOOL% == qmake qmake && jom
+
+#after_build:
+#- cmake --build build --target install
+#- 7z a libqmatrixclient.zip "%DEPLOY_DIR%\"
+
+# Uncomment this to connect to the AppVeyor build worker
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+test: off
+
+#artifacts:
+#- path: libqmatrixclient.zip
