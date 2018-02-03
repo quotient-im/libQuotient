@@ -42,8 +42,15 @@ namespace QMatrixClient
             };
 {{/        trivial?}}{{/model}}
             // End of inner data structures
-{{/models}}
-            explicit {{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}{{/allParams}});{{!skip EOL
+{{/models}}{{^bodyParams}}
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * {{camelCaseOperationId}}Job. This function can be used when
+             * a URL for {{camelCaseOperationId}}Job is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
+{{/bodyParams}}
+            explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});{{!skip EOL
 }}{{#        responses}}{{#normalResponse?}}{{#allProperties?}}
             ~{{camelCaseOperationId}}Job() override;
 {{#allProperties}}

@@ -56,20 +56,33 @@ class {{camelCaseOperationId}}Job::Private
     public:{{#allProperties}}
         {{dataType.name}} {{paramName}};{{/allProperties}}
 };
-{{/    allProperties?}}{{/normalResponse?}}{{/responses}}
-{{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}{{/allParams}})
+{{/    allProperties?}}{{/normalResponse?}}{{/responses}}{{#queryParams?}}
+BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
+{
+    BaseJob::Query _q;{{#queryParams}}
+{{^required?}}{{#string?}}    if (!{{nameCamelCase}}.isEmpty())
+    {{/string?}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+    return _q;
+}
+{{/queryParams?}}{{^bodyParams}}
+QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDef}}{{/allParams}}{{/allParams?}})
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+            queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}});
+}
+{{/    bodyParams}}
+{{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDef}}{{/allParams}})
     : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
-        basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#skipAuth}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
+        basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+        queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}}{{#skipAuth}}{{#queryParams?}},
+        {}{{/queryParams?}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
     , d(new Private){{/allProperties?}}{{/normalResponse?}}{{/responses}}
 {
 {{#headerParams?}}{{#headerParams}}    setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
 {{/headerParams}}
 {{/headerParams?}}{{!
-}}{{#queryParams?}}    QUrlQuery _q;{{#queryParams}}
-{{^required?}}{{#string?}}    if (!{{nameCamelCase}}.isEmpty())
-    {{/string?}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
-    setRequestQuery(_q);
-{{/queryParams?}}{{#bodyParams?}}{{!
+}}{{#bodyParams?}}{{!
 }}{{#inlineBody}}    setRequestData(Data({{nameCamelCase}}));{{/inlineBody}}{{!
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())

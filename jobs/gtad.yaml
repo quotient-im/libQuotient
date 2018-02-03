@@ -25,7 +25,7 @@ types:
   number:
   - float: float
   - //: double
-  boolean: bool
+  boolean: { type: bool, initializer: false }
   string:
   - byte: &ByteStream
       type: QIODevice*
@@ -70,6 +70,9 @@ env:
   maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
   initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
+  joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
+  joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
+  passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'
   paramToString: '{{#string?}}{{nameCamelCase}}{{/string?}}{{^string?}}QString("%1").arg({{nameCamelCase}}){{/string?}}'
 #  preamble: preamble.mustache
   copyrightName: Kitsune Ral
