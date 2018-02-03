@@ -19,17 +19,22 @@ class UploadContentJob::Private
         QString contentUri;
 };
 
+BaseJob::Query queryToUploadContent(const QString& filename)
+{
+    BaseJob::Query _q;
+    if (!filename.isEmpty())
+        _q.addQueryItem("filename", filename);
+    return _q;
+}
+
 UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename, const QString& contentType)
     : BaseJob(HttpVerb::Post, "UploadContentJob",
-        basePath % "/upload")
+        basePath % "/upload",
+        queryToUploadContent(filename))
     , d(new Private)
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
 
-    QUrlQuery _q;
-    if (!filename.isEmpty())
-        _q.addQueryItem("filename", filename);
-    setRequestQuery(_q);
     setRequestData(Data(content));
 }
 
@@ -57,6 +62,12 @@ class GetContentJob::Private
         QString contentDisposition;
         QIODevice* content;
 };
+
+QUrl GetContentJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/download/" % serverName % "/" % mediaId);
+}
 
 GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId)
     : BaseJob(HttpVerb::Get, "GetContentJob",
@@ -99,6 +110,12 @@ class GetContentOverrideNameJob::Private
         QIODevice* content;
 };
 
+QUrl GetContentOverrideNameJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/download/" % serverName % "/" % mediaId % "/" % fileName);
+}
+
 GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName)
     : BaseJob(HttpVerb::Get, "GetContentOverrideNameJob",
         basePath % "/download/" % serverName % "/" % mediaId % "/" % fileName, false)
@@ -139,17 +156,30 @@ class GetContentThumbnailJob::Private
         QIODevice* content;
 };
 
-GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width, int height, const QString& method)
-    : BaseJob(HttpVerb::Get, "GetContentThumbnailJob",
-        basePath % "/thumbnail/" % serverName % "/" % mediaId, false)
-    , d(new Private)
+BaseJob::Query queryToGetContentThumbnail(int width, int height, const QString& method)
 {
-    QUrlQuery _q;
+    BaseJob::Query _q;
     _q.addQueryItem("width", QString("%1").arg(width));
     _q.addQueryItem("height", QString("%1").arg(height));
     if (!method.isEmpty())
         _q.addQueryItem("method", method);
-    setRequestQuery(_q);
+    return _q;
+}
+
+QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width, int height, const QString& method)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/thumbnail/" % serverName % "/" % mediaId,
+            queryToGetContentThumbnail(width, height, method));
+}
+
+GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width, int height, const QString& method)
+    : BaseJob(HttpVerb::Get, "GetContentThumbnailJob",
+        basePath % "/thumbnail/" % serverName % "/" % mediaId,
+        queryToGetContentThumbnail(width, height, method),
+        {}, false)
+    , d(new Private)
+{
     setExpectedContentTypes({ "image/jpeg", "image/png" });
 }
 
@@ -179,15 +209,27 @@ class GetUrlPreviewJob::Private
         QString ogImage;
 };
 
-GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, double ts)
-    : BaseJob(HttpVerb::Get, "GetUrlPreviewJob",
-        basePath % "/preview_url")
-    , d(new Private)
+BaseJob::Query queryToGetUrlPreview(const QString& url, double ts)
 {
-    QUrlQuery _q;
+    BaseJob::Query _q;
     _q.addQueryItem("url", url);
     _q.addQueryItem("ts", QString("%1").arg(ts));
-    setRequestQuery(_q);
+    return _q;
+}
+
+QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url, double ts)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/preview_url",
+            queryToGetUrlPreview(url, ts));
+}
+
+GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, double ts)
+    : BaseJob(HttpVerb::Get, "GetUrlPreviewJob",
+        basePath % "/preview_url",
+        queryToGetUrlPreview(url, ts))
+    , d(new Private)
+{
 }
 
 GetUrlPreviewJob::~GetUrlPreviewJob() = default;

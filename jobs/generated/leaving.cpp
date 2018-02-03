@@ -12,10 +12,22 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+QUrl LeaveRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/rooms/" % roomId % "/leave");
+}
+
 LeaveRoomJob::LeaveRoomJob(const QString& roomId)
     : BaseJob(HttpVerb::Post, "LeaveRoomJob",
         basePath % "/rooms/" % roomId % "/leave")
 {
+}
+
+QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/rooms/" % roomId % "/forget");
 }
 
 ForgetRoomJob::ForgetRoomJob(const QString& roomId)

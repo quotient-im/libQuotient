@@ -28,6 +28,12 @@ class GetDisplayNameJob::Private
         QString displayname;
 };
 
+QUrl GetDisplayNameJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/profile/" % userId % "/displayname");
+}
+
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetDisplayNameJob",
         basePath % "/profile/" % userId % "/displayname", false)
@@ -65,6 +71,12 @@ class GetAvatarUrlJob::Private
         QString avatarUrl;
 };
 
+QUrl GetAvatarUrlJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/profile/" % userId % "/avatar_url");
+}
+
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetAvatarUrlJob",
         basePath % "/profile/" % userId % "/avatar_url", false)
@@ -92,6 +104,12 @@ class GetUserProfileJob::Private
         QString avatarUrl;
         QString displayname;
 };
+
+QUrl GetUserProfileJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/profile/" % userId);
+}
 
 GetUserProfileJob::GetUserProfileJob(const QString& userId)
     : BaseJob(HttpVerb::Get, "GetUserProfileJob",

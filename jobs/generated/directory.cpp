@@ -29,6 +29,12 @@ class GetRoomIdByAliasJob::Private
         QVector<QString> servers;
 };
 
+QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/room/" % roomAlias);
+}
+
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, "GetRoomIdByAliasJob",
         basePath % "/room/" % roomAlias, false)
@@ -54,6 +60,12 @@ BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
     d->roomId = fromJson<QString>(json.value("room_id"));
     d->servers = fromJson<QVector<QString>>(json.value("servers"));
     return Success;
+}
+
+QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/room/" % roomAlias);
 }
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
