@@ -212,6 +212,14 @@ namespace QMatrixClient
             void addExpectedContentType(const QByteArray& contentType);
             void setExpectedContentTypes(const QByteArrayList& contentTypes);
 
+            /** Construct a URL out of baseUrl, path and query
+             * The function automatically adds '/' between baseUrl's path and
+             * \p path if necessary. The query component of \p baseUrl
+             * is ignored.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
+                                       const QUrlQuery& query = {});
+
             virtual void beforeStart(const ConnectionData* connData);
             virtual void afterStart(const ConnectionData* connData,
                                     QNetworkReply* reply);
