@@ -9,6 +9,9 @@ namespace QMatrixClient
         public:
             enum { FileError = BaseJob::UserDefinedError + 1 };
 
+            using GetContentJob::makeRequestUrl;
+            static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri);
+
             DownloadFileJob(const QString& serverName, const QString& mediaId,
                             const QString& localFilename = {});
 
