@@ -52,10 +52,12 @@ QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 
 BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
 {
-    GetContentThumbnailJob::parseReply(reply);
-    if( !_thumbnail.loadFromData(content()->readAll()) )
-    {
-        qCDebug(JOBS) << "MediaThumbnailJob: could not read image data";
-    }
-    return Success;
+    auto result = GetContentThumbnailJob::parseReply(reply);
+    if (!result.good())
+        return result;
+
+    if( _thumbnail.loadFromData(content()->readAll()) )
+        return Success;
+
+    return { IncorrectResponseError, "Could not read image data" };
 }
