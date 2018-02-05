@@ -20,6 +20,13 @@
 
 using namespace QMatrixClient;
 
+QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl,
+                                       const QUrl& mxcUri, QSize requestedSize)
+{
+    return makeRequestUrl(baseUrl, mxcUri.authority(), mxcUri.path().mid(1),
+                          requestedSize.width(), requestedSize.height());
+}
+
 MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
                                      const QString& mediaId, QSize requestedSize)
     : GetContentThumbnailJob(serverName, mediaId,

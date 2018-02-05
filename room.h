@@ -215,6 +215,8 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
+            Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
             Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
 

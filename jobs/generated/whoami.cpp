@@ -18,6 +18,12 @@ class GetTokenOwnerJob::Private
         QString userId;
 };
 
+QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/account/whoami");
+}
+
 GetTokenOwnerJob::GetTokenOwnerJob()
     : BaseJob(HttpVerb::Get, "GetTokenOwnerJob",
         basePath % "/account/whoami")

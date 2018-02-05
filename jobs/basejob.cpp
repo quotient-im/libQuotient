@@ -179,17 +179,22 @@ void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
     d->expectedContentTypes = contentTypes;
 }
 
+QUrl BaseJob::makeRequestUrl(QUrl baseUrl,
+                             const QString& path, const QUrlQuery& query)
+{
+    auto pathBase = baseUrl.path();
+    if (!pathBase.endsWith('/') && !path.startsWith('/'))
+        pathBase.push_back('/');
+
+    baseUrl.setPath( pathBase + path );
+    baseUrl.setQuery(query);
+    return baseUrl;
+}
+
 void BaseJob::Private::sendRequest()
 {
-    QUrl url = connection->baseUrl();
-    QString path = url.path();
-    if (!path.endsWith('/') && !apiEndpoint.startsWith('/'))
-        path.push_back('/');
-
-    url.setPath( path + apiEndpoint );
-    url.setQuery(requestQuery);
-
-    QNetworkRequest req {url};
+    QNetworkRequest req
+        { makeRequestUrl(connection->baseUrl(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setRawHeader(QByteArray("Authorization"),

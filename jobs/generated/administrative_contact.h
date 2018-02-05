@@ -29,6 +29,13 @@ namespace QMatrixClient
 
             // End of inner data structures
 
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetAccount3PIDsJob. This function can be used when
+             * a URL for GetAccount3PIDsJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
             explicit GetAccount3PIDsJob();
             ~GetAccount3PIDsJob() override;
 
@@ -64,6 +71,13 @@ namespace QMatrixClient
     class RequestTokenTo3PIDJob : public BaseJob
     {
         public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * RequestTokenTo3PIDJob. This function can be used when
+             * a URL for RequestTokenTo3PIDJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
             explicit RequestTokenTo3PIDJob();
     };
 } // namespace QMatrixClient

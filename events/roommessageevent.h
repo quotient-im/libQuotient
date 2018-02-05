@@ -61,6 +61,7 @@ namespace QMatrixClient
             QMimeType mimeType() const;
             bool hasTextContent() const;
             bool hasFileContent() const;
+            bool hasThumbnail() const;
 
             QJsonObject toJson() const;
 

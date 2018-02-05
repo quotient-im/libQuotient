@@ -128,6 +128,11 @@ bool RoomMessageEvent::hasFileContent() const
     return content() && content()->fileInfo();
 }
 
+bool RoomMessageEvent::hasThumbnail() const
+{
+    return content() && content()->thumbnailInfo();
+}
+
 QJsonObject RoomMessageEvent::toJson() const
 {
     QJsonObject obj = _content ? _content->toJson() : QJsonObject();
