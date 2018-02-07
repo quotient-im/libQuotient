@@ -53,16 +53,17 @@ namespace QMatrixClient
 
             explicit RoomMemberEvent(const QJsonObject& obj)
                 : StateEvent(Type::RoomMember, obj)
-                , _userId(obj["state_key"].toString())
+//                , _userId(obj["state_key"].toString())
             { }
 
             MembershipType membership() const  { return content().membership; }
-            QString userId() const      { return _userId; }
+            QString userId() const
+            { return originalJsonObject().value("state_key").toString(); }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
 
         private:
-            QString _userId;
+//            QString _userId;
             REGISTER_ENUM(MembershipType)
     };
 }  // namespace QMatrixClient

@@ -167,10 +167,10 @@ namespace QMatrixClient
             RoomEvent(Type type, const QJsonObject& rep);
             ~RoomEvent();
 
-            const QString& id() const { return _id; }
-            const QDateTime& timestamp() const { return _serverTimestamp; }
-            const QString& roomId() const { return _roomId; }
-            const QString& senderId() const { return _senderId; }
+            QString id() const { return _id; }
+            QDateTime timestamp() const;
+            QString roomId() const;
+            QString senderId() const;
             bool isRedacted() const { return bool(_redactedBecause); }
             const RedactionEvent* redactedBecause() const
             {
@@ -202,9 +202,9 @@ namespace QMatrixClient
 
         private:
             QString _id;
-            QString _roomId;
-            QString _senderId;
-            QDateTime _serverTimestamp;
+//            QString _roomId;
+//            QString _senderId;
+//            QDateTime _serverTimestamp;
             event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
