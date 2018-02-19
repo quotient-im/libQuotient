@@ -138,7 +138,7 @@ QString RoomEvent::roomId() const
 
 QString RoomEvent::senderId() const
 {
-    return originalJsonObject().value("sender_id").toString();
+    return originalJsonObject().value("sender").toString();
 }
 
 QString RoomEvent::redactionReason() const
