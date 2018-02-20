@@ -448,6 +448,7 @@ void BaseJob::setStatus(int code, QString message)
 void BaseJob::abandon()
 {
     beforeAbandon(d->reply.data());
+    setStatus(Abandoned);
     this->disconnect();
     if (d->reply)
         d->reply->disconnect(this);

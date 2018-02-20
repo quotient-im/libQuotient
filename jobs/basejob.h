@@ -53,7 +53,8 @@ namespace QMatrixClient
             enum StatusCode { NoError = 0 // To be compatible with Qt conventions
                 , Success = 0
                 , Pending = 1
-                , ErrorLevel = 100 // Errors have codes starting from this
+                , Abandoned = 50 //< A very brief period between abandoning and object deletion
+                , ErrorLevel = 100 //< Errors have codes starting from this
                 , NetworkError = 100
                 , JsonParseError
                 , TimeoutError
