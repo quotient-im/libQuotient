@@ -39,17 +39,15 @@ class User::Private
     public:
         Private(QString userId, Connection* connection)
             : userId(std::move(userId)), connection(connection)
-            , avatar(connection, QIcon::fromTheme(QStringLiteral("user-available")))
         { }
 
         QString userId;
         QString name;
         QString bridged;
         Connection* connection;
-        Avatar avatar;
-        QPointer<UploadContentJob> avatarUploadJob = nullptr;
+        Avatar avatar { QIcon::fromTheme(QStringLiteral("user-available")) };
 
-        void setAvatar(UploadContentJob* job, User* q);
+        void setAvatar(QString contentUri, User* q);
 };
 
 User::User(QString userId, Connection* connection)
@@ -107,28 +105,20 @@ void User::rename(const QString& newName)
 
 bool User::setAvatar(const QString& fileName)
 {
-    if (isJobRunning(d->avatarUploadJob))
-        return false;
-    d->setAvatar(d->connection->uploadFile(fileName), this);
-    return true;
+    return avatarObject().upload(d->connection, fileName,
+                [this] (QString contentUri) { d->setAvatar(contentUri, this); });
 }
 
 bool User::setAvatar(QIODevice* source)
 {
-    if (isJobRunning(d->avatarUploadJob) || !source->isReadable())
-        return false;
-    d->setAvatar(d->connection->uploadContent(source), this);
-    return true;
+    return avatarObject().upload(d->connection, source,
+                [this] (QString contentUri) { d->setAvatar(contentUri, this); });
 }
 
-void User::Private::setAvatar(UploadContentJob* job, User* q)
+void User::Private::setAvatar(QString contentUri, User* q)
 {
-    avatarUploadJob = job;
-    connect(job, &BaseJob::success, q, [this,q] {
-        auto* j = connection->callApi<SetAvatarUrlJob>(
-                        userId, avatarUploadJob->contentUri());
-        connect(j, &BaseJob::success, q, [q] { emit q->avatarChanged(q); });
-    });
+    auto* j = connection->callApi<SetAvatarUrlJob>(userId, contentUri);
+    connect(j, &BaseJob::success, q, [q] { emit q->avatarChanged(q); });
 }
 
 QString User::displayname() const
@@ -159,17 +149,23 @@ QImage User::avatar(int dimension)
 
 QImage User::avatar(int width, int height)
 {
-    return d->avatar.get(width, height, [=] { emit avatarChanged(this); });
+    return avatar(width, height, []{});
+}
+
+QImage User::avatar(int width, int height, Avatar::get_callback_t callback)
+{
+    return avatarObject().get(d->connection, width, height,
+                      [this,callback] { emit avatarChanged(this); callback(); });
 }
 
 QString User::avatarMediaId() const
 {
-    return d->avatar.mediaId();
+    return avatarObject().mediaId();
 }
 
 QUrl User::avatarUrl() const
 {
-    return d->avatar.url();
+    return avatarObject().url();
 }
 
 void User::processEvent(Event* event)

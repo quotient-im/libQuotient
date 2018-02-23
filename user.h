@@ -84,7 +84,8 @@ namespace QMatrixClient
 
             const Avatar& avatarObject() const;
             Q_INVOKABLE QImage avatar(int dimension);
-            Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight);
+            Q_INVOKABLE QImage avatar(int width, int height);
+            QImage avatar(int width, int height, Avatar::get_callback_t callback);
 
             QString avatarMediaId() const;
             QUrl avatarUrl() const;

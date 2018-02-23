@@ -30,10 +30,13 @@ using namespace QMatrixClient;
 class Avatar::Private
 {
     public:
-        Private(Connection* c, QIcon di) : _connection(c), _defaultIcon(di) { }
-        QImage get(QSize size, Avatar::notifier_t notifier) const;
+        explicit Private(QIcon di, QUrl url = {})
+            : _defaultIcon(di), _url(url)
+        { }
+        QImage get(Connection* connection, QSize size,
+                   get_callback_t callback) const;
+        bool upload(UploadContentJob* job, upload_callback_t callback);
 
-        Connection* _connection;
         const QIcon _defaultIcon;
         QUrl _url;
 
@@ -42,24 +45,52 @@ class Avatar::Private
         mutable std::vector<QPair<QSize, QImage>> _scaledImages;
         mutable QSize _requestedSize;
         mutable bool _valid = false;
-        mutable QPointer<MediaThumbnailJob> _ongoingRequest = nullptr;
-        mutable std::vector<notifier_t> notifiers;
+        mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
+        mutable QPointer<BaseJob> _uploadRequest = nullptr;
+        mutable std::vector<get_callback_t> callbacks;
+        mutable get_callback_t uploadCallback;
 };
 
-Avatar::Avatar(Connection* connection, QIcon defaultIcon)
-    : d(new Private { connection, std::move(defaultIcon) })
+Avatar::Avatar(QIcon defaultIcon)
+    : d(std::make_unique<Private>(std::move(defaultIcon)))
 { }
+
+Avatar::Avatar(QUrl url, QIcon defaultIcon)
+    : d(std::make_unique<Private>(std::move(defaultIcon), std::move(url)))
+{ }
+
+Avatar::Avatar(Avatar&&) = default;
 
 Avatar::~Avatar() = default;
 
-QImage Avatar::get(int dimension, notifier_t notifier) const
+Avatar& Avatar::operator=(Avatar&&) = default;
+
+QImage Avatar::get(Connection* connection, int dimension,
+                   get_callback_t callback) const
 {
-    return d->get({dimension, dimension}, notifier);
+    return d->get(connection, {dimension, dimension}, callback);
 }
 
-QImage Avatar::get(int width, int height, notifier_t notifier) const
+QImage Avatar::get(Connection* connection, int width, int height,
+                   get_callback_t callback) const
 {
-    return d->get({width, height}, notifier);
+    return d->get(connection, {width, height}, callback);
+}
+
+bool Avatar::upload(Connection* connection, const QString& fileName,
+                    upload_callback_t callback) const
+{
+    if (isJobRunning(d->_uploadRequest))
+        return false;
+    return d->upload(connection->uploadFile(fileName), callback);
+}
+
+bool Avatar::upload(Connection* connection, QIODevice* source,
+                    upload_callback_t callback) const
+{
+    if (isJobRunning(d->_uploadRequest) || !source->isReadable())
+        return false;
+    return d->upload(connection->uploadContent(source), callback);
 }
 
 QString Avatar::mediaId() const
@@ -67,28 +98,29 @@ QString Avatar::mediaId() const
     return d->_url.authority() + d->_url.path();
 }
 
-QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier) const
+QImage Avatar::Private::get(Connection* connection, QSize size,
+                            get_callback_t callback) const
 {
     // FIXME: Alternating between longer-width and longer-height requests
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
     // This is plain abuse by the client, though; so not critical for now.
-    if( ( !(_valid || _ongoingRequest)
+    if( ( !(_valid || _thumbnailRequest)
           || size.width() > _requestedSize.width()
           || size.height() > _requestedSize.height() ) && _url.isValid() )
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
-        if (isJobRunning(_ongoingRequest))
-            _ongoingRequest->abandon();
-        notifiers.emplace_back(std::move(notifier));
-        _ongoingRequest = _connection->getThumbnail(_url, size);
-        QObject::connect( _ongoingRequest, &MediaThumbnailJob::success, [this]
+        if (isJobRunning(_thumbnailRequest))
+            _thumbnailRequest->abandon();
+        callbacks.emplace_back(std::move(callback));
+        _thumbnailRequest = connection->getThumbnail(_url, size);
+        QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success, [this]
         {
             _valid = true;
-            _originalImage = _ongoingRequest->scaledThumbnail(_requestedSize);
+            _originalImage = _thumbnailRequest->scaledThumbnail(_requestedSize);
             _scaledImages.clear();
-            for (auto n: notifiers)
+            for (auto n: callbacks)
                 n();
         });
     }
@@ -111,6 +143,16 @@ QImage Avatar::Private::get(QSize size, Avatar::notifier_t notifier) const
     return result;
 }
 
+bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t callback)
+{
+    _uploadRequest = job;
+    if (!isJobRunning(_uploadRequest))
+        return false;
+    _uploadRequest->connect(_uploadRequest, &BaseJob::success,
+                            [job,callback] { callback(job->contentUri()); });
+    return true;
+}
+
 QUrl Avatar::url() const { return d->_url; }
 
 bool Avatar::updateUrl(const QUrl& newUrl)
@@ -127,6 +169,8 @@ bool Avatar::updateUrl(const QUrl& newUrl)
     }
     d->_url = newUrl;
     d->_valid = false;
+    if (isJobRunning(d->_thumbnailRequest))
+        d->_thumbnailRequest->abandon();
     return true;
 }
 

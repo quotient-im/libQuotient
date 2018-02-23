@@ -64,7 +64,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , avatar(c), joinState(initialJoinState)
+            , joinState(initialJoinState)
         { }
 
         Room* q;
@@ -287,7 +287,7 @@ QImage Room::avatar(int dimension)
 QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
-        return d->avatar.get(width, height, [=] { emit avatarChanged(); });
+        return d->avatar.get(connection(), width, height, [=] { emit avatarChanged(); });
 
     // Use the other side's avatar for 1:1's
     if (d->membersMap.size() == 2)
@@ -295,8 +295,8 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return (*theOtherOneIt)->avatarObject()
-                    .get(width, height, [=] { emit avatarChanged(); });
+        return (*theOtherOneIt)->avatar(width, height,
+                                        [=] { emit avatarChanged(); });
     }
     return {};
 }
