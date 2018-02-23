@@ -161,6 +161,28 @@ namespace QMatrixClient
             Q_INVOKABLE QImage avatar(int width, int height);
 
             /**
+             * @brief Get a user object for a given user id
+             * This is the recommended way to get a user object in a room
+             * context. The actual object type may be changed in further
+             * versions to provide room-specific user information (display name,
+             * avatar etc.).
+             * \note The method will return a valid user regardless of
+             *       the membership.
+             */
+            Q_INVOKABLE User* user(const QString& userId) const;
+
+            /**
+             * \brief Check the join state of a given user in this room
+             *
+             * \note Banned and invited users are not tracked for now (Leave
+             *       will be returned for them).
+             *
+             * \return either of Join, Leave, depending on the given
+             *         user's state in the room
+             */
+            Q_INVOKABLE JoinState memberJoinState(User* user) const;
+
+            /**
              * @brief Produces a disambiguated name for a given user in
              * the context of the room
              */
