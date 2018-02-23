@@ -44,7 +44,7 @@ namespace QMatrixClient
                     return MembershipType(it - membershipStrings.begin());
 
             qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
-            return MembershipType::Join;
+            return MembershipType::Undefined;
         }
     };
 }
@@ -58,7 +58,11 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
 void MemberEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
-    o->insert("membership", membershipStrings[membership]);
+    Q_ASSERT_X(membership != MembershipType::Undefined, __FUNCTION__,
+             "The key 'membership' must be explicit in MemberEventContent");
+    if (membership != MembershipType::Undefined)
+        o->insert("membership", membershipStrings[membership]);
     o->insert("displayname", displayName);
-    o->insert("avatar_url", avatarUrl.toString());
+    if (avatarUrl.isValid())
+        o->insert("avatar_url", avatarUrl.toString());
 }
