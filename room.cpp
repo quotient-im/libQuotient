@@ -142,7 +142,7 @@ class Room::Private
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
-        void renameMember(User* u, QString oldName);
+        void renameMember(User* u, QString oldName, const Room* context);
         void removeMemberFromMap(const QString& username, User* u);
 
         void getPreviousContent(int limit = 10);
@@ -286,7 +286,7 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return (*theOtherOneIt)->avatar(width, height,
+        return (*theOtherOneIt)->avatar(width, height, this,
                                         [=] { emit avatarChanged(); });
     }
     return {};
@@ -300,7 +300,7 @@ User* Room::user(const QString& userId) const
 JoinState Room::memberJoinState(User* user) const
 {
     return
-        d->membersMap.contains(user->name(), user) ? JoinState::Join :
+        d->membersMap.contains(user->name(this), user) ? JoinState::Join :
         JoinState::Leave;
 }
 
@@ -720,7 +720,7 @@ int Room::timelineSize() const
 
 void Room::Private::insertMemberIntoMap(User *u)
 {
-    const auto userName = u->name();
+    const auto userName = u->name(q);
     auto namesakes = membersMap.values(userName);
     membersMap.insert(userName, u);
     // If there is exactly one namesake of the added user, signal member renaming
@@ -729,12 +729,14 @@ void Room::Private::insertMemberIntoMap(User *u)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::renameMember(User* u, QString oldName)
+void Room::Private::renameMember(User* u, QString oldName, const Room* context)
 {
+    if (context != q)
+        return; // It's not a rename for this room
     if (q->memberJoinState(u) == JoinState::Join)
     {
         qCWarning(MAIN) << "Room::Private::renameMember(): the user "
-                        << u->fullName()
+                        << u->fullName(q)
                         << "is already known in the room under a new name.";
         return;
     }
@@ -797,7 +799,7 @@ QString Room::roomMembername(const User* u) const
 {
     // See the CS spec, section 11.2.2.3
 
-    const auto username = u->name();
+    const auto username = u->name(this);
     if (username.isEmpty())
         return u->id();
 
@@ -820,7 +822,7 @@ QString Room::roomMembername(const User* u) const
 //    }
 
     // In case of more than one namesake, use the full name to disambiguate
-    return u->fullName();
+    return u->fullName(this);
 }
 
 QString Room::roomMembername(const QString& userId) const
@@ -1319,14 +1321,14 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::RoomMember: {
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
                 auto u = user(memberEvent->userId());
-                u->processEvent(memberEvent);
+                u->processEvent(memberEvent, this);
                 if( memberEvent->membership() == MembershipType::Join )
                 {
                     if (memberJoinState(u) != JoinState::Join)
                     {
                         d->insertMemberIntoMap(u);
                         connect(u, &User::nameChanged, this,
-                                std::bind(&Private::renameMember, d, u, _2));
+                                std::bind(&Private::renameMember, d, u, _2, _3));
                         emit userAdded(u);
                     }
                 }
@@ -1336,7 +1338,7 @@ void Room::processStateEvents(const RoomEvents& events)
                     {
                         if (!d->membersLeft.contains(u))
                             d->membersLeft.append(u);
-                        d->removeMemberFromMap(u->name(), u);
+                        d->removeMemberFromMap(u->name(this), u);
                         emit userRemoved(u);
                     }
                 }
@@ -1532,8 +1534,8 @@ QJsonObject Room::Private::toJson() const
         {
             QJsonObject content;
             content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", m->name());
-            content.insert("avatar_url", m->avatarUrl().toString());
+            content.insert("displayname", m->name(q));
+            content.insert("avatar_url", m->avatarUrl(q).toString());
 
             QJsonObject memberEvent;
             memberEvent.insert("type", QStringLiteral("m.room.member"));

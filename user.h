@@ -24,8 +24,10 @@
 
 namespace QMatrixClient
 {
-    class Event;
     class Connection;
+    class Room;
+    class RoomMemberEvent;
+
     class User: public QObject
     {
             Q_OBJECT
@@ -51,7 +53,7 @@ namespace QMatrixClient
              * it.
              * \sa displayName
              */
-            QString name() const;
+            QString name(const Room* room = nullptr) const;
 
             /** Get the displayed user name
              * This method returns the result of name() if its non-empty;
@@ -60,7 +62,7 @@ namespace QMatrixClient
              * should be disambiguated.
              * \sa name, id, fullName Room::roomMembername
              */
-            QString displayname() const;
+            QString displayname(const Room* room = nullptr) const;
 
             /** Get user name and id in one string
              * The constructed string follows the format 'name (id)'
@@ -68,7 +70,7 @@ namespace QMatrixClient
              * places.
              * \sa displayName, Room::roomMembername
              */
-            QString fullName() const;
+            QString fullName(const Room* room = nullptr) const;
 
             /**
              * Returns the name of bridge the user is connected from or empty.
@@ -82,32 +84,34 @@ namespace QMatrixClient
              */
             bool isGuest() const;
 
-            const Avatar& avatarObject() const;
-            Q_INVOKABLE QImage avatar(int dimension);
-            Q_INVOKABLE QImage avatar(int width, int height);
-            QImage avatar(int width, int height, Avatar::get_callback_t callback);
+            const Avatar& avatarObject(const Room* room = nullptr) const;
+            Q_INVOKABLE QImage avatar(int dimension, const Room* room = nullptr);
+            Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
+                                      const Room* room = nullptr);
+            QImage avatar(int width, int height, const Room* room, Avatar::get_callback_t callback);
 
-            QString avatarMediaId() const;
-            QUrl avatarUrl() const;
+            QString avatarMediaId(const Room* room = nullptr) const;
+            QUrl avatarUrl(const Room* room = nullptr) const;
 
-            void processEvent(Event* event);
+            void processEvent(RoomMemberEvent* event, const Room* r = nullptr);
 
         public slots:
             void rename(const QString& newName);
+            void rename(const QString& newName, const Room* r);
             bool setAvatar(const QString& fileName);
             bool setAvatar(QIODevice* source);
 
         signals:
-            void nameChanged(QString newName, QString oldName);
-            void avatarChanged(User* user);
+            void nameChanged(QString newName, QString oldName,
+                             const Room* roomContext);
+            void avatarChanged(User* user, const Room* roomContext);
 
         private slots:
-            void updateName(const QString& newName);
-            void updateAvatarUrl(const QUrl& newUrl);
+            void updateName(const QString& newName, const Room* room = nullptr);
 
         private:
             class Private;
-            Private* d;
+            QScopedPointer<Private> d;
     };
 }
 Q_DECLARE_METATYPE(QMatrixClient::User*)
