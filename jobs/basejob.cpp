@@ -267,6 +267,12 @@ void BaseJob::gotReply()
     setStatus(checkReply(d->reply.data()));
     if (status().good())
         setStatus(parseReply(d->reply.data()));
+    else
+    {
+        auto json = QJsonDocument::fromJson(d->reply->readAll()).object();
+        if (!json.isEmpty())
+            setStatus(IncorrectRequestError, json.value("error").toString());
+    }
 
     finishJob();
 }
