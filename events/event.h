@@ -296,10 +296,10 @@ namespace QMatrixClient
 
             QJsonObject toJson() const { return _content.toJson(); }
 
-            ContentT content() const { return _content; }
+            const ContentT& content() const { return _content; }
             /** @deprecated Use prevContent instead */
-            ContentT* prev_content() const { return prevContent(); }
-            ContentT* prevContent() const
+            const ContentT* prev_content() const { return prevContent(); }
+            const ContentT* prevContent() const
             { return _prev ? &_prev->content : nullptr; }
             QString prevSenderId() const { return _prev ? _prev->senderId : ""; }
 
