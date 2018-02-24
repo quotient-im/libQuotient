@@ -113,6 +113,8 @@ namespace QMatrixClient
             void updateName(const QString& newName, const Room* room = nullptr);
             void updateName(const QString& newName, const QString& oldName,
                             const Room* room = nullptr);
+            void updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
+                                 const Room* room = nullptr);
 
         private:
             class Private;
