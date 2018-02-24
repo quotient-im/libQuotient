@@ -32,7 +32,7 @@ namespace QMatrixClient
     {
         public:
             explicit Avatar(QIcon defaultIcon = {});
-            Avatar(QUrl url, QIcon defaultIcon = {});
+            explicit Avatar(QUrl url, QIcon defaultIcon = {});
             Avatar(Avatar&&);
             ~Avatar();
             Avatar& operator=(Avatar&&);
