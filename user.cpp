@@ -62,8 +62,8 @@ class User::Private
 
         mutable int totalRooms = 0;
 
-        QString nameForRoom(const Room* r) const;
-        std::pair<bool, QString> setNameForRoom(const Room* r, QString newName);
+        QString nameForRoom(const Room* r, const QString& hint = {}) const;
+        void setNameForRoom(const Room* r, QString newName, QString oldName);
         const Avatar& avatarForRoom(const Room* r) const;
         bool setAvatarUrlForRoom(const Room* r, const QUrl& avatarUrl);
 
@@ -78,34 +78,29 @@ QIcon User::Private::defaultIcon()
     return icon;
 }
 
-QString User::Private::nameForRoom(const Room* r) const
+QString User::Private::nameForRoom(const Room* r, const QString& hint) const
 {
+    // If the hint is accurate, this function is O(1) instead of O(n)
+    if (hint == mostUsedName || otherNames.contains(hint, r))
+        return hint;
     return otherNames.key(r, mostUsedName);
 }
 
-static constexpr int MIN_JOINED_ROOMS_TO_LOG = 100;
+static constexpr int MIN_JOINED_ROOMS_TO_LOG = 20;
 
-std::pair<bool, QString> User::Private::setNameForRoom(const Room* r,
-                                                       QString newName)
+void User::Private::setNameForRoom(const Room* r, QString newName,
+                                   QString oldName)
 {
+    Q_ASSERT(oldName != newName);
+    Q_ASSERT(oldName == mostUsedName || otherNames.contains(oldName, r));
     if (totalRooms < 2)
     {
         Q_ASSERT_X(totalRooms > 0 && otherNames.empty(), __FUNCTION__,
                    "Internal structures inconsistency");
-        // The below uses that initialization list evaluation is ordered
-        return { mostUsedName != newName,
-                    exchange(mostUsedName, move(newName)) };
+        mostUsedName = move(newName);
+        return;
     }
-    QString oldName;
-    // The below works because QMultiHash iterators dereference to stored values
-    auto it = std::find(otherNames.begin(), otherNames.end(), r);
-    if (it != otherNames.end())
-    {
-        oldName = it.key();
-        if (oldName == newName)
-            return { false, oldName }; // old name and new name coincide
-        otherNames.erase(it);
-    }
+    otherNames.remove(oldName, r);
     if (newName != mostUsedName)
     {
         // Check if the newName is about to become most used.
@@ -134,7 +129,6 @@ std::pair<bool, QString> User::Private::setNameForRoom(const Room* r,
         else
             otherNames.insert(newName, r);
     }
-    return { true, oldName };
 }
 
 const Avatar& User::Private::avatarForRoom(const Room* r) const
@@ -255,11 +249,19 @@ QString User::name(const Room* room) const
 
 void User::updateName(const QString& newName, const Room* room)
 {
-    const auto setNameResult = d->setNameForRoom(room, newName);
-    if (setNameResult.first)
+    updateName(newName, d->nameForRoom(room), room);
+}
+
+void User::updateName(const QString& newName, const QString& oldName,
+                      const Room* room)
+{
+    Q_ASSERT(oldName == d->mostUsedName || d->otherNames.contains(oldName, room));
+    if (newName != oldName)
     {
+        emit nameAboutToChange(newName, oldName, room);
+        d->setNameForRoom(room, newName, oldName);
         setObjectName(displayname());
-        emit nameChanged(newName, setNameResult.second, room);
+        emit nameChanged(newName, oldName, room);
     }
 }
 
@@ -337,7 +339,8 @@ QImage User::avatar(int width, int height, const Room* room)
     return avatar(width, height, room, []{});
 }
 
-QImage User::avatar(int width, int height, const Room* room, Avatar::get_callback_t callback)
+QImage User::avatar(int width, int height, const Room* room,
+                    Avatar::get_callback_t callback)
 {
     return avatarObject(room).get(d->connection, width, height,
                 [=] { emit avatarChanged(this, room); callback(); });
@@ -385,7 +388,12 @@ void User::processEvent(RoomMemberEvent* event, const Room* room)
         }
         newName.truncate(match.capturedStart(0));
     }
-    updateName(event->displayName(), room);
+    if (event->prevContent())
+        updateName(event->displayName(),
+                   d->nameForRoom(room, event->prevContent()->displayName),
+                   room);
+    else
+        updateName(event->displayName(), room);
     if (d->setAvatarUrlForRoom(room, event->avatarUrl()))
         emit avatarChanged(this, room);
 }

@@ -88,7 +88,8 @@ namespace QMatrixClient
             Q_INVOKABLE QImage avatar(int dimension, const Room* room = nullptr);
             Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
                                       const Room* room = nullptr);
-            QImage avatar(int width, int height, const Room* room, Avatar::get_callback_t callback);
+            QImage avatar(int width, int height, const Room* room,
+                          Avatar::get_callback_t callback);
 
             QString avatarMediaId(const Room* room = nullptr) const;
             QUrl avatarUrl(const Room* room = nullptr) const;
@@ -102,12 +103,16 @@ namespace QMatrixClient
             bool setAvatar(QIODevice* source);
 
         signals:
+            void nameAboutToChange(QString newName, QString oldName,
+                                   const Room* roomContext);
             void nameChanged(QString newName, QString oldName,
                              const Room* roomContext);
             void avatarChanged(User* user, const Room* roomContext);
 
         private slots:
             void updateName(const QString& newName, const Room* room = nullptr);
+            void updateName(const QString& newName, const QString& oldName,
+                            const Room* room = nullptr);
 
         private:
             class Private;

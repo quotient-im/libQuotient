@@ -301,6 +301,7 @@ namespace QMatrixClient
             void avatarChanged();
             void userAdded(User* user);
             void userRemoved(User* user);
+            void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
             void memberListChanged();
 
@@ -345,12 +346,13 @@ namespace QMatrixClient
             explicit MemberSorter(const Room* r) : room(r) { }
 
             bool operator()(User* u1, User* u2) const;
+            bool operator()(User* u1, const QString& u2name) const;
 
-            template <typename ContT>
+            template <typename ContT, typename ValT>
             typename ContT::size_type lowerBoundIndex(const ContT& c,
-                                                      typename ContT::value_type v) const
+                                                      const ValT& v) const
             {
-                return  std::lower_bound(c.begin(), c.end(), v, *this) - c.begin();
+                return std::lower_bound(c.begin(), c.end(), v, *this) - c.begin();
             }
 
         private:

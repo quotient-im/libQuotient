@@ -142,7 +142,7 @@ class Room::Private
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
-        void renameMember(User* u, QString oldName, const Room* context);
+        void renameMember(User* u, QString oldName);
         void removeMemberFromMap(const QString& username, User* u);
 
         void getPreviousContent(int limit = 10);
@@ -721,42 +721,49 @@ int Room::timelineSize() const
 void Room::Private::insertMemberIntoMap(User *u)
 {
     const auto userName = u->name(q);
-    auto namesakes = membersMap.values(userName);
-    membersMap.insert(userName, u);
     // If there is exactly one namesake of the added user, signal member renaming
     // for that other one because the two should be disambiguated now.
+    auto namesakes = membersMap.values(userName);
+    if (namesakes.size() == 1)
+        emit q->memberAboutToRename(namesakes.front(),
+                                    namesakes.front()->fullName(q));
+    membersMap.insert(userName, u);
     if (namesakes.size() == 1)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::renameMember(User* u, QString oldName, const Room* context)
+void Room::Private::renameMember(User* u, QString oldName)
 {
-    if (context != q)
-        return; // It's not a rename for this room
-    if (q->memberJoinState(u) == JoinState::Join)
+    if (u->name(q) == oldName)
     {
         qCWarning(MAIN) << "Room::Private::renameMember(): the user "
                         << u->fullName(q)
                         << "is already known in the room under a new name.";
-        return;
     }
-
-    if (membersMap.contains(oldName, u))
+    else if (membersMap.contains(oldName, u))
     {
         removeMemberFromMap(oldName, u);
         insertMemberIntoMap(u);
-        emit q->memberRenamed(u);
     }
+    emit q->memberRenamed(u);
 }
 
 void Room::Private::removeMemberFromMap(const QString& username, User* u)
 {
+    User* namesake = nullptr;
+    auto namesakes = membersMap.values(username);
+    if (namesakes.size() == 2)
+    {
+        namesake = namesakes.front() == u ? namesakes.back() : namesakes.front();
+        Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
+        emit q->memberAboutToRename(namesake, username);
+    }
     membersMap.remove(username, u);
     // If there was one namesake besides the removed user, signal member renaming
     // for it because it doesn't need to be disambiguated anymore.
     // TODO: Think about left users.
-    if (membersMap.count(username) == 1)
-        emit q->memberRenamed(membersMap.value(username));
+    if (namesake)
+        emit q->memberRenamed(namesake);
 }
 
 inline auto makeErrorStr(const Event& e, QByteArray msg)
@@ -1327,8 +1334,16 @@ void Room::processStateEvents(const RoomEvents& events)
                     if (memberJoinState(u) != JoinState::Join)
                     {
                         d->insertMemberIntoMap(u);
+                        connect(u, &User::nameAboutToChange, this,
+                            [=] (QString newName, QString, const Room* context) {
+                                if (context == this)
+                                    emit memberAboutToRename(u, newName);
+                            });
                         connect(u, &User::nameChanged, this,
-                                std::bind(&Private::renameMember, d, u, _2, _3));
+                            [=] (QString, QString oldName, const Room* context) {
+                                if (context == this)
+                                    d->renameMember(u, oldName);
+                            });
                         emit userAdded(u);
                     }
                 }
@@ -1603,11 +1618,15 @@ MemberSorter Room::memberSorter() const
 
 bool MemberSorter::operator()(User *u1, User *u2) const
 {
+    return operator()(u1, room->roomMembername(u2));
+}
+
+bool MemberSorter::operator ()(User* u1, const QString& u2name) const
+{
     auto n1 = room->roomMembername(u1);
-    auto n2 = room->roomMembername(u2);
     if (n1.startsWith('@'))
         n1.remove(0, 1);
-    if (n2.startsWith('@'))
-        n2.remove(0, 1);
+    auto n2 = u2name.midRef(u2name.startsWith('@') ? 1 : 0);
+
     return n1.localeAwareCompare(n2) < 0;
 }
