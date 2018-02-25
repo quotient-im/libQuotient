@@ -95,6 +95,8 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
+        QHash<QString, TagRecord> tags;
+        QHash<QString, QJsonObject> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
@@ -552,6 +554,16 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+QStringList Room::tagNames() const
+{
+    return d->tags.keys();
+}
+
+const QHash<QString, TagRecord>& Room::tags() const
+{
+    return d->tags;
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -870,6 +882,15 @@ void Room::updateData(SyncRoomData&& data)
         for( auto&& ephemeralEvent: data.ephemeral )
             processEphemeralEvent(move(ephemeralEvent));
         qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
+                          << et.elapsed() << "ms";
+    }
+
+    if (!data.accountData.empty())
+    {
+        et.restart();
+        for (auto&& event: data.accountData)
+            processAccountDataEvent(move(event));
+        qCDebug(PROFILER) << "*** Room::processAccountData():"
                           << et.elapsed() << "ms";
     }
 
@@ -1430,6 +1451,19 @@ void Room::processEphemeralEvent(EventPtr event)
         default:
             qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
                                  << event->type();
+    }
+}
+
+void Room::processAccountDataEvent(EventPtr event)
+{
+    switch (event->type())
+    {
+        case EventType::Tag:
+            d->tags = static_cast<TagEvent*>(event.get())->tags();
+            emit tagsChanged();
+            break;
+        default:
+            d->accountData[event->jsonType()] = event->contentJson();
     }
 }
 

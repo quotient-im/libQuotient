@@ -20,6 +20,7 @@
 
 #include "jobs/syncjob.h"
 #include "events/roommessageevent.h"
+#include "events/tagevent.h"
 #include "joinstate.h"
 
 #include <QtCore/QList>
@@ -116,6 +117,8 @@ namespace QMatrixClient
             Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
 
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
+            Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
+
         public:
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
@@ -237,6 +240,9 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            QStringList tagNames() const;
+            const QHash<QString, TagRecord>& tags() const;
+
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
             Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
             Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
@@ -318,6 +324,8 @@ namespace QMatrixClient
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
 
+            void tagsChanged();
+
             void replacedEvent(const RoomEvent* newEvent,
                                const RoomEvent* oldEvent);
 
@@ -330,6 +338,7 @@ namespace QMatrixClient
         protected:
             virtual void processStateEvents(const RoomEvents& events);
             virtual void processEphemeralEvent(EventPtr event);
+            virtual void processAccountDataEvent(EventPtr event);
             virtual void onAddNewTimelineEvents(timeline_iter_t from) { }
             virtual void onAddHistoricalTimelineEvents(rev_iter_t from) { }
             virtual void onRedaction(const RoomEvent* prevEvent,
