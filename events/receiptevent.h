@@ -48,7 +48,5 @@ namespace QMatrixClient
         private:
             EventsWithReceipts _eventsWithReceipts;
             bool _unreadMessages; // Spec extension for caching purposes
-
-            static constexpr const char * jsonType = "m.receipt";
     };
 }  // namespace QMatrixClient
