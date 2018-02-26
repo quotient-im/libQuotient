@@ -30,7 +30,7 @@ script:
 - cmake --build . --target all
 - cd ..
 - qmake qmc-example.pro "CONFIG += debug" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" && make all
-- valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD"
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org'
 
 notifications:
   webhooks:
