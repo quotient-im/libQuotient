@@ -24,6 +24,7 @@ HEADERS += \
     $$PWD/events/roomavatarevent.h \
     $$PWD/events/typingevent.h \
     $$PWD/events/receiptevent.h \
+    $$PWD/events/tagevent.h \
     $$PWD/events/redactionevent.h \
     $$PWD/jobs/requestdata.h \
     $$PWD/jobs/basejob.h \
@@ -55,7 +56,7 @@ SOURCES += \
     $$PWD/events/roommemberevent.cpp \
     $$PWD/events/typingevent.cpp \
     $$PWD/events/receiptevent.cpp \
-    $$PWD/events/redactionevent.cpp \
+    $$PWD/events/tagevent.cpp \
     $$PWD/jobs/requestdata.cpp \
     $$PWD/jobs/basejob.cpp \
     $$PWD/jobs/checkauthmethods.cpp \

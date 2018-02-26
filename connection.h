@@ -70,7 +70,22 @@ namespace QMatrixClient
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
             virtual ~Connection();
 
+            /** Get all Invited and Joined rooms
+             * \return a hashmap from a composite key - room name and whether
+             *         it's an Invite rather than Join - to room pointers
+             */
             QHash<QPair<QString, bool>, Room*> roomMap() const;
+
+            /** Get all Invited and Joined rooms grouped by tag
+             * \return a hashmap from tag name to a vector of room pointers,
+             *         sorted by their order in the tag - details are at
+             *         https://matrix.org/speculator/spec/drafts%2Fe2e/client_server/unstable.html#id95
+             */
+            QHash<QString, QVector<Room*>> tagsToRooms() const;
+
+            /** Get the list of rooms with the specified tag */
+            QVector<Room*> roomsWithTag(const QString& tagName) const;
+
             QMap<QString, User*> users() const;
 
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES

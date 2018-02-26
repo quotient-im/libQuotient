@@ -45,7 +45,7 @@ namespace QMatrixClient
             enum class Type : quint16
             {
                 Unknown = 0,
-                Typing, Receipt,
+                Typing, Receipt, Tag, DirectChat,
                 RoomEventBase = 0x1000,
                 RoomMessage = RoomEventBase + 1,
                 RoomEncryptedMessage, Redaction,
@@ -63,6 +63,7 @@ namespace QMatrixClient
             virtual ~Event();
 
             Type type() const { return _type; }
+            QString jsonType() const;
             bool isStateEvent() const
             {
                 return (quint16(_type) & 0x1800) == 0x1800;
@@ -76,7 +77,6 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
-        protected:
             const QJsonObject contentJson() const;
 
         private:

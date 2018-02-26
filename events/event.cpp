@@ -24,6 +24,7 @@
 #include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
+#include "tagevent.h"
 #include "redactionevent.h"
 #include "logging.h"
 
@@ -43,6 +44,11 @@ Event::Event(Type type, const QJsonObject& rep)
 }
 
 Event::~Event() = default;
+
+QString Event::jsonType() const
+{
+    return originalJsonObject().value("type").toString();
+}
 
 QByteArray Event::originalJson() const
 {
@@ -82,7 +88,7 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
         return EventPtr(move(e));
 
     return EventPtr { makeIfMatches<Event,
-        TypingEvent, ReceiptEvent>(obj, obj["type"].toString()) };
+        TypingEvent, ReceiptEvent, TagEvent>(obj, obj["type"].toString()) };
 }
 
 RoomEvent::RoomEvent(Event::Type type) : Event(type) { }

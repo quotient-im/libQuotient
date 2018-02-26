@@ -54,6 +54,11 @@ SyncDataList&& SyncData::takeRoomData()
     return std::move(roomData);
 }
 
+SyncBatch<Event>&& SyncData::takeAccountData()
+{
+    return std::move(accountData);
+}
+
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
     return d.parseJson(data);
@@ -63,12 +68,12 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
 {
     QElapsedTimer et; et.start();
 
-    QJsonObject json = data.object();
+    auto json { data.object() };
     nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
-    // TODO: account_data
-    QJsonObject rooms = json.value("rooms").toObject();
+    accountData.fromJson(json);
 
+    QJsonObject rooms = json.value("rooms").toObject();
     for (size_t i = 0; i < JoinStateStrings.size(); ++i)
     {
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
