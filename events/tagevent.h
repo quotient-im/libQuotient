@@ -22,6 +22,9 @@
 
 namespace QMatrixClient
 {
+    static constexpr const char* FavouriteTag = "m.favourite";
+    static constexpr const char* LowPriorityTag = "m.lowpriority";
+
     struct TagRecord
     {
         explicit TagRecord(const QJsonObject& json = {});
@@ -39,11 +42,6 @@ namespace QMatrixClient
 
             /** Get the list of tags along with information on each */
             QHash<QString, TagRecord> tags() const;
-
-            /** Check whether the list of tags has m.favourite */
-            bool isFavourite() const;
-            /** Check whether the list of tags has m.lowpriority */
-            bool isLowPriority() const;
 
             static constexpr const char * TypeId = "m.tag";
 
