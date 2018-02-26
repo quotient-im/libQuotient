@@ -18,7 +18,7 @@ matrix:
   - os: linux
     compiler: clang
   - os: osx
-    env: [ ENV_EVAL="brew update && brew install qt5 && PATH=/usr/local/opt/qt/bin:$PATH" ]
+    env: [ 'ENV_EVAL="brew update && brew install qt5 && PATH=/usr/local/opt/qt/bin:$PATH"' ]
 
 before_install:
 - eval "${ENV_EVAL}"
