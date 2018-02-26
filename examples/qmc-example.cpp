@@ -29,8 +29,8 @@ void onNewRoom(Room* r, const char* targetRoomName)
                 "The current user is " % r->localUser()->fullName(r) % "\n" %
                 QStringLiteral("This room has %1 member(s)")
                     .arg(r->memberCount()) % "\n" %
-                "The room is " %
-                    (r->isDirectChat() ? "" : "not ") % "a direct chat\n" %
+//                "The room is " %
+//                    (r->isDirectChat() ? "" : "not ") % "a direct chat\n" %
                 "Have a good day",
                 MessageEventType::Notice
             );
