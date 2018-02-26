@@ -19,6 +19,7 @@
 #include "networkaccessmanager.h"
 
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QCoreApplication>
 
 using namespace QMatrixClient;
 
@@ -28,7 +29,7 @@ class NetworkAccessManager::Private
         QList<QSslError> ignoredSslErrors;
 };
 
-NetworkAccessManager::NetworkAccessManager() : d(std::make_unique<Private>())
+NetworkAccessManager::NetworkAccessManager(QObject* parent) : d(std::make_unique<Private>())
 { }
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
@@ -48,7 +49,7 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 static NetworkAccessManager* createNam()
 {
-    auto nam = new NetworkAccessManager;
+    auto nam = new NetworkAccessManager(QCoreApplication::instance());
     // See #109. Once Qt bearer management gets better, this workaround
     // should become unnecessary.
     nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
@@ -56,7 +57,7 @@ static NetworkAccessManager* createNam()
     return nam;
 }
 
-NetworkAccessManager*NetworkAccessManager::instance()
+NetworkAccessManager* NetworkAccessManager::instance()
 {
     static auto* nam = createNam();
     return nam;

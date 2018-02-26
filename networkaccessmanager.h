@@ -28,7 +28,7 @@ namespace QMatrixClient
     {
             Q_OBJECT
         public:
-            NetworkAccessManager();
+            NetworkAccessManager(QObject* parent = nullptr);
             ~NetworkAccessManager() override;
 
             QList<QSslError> ignoredSslErrors() const;

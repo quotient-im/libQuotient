@@ -599,7 +599,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
             emit aboutToDeleteRoom(prevInvite);
-            delete prevInvite;
+            prevInvite->deleteLater();
         }
     }
 

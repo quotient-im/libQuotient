@@ -100,7 +100,7 @@ namespace QMatrixClient
     {
         auto e = _impl::doMakeEvent<EventT>(obj);
         if (!e)
-            e.reset(new EventT(EventType::Unknown, obj));
+            e = std::make_unique<EventT>(EventType::Unknown, obj);
         return e;
     }
 

@@ -120,7 +120,8 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     auto redaction = unsignedData.value("redacted_because");
     if (redaction.isObject())
     {
-        _redactedBecause.reset(new RedactionEvent(redaction.toObject()));
+        _redactedBecause =
+                std::make_unique<RedactionEvent>(redaction.toObject());
         return;
     }
 

@@ -48,6 +48,11 @@ class User::Private
         Private(QString userId, Connection* connection)
             : userId(move(userId)), connection(connection)
         { }
+        ~Private()
+        {
+            for (auto a: otherAvatars)
+                delete a;
+        }
 
         QString userId;
         Connection* connection;
