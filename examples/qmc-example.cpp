@@ -1,15 +1,19 @@
 
 #include "connection.h"
 #include "room.h"
+#include "user.h"
 
-#include <QCoreApplication>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QStringBuilder>
 #include <iostream>
 
 using namespace QMatrixClient;
 using std::cout;
 using std::endl;
+using std::bind;
+using namespace std::placeholders;
 
-void onNewRoom(Room* r)
+void onNewRoom(Room* r, const char* targetRoomName)
 {
     cout << "New room: " << r->id().toStdString() << endl;
     QObject::connect(r, &Room::namesChanged, [=] {
@@ -17,6 +21,20 @@ void onNewRoom(Room* r)
              << "  Name: " << r->name().toStdString() << endl
              << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
              << endl << endl;
+        if (targetRoomName && (r->name() == targetRoomName ||
+                r->canonicalAlias() == targetRoomName))
+        {
+            r->postMessage(
+                "This is a test message from an example application\n"
+                "The current user is " % r->localUser()->fullName(r) % "\n" %
+                QStringLiteral("This room has %1 member(s)")
+                    .arg(r->memberCount()) % "\n" %
+                "The room is " %
+                    (r->isDirectChat() ? "" : "not ") % "a direct chat\n" %
+                "Have a good day",
+                MessageEventType::Notice
+            );
+        }
     });
     QObject::connect(r, &Room::tagsChanged, [=] {
         cout << "Room " << r->id().toStdString() << ", tag(s) changed:" << endl
@@ -24,16 +42,15 @@ void onNewRoom(Room* r)
     });
     QObject::connect(r, &Room::aboutToAddNewMessages, [=] (RoomEventsRange timeline) {
         cout << timeline.size() << " new event(s) in room "
-             << r->id().toStdString() << ":"
-             << endl;
-        for (const auto& item: timeline)
-        {
-            cout << "From: "
-                 << r->roomMembername(item->senderId()).toStdString()
-                 << endl << "Timestamp:"
-                 << item->timestamp().toString().toStdString() << endl
-                 << "JSON:" << endl << item->originalJson().toStdString() << endl;
-        }
+             << r->id().toStdString() << endl;
+//        for (const auto& item: timeline)
+//        {
+//            cout << "From: "
+//                 << r->roomMembername(item->senderId()).toStdString()
+//                 << endl << "Timestamp:"
+//                 << item->timestamp().toString().toStdString() << endl
+//                 << "JSON:" << endl << item->originalJson().toStdString() << endl;
+//        }
     });
 }
 
@@ -64,7 +81,12 @@ int main(int argc, char* argv[])
         cout << "Access token: " << conn->accessToken().toStdString() << endl;
         conn->sync();
     });
-    QObject::connect(conn, &Connection::newRoom, onNewRoom);
-    QObject::connect(conn, &Connection::syncDone, std::bind(finalize, conn));
+    const char* targetRoomName = argc >= 4 ? argv[3] : nullptr;
+    if (targetRoomName)
+        cout << "Target room name: " << targetRoomName;
+    QObject::connect(conn, &Connection::newRoom,
+                     bind(onNewRoom, _1, targetRoomName));
+    QObject::connect(conn, &Connection::syncDone,
+                     bind(finalize, conn));
     return app.exec();
 }
