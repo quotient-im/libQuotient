@@ -242,6 +242,15 @@ namespace QMatrixClient
 
             QStringList tagNames() const;
             const QHash<QString, TagRecord>& tags() const;
+            TagRecord tag(const QString& name) const;
+
+            /** Check whether the list of tags has m.favourite */
+            bool isFavourite() const;
+            /** Check whether the list of tags has m.lowpriority */
+            bool isLowPriority() const;
+
+            /** Check whether this room is a direct chat */
+            bool isDirectChat() const;
 
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
             Q_INVOKABLE QUrl urlToDownload(const QString& eventId);

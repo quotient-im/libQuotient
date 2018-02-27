@@ -564,6 +564,21 @@ const QHash<QString, TagRecord>& Room::tags() const
     return d->tags;
 }
 
+TagRecord Room::tag(const QString& name) const
+{
+    return d->tags.value(name);
+}
+
+bool Room::isFavourite() const
+{
+    return d->tags.contains(FavouriteTag);
+}
+
+bool Room::isLowPriority() const
+{
+    return d->tags.contains(LowPriorityTag);
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -1633,6 +1648,20 @@ QJsonObject Room::Private::toJson() const
         ephemeralObj.insert("events", ephemeralEvents);
 
         result.insert("ephemeral", ephemeralObj);
+    }
+
+    {
+        QJsonObject accountDataObj;
+        if (!tags.empty())
+        {
+            QJsonObject tagsObj;
+            for (auto it = tags.begin(); it != tags.end(); ++it)
+                tagsObj.insert(it.key(), { {"order", it->order} });
+            if (!tagsObj.empty())
+                accountDataObj.insert("m.tag", tagsObj);
+        }
+        if (!accountDataObj.empty())
+            result.insert("account_data", accountDataObj);
     }
 
     QJsonObject unreadNotificationsObj;
