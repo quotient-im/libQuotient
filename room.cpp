@@ -64,7 +64,7 @@ class Room::Private
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
-            , avatar(c), joinState(initialJoinState)
+            , joinState(initialJoinState)
         { }
 
         Room* q;
@@ -95,6 +95,8 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
+        QHash<QString, TagRecord> tags;
+        QHash<QString, QJsonObject> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
@@ -140,16 +142,10 @@ class Room::Private
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
 
-        // Convenience methods to work with the membersMap and usersLeft.
-        // addMember() and removeMember() emit respective Room:: signals
-        // after a succesful operation.
         //void inviteUser(User* u); // We might get it at some point in time.
-        void addMember(User* u);
-        bool hasMember(User* u) const;
-        // You can't identify a single user by displayname, only by id
-        User* member(const QString& id) const;
+        void insertMemberIntoMap(User* u);
         void renameMember(User* u, QString oldName);
-        void removeMember(User* u);
+        void removeMemberFromMap(const QString& username, User* u);
 
         void getPreviousContent(int limit = 10);
 
@@ -202,12 +198,9 @@ class Room::Private
         QString calculateDisplayname() const;
         QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 
-        void insertMemberIntoMap(User* u);
-        void removeMemberFromMap(const QString& username, User* u);
-
         bool isLocalUser(const User* u) const
         {
-            return u == connection->user();
+            return u == q->localUser();
         }
 };
 
@@ -287,7 +280,7 @@ QImage Room::avatar(int dimension)
 QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
-        return d->avatar.get(width, height, [=] { emit avatarChanged(); });
+        return d->avatar.get(connection(), width, height, [=] { emit avatarChanged(); });
 
     // Use the other side's avatar for 1:1's
     if (d->membersMap.size() == 2)
@@ -295,10 +288,22 @@ QImage Room::avatar(int width, int height)
         auto theOtherOneIt = d->membersMap.begin();
         if (theOtherOneIt.value() == localUser())
             ++theOtherOneIt;
-        return (*theOtherOneIt)->avatarObject()
-                    .get(width, height, [=] { emit avatarChanged(); });
+        return (*theOtherOneIt)->avatar(width, height, this,
+                                        [=] { emit avatarChanged(); });
     }
     return {};
+}
+
+User* Room::user(const QString& userId) const
+{
+    return connection()->user(userId);
+}
+
+JoinState Room::memberJoinState(User* user) const
+{
+    return
+        d->membersMap.contains(user->name(this), user) ? JoinState::Join :
+        JoinState::Leave;
 }
 
 JoinState Room::joinState() const
@@ -549,6 +554,31 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+QStringList Room::tagNames() const
+{
+    return d->tags.keys();
+}
+
+const QHash<QString, TagRecord>& Room::tags() const
+{
+    return d->tags;
+}
+
+TagRecord Room::tag(const QString& name) const
+{
+    return d->tags.value(name);
+}
+
+bool Room::isFavourite() const
+{
+    return d->tags.contains(FavouriteTag);
+}
+
+bool Room::isLowPriority() const
+{
+    return d->tags.contains(LowPriorityTag);
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -700,7 +730,7 @@ QStringList Room::memberNames() const
 {
     QStringList res;
     for (auto u : d->membersMap)
-        res.append( this->roomMembername(u) );
+        res.append( roomMembername(u) );
 
     return res;
 }
@@ -717,23 +747,50 @@ int Room::timelineSize() const
 
 void Room::Private::insertMemberIntoMap(User *u)
 {
-    auto namesakes = membersMap.values(u->name());
-    membersMap.insert(u->name(), u);
+    const auto userName = u->name(q);
     // If there is exactly one namesake of the added user, signal member renaming
     // for that other one because the two should be disambiguated now.
+    auto namesakes = membersMap.values(userName);
     if (namesakes.size() == 1)
-        emit q->memberRenamed(namesakes[0]);
+        emit q->memberAboutToRename(namesakes.front(),
+                                    namesakes.front()->fullName(q));
+    membersMap.insert(userName, u);
+    if (namesakes.size() == 1)
+        emit q->memberRenamed(namesakes.front());
+}
+
+void Room::Private::renameMember(User* u, QString oldName)
+{
+    if (u->name(q) == oldName)
+    {
+        qCWarning(MAIN) << "Room::Private::renameMember(): the user "
+                        << u->fullName(q)
+                        << "is already known in the room under a new name.";
+    }
+    else if (membersMap.contains(oldName, u))
+    {
+        removeMemberFromMap(oldName, u);
+        insertMemberIntoMap(u);
+    }
+    emit q->memberRenamed(u);
 }
 
 void Room::Private::removeMemberFromMap(const QString& username, User* u)
 {
+    User* namesake = nullptr;
+    auto namesakes = membersMap.values(username);
+    if (namesakes.size() == 2)
+    {
+        namesake = namesakes.front() == u ? namesakes.back() : namesakes.front();
+        Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
+        emit q->memberAboutToRename(namesake, username);
+    }
     membersMap.remove(username, u);
     // If there was one namesake besides the removed user, signal member renaming
     // for it because it doesn't need to be disambiguated anymore.
     // TODO: Think about left users.
-    auto formerNamesakes = membersMap.values(username);
-    if (formerNamesakes.size() == 1)
-        emit q->memberRenamed(formerNamesakes[0]);
+    if (namesake)
+        emit q->memberRenamed(namesake);
 }
 
 inline auto makeErrorStr(const Event& e, QByteArray msg)
@@ -772,69 +829,17 @@ Room::Timeline::size_type Room::Private::insertEvents(RoomEventsRange&& events,
     return events.size();
 }
 
-void Room::Private::addMember(User *u)
-{
-    if (!hasMember(u))
-    {
-        insertMemberIntoMap(u);
-        connect(u, &User::nameChanged, q,
-                std::bind(&Private::renameMember, this, u, _2));
-        emit q->userAdded(u);
-    }
-}
-
-bool Room::Private::hasMember(User* u) const
-{
-    return membersMap.values(u->name()).contains(u);
-}
-
-User* Room::Private::member(const QString& id) const
-{
-    auto u = connection->user(id);
-    return hasMember(u) ? u : nullptr;
-}
-
-void Room::Private::renameMember(User* u, QString oldName)
-{
-    if (hasMember(u))
-    {
-        qCWarning(MAIN) << "Room::Private::renameMember(): the user "
-                        << u->name()
-                        << "is already known in the room under a new name.";
-        return;
-    }
-
-    if (membersMap.values(oldName).contains(u))
-    {
-        removeMemberFromMap(oldName, u);
-        insertMemberIntoMap(u);
-        emit q->memberRenamed(u);
-    }
-}
-
-void Room::Private::removeMember(User* u)
-{
-    if (hasMember(u))
-    {
-        if ( !membersLeft.contains(u) )
-            membersLeft.append(u);
-        removeMemberFromMap(u->name(), u);
-        emit q->userRemoved(u);
-    }
-}
-
 QString Room::roomMembername(const User* u) const
 {
     // See the CS spec, section 11.2.2.3
 
-    QString username = u->name();
+    const auto username = u->name(this);
     if (username.isEmpty())
         return u->id();
 
     // Get the list of users with the same display name. Most likely,
     // there'll be one, but there's a chance there are more.
-    auto namesakes = d->membersMap.values(username);
-    if (namesakes.size() == 1)
+    if (d->membersMap.count(username) == 1)
         return username;
 
     // We expect a user to be a member of the room - but technically it is
@@ -851,12 +856,12 @@ QString Room::roomMembername(const User* u) const
 //    }
 
     // In case of more than one namesake, use the full name to disambiguate
-    return u->fullName();
+    return u->fullName(this);
 }
 
 QString Room::roomMembername(const QString& userId) const
 {
-    return roomMembername(connection()->user(userId));
+    return roomMembername(user(userId));
 }
 
 void Room::updateData(SyncRoomData&& data)
@@ -892,6 +897,15 @@ void Room::updateData(SyncRoomData&& data)
         for( auto&& ephemeralEvent: data.ephemeral )
             processEphemeralEvent(move(ephemeralEvent));
         qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
+                          << et.elapsed() << "ms";
+    }
+
+    if (!data.accountData.empty())
+    {
+        et.restart();
+        for (auto&& event: data.accountData)
+            processAccountDataEvent(move(event));
+        qCDebug(PROFILER) << "*** Room::processAccountData():"
                           << et.elapsed() << "ms";
     }
 
@@ -1250,7 +1264,7 @@ void Room::Private::checkUnreadMessages(timeline_iter_t from)
     // read receipts from the server (or, for the local user,
     // markMessagesAsRead() invocation) to promote their read markers over
     // the new message events.
-    auto firstWriter = connection->user((*from)->senderId());
+    auto firstWriter = q->user((*from)->senderId());
     if (q->readMarker(firstWriter) != timeline.crend())
     {
         promoteReadMarker(firstWriter, q->findInTimeline((*from)->id()));
@@ -1349,16 +1363,35 @@ void Room::processStateEvents(const RoomEvents& events)
             }
             case EventType::RoomMember: {
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
-                // Can't use d->member() below because the user may be not a member (yet)
-                auto u = d->connection->user(memberEvent->userId());
-                u->processEvent(event);
+                auto u = user(memberEvent->userId());
+                u->processEvent(memberEvent, this);
                 if( memberEvent->membership() == MembershipType::Join )
                 {
-                    d->addMember(u);
+                    if (memberJoinState(u) != JoinState::Join)
+                    {
+                        d->insertMemberIntoMap(u);
+                        connect(u, &User::nameAboutToChange, this,
+                            [=] (QString newName, QString, const Room* context) {
+                                if (context == this)
+                                    emit memberAboutToRename(u, newName);
+                            });
+                        connect(u, &User::nameChanged, this,
+                            [=] (QString, QString oldName, const Room* context) {
+                                if (context == this)
+                                    d->renameMember(u, oldName);
+                            });
+                        emit userAdded(u);
+                    }
                 }
                 else if( memberEvent->membership() == MembershipType::Leave )
                 {
-                    d->removeMember(u);
+                    if (memberJoinState(u) == JoinState::Join)
+                    {
+                        if (!d->membersLeft.contains(u))
+                            d->membersLeft.append(u);
+                        d->removeMemberFromMap(u->name(this), u);
+                        emit userRemoved(u);
+                    }
                 }
                 break;
             }
@@ -1380,8 +1413,9 @@ void Room::processEphemeralEvent(EventPtr event)
             d->usersTyping.clear();
             for( const QString& userId: typingEvent->users() )
             {
-                if (auto m = d->member(userId))
-                    d->usersTyping.append(m);
+                auto u = user(userId);
+                if (memberJoinState(u) == JoinState::Join)
+                    d->usersTyping.append(u);
             }
             emit typingChanged();
             break;
@@ -1403,8 +1437,11 @@ void Room::processEphemeralEvent(EventPtr event)
                 {
                     const auto newMarker = findInTimeline(p.evtId);
                     for( const Receipt& r: p.receipts )
-                        if (auto m = d->member(r.userId))
-                            d->promoteReadMarker(m, newMarker);
+                    {
+                        auto u = user(r.userId);
+                        if (memberJoinState(u) == JoinState::Join)
+                            d->promoteReadMarker(u, newMarker);
+                    }
                 } else
                 {
                     qCDebug(EPHEMERAL) << "Event" << p.evtId
@@ -1414,9 +1451,12 @@ void Room::processEphemeralEvent(EventPtr event)
                     // a previous marker for a user, keep the previous marker.
                     // Otherwise, blindly store the event id for this user.
                     for( const Receipt& r: p.receipts )
-                        if (auto m = d->member(r.userId))
-                            if (readMarker(m) == timelineEdge())
-                                d->setLastReadEvent(m, p.evtId);
+                    {
+                        auto u = user(r.userId);
+                        if (memberJoinState(u) == JoinState::Join &&
+                                readMarker(u) == timelineEdge())
+                            d->setLastReadEvent(u, p.evtId);
+                    }
                 }
             }
             if (receiptEvent->unreadMessages())
@@ -1426,6 +1466,19 @@ void Room::processEphemeralEvent(EventPtr event)
         default:
             qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
                                  << event->type();
+    }
+}
+
+void Room::processAccountDataEvent(EventPtr event)
+{
+    switch (event->type())
+    {
+        case EventType::Tag:
+            d->tags = static_cast<TagEvent*>(event.get())->tags();
+            emit tagsChanged();
+            break;
+        default:
+            d->accountData[event->jsonType()] = event->contentJson();
     }
 }
 
@@ -1447,6 +1500,12 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
             return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
         }
     );
+
+    // Spec extension. A single person in the chat but not the local user
+    // (the local user is apparently invited).
+    if (userlist.size() == 1 && !isLocalUser(first_two.front()))
+        return tr("Invitation from %1")
+                .arg(q->roomMembername(first_two.front()));
 
     // i. One-on-one chat. first_two[1] == localUser() in this case.
     if (userlist.size() == 2)
@@ -1541,16 +1600,16 @@ QJsonObject Room::Private::toJson() const
         appendStateEvent(stateEvents, "m.room.canonical_alias", "alias",
                          canonicalAlias);
 
-        for (const auto &i : membersMap)
+        for (const auto *m : membersMap)
         {
             QJsonObject content;
             content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", i->name());
-            content.insert("avatar_url", i->avatarUrl().toString());
+            content.insert("displayname", m->name(q));
+            content.insert("avatar_url", m->avatarUrl(q).toString());
 
             QJsonObject memberEvent;
             memberEvent.insert("type", QStringLiteral("m.room.member"));
-            memberEvent.insert("state_key", i->id());
+            memberEvent.insert("state_key", m->id());
             memberEvent.insert("content", content);
             stateEvents.append(memberEvent);
         }
@@ -1591,6 +1650,20 @@ QJsonObject Room::Private::toJson() const
         result.insert("ephemeral", ephemeralObj);
     }
 
+    {
+        QJsonObject accountDataObj;
+        if (!tags.empty())
+        {
+            QJsonObject tagsObj;
+            for (auto it = tags.begin(); it != tags.end(); ++it)
+                tagsObj.insert(it.key(), { {"order", it->order} });
+            if (!tagsObj.empty())
+                accountDataObj.insert("m.tag", tagsObj);
+        }
+        if (!accountDataObj.empty())
+            result.insert("account_data", accountDataObj);
+    }
+
     QJsonObject unreadNotificationsObj;
     if (highlightCount > 0)
         unreadNotificationsObj.insert("highlight_count", highlightCount);
@@ -1614,11 +1687,15 @@ MemberSorter Room::memberSorter() const
 
 bool MemberSorter::operator()(User *u1, User *u2) const
 {
+    return operator()(u1, room->roomMembername(u2));
+}
+
+bool MemberSorter::operator ()(User* u1, const QString& u2name) const
+{
     auto n1 = room->roomMembername(u1);
-    auto n2 = room->roomMembername(u2);
     if (n1.startsWith('@'))
         n1.remove(0, 1);
-    if (n2.startsWith('@'))
-        n2.remove(0, 1);
+    auto n2 = u2name.midRef(u2name.startsWith('@') ? 1 : 0);
+
     return n1.localeAwareCompare(n2) < 0;
 }

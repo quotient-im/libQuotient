@@ -24,6 +24,7 @@
 #include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
+#include "tagevent.h"
 #include "redactionevent.h"
 #include "logging.h"
 
@@ -43,6 +44,11 @@ Event::Event(Type type, const QJsonObject& rep)
 }
 
 Event::~Event() = default;
+
+QString Event::jsonType() const
+{
+    return originalJsonObject().value("type").toString();
+}
 
 QByteArray Event::originalJson() const
 {
@@ -82,17 +88,18 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
         return EventPtr(move(e));
 
     return EventPtr { makeIfMatches<Event,
-        TypingEvent, ReceiptEvent>(obj, obj["type"].toString()) };
+        TypingEvent, ReceiptEvent, TagEvent>(obj, obj["type"].toString()) };
 }
 
 RoomEvent::RoomEvent(Event::Type type) : Event(type) { }
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
-    : Event(type, rep), _id(rep["event_id"].toString())
-    , _roomId(rep["room_id"].toString())
-    , _senderId(rep["sender"].toString())
-    , _serverTimestamp(
-            QMatrixClient::fromJson<QDateTime>(rep["origin_server_ts"]))
+    : Event(type, rep)
+    , _id(rep["event_id"].toString())
+//    , _roomId(rep["room_id"].toString())
+//    , _senderId(rep["sender"].toString())
+//    , _serverTimestamp(
+//            QMatrixClient::fromJson<QDateTime>(rep["origin_server_ts"]))
 {
 //    if (_id.isEmpty())
 //    {
@@ -113,7 +120,8 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     auto redaction = unsignedData.value("redacted_because");
     if (redaction.isObject())
     {
-        _redactedBecause.reset(new RedactionEvent(redaction.toObject()));
+        _redactedBecause =
+                std::make_unique<RedactionEvent>(redaction.toObject());
         return;
     }
 
@@ -123,6 +131,22 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
+
+QDateTime RoomEvent::timestamp() const
+{
+    return QMatrixClient::fromJson<QDateTime>(
+                originalJsonObject().value("origin_server_ts"));
+}
+
+QString RoomEvent::roomId() const
+{
+    return originalJsonObject().value("room_id").toString();
+}
+
+QString RoomEvent::senderId() const
+{
+    return originalJsonObject().value("sender").toString();
+}
 
 QString RoomEvent::redactionReason() const
 {

@@ -22,6 +22,7 @@
 #include <QtCore/QUrl>
 
 #include <functional>
+#include <memory>
 
 namespace QMatrixClient
 {
@@ -30,13 +31,24 @@ namespace QMatrixClient
     class Avatar
     {
         public:
-            explicit Avatar(Connection* connection, QIcon defaultIcon = {});
+            explicit Avatar(QIcon defaultIcon = {});
+            explicit Avatar(QUrl url, QIcon defaultIcon = {});
+            Avatar(Avatar&&);
             ~Avatar();
+            Avatar& operator=(Avatar&&);
 
-            using notifier_t = std::function<void()>;
+            using get_callback_t = std::function<void()>;
+            using upload_callback_t = std::function<void(QString)>;
 
-            QImage get(int dimension, notifier_t notifier) const;
-            QImage get(int w, int h, notifier_t notifier) const;
+            QImage get(Connection* connection, int dimension,
+                       get_callback_t callback) const;
+            QImage get(Connection* connection, int w, int h,
+                       get_callback_t callback) const;
+
+            bool upload(Connection* connection, const QString& fileName,
+                        upload_callback_t callback) const;
+            bool upload(Connection* connection, QIODevice* source,
+                        upload_callback_t callback) const;
 
             QString mediaId() const;
             QUrl url() const;
@@ -44,6 +56,6 @@ namespace QMatrixClient
 
         private:
             class Private;
-            QScopedPointer<Private> d;
+            std::unique_ptr<Private> d;
     };
 }  // namespace QMatrixClient

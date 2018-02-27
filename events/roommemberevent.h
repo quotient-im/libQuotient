@@ -29,9 +29,13 @@ namespace QMatrixClient
     class MemberEventContent: public EventContent::Base
     {
         public:
-            enum MembershipType : size_t {Invite = 0, Join, Knock, Leave, Ban};
+            enum MembershipType : size_t { Invite = 0, Join, Knock, Leave, Ban,
+                                           Undefined };
 
-            MemberEventContent(const QJsonObject& json);
+            explicit MemberEventContent(MembershipType mt = MembershipType::Join)
+                : membership(mt)
+            { }
+            explicit MemberEventContent(const QJsonObject& json);
 
             MembershipType membership;
             QString displayName;
@@ -51,18 +55,22 @@ namespace QMatrixClient
 
             using MembershipType = MemberEventContent::MembershipType;
 
+            RoomMemberEvent(MemberEventContent&& c)
+                : StateEvent(Type::RoomMember, c)
+            { }
             explicit RoomMemberEvent(const QJsonObject& obj)
                 : StateEvent(Type::RoomMember, obj)
-                , _userId(obj["state_key"].toString())
+//                , _userId(obj["state_key"].toString())
             { }
 
             MembershipType membership() const  { return content().membership; }
-            QString userId() const      { return _userId; }
+            QString userId() const
+            { return originalJsonObject().value("state_key").toString(); }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
 
         private:
-            QString _userId;
+//            QString _userId;
             REGISTER_ENUM(MembershipType)
     };
 }  // namespace QMatrixClient

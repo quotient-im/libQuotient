@@ -45,7 +45,7 @@ namespace QMatrixClient
             enum class Type : quint16
             {
                 Unknown = 0,
-                Typing, Receipt,
+                Typing, Receipt, Tag, DirectChat,
                 RoomEventBase = 0x1000,
                 RoomMessage = RoomEventBase + 1,
                 RoomEncryptedMessage, Redaction,
@@ -63,6 +63,7 @@ namespace QMatrixClient
             virtual ~Event();
 
             Type type() const { return _type; }
+            QString jsonType() const;
             bool isStateEvent() const
             {
                 return (quint16(_type) & 0x1800) == 0x1800;
@@ -76,7 +77,6 @@ namespace QMatrixClient
             // (and in most cases it will be a combination of other fields
             // instead of "content" field).
 
-        protected:
             const QJsonObject contentJson() const;
 
         private:
@@ -100,7 +100,7 @@ namespace QMatrixClient
     {
         auto e = _impl::doMakeEvent<EventT>(obj);
         if (!e)
-            e.reset(new EventT(EventType::Unknown, obj));
+            e = std::make_unique<EventT>(EventType::Unknown, obj);
         return e;
     }
 
@@ -167,10 +167,10 @@ namespace QMatrixClient
             RoomEvent(Type type, const QJsonObject& rep);
             ~RoomEvent();
 
-            const QString& id() const { return _id; }
-            const QDateTime& timestamp() const { return _serverTimestamp; }
-            const QString& roomId() const { return _roomId; }
-            const QString& senderId() const { return _senderId; }
+            QString id() const { return _id; }
+            QDateTime timestamp() const;
+            QString roomId() const;
+            QString senderId() const;
             bool isRedacted() const { return bool(_redactedBecause); }
             const RedactionEvent* redactedBecause() const
             {
@@ -202,9 +202,9 @@ namespace QMatrixClient
 
         private:
             QString _id;
-            QString _roomId;
-            QString _senderId;
-            QDateTime _serverTimestamp;
+//            QString _roomId;
+//            QString _senderId;
+//            QDateTime _serverTimestamp;
             event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
@@ -296,10 +296,10 @@ namespace QMatrixClient
 
             QJsonObject toJson() const { return _content.toJson(); }
 
-            ContentT content() const { return _content; }
+            const ContentT& content() const { return _content; }
             /** @deprecated Use prevContent instead */
-            ContentT* prev_content() const { return prevContent(); }
-            ContentT* prevContent() const
+            const ContentT* prev_content() const { return prevContent(); }
+            const ContentT* prevContent() const
             { return _prev ? &_prev->content : nullptr; }
             QString prevSenderId() const { return _prev ? _prev->senderId : ""; }
 

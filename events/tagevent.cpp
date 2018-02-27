@@ -16,34 +16,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#pragma once
+#include "tagevent.h"
 
-#include <QtNetwork/QNetworkAccessManager>
+using namespace QMatrixClient;
 
-#include <memory>
+TagRecord::TagRecord(const QJsonObject& json)
+    : order(json.value("order").toString())
+{ }
 
-namespace QMatrixClient
+TagEvent::TagEvent(const QJsonObject& obj)
+    : Event(Type::Tag, obj)
 {
-    class NetworkAccessManager : public QNetworkAccessManager
-    {
-            Q_OBJECT
-        public:
-            NetworkAccessManager(QObject* parent = nullptr);
-            ~NetworkAccessManager() override;
+    Q_ASSERT(obj["type"].toString() == TypeId);
+}
 
-            QList<QSslError> ignoredSslErrors() const;
-            void addIgnoredSslError(const QSslError& error);
-            void clearIgnoredSslErrors();
+QStringList TagEvent::tagNames() const
+{
+    return tagsObject().keys();
+}
 
-            /** Get a pointer to the singleton */
-            static NetworkAccessManager* instance();
+QHash<QString, TagRecord> TagEvent::tags() const
+{
+    QHash<QString, TagRecord> result;
+    auto allTags { tagsObject() };
+    for (auto it = allTags.begin(); it != allTags.end(); ++ it)
+        result.insert(it.key(), TagRecord(it.value().toObject()));
+    return result;
+}
 
-        private:
-            QNetworkReply * createRequest(Operation op,
-                                const QNetworkRequest &request,
-                                QIODevice *outgoingData = Q_NULLPTR) override;
-
-            class Private;
-            std::unique_ptr<Private> d;
-    };
-} // namespace QMatrixClient
+QJsonObject TagEvent::tagsObject() const
+{
+    return contentJson().value("tags").toObject();
+}

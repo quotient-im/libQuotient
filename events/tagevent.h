@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2018 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,31 +22,30 @@
 
 namespace QMatrixClient
 {
-    struct Receipt
-    {
-        QString userId;
-        QDateTime timestamp;
-    };
-    struct ReceiptsForEvent
-    {
-        QString evtId;
-        QVector<Receipt> receipts;
-    };
-    using EventsWithReceipts = QVector<ReceiptsForEvent>;
+    static constexpr const char* FavouriteTag = "m.favourite";
+    static constexpr const char* LowPriorityTag = "m.lowpriority";
 
-    class ReceiptEvent: public Event
+    struct TagRecord
+    {
+        explicit TagRecord(const QJsonObject& json = {});
+
+        QString order;
+    };
+
+    class TagEvent : public Event
     {
         public:
-            explicit ReceiptEvent(const QJsonObject& obj);
+            explicit TagEvent(const QJsonObject& obj);
 
-            EventsWithReceipts eventsWithReceipts() const
-            { return _eventsWithReceipts; }
-            bool unreadMessages() const { return _unreadMessages; }
+            /** Get the list of tag names */
+            QStringList tagNames() const;
 
-            static constexpr const char* const TypeId = "m.receipt";
+            /** Get the list of tags along with information on each */
+            QHash<QString, TagRecord> tags() const;
 
-        private:
-            EventsWithReceipts _eventsWithReceipts;
-            bool _unreadMessages; // Spec extension for caching purposes
+            static constexpr const char * TypeId = "m.tag";
+
+        protected:
+            QJsonObject tagsObject() const;
     };
-}  // namespace QMatrixClient
+}

@@ -519,6 +519,30 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
     return roomMap;
 }
 
+QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
+{
+    QHash<QString, QVector<Room*>> result;
+    for (auto* r: d->roomMap)
+    {
+        for (const auto& tagName: r->tagNames())
+            result[tagName].push_back(r);
+    }
+    for (auto it = result.begin(); it != result.end(); ++it)
+        std::sort(it->begin(), it->end(),
+            [t=it.key()] (Room* r1, Room* r2) {
+                return r1->tags().value(t).order < r2->tags().value(t).order;
+            });
+    return result;
+}
+
+QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
+{
+    QVector<Room*> rooms;
+    std::copy_if(d->roomMap.begin(), d->roomMap.end(), std::back_inserter(rooms),
+                 [&tagName] (Room* r) { return r->tags().contains(tagName); });
+    return rooms;
+}
+
 QMap<QString, User*> Connection::users() const
 {
     return d->userMap;
@@ -574,7 +598,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
             emit aboutToDeleteRoom(prevInvite);
-            delete prevInvite;
+            prevInvite->deleteLater();
         }
     }
 
@@ -602,7 +626,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 2;
+static constexpr int CACHE_VERSION_MAJOR = 3;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
