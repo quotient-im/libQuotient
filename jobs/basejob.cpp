@@ -373,7 +373,8 @@ void BaseJob::finishJob()
         // TODO: The whole retrying thing should be put to ConnectionManager
         // otherwise independently retrying jobs make a bit of notification
         // storm towards the UI.
-        const auto retryInterval = getNextRetryInterval();
+        const auto retryInterval =
+                error() == TimeoutError ? 0 : getNextRetryInterval();
         ++d->retriesTaken;
         qCWarning(d->logCat) << this << "will take retry" << d->retriesTaken
                    << "in" << retryInterval/1000 << "s";
