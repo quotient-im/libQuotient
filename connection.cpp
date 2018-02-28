@@ -98,12 +98,13 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     // Try to parse as an FQID; if there's no @ part, assume it's a domain name.
     QRegularExpression parser(
         "^(@.+?:)?" // Optional username (allow everything for compatibility)
-        "((\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
-        "(:\\d{1,5})?)$", // Optional port
+        "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+        "(:\\d{1,5})?$", // Optional port
         QRegularExpression::UseUnicodePropertiesOption); // Because asian digits
     auto match = parser.match(mxidOrDomain);
 
     QUrl maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
     if (!match.hasMatch() || !maybeBaseUrl.isValid())
     {
         emit resolveError(
@@ -112,16 +113,14 @@ void Connection::resolveServer(const QString& mxidOrDomain)
         return;
     }
 
-    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
-    if (maybeBaseUrl.port() != -1)
-    {
-        setHomeserver(maybeBaseUrl);
-        emit resolved();
-        return;
-    }
+    setHomeserver(maybeBaseUrl);
+    emit resolved();
+    return;
 
+    // FIXME, #178: The below code is incorrect and is no more executed. The
+    // correct server resolution should be done from .well-known/matrix/client
     auto domain = maybeBaseUrl.host();
-    qCDebug(MAIN) << "Resolving server" << domain;
+    qCDebug(MAIN) << "Finding the server" << domain;
     // Check if the Matrix server has a dedicated service record.
     QDnsLookup* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
@@ -190,9 +189,8 @@ void Connection::Private::connectWithToken(const QString& user,
     userId = user;
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);
-    qCDebug(MAIN) << "Using server" << data->baseUrl() << "by user"
-                  << userId
-                  << "from device" << deviceId;
+    qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
+                  << "by user" << userId << "from device" << deviceId;
     emit q->connected();
 
 }
