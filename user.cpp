@@ -128,8 +128,7 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
             mostUsedName = newName;
             otherNames.remove(newName);
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
-                qCDebug(PROFILER) << et.elapsed()
-                                  << "ms to switch the most used name";
+                qCDebug(PROFILER) << et << "to switch the most used name";
         }
         else
             otherNames.insert(newName, r);
@@ -186,8 +185,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
                     avatarsToRooms.insert(nextMostUsed->url(), r1);
 
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
-                qCDebug(PROFILER) << et.elapsed()
-                                  << "ms to switch the most used avatar";
+                qCDebug(PROFILER) << et << "to switch the most used avatar";
         } else {
             otherAvatars.insert(newUrl, makeAvatar(newUrl));
             avatarsToRooms.insert(newUrl, r);

@@ -876,7 +876,7 @@ void Room::updateData(SyncRoomData&& data)
         et.start();
         processStateEvents(data.state);
         qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
-            << et.elapsed() << "ms," << data.state.size() << "events";
+                          << data.state.size() << "event(s)," << et;
     }
     if (!data.timeline.empty())
     {
@@ -884,30 +884,17 @@ void Room::updateData(SyncRoomData&& data)
         // State changes can arrive in a timeline event; so check those.
         processStateEvents(data.timeline);
         qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
-            << et.elapsed() << "ms," << data.timeline.size() << "events";
+                          << data.timeline.size() << "event(s)," << et;
 
         et.restart();
         d->addNewMessageEvents(move(data.timeline));
-        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
-                          << et.elapsed() << "ms";
+        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et;
     }
-    if (!data.ephemeral.empty())
-    {
-        et.restart();
-        for( auto&& ephemeralEvent: data.ephemeral )
-            processEphemeralEvent(move(ephemeralEvent));
-        qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
-                          << et.elapsed() << "ms";
-    }
+    for( auto&& ephemeralEvent: data.ephemeral )
+        processEphemeralEvent(move(ephemeralEvent));
 
-    if (!data.accountData.empty())
-    {
-        et.restart();
-        for (auto&& event: data.accountData)
-            processAccountDataEvent(move(event));
-        qCDebug(PROFILER) << "*** Room::processAccountData():"
-                          << et.elapsed() << "ms";
-    }
+    for (auto&& event: data.accountData)
+        processAccountDataEvent(move(event));
 
     if( data.highlightCount != d->highlightCount )
     {
@@ -1406,6 +1393,7 @@ void Room::processStateEvents(const RoomEvents& events)
 
 void Room::processEphemeralEvent(EventPtr event)
 {
+    QElapsedTimer et; et.start();
     switch (event->type())
     {
         case EventType::Typing: {
@@ -1417,6 +1405,9 @@ void Room::processEphemeralEvent(EventPtr event)
                 if (memberJoinState(u) == JoinState::Join)
                     d->usersTyping.append(u);
             }
+            if (!typingEvent->users().isEmpty())
+                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
+                    << typingEvent->users().size() << "users," << et;
             emit typingChanged();
             break;
         }
@@ -1459,13 +1450,17 @@ void Room::processEphemeralEvent(EventPtr event)
                     }
                 }
             }
+            if (!receiptEvent->eventsWithReceipts().isEmpty())
+                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
+                    << receiptEvent->eventsWithReceipts().size()
+                    << "events with receipts," << et;
             if (receiptEvent->unreadMessages())
                 d->unreadMessages = true;
             break;
         }
         default:
             qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
-                                 << event->type();
+                                 << event->jsonType();
     }
 }
 

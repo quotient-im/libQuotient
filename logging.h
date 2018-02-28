@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(MAIN)
@@ -64,4 +65,14 @@ namespace QMatrixClient
     {
         return qdm(debug_object);
     }
+}
+
+inline QDebug operator<< (QDebug debug_object, const QElapsedTimer& et)
+{
+    auto val = et.nsecsElapsed() / 1000;
+    if (val < 1000)
+        debug_object << val << u"µs";
+    else
+        debug_object << val / 1000 << "ms";
+    return debug_object;
 }

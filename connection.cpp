@@ -684,8 +684,7 @@ void Connection::saveState(const QUrl &toFile) const
 
     qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
     outfile.write(data.data(), data.size());
-    qCDebug(PROFILER) << "*** Cached state for" << userId()
-                      << "saved in" << et.elapsed() << "ms";
+    qCDebug(PROFILER) << "*** Cached state for" << userId() << "saved in" << et;
 }
 
 void Connection::loadState(const QUrl &fromFile)
@@ -722,8 +721,7 @@ void Connection::loadState(const QUrl &fromFile)
     SyncData sync;
     sync.parseJson(jsonDoc);
     onSyncSuccess(std::move(sync));
-    qCDebug(PROFILER) << "*** Cached state for" << userId()
-                      << "loaded in" << et.elapsed() << "ms";
+    qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }
 
 QString Connection::stateCachePath() const

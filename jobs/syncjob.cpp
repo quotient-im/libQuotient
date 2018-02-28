@@ -83,7 +83,8 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
             roomData.emplace_back(roomIt.key(), JoinState(i),
                                   roomIt.value().toObject());
     }
-    qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
+    qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
+                      << rooms.size() << "room(s) in" << et;
     return BaseJob::Success;
 }
 
