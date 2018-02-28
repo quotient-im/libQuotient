@@ -71,7 +71,7 @@ inline QDebug operator<< (QDebug debug_object, const QElapsedTimer& et)
 {
     auto val = et.nsecsElapsed() / 1000;
     if (val < 1000)
-        debug_object << val << u"µs";
+        debug_object << val << "µs";
     else
         debug_object << val / 1000 << "ms";
     return debug_object;
