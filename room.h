@@ -241,7 +241,7 @@ namespace QMatrixClient
             Q_INVOKABLE void resetHighlightCount();
 
             QStringList tagNames() const;
-            const QHash<QString, TagRecord>& tags() const;
+            QHash<QString, TagRecord> tags() const;
             TagRecord tag(const QString& name) const;
 
             /** Check whether the list of tags has m.favourite */

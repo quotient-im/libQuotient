@@ -24,6 +24,12 @@ TagRecord::TagRecord(const QJsonObject& json)
     : order(json.value("order").toString())
 { }
 
+TagEvent::TagEvent()
+    : Event(Type::Tag)
+{
+    // TODO: Support getting a list of tags and saving it
+}
+
 TagEvent::TagEvent(const QJsonObject& obj)
     : Event(Type::Tag, obj)
 {
@@ -42,6 +48,21 @@ QHash<QString, TagRecord> TagEvent::tags() const
     for (auto it = allTags.begin(); it != allTags.end(); ++ it)
         result.insert(it.key(), TagRecord(it.value().toObject()));
     return result;
+}
+
+bool TagEvent::empty() const
+{
+    return tagsObject().empty();
+}
+
+bool TagEvent::contains(const QString& name) const
+{
+    return tagsObject().contains(name);
+}
+
+TagRecord TagEvent::recordForTag(const QString& name) const
+{
+    return TagRecord(tagsObject().value(name).toObject());
 }
 
 QJsonObject TagEvent::tagsObject() const

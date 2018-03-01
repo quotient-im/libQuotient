@@ -95,8 +95,8 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
-        QHash<QString, TagRecord> tags;
-        QHash<QString, QJsonObject> accountData;
+        TagEventPtr tags = std::make_unique<TagEvent>();
+        QHash<QString, QVariantHash> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
@@ -556,27 +556,27 @@ void Room::resetHighlightCount()
 
 QStringList Room::tagNames() const
 {
-    return d->tags.keys();
+    return d->tags->tagNames();
 }
 
-const QHash<QString, TagRecord>& Room::tags() const
+QHash<QString, TagRecord> Room::tags() const
 {
-    return d->tags;
+    return d->tags->tags();
 }
 
 TagRecord Room::tag(const QString& name) const
 {
-    return d->tags.value(name);
+    return d->tags->recordForTag(name);
 }
 
 bool Room::isFavourite() const
 {
-    return d->tags.contains(FavouriteTag);
+    return d->tags->contains(FavouriteTag);
 }
 
 bool Room::isLowPriority() const
 {
-    return d->tags.contains(LowPriorityTag);
+    return d->tags->contains(LowPriorityTag);
 }
 
 const RoomMessageEvent*
@@ -1469,11 +1469,13 @@ void Room::processAccountDataEvent(EventPtr event)
     switch (event->type())
     {
         case EventType::Tag:
-            d->tags = static_cast<TagEvent*>(event.get())->tags();
+            d->tags.reset(static_cast<TagEvent*>(event.release()));
+            qCDebug(MAIN) << "Room" << id() << "is tagged with: "
+                          << tagNames().join(", ");
             emit tagsChanged();
             break;
         default:
-            d->accountData[event->jsonType()] = event->contentJson();
+            d->accountData[event->jsonType()] = event->contentJson().toVariantHash();
     }
 }
 
@@ -1645,19 +1647,20 @@ QJsonObject Room::Private::toJson() const
         result.insert("ephemeral", ephemeralObj);
     }
 
+    QJsonArray accountDataEvents;
+    if (!tags->empty())
+        accountDataEvents.append(QMatrixClient::toJson(tags));
+
+    if (!accountData.empty())
     {
-        QJsonObject accountDataObj;
-        if (!tags.empty())
-        {
-            QJsonObject tagsObj;
-            for (auto it = tags.begin(); it != tags.end(); ++it)
-                tagsObj.insert(it.key(), { {"order", it->order} });
-            if (!tagsObj.empty())
-                accountDataObj.insert("m.tag", tagsObj);
-        }
-        if (!accountDataObj.empty())
-            result.insert("account_data", accountDataObj);
+        for (auto it = accountData.begin(); it != accountData.end(); ++it)
+            accountDataEvents.append(QJsonObject {
+                {"type", it.key()},
+                {"content", QJsonObject::fromVariantHash(it.value())}
+            });
     }
+    QJsonObject accountDataEventsObj;
+    result.insert("account_data", QJsonObject { {"events", accountDataEvents} });
 
     QJsonObject unreadNotificationsObj;
     if (highlightCount > 0)

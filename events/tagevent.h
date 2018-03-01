@@ -35,6 +35,7 @@ namespace QMatrixClient
     class TagEvent : public Event
     {
         public:
+            TagEvent();
             explicit TagEvent(const QJsonObject& obj);
 
             /** Get the list of tag names */
@@ -43,9 +44,31 @@ namespace QMatrixClient
             /** Get the list of tags along with information on each */
             QHash<QString, TagRecord> tags() const;
 
-            static constexpr const char * TypeId = "m.tag";
+            /** Check if the event lists no tags */
+            bool empty() const;
 
-        protected:
+            /** Check whether the tags list contains the specified name */
+            bool contains(const QString& name) const;
+
+            /** Get the record for the given tag name */
+            TagRecord recordForTag(const QString& name) const;
+
+            /** Get the whole tags content as a JSON object
+             * It's NOT recommended to use this method directly from client code.
+             * Use other convenience methods provided by the class.
+             */
             QJsonObject tagsObject() const;
+
+            static constexpr const char * TypeId = "m.tag";
     };
+
+    using TagEventPtr = event_ptr_tt<TagEvent>;
+
+    inline QJsonValue toJson(const TagEventPtr& tagEvent)
+    {
+        return QJsonObject {{ "type", "m.tag" },
+            // TODO: Replace tagsObject() with a genuine list of tags
+            // (or make the needed JSON upon TagEvent creation)
+            { "content", QJsonObject {{ "tags", tagEvent->tagsObject() }} }};
+    }
 }
