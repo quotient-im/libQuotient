@@ -83,6 +83,9 @@ namespace QMatrixClient
              */
             QHash<QString, QVector<Room*>> tagsToRooms() const;
 
+            /** Get all room tags known on this connection */
+            QStringList tagNames() const;
+
             /** Get the list of rooms with the specified tag */
             QVector<Room*> roomsWithTag(const QString& tagName) const;
 
