@@ -68,7 +68,7 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
 {
     QElapsedTimer et; et.start();
 
-    auto json { data.object() };
+    auto json = data.object();
     nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
     accountData.fromJson(json);
