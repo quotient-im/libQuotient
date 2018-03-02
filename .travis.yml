@@ -22,15 +22,16 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then . /opt/qt56/bin/qt56-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt56/bin/qt56-env.sh; fi
 
 script:
 - mkdir build && cd build
 - cmake ..
 - cmake --build . --target all
 - cd ..
-- qmake qmc-example.pro "CONFIG += debug" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" && make all
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org'; fi
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
+- make all
+- $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org'
 
 notifications:
   webhooks:
