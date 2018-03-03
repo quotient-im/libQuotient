@@ -636,7 +636,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 3;
+static constexpr int CACHE_VERSION_MAJOR = 4;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
@@ -666,12 +666,13 @@ void Connection::saveState(const QUrl &toFile) const
     {
         QJsonObject rooms;
         QJsonObject inviteRooms;
-        for (auto i : roomMap()) // Pass on rooms in Leave state
+        for (const auto* i : roomMap()) // Pass on rooms in Leave state
         {
             if (i->joinState() == JoinState::Invite)
                 inviteRooms.insert(i->id(), i->toJson());
             else
                 rooms.insert(i->id(), i->toJson());
+            QCoreApplication::instance()->processEvents();
         }
 
         if (!rooms.isEmpty())
@@ -689,7 +690,7 @@ void Connection::saveState(const QUrl &toFile) const
     versionObj.insert("minor", CACHE_VERSION_MINOR);
     rootObj.insert("cache_version", versionObj);
 
-    QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+    QByteArray data = QJsonDocument(rootObj).toBinaryData();
 
     qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
     outfile.write(data.data(), data.size());
@@ -713,7 +714,7 @@ void Connection::loadState(const QUrl &fromFile)
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
-    auto jsonDoc = QJsonDocument::fromJson(data);
+    auto jsonDoc = QJsonDocument::fromBinaryData(data);
     auto actualCacheVersionMajor =
             jsonDoc.object()
             .value("cache_version").toObject()
