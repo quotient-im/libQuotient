@@ -274,7 +274,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
             r->updateData(std::move(roomData));
-        QCoreApplication::instance()->processEvents();
+        QCoreApplication::processEvents();
     }
 
 }
@@ -672,7 +672,7 @@ void Connection::saveState(const QUrl &toFile) const
                 inviteRooms.insert(i->id(), i->toJson());
             else
                 rooms.insert(i->id(), i->toJson());
-            QCoreApplication::instance()->processEvents();
+            QCoreApplication::processEvents();
         }
 
         if (!rooms.isEmpty())
