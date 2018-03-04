@@ -46,17 +46,22 @@ namespace QMatrixClient
 
     inline QJsonValue toJson(const QByteArray& bytes)
     {
-#if QT_VERSION < QT_VERSION_CHECK(5, 3, 0)
-        return QJsonValue(QLatin1String(bytes.constData()));
-#else
         return QJsonValue(bytes.constData());
-#endif
+    }
+
+    template <typename T>
+    inline QJsonValue toJson(const QHash<QString, T>& hashMap)
+    {
+        QJsonObject json;
+        for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
+            json.insert(it.key(), toJson(it.value()));
+        return json;
     }
 
     template <typename T>
     struct FromJson
     {
-        T operator()(QJsonValue jv) const { return static_cast<T>(jv); }
+        T operator()(const QJsonValue& jv) const { return static_cast<T>(jv); }
     };
 
     template <typename T>
@@ -67,32 +72,32 @@ namespace QMatrixClient
 
     template <> struct FromJson<bool>
     {
-        bool operator()(QJsonValue jv) const { return jv.toBool(); }
+        bool operator()(const QJsonValue& jv) const { return jv.toBool(); }
     };
 
     template <> struct FromJson<int>
     {
-        int operator()(QJsonValue jv) const { return jv.toInt(); }
+        int operator()(const QJsonValue& jv) const { return jv.toInt(); }
     };
 
     template <> struct FromJson<double>
     {
-        double operator()(QJsonValue jv) const { return jv.toDouble(); }
+        double operator()(const QJsonValue& jv) const { return jv.toDouble(); }
     };
 
     template <> struct FromJson<qint64>
     {
-        qint64 operator()(QJsonValue jv) const { return qint64(jv.toDouble()); }
+        qint64 operator()(const QJsonValue& jv) const { return qint64(jv.toDouble()); }
     };
 
     template <> struct FromJson<QString>
     {
-        QString operator()(QJsonValue jv) const { return jv.toString(); }
+        QString operator()(const QJsonValue& jv) const { return jv.toString(); }
     };
 
     template <> struct FromJson<QDateTime>
     {
-        QDateTime operator()(QJsonValue jv) const
+        QDateTime operator()(const QJsonValue& jv) const
         {
             return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
         }
@@ -100,7 +105,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QDate>
     {
-        QDate operator()(QJsonValue jv) const
+        QDate operator()(const QJsonValue& jv) const
         {
             return fromJson<QDateTime>(jv).date();
         }
@@ -108,17 +113,23 @@ namespace QMatrixClient
 
     template <> struct FromJson<QJsonObject>
     {
-        QJsonObject operator()(QJsonValue jv) const { return jv.toObject(); }
+        QJsonObject operator()(const QJsonValue& jv) const
+        {
+            return jv.toObject();
+        }
     };
 
     template <> struct FromJson<QJsonArray>
     {
-        QJsonArray operator()(QJsonValue jv) const { return jv.toArray(); }
+        QJsonArray operator()(const QJsonValue& jv) const
+        {
+            return jv.toArray();
+        }
     };
 
     template <typename T> struct FromJson<QVector<T>>
     {
-        QVector<T> operator()(QJsonValue jv) const
+        QVector<T> operator()(const QJsonValue& jv) const
         {
             const auto jsonArray = jv.toArray();
             QVector<T> vect; vect.resize(jsonArray.size());
@@ -130,7 +141,7 @@ namespace QMatrixClient
 
     template <typename T> struct FromJson<QList<T>>
     {
-        QList<T> operator()(QJsonValue jv) const
+        QList<T> operator()(const QJsonValue& jv) const
         {
             const auto jsonArray = jv.toArray();
             QList<T> sl; sl.reserve(jsonArray.size());
@@ -144,10 +155,21 @@ namespace QMatrixClient
 
     template <> struct FromJson<QByteArray>
     {
-        QByteArray operator()(QJsonValue jv) const
+        inline QByteArray operator()(const QJsonValue& jv) const
         {
             return fromJson<QString>(jv).toLatin1();
         }
     };
 
+    template <typename T> struct FromJson<QHash<QString, T>>
+    {
+        QHash<QString, T> operator()(const QJsonValue& jv) const
+        {
+            const auto json = jv.toObject();
+            QHash<QString, T> h; h.reserve(json.size());
+            for (auto it = json.begin(); it != json.end(); ++it)
+                h.insert(it.key(), fromJson<T>(it.value()));
+            return h;
+        }
+    };
 }  // namespace QMatrixClient
