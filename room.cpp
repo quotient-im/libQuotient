@@ -1572,87 +1572,67 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
-template <typename T>
 void appendStateEvent(QJsonArray& events, const QString& type,
-                     const QString& name, const T& content)
+                      const QJsonObject& content, const QString& stateKey = {})
 {
-    if (content.isEmpty())
-        return;
-
-    QJsonObject contentObj;
-    contentObj.insert(name, content);
-
-    QJsonObject eventObj;
-    eventObj.insert("type", type);
-    eventObj.insert("content", contentObj);
-    eventObj.insert("state_key", {}); // Mandatory for state events
-
-    events.append(eventObj);
+    if (!content.isEmpty() || !stateKey.isEmpty())
+        events.append(QJsonObject
+            { { QStringLiteral("type"), type }
+            , { QStringLiteral("content"), content }
+            , { QStringLiteral("state_key"), stateKey }
+            });
 }
+
+#define ADD_STATE_EVENT(events, type, name, content) \
+    appendStateEvent((events), QStringLiteral(type), \
+                     {{ QStringLiteral(name), content }});
 
 QJsonObject Room::Private::toJson() const
 {
+    QElapsedTimer et; et.start();
     QJsonObject result;
     {
         QJsonArray stateEvents;
 
-        appendStateEvent(stateEvents, "m.room.name", "name", name);
-        appendStateEvent(stateEvents, "m.room.topic", "topic", topic);
-        appendStateEvent(stateEvents, "m.room.avatar", "url",
-                         avatar.url().toString());
-        appendStateEvent(stateEvents, "m.room.aliases", "aliases",
-                         QJsonArray::fromStringList(aliases));
-        appendStateEvent(stateEvents, "m.room.canonical_alias", "alias",
-                         canonicalAlias);
+        ADD_STATE_EVENT(stateEvents, "m.room.name", "name", name);
+        ADD_STATE_EVENT(stateEvents, "m.room.topic", "topic", topic);
+        ADD_STATE_EVENT(stateEvents, "m.room.avatar", "url",
+                        avatar.url().toString());
+        ADD_STATE_EVENT(stateEvents, "m.room.aliases", "aliases",
+                        QJsonArray::fromStringList(aliases));
+        ADD_STATE_EVENT(stateEvents, "m.room.canonical_alias", "alias",
+                        canonicalAlias);
 
         for (const auto *m : membersMap)
-        {
-            QJsonObject content;
-            content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", m->name(q));
-            content.insert("avatar_url", m->avatarUrl(q).toString());
+            appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
+                { { QStringLiteral("membership"), QStringLiteral("join") }
+                , { QStringLiteral("displayname"), m->name(q) }
+                , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
+            }, m->id());
 
-            QJsonObject memberEvent;
-            memberEvent.insert("type", QStringLiteral("m.room.member"));
-            memberEvent.insert("state_key", m->id());
-            memberEvent.insert("content", content);
-            stateEvents.append(memberEvent);
-        }
-
-        QJsonObject roomStateObj;
-        roomStateObj.insert("events", stateEvents);
-
-        result.insert(
-            joinState == JoinState::Invite ? "invite_state" : "state",
-            roomStateObj);
+        const auto stateObjName = joinState == JoinState::Invite ?
+                    QStringLiteral("invite_state") : QStringLiteral("state");
+        result.insert(stateObjName,
+            QJsonObject {{ QStringLiteral("events"), stateEvents }});
     }
 
     if (!q->readMarkerEventId().isEmpty())
     {
-        QJsonArray ephemeralEvents;
-        {
-            // Don't dump the timestamp because it's useless in the cache.
-            QJsonObject user;
-            user.insert(connection->userId(), {});
-
-            QJsonObject receipt;
-            receipt.insert("m.read", user);
-
-            QJsonObject lastReadEvent;
-            lastReadEvent.insert(q->readMarkerEventId(), receipt);
-            lastReadEvent.insert("x-qmatrixclient.unread_messages",
-                                 unreadMessages);
-
-            QJsonObject receiptsObj;
-            receiptsObj.insert("type", QStringLiteral("m.receipt"));
-            receiptsObj.insert("content", lastReadEvent);
-            ephemeralEvents.append(receiptsObj);
-        }
-
-        QJsonObject ephemeralObj;
-        ephemeralObj.insert("events", ephemeralEvents);
-
-        result.insert("ephemeral", ephemeralObj);
+        result.insert(QStringLiteral("ephemeral"),
+            QJsonObject {{ QStringLiteral("events"),
+                QJsonArray { QJsonObject(
+                    { { QStringLiteral("type"), QStringLiteral("m.receipt") }
+                    , { QStringLiteral("content"), QJsonObject(
+                        { { q->readMarkerEventId(),
+                            QJsonObject {{ QStringLiteral("m.read"),
+                                QJsonObject {{ connection->userId(), {} }} }}
+                          }
+                        , { QStringLiteral("x-qmatrixclient.unread_messages"),
+                            unreadMessages }
+                        }) }
+                    }
+                ) }
+            }});
     }
 
     QJsonArray accountDataEvents;
@@ -1668,7 +1648,7 @@ QJsonObject Room::Private::toJson() const
             });
     }
     QJsonObject accountDataEventsObj;
-    result.insert("account_data", QJsonObject { {"events", accountDataEvents} });
+    result.insert("account_data", QJsonObject {{ "events", accountDataEvents }});
 
     QJsonObject unreadNotificationsObj;
     if (highlightCount > 0)
@@ -1677,6 +1657,9 @@ QJsonObject Room::Private::toJson() const
         unreadNotificationsObj.insert("notification_count", notificationCount);
     if (!unreadNotificationsObj.isEmpty())
         result.insert("unread_notifications", unreadNotificationsObj);
+
+    if (et.elapsed() > 50)
+        qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;
 
     return result;
 }
