@@ -44,7 +44,7 @@ QStringList TagEvent::tagNames() const
 QHash<QString, TagRecord> TagEvent::tags() const
 {
     QHash<QString, TagRecord> result;
-    auto allTags { tagsObject() };
+    auto allTags = tagsObject();
     for (auto it = allTags.begin(); it != allTags.end(); ++ it)
         result.insert(it.key(), TagRecord(it.value().toObject()));
     return result;
