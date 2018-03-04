@@ -19,36 +19,35 @@
 #pragma once
 
 #include "event.h"
-
 #include "eventcontent.h"
 
 namespace QMatrixClient
 {
-#define DECLARE_SIMPLE_STATE_EVENT(_Name, _TypeId, _EnumType, _ContentType, _ContentKey) \
+#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _EnumType, _ContentType, _ContentKey) \
     class _Name \
         : public StateEvent<EventContent::SimpleContent<_ContentType>> \
     { \
         public: \
             static constexpr const char* TypeId = _TypeId; \
             explicit _Name(const QJsonObject& obj) \
-                : StateEvent(_EnumType, obj, #_ContentKey) \
+                : StateEvent(_EnumType, obj, QStringLiteral(#_ContentKey)) \
             { } \
             template <typename T> \
             explicit _Name(T&& value) \
-                : StateEvent(_EnumType, #_ContentKey, \
+                : StateEvent(_EnumType, QStringLiteral(#_ContentKey), \
                              std::forward<T>(value)) \
             { } \
-            _ContentType _ContentKey() const { return content().value; } \
+            const _ContentType& _ContentKey() const { return content().value; } \
     };
 
-    DECLARE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name",
-                               Event::Type::RoomName, QString, name)
-    DECLARE_SIMPLE_STATE_EVENT(RoomAliasesEvent, "m.room.aliases",
-                               Event::Type::RoomAliases, QStringList, aliases)
-    DECLARE_SIMPLE_STATE_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias",
-                               Event::Type::RoomCanonicalAlias, QString, alias)
-    DECLARE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic",
-                               Event::Type::RoomTopic, QString, topic)
-    DECLARE_SIMPLE_STATE_EVENT(EncryptionEvent, "m.room.encryption",
-                               Event::Type::RoomEncryption, QString, algorithm)
+    DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name",
+                              Event::Type::RoomName, QString, name)
+    DEFINE_SIMPLE_STATE_EVENT(RoomAliasesEvent, "m.room.aliases",
+                              Event::Type::RoomAliases, QStringList, aliases)
+    DEFINE_SIMPLE_STATE_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias",
+                              Event::Type::RoomCanonicalAlias, QString, alias)
+    DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic",
+                              Event::Type::RoomTopic, QString, topic)
+    DEFINE_SIMPLE_STATE_EVENT(EncryptionEvent, "m.room.encryption",
+                              Event::Type::RoomEncryption, QString, algorithm)
 } // namespace QMatrixClient
