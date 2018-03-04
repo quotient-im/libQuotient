@@ -21,6 +21,7 @@
 #include "user.h"
 #include "events/event.h"
 #include "room.h"
+#include "settings.h"
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
 #include "jobs/generated/receipts.h"
@@ -68,6 +69,8 @@ class Connection::Private
         SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
+        bool cacheToBinary = SettingsGroup("libqmatrixclient")
+                             .value("cache_type").toString() != "json";
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
@@ -636,7 +639,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 4;
+static constexpr int CACHE_VERSION_MAJOR = 5;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
@@ -690,11 +693,13 @@ void Connection::saveState(const QUrl &toFile) const
     versionObj.insert("minor", CACHE_VERSION_MINOR);
     rootObj.insert("cache_version", versionObj);
 
-    QByteArray data = QJsonDocument(rootObj).toBinaryData();
+    QJsonDocument json { rootObj };
+    auto data = d->cacheToBinary ? json.toBinaryData() :
+                                   json.toJson(QJsonDocument::Compact);
+    qCDebug(PROFILER) << "Cache for" << userId() << "generated in" << et;
 
-    qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
     outfile.write(data.data(), data.size());
-    qCDebug(PROFILER) << "*** Cached state for" << userId() << "saved in" << et;
+    qCDebug(MAIN) << "State cache saved to" << outfile.fileName();
 }
 
 void Connection::loadState(const QUrl &fromFile)
@@ -714,17 +719,23 @@ void Connection::loadState(const QUrl &fromFile)
     file.open(QFile::ReadOnly);
     QByteArray data = file.readAll();
 
-    auto jsonDoc = QJsonDocument::fromBinaryData(data);
+    QJsonParseError e;
+    auto jsonDoc = d->cacheToBinary ? QJsonDocument::fromBinaryData(data) :
+                                      QJsonDocument::fromJson(data, &e);
+    if (e.error == QJsonParseError::NoError)
+    {
+        qCWarning(MAIN) << "Cache file not found or broken, discarding";
+        return;
+    }
     auto actualCacheVersionMajor =
             jsonDoc.object()
             .value("cache_version").toObject()
             .value("major").toInt();
     if (actualCacheVersionMajor < CACHE_VERSION_MAJOR)
     {
-        qCWarning(MAIN) << "Major version of the cache file is"
-                        << actualCacheVersionMajor << "but"
-                        << CACHE_VERSION_MAJOR
-                        << "required; discarding the cache";
+        qCWarning(MAIN)
+            << "Major version of the cache file is" << actualCacheVersionMajor
+            << "but" << CACHE_VERSION_MAJOR << "required; discarding the cache";
         return;
     }
 
