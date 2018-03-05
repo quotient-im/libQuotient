@@ -42,7 +42,8 @@ HEADERS += \
     $$PWD/settings.h \
     $$PWD/networksettings.h \
     $$PWD/networkaccessmanager.h \
-    $$PWD/jobs/downloadfilejob.h
+    $$PWD/jobs/downloadfilejob.h \
+    $$PWD/jobs/postreadmarkersjob.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
