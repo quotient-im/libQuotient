@@ -722,7 +722,7 @@ void Connection::loadState(const QUrl &fromFile)
     QJsonParseError e;
     auto jsonDoc = d->cacheToBinary ? QJsonDocument::fromBinaryData(data) :
                                       QJsonDocument::fromJson(data, &e);
-    if (e.error == QJsonParseError::NoError)
+    if (e.error != QJsonParseError::NoError)
     {
         qCWarning(MAIN) << "Cache file not found or broken, discarding";
         return;
