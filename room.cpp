@@ -24,6 +24,7 @@
 #include "jobs/generated/leaving.h"
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/redaction.h"
+#include "jobs/generated/account-data.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -63,7 +64,6 @@ enum EventsPlacement : int { Older = -1, Newer = 1 };
 #if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
 #  define WORKAROUND_EXTENDED_INITIALIZER_LIST
 #endif
-
 
 class Room::Private
 {
@@ -105,7 +105,7 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
-        TagEventPtr tags = std::make_unique<TagEvent>();
+        TagsMap tags;
         QHash<QString, QVariantHash> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
@@ -201,6 +201,13 @@ class Room::Private
          * redaction event whether the redacted event was found or not.
          */
         void processRedaction(RoomEventPtr redactionEvent);
+
+        template <typename EvT>
+        SetAccountDataPerRoomJob* setAccountData(const EvT& event)
+        {
+            return connection->callApi<SetAccountDataPerRoomJob>(
+                    connection->userId(), id, EvT::typeId(), event.toJson());
+        }
 
         QJsonObject toJson() const;
 
@@ -566,27 +573,56 @@ void Room::resetHighlightCount()
 
 QStringList Room::tagNames() const
 {
-    return d->tags->tagNames();
+    return d->tags.keys();
 }
 
-QHash<QString, TagRecord> Room::tags() const
+TagsMap Room::tags() const
 {
-    return d->tags->tags();
+    return d->tags;
 }
 
 TagRecord Room::tag(const QString& name) const
 {
-    return d->tags->recordForTag(name);
+    return d->tags.value(name);
+}
+
+void Room::addTag(const QString& name, const TagRecord& record)
+{
+    if (d->tags.contains(name))
+        return;
+
+    d->tags.insert(name, record);
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
+}
+
+void Room::removeTag(const QString& name)
+{
+    if (!d->tags.contains(name))
+        return;
+
+    d->tags.remove(name);
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
+}
+
+void Room::setTags(const TagsMap& newTags)
+{
+    if (newTags == d->tags)
+        return;
+    d->tags = newTags;
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
 }
 
 bool Room::isFavourite() const
 {
-    return d->tags->contains(FavouriteTag);
+    return d->tags.contains(FavouriteTag);
 }
 
 bool Room::isLowPriority() const
 {
-    return d->tags->contains(LowPriorityTag);
+    return d->tags.contains(LowPriorityTag);
 }
 
 const RoomMessageEvent*
@@ -1477,13 +1513,19 @@ void Room::processAccountDataEvent(EventPtr event)
     switch (event->type())
     {
         case EventType::Tag:
-            d->tags.reset(static_cast<TagEvent*>(event.release()));
+        {
+            auto newTags = static_cast<TagEvent*>(event.get())->tags();
+            if (newTags == d->tags)
+                break;
+            d->tags = newTags;
             qCDebug(MAIN) << "Room" << id() << "is tagged with: "
                           << tagNames().join(", ");
             emit tagsChanged();
             break;
+        }
         default:
-            d->accountData[event->jsonType()] = event->contentJson().toVariantHash();
+            d->accountData[event->jsonType()] =
+                    event->contentJson().toVariantHash();
     }
 }
 
@@ -1636,8 +1678,11 @@ QJsonObject Room::Private::toJson() const
     }
 
     QJsonArray accountDataEvents;
-    if (!tags->empty())
-        accountDataEvents.append(QMatrixClient::toJson(tags));
+    if (!tags.empty())
+        accountDataEvents.append(QJsonObject(
+            { { QStringLiteral("type"), QStringLiteral("m.tag") }
+            , { QStringLiteral("content"), TagEvent(tags).toJson() }
+            }));
 
     if (!accountData.empty())
     {

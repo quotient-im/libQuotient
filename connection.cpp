@@ -539,12 +539,12 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 
 QStringList Connection::tagNames() const
 {
-    QStringList tags ({"m.favourite"});
+    QStringList tags ({FavouriteTag});
     for (auto* r: d->roomMap)
         for (const auto& tag: r->tagNames())
-            if (tag != "m.lowpriority" && !tags.contains(tag))
+            if (tag != LowPriorityTag && !tags.contains(tag))
                 tags.push_back(tag);
-    tags.push_back("m.lowpriority");
+    tags.push_back(LowPriorityTag);
     return tags;
 }
 

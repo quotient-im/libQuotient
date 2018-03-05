@@ -31,7 +31,7 @@ script:
 - cd ..
 - qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
 - make all
-- $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org'
+- $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"
 
 notifications:
   webhooks:
