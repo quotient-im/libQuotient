@@ -675,7 +675,10 @@ void Connection::saveState(const QUrl &toFile) const
                 inviteRooms.insert(i->id(), i->toJson());
             else
                 rooms.insert(i->id(), i->toJson());
+            QElapsedTimer et1; et1.start();
             QCoreApplication::processEvents();
+            if (et1.elapsed() > 1)
+                qCDebug(PROFILER) << "processEvents() borrowed" << et1;
         }
 
         if (!rooms.isEmpty())
