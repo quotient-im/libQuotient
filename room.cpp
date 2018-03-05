@@ -24,6 +24,7 @@
 #include "jobs/generated/leaving.h"
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/redaction.h"
+#include "jobs/generated/account-data.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -201,6 +202,13 @@ class Room::Private
          * redaction event whether the redacted event was found or not.
          */
         void processRedaction(RoomEventPtr redactionEvent);
+
+        template <typename EvT>
+        SetAccountDataPerRoomJob* setAccountData(const EvT& event)
+        {
+            return connection->callApi<SetAccountDataPerRoomJob>(
+                    connection->userId(), id, EvT::typeId(), event.toJson());
+        }
 
         QJsonObject toJson() const;
 
