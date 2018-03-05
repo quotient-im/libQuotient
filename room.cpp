@@ -1659,7 +1659,10 @@ QJsonObject Room::Private::toJson() const
 
     QJsonArray accountDataEvents;
     if (!tags.empty())
-        accountDataEvents.append(QMatrixClient::toJson(tags));
+        accountDataEvents.append(QJsonObject(
+            { { QStringLiteral("type"), QStringLiteral("m.tag") }
+            , { QStringLiteral("content"), TagEvent(tags).toJson() }
+            }));
 
     if (!accountData.empty())
     {
