@@ -65,7 +65,6 @@ enum EventsPlacement : int { Older = -1, Newer = 1 };
 #  define WORKAROUND_EXTENDED_INITIALIZER_LIST
 #endif
 
-
 class Room::Private
 {
     public:
@@ -106,7 +105,7 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
-        TagEventPtr tags = std::make_unique<TagEvent>();
+        TagsMap tags;
         QHash<QString, QVariantHash> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
@@ -574,27 +573,36 @@ void Room::resetHighlightCount()
 
 QStringList Room::tagNames() const
 {
-    return d->tags->tagNames();
+    return d->tags.keys();
 }
 
-QHash<QString, TagRecord> Room::tags() const
+TagsMap Room::tags() const
 {
-    return d->tags->tags();
+    return d->tags;
 }
 
 TagRecord Room::tag(const QString& name) const
 {
-    return d->tags->recordForTag(name);
+    return d->tags.value(name);
+}
+
+void Room::setTags(const TagsMap& newTags)
+{
+    if (newTags == d->tags)
+        return;
+    d->tags = newTags;
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
 }
 
 bool Room::isFavourite() const
 {
-    return d->tags->contains(FavouriteTag);
+    return d->tags.contains(FavouriteTag);
 }
 
 bool Room::isLowPriority() const
 {
-    return d->tags->contains(LowPriorityTag);
+    return d->tags.contains(LowPriorityTag);
 }
 
 const RoomMessageEvent*
@@ -1485,13 +1493,19 @@ void Room::processAccountDataEvent(EventPtr event)
     switch (event->type())
     {
         case EventType::Tag:
-            d->tags.reset(static_cast<TagEvent*>(event.release()));
+        {
+            auto newTags = static_cast<TagEvent*>(event.get())->tags();
+            if (newTags == d->tags)
+                break;
+            d->tags = newTags;
             qCDebug(MAIN) << "Room" << id() << "is tagged with: "
                           << tagNames().join(", ");
             emit tagsChanged();
             break;
+        }
         default:
-            d->accountData[event->jsonType()] = event->contentJson().toVariantHash();
+            d->accountData[event->jsonType()] =
+                    event->contentJson().toVariantHash();
     }
 }
 
@@ -1644,7 +1658,7 @@ QJsonObject Room::Private::toJson() const
     }
 
     QJsonArray accountDataEvents;
-    if (!tags->empty())
+    if (!tags.empty())
         accountDataEvents.append(QMatrixClient::toJson(tags));
 
     if (!accountData.empty())

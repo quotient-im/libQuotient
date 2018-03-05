@@ -20,13 +20,9 @@
 
 #include "jobs/syncjob.h"
 #include "events/roommessageevent.h"
-#include "events/tagevent.h"
+#include "events/accountdataevents.h"
 #include "joinstate.h"
 
-#include <QtCore/QList>
-#include <QtCore/QStringList>
-#include <QtCore/QObject>
-#include <QtCore/QJsonObject>
 #include <QtGui/QPixmap>
 
 #include <memory>
@@ -241,8 +237,10 @@ namespace QMatrixClient
             Q_INVOKABLE void resetHighlightCount();
 
             QStringList tagNames() const;
-            QHash<QString, TagRecord> tags() const;
+            TagsMap tags() const;
             TagRecord tag(const QString& name) const;
+
+            void setTags(const TagsMap& newTags);
 
             /** Check whether the list of tags has m.favourite */
             bool isFavourite() const;
