@@ -402,8 +402,9 @@ void Room::Private::markMessagesAsRead(Room::rev_iter_t upToMarker)
     {
         if ((*markers.second)->senderId() != q->localUser()->id())
         {
-            connection->callApi<PostReceiptJob>(
-                id, "m.read", (*markers.second)->id());
+            auto eventId = (*markers.second)->id();
+            connection->callApi<PostReceiptJob>(id, "m.read", eventId);
+            setAccountData(ReadMarkerEvent(eventId));
             break;
         }
     }
