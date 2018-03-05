@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,33 +18,20 @@
 
 #pragma once
 
-#include "event.h"
+#include "basejob.h"
 
-namespace QMatrixClient
+using namespace QMatrixClient;
+
+class PostReadMarkersJob : public BaseJob
 {
-    struct Receipt
-    {
-        QString userId;
-        QDateTime timestamp;
-    };
-    struct ReceiptsForEvent
-    {
-        QString evtId;
-        QVector<Receipt> receipts;
-    };
-    using EventsWithReceipts = QVector<ReceiptsForEvent>;
-
-    class ReceiptEvent: public Event
-    {
-        public:
-            explicit ReceiptEvent(const QJsonObject& obj);
-
-            EventsWithReceipts eventsWithReceipts() const
-            { return _eventsWithReceipts; }
-
-            static constexpr const char* const TypeId = "m.receipt";
-
-        private:
-            EventsWithReceipts _eventsWithReceipts;
-    };
-}  // namespace QMatrixClient
+    public:
+        explicit PostReadMarkersJob(const QString& roomId,
+                                    const QString& readUpToEventId)
+            : BaseJob(HttpVerb::Post, "PostReadMarkersJob",
+                      QStringLiteral("_matrix/client/r0/rooms/%1/read_markers")
+                      .arg(roomId))
+        {
+            setRequestData(QJsonObject {{
+                QStringLiteral("m.fully_read"), readUpToEventId }});
+        }
+};

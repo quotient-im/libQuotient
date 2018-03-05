@@ -36,6 +36,7 @@
 #include "jobs/roommessagesjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
+#include "jobs/postreadmarkersjob.h"
 #include "avatar.h"
 #include "connection.h"
 #include "user.h"
@@ -105,6 +106,7 @@ class Room::Private
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
+        QString serverReadMarker;
         TagsMap tags;
         QHash<QString, QVariantHash> accountData;
         QString prevBatch;
@@ -202,11 +204,12 @@ class Room::Private
          */
         void processRedaction(RoomEventPtr redactionEvent);
 
-        template <typename EvT>
-        SetAccountDataPerRoomJob* setAccountData(const EvT& event)
+        void broadcastTagUpdates()
         {
-            return connection->callApi<SetAccountDataPerRoomJob>(
-                    connection->userId(), id, EvT::typeId(), event.toJson());
+            connection->callApi<SetAccountDataPerRoomJob>(
+                    connection->userId(), id, TagEvent::typeId(),
+                        TagEvent(tags).toJson());
+            emit q->tagsChanged();
         }
 
         QJsonObject toJson() const;
@@ -347,7 +350,11 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
     storedId = eventId;
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
+    {
+        if (eventId != serverReadMarker)
+            connection->callApi<PostReadMarkersJob>(id, eventId);
         emit q->readMarkerMoved();
+    }
 }
 
 Room::Private::rev_iter_pair_t
@@ -402,8 +409,8 @@ void Room::Private::markMessagesAsRead(Room::rev_iter_t upToMarker)
     {
         if ((*markers.second)->senderId() != q->localUser()->id())
         {
-            connection->callApi<PostReceiptJob>(
-                id, "m.read", (*markers.second)->id());
+            connection->callApi<PostReceiptJob>(id, "m.read",
+                                                (*markers.second)->id());
             break;
         }
     }
@@ -592,8 +599,7 @@ void Room::addTag(const QString& name, const TagRecord& record)
         return;
 
     d->tags.insert(name, record);
-    d->setAccountData(TagEvent(d->tags));
-    emit tagsChanged();
+    d->broadcastTagUpdates();
 }
 
 void Room::removeTag(const QString& name)
@@ -602,8 +608,7 @@ void Room::removeTag(const QString& name)
         return;
 
     d->tags.remove(name);
-    d->setAccountData(TagEvent(d->tags));
-    emit tagsChanged();
+    d->broadcastTagUpdates();
 }
 
 void Room::setTags(const TagsMap& newTags)
@@ -611,8 +616,7 @@ void Room::setTags(const TagsMap& newTags)
     if (newTags == d->tags)
         return;
     d->tags = newTags;
-    d->setAccountData(TagEvent(d->tags));
-    emit tagsChanged();
+    d->broadcastTagUpdates();
 }
 
 bool Room::isFavourite() const
@@ -914,10 +918,13 @@ void Room::updateData(SyncRoomData&& data)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    QElapsedTimer et;
+    QElapsedTimer et; et.start();
+    for (auto&& event: data.accountData)
+        processAccountDataEvent(move(event));
+
     if (!data.state.empty())
     {
-        et.start();
+        et.restart();
         processStateEvents(data.state);
         qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
                           << data.state.size() << "event(s)," << et;
@@ -936,9 +943,6 @@ void Room::updateData(SyncRoomData&& data)
     }
     for( auto&& ephemeralEvent: data.ephemeral )
         processEphemeralEvent(move(ephemeralEvent));
-
-    for (auto&& event: data.accountData)
-        processAccountDataEvent(move(event));
 
     if( data.highlightCount != d->highlightCount )
     {
@@ -1498,8 +1502,6 @@ void Room::processEphemeralEvent(EventPtr event)
                 qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
                     << receiptEvent->eventsWithReceipts().size()
                     << "events with receipts," << et;
-            if (receiptEvent->unreadMessages())
-                d->unreadMessages = true;
             break;
         }
         default:
@@ -1521,6 +1523,20 @@ void Room::processAccountDataEvent(EventPtr event)
             qCDebug(MAIN) << "Room" << id() << "is tagged with: "
                           << tagNames().join(", ");
             emit tagsChanged();
+            break;
+        }
+        case EventType::ReadMarker:
+        {
+            const auto* rmEvent = static_cast<ReadMarkerEvent*>(event.get());
+            const auto& readEventId = rmEvent->event_id();
+            qCDebug(MAIN) << "Server-side read marker at " << readEventId;
+            static const auto UnreadMsgsKey =
+                QStringLiteral("x-qmatrixclient.unread_messages");
+            if (rmEvent->contentJson().contains(UnreadMsgsKey))
+                d->unreadMessages =
+                        rmEvent->contentJson().value(UnreadMsgsKey).toBool();
+            d->serverReadMarker = readEventId;
+            markMessagesAsRead(readEventId);
             break;
         }
         default:
@@ -1658,31 +1674,23 @@ QJsonObject Room::Private::toJson() const
             QJsonObject {{ QStringLiteral("events"), stateEvents }});
     }
 
-    if (!q->readMarkerEventId().isEmpty())
-    {
-        result.insert(QStringLiteral("ephemeral"),
-            QJsonObject {{ QStringLiteral("events"),
-                QJsonArray { QJsonObject(
-                    { { QStringLiteral("type"), QStringLiteral("m.receipt") }
-                    , { QStringLiteral("content"), QJsonObject(
-                        { { q->readMarkerEventId(),
-                            QJsonObject {{ QStringLiteral("m.read"),
-                                QJsonObject {{ connection->userId(), {} }} }}
-                          }
-                        , { QStringLiteral("x-qmatrixclient.unread_messages"),
-                            unreadMessages }
-                        }) }
-                    }
-                ) }
-            }});
-    }
-
     QJsonArray accountDataEvents;
     if (!tags.empty())
         accountDataEvents.append(QJsonObject(
-            { { QStringLiteral("type"), QStringLiteral("m.tag") }
+            { { QStringLiteral("type"), TagEvent::typeId() }
             , { QStringLiteral("content"), TagEvent(tags).toJson() }
             }));
+
+    if (!serverReadMarker.isEmpty())
+    {
+        auto contentJson = ReadMarkerEvent(serverReadMarker).toJson();
+        contentJson.insert(QStringLiteral("x-qmatrixclient.unread_messages"),
+                           unreadMessages);
+        accountDataEvents.append(QJsonObject(
+            { { QStringLiteral("type"), ReadMarkerEvent::typeId() }
+            , { QStringLiteral("content"), contentJson }
+            }));
+    }
 
     if (!accountData.empty())
     {

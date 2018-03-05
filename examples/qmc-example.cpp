@@ -130,6 +130,7 @@ void QMCTest::addAndRemoveTag()
              << "  " << targetRoom->tagNames().join(", ").toStdString() << endl;
         if (targetRoom->tags().contains(TestTag))
         {
+            cout << "Test tag set, removing it now" << endl;
             targetRoom->removeTag(TestTag);
             QMC_CHECK("Tagging test", !targetRoom->tags().contains(TestTag));
             --semaphor;
@@ -137,15 +138,18 @@ void QMCTest::addAndRemoveTag()
         }
     });
     // The reverse order because tagsChanged is emitted synchronously.
+    cout << "Adding a tag" << endl;
     targetRoom->addTag(TestTag);
 }
 
 void QMCTest::sendAndRedact()
 {
     ++semaphor;
+    cout << "Sending a message to redact" << endl;
     auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
-            RoomMessageEvent("Message to redact"));
+            RoomMessageEvent(origin % ": Message to redact"));
     QObject::connect(job, &BaseJob::success, targetRoom, [job,this] {
+        cout << "Message to redact has been succesfully sent, redacting" << endl;
         targetRoom->redactEvent(job->eventId(), "qmc-example");
     });
     QObject::connect(targetRoom, &Room::replacedEvent, targetRoom,
