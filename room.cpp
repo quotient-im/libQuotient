@@ -586,6 +586,26 @@ TagRecord Room::tag(const QString& name) const
     return d->tags.value(name);
 }
 
+void Room::addTag(const QString& name, const TagRecord& record)
+{
+    if (d->tags.contains(name))
+        return;
+
+    d->tags.insert(name, record);
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
+}
+
+void Room::removeTag(const QString& name)
+{
+    if (!d->tags.contains(name))
+        return;
+
+    d->tags.remove(name);
+    d->setAccountData(TagEvent(d->tags));
+    emit tagsChanged();
+}
+
 void Room::setTags(const TagsMap& newTags)
 {
     if (newTags == d->tags)

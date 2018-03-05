@@ -240,6 +240,25 @@ namespace QMatrixClient
             TagsMap tags() const;
             TagRecord tag(const QString& name) const;
 
+            /** Add a new tag to this room
+             * If this room already has this tag, nothing happens. If it's a new
+             * tag for the room, the respective tag record is added to the set
+             * of tags and the new set is sent to the server to update other
+             * clients.
+             */
+            void addTag(const QString& name, const TagRecord& record = {});
+
+            /** Remove a tag from the room */
+            void removeTag(const QString& name);
+
+            /** Overwrite the room's tags
+             * This completely replaces the existing room's tags with a set
+             * of new ones and updates the new set on the server. Unlike
+             * most other methods in Room, this one sends a signal about changes
+             * immediately, not waiting for confirmation from the server
+             * (because tags are saved in account data rather than in shared
+             * room state).
+             */
             void setTags(const TagsMap& newTags);
 
             /** Check whether the list of tags has m.favourite */

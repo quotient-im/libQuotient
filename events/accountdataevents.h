@@ -30,8 +30,8 @@ namespace QMatrixClient
 
     struct TagRecord
     {
-        TagRecord (QString order) : order(std::move(order)) { }
-        explicit TagRecord(const QJsonValue& jv = {})
+        TagRecord (QString order = {}) : order(std::move(order)) { }
+        explicit TagRecord(const QJsonValue& jv)
             : order(jv.toObject().value("order").toString())
         { }
 
