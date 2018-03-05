@@ -14,83 +14,93 @@ using std::cout;
 using std::endl;
 using namespace std::placeholders;
 
-static int semaphor = 0;
-static Room* targetRoom = nullptr;
+class QMCTest : public QObject
+{
+    public:
+        QMCTest(Connection* conn, const QString& testRoomName, QString source);
 
-#define QMC_CHECK(origin, description, condition) \
+    private slots:
+        void onNewRoom(Room* r, const QString& testRoomName);
+        void doTests();
+        void addAndRemoveTag();
+        void sendAndRedact();
+        void finalize();
+
+    private:
+        QScopedPointer<Connection, QScopedPointerDeleteLater> c;
+        QString origin;
+        Room* targetRoom = nullptr;
+        int semaphor = 0;
+
+};
+
+#define QMC_CHECK(description, condition) \
     cout << (description) \
          << (!!(condition) ? " successul" : " FAILED") << endl; \
-    targetRoom->postMessage(QString(origin) % ": " % QStringLiteral(description) % \
+    targetRoom->postMessage(origin % ": " % QStringLiteral(description) % \
         (!!(condition) ? QStringLiteral(" successful") : \
                          QStringLiteral(" FAILED")), MessageEventType::Notice)
 
-void addAndRemoveTag(const char* origin)
+QMCTest::QMCTest(Connection* conn, const QString& testRoomName, QString source)
+    : c(conn), origin(std::move(source))
 {
-    ++semaphor;
-    static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
-    QObject::connect(targetRoom, &Room::tagsChanged, targetRoom, [=] {
-        cout << "Room " << targetRoom->id().toStdString()
-             << ", tag(s) changed:" << endl
-             << "  " << targetRoom->tagNames().join(", ").toStdString() << endl;
-        if (targetRoom->tags().contains(TestTag))
+    if (!origin.isEmpty())
+        cout << "Origin for the test message: " << origin.toStdString() << endl;
+    if (!testRoomName.isEmpty())
+        cout << "Test room name: " << testRoomName.toStdString() << endl;
+
+    connect(c.data(), &Connection::newRoom,
+            this, [this,testRoomName] (Room* r) { onNewRoom(r, testRoomName); });
+    connect(c.data(), &Connection::syncDone, c.data(), [this] {
+        cout << "Sync complete, " << semaphor << " tests in the air" << endl;
+        if (semaphor)
         {
-            targetRoom->removeTag(TestTag);
-            QMC_CHECK(origin, "Tagging test",
-                      !targetRoom->tags().contains(TestTag));
-            --semaphor;
-            QObject::disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
+//            if (targetRoom)
+//                targetRoom->postMessage(
+//                    QString("%1: sync done, %2 test(s) in the air")
+//                        .arg(origin).arg(semaphor),
+//                    MessageEventType::Notice);
+            c->sync(10000);
+        }
+        else
+        {
+            if (targetRoom)
+            {
+                auto j = c->callApi<SendEventJob>(targetRoom->id(),
+                        RoomMessageEvent(origin % ": All tests finished"));
+                connect(j, &BaseJob::finished, this, &QMCTest::finalize);
+            }
+            else
+                finalize();
         }
     });
-    // The reverse order because tagsChanged is emitted synchronously.
-    targetRoom->addTag(TestTag);
+    // Big countdown watchdog
+    QTimer::singleShot(180000, this, &QMCTest::finalize);
 }
 
-void sendAndRedact(const char* origin)
-{
-    ++semaphor;
-    auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
-            RoomMessageEvent("Message to redact"));
-    QObject::connect(job, &BaseJob::success, targetRoom, [job] {
-        targetRoom->redactEvent(job->eventId(), "qmc-example");
-    });
-    QObject::connect(targetRoom, &Room::replacedEvent, targetRoom,
-        [=] (const RoomEvent* newEvent) {
-            QMC_CHECK(origin, "Redaction", newEvent->isRedacted() &&
-                        newEvent->redactionReason() == "qmc-example");
-            --semaphor;
-            QObject::disconnect(targetRoom, &Room::replacedEvent,
-                                nullptr, nullptr);
-        });
-}
-
-void onNewRoom(Room* r, const char* targetRoomName, const char* origin)
+void QMCTest::onNewRoom(Room* r, const QString& testRoomName)
 {
     cout << "New room: " << r->id().toStdString() << endl;
-    QObject::connect(r, &Room::namesChanged, [=] {
+    connect(r, &Room::namesChanged, this, [=] {
         cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl
              << "  Name: " << r->name().toStdString() << endl
              << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
              << endl << endl;
-        if (targetRoomName && (r->name() == targetRoomName ||
-                r->canonicalAlias() == targetRoomName))
+        if (!testRoomName.isEmpty() && (r->name() == testRoomName ||
+                r->canonicalAlias() == testRoomName))
         {
             cout << "Found the target room, proceeding for tests" << endl;
             targetRoom = r;
-            addAndRemoveTag(origin);
-            sendAndRedact(origin);
-            targetRoom->postMessage(
-                "This is a test notice from an example application\n"
-                "Origin: " % QString(origin) % "\n"
-                "The current user is " %
-                    targetRoom->localUser()->fullName(targetRoom) % "\n" %
-//                "The room is " %
-//                    (r->isDirectChat() ? "" : "not ") % "a direct chat\n" %
-                "Have a good day",
-                MessageEventType::Notice
-            );
+            ++semaphor;
+            auto j = targetRoom->connection()->callApi<SendEventJob>(
+                targetRoom->id(),
+                RoomMessageEvent(origin % ": connected to test room",
+                MessageEventType::Notice));
+            connect(j, &BaseJob::success,
+                    this, [this] { doTests(); --semaphor; });
         }
     });
-    QObject::connect(r, &Room::aboutToAddNewMessages, [r] (RoomEventsRange timeline) {
+    connect(r, &Room::aboutToAddNewMessages, r, [r] (RoomEventsRange timeline) {
         cout << timeline.size() << " new event(s) in room "
              << r->id().toStdString() << endl;
 //        for (const auto& item: timeline)
@@ -104,15 +114,59 @@ void onNewRoom(Room* r, const char* targetRoomName, const char* origin)
     });
 }
 
-void finalize(Connection* conn)
+void QMCTest::doTests()
+{
+    addAndRemoveTag();
+    sendAndRedact();
+}
+
+void QMCTest::addAndRemoveTag()
+{
+    ++semaphor;
+    static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
+    QObject::connect(targetRoom, &Room::tagsChanged, targetRoom, [=] {
+        cout << "Room " << targetRoom->id().toStdString()
+             << ", tag(s) changed:" << endl
+             << "  " << targetRoom->tagNames().join(", ").toStdString() << endl;
+        if (targetRoom->tags().contains(TestTag))
+        {
+            targetRoom->removeTag(TestTag);
+            QMC_CHECK("Tagging test", !targetRoom->tags().contains(TestTag));
+            --semaphor;
+            QObject::disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
+        }
+    });
+    // The reverse order because tagsChanged is emitted synchronously.
+    targetRoom->addTag(TestTag);
+}
+
+void QMCTest::sendAndRedact()
+{
+    ++semaphor;
+    auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
+            RoomMessageEvent("Message to redact"));
+    QObject::connect(job, &BaseJob::success, targetRoom, [job,this] {
+        targetRoom->redactEvent(job->eventId(), "qmc-example");
+    });
+    QObject::connect(targetRoom, &Room::replacedEvent, targetRoom,
+        [=] (const RoomEvent* newEvent) {
+            QMC_CHECK("Redaction", newEvent->isRedacted() &&
+                        newEvent->redactionReason() == "qmc-example");
+            --semaphor;
+            QObject::disconnect(targetRoom, &Room::replacedEvent,
+                                nullptr, nullptr);
+        });
+}
+
+void QMCTest::finalize()
 {
     if (semaphor)
         cout << "One or more tests FAILED" << endl;
     cout << "Logging out" << endl;
-    conn->logout();
-    QObject::connect(conn, &Connection::loggedOut, QCoreApplication::instance(),
-        [conn] {
-            conn->deleteLater();
+    c->logout();
+    connect(c.data(), &Connection::loggedOut, QCoreApplication::instance(),
+        [this] {
+            c->deleteLater();
             QCoreApplication::processEvents();
             QCoreApplication::exit(semaphor);
         });
@@ -121,44 +175,22 @@ void finalize(Connection* conn)
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    if (argc < 3)
+    if (argc < 4)
+    {
+        cout << "Usage: qmc-example <user> <passwd> <device_name> [<room_alias> [origin]]" << endl;
         return -1;
+    }
 
     cout << "Connecting to the server as " << argv[1] << endl;
     auto conn = new Connection;
-    conn->connectToServer(argv[1], argv[2], "QMatrixClient example application");
+    conn->connectToServer(argv[1], argv[2], argv[3]);
     QObject::connect(conn, &Connection::connected, [=] {
         cout << "Connected, server: "
              << conn->homeserver().toDisplayString().toStdString() << endl;
         cout << "Access token: " << conn->accessToken().toStdString() << endl;
         conn->sync();
     });
-    const char* targetRoomName = argc >= 4 ? argv[3] : nullptr;
-    if (targetRoomName)
-        cout << "Target room name: " << targetRoomName << endl;
-    const char* origin = argc >= 5 ? argv[4] : nullptr;
-    if (origin)
-        cout << "Origin for the test message: " << origin << endl;
-    QObject::connect(conn, &Connection::newRoom,
-        [=](Room* room) { onNewRoom(room, targetRoomName, origin); });
-    QObject::connect(conn, &Connection::syncDone, conn, [conn] {
-        cout << "Sync complete, " << semaphor << " tests in the air" << endl;
-        if (semaphor)
-            conn->sync(10000);
-        else
-        {
-            if (targetRoom)
-            {
-                auto j = conn->callApi<SendEventJob>(targetRoom->id(),
-                            RoomMessageEvent("All tests finished"));
-                QObject::connect(j, &BaseJob::finished,
-                                 conn, [conn] { finalize(conn); });
-            }
-            else
-                finalize(conn);
-        }
-    });
-    // Big red countdown
-    QTimer::singleShot(180000, conn, [conn] { finalize(conn); });
+    QMCTest test { conn, argc >= 5 ? argv[4] : nullptr,
+                         argc >= 6 ? argv[5] : nullptr };
     return app.exec();
 }
