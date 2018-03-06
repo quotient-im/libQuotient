@@ -124,6 +124,10 @@ void QMCTest::addAndRemoveTag()
 {
     ++semaphor;
     static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
+    // Pre-requisite
+    if (targetRoom->tags().contains(TestTag))
+        targetRoom->removeTag(TestTag);
+
     QObject::connect(targetRoom, &Room::tagsChanged, targetRoom, [=] {
         cout << "Room " << targetRoom->id().toStdString()
              << ", tag(s) changed:" << endl
