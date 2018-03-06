@@ -108,6 +108,14 @@ We will gladly give credit to anyone who reports a vulnerability so that we can 
 
 The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
 
+### Library API and doc-comments
+
+Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you.
+
+Calls, data structures and other symbols not intended for use by clients should _not_ be exposed in (public) .h files, unless they are necessary to declare other public symbols. In particular, this involves private members (functions, typedefs, or variables) in public classes; use pimpl idiom to hide implementation details as much as possible.
+
+Note: As of now, all header files of libqmatrixclient are considered public; this may change eventually.
+
 ### Qt-flavoured C++
 
 This is our primary language. We don't have a particular code style _as of yet_ but some rules-of-thumb are below:
@@ -124,7 +132,7 @@ This is our primary language. We don't have a particular code style _as of yet_ 
 
 ### Automated tests
 
-There's no testing framework as of now; either Catch or QTest or both will be used eventually (PRs welcome, just don't expect a quick merge of one - we'll hunt you down to actually write some tests first :-D ).
+There's no testing framework as of now; either Catch or QTest or both will be used eventually. However, as a stopgap measure, qmc-example is used for end-to-end testing; so please add another private slot and call it from `QMCTest::doTests()` whenever you add new function worth it. PRs to set up a proper testing appliance instead are very welcome (make sure to migrate tests from qmc-example though).
 
 ### Security, privacy, and performance
 
