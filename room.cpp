@@ -1472,9 +1472,9 @@ void Room::processEphemeralEvent(EventPtr event)
                                            << "as read for"
                                            << p.receipts.size() << "users";
                 }
-                if (d->eventsIndex.contains(p.evtId))
+                const auto newMarker = findInTimeline(p.evtId);
+                if (newMarker != timelineEdge())
                 {
-                    const auto newMarker = findInTimeline(p.evtId);
                     for( const Receipt& r: p.receipts )
                     {
                         auto u = user(r.userId);
@@ -1536,7 +1536,11 @@ void Room::processAccountDataEvent(EventPtr event)
                 d->unreadMessages =
                         rmEvent->contentJson().value(UnreadMsgsKey).toBool();
             d->serverReadMarker = readEventId;
-            markMessagesAsRead(readEventId);
+            const auto newMarker = findInTimeline(readEventId);
+            if (newMarker != timelineEdge())
+                d->markMessagesAsRead(newMarker);
+            else
+                d->setLastReadEvent(localUser(), readEventId);
             break;
         }
         default:
