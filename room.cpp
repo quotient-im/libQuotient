@@ -1477,6 +1477,8 @@ void Room::processEphemeralEvent(EventPtr event)
                 {
                     for( const Receipt& r: p.receipts )
                     {
+                        if (r.userId == connection()->userId())
+                            continue; // FIXME, #185
                         auto u = user(r.userId);
                         if (memberJoinState(u) == JoinState::Join)
                             d->promoteReadMarker(u, newMarker);
@@ -1491,6 +1493,8 @@ void Room::processEphemeralEvent(EventPtr event)
                     // Otherwise, blindly store the event id for this user.
                     for( const Receipt& r: p.receipts )
                     {
+                        if (r.userId == connection()->userId())
+                            continue; // FIXME, #185
                         auto u = user(r.userId);
                         if (memberJoinState(u) == JoinState::Join &&
                                 readMarker(u) == timelineEdge())
