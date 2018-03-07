@@ -174,7 +174,6 @@ void QMCTest::finalize()
     c->logout();
     connect(c.data(), &Connection::loggedOut, QCoreApplication::instance(),
         [this] {
-            c->deleteLater();
             QCoreApplication::processEvents();
             QCoreApplication::exit(semaphor);
         });
