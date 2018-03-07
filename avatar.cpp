@@ -37,6 +37,8 @@ class Avatar::Private
                    get_callback_t callback) const;
         bool upload(UploadContentJob* job, upload_callback_t callback);
 
+        bool checkUrl(QUrl url) const;
+
         const QIcon _defaultIcon;
         QUrl _url;
 
@@ -44,7 +46,8 @@ class Avatar::Private
         mutable QImage _originalImage;
         mutable std::vector<QPair<QSize, QImage>> _scaledImages;
         mutable QSize _requestedSize;
-        mutable bool _valid = false;
+        mutable bool _bannedUrl = false;
+        mutable bool _fetched = false;
         mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
         mutable QPointer<BaseJob> _uploadRequest = nullptr;
         mutable std::vector<get_callback_t> callbacks;
@@ -105,9 +108,9 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
     // This is plain abuse by the client, though; so not critical for now.
-    if( ( !(_valid || _thumbnailRequest)
+    if( ( !(_fetched || _thumbnailRequest)
           || size.width() > _requestedSize.width()
-          || size.height() > _requestedSize.height() ) && _url.isValid() )
+          || size.height() > _requestedSize.height() ) && checkUrl(_url) )
     {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
@@ -117,7 +120,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         _thumbnailRequest = connection->getThumbnail(_url, size);
         QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success, [this]
         {
-            _valid = true;
+            _fetched = true;
             _originalImage = _thumbnailRequest->scaledThumbnail(_requestedSize);
             _scaledImages.clear();
             for (auto n: callbacks)
@@ -153,6 +156,21 @@ bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t callback)
     return true;
 }
 
+bool Avatar::Private::checkUrl(QUrl url) const
+{
+    if (_bannedUrl || url.isEmpty())
+        return false;
+
+    // FIXME: Make "mxc" a library-wide constant and maybe even make
+    // the URL checker a Connection(?) method.
+    _bannedUrl = !(url.isValid() &&
+            url.scheme() == "mxc" && url.path().count('/') == 1);
+    if (_bannedUrl)
+        qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:"
+                        << url.toDisplayString();
+    return !_bannedUrl;
+}
+
 QUrl Avatar::url() const { return d->_url; }
 
 bool Avatar::updateUrl(const QUrl& newUrl)
@@ -160,15 +178,8 @@ bool Avatar::updateUrl(const QUrl& newUrl)
     if (newUrl == d->_url)
         return false;
 
-    // FIXME: Make it a library-wide constant and maybe even make the URL checker
-    // a Connection(?) method.
-    if (newUrl.scheme() != "mxc"  || newUrl.path().count('/') != 1)
-    {
-        qCWarning(MAIN) << "Malformed avatar URL:" << newUrl.toDisplayString();
-        return false;
-    }
     d->_url = newUrl;
-    d->_valid = false;
+    d->_fetched = false;
     if (isJobRunning(d->_thumbnailRequest))
         d->_thumbnailRequest->abandon();
     return true;
