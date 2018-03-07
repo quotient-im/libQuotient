@@ -22,7 +22,7 @@
    Memcheck:Leak
    match-leak-kinds: possible
    fun:_Znwm
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   ...
    obj:/opt/qt56/lib/libQt5Network.so.5.6.3
    fun:_ZN7QObject5eventEP6QEvent
    fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
@@ -110,7 +110,7 @@
     Memcheck:Leak
     match-leak-kinds: possible
     fun:_Znwm
-    obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+    ...
     obj:/opt/qt56/lib/libQt5Network.so.5.6.3
     fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
 }
