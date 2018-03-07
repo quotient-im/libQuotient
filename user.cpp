@@ -59,7 +59,7 @@ class User::Private
 
         QString mostUsedName;
         QString bridged;
-        const QScopedPointer<Avatar> mostUsedAvatar { makeAvatar({}) };
+        const std::unique_ptr<Avatar> mostUsedAvatar { makeAvatar({}) };
         QMultiHash<QString, const Room*> otherNames;
         QHash<QUrl, Avatar*> otherAvatars;
         QMultiHash<QUrl, const Room*> avatarsToRooms;
@@ -80,7 +80,7 @@ Avatar* User::Private::makeAvatar(QUrl url)
 {
     static const QIcon icon
         { QIcon::fromTheme(QStringLiteral("user-available")) };
-    return new Avatar(url, icon);
+    return new Avatar(move(url), icon);
 }
 
 QString User::Private::nameForRoom(const Room* r, const QString& hint) const
@@ -315,7 +315,7 @@ QString User::bridged() const
 const Avatar& User::avatarObject(const Room* room) const
 {
     return *d->otherAvatars.value(d->avatarUrlForRoom(room),
-                                  d->mostUsedAvatar.data());
+                                  d->mostUsedAvatar.get());
 }
 
 QImage User::avatar(int dimension, const Room* room)
