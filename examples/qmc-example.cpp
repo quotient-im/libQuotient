@@ -8,6 +8,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
 #include <iostream>
+#include <functional>
 
 using namespace QMatrixClient;
 using std::cout;
@@ -21,9 +22,10 @@ class QMCTest : public QObject
 
     private slots:
         void onNewRoom(Room* r, const QString& testRoomName);
-        void doTests();
-        void addAndRemoveTag();
-        void sendAndRedact();
+            void doTests();
+                void addAndRemoveTag();
+                void sendAndRedact();
+                    void checkRedactionOutcome(QString evtIdToRedact, RoomEventsRange events);
         void finalize();
 
     private:
@@ -152,18 +154,67 @@ void QMCTest::sendAndRedact()
     cout << "Sending a message to redact" << endl;
     auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
             RoomMessageEvent(origin % ": Message to redact"));
-    QObject::connect(job, &BaseJob::success, targetRoom, [job,this] {
+    connect(job, &BaseJob::success, targetRoom, [job,this] {
         cout << "Message to redact has been succesfully sent, redacting" << endl;
-        targetRoom->redactEvent(job->eventId(), "qmc-example");
+        targetRoom->redactEvent(job->eventId(), origin);
+        // Make sure to save the event id because the job is about to end.
+        connect(targetRoom, &Room::aboutToAddNewMessages, this,
+                std::bind(&QMCTest::checkRedactionOutcome,
+                          this, job->eventId(), _1));
     });
-    QObject::connect(targetRoom, &Room::replacedEvent, targetRoom,
-        [=] (const RoomEvent* newEvent) {
-            QMC_CHECK("Redaction", newEvent->isRedacted() &&
-                        newEvent->redactionReason() == "qmc-example");
+}
+
+void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
+                                    RoomEventsRange events)
+{
+    static bool checkSucceeded = false;
+    // There are two possible (correct) outcomes: either the event comes already
+    // redacted at the next sync, or the nearest sync completes with
+    // the unredacted event but the next one brings redaction.
+    auto it = std::find_if(events.begin(), events.end(),
+                [=] (const RoomEventPtr& e) {
+                    return e->id() == evtIdToRedact;
+                });
+    if (it == events.end())
+        return; // Waiting for the next sync
+
+    if ((*it)->isRedacted())
+    {
+        if (checkSucceeded)
+        {
+            const auto msg =
+                    "The redacted event came in with the sync again, ignoring";
+            cout << msg << endl;
+            targetRoom->postMessage(msg);
+            return;
+        }
+        cout << "The sync brought already redacted message" << endl;
+        QMC_CHECK("Redaction", true);
+        --semaphor;
+        // Not disconnecting because there are other connections from this class
+        // to aboutToAddNewMessages
+        checkSucceeded = true;
+        return;
+    }
+    // The event is not redacted
+    if (checkSucceeded)
+    {
+        const auto msg =
+                "Warning: the redacted event came non-redacted with the sync!";
+        cout << msg << endl;
+        targetRoom->postMessage(msg);
+    }
+    cout << "Message came non-redacted with the sync, waiting for redaction" << endl;
+    connect(targetRoom, &Room::replacedEvent, targetRoom,
+        [=] (const RoomEvent* newEvent, const RoomEvent* oldEvent) {
+            QMC_CHECK("Redaction", oldEvent->id() == evtIdToRedact &&
+                      newEvent->isRedacted() &&
+                      newEvent->redactionReason() == origin);
             --semaphor;
-            QObject::disconnect(targetRoom, &Room::replacedEvent,
-                                nullptr, nullptr);
+            checkSucceeded = true;
+            disconnect(targetRoom, &Room::replacedEvent, nullptr, nullptr);
         });
+
 }
 
 void QMCTest::finalize()
