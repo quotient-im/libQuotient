@@ -34,7 +34,6 @@
 #include <QtCore/QElapsedTimer>
 
 #include <functional>
-#include <unordered_set>
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
@@ -43,25 +42,30 @@ using std::move;
 class User::Private
 {
     public:
-        static Avatar* makeAvatar(QUrl url);
+        static Avatar makeAvatar(QUrl url)
+        {
+            static const QIcon icon
+                { QIcon::fromTheme(QStringLiteral("user-available")) };
+            return Avatar(move(url), icon);
+        }
 
         Private(QString userId, Connection* connection)
             : userId(move(userId)), connection(connection)
         { }
-        ~Private()
-        {
-            for (auto a: otherAvatars)
-                delete a;
-        }
 
         QString userId;
         Connection* connection;
 
-        QString mostUsedName;
         QString bridged;
-        const std::unique_ptr<Avatar> mostUsedAvatar { makeAvatar({}) };
+        QString mostUsedName;
         QMultiHash<QString, const Room*> otherNames;
-        QHash<QUrl, Avatar*> otherAvatars;
+        Avatar mostUsedAvatar { makeAvatar({}) };
+        std::vector<Avatar> otherAvatars;
+        auto otherAvatar(QUrl url)
+        {
+            return std::find_if(otherAvatars.begin(), otherAvatars.end(),
+                    [&url] (const auto& av) { return av.url() == url; });
+        }
         QMultiHash<QUrl, const Room*> avatarsToRooms;
 
         mutable int totalRooms = 0;
@@ -76,12 +80,6 @@ class User::Private
 
 };
 
-Avatar* User::Private::makeAvatar(QUrl url)
-{
-    static const QIcon icon
-        { QIcon::fromTheme(QStringLiteral("user-available")) };
-    return new Avatar(move(url), icon);
-}
 
 QString User::Private::nameForRoom(const Room* r, const QString& hint) const
 {
@@ -138,32 +136,33 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
 QUrl User::Private::avatarUrlForRoom(const Room* r, const QUrl& hint) const
 {
     // If the hint is accurate, this function is O(1) instead of O(n)
-    if (hint == mostUsedAvatar->url() || avatarsToRooms.contains(hint, r))
+    if (hint == mostUsedAvatar.url() || avatarsToRooms.contains(hint, r))
         return hint;
     auto it = std::find(avatarsToRooms.begin(), avatarsToRooms.end(), r);
-    return it == avatarsToRooms.end() ? mostUsedAvatar->url() : it.key();
+    return it == avatarsToRooms.end() ? mostUsedAvatar.url() : it.key();
 }
 
 void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
                                      const QUrl& oldUrl)
 {
     Q_ASSERT(oldUrl != newUrl);
-    Q_ASSERT(oldUrl == mostUsedAvatar->url() ||
+    Q_ASSERT(oldUrl == mostUsedAvatar.url() ||
              avatarsToRooms.contains(oldUrl, r));
     if (totalRooms < 2)
     {
         Q_ASSERT_X(totalRooms > 0 && otherAvatars.empty(), __FUNCTION__,
                    "Internal structures inconsistency");
-        mostUsedAvatar->updateUrl(newUrl);
+        mostUsedAvatar.updateUrl(newUrl);
         return;
     }
     avatarsToRooms.remove(oldUrl, r);
     if (!avatarsToRooms.contains(oldUrl))
     {
-        delete otherAvatars.value(oldUrl);
-        otherAvatars.remove(oldUrl);
+        auto it = otherAvatar(oldUrl);
+        if (it != otherAvatars.end())
+            otherAvatars.erase(it);
     }
-    if (newUrl != mostUsedAvatar->url())
+    if (newUrl != mostUsedAvatar.url())
     {
         // Check if the new avatar is about to become most used.
         if (avatarsToRooms.count(newUrl) >= totalRooms - avatarsToRooms.size())
@@ -172,22 +171,23 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
             {
                 qCDebug(MAIN) << "Switching the most used avatar of user" << userId
-                              << "from" << mostUsedAvatar->url().toDisplayString()
+                              << "from" << mostUsedAvatar.url().toDisplayString()
                               << "to" << newUrl.toDisplayString();
                 et.start();
             }
             avatarsToRooms.remove(newUrl);
-            auto* nextMostUsed = otherAvatars.take(newUrl);
-            std::swap(*mostUsedAvatar, *nextMostUsed);
-            otherAvatars.insert(nextMostUsed->url(), nextMostUsed);
+            auto nextMostUsedIt = otherAvatar(newUrl);
+            Q_ASSERT(nextMostUsedIt != otherAvatars.end());
+            std::swap(mostUsedAvatar, *nextMostUsedIt);
             for (const auto* r1: connection->roomMap())
-                if (avatarUrlForRoom(r1) == nextMostUsed->url())
-                    avatarsToRooms.insert(nextMostUsed->url(), r1);
+                if (avatarUrlForRoom(r1) == nextMostUsedIt->url())
+                    avatarsToRooms.insert(nextMostUsedIt->url(), r1);
 
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
                 qCDebug(PROFILER) << et << "to switch the most used avatar";
         } else {
-            otherAvatars.insert(newUrl, makeAvatar(newUrl));
+            if (otherAvatar(newUrl) == otherAvatars.end())
+                otherAvatars.emplace_back(makeAvatar(newUrl));
             avatarsToRooms.insert(newUrl, r);
         }
     }
@@ -241,7 +241,7 @@ void User::updateName(const QString& newName, const QString& oldName,
 void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
                            const Room* room)
 {
-    Q_ASSERT(oldUrl == d->mostUsedAvatar->url() ||
+    Q_ASSERT(oldUrl == d->mostUsedAvatar.url() ||
              d->avatarsToRooms.contains(oldUrl, room));
     if (newUrl != oldUrl)
     {
@@ -314,8 +314,8 @@ QString User::bridged() const
 
 const Avatar& User::avatarObject(const Room* room) const
 {
-    return *d->otherAvatars.value(d->avatarUrlForRoom(room),
-                                  d->mostUsedAvatar.get());
+    auto it = d->otherAvatar(d->avatarUrlForRoom(room));
+    return it != d->otherAvatars.end() ? *it : d->mostUsedAvatar;
 }
 
 QImage User::avatar(int dimension, const Room* room)
