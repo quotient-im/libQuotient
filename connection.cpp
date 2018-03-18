@@ -719,15 +719,18 @@ void Connection::loadState(const QUrl &fromFile)
         qCDebug(MAIN) << "No state cache file found";
         return;
     }
-    file.open(QFile::ReadOnly);
+    if(!file.open(QFile::ReadOnly))
+    {
+        qCWarning(MAIN) << "file " << file.fileName() << "failed to open for read";
+        return;
+    }
     QByteArray data = file.readAll();
 
-    QJsonParseError e;
     auto jsonDoc = d->cacheToBinary ? QJsonDocument::fromBinaryData(data) :
-                                      QJsonDocument::fromJson(data, &e);
-    if (e.error != QJsonParseError::NoError)
+                                      QJsonDocument::fromJson(data);
+    if (jsonDoc.isNull())
     {
-        qCWarning(MAIN) << "Cache file not found or broken, discarding";
+        qCWarning(MAIN) << "Cache file broken, discarding";
         return;
     }
     auto actualCacheVersionMajor =
