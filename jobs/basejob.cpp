@@ -282,9 +282,12 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     if (patterns.isEmpty())
         return true;
 
+    // ignore possible appendixes of the content type
+    const auto ctype = type.split(';').front();
+
     for (const auto& pattern: patterns)
     {
-        if (pattern.startsWith('*') || type == pattern) // Fast lane
+        if (pattern.startsWith('*') || ctype == pattern) // Fast lane
             return true;
 
         auto patternParts = pattern.split('/');
@@ -292,7 +295,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
             "BaseJob: Expected content type should have up to two"
             " /-separated parts; violating pattern: " + pattern);
 
-        if (type.split('/').front() == patternParts.front() &&
+        if (ctype.split('/').front() == patternParts.front() &&
                 patternParts.back() == "*")
             return true; // Exact match already went on fast lane
     }
