@@ -1125,6 +1125,8 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     auto job = connection()->downloadFile(fileUrl, filePath);
     if (isJobRunning(job))
     {
+        // If there was a previous transfer (completed or failed), remove it.
+        d->fileTransfers.remove(eventId);
         d->fileTransfers.insert(eventId, { job, job->targetFileName() });
         connect(job, &BaseJob::downloadProgress, this,
             [this,eventId] (qint64 received, qint64 total) {
