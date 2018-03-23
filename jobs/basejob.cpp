@@ -235,8 +235,12 @@ void BaseJob::start(const ConnectionData* connData)
 {
     d->connection = connData;
     beforeStart(connData);
-    sendRequest();
-    afterStart(connData, d->reply.data());
+    if (status().good())
+        sendRequest();
+    if (status().good())
+        afterStart(connData, d->reply.data());
+    if (!status().good())
+        QTimer::singleShot(0, this, &BaseJob::finishJob);
 }
 
 void BaseJob::sendRequest()
