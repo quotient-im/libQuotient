@@ -1424,6 +1424,11 @@ void Room::processStateEvents(const RoomEvents& events)
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
                 auto u = user(memberEvent->userId());
                 u->processEvent(memberEvent, this);
+                if (u == localUser() && memberJoinState(u) == JoinState::Invite
+                        && memberEvent->isDirect())
+                    connection()->addToDirectChats(this,
+                                    user(memberEvent->senderId()));
+
                 if( memberEvent->membership() == MembershipType::Join )
                 {
                     if (memberJoinState(u) != JoinState::Join)

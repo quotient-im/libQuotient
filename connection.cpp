@@ -20,12 +20,14 @@
 #include "connectiondata.h"
 #include "user.h"
 #include "events/event.h"
+#include "events/directchatevent.h"
 #include "room.h"
 #include "settings.h"
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/leaving.h"
+#include "jobs/generated/account-data.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
@@ -44,6 +46,8 @@
 #include <QtCore/QCoreApplication>
 
 using namespace QMatrixClient;
+
+using DirectChatsMap = QMultiHash<const User*, QString>;
 
 class Connection::Private
 {
@@ -64,6 +68,8 @@ class Connection::Private
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
         QMap<QString, User*> userMap;
+        DirectChatsMap directChats;
+        QHash<QString, QVariantHash> accountData;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -74,6 +80,7 @@ class Connection::Private
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
+        void applyDirectChatUpdates(const DirectChatsMap& newMap);
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -258,7 +265,7 @@ void Connection::sync(int timeout)
 
 void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
-    for( auto&& roomData: data.takeRoomData() )
+    for (auto&& roomData: data.takeRoomData())
     {
         const auto forgetIdx = d->roomIdsToForget.indexOf(roomData.roomId);
         if (forgetIdx != -1)
@@ -279,7 +286,29 @@ void Connection::onSyncSuccess(SyncData &&data) {
             r->updateData(std::move(roomData));
         QCoreApplication::processEvents();
     }
-
+    for (auto&& accountEvent: data.takeAccountData())
+    {
+        if (accountEvent->type() == EventType::DirectChat)
+        {
+            DirectChatsMap newDirectChats;
+            const auto* event = static_cast<DirectChatEvent*>(accountEvent.get());
+            auto usersToDCs = event->usersToDirectChats();
+            for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it)
+            {
+                newDirectChats.insert(user(it.key()), it.value());
+                qCDebug(MAIN) << "Marked room" << it.value()
+                              << "as a direct chat with" << it.key();
+            }
+            if (newDirectChats != d->directChats)
+            {
+                d->directChats = newDirectChats;
+                emit directChatsListChanged();
+            }
+            continue;
+        }
+        d->accountData[accountEvent->jsonType()] =
+                accountEvent->contentJson().toVariantHash();
+    }
 }
 
 void Connection::stopSync()
@@ -405,6 +434,42 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     return job;
 }
 
+void Connection::requestDirectChat(const QString& userId)
+{
+    auto roomId = d->directChats.value(user(userId));
+    if (roomId.isEmpty())
+    {
+        auto j = createDirectChat(userId);
+        connect(j, &BaseJob::success, this, [this,j,userId,roomId] {
+            qCDebug(MAIN) << "Direct chat with" << userId
+                          << "has been created as" << roomId;
+            emit directChatAvailable(roomMap().value({j->roomId(), false}));
+        });
+        return;
+    }
+
+    auto room = roomMap().value({roomId, false}, nullptr);
+    if (room)
+    {
+        Q_ASSERT(room->id() == roomId);
+        qCDebug(MAIN) << "Requested direct chat with" << userId
+                      << "is already available as" << room->id();
+        emit directChatAvailable(room);
+        return;
+    }
+    room = roomMap().value({roomId, true}, nullptr);
+    if (room)
+    {
+        Q_ASSERT(room->id() == roomId);
+        auto j = joinRoom(room->id());
+        connect(j, &BaseJob::success, this, [this,j,roomId,userId] {
+            qCDebug(MAIN) << "Joined the already invited direct chat with"
+                          << userId << "as" << roomId;
+            emit directChatAvailable(roomMap().value({roomId, false}));
+        });
+    }
+}
+
 CreateRoomJob* Connection::createDirectChat(const QString& userId,
     const QString& topic, const QString& name)
 {
@@ -470,11 +535,14 @@ User* Connection::user(const QString& userId)
     return user;
 }
 
-User *Connection::user()
+const User* Connection::user() const
 {
-    if( d->userId.isEmpty() )
-        return nullptr;
-    return user(d->userId);
+    return d->userId.isEmpty() ? nullptr : d->userMap.value(d->userId, nullptr);
+}
+
+User* Connection::user()
+{
+    return d->userId.isEmpty() ? nullptr : user(d->userId);
 }
 
 QString Connection::userId() const
@@ -554,6 +622,56 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
     std::copy_if(d->roomMap.begin(), d->roomMap.end(), std::back_inserter(rooms),
                  [&tagName] (Room* r) { return r->tags().contains(tagName); });
     return rooms;
+}
+
+QJsonObject toJson(const DirectChatsMap& directChats)
+{
+    QJsonObject json;
+    for (auto it = directChats.keyBegin(); it != directChats.keyEnd(); ++it)
+        json.insert((*it)->id(), toJson(directChats.values(*it)));
+    return json;
+}
+
+void Connection::Private::applyDirectChatUpdates(const DirectChatsMap& newMap)
+{
+    auto j = q->callApi<SetAccountDataJob>(userId, "m.direct", toJson(newMap));
+    connect(j, &BaseJob::success, q, [this, newMap] {
+        if (directChats != newMap)
+        {
+            directChats = newMap;
+            emit q->directChatsListChanged();
+        }
+    });
+}
+
+void Connection::addToDirectChats(const Room* room, const User* user)
+{
+    Q_ASSERT(room != nullptr && user != nullptr);
+    if (d->directChats.contains(user, room->id()))
+        return;
+    auto newMap = d->directChats;
+    newMap.insert(user, room->id());
+    d->applyDirectChatUpdates(newMap);
+}
+
+void Connection::removeFromDirectChats(const Room* room, const User* user)
+{
+    Q_ASSERT(room != nullptr);
+    if ((user != nullptr && !d->directChats.contains(user, room->id())) ||
+            d->directChats.key(room->id()) == nullptr)
+        return;
+    DirectChatsMap newMap;
+    for (auto it = d->directChats.begin(); it != d->directChats.end(); ++it)
+    {
+        if (it.value() != room->id() || (user != nullptr && it.key() != user))
+            newMap.insert(it.key(), it.value());
+    }
+    d->applyDirectChatUpdates(newMap);
+}
+
+bool Connection::isDirectChat(const Room* room) const
+{
+    return d->directChats.key(room->id()) != nullptr;
 }
 
 QMap<QString, User*> Connection::users() const
@@ -639,7 +757,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 5;
+static constexpr int CACHE_VERSION_MAJOR = 6;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
@@ -665,7 +783,7 @@ void Connection::saveState(const QUrl &toFile) const
         return;
     }
 
-    QJsonObject roomObj;
+    QJsonObject rootObj;
     {
         QJsonObject rooms;
         QJsonObject inviteRooms;
@@ -681,15 +799,31 @@ void Connection::saveState(const QUrl &toFile) const
                 qCDebug(PROFILER) << "processEvents() borrowed" << et1;
         }
 
+        QJsonObject roomObj;
         if (!rooms.isEmpty())
             roomObj.insert("join", rooms);
         if (!inviteRooms.isEmpty())
             roomObj.insert("invite", inviteRooms);
-    }
 
-    QJsonObject rootObj;
-    rootObj.insert("next_batch", d->data->lastEvent());
-    rootObj.insert("rooms", roomObj);
+        rootObj.insert("next_batch", d->data->lastEvent());
+        rootObj.insert("rooms", roomObj);
+    }
+    {
+        QJsonArray accountDataEvents {
+            QJsonObject {
+                { QStringLiteral("type"), QStringLiteral("m.direct") },
+                { QStringLiteral("content"), toJson(d->directChats) }
+            }
+        };
+
+        for (auto it = d->accountData.begin(); it != d->accountData.end(); ++it)
+            accountDataEvents.append(QJsonObject {
+                {"type", it.key()},
+                {"content", QJsonObject::fromVariantHash(it.value())}
+            });
+        rootObj.insert("account_data",
+            QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
+    }
 
     QJsonObject versionObj;
     versionObj.insert("major", CACHE_VERSION_MAJOR);
