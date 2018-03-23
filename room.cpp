@@ -1105,7 +1105,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 
     Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
                __FUNCTION__, "localFilename should point at a local file");
-    auto* event = d->getEventWithFile(eventId);
+    const auto* event = d->getEventWithFile(eventId);
     if (!event)
     {
         qCCritical(MAIN)
