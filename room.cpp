@@ -1094,6 +1094,15 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
 
 void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 {
+    auto ongoingTransfer = d->fileTransfers.find(eventId);
+    if (ongoingTransfer != d->fileTransfers.end() &&
+            ongoingTransfer->status == FileTransferInfo::Started)
+    {
+        qCWarning(MAIN) << "Download for" << eventId
+                        << "already started; to restart, cancel it first";
+        return;
+    }
+
     Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
                __FUNCTION__, "localFilename should point at a local file");
     auto* event = d->getEventWithFile(eventId);
