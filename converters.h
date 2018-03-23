@@ -24,14 +24,13 @@
 
 namespace QMatrixClient
 {
-    template <typename T>
-    inline QJsonValue toJson(T&& val)
-    {
-        return QJsonValue(std::forward<T>(val));
-    }
+    // This catches anything implicitly convertible to QJsonValue/Object/Array
+    inline QJsonValue toJson(const QJsonValue& val) { return val; }
+    inline QJsonObject toJson(const QJsonObject& o) { return o; }
+    inline QJsonArray toJson(const QJsonArray& arr) { return arr; }
 
     template <typename T>
-    inline QJsonValue toJson(const QVector<T>& vals)
+    inline QJsonArray toJson(const QVector<T>& vals)
     {
         QJsonArray ar;
         for (const auto& v: vals)
@@ -39,7 +38,7 @@ namespace QMatrixClient
         return ar;
     }
 
-    inline QJsonValue toJson(const QStringList& strings)
+    inline QJsonArray toJson(const QStringList& strings)
     {
         return QJsonArray::fromStringList(strings);
     }
@@ -50,7 +49,7 @@ namespace QMatrixClient
     }
 
     template <typename T>
-    inline QJsonValue toJson(const QHash<QString, T>& hashMap)
+    inline QJsonObject toJson(const QHash<QString, T>& hashMap)
     {
         QJsonObject json;
         for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
