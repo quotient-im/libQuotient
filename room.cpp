@@ -46,6 +46,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
+#include <QtCore/QTemporaryFile>
 #include <QtCore/QRegularExpression>
 
 #include <array>
@@ -153,6 +154,7 @@ class Room::Private
         QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
+        QString fileNameToDownload(const RoomMessageEvent* event) const;
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
@@ -644,6 +646,39 @@ Room::Private::getEventWithFile(const QString& eventId) const
     return nullptr;
 }
 
+QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
+{
+    Q_ASSERT(event->hasFileContent());
+    const auto* fileInfo = event->content()->fileInfo();
+    QString fileName;
+    if (!fileInfo->originalName.isEmpty())
+    {
+        fileName = QFileInfo(fileInfo->originalName).fileName();
+    }
+    else if (!event->plainBody().isEmpty())
+    {
+        // Having no better options, assume that the body has
+        // the original file URL or at least the file name.
+        QUrl u { event->plainBody() };
+        if (u.isValid())
+            fileName = QFileInfo(u.path()).fileName();
+    }
+    // Check the file name for sanity
+    if (fileName.isEmpty() || !QTemporaryFile(fileName).open())
+        return "file." % fileInfo->mimeType.preferredSuffix();
+
+    if (QSysInfo::productType() == "windows")
+    {
+        const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (!suffixes.isEmpty() &&
+                std::none_of(suffixes.begin(), suffixes.end(),
+                    [&fileName] (const QString& s) {
+                        return fileName.endsWith(s); }))
+            return fileName % '.' % fileInfo->mimeType.preferredSuffix();
+    }
+    return fileName;
+}
+
 QUrl Room::urlToThumbnail(const QString& eventId)
 {
     if (auto* event = d->getEventWithFile(eventId))
@@ -673,13 +708,7 @@ QUrl Room::urlToDownload(const QString& eventId)
 QString Room::fileNameToDownload(const QString& eventId)
 {
     if (auto* event = d->getEventWithFile(eventId))
-    {
-        auto* fileInfo = event->content()->fileInfo();
-        Q_ASSERT(fileInfo != nullptr);
-        return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
-               !event->plainBody().isEmpty() ? event->plainBody() :
-               QString();
-    }
+        return d->fileNameToDownload(event);
     return {};
 }
 
@@ -1067,40 +1096,24 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 {
     Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
                __FUNCTION__, "localFilename should point at a local file");
-    auto evtIt = findInTimeline(eventId);
-    if (evtIt == timelineEdge() ||
-            evtIt->event()->type() != EventType::RoomMessage)
+    auto* event = d->getEventWithFile(eventId);
+    if (!event)
     {
-        qCritical() << "Cannot download a file from event" << eventId
-                    << "(there's no such message event in the local timeline)";
+        qCCritical(MAIN)
+            << eventId << "is not in the local timeline or has no file content";
         Q_ASSERT(false);
         return;
     }
-    auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
-    if (!event->hasFileContent())
+    const auto fileUrl = event->content()->fileInfo()->url;
+    auto filePath = localFilename.toLocalFile();
+    if (filePath.isEmpty())
     {
-        qCritical() << eventId << "has no file content; nothing to download";
-        Q_ASSERT(false);
-        return;
+        // Build our own file path, starting with temp directory and eventId.
+        filePath = eventId;
+        filePath = QDir::tempPath() % '/' % filePath.replace(':', '_') %
+                '#' % d->fileNameToDownload(event);
     }
-    auto* fileInfo = event->content()->fileInfo();
-    auto safeTempPrefix = eventId;
-    safeTempPrefix.replace(':', '_');
-    safeTempPrefix = QDir::tempPath() + '/' + safeTempPrefix + '#';
-    auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
-        !fileInfo->originalName.isEmpty() ?
-            (safeTempPrefix + fileInfo->originalName) :
-        !event->plainBody().isEmpty() ? (safeTempPrefix + event->plainBody()) :
-        (safeTempPrefix + fileInfo->mimeType.preferredSuffix());
-    if (QSysInfo::productType() == "windows")
-    {
-        const auto& suffixes = fileInfo->mimeType.suffixes();
-        if (!suffixes.isEmpty() &&
-                std::none_of(suffixes.begin(), suffixes.end(),
-                    [fileName] (const QString& s) { return fileName.endsWith(s); }))
-            fileName += '.' + fileInfo->mimeType.preferredSuffix();
-    }
-    auto job = connection()->downloadFile(fileInfo->url, fileName);
+    auto job = connection()->downloadFile(fileUrl, filePath);
     if (isJobRunning(job))
     {
         d->fileTransfers.insert(eventId, { job, job->targetFileName() });
@@ -1109,9 +1122,9 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
                 d->fileTransfers[eventId].update(received, total);
                 emit fileTransferProgress(eventId, received, total);
             });
-        connect(job, &BaseJob::success, this, [this,eventId,fileInfo,job] {
+        connect(job, &BaseJob::success, this, [this,eventId,fileUrl,job] {
                 d->fileTransfers[eventId].status = FileTransferInfo::Completed;
-                emit fileTransferCompleted(eventId, fileInfo->url,
+                emit fileTransferCompleted(eventId, fileUrl,
                         QUrl::fromLocalFile(job->targetFileName()));
             });
         connect(job, &BaseJob::failure, this,
