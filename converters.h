@@ -28,6 +28,9 @@ namespace QMatrixClient
     inline QJsonValue toJson(const QJsonValue& val) { return val; }
     inline QJsonObject toJson(const QJsonObject& o) { return o; }
     inline QJsonArray toJson(const QJsonArray& arr) { return arr; }
+#ifdef _MSC_VER // MSVC gets lost and doesn't know which overload to use
+    inline QJsonValue toJson(const QString& s) { return s; }
+#endif
 
     template <typename T>
     inline QJsonArray toJson(const QVector<T>& vals)
