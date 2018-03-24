@@ -101,6 +101,7 @@ namespace QMatrixClient
             void rename(const QString& newName, const Room* r);
             bool setAvatar(const QString& fileName);
             bool setAvatar(QIODevice* source);
+            void requestDirectChat();
 
         signals:
             void nameAboutToChange(QString newName, QString oldName,

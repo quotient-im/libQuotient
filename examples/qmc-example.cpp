@@ -26,6 +26,8 @@ class QMCTest : public QObject
                 void addAndRemoveTag();
                 void sendAndRedact();
                     void checkRedactionOutcome(QString evtIdToRedact, RoomEventsRange events);
+                void markDirectChat();
+                    void checkDirectChatOutcome();
         void finalize();
 
     private:
@@ -37,11 +39,15 @@ class QMCTest : public QObject
 };
 
 #define QMC_CHECK(description, condition) \
+{ \
     cout << (description) \
          << (!!(condition) ? " successul" : " FAILED") << endl; \
     targetRoom->postMessage(origin % ": " % QStringLiteral(description) % \
         (!!(condition) ? QStringLiteral(" successful") : \
-                         QStringLiteral(" FAILED")), MessageEventType::Notice)
+                         QStringLiteral(" FAILED")), \
+        !!(condition) ? MessageEventType::Notice : MessageEventType::Text); \
+    --semaphor; \
+}
 
 QMCTest::QMCTest(Connection* conn, const QString& testRoomName, QString source)
     : c(conn), origin(std::move(source))
@@ -56,25 +62,15 @@ QMCTest::QMCTest(Connection* conn, const QString& testRoomName, QString source)
     connect(c.data(), &Connection::syncDone, c.data(), [this] {
         cout << "Sync complete, " << semaphor << " tests in the air" << endl;
         if (semaphor)
-        {
-//            if (targetRoom)
-//                targetRoom->postMessage(
-//                    QString("%1: sync done, %2 test(s) in the air")
-//                        .arg(origin).arg(semaphor),
-//                    MessageEventType::Notice);
             c->sync(10000);
+        else if (targetRoom)
+        {
+            auto j = c->callApi<SendEventJob>(targetRoom->id(),
+                    RoomMessageEvent(origin % ": All tests finished"));
+            connect(j, &BaseJob::finished, this, &QMCTest::finalize);
         }
         else
-        {
-            if (targetRoom)
-            {
-                auto j = c->callApi<SendEventJob>(targetRoom->id(),
-                        RoomMessageEvent(origin % ": All tests finished"));
-                connect(j, &BaseJob::finished, this, &QMCTest::finalize);
-            }
-            else
-                finalize();
-        }
+            finalize();
     });
     // Big countdown watchdog
     QTimer::singleShot(180000, this, &QMCTest::finalize);
@@ -118,13 +114,13 @@ void QMCTest::onNewRoom(Room* r, const QString& testRoomName)
 
 void QMCTest::doTests()
 {
-    addAndRemoveTag();
-    sendAndRedact();
+    ++semaphor; addAndRemoveTag();
+    ++semaphor; sendAndRedact();
+    ++semaphor; markDirectChat();
 }
 
 void QMCTest::addAndRemoveTag()
 {
-    ++semaphor;
     static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
     // Pre-requisite
     if (targetRoom->tags().contains(TestTag))
@@ -139,7 +135,6 @@ void QMCTest::addAndRemoveTag()
             cout << "Test tag set, removing it now" << endl;
             targetRoom->removeTag(TestTag);
             QMC_CHECK("Tagging test", !targetRoom->tags().contains(TestTag));
-            --semaphor;
             QObject::disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
         }
     });
@@ -150,7 +145,6 @@ void QMCTest::addAndRemoveTag()
 
 void QMCTest::sendAndRedact()
 {
-    ++semaphor;
     cout << "Sending a message to redact" << endl;
     auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
             RoomMessageEvent(origin % ": Message to redact"));
@@ -190,7 +184,6 @@ void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
         }
         cout << "The sync brought already redacted message" << endl;
         QMC_CHECK("Redaction", true);
-        --semaphor;
         // Not disconnecting because there are other connections from this class
         // to aboutToAddNewMessages
         checkSucceeded = true;
@@ -210,11 +203,48 @@ void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
             QMC_CHECK("Redaction", oldEvent->id() == evtIdToRedact &&
                       newEvent->isRedacted() &&
                       newEvent->redactionReason() == origin);
-            --semaphor;
             checkSucceeded = true;
             disconnect(targetRoom, &Room::replacedEvent, nullptr, nullptr);
         });
 
+}
+
+void QMCTest::markDirectChat()
+{
+    if (c->isDirectChat(targetRoom))
+    {
+        cout << "Warning: the room is already a direct chat,"
+                " only unmarking will be tested" << endl;
+        checkDirectChatOutcome();
+    }
+    cout << "Marking the room as a direct chat" << endl;
+    c->addToDirectChats(targetRoom, c->user());
+    connect(c.data(), &Connection::directChatsListChanged,
+            this, &QMCTest::checkDirectChatOutcome);
+}
+
+void QMCTest::checkDirectChatOutcome()
+{
+    if (!c->isDirectChat(targetRoom))
+    {
+        cout << "Room not (yet?) added to direct chats, waiting" << endl;
+        return;
+    }
+
+    cout << "Room marked as a direct chat, unmarking now" << endl;
+    disconnect(c.data(), &Connection::directChatsListChanged, nullptr, nullptr);
+    c->removeFromDirectChats(targetRoom, c->user());
+    connect(c.data(), &Connection::directChatsListChanged, this, [this] {
+        if (c->isDirectChat(targetRoom))
+        {
+            cout << "Room not (yet?) removed from direct chats, waiting" << endl;
+            return;
+        }
+
+        QMC_CHECK("Direct chat test", !c->isDirectChat(targetRoom));
+        disconnect(c.data(), &Connection::directChatsListChanged,
+                   nullptr, nullptr);
+    });
 }
 
 void QMCTest::finalize()

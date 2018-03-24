@@ -287,6 +287,12 @@ bool User::setAvatar(QIODevice* source)
                 std::bind(&Private::setAvatarOnServer, d.data(), _1, this));
 }
 
+void User::requestDirectChat()
+{
+    Q_ASSERT(d->connection);
+    d->connection->requestDirectChat(d->userId);
+}
+
 void User::Private::setAvatarOnServer(QString contentUri, User* q)
 {
     auto* j = connection->callApi<SetAvatarUrlJob>(userId, contentUri);

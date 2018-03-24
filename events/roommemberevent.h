@@ -38,6 +38,7 @@ namespace QMatrixClient
             explicit MemberEventContent(const QJsonObject& json);
 
             MembershipType membership;
+            bool isDirect = false;
             QString displayName;
             QUrl avatarUrl;
 
@@ -66,6 +67,7 @@ namespace QMatrixClient
             MembershipType membership() const  { return content().membership; }
             QString userId() const
             { return originalJsonObject().value("state_key").toString(); }
+            bool isDirect() const { return content().isDirect; }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
 

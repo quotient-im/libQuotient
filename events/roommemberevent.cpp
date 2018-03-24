@@ -51,6 +51,7 @@ namespace QMatrixClient
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"]))
+    , isDirect(json["is_direct"].toBool())
     , displayName(json["displayname"].toString())
     , avatarUrl(json["avatar_url"].toString())
 { }
