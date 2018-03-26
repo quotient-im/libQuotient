@@ -102,7 +102,7 @@ class Room::Private
         members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
-        bool unreadMessages = false;
+        int unreadMessages = 0;
         bool displayed = false;
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
@@ -112,6 +112,8 @@ class Room::Private
         QHash<QString, QVariantHash> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
+
+        static const QString UnreadMsgsKey;
 
         struct FileTransferPrivateInfo
         {
@@ -193,6 +195,8 @@ class Room::Private
         void checkUnreadMessages(timeline_iter_t from);
 
         void setLastReadEvent(User* u, const QString& eventId);
+        void updateUnreadCount(timeline_iter_t from, int knownMinimum = 0);
+        void addUnreadCount(timeline_iter_t from, timeline_iter_t to);
         rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
                                           bool force = false);
 
@@ -225,6 +229,9 @@ class Room::Private
             return u == q->localUser();
         }
 };
+
+const QString Room::Private::UnreadMsgsKey =
+        QStringLiteral("x-qmatrixclient.unread_messages_count");
 
 RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
 {
@@ -359,6 +366,45 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
     }
 }
 
+void Room::Private::updateUnreadCount(timeline_iter_t from, int knownMinimum)
+{
+    Q_ASSERT(from >= q->readMarker().base() && from < timeline.cend());
+    auto oldUnreadCount = unreadMessages;
+    QElapsedTimer et; et.start();
+    unreadMessages = std::max(knownMinimum,
+            count_if(from, timeline.cend(),
+                std::bind(&Room::Private::isEventNotable, this, _1)));
+    if (et.elapsed() > 10)
+        qCDebug(PROFILER) << "Recounting unread messages took" << et;
+
+    if (unreadMessages != oldUnreadCount)
+    {
+        qCDebug(MAIN) << "Room" << displayname
+            << (q->readMarker() == timeline.crend() ? "has at least" : "has")
+            << unreadMessages << "unread message(s)";
+        emit q->unreadMessagesChanged(q);
+    }
+}
+
+void Room::Private::addUnreadCount(timeline_iter_t from, timeline_iter_t to)
+{
+    QElapsedTimer et; et.start();
+    const auto newUnreadMessages = count_if(from, to,
+            std::bind(&Room::Private::isEventNotable, this, _1));
+    if (et.elapsed() > 10)
+        qCDebug(PROFILER) << "Counting gained unread messages took" << et;
+
+    if(newUnreadMessages > 0)
+    {
+        unreadMessages += newUnreadMessages;
+        qCDebug(MAIN) << "Room" << displayname << "has gained"
+            << newUnreadMessages << "unread messages, total unread"
+            << (q->readMarker() == timeline.crend() ? " at least" : "")
+            << unreadMessages << "message(s)";
+        emit q->unreadMessagesChanged(q);
+    }
+}
+
 Room::Private::rev_iter_pair_t
 Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
                                  bool force)
@@ -378,19 +424,15 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
           [=](const TimelineItem& ti) { return ti->senderId() != u->id(); });
 
     setLastReadEvent(u, (*(eagerMarker - 1))->id());
-    if (isLocalUser(u) && unreadMessages)
+    if (isLocalUser(u))
     {
-        auto stillUnreadMessagesCount = count_if(eagerMarker, timeline.cend(),
-                std::bind(&Room::Private::isEventNotable, this, _1));
-
-        if (stillUnreadMessagesCount == 0)
+        updateUnreadCount(eagerMarker);
+        if (unreadMessages == 0)
         {
-            unreadMessages = false;
             qCDebug(MAIN) << "Room" << displayname << "has no more unread messages";
-            emit q->unreadMessagesChanged(q);
         } else
             qCDebug(MAIN) << "Room" << displayname << "still has"
-                          << stillUnreadMessagesCount << "unread message(s)";
+                          << unreadMessages << "unread message(s)";
     }
 
     // Return newMarker, rather than eagerMarker, to save markMessagesAsRead()
@@ -429,7 +471,12 @@ void Room::markAllMessagesAsRead()
         d->markMessagesAsRead(d->timeline.crbegin());
 }
 
-bool Room::hasUnreadMessages()
+bool Room::hasUnreadMessages() const
+{
+    return unreadMessagesCount() > 0;
+}
+
+int Room::unreadMessagesCount() const
 {
     return d->unreadMessages;
 }
@@ -1324,9 +1371,6 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 void Room::Private::checkUnreadMessages(timeline_iter_t from)
 {
     Q_ASSERT(from < timeline.cend());
-    const auto newUnreadMessages = count_if(from, timeline.cend(),
-            std::bind(&Room::Private::isEventNotable, this, _1));
-
     // The first event in the just-added batch (referred to by `from`)
     // defines whose read marker can possibly be promoted any further over
     // the same author's events newly arrived. Others will need explicit
@@ -1341,12 +1385,7 @@ void Room::Private::checkUnreadMessages(timeline_iter_t from)
                       << "to" << *q->readMarker(firstWriter);
     }
 
-    if(!unreadMessages && newUnreadMessages > 0)
-    {
-        unreadMessages = true;
-        emit q->unreadMessagesChanged(q);
-        qCDebug(MAIN) << "Room" << displayname << "has unread messages";
-    }
+    addUnreadCount(from, timeline.cend());
 }
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
@@ -1367,12 +1406,18 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     // Catch a special case when the last read event id refers to an event
     // that was outside the loaded timeline and has just arrived. Depending on
     // other messages next to the last read one, we might need to promote
-    // the read marker and update unreadMessages flag.
+    // the read marker and update unreadMessages.
     const auto curReadMarker = q->readMarker();
-    if (thereWasNoReadMarker && curReadMarker != timeline.crend())
+    if (thereWasNoReadMarker)
     {
-        qCDebug(MAIN) << "Discovered last read event in a historical batch";
-        promoteReadMarker(q->localUser(), curReadMarker, true);
+        if (curReadMarker != timeline.crend())
+        {
+            qCDebug(MAIN) << "Discovered last read event in a historical batch";
+            promoteReadMarker(q->localUser(), curReadMarker, true);
+        }
+        else
+            addUnreadCount(timeline.cbegin(),
+                           timeline.cbegin() + insertedSize);
     }
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
                   << "past events; the oldest event is now" << timeline.front();
@@ -1573,17 +1618,22 @@ void Room::processAccountDataEvent(EventPtr event)
             const auto* rmEvent = static_cast<ReadMarkerEvent*>(event.get());
             const auto& readEventId = rmEvent->event_id();
             qCDebug(MAIN) << "Server-side read marker at " << readEventId;
-            static const auto UnreadMsgsKey =
-                QStringLiteral("x-qmatrixclient.unread_messages");
-            if (rmEvent->contentJson().contains(UnreadMsgsKey))
-                d->unreadMessages =
-                        rmEvent->contentJson().value(UnreadMsgsKey).toBool();
             d->serverReadMarker = readEventId;
             const auto newMarker = findInTimeline(readEventId);
             if (newMarker != timelineEdge())
                 d->markMessagesAsRead(newMarker);
-            else
+            else {
                 d->setLastReadEvent(localUser(), readEventId);
+                // No accurate information about the read marker whereabouts.
+                // There two sources of information; the (difference between
+                // the old and the) new read marker and the contents of
+                // UnreadMsgsKey.
+                if (rmEvent->contentJson().contains(d->UnreadMsgsKey))
+                    d->unreadMessages =
+                        rmEvent->contentJson().value(d->UnreadMsgsKey).toInt();
+
+                d->updateUnreadCount(timelineEdge().base(), d->unreadMessages);
+            }
             break;
         }
         default:
@@ -1731,8 +1781,7 @@ QJsonObject Room::Private::toJson() const
     if (!serverReadMarker.isEmpty())
     {
         auto contentJson = ReadMarkerEvent(serverReadMarker).toJson();
-        contentJson.insert(QStringLiteral("x-qmatrixclient.unread_messages"),
-                           unreadMessages);
+        contentJson.insert(UnreadMsgsKey, unreadMessages);
         accountDataEvents.append(QJsonObject(
             { { QStringLiteral("type"), ReadMarkerEvent::typeId() }
             , { QStringLiteral("content"), contentJson }

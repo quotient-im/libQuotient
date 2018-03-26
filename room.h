@@ -229,7 +229,8 @@ namespace QMatrixClient
              */
             void markMessagesAsRead(QString uptoEventId);
 
-            Q_INVOKABLE bool hasUnreadMessages();
+            Q_INVOKABLE bool hasUnreadMessages() const;
+            int unreadMessagesCount() const;
 
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();
