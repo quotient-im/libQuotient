@@ -126,7 +126,8 @@ void QMCTest::addAndRemoveTag()
     if (targetRoom->tags().contains(TestTag))
         targetRoom->removeTag(TestTag);
 
-    QObject::connect(targetRoom, &Room::tagsChanged, targetRoom, [=] {
+    // Connect first because the signal is emitted synchronously.
+    connect(targetRoom, &Room::tagsChanged, targetRoom, [=] {
         cout << "Room " << targetRoom->id().toStdString()
              << ", tag(s) changed:" << endl
              << "  " << targetRoom->tagNames().join(", ").toStdString() << endl;
@@ -138,7 +139,6 @@ void QMCTest::addAndRemoveTag()
             QObject::disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
         }
     });
-    // The reverse order because tagsChanged is emitted synchronously.
     cout << "Adding a tag" << endl;
     targetRoom->addTag(TestTag);
 }
@@ -211,40 +211,31 @@ void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
 
 void QMCTest::markDirectChat()
 {
-    if (c->isDirectChat(targetRoom))
+    if (c->isDirectChat(targetRoom->id()))
     {
         cout << "Warning: the room is already a direct chat,"
                 " only unmarking will be tested" << endl;
         checkDirectChatOutcome();
     }
-    cout << "Marking the room as a direct chat" << endl;
-    c->addToDirectChats(targetRoom, c->user());
+    // Connect first because the signal is emitted synchronously.
     connect(c.data(), &Connection::directChatsListChanged,
             this, &QMCTest::checkDirectChatOutcome);
+    cout << "Marking the room as a direct chat" << endl;
+    c->addToDirectChats(targetRoom, c->user());
 }
 
 void QMCTest::checkDirectChatOutcome()
 {
-    if (!c->isDirectChat(targetRoom))
+    disconnect(c.data(), &Connection::directChatsListChanged, nullptr, nullptr);
+    if (!c->isDirectChat(targetRoom->id()))
     {
-        cout << "Room not (yet?) added to direct chats, waiting" << endl;
+        QMC_CHECK("Direct chat test", false);
         return;
     }
 
     cout << "Room marked as a direct chat, unmarking now" << endl;
-    disconnect(c.data(), &Connection::directChatsListChanged, nullptr, nullptr);
-    c->removeFromDirectChats(targetRoom, c->user());
-    connect(c.data(), &Connection::directChatsListChanged, this, [this] {
-        if (c->isDirectChat(targetRoom))
-        {
-            cout << "Room not (yet?) removed from direct chats, waiting" << endl;
-            return;
-        }
-
-        QMC_CHECK("Direct chat test", !c->isDirectChat(targetRoom));
-        disconnect(c.data(), &Connection::directChatsListChanged,
-                   nullptr, nullptr);
-    });
+    c->removeFromDirectChats(targetRoom->id(), c->user());
+    QMC_CHECK("Direct chat test", !c->isDirectChat(targetRoom->id()));
 }
 
 void QMCTest::finalize()
