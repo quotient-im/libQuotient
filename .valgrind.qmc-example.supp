@@ -157,3 +157,15 @@
    fun:_Znam
    obj:/opt/qt56/lib/libQt5Network.so.5.6.3
 }
+
+{
+   malloc_from_libcrypto
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:CRYPTO_malloc
+   ...
+   obj:/lib/x86_64-linux-gnu/libcrypto.so.1.0.0
+   ...
+   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+}
