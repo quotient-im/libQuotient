@@ -702,6 +702,12 @@ bool Connection::isDirectChat(const QString& roomId) const
     return d->directChats.key(roomId) != nullptr;
 }
 
+QList<const User*> Connection::directChatUsers(const Room* room) const
+{
+    Q_ASSERT(room != nullptr);
+    return d->directChats.keys(room->id());
+}
+
 QMap<QString, User*> Connection::users() const
 {
     return d->userMap;

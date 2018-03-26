@@ -114,6 +114,12 @@ namespace QMatrixClient
             /** Check whether the room id corresponds to a direct chat */
             bool isDirectChat(const QString& roomId) const;
 
+            /** Retrieve the list of users the room is a direct chat with
+             * @return The list of users for which this room is marked as
+             * a direct chat; an empty list if the room is not a direct chat
+             */
+            QList<const User*> directChatUsers(const Room* room) const;
+
             QMap<QString, User*> users() const;
 
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
