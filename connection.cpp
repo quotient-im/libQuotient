@@ -664,8 +664,8 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::Private::broadcastDirectChatUpdates()
 {
-    auto j = q->callApi<SetAccountDataJob>(userId, QStringLiteral("m.direct"),
-                                           toJson(directChats));
+    q->callApi<SetAccountDataJob>(userId, QStringLiteral("m.direct"),
+                                  toJson(directChats));
     emit q->directChatsListChanged();
 }
 
