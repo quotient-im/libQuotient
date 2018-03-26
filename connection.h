@@ -261,6 +261,15 @@ namespace QMatrixClient
              */
             Q_INVOKABLE void requestDirectChat(const QString& userId);
 
+            /** Run an operation in a direct chat with the user
+             * This method may return synchronously or asynchoronously depending
+             * on whether a direct chat room with the respective person exists
+             * already. Instead of emitting a signal it executes the passed
+             * function object with the direct chat room as its parameter.
+             */
+            Q_INVOKABLE void doInDirectChat(const QString& userId,
+                                            std::function<void(Room*)> operation);
+
             /** Create a direct chat with a single user, optional name and topic
              * A room will always be created, unlike in requestDirectChat.
              * It is advised to use requestDirectChat as a default way of getting
