@@ -631,6 +631,16 @@ bool Room::isLowPriority() const
     return d->tags.contains(LowPriorityTag);
 }
 
+bool Room::isDirectChat() const
+{
+    return connection()->isDirectChat(id());
+}
+
+QList<const User*> Room::directChatUsers() const
+{
+    return connection()->directChatUsers(this);
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {

@@ -269,6 +269,9 @@ namespace QMatrixClient
             /** Check whether this room is a direct chat */
             bool isDirectChat() const;
 
+            /** Get the list of users this room is a direct chat with */
+            QList<const User*> directChatUsers() const;
+
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
             Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
             Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
