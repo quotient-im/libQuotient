@@ -371,9 +371,11 @@ void Room::Private::updateUnreadCount(timeline_iter_t from, int knownMinimum)
     Q_ASSERT(from >= q->readMarker().base() && from < timeline.cend());
     auto oldUnreadCount = unreadMessages;
     QElapsedTimer et; et.start();
+    // A cast to int, because on some environments count_if returns a long;
+    // but Qt can only handle int's for container indices etc.
     unreadMessages = std::max(knownMinimum,
-            count_if(from, timeline.cend(),
-                std::bind(&Room::Private::isEventNotable, this, _1)));
+            int(count_if(from, timeline.cend(),
+                std::bind(&Room::Private::isEventNotable, this, _1))));
     if (et.elapsed() > 10)
         qCDebug(PROFILER) << "Recounting unread messages took" << et;
 
