@@ -80,7 +80,7 @@ class Connection::Private
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
-        void applyDirectChatUpdates(const DirectChatsMap& newMap);
+        void broadcastDirectChatUpdates();
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -655,16 +655,11 @@ QJsonObject toJson(const DirectChatsMap& directChats)
     return json;
 }
 
-void Connection::Private::applyDirectChatUpdates(const DirectChatsMap& newMap)
+void Connection::Private::broadcastDirectChatUpdates()
 {
-    auto j = q->callApi<SetAccountDataJob>(userId, "m.direct", toJson(newMap));
-    connect(j, &BaseJob::success, q, [this, newMap] {
-        if (directChats != newMap)
-        {
-            directChats = newMap;
-            emit q->directChatsListChanged();
-        }
-    });
+    auto j = q->callApi<SetAccountDataJob>(userId, QStringLiteral("m.direct"),
+                                           toJson(directChats));
+    emit q->directChatsListChanged();
 }
 
 void Connection::addToDirectChats(const Room* room, const User* user)
@@ -672,29 +667,32 @@ void Connection::addToDirectChats(const Room* room, const User* user)
     Q_ASSERT(room != nullptr && user != nullptr);
     if (d->directChats.contains(user, room->id()))
         return;
-    auto newMap = d->directChats;
-    newMap.insert(user, room->id());
-    d->applyDirectChatUpdates(newMap);
+    d->directChats.insert(user, room->id());
+    d->broadcastDirectChatUpdates();
 }
 
-void Connection::removeFromDirectChats(const Room* room, const User* user)
+void Connection::removeFromDirectChats(const QString& roomId, const User* user)
 {
-    Q_ASSERT(room != nullptr);
-    if ((user != nullptr && !d->directChats.contains(user, room->id())) ||
-            d->directChats.key(room->id()) == nullptr)
+    Q_ASSERT(!roomId.isEmpty());
+    if ((user != nullptr && !d->directChats.contains(user, roomId)) ||
+            d->directChats.key(roomId) == nullptr)
         return;
-    DirectChatsMap newMap;
-    for (auto it = d->directChats.begin(); it != d->directChats.end(); ++it)
-    {
-        if (it.value() != room->id() || (user != nullptr && it.key() != user))
-            newMap.insert(it.key(), it.value());
-    }
-    d->applyDirectChatUpdates(newMap);
+    if (user != nullptr)
+        d->directChats.remove(user, roomId);
+    else
+        for (auto it = d->directChats.begin(); it != d->directChats.end();)
+        {
+            if (it.value() == roomId)
+                it = d->directChats.erase(it);
+            else
+                ++it;
+        }
+    d->broadcastDirectChatUpdates();
 }
 
-bool Connection::isDirectChat(const Room* room) const
+bool Connection::isDirectChat(const QString& roomId) const
 {
-    return d->directChats.key(room->id()) != nullptr;
+    return d->directChats.key(roomId) != nullptr;
 }
 
 QMap<QString, User*> Connection::users() const

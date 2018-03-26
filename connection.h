@@ -89,18 +89,30 @@ namespace QMatrixClient
             /** Get the list of rooms with the specified tag */
             QVector<Room*> roomsWithTag(const QString& tagName) const;
 
-            /** Mark the room as a direct chat with the user */
+            /** Mark the room as a direct chat with the user
+             * This function marks \p room as a direct chat with \p user.
+             * Emits the signal synchronously, without waiting to complete
+             * synchronisation with the server.
+             *
+             * \sa directChatsListChanged
+             */
             void addToDirectChats(const Room* room, const User* user);
 
             /** Unmark the room from direct chats
-             * This function removes the room from direct chats either for
+             * This function removes the room id from direct chats either for
              * a specific \p user or for all users if \p user in nullptr.
+             * The room id is used to allow removal of, e.g., ids of forgotten
+             * rooms; a Room object need not exist. Emits the signal
+             * immediately, without waiting to complete synchronisation with
+             * the server.
+             *
+             * \sa directChatsListChanged
              */
-            void removeFromDirectChats(const Room* room,
+            void removeFromDirectChats(const QString& roomId,
                                        const User* user = nullptr);
 
-            /** Check whether the room is a direct chat */
-            bool isDirectChat(const Room* room) const;
+            /** Check whether the room id corresponds to a direct chat */
+            bool isDirectChat(const QString& roomId) const;
 
             QMap<QString, User*> users() const;
 
