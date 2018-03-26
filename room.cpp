@@ -368,7 +368,7 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
 
 void Room::Private::updateUnreadCount(timeline_iter_t from, int knownMinimum)
 {
-    Q_ASSERT(from >= q->readMarker().base() && from < timeline.cend());
+    Q_ASSERT(from >= q->readMarker().base() && from <= timeline.cend());
     auto oldUnreadCount = unreadMessages;
     QElapsedTimer et; et.start();
     // A cast to int, because on some environments count_if returns a long;
