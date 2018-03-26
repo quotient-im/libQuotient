@@ -525,6 +525,29 @@ QUrl Connection::homeserver() const
     return d->data->baseUrl();
 }
 
+Room* Connection::room(const QString& roomId, JoinStates states) const
+{
+    Room* room = d->roomMap.value({roomId, false}, nullptr);
+    if (states.testFlag(JoinState::Join) &&
+            room && room->joinState() == JoinState::Join)
+        return room;
+
+    if (states.testFlag(JoinState::Invite))
+        if (Room* invRoom = invitation(roomId))
+            return invRoom;
+
+    if (states.testFlag(JoinState::Leave) &&
+            room && room->joinState() == JoinState::Leave)
+        return room;
+
+    return nullptr;
+}
+
+Room* Connection::invitation(const QString& roomId) const
+{
+    return d->roomMap.value({roomId, true}, nullptr);
+}
+
 User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )

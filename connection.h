@@ -107,6 +107,9 @@ namespace QMatrixClient
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
             // (breaks back-compatibility)
             QUrl homeserver() const;
+            Q_INVOKABLE Room* room(const QString& roomId,
+                 JoinStates states = JoinState::Invite|JoinState::Join) const;
+            Q_INVOKABLE Room* invitation(const QString& roomId) const;
             Q_INVOKABLE User* user(const QString& userId);
             const User* user() const;
             User* user();
