@@ -792,7 +792,7 @@ void Connection::setHomeserver(const QUrl& url)
 }
 
 static constexpr int CACHE_VERSION_MAJOR = 6;
-static constexpr int CACHE_VERSION_MINOR = 0;
+static constexpr int CACHE_VERSION_MINOR = 1;
 
 void Connection::saveState(const QUrl &toFile) const
 {

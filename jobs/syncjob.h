@@ -53,6 +53,7 @@ namespace QMatrixClient
 
             bool timelineLimited;
             QString timelinePrevBatch;
+            int unreadCount;
             int highlightCount;
             int notificationCount;
 
@@ -60,6 +61,8 @@ namespace QMatrixClient
                          const QJsonObject& room_);
             SyncRoomData(SyncRoomData&&) = default;
             SyncRoomData& operator=(SyncRoomData&&) = default;
+
+            static const QString UnreadCountKey;
     };
     // QVector cannot work with non-copiable objects, std::vector can.
     using SyncDataList = std::vector<SyncRoomData>;
