@@ -98,7 +98,12 @@ namespace QMatrixClient
                     Status(int c, QString m) : code(c), message(std::move(m)) { }
 
                     bool good() const { return code < ErrorLevel; }
-                    friend QDebug operator<<(QDebug dbg, const Status& s);
+                    friend QDebug operator<<(QDebug dbg, const Status& s)
+                    {
+                        QDebug(dbg).noquote().nospace()
+                                << s.code << ": " << s.message;
+                        return dbg;
+                    }
 
                     int code;
                     QString message;
@@ -123,6 +128,11 @@ namespace QMatrixClient
             Q_INVOKABLE duration_t getCurrentTimeout() const;
             Q_INVOKABLE duration_t getNextRetryInterval() const;
             Q_INVOKABLE duration_t millisToRetry() const;
+
+            friend QDebug operator<<(QDebug dbg, const BaseJob* j)
+            {
+                return dbg << j->objectName();
+            }
 
         public slots:
             void start(const ConnectionData* connData);

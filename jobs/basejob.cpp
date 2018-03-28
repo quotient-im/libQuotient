@@ -84,18 +84,6 @@ class BaseJob::Private
         LoggingCategory logCat = JOBS;
 };
 
-inline QDebug operator<<(QDebug dbg, const BaseJob* j)
-{
-    return dbg << j->objectName();
-}
-
-QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
-{
-    QRegularExpression filter { "(access_token)(=|: )[-_A-Za-z0-9]+" };
-    return dbg << s.code << ':'
-               << QString(s.message).replace(filter, "\\1 HIDDEN");
-}
-
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint, bool needsToken)
     : BaseJob(verb, name, endpoint, Query { }, Data { }, needsToken)
 { }
@@ -319,7 +307,7 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
             if (checkContentType(reply->rawHeader("Content-Type"),
                                  d->expectedContentTypes))
                 return NoError;
-            else
+            else // A warning in the logs might be more proper instead
                 return { IncorrectResponseError,
                          "Incorrect content type of the response" };
 
@@ -383,7 +371,7 @@ void BaseJob::finishJob()
         const auto retryInterval =
                 error() == TimeoutError ? 0 : getNextRetryInterval();
         ++d->retriesTaken;
-        qCWarning(d->logCat) << this << "will take retry" << d->retriesTaken
+        qCWarning(d->logCat) << this << "will retry" << d->retriesTaken
                    << "in" << retryInterval/1000 << "s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
@@ -456,6 +444,7 @@ void BaseJob::setStatus(Status s)
 
 void BaseJob::setStatus(int code, QString message)
 {
+    message.replace(d->connection->accessToken(), "(REDACTED)");
     setStatus({ code, message });
 }
 
