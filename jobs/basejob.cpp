@@ -261,30 +261,37 @@ void BaseJob::gotReply()
         setStatus(parseReply(d->reply.data()));
     else
     {
-        auto json = QJsonDocument::fromJson(d->reply->readAll()).object();
-        if (!json.isEmpty())
+        const auto body = d->reply->readAll();
+        if (!body.isEmpty())
         {
-            if (error() == TooManyRequestsError ||
-                    json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
-            {
-                QString msg = tr("Too many requests");
-                auto retryInterval = json.value("retry_after_ms").toInt(-1);
-                if (retryInterval != -1)
-                    msg += tr(", next retry advised after %1 ms")
-                            .arg(retryInterval);
-                else // We still have to figure some reasonable interval
-                    retryInterval = getNextRetryInterval();
+            qCDebug(d->logCat).noquote() << "Error body:" << body;
+            auto json = QJsonDocument::fromJson(body).object();
+            if (json.isEmpty())
+                setStatus(IncorrectRequestError, body);
+            else {
+                if (error() == TooManyRequestsError ||
+                        json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
+                {
+                    QString msg = tr("Too many requests");
+                    auto retryInterval = json.value("retry_after_ms").toInt(-1);
+                    if (retryInterval != -1)
+                        msg += tr(", next retry advised after %1 ms")
+                                .arg(retryInterval);
+                    else // We still have to figure some reasonable interval
+                        retryInterval = getNextRetryInterval();
 
-                setStatus(TooManyRequestsError, msg);
+                    setStatus(TooManyRequestsError, msg);
 
-                // Shortcut to retry instead of executing the whole finishJob()
-                stop();
-                qCWarning(d->logCat) << this << "will retry in" << retryInterval;
-                d->retryTimer.start(retryInterval);
-                emit retryScheduled(d->retriesTaken, retryInterval);
-                return;
+                    // Shortcut to retry instead of executing finishJob()
+                    stop();
+                    qCWarning(d->logCat)
+                            << this << "will retry in" << retryInterval;
+                    d->retryTimer.start(retryInterval);
+                    emit retryScheduled(d->retriesTaken, retryInterval);
+                    return;
+                }
+                setStatus(IncorrectRequestError, json.value("error").toString());
             }
-            setStatus(IncorrectRequestError, json.value("error").toString());
         }
     }
 
@@ -327,8 +334,11 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
                 "Success" : reply->errorString())
         << " (URL: " << reply->url().toDisplayString() << ")";
 
+    if (httpCode == 429) // Qt doesn't know about it yet
+        return { TooManyRequestsError, tr("Too many requests") };
+
     // Should we check httpCode instead? Maybe even use it in BaseJob::Status?
-    // That would make codes logs slightly more readable.
+    // That would make codes in logs slightly more readable.
     switch( reply->error() )
     {
         case QNetworkReply::NoError:
@@ -352,8 +362,6 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
             return { NotFoundError, reply->errorString() };
 
         default:
-            if (httpCode == 429) // Qt doesn't know about it yet
-                return { TooManyRequestsError, tr("Too many requests") };
             return { NetworkError, reply->errorString() };
     }
 }
