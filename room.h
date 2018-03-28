@@ -113,6 +113,8 @@ namespace QMatrixClient
             Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
 
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
+            Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY unreadMessagesChanged)
+            Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
             Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
 
         public:
@@ -229,7 +231,26 @@ namespace QMatrixClient
              */
             void markMessagesAsRead(QString uptoEventId);
 
-            Q_INVOKABLE bool hasUnreadMessages();
+            /** Check whether there are unread messages in the room */
+            bool hasUnreadMessages() const;
+
+            /** Get the number of unread messages in the room
+             * Depending on the read marker state, this call may return either
+             * a precise or an estimate number of unread events. Only "notable"
+             * events (non-redacted message events from users other than local)
+             * are counted.
+             *
+             * In a case when readMarker() == timelineEdge() (the local read
+             * marker is beyond the local timeline) only the bottom limit of
+             * the unread messages number can be estimated (and even that may
+             * be slightly off due to, e.g., redactions of events not loaded
+             * to the local timeline).
+             *
+             * If all messages are read, this function will return -1 (_not_ 0,
+             * as zero may mean "zero or more unread messages" in a situation
+             * when the read marker is outside the local timeline.
+             */
+            int unreadCount() const;
 
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();

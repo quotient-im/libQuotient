@@ -89,6 +89,9 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
     return BaseJob::Success;
 }
 
+const QString SyncRoomData::UnreadCountKey =
+        QStringLiteral("x-qmatrixclient.unread_count");
+
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
@@ -116,12 +119,15 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
         qCWarning(SYNCJOB) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
     }
 
-    QJsonObject timeline = room_.value("timeline").toObject();
-    timelineLimited = timeline.value("limited").toBool();
-    timelinePrevBatch = timeline.value("prev_batch").toString();
+    auto timelineJson = room_.value("timeline").toObject();
+    timelineLimited = timelineJson.value("limited").toBool();
+    timelinePrevBatch = timelineJson.value("prev_batch").toString();
 
-    QJsonObject unread = room_.value("unread_notifications").toObject();
-    highlightCount = unread.value("highlight_count").toInt();
-    notificationCount = unread.value("notification_count").toInt();
-    qCDebug(SYNCJOB) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    auto unreadJson = room_.value("unread_notifications").toObject();
+    unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);
+    highlightCount = unreadJson.value("highlight_count").toInt();
+    notificationCount = unreadJson.value("notification_count").toInt();
+    if (highlightCount > 0 || notificationCount > 0)
+        qCDebug(SYNCJOB) << "Highlights: " << highlightCount
+                         << " Notifications:" << notificationCount;
 }
