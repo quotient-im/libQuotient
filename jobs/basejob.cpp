@@ -264,7 +264,8 @@ void BaseJob::gotReply()
         auto json = QJsonDocument::fromJson(d->reply->readAll()).object();
         if (!json.isEmpty())
         {
-            if (error() == TooManyRequestsError)
+            if (error() == TooManyRequestsError ||
+                    json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
             {
                 QString msg = tr("Too many requests");
                 auto retryInterval = json.value("retry_after_ms").toInt(-1);
@@ -318,10 +319,16 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
-    qCDebug(d->logCat) << this << "returned"
+    const auto httpCode =
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qCDebug(d->logCat).nospace().noquote() << this << " returned HTTP code "
+        << httpCode << ": "
         << (reply->error() == QNetworkReply::NoError ?
                 "Success" : reply->errorString())
-        << "from" << reply->url().toDisplayString();
+        << " (URL: " << reply->url().toDisplayString() << ")";
+
+    // Should we check httpCode instead? Maybe even use it in BaseJob::Status?
+    // That would make codes logs slightly more readable.
     switch( reply->error() )
     {
         case QNetworkReply::NoError:
@@ -345,8 +352,7 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
             return { NotFoundError, reply->errorString() };
 
         default:
-            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)
-                        .toInt() == 429) // Qt doesn't know about it yet
+            if (httpCode == 429) // Qt doesn't know about it yet
                 return { TooManyRequestsError, tr("Too many requests") };
             return { NetworkError, reply->errorString() };
     }
