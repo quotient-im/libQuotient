@@ -62,6 +62,7 @@ namespace QMatrixClient
                 , NotFoundError
                 , IncorrectRequestError
                 , IncorrectResponseError
+                , TooManyRequestsError
                 , UserDefinedError = 200
             };
 

@@ -263,7 +263,28 @@ void BaseJob::gotReply()
     {
         auto json = QJsonDocument::fromJson(d->reply->readAll()).object();
         if (!json.isEmpty())
+        {
+            if (error() == TooManyRequestsError)
+            {
+                QString msg = tr("Too many requests");
+                auto retryInterval = json.value("retry_after_ms").toInt(-1);
+                if (retryInterval != -1)
+                    msg += tr(", next retry advised after %1 ms")
+                            .arg(retryInterval);
+                else // We still have to figure some reasonable interval
+                    retryInterval = getNextRetryInterval();
+
+                setStatus(TooManyRequestsError, msg);
+
+                // Shortcut to retry instead of executing the whole finishJob()
+                stop();
+                qCWarning(d->logCat) << this << "will retry in" << retryInterval;
+                d->retryTimer.start(retryInterval);
+                emit retryScheduled(d->retriesTaken, retryInterval);
+                return;
+            }
             setStatus(IncorrectRequestError, json.value("error").toString());
+        }
     }
 
     finishJob();
@@ -324,6 +345,9 @@ BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
             return { NotFoundError, reply->errorString() };
 
         default:
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)
+                        .toInt() == 429) // Qt doesn't know about it yet
+                return { TooManyRequestsError, tr("Too many requests") };
             return { NetworkError, reply->errorString() };
     }
 }
