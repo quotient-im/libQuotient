@@ -94,6 +94,7 @@ class Room::Private
         QString name;
         QString displayname;
         QString topic;
+        QString encryptionAlgorithm;
         Avatar avatar;
         JoinState joinState;
         int highlightCount = 0;
@@ -883,6 +884,11 @@ int Room::timelineSize() const
     return int(d->timeline.size());
 }
 
+bool Room::usesEncryption() const
+{
+    return !d->encryptionAlgorithm.isEmpty();
+}
+
 void Room::Private::insertMemberIntoMap(User *u)
 {
     const auto userName = u->name(q);
@@ -1066,6 +1072,11 @@ void Room::postMessage(const QString& plainText, MessageEventType type)
 
 void Room::postMessage(const RoomMessageEvent& event)
 {
+    if (usesEncryption())
+    {
+        qCCritical(MAIN) << "Room" << displayName()
+            << "enforces encryption; sending encrypted messages is not supported yet";
+    }
     connection()->callApi<SendEventJob>(id(), event);
 }
 
@@ -1509,6 +1520,14 @@ void Room::processStateEvents(const RoomEvents& events)
                 }
                 break;
             }
+            case EventType::RoomEncryption:
+            {
+                d->encryptionAlgorithm =
+                        static_cast<EncryptionEvent*>(event)->algorithm();
+                qCDebug(MAIN) << "Encryption switched on in" << displayName();
+                emit encryption();
+                break;
+            }
             default: /* Ignore events of other types */;
         }
     }
@@ -1759,6 +1778,8 @@ QJsonObject Room::Private::toJson() const
                         QJsonArray::fromStringList(aliases));
         ADD_STATE_EVENT(stateEvents, "m.room.canonical_alias", "alias",
                         canonicalAlias);
+        ADD_STATE_EVENT(stateEvents, "m.room.encryption", "algorithm",
+                        encryptionAlgorithm);
 
         for (const auto *m : membersMap)
             appendStateEvent(stateEvents, QStringLiteral("m.room.member"),

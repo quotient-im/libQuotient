@@ -103,6 +103,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
             Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
             Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+            Q_PROPERTY(bool usesEncryption READ usesEncryption NOTIFY encryption)
 
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
@@ -145,6 +146,7 @@ namespace QMatrixClient
             QStringList memberNames() const;
             int memberCount() const;
             int timelineSize() const;
+            bool usesEncryption() const;
 
             /**
              * Returns a square room avatar with the given size and requests it
@@ -360,6 +362,7 @@ namespace QMatrixClient
             void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
             void memberListChanged();
+            void encryption();
 
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
