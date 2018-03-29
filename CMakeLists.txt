@@ -90,3 +90,9 @@ if (WIN32)
     install (FILES mime/packages/freedesktop.org.xml
              DESTINATION mime/packages)
 endif (WIN32)
+
+install (TARGETS qmatrixclient
+         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install (FILES avatar.h connection.h connectiondata.h converters.h
+         joinstate.h logging.h room.h settings.h state.h user.h util.h
+         DESTINATION ${INCLUDE_INSTALL_DIR})
