@@ -26,10 +26,13 @@ before_install:
 
 script:
 - mkdir build && cd build
-- cmake ..
+- cmake -DCMAKE_INSTALL_PREFIX=../install ..
 - cmake --build . --target all
+- cmake --build . --target install
 - cd ..
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
+- ls -R install
+- mv lib lib.back # Force the below script to use the installed copy instead
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDES += -I./install/include" "LIBS += -L./install/lib"
 - make all
 - if [ "$QMC_TEST_USER" != "" ]; then $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 

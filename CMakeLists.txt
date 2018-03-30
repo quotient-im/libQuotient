@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.1)
 project(qmatrixclient CXX)
 
 include(CheckCXXCompilerFlag)
+if (NOT WIN32)
+    include(GNUInstallDirs)
+endif(NOT WIN32)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -85,6 +88,31 @@ target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core qmatrixclient)
+
+# Installation
+
+if (NOT CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR ".")
+endif()
+
+if (NOT CMAKE_INSTALL_BINDIR)
+    set(CMAKE_INSTALL_BINDIR ".")
+endif()
+
+if (NOT CMAKE_INSTALL_INCLUDEDIR)
+    set(CMAKE_INSTALL_INCLUDEDIR "include")
+endif()
+
+install (TARGETS qmatrixclient EXPORT QMatrixClient
+         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install (DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+         FILES_MATCHING PATTERN "*.h")
+
+install (TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install (EXPORT QMatrixClient DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qmatrixclient)
 
 if (WIN32)
     install (FILES mime/packages/freedesktop.org.xml
