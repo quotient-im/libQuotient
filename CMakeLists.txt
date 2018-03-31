@@ -121,7 +121,7 @@ install (TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 #export(TARGETS qmatrixclient FILE QMatrixClientConfig.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
 export(EXPORT QMatrixClient)
 export(PACKAGE QMatrixClient)
-install (EXPORT QMatrixClient DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qmatrixclient)
+install (EXPORT QMatrixClient DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 
 if (WIN32)
     install (FILES mime/packages/freedesktop.org.xml
