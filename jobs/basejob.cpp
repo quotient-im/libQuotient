@@ -285,7 +285,7 @@ void BaseJob::gotReply()
                     // Shortcut to retry instead of executing finishJob()
                     stop();
                     qCWarning(d->logCat)
-                            << this << "will retry in" << retryInterval;
+                            << this << "will retry in" << retryInterval << "ms";
                     d->retryTimer.start(retryInterval);
                     emit retryScheduled(d->retriesTaken, retryInterval);
                     return;
