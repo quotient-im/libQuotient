@@ -8,7 +8,7 @@ if (NOT WIN32)
 endif(NOT WIN32)
 
 # Find includes in corresponding build directories
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+#set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
@@ -19,6 +19,18 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
     "MinSizeRel" "RelWithDebInfo")
+endif()
+
+if (NOT CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR ".")
+endif()
+
+if (NOT CMAKE_INSTALL_BINDIR)
+    set(CMAKE_INSTALL_BINDIR ".")
+endif()
+
+if (NOT CMAKE_INSTALL_INCLUDEDIR)
+    set(CMAKE_INSTALL_INCLUDEDIR "include")
 endif()
 
 set(CMAKE_CXX_STANDARD 14)
@@ -47,36 +59,36 @@ message( STATUS )
 
 # Set up source files
 set(libqmatrixclient_SRCS
-    networkaccessmanager.cpp
-    connectiondata.cpp
-    connection.cpp
-    logging.cpp
-    room.cpp
-    user.cpp
-    avatar.cpp
-    settings.cpp
-    networksettings.cpp
-    events/event.cpp
-    events/eventcontent.cpp
-    events/roommessageevent.cpp
-    events/roommemberevent.cpp
-    events/roomavatarevent.cpp
-    events/typingevent.cpp
-    events/receiptevent.cpp
-    events/directchatevent.cpp
-    jobs/requestdata.cpp
-    jobs/basejob.cpp
-    jobs/checkauthmethods.cpp
-    jobs/sendeventjob.cpp
-    jobs/setroomstatejob.cpp
-    jobs/joinroomjob.cpp
-    jobs/roommessagesjob.cpp
-    jobs/syncjob.cpp
-    jobs/mediathumbnailjob.cpp
-    jobs/downloadfilejob.cpp
+    lib/networkaccessmanager.cpp
+    lib/connectiondata.cpp
+    lib/connection.cpp
+    lib/logging.cpp
+    lib/room.cpp
+    lib/user.cpp
+    lib/avatar.cpp
+    lib/settings.cpp
+    lib/networksettings.cpp
+    lib/events/event.cpp
+    lib/events/eventcontent.cpp
+    lib/events/roommessageevent.cpp
+    lib/events/roommemberevent.cpp
+    lib/events/roomavatarevent.cpp
+    lib/events/typingevent.cpp
+    lib/events/receiptevent.cpp
+    lib/events/directchatevent.cpp
+    lib/jobs/requestdata.cpp
+    lib/jobs/basejob.cpp
+    lib/jobs/checkauthmethods.cpp
+    lib/jobs/sendeventjob.cpp
+    lib/jobs/setroomstatejob.cpp
+    lib/jobs/joinroomjob.cpp
+    lib/jobs/roommessagesjob.cpp
+    lib/jobs/syncjob.cpp
+    lib/jobs/mediathumbnailjob.cpp
+    lib/jobs/downloadfilejob.cpp
 )
 
-aux_source_directory(jobs/generated libqmatrixclient_job_SRCS)
+aux_source_directory(lib/jobs/generated libqmatrixclient_job_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
@@ -84,34 +96,31 @@ add_library(qmatrixclient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
 set_property(TARGET qmatrixclient PROPERTY VERSION "0.2.0")
 set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
 
+target_include_directories(qmatrixclient PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_include_directories(qmatrixclient PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
 
 add_executable(qmc-example ${example_SRCS})
+target_include_directories(qmc-example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 target_link_libraries(qmc-example Qt5::Core qmatrixclient)
 
 # Installation
-
-if (NOT CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR ".")
-endif()
-
-if (NOT CMAKE_INSTALL_BINDIR)
-    set(CMAKE_INSTALL_BINDIR ".")
-endif()
-
-if (NOT CMAKE_INSTALL_INCLUDEDIR)
-    set(CMAKE_INSTALL_INCLUDEDIR "include")
-endif()
 
 install (TARGETS qmatrixclient EXPORT QMatrixClient
          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install (DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+install (DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
          FILES_MATCHING PATTERN "*.h")
 
 install (TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+#export(TARGETS qmatrixclient FILE QMatrixClientConfig.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
+export(EXPORT QMatrixClient)
+export(PACKAGE QMatrixClient)
 install (EXPORT QMatrixClient DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qmatrixclient)
 
 if (WIN32)

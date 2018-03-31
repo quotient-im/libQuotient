@@ -29,10 +29,10 @@ script:
 - cmake -DCMAKE_INSTALL_PREFIX=../install ..
 - cmake --build . --target all
 - cmake --build . --target install
+- cd ../examples
+- $CC qmc-example.cpp -I../install/include -l../install/lib/libqmatrixclient.a -o qmc-example-lib-installed
 - cd ..
-- ls -R install
-- mv lib lib.back # Force the below script to use the installed copy instead
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDES += -I./install/include" "LIBS += -L./install/lib"
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
 - make all
 - if [ "$QMC_TEST_USER" != "" ]; then $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
