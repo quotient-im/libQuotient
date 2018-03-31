@@ -25,15 +25,20 @@ before_install:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt56/bin/qt56-env.sh; fi
 
 script:
-- mkdir build && cd build
+# Build and install with CMake
+- mkdir build && pushd build
 - cmake -DCMAKE_INSTALL_PREFIX=../install ..
 - cmake --build . --target all
 - cmake --build . --target install
-- cd ../examples
-- $CC qmc-example.cpp -I../install/include -l../install/lib/libqmatrixclient.a -o qmc-example-lib-installed
-- cd ..
+# Build qmc-example with the installed library
+- popd && mkdir build-example && pushd build-example
+- cmake -DCMAKE_PREFIX_PATH=../install ../examples
+- cmake --build . --target all
+- popd
+# Build and install with qmake
 - qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
 - make all
+# Run the qmake-compiled qmc-example under valgrind
 - if [ "$QMC_TEST_USER" != "" ]; then $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
 notifications:

@@ -7,8 +7,6 @@ if (NOT WIN32)
     include(GNUInstallDirs)
 endif(NOT WIN32)
 
-# Find includes in corresponding build directories
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
@@ -92,38 +90,61 @@ aux_source_directory(lib/jobs/generated libqmatrixclient_job_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
-add_library(qmatrixclient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
-set_property(TARGET qmatrixclient PROPERTY VERSION "0.2.0")
-set_property(TARGET qmatrixclient PROPERTY SOVERSION 0 )
+add_library(QMatrixClient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
+set(API_VERSION 2)
+set_property(TARGET QMatrixClient PROPERTY VERSION "0.2.0")
+set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
+set_property(TARGET QMatrixClient PROPERTY
+             INTERFACE_QMatrixClient_MAJOR_VERSION ${API_VERSION})
+set_property(TARGET QMatrixClient APPEND PROPERTY
+             COMPATIBLE_INTERFACE_STRING QMatrixClient_MAJOR_VERSION)
 
-target_include_directories(qmatrixclient PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(QMatrixClient PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_include_directories(qmatrixclient PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib)
-target_link_libraries(qmatrixclient Qt5::Core Qt5::Network Qt5::Gui)
+target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui)
 
 add_executable(qmc-example ${example_SRCS})
-target_include_directories(qmc-example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib)
-target_link_libraries(qmc-example Qt5::Core qmatrixclient)
+target_link_libraries(qmc-example Qt5::Core QMatrixClient)
 
 # Installation
 
-install (TARGETS qmatrixclient EXPORT QMatrixClient
-         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install (DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-         FILES_MATCHING PATTERN "*.h")
+install(TARGETS QMatrixClient EXPORT QMatrixClientTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.h")
 
-install (TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfigVersion.cmake"
+    VERSION ${API_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
 
-#export(TARGETS qmatrixclient FILE QMatrixClientConfig.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
-export(EXPORT QMatrixClient)
 export(PACKAGE QMatrixClient)
-install (EXPORT QMatrixClient DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+export(EXPORT QMatrixClientTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientTargets.cmake")
+configure_file(cmake/QMatrixClientConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfig.cmake"
+    COPYONLY
+)
+
+set(ConfigFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/QMatrixClient")
+install(EXPORT QMatrixClientTargets
+        FILE QMatrixClientTargets.cmake DESTINATION ${ConfigFilesLocation})
+
+install(FILES cmake/QMatrixClientConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfigVersion.cmake"
+    DESTINATION ${ConfigFilesLocation}
+)
+install(EXPORT_ANDROID_MK QMatrixClientTargets DESTINATION share/ndk-modules)
 
 if (WIN32)
-    install (FILES mime/packages/freedesktop.org.xml
-             DESTINATION mime/packages)
+    install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
+
+install(TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
