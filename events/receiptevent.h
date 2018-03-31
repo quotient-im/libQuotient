@@ -41,12 +41,10 @@ namespace QMatrixClient
 
             EventsWithReceipts eventsWithReceipts() const
             { return _eventsWithReceipts; }
-            bool unreadMessages() const { return _unreadMessages; }
 
             static constexpr const char* const TypeId = "m.receipt";
 
         private:
             EventsWithReceipts _eventsWithReceipts;
-            bool _unreadMessages; // Spec extension for caching purposes
     };
 }  // namespace QMatrixClient

@@ -83,18 +83,6 @@ class BaseJob::Private
         LoggingCategory logCat = JOBS;
 };
 
-inline QDebug operator<<(QDebug dbg, const BaseJob* j)
-{
-    return dbg << j->objectName();
-}
-
-QDebug QMatrixClient::operator<<(QDebug dbg, const BaseJob::Status& s)
-{
-    QRegularExpression filter { "(access_token)(=|: )[-_A-Za-z0-9]+" };
-    return dbg << s.code << ':'
-               << QString(s.message).replace(filter, "\\1 HIDDEN");
-}
-
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint, bool needsToken)
     : BaseJob(verb, name, endpoint, Query { }, Data { }, needsToken)
 { }
@@ -234,8 +222,12 @@ void BaseJob::start(const ConnectionData* connData)
 {
     d->connection = connData;
     beforeStart(connData);
-    sendRequest();
-    afterStart(connData, d->reply.data());
+    if (status().good())
+        sendRequest();
+    if (status().good())
+        afterStart(connData, d->reply.data());
+    if (!status().good())
+        QTimer::singleShot(0, this, &BaseJob::finishJob);
 }
 
 void BaseJob::sendRequest()
@@ -268,9 +260,38 @@ void BaseJob::gotReply()
         setStatus(parseReply(d->reply.data()));
     else
     {
-        auto json = QJsonDocument::fromJson(d->reply->readAll()).object();
-        if (!json.isEmpty())
-            setStatus(IncorrectRequestError, json.value("error").toString());
+        const auto body = d->reply->readAll();
+        if (!body.isEmpty())
+        {
+            qCDebug(d->logCat).noquote() << "Error body:" << body;
+            auto json = QJsonDocument::fromJson(body).object();
+            if (json.isEmpty())
+                setStatus(IncorrectRequestError, body);
+            else {
+                if (error() == TooManyRequestsError ||
+                        json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
+                {
+                    QString msg = tr("Too many requests");
+                    auto retryInterval = json.value("retry_after_ms").toInt(-1);
+                    if (retryInterval != -1)
+                        msg += tr(", next retry advised after %1 ms")
+                                .arg(retryInterval);
+                    else // We still have to figure some reasonable interval
+                        retryInterval = getNextRetryInterval();
+
+                    setStatus(TooManyRequestsError, msg);
+
+                    // Shortcut to retry instead of executing finishJob()
+                    stop();
+                    qCWarning(d->logCat)
+                            << this << "will retry in" << retryInterval;
+                    d->retryTimer.start(retryInterval);
+                    emit retryScheduled(d->retriesTaken, retryInterval);
+                    return;
+                }
+                setStatus(IncorrectRequestError, json.value("error").toString());
+            }
+        }
     }
 
     finishJob();
@@ -281,9 +302,12 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     if (patterns.isEmpty())
         return true;
 
+    // ignore possible appendixes of the content type
+    const auto ctype = type.split(';').front();
+
     for (const auto& pattern: patterns)
     {
-        if (pattern.startsWith('*') || type == pattern) // Fast lane
+        if (pattern.startsWith('*') || ctype == pattern) // Fast lane
             return true;
 
         auto patternParts = pattern.split('/');
@@ -291,7 +315,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
             "BaseJob: Expected content type should have up to two"
             " /-separated parts; violating pattern: " + pattern);
 
-        if (type.split('/').front() == patternParts.front() &&
+        if (ctype.split('/').front() == patternParts.front() &&
                 patternParts.back() == "*")
             return true; // Exact match already went on fast lane
     }
@@ -301,17 +325,26 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 
 BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
 {
-    qCDebug(d->logCat) << this << "returned"
+    const auto httpCode =
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qCDebug(d->logCat).nospace().noquote() << this << " returned HTTP code "
+        << httpCode << ": "
         << (reply->error() == QNetworkReply::NoError ?
                 "Success" : reply->errorString())
-        << "from" << reply->url().toDisplayString();
+        << " (URL: " << reply->url().toDisplayString() << ")";
+
+    if (httpCode == 429) // Qt doesn't know about it yet
+        return { TooManyRequestsError, tr("Too many requests") };
+
+    // Should we check httpCode instead? Maybe even use it in BaseJob::Status?
+    // That would make codes in logs slightly more readable.
     switch( reply->error() )
     {
         case QNetworkReply::NoError:
             if (checkContentType(reply->rawHeader("Content-Type"),
                                  d->expectedContentTypes))
                 return NoError;
-            else
+            else // A warning in the logs might be more proper instead
                 return { IncorrectResponseError,
                          "Incorrect content type of the response" };
 
@@ -372,9 +405,10 @@ void BaseJob::finishJob()
         // TODO: The whole retrying thing should be put to ConnectionManager
         // otherwise independently retrying jobs make a bit of notification
         // storm towards the UI.
-        const auto retryInterval = getNextRetryInterval();
+        const auto retryInterval =
+                error() == TimeoutError ? 0 : getNextRetryInterval();
         ++d->retriesTaken;
-        qCWarning(d->logCat) << this << "will take retry" << d->retriesTaken
+        qCWarning(d->logCat) << this << "will retry" << d->retriesTaken
                    << "in" << retryInterval/1000 << "s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
@@ -447,6 +481,7 @@ void BaseJob::setStatus(Status s)
 
 void BaseJob::setStatus(int code, QString message)
 {
+    message.replace(d->connection->accessToken(), "(REDACTED)");
     setStatus({ code, message });
 }
 

@@ -83,15 +83,53 @@ namespace QMatrixClient
              */
             QHash<QString, QVector<Room*>> tagsToRooms() const;
 
+            /** Get all room tags known on this connection */
+            QStringList tagNames() const;
+
             /** Get the list of rooms with the specified tag */
             QVector<Room*> roomsWithTag(const QString& tagName) const;
+
+            /** Mark the room as a direct chat with the user
+             * This function marks \p room as a direct chat with \p user.
+             * Emits the signal synchronously, without waiting to complete
+             * synchronisation with the server.
+             *
+             * \sa directChatsListChanged
+             */
+            void addToDirectChats(const Room* room, const User* user);
+
+            /** Unmark the room from direct chats
+             * This function removes the room id from direct chats either for
+             * a specific \p user or for all users if \p user in nullptr.
+             * The room id is used to allow removal of, e.g., ids of forgotten
+             * rooms; a Room object need not exist. Emits the signal
+             * immediately, without waiting to complete synchronisation with
+             * the server.
+             *
+             * \sa directChatsListChanged
+             */
+            void removeFromDirectChats(const QString& roomId,
+                                       const User* user = nullptr);
+
+            /** Check whether the room id corresponds to a direct chat */
+            bool isDirectChat(const QString& roomId) const;
+
+            /** Retrieve the list of users the room is a direct chat with
+             * @return The list of users for which this room is marked as
+             * a direct chat; an empty list if the room is not a direct chat
+             */
+            QList<const User*> directChatUsers(const Room* room) const;
 
             QMap<QString, User*> users() const;
 
             // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
             // (breaks back-compatibility)
             QUrl homeserver() const;
+            Q_INVOKABLE Room* room(const QString& roomId,
+                 JoinStates states = JoinState::Invite|JoinState::Join) const;
+            Q_INVOKABLE Room* invitation(const QString& roomId) const;
             Q_INVOKABLE User* user(const QString& userId);
+            const User* user() const;
             User* user();
             QString userId() const;
             QString deviceId() const;
@@ -220,7 +258,30 @@ namespace QMatrixClient
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
                 const QJsonObject creationContent = {});
 
-            /** Create a direct chat with a single user, optional name and topic */
+            /** Get a direct chat with a single user
+             * This method may return synchronously or asynchoronously depending
+             * on whether a direct chat room with the respective person exists
+             * already.
+             *
+             * \sa directChatAvailable
+             */
+            Q_INVOKABLE void requestDirectChat(const QString& userId);
+
+            /** Run an operation in a direct chat with the user
+             * This method may return synchronously or asynchoronously depending
+             * on whether a direct chat room with the respective person exists
+             * already. Instead of emitting a signal it executes the passed
+             * function object with the direct chat room as its parameter.
+             */
+            Q_INVOKABLE void doInDirectChat(const QString& userId,
+                                            std::function<void(Room*)> operation);
+
+            /** Create a direct chat with a single user, optional name and topic
+             * A room will always be created, unlike in requestDirectChat.
+             * It is advised to use requestDirectChat as a default way of getting
+             * one-on-one with a person, and only use createDirectChat when
+             * a new creation is explicitly desired.
+             */
             CreateRoomJob* createDirectChat(const QString& userId,
                 const QString& topic = {}, const QString& name = {});
 
@@ -338,12 +399,29 @@ namespace QMatrixClient
             /** The room object is about to be deleted */
             void aboutToDeleteRoom(Room* room);
 
-            /** The room has just been created by createRoom or createDirectChat
+            /** The room has just been created by createRoom or requestDirectChat
+             *
              * This signal is not emitted in usual room state transitions,
              * only as an outcome of room creation operations invoked by
              * the client.
+             * \note requestDirectChat doesn't necessarily create a new chat;
+             *       use directChatAvailable signal if you just need to obtain
+             *       a direct chat room.
              */
             void createdRoom(Room* room);
+
+            /** The direct chat room is ready for using
+             * This signal is emitted upon any successful outcome from
+             * requestDirectChat.
+             */
+            void directChatAvailable(Room* directChat);
+
+            /** The list of direct chats has changed
+             * This signal is emitted every time when the mapping of users
+             * to direct chat rooms is changed (because of either local updates
+             * or a different list arrived from the server).
+             */
+            void directChatsListChanged();
 
             void cacheStateChanged();
 

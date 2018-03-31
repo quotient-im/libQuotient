@@ -14,7 +14,7 @@ matrix:
   include:
   - os: linux
     compiler: gcc
-    env: [ ENV_EVAL="CC=gcc-5 && CXX=g++-5" ]
+    env: [ 'ENV_EVAL="CC=gcc-5 && CXX=g++-5"' ]
   - os: linux
     compiler: clang
   - os: osx
@@ -22,7 +22,7 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then . /opt/qt56/bin/qt56-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt56/bin/qt56-env.sh; fi
 
 install:
 - git clone https://github.com/QMatrixClient/matrix-doc.git
@@ -40,8 +40,9 @@ before_script:
 script:
 - cmake --build . --target all
 - cd ..
-- qmake qmc-example.pro "CONFIG += debug" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" && make all
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" '#qmc-test:matrix.org'; fi
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX"
+- make all
+- if [ "$QMC_TEST_USER" != "" ]; then $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
 notifications:
   webhooks:

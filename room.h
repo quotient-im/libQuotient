@@ -20,13 +20,9 @@
 
 #include "jobs/syncjob.h"
 #include "events/roommessageevent.h"
-#include "events/tagevent.h"
+#include "events/accountdataevents.h"
 #include "joinstate.h"
 
-#include <QtCore/QList>
-#include <QtCore/QStringList>
-#include <QtCore/QObject>
-#include <QtCore/QJsonObject>
 #include <QtGui/QPixmap>
 
 #include <memory>
@@ -107,6 +103,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
             Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
             Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+            Q_PROPERTY(bool usesEncryption READ usesEncryption NOTIFY encryption)
 
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
@@ -117,6 +114,8 @@ namespace QMatrixClient
             Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
 
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
+            Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY unreadMessagesChanged)
+            Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
             Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
 
         public:
@@ -147,6 +146,7 @@ namespace QMatrixClient
             QStringList memberNames() const;
             int memberCount() const;
             int timelineSize() const;
+            bool usesEncryption() const;
 
             /**
              * Returns a square room avatar with the given size and requests it
@@ -233,7 +233,26 @@ namespace QMatrixClient
              */
             void markMessagesAsRead(QString uptoEventId);
 
-            Q_INVOKABLE bool hasUnreadMessages();
+            /** Check whether there are unread messages in the room */
+            bool hasUnreadMessages() const;
+
+            /** Get the number of unread messages in the room
+             * Depending on the read marker state, this call may return either
+             * a precise or an estimate number of unread events. Only "notable"
+             * events (non-redacted message events from users other than local)
+             * are counted.
+             *
+             * In a case when readMarker() == timelineEdge() (the local read
+             * marker is beyond the local timeline) only the bottom limit of
+             * the unread messages number can be estimated (and even that may
+             * be slightly off due to, e.g., redactions of events not loaded
+             * to the local timeline).
+             *
+             * If all messages are read, this function will return -1 (_not_ 0,
+             * as zero may mean "zero or more unread messages" in a situation
+             * when the read marker is outside the local timeline.
+             */
+            int unreadCount() const;
 
             Q_INVOKABLE int notificationCount() const;
             Q_INVOKABLE void resetNotificationCount();
@@ -241,8 +260,29 @@ namespace QMatrixClient
             Q_INVOKABLE void resetHighlightCount();
 
             QStringList tagNames() const;
-            const QHash<QString, TagRecord>& tags() const;
+            TagsMap tags() const;
             TagRecord tag(const QString& name) const;
+
+            /** Add a new tag to this room
+             * If this room already has this tag, nothing happens. If it's a new
+             * tag for the room, the respective tag record is added to the set
+             * of tags and the new set is sent to the server to update other
+             * clients.
+             */
+            void addTag(const QString& name, const TagRecord& record = {});
+
+            /** Remove a tag from the room */
+            void removeTag(const QString& name);
+
+            /** Overwrite the room's tags
+             * This completely replaces the existing room's tags with a set
+             * of new ones and updates the new set on the server. Unlike
+             * most other methods in Room, this one sends a signal about changes
+             * immediately, not waiting for confirmation from the server
+             * (because tags are saved in account data rather than in shared
+             * room state).
+             */
+            void setTags(const TagsMap& newTags);
 
             /** Check whether the list of tags has m.favourite */
             bool isFavourite() const;
@@ -251,6 +291,9 @@ namespace QMatrixClient
 
             /** Check whether this room is a direct chat */
             bool isDirectChat() const;
+
+            /** Get the list of users this room is a direct chat with */
+            QList<const User*> directChatUsers() const;
 
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
             Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
@@ -319,6 +362,7 @@ namespace QMatrixClient
             void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
             void memberListChanged();
+            void encryption();
 
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();

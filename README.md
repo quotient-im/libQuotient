@@ -63,6 +63,8 @@ This will get you `debug/qmc-example` and `release/qmc-example` console executab
 
 ## Troubleshooting
 
+#### Building fails
+
 If `cmake` fails with...
 ```
 CMake Warning at CMakeLists.txt:11 (find_package):
@@ -85,3 +87,6 @@ where
 ```
 QT_LOGGING_RULES="libqmatrixclient.*.debug=true,libqmatrixclient.jobs.debug=false"
 ```
+
+#### Cache format
+In case of troubles with room state and troubles with caching it may be useful to switch cache format from binary to JSON. To do that, set the following value in your client's configuration file/registry key (you might need to create the libqmatrixclient key for that): `libqmatrixclient/cache_type` to `json`. This will make cache saving and loading work slightly slower but the cache will be in a text JSON file (very long and unindented so prepare a good JSON viewer or text editor with JSON formatting capabilities).

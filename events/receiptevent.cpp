@@ -66,11 +66,5 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
         }
         _eventsWithReceipts.push_back({eventIt.key(), std::move(receipts)});
     }
-    static const auto UnreadMsgsKey =
-        QStringLiteral("x-qmatrixclient.unread_messages");
-    if (contents.contains(UnreadMsgsKey))
-        _unreadMessages = contents["x-qmatrixclient.unread_messages"].toBool();
-    else
-        _unreadMessages = obj["x-qmatrixclient.unread_messages"].toBool();
 }
 

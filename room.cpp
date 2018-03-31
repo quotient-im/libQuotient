@@ -24,6 +24,7 @@
 #include "jobs/generated/leaving.h"
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/redaction.h"
+#include "jobs/generated/account-data.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -35,6 +36,7 @@
 #include "jobs/roommessagesjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
+#include "jobs/postreadmarkersjob.h"
 #include "avatar.h"
 #include "connection.h"
 #include "user.h"
@@ -44,6 +46,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
+#include <QtCore/QTemporaryFile>
 #include <QtCore/QRegularExpression>
 
 #include <array>
@@ -52,15 +55,23 @@
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
+#if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
+using std::llround;
+#endif
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
+
+// A workaround for MSVC 2015 that fails with "error C2440: 'return':
+// cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
+#  define WORKAROUND_EXTENDED_INITIALIZER_LIST
+#endif
 
 class Room::Private
 {
     public:
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
         typedef QMultiHash<QString, User*> members_map_t;
-        typedef std::pair<rev_iter_t, rev_iter_t> rev_iter_pair_t;
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(std::move(id_))
@@ -83,6 +94,7 @@ class Room::Private
         QString name;
         QString displayname;
         QString topic;
+        QString encryptionAlgorithm;
         Avatar avatar;
         JoinState joinState;
         int highlightCount = 0;
@@ -90,19 +102,20 @@ class Room::Private
         members_map_t membersMap;
         QList<User*> usersTyping;
         QList<User*> membersLeft;
-        bool unreadMessages = false;
+        int unreadMessages = 0;
         bool displayed = false;
         QString firstDisplayedEventId;
         QString lastDisplayedEventId;
         QHash<const User*, QString> lastReadEventIds;
-        QHash<QString, TagRecord> tags;
-        QHash<QString, QJsonObject> accountData;
+        QString serverReadMarker;
+        TagsMap tags;
+        QHash<QString, QVariantHash> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
         struct FileTransferPrivateInfo
         {
-#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
+#ifdef WORKAROUND_EXTENDED_INITIALIZER_LIST
             FileTransferPrivateInfo() = default;
             FileTransferPrivateInfo(BaseJob* j, QString fileName)
                 : job(j), localFileInfo(fileName)
@@ -141,6 +154,7 @@ class Room::Private
         QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
+        QString fileNameToDownload(const RoomMessageEvent* event) const;
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
@@ -176,10 +190,10 @@ class Room::Private
          * Removes events from the passed container that are already in the timeline
          */
         void dropDuplicateEvents(RoomEvents* events) const;
-        void checkUnreadMessages(timeline_iter_t from);
 
         void setLastReadEvent(User* u, const QString& eventId);
-        rev_iter_pair_t promoteReadMarker(User* u, rev_iter_t newMarker,
+        void updateUnreadCount(rev_iter_t from, rev_iter_t to);
+        void promoteReadMarker(User* u, rev_iter_t newMarker,
                                           bool force = false);
 
         void markMessagesAsRead(rev_iter_t upToMarker);
@@ -191,6 +205,14 @@ class Room::Private
          * redaction event whether the redacted event was found or not.
          */
         void processRedaction(RoomEventPtr redactionEvent);
+
+        void broadcastTagUpdates()
+        {
+            connection->callApi<SetAccountDataPerRoomJob>(
+                    connection->userId(), id, TagEvent::typeId(),
+                        TagEvent(tags).toJson());
+            emit q->tagsChanged();
+        }
 
         QJsonObject toJson() const;
 
@@ -330,19 +352,62 @@ void Room::Private::setLastReadEvent(User* u, const QString& eventId)
     storedId = eventId;
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
+    {
+        if (eventId != serverReadMarker)
+            connection->callApi<PostReadMarkersJob>(id, eventId);
         emit q->readMarkerMoved();
+    }
 }
 
-Room::Private::rev_iter_pair_t
-Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
-                                 bool force)
+void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
+{
+    Q_ASSERT(from >= timeline.crbegin() && from <= timeline.crend());
+    Q_ASSERT(to >= from && to <= timeline.crend());
+
+    // Catch a special case when the last read event id refers to an event
+    // that has just arrived. In this case we should recalculate
+    // unreadMessages and might need to promote the read marker further
+    // over local-origin messages.
+    const auto readMarker = q->readMarker();
+    if (readMarker >= from && readMarker < to)
+    {
+        qCDebug(MAIN) << "Discovered last read event in room" << displayname;
+        promoteReadMarker(q->localUser(), readMarker, true);
+        return;
+    }
+
+    Q_ASSERT(to <= readMarker);
+
+    QElapsedTimer et; et.start();
+    const auto newUnreadMessages = count_if(from, to,
+            std::bind(&Room::Private::isEventNotable, this, _1));
+    if (et.nsecsElapsed() > 10000)
+        qCDebug(PROFILER) << "Counting gained unread messages took" << et;
+
+    if(newUnreadMessages > 0)
+    {
+        // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+        if (unreadMessages < 0)
+            unreadMessages = 0;
+
+        unreadMessages += newUnreadMessages;
+        qCDebug(MAIN) << "Room" << displayname << "has gained"
+            << newUnreadMessages << "unread message(s),"
+            << (q->readMarker() == timeline.crend() ?
+                    "in total at least" : "in total")
+            << unreadMessages << "unread message(s)";
+        emit q->unreadMessagesChanged(q);
+    }
+}
+
+void Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker, bool force)
 {
     Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
     Q_ASSERT(newMarker >= timeline.crbegin() && newMarker <= timeline.crend());
 
     const auto prevMarker = q->readMarker(u);
     if (!force && prevMarker <= newMarker) // Remember, we deal with reverse iterators
-        return { prevMarker, prevMarker };
+        return;
 
     Q_ASSERT(newMarker < timeline.crend());
 
@@ -352,41 +417,49 @@ Room::Private::promoteReadMarker(User* u, Room::rev_iter_t newMarker,
           [=](const TimelineItem& ti) { return ti->senderId() != u->id(); });
 
     setLastReadEvent(u, (*(eagerMarker - 1))->id());
-    if (isLocalUser(u) && unreadMessages)
+    if (isLocalUser(u))
     {
-        auto stillUnreadMessagesCount = count_if(eagerMarker, timeline.cend(),
-                std::bind(&Room::Private::isEventNotable, this, _1));
+        const auto oldUnreadCount = unreadMessages;
+        QElapsedTimer et; et.start();
+        unreadMessages = count_if(eagerMarker, timeline.cend(),
+                    std::bind(&Room::Private::isEventNotable, this, _1));
+        if (et.nsecsElapsed() > 10000)
+            qCDebug(PROFILER) << "Recounting unread messages took" << et;
 
-        if (stillUnreadMessagesCount == 0)
+        // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+        if (unreadMessages == 0)
+            unreadMessages = -1;
+
+        if (force || unreadMessages != oldUnreadCount)
         {
-            unreadMessages = false;
-            qCDebug(MAIN) << "Room" << displayname << "has no more unread messages";
+            if (unreadMessages == -1)
+            {
+                qCDebug(MAIN) << "Room" << displayname
+                              << "has no more unread messages";
+            } else
+                qCDebug(MAIN) << "Room" << displayname << "still has"
+                              << unreadMessages << "unread message(s)";
             emit q->unreadMessagesChanged(q);
-        } else
-            qCDebug(MAIN) << "Room" << displayname << "still has"
-                          << stillUnreadMessagesCount << "unread message(s)";
+        }
     }
-
-    // Return newMarker, rather than eagerMarker, to save markMessagesAsRead()
-    // (that calls this method) from going back through knowingly-local messages.
-    return { prevMarker, newMarker };
 }
 
-void Room::Private::markMessagesAsRead(Room::rev_iter_t upToMarker)
+void Room::Private::markMessagesAsRead(rev_iter_t upToMarker)
 {
-    rev_iter_pair_t markers = promoteReadMarker(q->localUser(), upToMarker);
-    if (markers.first != markers.second)
+    const auto prevMarker = q->readMarker();
+    promoteReadMarker(q->localUser(), upToMarker);
+    if (prevMarker != upToMarker)
         qCDebug(MAIN) << "Marked messages as read until" << *q->readMarker();
 
     // We shouldn't send read receipts for the local user's own messages - so
     // search earlier messages for the latest message not from the local user
     // until the previous last-read message, whichever comes first.
-    for (; markers.second < markers.first; ++markers.second)
+    for (; upToMarker < prevMarker; ++upToMarker)
     {
-        if ((*markers.second)->senderId() != q->localUser()->id())
+        if ((*upToMarker)->senderId() != q->localUser()->id())
         {
-            connection->callApi<PostReceiptJob>(
-                id, "m.read", (*markers.second)->id());
+            connection->callApi<PostReceiptJob>(id, "m.read",
+                                                (*upToMarker)->id());
             break;
         }
     }
@@ -403,7 +476,12 @@ void Room::markAllMessagesAsRead()
         d->markMessagesAsRead(d->timeline.crbegin());
 }
 
-bool Room::hasUnreadMessages()
+bool Room::hasUnreadMessages() const
+{
+    return unreadCount() >= 0;
+}
+
+int Room::unreadCount() const
 {
     return d->unreadMessages;
 }
@@ -559,7 +637,7 @@ QStringList Room::tagNames() const
     return d->tags.keys();
 }
 
-const QHash<QString, TagRecord>& Room::tags() const
+TagsMap Room::tags() const
 {
     return d->tags;
 }
@@ -567,6 +645,32 @@ const QHash<QString, TagRecord>& Room::tags() const
 TagRecord Room::tag(const QString& name) const
 {
     return d->tags.value(name);
+}
+
+void Room::addTag(const QString& name, const TagRecord& record)
+{
+    if (d->tags.contains(name))
+        return;
+
+    d->tags.insert(name, record);
+    d->broadcastTagUpdates();
+}
+
+void Room::removeTag(const QString& name)
+{
+    if (!d->tags.contains(name))
+        return;
+
+    d->tags.remove(name);
+    d->broadcastTagUpdates();
+}
+
+void Room::setTags(const TagsMap& newTags)
+{
+    if (newTags == d->tags)
+        return;
+    d->tags = newTags;
+    d->broadcastTagUpdates();
 }
 
 bool Room::isFavourite() const
@@ -577,6 +681,16 @@ bool Room::isFavourite() const
 bool Room::isLowPriority() const
 {
     return d->tags.contains(LowPriorityTag);
+}
+
+bool Room::isDirectChat() const
+{
+    return connection()->isDirectChat(id());
+}
+
+QList<const User*> Room::directChatUsers() const
+{
+    return connection()->directChatUsers(this);
 }
 
 const RoomMessageEvent*
@@ -592,6 +706,39 @@ Room::Private::getEventWithFile(const QString& eventId) const
     }
     qWarning() << "No files to download in event" << eventId;
     return nullptr;
+}
+
+QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
+{
+    Q_ASSERT(event->hasFileContent());
+    const auto* fileInfo = event->content()->fileInfo();
+    QString fileName;
+    if (!fileInfo->originalName.isEmpty())
+    {
+        fileName = QFileInfo(fileInfo->originalName).fileName();
+    }
+    else if (!event->plainBody().isEmpty())
+    {
+        // Having no better options, assume that the body has
+        // the original file URL or at least the file name.
+        QUrl u { event->plainBody() };
+        if (u.isValid())
+            fileName = QFileInfo(u.path()).fileName();
+    }
+    // Check the file name for sanity
+    if (fileName.isEmpty() || !QTemporaryFile(fileName).open())
+        return "file." % fileInfo->mimeType.preferredSuffix();
+
+    if (QSysInfo::productType() == "windows")
+    {
+        const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (!suffixes.isEmpty() &&
+                std::none_of(suffixes.begin(), suffixes.end(),
+                    [&fileName] (const QString& s) {
+                        return fileName.endsWith(s); }))
+            return fileName % '.' % fileInfo->mimeType.preferredSuffix();
+    }
+    return fileName;
 }
 
 QUrl Room::urlToThumbnail(const QString& eventId)
@@ -623,13 +770,7 @@ QUrl Room::urlToDownload(const QString& eventId)
 QString Room::fileNameToDownload(const QString& eventId)
 {
     if (auto* event = d->getEventWithFile(eventId))
-    {
-        auto* fileInfo = event->content()->fileInfo();
-        Q_ASSERT(fileInfo != nullptr);
-        return !fileInfo->originalName.isEmpty() ? fileInfo->originalName :
-               !event->plainBody().isEmpty() ? event->plainBody() :
-               QString();
-    }
+        return d->fileNameToDownload(event);
     return {};
 }
 
@@ -647,13 +788,11 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
     if (total > INT_MAX)
     {
         // JavaScript doesn't deal with 64-bit integers; scale down if necessary
-        progress = std::llround(double(progress) / total * INT_MAX);
+        progress = llround(double(progress) / total * INT_MAX);
         total = INT_MAX;
     }
 
-#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
-    // A workaround for MSVC 2015 that fails with "error C2440: 'return':
-    // cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
+#ifdef WORKAROUND_EXTENDED_INITIALIZER_LIST
     FileTransferInfo fti;
     fti.status = infoIt->status;
     fti.progress = int(progress);
@@ -743,6 +882,11 @@ int Room::memberCount() const
 int Room::timelineSize() const
 {
     return int(d->timeline.size());
+}
+
+bool Room::usesEncryption() const
+{
+    return !d->encryptionAlgorithm.isEmpty();
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
@@ -870,13 +1014,16 @@ void Room::updateData(SyncRoomData&& data)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    QElapsedTimer et;
+    QElapsedTimer et; et.start();
+    for (auto&& event: data.accountData)
+        processAccountDataEvent(move(event));
+
     if (!data.state.empty())
     {
-        et.start();
+        et.restart();
         processStateEvents(data.state);
         qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
-            << et.elapsed() << "ms," << data.state.size() << "events";
+                          << data.state.size() << "event(s)," << et;
     }
     if (!data.timeline.empty())
     {
@@ -884,29 +1031,21 @@ void Room::updateData(SyncRoomData&& data)
         // State changes can arrive in a timeline event; so check those.
         processStateEvents(data.timeline);
         qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
-            << et.elapsed() << "ms," << data.timeline.size() << "events";
+                          << data.timeline.size() << "event(s)," << et;
 
         et.restart();
         d->addNewMessageEvents(move(data.timeline));
-        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
-                          << et.elapsed() << "ms";
+        qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et;
     }
-    if (!data.ephemeral.empty())
-    {
-        et.restart();
-        for( auto&& ephemeralEvent: data.ephemeral )
-            processEphemeralEvent(move(ephemeralEvent));
-        qCDebug(PROFILER) << "*** Room::processEphemeralEvents():"
-                          << et.elapsed() << "ms";
-    }
+    for( auto&& ephemeralEvent: data.ephemeral )
+        processEphemeralEvent(move(ephemeralEvent));
 
-    if (!data.accountData.empty())
+    // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+    if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages)
     {
-        et.restart();
-        for (auto&& event: data.accountData)
-            processAccountDataEvent(move(event));
-        qCDebug(PROFILER) << "*** Room::processAccountData():"
-                          << et.elapsed() << "ms";
+        qCDebug(MAIN) << "Setting unread_count to" << data.unreadCount;
+        d->unreadMessages = data.unreadCount;
+        emit unreadMessagesChanged(this);
     }
 
     if( data.highlightCount != d->highlightCount )
@@ -933,6 +1072,11 @@ void Room::postMessage(const QString& plainText, MessageEventType type)
 
 void Room::postMessage(const RoomMessageEvent& event)
 {
+    if (usesEncryption())
+    {
+        qCCritical(MAIN) << "Room" << displayName()
+            << "enforces encryption; sending encrypted messages is not supported yet";
+    }
     connection()->callApi<SendEventJob>(id(), event);
 }
 
@@ -1030,53 +1174,48 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
 
 void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 {
+    auto ongoingTransfer = d->fileTransfers.find(eventId);
+    if (ongoingTransfer != d->fileTransfers.end() &&
+            ongoingTransfer->status == FileTransferInfo::Started)
+    {
+        qCWarning(MAIN) << "Download for" << eventId
+                        << "already started; to restart, cancel it first";
+        return;
+    }
+
     Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
                __FUNCTION__, "localFilename should point at a local file");
-    auto evtIt = findInTimeline(eventId);
-    if (evtIt == timelineEdge() ||
-            evtIt->event()->type() != EventType::RoomMessage)
+    const auto* event = d->getEventWithFile(eventId);
+    if (!event)
     {
-        qCritical() << "Cannot download a file from event" << eventId
-                    << "(there's no such message event in the local timeline)";
+        qCCritical(MAIN)
+            << eventId << "is not in the local timeline or has no file content";
         Q_ASSERT(false);
         return;
     }
-    auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
-    if (!event->hasFileContent())
+    const auto fileUrl = event->content()->fileInfo()->url;
+    auto filePath = localFilename.toLocalFile();
+    if (filePath.isEmpty())
     {
-        qCritical() << eventId << "has no file content; nothing to download";
-        Q_ASSERT(false);
-        return;
+        // Build our own file path, starting with temp directory and eventId.
+        filePath = eventId;
+        filePath = QDir::tempPath() % '/' % filePath.replace(':', '_') %
+                '#' % d->fileNameToDownload(event);
     }
-    auto* fileInfo = event->content()->fileInfo();
-    auto safeTempPrefix = eventId;
-    safeTempPrefix.replace(':', '_');
-    safeTempPrefix = QDir::tempPath() + '/' + safeTempPrefix + '#';
-    auto fileName = !localFilename.isEmpty() ? localFilename.toLocalFile() :
-        !fileInfo->originalName.isEmpty() ?
-            (safeTempPrefix + fileInfo->originalName) :
-        !event->plainBody().isEmpty() ? (safeTempPrefix + event->plainBody()) :
-        (safeTempPrefix + fileInfo->mimeType.preferredSuffix());
-    if (QSysInfo::productType() == "windows")
-    {
-        const auto& suffixes = fileInfo->mimeType.suffixes();
-        if (!suffixes.isEmpty() &&
-                std::none_of(suffixes.begin(), suffixes.end(),
-                    [fileName] (const QString& s) { return fileName.endsWith(s); }))
-            fileName += '.' + fileInfo->mimeType.preferredSuffix();
-    }
-    auto job = connection()->downloadFile(fileInfo->url, fileName);
+    auto job = connection()->downloadFile(fileUrl, filePath);
     if (isJobRunning(job))
     {
+        // If there was a previous transfer (completed or failed), remove it.
+        d->fileTransfers.remove(eventId);
         d->fileTransfers.insert(eventId, { job, job->targetFileName() });
         connect(job, &BaseJob::downloadProgress, this,
             [this,eventId] (qint64 received, qint64 total) {
                 d->fileTransfers[eventId].update(received, total);
                 emit fileTransferProgress(eventId, received, total);
             });
-        connect(job, &BaseJob::success, this, [this,eventId,fileInfo,job] {
+        connect(job, &BaseJob::success, this, [this,eventId,fileUrl,job] {
                 d->fileTransfers[eventId].status = FileTransferInfo::Completed;
-                emit fileTransferCompleted(eventId, fileInfo->url,
+                emit fileTransferCompleted(eventId, fileUrl,
                         QUrl::fromLocalFile(job->targetFileName()));
             });
         connect(job, &BaseJob::failure, this,
@@ -1234,50 +1373,38 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
     const auto insertedSize = insertEvents(std::move(normalEvents), Newer);
+    const auto from = timeline.cend() - insertedSize;
     if (insertedSize > 0)
     {
         qCDebug(MAIN)
                 << "Room" << displayname << "received" << insertedSize
                 << "new events; the last event is now" << timeline.back();
-        q->onAddNewTimelineEvents(timeline.cend() - insertedSize);
+        q->onAddNewTimelineEvents(from);
     }
     for (auto&& r: redactions)
         processRedaction(move(r));
     if (insertedSize > 0)
     {
         emit q->addedMessages();
-        checkUnreadMessages(timeline.cend() - insertedSize);
+
+        // The first event in the just-added batch (referred to by `from`)
+        // defines whose read marker can possibly be promoted any further over
+        // the same author's events newly arrived. Others will need explicit
+        // read receipts from the server (or, for the local user,
+        // markMessagesAsRead() invocation) to promote their read markers over
+        // the new message events.
+        auto firstWriter = q->user((*from)->senderId());
+        if (q->readMarker(firstWriter) != timeline.crend())
+        {
+            promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
+            qCDebug(MAIN) << "Auto-promoted read marker for" << firstWriter->id()
+                          << "to" << *q->readMarker(firstWriter);
+        }
+
+        updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
     }
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
-}
-
-void Room::Private::checkUnreadMessages(timeline_iter_t from)
-{
-    Q_ASSERT(from < timeline.cend());
-    const auto newUnreadMessages = count_if(from, timeline.cend(),
-            std::bind(&Room::Private::isEventNotable, this, _1));
-
-    // The first event in the just-added batch (referred to by `from`)
-    // defines whose read marker can possibly be promoted any further over
-    // the same author's events newly arrived. Others will need explicit
-    // read receipts from the server (or, for the local user,
-    // markMessagesAsRead() invocation) to promote their read markers over
-    // the new message events.
-    auto firstWriter = q->user((*from)->senderId());
-    if (q->readMarker(firstWriter) != timeline.crend())
-    {
-        promoteReadMarker(firstWriter, q->findInTimeline((*from)->id()));
-        qCDebug(MAIN) << "Auto-promoted read marker for" << firstWriter->id()
-                      << "to" << *q->readMarker(firstWriter);
-    }
-
-    if(!unreadMessages && newUnreadMessages > 0)
-    {
-        unreadMessages = true;
-        emit q->unreadMessagesChanged(q);
-        qCDebug(MAIN) << "Room" << displayname << "has unread messages";
-    }
 }
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
@@ -1292,23 +1419,16 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     emit q->aboutToAddHistoricalMessages(normalEvents);
-    const bool thereWasNoReadMarker = q->readMarker() == timeline.crend();
     const auto insertedSize = insertEvents(std::move(normalEvents), Older);
+    const auto from = timeline.crend() - insertedSize;
 
-    // Catch a special case when the last read event id refers to an event
-    // that was outside the loaded timeline and has just arrived. Depending on
-    // other messages next to the last read one, we might need to promote
-    // the read marker and update unreadMessages flag.
-    const auto curReadMarker = q->readMarker();
-    if (thereWasNoReadMarker && curReadMarker != timeline.crend())
-    {
-        qCDebug(MAIN) << "Discovered last read event in a historical batch";
-        promoteReadMarker(q->localUser(), curReadMarker, true);
-    }
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
                   << "past events; the oldest event is now" << timeline.front();
-    q->onAddHistoricalTimelineEvents(timeline.crend() - insertedSize);
+    q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages();
+
+    if (from <= q->readMarker())
+        updateUnreadCount(from, timeline.crend());
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
 }
@@ -1365,6 +1485,11 @@ void Room::processStateEvents(const RoomEvents& events)
                 auto memberEvent = static_cast<RoomMemberEvent*>(event);
                 auto u = user(memberEvent->userId());
                 u->processEvent(memberEvent, this);
+                if (u == localUser() && memberJoinState(u) == JoinState::Invite
+                        && memberEvent->isDirect())
+                    connection()->addToDirectChats(this,
+                                    user(memberEvent->senderId()));
+
                 if( memberEvent->membership() == MembershipType::Join )
                 {
                     if (memberJoinState(u) != JoinState::Join)
@@ -1395,6 +1520,14 @@ void Room::processStateEvents(const RoomEvents& events)
                 }
                 break;
             }
+            case EventType::RoomEncryption:
+            {
+                d->encryptionAlgorithm =
+                        static_cast<EncryptionEvent*>(event)->algorithm();
+                qCDebug(MAIN) << "Encryption switched on in" << displayName();
+                emit encryption();
+                break;
+            }
             default: /* Ignore events of other types */;
         }
     }
@@ -1406,6 +1539,7 @@ void Room::processStateEvents(const RoomEvents& events)
 
 void Room::processEphemeralEvent(EventPtr event)
 {
+    QElapsedTimer et; et.start();
     switch (event->type())
     {
         case EventType::Typing: {
@@ -1417,6 +1551,9 @@ void Room::processEphemeralEvent(EventPtr event)
                 if (memberJoinState(u) == JoinState::Join)
                     d->usersTyping.append(u);
             }
+            if (!typingEvent->users().isEmpty())
+                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
+                    << typingEvent->users().size() << "users," << et;
             emit typingChanged();
             break;
         }
@@ -1433,11 +1570,13 @@ void Room::processEphemeralEvent(EventPtr event)
                                            << "as read for"
                                            << p.receipts.size() << "users";
                 }
-                if (d->eventsIndex.contains(p.evtId))
+                const auto newMarker = findInTimeline(p.evtId);
+                if (newMarker != timelineEdge())
                 {
-                    const auto newMarker = findInTimeline(p.evtId);
                     for( const Receipt& r: p.receipts )
                     {
+                        if (r.userId == connection()->userId())
+                            continue; // FIXME, #185
                         auto u = user(r.userId);
                         if (memberJoinState(u) == JoinState::Join)
                             d->promoteReadMarker(u, newMarker);
@@ -1452,6 +1591,8 @@ void Room::processEphemeralEvent(EventPtr event)
                     // Otherwise, blindly store the event id for this user.
                     for( const Receipt& r: p.receipts )
                     {
+                        if (r.userId == connection()->userId())
+                            continue; // FIXME, #185
                         auto u = user(r.userId);
                         if (memberJoinState(u) == JoinState::Join &&
                                 readMarker(u) == timelineEdge())
@@ -1459,13 +1600,15 @@ void Room::processEphemeralEvent(EventPtr event)
                     }
                 }
             }
-            if (receiptEvent->unreadMessages())
-                d->unreadMessages = true;
+            if (!receiptEvent->eventsWithReceipts().isEmpty())
+                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
+                    << receiptEvent->eventsWithReceipts().size()
+                    << "events with receipts," << et;
             break;
         }
         default:
             qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
-                                 << event->type();
+                                 << event->jsonType();
     }
 }
 
@@ -1474,11 +1617,33 @@ void Room::processAccountDataEvent(EventPtr event)
     switch (event->type())
     {
         case EventType::Tag:
-            d->tags = static_cast<TagEvent*>(event.get())->tags();
+        {
+            auto newTags = static_cast<TagEvent*>(event.get())->tags();
+            if (newTags == d->tags)
+                break;
+            d->tags = newTags;
+            qCDebug(MAIN) << "Room" << id() << "is tagged with:"
+                          << tagNames().join(", ");
             emit tagsChanged();
             break;
+        }
+        case EventType::ReadMarker:
+        {
+            const auto* rmEvent = static_cast<ReadMarkerEvent*>(event.get());
+            const auto& readEventId = rmEvent->event_id();
+            qCDebug(MAIN) << "Server-side read marker at" << readEventId;
+            d->serverReadMarker = readEventId;
+            const auto newMarker = findInTimeline(readEventId);
+            if (newMarker != timelineEdge())
+                d->markMessagesAsRead(newMarker);
+            else {
+                d->setLastReadEvent(localUser(), readEventId);
+            }
+            break;
+        }
         default:
-            d->accountData[event->jsonType()] = event->contentJson();
+            d->accountData[event->jsonType()] =
+                    event->contentJson().toVariantHash();
     }
 }
 
@@ -1567,110 +1732,95 @@ void Room::Private::updateDisplayname()
         emit q->displaynameChanged(q);
 }
 
-template <typename T>
 void appendStateEvent(QJsonArray& events, const QString& type,
-                     const QString& name, const T& content)
+                      const QJsonObject& content, const QString& stateKey = {})
 {
-    if (content.isEmpty())
-        return;
+    if (!content.isEmpty() || !stateKey.isEmpty())
+        events.append(QJsonObject
+            { { QStringLiteral("type"), type }
+            , { QStringLiteral("content"), content }
+            , { QStringLiteral("state_key"), stateKey }
+            });
+}
 
-    QJsonObject contentObj;
-    contentObj.insert(name, content);
+#define ADD_STATE_EVENT(events, type, name, content) \
+    appendStateEvent((events), QStringLiteral(type), \
+                     {{ QStringLiteral(name), content }});
 
-    QJsonObject eventObj;
-    eventObj.insert("type", type);
-    eventObj.insert("content", contentObj);
-    eventObj.insert("state_key", {}); // Mandatory for state events
+void appendEvent(QJsonArray& events, const QString& type,
+                 const QJsonObject& content)
+{
+    if (!content.isEmpty())
+        events.append(QJsonObject
+            { { QStringLiteral("type"), type }
+            , { QStringLiteral("content"), content }
+            });
+}
 
-    events.append(eventObj);
+template <typename EvtT>
+void appendEvent(QJsonArray& events, const EvtT& event)
+{
+    appendEvent(events, EvtT::TypeId, event.toJson());
 }
 
 QJsonObject Room::Private::toJson() const
 {
+    QElapsedTimer et; et.start();
     QJsonObject result;
     {
         QJsonArray stateEvents;
 
-        appendStateEvent(stateEvents, "m.room.name", "name", name);
-        appendStateEvent(stateEvents, "m.room.topic", "topic", topic);
-        appendStateEvent(stateEvents, "m.room.avatar", "url",
-                         avatar.url().toString());
-        appendStateEvent(stateEvents, "m.room.aliases", "aliases",
-                         QJsonArray::fromStringList(aliases));
-        appendStateEvent(stateEvents, "m.room.canonical_alias", "alias",
-                         canonicalAlias);
+        ADD_STATE_EVENT(stateEvents, "m.room.name", "name", name);
+        ADD_STATE_EVENT(stateEvents, "m.room.topic", "topic", topic);
+        ADD_STATE_EVENT(stateEvents, "m.room.avatar", "url",
+                        avatar.url().toString());
+        ADD_STATE_EVENT(stateEvents, "m.room.aliases", "aliases",
+                        QJsonArray::fromStringList(aliases));
+        ADD_STATE_EVENT(stateEvents, "m.room.canonical_alias", "alias",
+                        canonicalAlias);
+        ADD_STATE_EVENT(stateEvents, "m.room.encryption", "algorithm",
+                        encryptionAlgorithm);
 
         for (const auto *m : membersMap)
-        {
-            QJsonObject content;
-            content.insert("membership", QStringLiteral("join"));
-            content.insert("displayname", m->name(q));
-            content.insert("avatar_url", m->avatarUrl(q).toString());
+            appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
+                { { QStringLiteral("membership"), QStringLiteral("join") }
+                , { QStringLiteral("displayname"), m->name(q) }
+                , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
+            }, m->id());
 
-            QJsonObject memberEvent;
-            memberEvent.insert("type", QStringLiteral("m.room.member"));
-            memberEvent.insert("state_key", m->id());
-            memberEvent.insert("content", content);
-            stateEvents.append(memberEvent);
-        }
-
-        QJsonObject roomStateObj;
-        roomStateObj.insert("events", stateEvents);
-
-        result.insert(
-            joinState == JoinState::Invite ? "invite_state" : "state",
-            roomStateObj);
+        const auto stateObjName = joinState == JoinState::Invite ?
+                    QStringLiteral("invite_state") : QStringLiteral("state");
+        result.insert(stateObjName,
+            QJsonObject {{ QStringLiteral("events"), stateEvents }});
     }
 
-    if (!q->readMarkerEventId().isEmpty())
+    QJsonArray accountDataEvents;
+    if (!tags.empty())
+        appendEvent(accountDataEvents, TagEvent(tags));
+
+    if (!serverReadMarker.isEmpty())
+        appendEvent(accountDataEvents, ReadMarkerEvent(serverReadMarker));
+
+    if (!accountData.empty())
     {
-        QJsonArray ephemeralEvents;
-        {
-            // Don't dump the timestamp because it's useless in the cache.
-            QJsonObject user;
-            user.insert(connection->userId(), {});
-
-            QJsonObject receipt;
-            receipt.insert("m.read", user);
-
-            QJsonObject lastReadEvent;
-            lastReadEvent.insert(q->readMarkerEventId(), receipt);
-            lastReadEvent.insert("x-qmatrixclient.unread_messages",
-                                 unreadMessages);
-
-            QJsonObject receiptsObj;
-            receiptsObj.insert("type", QStringLiteral("m.receipt"));
-            receiptsObj.insert("content", lastReadEvent);
-            ephemeralEvents.append(receiptsObj);
-        }
-
-        QJsonObject ephemeralObj;
-        ephemeralObj.insert("events", ephemeralEvents);
-
-        result.insert("ephemeral", ephemeralObj);
+        for (auto it = accountData.begin(); it != accountData.end(); ++it)
+            appendEvent(accountDataEvents, it.key(),
+                        QJsonObject::fromVariantHash(it.value()));
     }
-
-    {
-        QJsonObject accountDataObj;
-        if (!tags.empty())
-        {
-            QJsonObject tagsObj;
-            for (auto it = tags.begin(); it != tags.end(); ++it)
-                tagsObj.insert(it.key(), { {"order", it->order} });
-            if (!tagsObj.empty())
-                accountDataObj.insert("m.tag", tagsObj);
-        }
-        if (!accountDataObj.empty())
-            result.insert("account_data", accountDataObj);
-    }
+    result.insert("account_data", QJsonObject {{ "events", accountDataEvents }});
 
     QJsonObject unreadNotificationsObj;
+
+    unreadNotificationsObj.insert(SyncRoomData::UnreadCountKey, unreadMessages);
     if (highlightCount > 0)
         unreadNotificationsObj.insert("highlight_count", highlightCount);
     if (notificationCount > 0)
         unreadNotificationsObj.insert("notification_count", notificationCount);
-    if (!unreadNotificationsObj.isEmpty())
-        result.insert("unread_notifications", unreadNotificationsObj);
+
+    result.insert("unread_notifications", unreadNotificationsObj);
+
+    if (et.elapsed() > 50)
+        qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;
 
     return result;
 }

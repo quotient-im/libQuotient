@@ -20,11 +20,14 @@
 #include "connectiondata.h"
 #include "user.h"
 #include "events/event.h"
+#include "events/directchatevent.h"
 #include "room.h"
+#include "settings.h"
 #include "jobs/generated/login.h"
 #include "jobs/generated/logout.h"
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/leaving.h"
+#include "jobs/generated/account-data.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/joinroomjob.h"
 #include "jobs/roommessagesjob.h"
@@ -43,6 +46,8 @@
 #include <QtCore/QCoreApplication>
 
 using namespace QMatrixClient;
+
+using DirectChatsMap = QMultiHash<const User*, QString>;
 
 class Connection::Private
 {
@@ -63,14 +68,19 @@ class Connection::Private
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
         QMap<QString, User*> userMap;
+        DirectChatsMap directChats;
+        QHash<QString, QVariantHash> accountData;
         QString userId;
 
         SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
+        bool cacheToBinary = SettingsGroup("libqmatrixclient")
+                             .value("cache_type").toString() != "json";
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
+        void broadcastDirectChatUpdates();
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -98,12 +108,13 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     // Try to parse as an FQID; if there's no @ part, assume it's a domain name.
     QRegularExpression parser(
         "^(@.+?:)?" // Optional username (allow everything for compatibility)
-        "((\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
-        "(:\\d{1,5})?)$", // Optional port
+        "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+        "(:\\d{1,5})?$", // Optional port
         QRegularExpression::UseUnicodePropertiesOption); // Because asian digits
     auto match = parser.match(mxidOrDomain);
 
     QUrl maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
     if (!match.hasMatch() || !maybeBaseUrl.isValid())
     {
         emit resolveError(
@@ -112,16 +123,14 @@ void Connection::resolveServer(const QString& mxidOrDomain)
         return;
     }
 
-    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
-    if (maybeBaseUrl.port() != -1)
-    {
-        setHomeserver(maybeBaseUrl);
-        emit resolved();
-        return;
-    }
+    setHomeserver(maybeBaseUrl);
+    emit resolved();
+    return;
 
+    // FIXME, #178: The below code is incorrect and is no more executed. The
+    // correct server resolution should be done from .well-known/matrix/client
     auto domain = maybeBaseUrl.host();
-    qCDebug(MAIN) << "Resolving server" << domain;
+    qCDebug(MAIN) << "Finding the server" << domain;
     // Check if the Matrix server has a dedicated service record.
     QDnsLookup* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
@@ -190,8 +199,8 @@ void Connection::Private::connectWithToken(const QString& user,
     userId = user;
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);
-    qCDebug(MAIN) << "Using server" << data->baseUrl() << "by user"
-                  << userId << "from device" << deviceId;
+    qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
+                  << "by user" << userId << "from device" << deviceId;
     emit q->connected();
 
 }
@@ -256,7 +265,7 @@ void Connection::sync(int timeout)
 
 void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
-    for( auto&& roomData: data.takeRoomData() )
+    for (auto&& roomData: data.takeRoomData())
     {
         const auto forgetIdx = d->roomIdsToForget.indexOf(roomData.roomId);
         if (forgetIdx != -1)
@@ -275,9 +284,31 @@ void Connection::onSyncSuccess(SyncData &&data) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
             r->updateData(std::move(roomData));
-        QCoreApplication::instance()->processEvents();
+        QCoreApplication::processEvents();
     }
-
+    for (auto&& accountEvent: data.takeAccountData())
+    {
+        if (accountEvent->type() == EventType::DirectChat)
+        {
+            DirectChatsMap newDirectChats;
+            const auto* event = static_cast<DirectChatEvent*>(accountEvent.get());
+            auto usersToDCs = event->usersToDirectChats();
+            for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it)
+            {
+                newDirectChats.insert(user(it.key()), it.value());
+                qCDebug(MAIN) << "Marked room" << it.value()
+                              << "as a direct chat with" << it.key();
+            }
+            if (newDirectChats != d->directChats)
+            {
+                d->directChats = newDirectChats;
+                emit directChatsListChanged();
+            }
+            continue;
+        }
+        d->accountData[accountEvent->jsonType()] =
+                accountEvent->contentJson().toVariantHash();
+    }
 }
 
 void Connection::stopSync()
@@ -403,6 +434,49 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     return job;
 }
 
+void Connection::requestDirectChat(const QString& userId)
+{
+    doInDirectChat(userId, [this] (Room* r) { emit directChatAvailable(r); });
+}
+
+void Connection::doInDirectChat(const QString& userId,
+                                std::function<void (Room*)> operation)
+{
+    // There can be more than one DC; find the first valid, and delete invalid
+    // (left/forgotten) ones along the way.
+    for (auto roomId: d->directChats.values(user(userId)))
+    {
+        if (auto r = room(roomId, JoinState::Join))
+        {
+            Q_ASSERT(r->id() == roomId);
+            qCDebug(MAIN) << "Requested direct chat with" << userId
+                          << "is already available as" << r->id();
+            operation(r);
+            return;
+        }
+        if (auto ir = invitation(roomId))
+        {
+            Q_ASSERT(ir->id() == roomId);
+            auto j = joinRoom(ir->id());
+            connect(j, &BaseJob::success, this, [this,roomId,userId,operation] {
+                qCDebug(MAIN) << "Joined the already invited direct chat with"
+                              << userId << "as" << roomId;
+                operation(room(roomId, JoinState::Join));
+            });
+        }
+        qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
+                        << roomId << "is not valid, discarding it";
+        removeFromDirectChats(roomId);
+    }
+
+    auto j = createDirectChat(userId);
+    connect(j, &BaseJob::success, this, [this,j,userId,operation] {
+        qCDebug(MAIN) << "Direct chat with" << userId
+                      << "has been created as" << j->roomId();
+        operation(room(j->roomId(), JoinState::Join));
+    });
+}
+
 CreateRoomJob* Connection::createDirectChat(const QString& userId,
     const QString& topic, const QString& name)
 {
@@ -458,6 +532,29 @@ QUrl Connection::homeserver() const
     return d->data->baseUrl();
 }
 
+Room* Connection::room(const QString& roomId, JoinStates states) const
+{
+    Room* room = d->roomMap.value({roomId, false}, nullptr);
+    if (states.testFlag(JoinState::Join) &&
+            room && room->joinState() == JoinState::Join)
+        return room;
+
+    if (states.testFlag(JoinState::Invite))
+        if (Room* invRoom = invitation(roomId))
+            return invRoom;
+
+    if (states.testFlag(JoinState::Leave) &&
+            room && room->joinState() == JoinState::Leave)
+        return room;
+
+    return nullptr;
+}
+
+Room* Connection::invitation(const QString& roomId) const
+{
+    return d->roomMap.value({roomId, true}, nullptr);
+}
+
 User* Connection::user(const QString& userId)
 {
     if( d->userMap.contains(userId) )
@@ -468,11 +565,14 @@ User* Connection::user(const QString& userId)
     return user;
 }
 
-User *Connection::user()
+const User* Connection::user() const
 {
-    if( d->userId.isEmpty() )
-        return nullptr;
-    return user(d->userId);
+    return d->userId.isEmpty() ? nullptr : d->userMap.value(d->userId, nullptr);
+}
+
+User* Connection::user()
+{
+    return d->userId.isEmpty() ? nullptr : user(d->userId);
 }
 
 QString Connection::userId() const
@@ -535,12 +635,77 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
     return result;
 }
 
+QStringList Connection::tagNames() const
+{
+    QStringList tags ({FavouriteTag});
+    for (auto* r: d->roomMap)
+        for (const auto& tag: r->tagNames())
+            if (tag != LowPriorityTag && !tags.contains(tag))
+                tags.push_back(tag);
+    tags.push_back(LowPriorityTag);
+    return tags;
+}
+
 QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
 {
     QVector<Room*> rooms;
     std::copy_if(d->roomMap.begin(), d->roomMap.end(), std::back_inserter(rooms),
                  [&tagName] (Room* r) { return r->tags().contains(tagName); });
     return rooms;
+}
+
+QJsonObject toJson(const DirectChatsMap& directChats)
+{
+    QJsonObject json;
+    for (auto it = directChats.keyBegin(); it != directChats.keyEnd(); ++it)
+        json.insert((*it)->id(), toJson(directChats.values(*it)));
+    return json;
+}
+
+void Connection::Private::broadcastDirectChatUpdates()
+{
+    q->callApi<SetAccountDataJob>(userId, QStringLiteral("m.direct"),
+                                  toJson(directChats));
+    emit q->directChatsListChanged();
+}
+
+void Connection::addToDirectChats(const Room* room, const User* user)
+{
+    Q_ASSERT(room != nullptr && user != nullptr);
+    if (d->directChats.contains(user, room->id()))
+        return;
+    d->directChats.insert(user, room->id());
+    d->broadcastDirectChatUpdates();
+}
+
+void Connection::removeFromDirectChats(const QString& roomId, const User* user)
+{
+    Q_ASSERT(!roomId.isEmpty());
+    if ((user != nullptr && !d->directChats.contains(user, roomId)) ||
+            d->directChats.key(roomId) == nullptr)
+        return;
+    if (user != nullptr)
+        d->directChats.remove(user, roomId);
+    else
+        for (auto it = d->directChats.begin(); it != d->directChats.end();)
+        {
+            if (it.value() == roomId)
+                it = d->directChats.erase(it);
+            else
+                ++it;
+        }
+    d->broadcastDirectChatUpdates();
+}
+
+bool Connection::isDirectChat(const QString& roomId) const
+{
+    return d->directChats.key(roomId) != nullptr;
+}
+
+QList<const User*> Connection::directChatUsers(const Room* room) const
+{
+    Q_ASSERT(room != nullptr);
+    return d->directChats.keys(room->id());
 }
 
 QMap<QString, User*> Connection::users() const
@@ -626,7 +791,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 3;
+static constexpr int CACHE_VERSION_MAJOR = 7;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
@@ -652,39 +817,60 @@ void Connection::saveState(const QUrl &toFile) const
         return;
     }
 
-    QJsonObject roomObj;
+    QJsonObject rootObj;
     {
         QJsonObject rooms;
         QJsonObject inviteRooms;
-        for (auto i : roomMap()) // Pass on rooms in Leave state
+        for (const auto* i : roomMap()) // Pass on rooms in Leave state
         {
             if (i->joinState() == JoinState::Invite)
                 inviteRooms.insert(i->id(), i->toJson());
             else
                 rooms.insert(i->id(), i->toJson());
+            QElapsedTimer et1; et1.start();
+            QCoreApplication::processEvents();
+            if (et1.elapsed() > 1)
+                qCDebug(PROFILER) << "processEvents() borrowed" << et1;
         }
 
+        QJsonObject roomObj;
         if (!rooms.isEmpty())
             roomObj.insert("join", rooms);
         if (!inviteRooms.isEmpty())
             roomObj.insert("invite", inviteRooms);
-    }
 
-    QJsonObject rootObj;
-    rootObj.insert("next_batch", d->data->lastEvent());
-    rootObj.insert("rooms", roomObj);
+        rootObj.insert("next_batch", d->data->lastEvent());
+        rootObj.insert("rooms", roomObj);
+    }
+    {
+        QJsonArray accountDataEvents {
+            QJsonObject {
+                { QStringLiteral("type"), QStringLiteral("m.direct") },
+                { QStringLiteral("content"), toJson(d->directChats) }
+            }
+        };
+
+        for (auto it = d->accountData.begin(); it != d->accountData.end(); ++it)
+            accountDataEvents.append(QJsonObject {
+                {"type", it.key()},
+                {"content", QJsonObject::fromVariantHash(it.value())}
+            });
+        rootObj.insert("account_data",
+            QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
+    }
 
     QJsonObject versionObj;
     versionObj.insert("major", CACHE_VERSION_MAJOR);
     versionObj.insert("minor", CACHE_VERSION_MINOR);
     rootObj.insert("cache_version", versionObj);
 
-    QByteArray data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+    QJsonDocument json { rootObj };
+    auto data = d->cacheToBinary ? json.toBinaryData() :
+                                   json.toJson(QJsonDocument::Compact);
+    qCDebug(PROFILER) << "Cache for" << userId() << "generated in" << et;
 
-    qCDebug(MAIN) << "Writing state to file" << outfile.fileName();
     outfile.write(data.data(), data.size());
-    qCDebug(PROFILER) << "*** Cached state for" << userId()
-                      << "saved in" << et.elapsed() << "ms";
+    qCDebug(MAIN) << "State cache saved to" << outfile.fileName();
 }
 
 void Connection::loadState(const QUrl &fromFile)
@@ -701,28 +887,36 @@ void Connection::loadState(const QUrl &fromFile)
         qCDebug(MAIN) << "No state cache file found";
         return;
     }
-    file.open(QFile::ReadOnly);
+    if(!file.open(QFile::ReadOnly))
+    {
+        qCWarning(MAIN) << "file " << file.fileName() << "failed to open for read";
+        return;
+    }
     QByteArray data = file.readAll();
 
-    auto jsonDoc = QJsonDocument::fromJson(data);
+    auto jsonDoc = d->cacheToBinary ? QJsonDocument::fromBinaryData(data) :
+                                      QJsonDocument::fromJson(data);
+    if (jsonDoc.isNull())
+    {
+        qCWarning(MAIN) << "Cache file broken, discarding";
+        return;
+    }
     auto actualCacheVersionMajor =
             jsonDoc.object()
             .value("cache_version").toObject()
             .value("major").toInt();
     if (actualCacheVersionMajor < CACHE_VERSION_MAJOR)
     {
-        qCWarning(MAIN) << "Major version of the cache file is"
-                        << actualCacheVersionMajor << "but"
-                        << CACHE_VERSION_MAJOR
-                        << "required; discarding the cache";
+        qCWarning(MAIN)
+            << "Major version of the cache file is" << actualCacheVersionMajor
+            << "but" << CACHE_VERSION_MAJOR << "required; discarding the cache";
         return;
     }
 
     SyncData sync;
     sync.parseJson(jsonDoc);
     onSyncSuccess(std::move(sync));
-    qCDebug(PROFILER) << "*** Cached state for" << userId()
-                      << "loaded in" << et.elapsed() << "ms";
+    qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }
 
 QString Connection::stateCachePath() const

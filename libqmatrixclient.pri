@@ -24,7 +24,8 @@ HEADERS += \
     $$PWD/events/roomavatarevent.h \
     $$PWD/events/typingevent.h \
     $$PWD/events/receiptevent.h \
-    $$PWD/events/tagevent.h \
+    $$PWD/events/accountdataevents.h \
+    $$PWD/events/directchatevent.h \
     $$PWD/events/redactionevent.h \
     $$PWD/jobs/requestdata.h \
     $$PWD/jobs/basejob.h \
@@ -42,7 +43,8 @@ HEADERS += \
     $$PWD/settings.h \
     $$PWD/networksettings.h \
     $$PWD/networkaccessmanager.h \
-    $$PWD/jobs/downloadfilejob.h
+    $$PWD/jobs/downloadfilejob.h \
+    $$PWD/jobs/postreadmarkersjob.h
 
 SOURCES += \
     $$PWD/connectiondata.cpp \
@@ -56,7 +58,7 @@ SOURCES += \
     $$PWD/events/roommemberevent.cpp \
     $$PWD/events/typingevent.cpp \
     $$PWD/events/receiptevent.cpp \
-    $$PWD/events/tagevent.cpp \
+    $$PWD/events/directchatevent.cpp \
     $$PWD/jobs/requestdata.cpp \
     $$PWD/jobs/basejob.cpp \
     $$PWD/jobs/checkauthmethods.cpp \

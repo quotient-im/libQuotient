@@ -16,35 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "tagevent.h"
+#include "directchatevent.h"
+
+#include "converters.h"
 
 using namespace QMatrixClient;
 
-TagRecord::TagRecord(const QJsonObject& json)
-    : order(json.value("order").toString())
+DirectChatEvent::DirectChatEvent(const QJsonObject& obj)
+    : Event(Type::DirectChat, obj)
 { }
 
-TagEvent::TagEvent(const QJsonObject& obj)
-    : Event(Type::Tag, obj)
+QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const
 {
-    Q_ASSERT(obj["type"].toString() == TypeId);
-}
-
-QStringList TagEvent::tagNames() const
-{
-    return tagsObject().keys();
-}
-
-QHash<QString, TagRecord> TagEvent::tags() const
-{
-    QHash<QString, TagRecord> result;
-    auto allTags { tagsObject() };
-    for (auto it = allTags.begin(); it != allTags.end(); ++ it)
-        result.insert(it.key(), TagRecord(it.value().toObject()));
+    QMultiHash<QString, QString> result;
+    for (auto it = contentJson().begin(); it != contentJson().end(); ++it)
+        for (auto roomIdValue: it.value().toArray())
+            result.insert(it.key(), roomIdValue.toString());
     return result;
-}
-
-QJsonObject TagEvent::tagsObject() const
-{
-    return contentJson().value("tags").toObject();
 }

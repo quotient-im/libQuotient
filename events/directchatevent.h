@@ -22,30 +22,13 @@
 
 namespace QMatrixClient
 {
-    static constexpr const char* FavouriteTag = "m.favourite";
-    static constexpr const char* LowPriorityTag = "m.lowpriority";
-
-    struct TagRecord
-    {
-        explicit TagRecord(const QJsonObject& json = {});
-
-        QString order;
-    };
-
-    class TagEvent : public Event
+    class DirectChatEvent : public Event
     {
         public:
-            explicit TagEvent(const QJsonObject& obj);
+            explicit DirectChatEvent(const QJsonObject& obj);
 
-            /** Get the list of tag names */
-            QStringList tagNames() const;
+            QMultiHash<QString, QString> usersToDirectChats() const;
 
-            /** Get the list of tags along with information on each */
-            QHash<QString, TagRecord> tags() const;
-
-            static constexpr const char * TypeId = "m.tag";
-
-        protected:
-            QJsonObject tagsObject() const;
+            static constexpr const char * TypeId = "m.direct";
     };
 }

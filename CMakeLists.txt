@@ -49,33 +49,33 @@ message( STATUS )
 
 # Set up source files
 set(libqmatrixclient_SRCS
-   networkaccessmanager.cpp
-   connectiondata.cpp
-   connection.cpp
-   logging.cpp
-   room.cpp
-   user.cpp
-   avatar.cpp
-   settings.cpp
-   networksettings.cpp
-   events/event.cpp
-   events/eventcontent.cpp
-   events/roommessageevent.cpp
-   events/roommemberevent.cpp
-   events/roomavatarevent.cpp
-   events/typingevent.cpp
-   events/receiptevent.cpp
-   events/tagevent.cpp
-   jobs/requestdata.cpp
-   jobs/basejob.cpp
-   jobs/checkauthmethods.cpp
-   jobs/sendeventjob.cpp
-   jobs/setroomstatejob.cpp
-   jobs/joinroomjob.cpp
-   jobs/roommessagesjob.cpp
-   jobs/syncjob.cpp
-   jobs/mediathumbnailjob.cpp
-   jobs/downloadfilejob.cpp
+    networkaccessmanager.cpp
+    connectiondata.cpp
+    connection.cpp
+    logging.cpp
+    room.cpp
+    user.cpp
+    avatar.cpp
+    settings.cpp
+    networksettings.cpp
+    events/event.cpp
+    events/eventcontent.cpp
+    events/roommessageevent.cpp
+    events/roommemberevent.cpp
+    events/roomavatarevent.cpp
+    events/typingevent.cpp
+    events/receiptevent.cpp
+    events/directchatevent.cpp
+    jobs/requestdata.cpp
+    jobs/basejob.cpp
+    jobs/checkauthmethods.cpp
+    jobs/sendeventjob.cpp
+    jobs/setroomstatejob.cpp
+    jobs/joinroomjob.cpp
+    jobs/roommessagesjob.cpp
+    jobs/syncjob.cpp
+    jobs/mediathumbnailjob.cpp
+    jobs/downloadfilejob.cpp
 )
 
 set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server/)

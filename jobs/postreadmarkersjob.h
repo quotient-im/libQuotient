@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,31 +18,20 @@
 
 #pragma once
 
-#include <QtCore/QFlags>
+#include "basejob.h"
 
-#include <array>
+using namespace QMatrixClient;
 
-namespace QMatrixClient
+class PostReadMarkersJob : public BaseJob
 {
-    enum class JoinState
-    {
-        Join = 0x1,
-        Invite = 0x2,
-        Leave = 0x4
-    };
-
-    Q_DECLARE_FLAGS(JoinStates, JoinState)
-
-    // We cannot use REGISTER_ENUM outside of a Q_OBJECT and besides, we want
-    // to use strings that match respective JSON keys.
-    static const std::array<const char*, 3> JoinStateStrings
-        { { "join", "invite", "leave" } };
-
-    inline const char* toCString(JoinState js)
-    {
-        size_t state = size_t(js), index = 0;
-        while (state >>= 1) ++index;
-        return JoinStateStrings[index];
-    }
-}  // namespace QMatrixClient
-Q_DECLARE_OPERATORS_FOR_FLAGS(QMatrixClient::JoinStates)
+    public:
+        explicit PostReadMarkersJob(const QString& roomId,
+                                    const QString& readUpToEventId)
+            : BaseJob(HttpVerb::Post, "PostReadMarkersJob",
+                      QStringLiteral("_matrix/client/r0/rooms/%1/read_markers")
+                      .arg(roomId))
+        {
+            setRequestData(QJsonObject {{
+                QStringLiteral("m.fully_read"), readUpToEventId }});
+        }
+};

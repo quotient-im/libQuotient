@@ -45,7 +45,7 @@ namespace QMatrixClient
             enum class Type : quint16
             {
                 Unknown = 0,
-                Typing, Receipt, Tag, DirectChat,
+                Typing, Receipt, Tag, DirectChat, ReadMarker,
                 RoomEventBase = 0x1000,
                 RoomMessage = RoomEventBase + 1,
                 RoomEncryptedMessage, Redaction,

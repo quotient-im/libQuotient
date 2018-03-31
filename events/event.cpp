@@ -24,7 +24,8 @@
 #include "roomavatarevent.h"
 #include "typingevent.h"
 #include "receiptevent.h"
-#include "tagevent.h"
+#include "accountdataevents.h"
+#include "directchatevent.h"
 #include "redactionevent.h"
 #include "logging.h"
 
@@ -88,7 +89,8 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
         return EventPtr(move(e));
 
     return EventPtr { makeIfMatches<Event,
-        TypingEvent, ReceiptEvent, TagEvent>(obj, obj["type"].toString()) };
+        TypingEvent, ReceiptEvent, TagEvent, ReadMarkerEvent, DirectChatEvent>(
+                    obj, obj["type"].toString()) };
 }
 
 RoomEvent::RoomEvent(Event::Type type) : Event(type) { }

@@ -54,6 +54,7 @@ void DownloadFileJob::beforeStart(const ConnectionData*)
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the temporary download file");
+        return;
     }
     qCDebug(JOBS) << "Downloading to" << d->tempFile->fileName();
 }

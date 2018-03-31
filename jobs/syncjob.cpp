@@ -68,24 +68,29 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
 {
     QElapsedTimer et; et.start();
 
-    auto json { data.object() };
+    auto json = data.object();
     nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
     accountData.fromJson(json);
 
     QJsonObject rooms = json.value("rooms").toObject();
-    for (size_t i = 0; i < JoinStateStrings.size(); ++i)
+    JoinStates::Int ii = 1; // ii is used to make a JoinState value
+    for (size_t i = 0; i < JoinStateStrings.size(); ++i, ii <<= 1)
     {
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(static_cast<size_t>(rs.size()));
         for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
-            roomData.emplace_back(roomIt.key(), JoinState(i),
+            roomData.emplace_back(roomIt.key(), JoinState(ii),
                                   roomIt.value().toObject());
     }
-    qCDebug(PROFILER) << "*** SyncData::parseJson():" << et.elapsed() << "ms";
+    qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
+                      << rooms.size() << "room(s) in" << et;
     return BaseJob::Success;
 }
+
+const QString SyncRoomData::UnreadCountKey =
+        QStringLiteral("x-qmatrixclient.unread_count");
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
@@ -114,12 +119,15 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
         qCWarning(SYNCJOB) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
     }
 
-    QJsonObject timeline = room_.value("timeline").toObject();
-    timelineLimited = timeline.value("limited").toBool();
-    timelinePrevBatch = timeline.value("prev_batch").toString();
+    auto timelineJson = room_.value("timeline").toObject();
+    timelineLimited = timelineJson.value("limited").toBool();
+    timelinePrevBatch = timelineJson.value("prev_batch").toString();
 
-    QJsonObject unread = room_.value("unread_notifications").toObject();
-    highlightCount = unread.value("highlight_count").toInt();
-    notificationCount = unread.value("notification_count").toInt();
-    qCDebug(SYNCJOB) << "Highlights: " << highlightCount << " Notifications:" << notificationCount;
+    auto unreadJson = room_.value("unread_notifications").toObject();
+    unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);
+    highlightCount = unreadJson.value("highlight_count").toInt();
+    notificationCount = unreadJson.value("notification_count").toInt();
+    if (highlightCount > 0 || notificationCount > 0)
+        qCDebug(SYNCJOB) << "Highlights: " << highlightCount
+                         << " Notifications:" << notificationCount;
 }
