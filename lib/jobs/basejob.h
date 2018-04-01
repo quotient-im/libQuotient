@@ -101,9 +101,9 @@ namespace QMatrixClient
                     bool good() const { return code < ErrorLevel; }
                     friend QDebug operator<<(QDebug dbg, const Status& s)
                     {
-                        QDebug(dbg).noquote().nospace()
+                        QDebugStateSaver _s(dbg);
+                        return dbg.noquote().nospace()
                                 << s.code << ": " << s.message;
-                        return dbg;
                     }
 
                     int code;
