@@ -248,7 +248,7 @@ namespace QMatrixClient
              *
              * @see gotReply
              */
-            virtual Status checkReply(QNetworkReply* reply) const;
+            virtual Status doCheckReply(QNetworkReply* reply) const;
 
             /**
              * Processes the reply. By default, parses the reply into
@@ -286,6 +286,7 @@ namespace QMatrixClient
 
         private slots:
             void sendRequest();
+            void checkReply();
             void gotReply();
 
         private:
