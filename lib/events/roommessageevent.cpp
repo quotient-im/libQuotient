@@ -87,7 +87,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
         _plainBody = content["body"].toString();
 
         _msgtype = content["msgtype"].toString();
-        for (auto mt: msgTypes)
+        for (const auto& mt: msgTypes)
             if (mt.jsonType == _msgtype)
                 _content.reset(mt.maker(content));
 

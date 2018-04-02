@@ -272,7 +272,7 @@ namespace QMatrixClient
                 bool guestsCanJoin = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
-                const QJsonObject creationContent = {});
+                const QJsonObject& creationContent = {});
 
             /** Get a direct chat with a single user
              * This method may return synchronously or asynchoronously depending

@@ -148,7 +148,7 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
     // Check if the Matrix server has a dedicated service record.
-    QDnsLookup* dns = new QDnsLookup();
+    auto* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
@@ -264,13 +264,13 @@ void Connection::sync(int timeout)
     const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
-    connect( job, &SyncJob::success, [this, job] {
+    connect( job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
     connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
-    connect( job, &SyncJob::failure, [this, job] {
+    connect( job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
             emit loginError(job->errorString());
@@ -312,8 +312,9 @@ void Connection::onSyncSuccess(SyncData &&data) {
     {
         if (accountEvent->type() == EventType::DirectChat)
         {
-            const auto* event = static_cast<DirectChatEvent*>(accountEvent.get());
-            auto usersToDCs = event->usersToDirectChats();
+            const auto usersToDCs =
+                    unique_ptr_cast<DirectChatEvent>(accountEvent)
+                    ->usersToDirectChats();
             DirectChatsMap removals =
                 erase_if(d->directChats, [&usersToDCs] (auto it) {
                     return !usersToDCs.contains(it.key()->id(), it.value());
@@ -457,7 +458,7 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     bool isDirect, bool guestsCanJoin,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
-    const QJsonObject creationContent)
+    const QJsonObject& creationContent)
 {
     auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? "public" : "private", alias, name,
@@ -479,8 +480,11 @@ void Connection::doInDirectChat(const QString& userId,
 {
     // There can be more than one DC; find the first valid, and delete invalid
     // (left/forgotten) ones along the way.
-    for (auto roomId: d->directChats.values(user(userId)))
+    const auto* u = user(userId);
+    for (auto it = d->directChats.find(u);
+         it != d->directChats.end() && it.key() == u; ++it)
     {
+        const auto& roomId = *it;
         if (auto r = room(roomId, JoinState::Join))
         {
             Q_ASSERT(r->id() == roomId);
@@ -667,7 +671,7 @@ QVariantHash Connection::accountData(const QString& type) const
 QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 {
     QHash<QString, QVector<Room*>> result;
-    for (auto* r: d->roomMap)
+    for (auto* r: qAsConst(d->roomMap))
     {
         for (const auto& tagName: r->tagNames())
             result[tagName].push_back(r);
@@ -683,7 +687,7 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 QStringList Connection::tagNames() const
 {
     QStringList tags ({FavouriteTag});
-    for (auto* r: d->roomMap)
+    for (auto* r: qAsConst(d->roomMap))
         for (const auto& tag: r->tagNames())
             if (tag != LowPriorityTag && !tags.contains(tag))
                 tags.push_back(tag);
