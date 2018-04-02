@@ -336,6 +336,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
         }
         d->accountData[accountEvent->jsonType()] =
                 accountEvent->contentJson().toVariantHash();
+        emit accountDataChanged(accountEvent->jsonType());
     }
 }
 
@@ -645,6 +646,16 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
             ++it;
     }
     return roomMap;
+}
+
+bool Connection::hasAccountData(const QString& type) const
+{
+    return d->accountData.contains(type);
+}
+
+QVariantHash Connection::accountData(const QString& type) const
+{
+    return d->accountData.value(type);
 }
 
 QHash<QString, QVector<Room*>> Connection::tagsToRooms() const

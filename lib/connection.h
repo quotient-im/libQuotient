@@ -78,6 +78,18 @@ namespace QMatrixClient
              */
             QHash<QPair<QString, bool>, Room*> roomMap() const;
 
+            /** Check whether the account has data of the given type
+             * Direct chats map is not supported by this method _yet_.
+             */
+            bool hasAccountData(const QString& type) const;
+
+            /** Get a generic account data event of the given type
+             * This returns a generic hashmap for any account data event
+             * stored on the server. Direct chats map cannot be retrieved
+             * using this method _yet_; use directChats() instead.
+             */
+            QVariantHash accountData(const QString& type) const;
+
             /** Get all Invited and Joined rooms grouped by tag
              * \return a hashmap from tag name to a vector of room pointers,
              *         sorted by their order in the tag - details are at
@@ -413,6 +425,9 @@ namespace QMatrixClient
              *       a direct chat room.
              */
             void createdRoom(Room* room);
+
+            /** Account data (except direct chats) have changed */
+            void accountDataChanged(QString type);
 
             /** The direct chat room is ready for using
              * This signal is emitted upon any successful outcome from
