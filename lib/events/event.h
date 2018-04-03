@@ -141,7 +141,7 @@ namespace QMatrixClient
                 // The below line accommodates the difference in size types of
                 // STL and Qt containers.
                 this->reserve(static_cast<size_type>(objs.size()));
-                for (auto objValue: objs)
+                for (const auto& objValue: objs)
                     this->emplace_back(makeEvent<EventT>(objValue.toObject()));
             }
     };
