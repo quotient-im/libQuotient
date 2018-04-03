@@ -91,8 +91,8 @@ aux_source_directory(lib/jobs/generated libqmatrixclient_job_SRCS)
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(QMatrixClient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
-set(API_VERSION 2)
-set_property(TARGET QMatrixClient PROPERTY VERSION "0.2.0")
+set(API_VERSION "0.2")
+set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
 set_property(TARGET QMatrixClient PROPERTY
              INTERFACE_QMatrixClient_MAJOR_VERSION ${API_VERSION})
