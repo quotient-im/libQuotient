@@ -29,8 +29,15 @@ DirectChatEvent::DirectChatEvent(const QJsonObject& obj)
 QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const
 {
     QMultiHash<QString, QString> result;
-    for (auto it = contentJson().begin(); it != contentJson().end(); ++it)
-        for (auto roomIdValue: it.value().toArray())
+    const auto json = contentJson();
+    for (auto it = json.begin(); it != json.end(); ++it)
+    {
+        // Beware of range-for's over temporary returned from temporary
+        // (see the bottom of
+        // http://en.cppreference.com/w/cpp/language/range-for#Explanation)
+        const auto roomIds = it.value().toArray();
+        for (const auto& roomIdValue: roomIds)
             result.insert(it.key(), roomIdValue.toString());
+    }
     return result;
 }

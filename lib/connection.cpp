@@ -281,8 +281,7 @@ void Connection::sync(int timeout)
 
 void Connection::onSyncSuccess(SyncData &&data) {
     d->data->setLastEvent(data.nextBatch());
-    auto allRoomData = data.takeRoomData();
-    for (auto&& roomData: allRoomData)
+    for (auto&& roomData: data.takeRoomData())
     {
         const auto forgetIdx = d->roomIdsToForget.indexOf(roomData.roomId);
         if (forgetIdx != -1)
@@ -303,12 +302,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
             r->updateData(std::move(roomData));
         QCoreApplication::processEvents();
     }
-    // `for (auto&& accountEvent: data.takeAccountData())` doesn't work well
-    // with Clang on FreeBSD in Release configuration; it seems that
-    // the lifetime of the returned rvalue does not extend (violating the
-    // standard) and accountEvent refers to garbage in the loop body as a result.
-    auto allAccountData = data.takeAccountData();
-    for (auto&& accountEvent: allAccountData)
+    for (auto&& accountEvent: data.takeAccountData())
     {
         if (accountEvent->type() == EventType::DirectChat)
         {
