@@ -705,8 +705,14 @@ Connection::DirectChatsMap Connection::directChats() const
 QJsonObject toJson(const Connection::DirectChatsMap& directChats)
 {
     QJsonObject json;
-    for (auto it = directChats.keyBegin(); it != directChats.keyEnd(); ++it)
-        json.insert((*it)->id(), toJson(directChats.values(*it)));
+    for (auto it = directChats.begin(); it != directChats.end();)
+    {
+        QJsonArray roomIds;
+        const auto* user = it.key();
+        for (; it != directChats.end() && it.key() == user; ++it)
+            roomIds.append(*it);
+        json.insert(user->id(), roomIds);
+    }
     return json;
 }
 
