@@ -218,6 +218,7 @@ void QMCTest::markDirectChat()
         cout << "Warning: the room is already a direct chat,"
                 " only unmarking will be tested" << endl;
         checkDirectChatOutcome({{ c->user(), targetRoom->id() }});
+        return;
     }
     // Connect first because the signal is emitted synchronously.
     connect(c.data(), &Connection::directChatsListChanged,
