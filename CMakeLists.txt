@@ -141,7 +141,8 @@ install(FILES cmake/QMatrixClientConfig.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfigVersion.cmake"
     DESTINATION ${ConfigFilesLocation}
 )
-install(EXPORT_ANDROID_MK QMatrixClientTargets DESTINATION share/ndk-modules)
+# Only available from CMake 3.7; reserved for future use
+#install(EXPORT_ANDROID_MK QMatrixClientTargets DESTINATION share/ndk-modules)
 
 if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
