@@ -123,6 +123,10 @@ namespace QMatrixClient
             using rev_iter_t = Timeline::const_reverse_iterator;
             using timeline_iter_t = Timeline::const_iterator;
 
+            using AccountDataMap = std::conditional_t<
+                QT_VERSION >= QT_VERSION_CHECK(5, 5, 0),
+                QVariantHash, QVariantMap>;
+
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
 
@@ -269,7 +273,7 @@ namespace QMatrixClient
              * stored on the server. Tags and read markers cannot be retrieved
              * using this method _yet_.
              */
-            QVariantHash accountData(const QString& type) const;
+            AccountDataMap accountData(const QString& type) const;
 
             QStringList tagNames() const;
             TagsMap tags() const;

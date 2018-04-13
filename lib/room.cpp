@@ -109,7 +109,7 @@ class Room::Private
         QHash<const User*, QString> lastReadEventIds;
         QString serverReadMarker;
         TagsMap tags;
-        QHash<QString, QVariantHash> accountData;
+        QHash<QString, AccountDataMap> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
@@ -637,7 +637,7 @@ bool Room::hasAccountData(const QString& type) const
     return d->accountData.contains(type);
 }
 
-QVariantHash Room::accountData(const QString& type) const
+Room::AccountDataMap Room::accountData(const QString& type) const
 {
     return d->accountData.value(type);
 }
@@ -1653,7 +1653,7 @@ void Room::processAccountDataEvent(EventPtr event)
         }
         default:
             d->accountData[event->jsonType()] =
-                    event->contentJson().toVariantHash();
+                    fromJson<AccountDataMap>(event->contentJson());
             emit accountDataChanged(event->jsonType());
     }
 }
@@ -1816,7 +1816,7 @@ QJsonObject Room::Private::toJson() const
     {
         for (auto it = accountData.begin(); it != accountData.end(); ++it)
             appendEvent(accountDataEvents, it.key(),
-                        QJsonObject::fromVariantHash(it.value()));
+                        QMatrixClient::toJson(it.value()));
     }
     result.insert("account_data", QJsonObject {{ "events", accountDataEvents }});
 

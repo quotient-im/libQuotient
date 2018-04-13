@@ -84,7 +84,7 @@ class Connection::Private
         QVector<QString> roomIdsToForget;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
-        QHash<QString, QVariantHash> accountData;
+        QHash<QString, AccountDataMap> accountData;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -336,7 +336,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
             continue;
         }
         d->accountData[accountEvent->jsonType()] =
-                accountEvent->contentJson().toVariantHash();
+                fromJson<AccountDataMap>(accountEvent->contentJson());
         emit accountDataChanged(accountEvent->jsonType());
     }
 }
@@ -657,7 +657,7 @@ bool Connection::hasAccountData(const QString& type) const
     return d->accountData.contains(type);
 }
 
-QVariantHash Connection::accountData(const QString& type) const
+Connection::AccountDataMap Connection::accountData(const QString& type) const
 {
     return d->accountData.value(type);
 }
@@ -909,7 +909,7 @@ void Connection::saveState(const QUrl &toFile) const
         for (auto it = d->accountData.begin(); it != d->accountData.end(); ++it)
             accountDataEvents.append(QJsonObject {
                 {"type", it.key()},
-                {"content", QJsonObject::fromVariantHash(it.value())}
+                {"content", QMatrixClient::toJson(it.value())}
             });
         rootObj.insert("account_data",
             QJsonObject {{ QStringLiteral("events"), accountDataEvents }});

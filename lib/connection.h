@@ -66,6 +66,10 @@ namespace QMatrixClient
 
             using DirectChatsMap = QMultiHash<const User*, QString>;
 
+            using AccountDataMap = std::conditional_t<
+                QT_VERSION >= QT_VERSION_CHECK(5, 5, 0),
+                QVariantHash, QVariantMap>;
+
             enum RoomVisibility { PublishRoom, UnpublishRoom }; // FIXME: Should go inside CreateRoomJob
 
             explicit Connection(QObject* parent = nullptr);
@@ -88,7 +92,7 @@ namespace QMatrixClient
              * stored on the server. Direct chats map cannot be retrieved
              * using this method _yet_; use directChats() instead.
              */
-            QVariantHash accountData(const QString& type) const;
+            AccountDataMap accountData(const QString& type) const;
 
             /** Get all Invited and Joined rooms grouped by tag
              * \return a hashmap from tag name to a vector of room pointers,
