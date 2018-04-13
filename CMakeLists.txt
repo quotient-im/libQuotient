@@ -97,9 +97,10 @@ file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
     ${API_DEF_PATH}/definitions/*.yaml
     ${MATRIX_DOC_PATH}/event-schemas/schema/*
 )
+set(JOBS_SRC_DIR lib/jobs)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
-        ${GTAD_PATH} --config jobs/gtad.yaml --out jobs/generated
+        ${GTAD_PATH} --config ${JOBS_SRC_DIR}/gtad.yaml --out ${JOBS_SRC_DIR}/generated
             ${MATRIX_DOC_PATH}/api/client-server
             cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml-
@@ -108,14 +109,14 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             notifications.yaml- peeking_events.yaml-
             pushrules.yaml- rooms.yaml- search.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        SOURCES lib/jobs/gtad.yaml
-                lib/jobs/{{base}}.h.mustache lib/jobs/{{base}}.cpp.mustache
+        SOURCES ${JOBS_SRC_DIR}/gtad.yaml
+                ${JOBS_SRC_DIR}/{{base}}.h.mustache ${JOBS_SRC_DIR}/{{base}}.cpp.mustache
                 ${API_DEFS}
         VERBATIM
     )
 endif()
 
-aux_source_directory(lib/jobs/generated libqmatrixclient_job_SRCS)
+aux_source_directory(${JOBS_SRC_DIR}/generated libqmatrixclient_job_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
