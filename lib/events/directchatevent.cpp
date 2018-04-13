@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * Copyright (C) 2018 Kitsune Ral <kitsune-ral@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,54 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "state.h"
+#include "directchatevent.h"
 
-#include "events/event.h"
+#include "converters.h"
 
 using namespace QMatrixClient;
 
-class State::Private
-{
-    public:
-        Event* event;
-        QString stateKey;
-        QString replacesState;
-};
+DirectChatEvent::DirectChatEvent(const QJsonObject& obj)
+    : Event(Type::DirectChat, obj)
+{ }
 
-
-State::State(Event* event)
-    : d(new Private)
+QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const
 {
-    d->event = event;
-}
-
-State::~State()
-{
-    delete d;
-}
-
-Event* State::event() const
-{
-    return d->event;
-}
-
-QString State::stateKey() const
-{
-    return d->stateKey;
-}
-
-QString State::replacesState() const
-{
-    return d->replacesState;
-}
-
-State* State::fromJson(const QJsonObject& obj)
-{
-    Event* event = Event::fromJson(obj);
-    if( !event )
-        return nullptr;
-    State* state = new State(event);
-    state->d->stateKey = obj.value("state_key").toString();
-    state->d->replacesState = obj.value("replaces_state").toString();
-    return state;
+    QMultiHash<QString, QString> result;
+    const auto json = contentJson();
+    for (auto it = json.begin(); it != json.end(); ++it)
+    {
+        // Beware of range-for's over temporary returned from temporary
+        // (see the bottom of
+        // http://en.cppreference.com/w/cpp/language/range-for#Explanation)
+        const auto roomIds = it.value().toArray();
+        for (const auto& roomIdValue: roomIds)
+            result.insert(it.key(), roomIdValue.toString());
+    }
+    return result;
 }

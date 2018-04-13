@@ -632,6 +632,16 @@ void Room::resetHighlightCount()
     emit highlightCountChanged(this);
 }
 
+bool Room::hasAccountData(const QString& type) const
+{
+    return d->accountData.contains(type);
+}
+
+QVariantHash Room::accountData(const QString& type) const
+{
+    return d->accountData.value(type);
+}
+
 QStringList Room::tagNames() const
 {
     return d->tags.keys();
@@ -1644,6 +1654,7 @@ void Room::processAccountDataEvent(EventPtr event)
         default:
             d->accountData[event->jsonType()] =
                     event->contentJson().toVariantHash();
+            emit accountDataChanged(event->jsonType());
     }
 }
 

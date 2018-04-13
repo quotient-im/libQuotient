@@ -241,6 +241,8 @@ void BaseJob::sendRequest()
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     if (d->reply->isRunning())
     {
+        connect( d->reply.data(), &QNetworkReply::metaDataChanged,
+                 this, &BaseJob::checkReply);
         connect( d->reply.data(), &QNetworkReply::uploadProgress,
                  this, &BaseJob::uploadProgress);
         connect( d->reply.data(), &QNetworkReply::downloadProgress,
@@ -253,13 +255,22 @@ void BaseJob::sendRequest()
         qCWarning(d->logCat) << this << "request could not start";
 }
 
+void BaseJob::checkReply()
+{
+    setStatus(doCheckReply(d->reply.data()));
+}
+
 void BaseJob::gotReply()
 {
-    setStatus(checkReply(d->reply.data()));
+    checkReply();
+    qCDebug(d->logCat).nospace().noquote() << this << " returned HTTP code "
+        << d->reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
+        << ": " << (d->reply->error() == QNetworkReply::NoError ?
+                    "Success" : d->reply->errorString())
+        << " (URL: " << d->reply->url().toDisplayString() << ")";
     if (status().good())
         setStatus(parseReply(d->reply.data()));
-    else
-    {
+    else {
         const auto body = d->reply->readAll();
         if (!body.isEmpty())
         {
@@ -284,7 +295,7 @@ void BaseJob::gotReply()
                     // Shortcut to retry instead of executing finishJob()
                     stop();
                     qCWarning(d->logCat)
-                            << this << "will retry in" << retryInterval;
+                            << this << "will retry in" << retryInterval << "ms";
                     d->retryTimer.start(retryInterval);
                     emit retryScheduled(d->retriesTaken, retryInterval);
                     return;
@@ -323,15 +334,10 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
-BaseJob::Status BaseJob::checkReply(QNetworkReply* reply) const
+BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
     const auto httpCode =
             reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    qCDebug(d->logCat).nospace().noquote() << this << " returned HTTP code "
-        << httpCode << ": "
-        << (reply->error() == QNetworkReply::NoError ?
-                "Success" : reply->errorString())
-        << " (URL: " << reply->url().toDisplayString() << ")";
 
     if (httpCode == 429) // Qt doesn't know about it yet
         return { TooManyRequestsError, tr("Too many requests") };

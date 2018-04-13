@@ -45,7 +45,7 @@ We use GitHub to track all changes via its
 [issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues) and
 [pull requests](https://github.com/QMatrixClient/libqmatrixclient/pulls).
 Specific changes are proposed using those mechanisms.
-Issues are assigned to an individual, who works it and then marks it complete.
+Issues are assigned to an individual who works on it and then marks it complete.
 If there are questions or objections, the conversation area of that
 issue or pull request is used to resolve it.
 
@@ -126,25 +126,29 @@ This is our primary language. We don't have a particular code style _as of yet_ 
 * Please don't make hypocritical structs with protected or private members. Just make them classes instead.
 * Qt containers are generally preferred to STL containers; however, there are notable exceptions, and libqmatrixclient already uses them:
   * `std::array` and `std::deque` have no direct counterparts in Qt.
-  * Because of COW semantics, Qt containers cannot hold uncopyable classes. Classes without a default constructor are a problem too. An example of that is `SyncRoomData` and `EventsBatch<>`. Use standard containers for those but see the next point and also consider if you can supply a reasonable copy/default constructor.
-  * Standard containers can be used in code internal to a translation unit (i.e., in a certain .cpp file) _as long as it's not exposed in the interface_. It's ok to use, e.g., `std::vector` instead of `QVector` in tighter code, or when dealing with uncopyable (see the previous point) elements. However, exposing standard containers in the API that might be used by QML will not work at all and will never be accepted.
-* Use `QVector` instead of `QList` where possible - see a [great article of Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/) for details. 
+  * Because of COW semantics, Qt containers cannot hold uncopyable classes. Classes without a default constructor are a problem too. Examples of that are `SyncRoomData` and `EventsBatch<>`. Use STL containers for those but see the next point and also consider if you can supply a reasonable copy/default constructor.
+  * STL containers can be freely used in code internal to a translation unit (i.e., in a certain .cpp file) _as long as that is not exposed in the API_. It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up code where you don't need COW, or when dealing with uncopyable data structures (see the previous point). However, exposing STL containers in the API is not encouraged (except where absolutely necessary, e.g. we use `std::deque` for a timeline). Exposing STL containers or iterators in API intended for usage by QML code (e.g. in `Q_PROPERTY`) will not work at all and will never be accepted.
+* Use `QVector` instead of `QList` where possible - see a [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/) for details.
 
 ### Automated tests
 
-There's no testing framework as of now; either Catch or QTest or both will be used eventually. However, as a stopgap measure, qmc-example is used for end-to-end testing; so please add another private slot and call it from `QMCTest::doTests()` whenever you add new function worth it. PRs to set up a proper testing appliance instead are very welcome (make sure to migrate tests from qmc-example though).
+There's no testing framework as of now; either Catch or Qt Test or both will be used eventually. However, as a stopgap measure, qmc-example is used for automated end-to-end testing.
+
+Any significant addition to the library API should be accompanied by a respective test in qmc-example. To add a test you should write a new private slot with the test logic to the `QMCTest` class and call it from `QMCTest::doTests()`. `QMCTest` sets up some basic test fixture to help you with testing; notably by the moment `doTests()` is invoked you can rely on having a working connection in `c` member variable and a test room in `targetRoom` member variable. PRs to introduce a proper testing framework are very welcome (make sure to migrate tests from qmc-example though); shifting qmc-example to use Qt Test seems to be a particularly low-hanging fruit.
 
 ### Security, privacy, and performance
 
-Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++). `char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead.
+Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++).
+
+`char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead. Where you see fit (usually with data structures), try to use smart pointers, especially `std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing with `QObject`s, use the parent-child ownership semantics exercised by Qt. Shared pointers are not used in the code so far; but if you find a particular use case where strict semantics of unique pointers doesn't help and a shared pointer is necessary, feel free to step up with the working code and it will be considered for inclusion.
 
 Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
 
 Protect private information, in particular passwords and email addresses. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking.
 
-We want the software to have decent performance for typical users. At the same time we keep libqmatrixclient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline - it can easily be several thousands elements long so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing.
+We want the software to have decent performance for typical users. At the same time we keep libqmatrixclient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. A solution to such cases is to embed `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
 
-Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm.
+Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling information around if you are about to go into some hardcore optimization.
 
 ## Documentation changes
 
@@ -166,11 +170,11 @@ Do not use trailing two spaces for line breaks, since these cannot be seen and m
 
 ## How to check proposed changes before submitting them
 
-Checking the code on at least one configuration is essential; if you only have a hasty fix that doesn't even compile, better make an issue and put a link to your commit into it (with an explanation what it is about and why).
+Checking the code on at least one configuration is essential; if you only have a hasty fix that doesn't even compile, better make an issue and put a link to your commit into it (with an explanation what it is about and why). The best check is a continuous integration pipeline automatically triggered when you submit a PR.
 
 ### Standard checks
 
-`-Wall -pedantic` is used with GCC and Clang. We don't turn those warnings to errors but please treat them as such.
+The following warnings configuration is applied with GCC and Clang when using CMake: `-W -Wall -Wextra -pedantic -Werror=return-type -Wno-unused-parameter -Wno-gnu-zero-variadic-macro-arguments` (the last one is to mute a warning triggered by Qt code for debug logging). We don't turn most of the warnings to errors but please treat them as such. In Qt Creator, the following line can be used with the Clang code model (you should explicitly enable the code model plugin): `-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables`
 
 ### Continuous Integration
 
@@ -178,7 +182,7 @@ We use Travis CI to check buildability on Linux (GCC, Clang) and MacOS (Clang), 
 
 ### Other tools
 
-If you know how to use clang-tidy, here's a list of checks we do and do not use (a leading hyphen means a disabled check, an asterisk is a wildcard): `*,cert-env33-c,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-const-cast,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-special-member-functions,-google-build-using-namespace,-google-readability-braces-around-statements,-hicpp-*,-llvm-*,-misc-unused-parameters,-misc-noexcept-moveconstructor,-modernize-use-using,-readability-braces-around-statements,readability-identifier-naming,-readability-implicit-bool-cast,-clang-diagnostic-*,-clang-analyzer-*`. If you're on CLion (which makes clang-tidy usage a no-brainer), you can simple copy-paste the above list into the Clang-Tidy inspection configuration.
+If you know how to use clang-tidy, here's a list of checks we do and do not use (a leading hyphen means a disabled check, an asterisk is a wildcard): `*,cert-env33-c,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-const-cast,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-special-member-functions,-google-build-using-namespace,-google-readability-braces-around-statements,-hicpp-*,-llvm-*,-misc-unused-parameters,-misc-noexcept-moveconstructor,-modernize-use-using,-readability-braces-around-statements,readability-identifier-naming,-readability-implicit-bool-cast,-clang-diagnostic-*,-clang-analyzer-*`. If you're on CLion, you can simply copy-paste the above list into the Clang-Tidy inspection configuration. In Qt Creator 4.6, one can enable clang-tidy and clazy (clazy level 1 eats away CPU but produces some very relevant and unobvious notices, such as possible unintended copying of a Qt container, or unguarded null pointers).
 
 ## Git commit messages
 
@@ -196,13 +200,13 @@ When writing git commit messages, try to follow the guidelines in
 
 ## Reuse (libraries, frameworks, etc.)
 
-C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very (and it means _very_) conservative about adding dependencies to libqmatrixclient. That relates to both additional Qt components and even more to other libraries.
+C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very (and it means _very_) conservative about adding dependencies to libqmatrixclient. That relates to both additional Qt components and even more to other libraries. Fortunately, even the Qt components now in use (Qt Core and Network) are very feature-rich and provide plenty of ready-made stuff.
 
-Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for automated testing, so PRs onboarding a test framework will be considered with much gratitude. Just don't forget to bootstrap with at least some tests on the existing codebase, rather than just throw in a Git submodule.
+Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for automated testing, so PRs onboarding a test framework will be considered with much gratitude.
 
 Some cases need additional explanation:
 * Before rolling out your own super-optimised container or algorithm written from scratch, take a good long look through documentation on Qt and C++ standard library (including the experimental/future sections). Please try to reuse the existing facilities as much as possible.
-* You should have a good reason (or better several ones) to add a component from KDE Frameworks. We don't rule this out and there's no prejudice against KDE; it just so happened that KDE Frameworks is one of most obvious reuse candidates for us but so far none of these components survived as libqmatrixclient deps.
+* You should have a good reason (or better several ones) to add a component from KDE Frameworks. We don't rule this out and there's no prejudice against KDE; it just so happened that KDE Frameworks is one of most obvious reuse candidates but so far none of these components survived as libqmatrixclient deps. So we are cautious.
 * Never forget that libqmatrixclient is aimed to be a non-visual library; QtGui in dependencies is only driven by (entirely offscreen) dealing with QPixmaps. While there's a bunch of visual code (in C++ and QML) shared between libqmatrixclient-enabled _applications_, this is likely to end up in a separate (libqmatrixclient-enabled) library, rather than libqmatrixclient.
 
 ## Attribution

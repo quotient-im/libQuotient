@@ -1,4 +1,4 @@
-# Libqmatrixclient
+# libQMatrixClient
 
 [![license](https://img.shields.io/github/license/QMatrixClient/libqmatrixclient.svg)](https://github.com/QMatrixClient/libqmatrixclient/blob/master/COPYING)
 ![status](https://img.shields.io/badge/status-beta-yellow.svg)
@@ -6,35 +6,37 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1023/badge)](https://bestpractices.coreinfrastructure.org/projects/1023)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-libqmatrixclient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Tensor](https://matrix.org/docs/projects/client/tensor.html) and some other projects.
+libQMatrixClient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Tensor](https://matrix.org/docs/projects/client/tensor.html) and some other projects.
 
 ## Contacts
-You can find authors of libqmatrixclient in the Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
+You can find authors of libQMatrixClient in the Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
 
 You can also file issues at [the project's issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues). If you have what looks like a security issue, please see respective instructions in CONTRIBUTING.md.
 
 ## Building and usage
-So far the library is typically used as a git submodule of another project (such as Quaternion); however it can be built separately (either as a static or as a dynamic library). There is no installation sequence outside of other projects so far (PRs are most welcome).
+So far the library is typically used as a git submodule of another project (such as Quaternion); however it can be built separately (either as a static or as a dynamic library). As of version 0.2, the library can be installed and CMake package config files are provided; projects can use `find_package(QMatrixClient)` to setup their code with the installed library files. PRs to enable the same for qmake are most welcome.
 
-The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrixclient - checking out a certain commit or tag from GitHub (rather than downloading the archive) is the recommended way for one-off building. If you want to hack on the library as a part of another project (e.g. Quaternion), you're advised to make a recursive check out of that project and update the library submodule to its master branch.
+The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrixclient - checking out a certain commit or tag from GitHub (rather than downloading the archive) is the recommended way for one-off building. If you want to hack on the library as a part of another project (e.g. you are working on Quaternion but need to do some changes to the library code), you're advised to make a recursive check out of that project (in this case, Quaternion) and update the library submodule to its master branch.
 
-There are very few tags so far; there will be more, as new versions are released.
+Tags starting with `v` represent released versions; `rc` mark release candidates.
 
 ## Pre-requisites
-- a Linux, OSX or Windows system (desktop versions tried; mobile Linux/Windows might work too)
+- a Linux, OSX or Windows system (desktop versions tried; Ubuntu Touch is known to work; mobile Windows and iOS might work too but never tried)
   - For Ubuntu flavours - zesty or later (or a derivative) is good enough out of the box; older ones will need PPAs at least for a newer Qt; in particular, if you have xenial you're advised to add Kubuntu Backports PPA for it
 - a Git client to check out this repo
-- CMake (from your package management system or [the official website](https://cmake.org/download/))
 - Qt 5 (either Open Source or Commercial), version 5.6 or higher
+- a build configuration tool:
+  - CMake (from your package management system or [the official website](https://cmake.org/download/))
+  - or qmake (comes with Qt)
 - a C++ toolchain supported by your version of Qt (see a link for your platform at [the Qt's platform requirements page](http://doc.qt.io/qt-5/gettingstarted.html#platform-requirements))
-  - GCC 5 (Windows, Linux, OSX), Clang 5 (Linux), Apple Clang 8.1 (OSX) and Visual C++ 2015 (Windows) are the oldest officially supported
-  - any build system that works with CMake should be fine: GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
+  - GCC 5 (Windows, Linux, OSX), Clang 5 (Linux), Apple Clang 8.1 (OSX) and Visual C++ 2015 (Windows) are the oldest officially supported; Clang 3.8 and GCC 4.9.2 are known to still work, maintenance patches for them are accepted
+  - any build system that works with CMake and/or qmake should be fine: GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
 
 #### Linux
-Just install things from the list above using your preferred package manager. If your Qt package base is fine-grained you might want to take a look at `CMakeLists.txt` to figure out which specific libraries libqmatrixclient uses (or blindly run cmake and look at error messages). The library is entirely offscreen (Qt::Core and Qt::Network are essential) but it also depends on Qt::Gui in order to operate with avatar thumbnails. 
+Just install things from the list above using your preferred package manager. If your Qt package base is fine-grained you might want to run cmake/qmake and look at error messages. The library is entirely offscreen (QtCore and QtNetwork are essential) but it also depends on QtGui in order to handle avatar thumbnails.
 
 #### OS X
-`brew install qt5` should get you Qt5. If you plan to use CMake, you may need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=<where-Qt-installed>`
+`brew install qt5` should get you a recent Qt5. If you plan to use CMake, you may need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=<where-Qt-installed>`
 
 #### Windows
 1. Install Qt5, using their official installer.
@@ -51,15 +53,23 @@ cd build_dir
 cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
 cmake --build . --target all
 ```
-This will get you the compiled library in `build_dir` inside your project sources. Only static builds of libqmatrixclient are tested at the moment; experiments with dynamic builds are welcome. The two known projects to link with libqmatrixclient are Tensor and Quaternion; you should take a look at their source code before doing anything with libqmatrixclient on your own.
+This will get you the compiled library in `build_dir` inside your project sources. Only static builds of libqmatrixclient are tested at the moment; experiments with dynamic builds are welcome. The three known projects to link with libqmatrixclient are Quaternion, uMatriks and Tensor; you should take a look at their source code before doing something big with libqmatrixclient on your own. For smaller things, taking a look at qmc-example should give you a basic idea of using the library.
+
+You can install the library with CMake:
+```
+cmake --build . --target install
+```
+This will also install cmake package config files; once this is done, you can use `examples/CMakeLists.txt` to compile the example with the _installed_ library. This file is a good starting point for your own CMake-based project using libQMatrixClient.
 
 ### qmake-based
-The library only provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `qmc-example.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
+The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `qmc-example.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
 ```
 qmake qmc-example.pro
 make all
 ```
-This will get you `debug/qmc-example` and `release/qmc-example` console executables that login to the Matrix server at matrix.org with credentials of your choosing (pass the username and password as arguments) and run a sync long-polling loop, showing some information about received events.
+This will get you `debug/qmc-example` and `release/qmc-example` console executables that login to the Matrix server at matrix.org with credentials of your choosing (pass the username and password as arguments), run a sync long-polling loop and do some tests of the library API.
+
+Installing the library with qmake is not possible; similarly, a .prl file is not provided. A PR to fix this is welcome.
 
 ## Troubleshooting
 

@@ -64,6 +64,8 @@ namespace QMatrixClient
             using user_factory_t =
                 std::function<User*(Connection*, const QString&)>;
 
+            using DirectChatsMap = QMultiHash<const User*, QString>;
+
             enum RoomVisibility { PublishRoom, UnpublishRoom }; // FIXME: Should go inside CreateRoomJob
 
             explicit Connection(QObject* parent = nullptr);
@@ -75,6 +77,18 @@ namespace QMatrixClient
              *         it's an Invite rather than Join - to room pointers
              */
             QHash<QPair<QString, bool>, Room*> roomMap() const;
+
+            /** Check whether the account has data of the given type
+             * Direct chats map is not supported by this method _yet_.
+             */
+            bool hasAccountData(const QString& type) const;
+
+            /** Get a generic account data event of the given type
+             * This returns a generic hashmap for any account data event
+             * stored on the server. Direct chats map cannot be retrieved
+             * using this method _yet_; use directChats() instead.
+             */
+            QVariantHash accountData(const QString& type) const;
 
             /** Get all Invited and Joined rooms grouped by tag
              * \return a hashmap from tag name to a vector of room pointers,
@@ -114,16 +128,18 @@ namespace QMatrixClient
             /** Check whether the room id corresponds to a direct chat */
             bool isDirectChat(const QString& roomId) const;
 
+            /** Get the whole map from users to direct chat rooms */
+            DirectChatsMap directChats() const;
+
             /** Retrieve the list of users the room is a direct chat with
              * @return The list of users for which this room is marked as
              * a direct chat; an empty list if the room is not a direct chat
              */
             QList<const User*> directChatUsers(const Room* room) const;
 
+            /** Get the full list of users known to this account */
             QMap<QString, User*> users() const;
 
-            // FIXME: Convert Q_INVOKABLEs to Q_PROPERTIES
-            // (breaks back-compatibility)
             QUrl homeserver() const;
             Q_INVOKABLE Room* room(const QString& roomId,
                  JoinStates states = JoinState::Invite|JoinState::Join) const;
@@ -256,7 +272,7 @@ namespace QMatrixClient
                 bool guestsCanJoin = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
-                const QJsonObject creationContent = {});
+                const QJsonObject& creationContent = {});
 
             /** Get a direct chat with a single user
              * This method may return synchronously or asynchoronously depending
@@ -410,6 +426,9 @@ namespace QMatrixClient
              */
             void createdRoom(Room* room);
 
+            /** Account data (except direct chats) have changed */
+            void accountDataChanged(QString type);
+
             /** The direct chat room is ready for using
              * This signal is emitted upon any successful outcome from
              * requestDirectChat.
@@ -421,7 +440,8 @@ namespace QMatrixClient
              * to direct chat rooms is changed (because of either local updates
              * or a different list arrived from the server).
              */
-            void directChatsListChanged();
+            void directChatsListChanged(DirectChatsMap additions,
+                                        DirectChatsMap removals);
 
             void cacheStateChanged();
 

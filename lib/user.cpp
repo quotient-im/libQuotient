@@ -265,6 +265,7 @@ void User::rename(const QString& newName, const Room* r)
         qCWarning(MAIN) << "Passing a null room to two-argument User::rename()"
                            "is incorrect; client developer, please fix it";
         rename(newName);
+        return;
     }
     Q_ASSERT_X(r->memberJoinState(this) == JoinState::Join, __FUNCTION__,
                "Attempt to rename a user that's not a room member");

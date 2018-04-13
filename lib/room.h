@@ -259,6 +259,18 @@ namespace QMatrixClient
             Q_INVOKABLE int highlightCount() const;
             Q_INVOKABLE void resetHighlightCount();
 
+            /** Check whether the room has account data of the given type
+             * Tags and read markers are not supported by this method _yet_.
+             */
+            bool hasAccountData(const QString& type) const;
+
+            /** Get a generic account data event of the given type
+             * This returns a generic hashmap for any room account data event
+             * stored on the server. Tags and read markers cannot be retrieved
+             * using this method _yet_.
+             */
+            QVariantHash accountData(const QString& type) const;
+
             QStringList tagNames() const;
             TagsMap tags() const;
             TagRecord tag(const QString& name) const;
@@ -377,6 +389,7 @@ namespace QMatrixClient
             void readMarkerMoved();
             void unreadMessagesChanged(Room* room);
 
+            void accountDataChanged(QString type);
             void tagsChanged();
 
             void replacedEvent(const RoomEvent* newEvent,

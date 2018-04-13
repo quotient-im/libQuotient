@@ -47,7 +47,22 @@
 
 using namespace QMatrixClient;
 
-using DirectChatsMap = QMultiHash<const User*, QString>;
+// This is very much Qt-specific; STL iterators don't have key() and value()
+template <typename HashT, typename Pred>
+HashT erase_if(HashT& hashMap, Pred pred)
+{
+    HashT removals;
+    for (auto it = hashMap.begin(); it != hashMap.end();)
+    {
+        if (pred(it))
+        {
+            removals.insert(it.key(), it.value());
+            it = hashMap.erase(it);
+        } else
+            ++it;
+    }
+    return removals;
+}
 
 class Connection::Private
 {
@@ -80,7 +95,8 @@ class Connection::Private
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
-        void broadcastDirectChatUpdates();
+        void broadcastDirectChatUpdates(const DirectChatsMap& additions,
+                                        const DirectChatsMap& removals);
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -132,7 +148,7 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
     // Check if the Matrix server has a dedicated service record.
-    QDnsLookup* dns = new QDnsLookup();
+    auto* dns = new QDnsLookup();
     dns->setType(QDnsLookup::SRV);
     dns->setName("_matrix._tcp." + domain);
 
@@ -248,13 +264,13 @@ void Connection::sync(int timeout)
     const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
     auto job = d->syncJob =
             callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
-    connect( job, &SyncJob::success, [this, job] {
+    connect( job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
     });
     connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
-    connect( job, &SyncJob::failure, [this, job] {
+    connect( job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
             emit loginError(job->errorString());
@@ -290,24 +306,38 @@ void Connection::onSyncSuccess(SyncData &&data) {
     {
         if (accountEvent->type() == EventType::DirectChat)
         {
-            DirectChatsMap newDirectChats;
-            const auto* event = static_cast<DirectChatEvent*>(accountEvent.get());
-            auto usersToDCs = event->usersToDirectChats();
+            const auto usersToDCs =
+                    unique_ptr_cast<DirectChatEvent>(accountEvent)
+                    ->usersToDirectChats();
+            DirectChatsMap removals =
+                erase_if(d->directChats, [&usersToDCs] (auto it) {
+                    return !usersToDCs.contains(it.key()->id(), it.value());
+                });
+            if (MAIN().isDebugEnabled())
+                for (auto it = removals.begin(); it != removals.end(); ++it)
+                    qCDebug(MAIN) << it.value()
+                        << "is no more a direct chat with" << it.key()->id();
+
+            DirectChatsMap additions;
             for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it)
             {
-                newDirectChats.insert(user(it.key()), it.value());
-                qCDebug(MAIN) << "Marked room" << it.value()
-                              << "as a direct chat with" << it.key();
+                const auto* u = user(it.key());
+                if (!d->directChats.contains(u, it.value()))
+                {
+                    additions.insert(u, it.value());
+                    d->directChats.insert(u, it.value());
+                    qCDebug(MAIN) << "Marked room" << it.value()
+                                  << "as a direct chat with" << u->id();
+                }
             }
-            if (newDirectChats != d->directChats)
-            {
-                d->directChats = newDirectChats;
-                emit directChatsListChanged();
-            }
+            if (!additions.isEmpty() || !removals.isEmpty())
+                emit directChatsListChanged(additions, removals);
+
             continue;
         }
         d->accountData[accountEvent->jsonType()] =
                 accountEvent->contentJson().toVariantHash();
+        emit accountDataChanged(accountEvent->jsonType());
     }
 }
 
@@ -422,7 +452,7 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     bool isDirect, bool guestsCanJoin,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
-    const QJsonObject creationContent)
+    const QJsonObject& creationContent)
 {
     auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? "public" : "private", alias, name,
@@ -444,8 +474,11 @@ void Connection::doInDirectChat(const QString& userId,
 {
     // There can be more than one DC; find the first valid, and delete invalid
     // (left/forgotten) ones along the way.
-    for (auto roomId: d->directChats.values(user(userId)))
+    const auto* u = user(userId);
+    for (auto it = d->directChats.find(u);
+         it != d->directChats.end() && it.key() == u; ++it)
     {
+        const auto& roomId = *it;
         if (auto r = room(roomId, JoinState::Join))
         {
             Q_ASSERT(r->id() == roomId);
@@ -619,10 +652,20 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
     return roomMap;
 }
 
+bool Connection::hasAccountData(const QString& type) const
+{
+    return d->accountData.contains(type);
+}
+
+QVariantHash Connection::accountData(const QString& type) const
+{
+    return d->accountData.value(type);
+}
+
 QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 {
     QHash<QString, QVector<Room*>> result;
-    for (auto* r: d->roomMap)
+    for (auto* r: qAsConst(d->roomMap))
     {
         for (const auto& tagName: r->tagNames())
             result[tagName].push_back(r);
@@ -638,7 +681,7 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 QStringList Connection::tagNames() const
 {
     QStringList tags ({FavouriteTag});
-    for (auto* r: d->roomMap)
+    for (auto* r: qAsConst(d->roomMap))
         for (const auto& tag: r->tagNames())
             if (tag != LowPriorityTag && !tags.contains(tag))
                 tags.push_back(tag);
@@ -654,19 +697,31 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
     return rooms;
 }
 
-QJsonObject toJson(const DirectChatsMap& directChats)
+Connection::DirectChatsMap Connection::directChats() const
+{
+    return d->directChats;
+}
+
+QJsonObject toJson(const Connection::DirectChatsMap& directChats)
 {
     QJsonObject json;
-    for (auto it = directChats.keyBegin(); it != directChats.keyEnd(); ++it)
-        json.insert((*it)->id(), toJson(directChats.values(*it)));
+    for (auto it = directChats.begin(); it != directChats.end();)
+    {
+        QJsonArray roomIds;
+        const auto* user = it.key();
+        for (; it != directChats.end() && it.key() == user; ++it)
+            roomIds.append(*it);
+        json.insert(user->id(), roomIds);
+    }
     return json;
 }
 
-void Connection::Private::broadcastDirectChatUpdates()
+void Connection::Private::broadcastDirectChatUpdates(const DirectChatsMap& additions,
+                                                     const DirectChatsMap& removals)
 {
     q->callApi<SetAccountDataJob>(userId, QStringLiteral("m.direct"),
                                   toJson(directChats));
-    emit q->directChatsListChanged();
+    emit q->directChatsListChanged(additions, removals);
 }
 
 void Connection::addToDirectChats(const Room* room, const User* user)
@@ -675,7 +730,8 @@ void Connection::addToDirectChats(const Room* room, const User* user)
     if (d->directChats.contains(user, room->id()))
         return;
     d->directChats.insert(user, room->id());
-    d->broadcastDirectChatUpdates();
+    DirectChatsMap additions { { user, room->id() } };
+    d->broadcastDirectChatUpdates(additions, {});
 }
 
 void Connection::removeFromDirectChats(const QString& roomId, const User* user)
@@ -684,17 +740,17 @@ void Connection::removeFromDirectChats(const QString& roomId, const User* user)
     if ((user != nullptr && !d->directChats.contains(user, roomId)) ||
             d->directChats.key(roomId) == nullptr)
         return;
+
+    DirectChatsMap removals;
     if (user != nullptr)
+    {
+        removals.insert(user, roomId);
         d->directChats.remove(user, roomId);
+    }
     else
-        for (auto it = d->directChats.begin(); it != d->directChats.end();)
-        {
-            if (it.value() == roomId)
-                it = d->directChats.erase(it);
-            else
-                ++it;
-        }
-    d->broadcastDirectChatUpdates();
+        removals = erase_if(d->directChats,
+                            [&roomId] (auto it) { return it.value() == roomId; });
+    d->broadcastDirectChatUpdates({}, removals);
 }
 
 bool Connection::isDirectChat(const QString& roomId) const

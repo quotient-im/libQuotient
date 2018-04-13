@@ -1,5 +1,5 @@
 QT += network
-CONFIG += c++14 warn_on rtti_off
+CONFIG += c++14 warn_on rtti_off create_prl
 
 win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -wd4100
@@ -7,72 +7,73 @@ win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 }
 
-INCLUDEPATH += $$PWD
+SRCPATH = $$PWD/lib
+INCLUDEPATH += $$SRCPATH
 
 HEADERS += \
-    $$PWD/connectiondata.h \
-    $$PWD/connection.h \
-    $$PWD/room.h \
-    $$PWD/user.h \
-    $$PWD/avatar.h \
-    $$PWD/util.h \
-    $$PWD/events/event.h \
-    $$PWD/events/eventcontent.h \
-    $$PWD/events/roommessageevent.h \
-    $$PWD/events/simplestateevents.h \
-    $$PWD/events/roommemberevent.h \
-    $$PWD/events/roomavatarevent.h \
-    $$PWD/events/typingevent.h \
-    $$PWD/events/receiptevent.h \
-    $$PWD/events/accountdataevents.h \
-    $$PWD/events/directchatevent.h \
-    $$PWD/events/redactionevent.h \
-    $$PWD/jobs/requestdata.h \
-    $$PWD/jobs/basejob.h \
-    $$PWD/jobs/checkauthmethods.h \
-    $$PWD/jobs/passwordlogin.h \
-    $$PWD/jobs/sendeventjob.h \
-    $$PWD/jobs/postreceiptjob.h \
-    $$PWD/jobs/joinroomjob.h \
-    $$PWD/jobs/roommessagesjob.h \
-    $$PWD/jobs/syncjob.h \
-    $$PWD/jobs/mediathumbnailjob.h \
-    $$PWD/jobs/setroomstatejob.h \
-    $$files($$PWD/jobs/generated/*.h, false) \
-    $$PWD/logging.h \
-    $$PWD/settings.h \
-    $$PWD/networksettings.h \
-    $$PWD/networkaccessmanager.h \
-    $$PWD/jobs/downloadfilejob.h \
-    $$PWD/jobs/postreadmarkersjob.h
+    $$SRCPATH/connectiondata.h \
+    $$SRCPATH/connection.h \
+    $$SRCPATH/room.h \
+    $$SRCPATH/user.h \
+    $$SRCPATH/avatar.h \
+    $$SRCPATH/util.h \
+    $$SRCPATH/events/event.h \
+    $$SRCPATH/events/eventcontent.h \
+    $$SRCPATH/events/roommessageevent.h \
+    $$SRCPATH/events/simplestateevents.h \
+    $$SRCPATH/events/roommemberevent.h \
+    $$SRCPATH/events/roomavatarevent.h \
+    $$SRCPATH/events/typingevent.h \
+    $$SRCPATH/events/receiptevent.h \
+    $$SRCPATH/events/accountdataevents.h \
+    $$SRCPATH/events/directchatevent.h \
+    $$SRCPATH/events/redactionevent.h \
+    $$SRCPATH/jobs/requestdata.h \
+    $$SRCPATH/jobs/basejob.h \
+    $$SRCPATH/jobs/checkauthmethods.h \
+    $$SRCPATH/jobs/passwordlogin.h \
+    $$SRCPATH/jobs/sendeventjob.h \
+    $$SRCPATH/jobs/postreceiptjob.h \
+    $$SRCPATH/jobs/joinroomjob.h \
+    $$SRCPATH/jobs/roommessagesjob.h \
+    $$SRCPATH/jobs/syncjob.h \
+    $$SRCPATH/jobs/mediathumbnailjob.h \
+    $$SRCPATH/jobs/setroomstatejob.h \
+    $$SRCPATH/jobs/downloadfilejob.h \
+    $$SRCPATH/jobs/postreadmarkersjob.h \
+    $$files($$SRCPATH/jobs/generated/*.h, false) \
+    $$SRCPATH/logging.h \
+    $$SRCPATH/settings.h \
+    $$SRCPATH/networksettings.h \
+    $$SRCPATH/networkaccessmanager.h
 
 SOURCES += \
-    $$PWD/connectiondata.cpp \
-    $$PWD/connection.cpp \
-    $$PWD/room.cpp \
-    $$PWD/user.cpp \
-    $$PWD/avatar.cpp \
-    $$PWD/events/event.cpp \
-    $$PWD/events/eventcontent.cpp \
-    $$PWD/events/roommessageevent.cpp \
-    $$PWD/events/roommemberevent.cpp \
-    $$PWD/events/typingevent.cpp \
-    $$PWD/events/receiptevent.cpp \
-    $$PWD/events/directchatevent.cpp \
-    $$PWD/jobs/requestdata.cpp \
-    $$PWD/jobs/basejob.cpp \
-    $$PWD/jobs/checkauthmethods.cpp \
-    $$PWD/jobs/passwordlogin.cpp \
-    $$PWD/jobs/sendeventjob.cpp \
-    $$PWD/jobs/postreceiptjob.cpp \
-    $$PWD/jobs/joinroomjob.cpp \
-    $$PWD/jobs/roommessagesjob.cpp \
-    $$PWD/jobs/syncjob.cpp \
-    $$PWD/jobs/mediathumbnailjob.cpp \
-    $$PWD/jobs/setroomstatejob.cpp \
-    $$files($$PWD/jobs/generated/*.cpp, false) \
-    $$PWD/logging.cpp \
-    $$PWD/settings.cpp \
-    $$PWD/networksettings.cpp \
-    $$PWD/networkaccessmanager.cpp \
-    $$PWD/jobs/downloadfilejob.cpp
+    $$SRCPATH/connectiondata.cpp \
+    $$SRCPATH/connection.cpp \
+    $$SRCPATH/room.cpp \
+    $$SRCPATH/user.cpp \
+    $$SRCPATH/avatar.cpp \
+    $$SRCPATH/events/event.cpp \
+    $$SRCPATH/events/eventcontent.cpp \
+    $$SRCPATH/events/roommessageevent.cpp \
+    $$SRCPATH/events/roommemberevent.cpp \
+    $$SRCPATH/events/typingevent.cpp \
+    $$SRCPATH/events/receiptevent.cpp \
+    $$SRCPATH/events/directchatevent.cpp \
+    $$SRCPATH/jobs/requestdata.cpp \
+    $$SRCPATH/jobs/basejob.cpp \
+    $$SRCPATH/jobs/checkauthmethods.cpp \
+    $$SRCPATH/jobs/passwordlogin.cpp \
+    $$SRCPATH/jobs/sendeventjob.cpp \
+    $$SRCPATH/jobs/postreceiptjob.cpp \
+    $$SRCPATH/jobs/joinroomjob.cpp \
+    $$SRCPATH/jobs/roommessagesjob.cpp \
+    $$SRCPATH/jobs/syncjob.cpp \
+    $$SRCPATH/jobs/mediathumbnailjob.cpp \
+    $$SRCPATH/jobs/setroomstatejob.cpp \
+    $$SRCPATH/jobs/downloadfilejob.cpp \
+    $$files($$SRCPATH/jobs/generated/*.cpp, false) \
+    $$SRCPATH/logging.cpp \
+    $$SRCPATH/settings.cpp \
+    $$SRCPATH/networksettings.cpp \
+    $$SRCPATH/networkaccessmanager.cpp

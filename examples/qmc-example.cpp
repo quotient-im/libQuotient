@@ -25,9 +25,11 @@ class QMCTest : public QObject
             void doTests();
                 void addAndRemoveTag();
                 void sendAndRedact();
-                    void checkRedactionOutcome(QString evtIdToRedact, RoomEventsRange events);
+                    void checkRedactionOutcome(QString evtIdToRedact,
+                                               RoomEventsRange events);
                 void markDirectChat();
-                    void checkDirectChatOutcome();
+                    void checkDirectChatOutcome(
+                            const Connection::DirectChatsMap& added);
         void finalize();
 
     private:
@@ -211,11 +213,12 @@ void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
 
 void QMCTest::markDirectChat()
 {
-    if (c->isDirectChat(targetRoom->id()))
+    if (targetRoom->directChatUsers().contains(c->user()))
     {
         cout << "Warning: the room is already a direct chat,"
                 " only unmarking will be tested" << endl;
-        checkDirectChatOutcome();
+        checkDirectChatOutcome({{ c->user(), targetRoom->id() }});
+        return;
     }
     // Connect first because the signal is emitted synchronously.
     connect(c.data(), &Connection::directChatsListChanged,
@@ -224,11 +227,18 @@ void QMCTest::markDirectChat()
     c->addToDirectChats(targetRoom, c->user());
 }
 
-void QMCTest::checkDirectChatOutcome()
+void QMCTest::checkDirectChatOutcome(const Connection::DirectChatsMap& added)
 {
     disconnect(c.data(), &Connection::directChatsListChanged, nullptr, nullptr);
     if (!c->isDirectChat(targetRoom->id()))
     {
+        cout << "The room has not been marked as a direct chat" << endl;
+        QMC_CHECK("Direct chat test", false);
+        return;
+    }
+    if (!added.contains(c->user(), targetRoom->id()))
+    {
+        cout << "The room has not been listed in new direct chats" << endl;
         QMC_CHECK("Direct chat test", false);
         return;
     }

@@ -62,6 +62,8 @@ void DownloadFileJob::beforeStart(const ConnectionData*)
 void DownloadFileJob::afterStart(const ConnectionData*, QNetworkReply* reply)
 {
     connect(reply, &QNetworkReply::metaDataChanged, this, [this,reply] {
+        if (!status().good())
+            return;
         auto sizeHeader = reply->header(QNetworkRequest::ContentLengthHeader);
         if (sizeHeader.isValid())
         {
@@ -77,15 +79,15 @@ void DownloadFileJob::afterStart(const ConnectionData*, QNetworkReply* reply)
         }
     });
     connect(reply, &QIODevice::readyRead, this, [this,reply] {
-            auto bytes = reply->read(reply->bytesAvailable());
-            if (bytes.isEmpty())
-            {
-                qCWarning(JOBS)
-                        << "Unexpected empty chunk when downloading from"
-                        << reply->url() << "to" << d->tempFile->fileName();
-            } else {
-                d->tempFile->write(bytes);
-            }
+        if (!status().good())
+            return;
+        auto bytes = reply->read(reply->bytesAvailable());
+        if (!bytes.isEmpty())
+            d->tempFile->write(bytes);
+        else
+            qCWarning(JOBS)
+                    << "Unexpected empty chunk when downloading from"
+                    << reply->url() << "to" << d->tempFile->fileName();
     });
 }
 

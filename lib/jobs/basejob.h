@@ -101,9 +101,9 @@ namespace QMatrixClient
                     bool good() const { return code < ErrorLevel; }
                     friend QDebug operator<<(QDebug dbg, const Status& s)
                     {
-                        QDebug(dbg).noquote().nospace()
+                        QDebugStateSaver _s(dbg);
+                        return dbg.noquote().nospace()
                                 << s.code << ": " << s.message;
-                        return dbg;
                     }
 
                     int code;
@@ -248,7 +248,7 @@ namespace QMatrixClient
              *
              * @see gotReply
              */
-            virtual Status checkReply(QNetworkReply* reply) const;
+            virtual Status doCheckReply(QNetworkReply* reply) const;
 
             /**
              * Processes the reply. By default, parses the reply into
@@ -286,6 +286,7 @@ namespace QMatrixClient
 
         private slots:
             void sendRequest();
+            void checkReply();
             void gotReply();
 
         private:
