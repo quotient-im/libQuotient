@@ -49,7 +49,7 @@ SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const
     : BaseJob(HttpVerb::Put, "SetRoomTagJob",
         basePath % "/user/" % userId % "/rooms/" % roomId % "/tags/" % tag)
 {
-    setRequestData(Data(body));
+    setRequestData(Data(toJson(body)));
 }
 
 QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId, const QString& tag)

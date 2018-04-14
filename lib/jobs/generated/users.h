@@ -25,7 +25,6 @@ namespace QMatrixClient
                 QString displayName;
                 QString avatarUrl;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures

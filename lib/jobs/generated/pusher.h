@@ -23,7 +23,6 @@ namespace QMatrixClient
             {
                 QString url;
                 
-                operator QJsonObject() const;
             };
 
             struct Pusher
@@ -37,7 +36,6 @@ namespace QMatrixClient
                 QString lang;
                 PusherData data;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures
@@ -71,7 +69,6 @@ namespace QMatrixClient
             {
                 QString url;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures

@@ -24,7 +24,6 @@ namespace QMatrixClient
                 QString medium;
                 QString address;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures
@@ -60,7 +59,6 @@ namespace QMatrixClient
                 QString idServer;
                 QString sid;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures

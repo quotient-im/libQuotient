@@ -14,6 +14,35 @@ namespace QMatrixClient
 {
     // Operations
 
+    class GetRoomVisibilityOnDirectoryJob : public BaseJob
+    {
+        public:
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetRoomVisibilityOnDirectoryJob. This function can be used when
+             * a URL for GetRoomVisibilityOnDirectoryJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+
+            explicit GetRoomVisibilityOnDirectoryJob(const QString& roomId);
+            ~GetRoomVisibilityOnDirectoryJob() override;
+
+            const QString& visibility() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
+    };
+
+    class SetRoomVisibilityOnDirectoryJob : public BaseJob
+    {
+        public:
+            explicit SetRoomVisibilityOnDirectoryJob(const QString& roomId, const QString& visibility = {});
+    };
+
     class GetPublicRoomsJob : public BaseJob
     {
         public:
@@ -31,7 +60,6 @@ namespace QMatrixClient
                 bool guestCanJoin;
                 QString avatarUrl;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures
@@ -68,7 +96,6 @@ namespace QMatrixClient
             {
                 QString genericSearchTerm;
                 
-                operator QJsonObject() const;
             };
 
             struct PublicRoomsChunk
@@ -83,7 +110,6 @@ namespace QMatrixClient
                 bool guestCanJoin;
                 QString avatarUrl;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures

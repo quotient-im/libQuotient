@@ -26,7 +26,6 @@ namespace QMatrixClient
                 QString medium;
                 QString address;
                 
-                operator QJsonObject() const;
             };
 
             struct StateEvent
@@ -35,7 +34,6 @@ namespace QMatrixClient
                 QString stateKey;
                 QJsonObject content;
                 
-                operator QJsonObject() const;
             };
 
             // End of inner data structures

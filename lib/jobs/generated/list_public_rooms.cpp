@@ -10,23 +10,67 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-GetPublicRoomsJob::PublicRoomsChunk::operator QJsonObject() const
+class GetRoomVisibilityOnDirectoryJob::Private
 {
-    QJsonObject o;
-    o.insert("aliases", toJson(aliases));
-    o.insert("canonical_alias", toJson(canonicalAlias));
-    o.insert("name", toJson(name));
-    o.insert("num_joined_members", toJson(numJoinedMembers));
-    o.insert("room_id", toJson(roomId));
-    o.insert("topic", toJson(topic));
-    o.insert("world_readable", toJson(worldReadable));
-    o.insert("guest_can_join", toJson(guestCanJoin));
-    o.insert("avatar_url", toJson(avatarUrl));
-    
-    return o;
+    public:
+        QString visibility;
+};
+
+QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+{
+    return BaseJob::makeRequestUrl(baseUrl,
+            basePath % "/directory/list/room/" % roomId);
 }
+
+GetRoomVisibilityOnDirectoryJob::GetRoomVisibilityOnDirectoryJob(const QString& roomId)
+    : BaseJob(HttpVerb::Get, "GetRoomVisibilityOnDirectoryJob",
+        basePath % "/directory/list/room/" % roomId, false)
+    , d(new Private)
+{
+}
+
+GetRoomVisibilityOnDirectoryJob::~GetRoomVisibilityOnDirectoryJob() = default;
+
+const QString& GetRoomVisibilityOnDirectoryJob::visibility() const
+{
+    return d->visibility;
+}
+
+BaseJob::Status GetRoomVisibilityOnDirectoryJob::parseJson(const QJsonDocument& data)
+{
+    auto json = data.object();
+    d->visibility = fromJson<QString>(json.value("visibility"));
+    return Success;
+}
+
+SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& roomId, const QString& visibility)
+    : BaseJob(HttpVerb::Put, "SetRoomVisibilityOnDirectoryJob",
+        basePath % "/directory/list/room/" % roomId)
+{
+    QJsonObject _data;
+    if (!visibility.isEmpty())
+        _data.insert("visibility", toJson(visibility));
+    setRequestData(_data);
+}
+
 namespace QMatrixClient
 {
+    QJsonObject toJson(const GetPublicRoomsJob::PublicRoomsChunk& pod)
+    {
+        QJsonObject o;
+        o.insert("aliases", toJson(pod.aliases));
+        o.insert("canonical_alias", toJson(pod.canonicalAlias));
+        o.insert("name", toJson(pod.name));
+        o.insert("num_joined_members", toJson(pod.numJoinedMembers));
+        o.insert("room_id", toJson(pod.roomId));
+        o.insert("topic", toJson(pod.topic));
+        o.insert("world_readable", toJson(pod.worldReadable));
+        o.insert("guest_can_join", toJson(pod.guestCanJoin));
+        o.insert("avatar_url", toJson(pod.avatarUrl));
+        
+        return o;
+    }
+
     template <> struct FromJson<GetPublicRoomsJob::PublicRoomsChunk>
     {
         GetPublicRoomsJob::PublicRoomsChunk operator()(QJsonValue jv)
@@ -128,15 +172,16 @@ BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-QueryPublicRoomsJob::Filter::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("generic_search_term", toJson(genericSearchTerm));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
+    {
+        QJsonObject o;
+        o.insert("generic_search_term", toJson(pod.genericSearchTerm));
+        
+        return o;
+    }
+
     template <> struct FromJson<QueryPublicRoomsJob::Filter>
     {
         QueryPublicRoomsJob::Filter operator()(QJsonValue jv)
@@ -151,23 +196,24 @@ namespace QMatrixClient
     };
 } // namespace QMatrixClient
 
-QueryPublicRoomsJob::PublicRoomsChunk::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("aliases", toJson(aliases));
-    o.insert("canonical_alias", toJson(canonicalAlias));
-    o.insert("name", toJson(name));
-    o.insert("num_joined_members", toJson(numJoinedMembers));
-    o.insert("room_id", toJson(roomId));
-    o.insert("topic", toJson(topic));
-    o.insert("world_readable", toJson(worldReadable));
-    o.insert("guest_can_join", toJson(guestCanJoin));
-    o.insert("avatar_url", toJson(avatarUrl));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const QueryPublicRoomsJob::PublicRoomsChunk& pod)
+    {
+        QJsonObject o;
+        o.insert("aliases", toJson(pod.aliases));
+        o.insert("canonical_alias", toJson(pod.canonicalAlias));
+        o.insert("name", toJson(pod.name));
+        o.insert("num_joined_members", toJson(pod.numJoinedMembers));
+        o.insert("room_id", toJson(pod.roomId));
+        o.insert("topic", toJson(pod.topic));
+        o.insert("world_readable", toJson(pod.worldReadable));
+        o.insert("guest_can_join", toJson(pod.guestCanJoin));
+        o.insert("avatar_url", toJson(pod.avatarUrl));
+        
+        return o;
+    }
+
     template <> struct FromJson<QueryPublicRoomsJob::PublicRoomsChunk>
     {
         QueryPublicRoomsJob::PublicRoomsChunk operator()(QJsonValue jv)

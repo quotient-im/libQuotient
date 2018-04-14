@@ -10,15 +10,16 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-GetPushersJob::PusherData::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("url", toJson(url));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const GetPushersJob::PusherData& pod)
+    {
+        QJsonObject o;
+        o.insert("url", toJson(pod.url));
+        
+        return o;
+    }
+
     template <> struct FromJson<GetPushersJob::PusherData>
     {
         GetPushersJob::PusherData operator()(QJsonValue jv)
@@ -33,22 +34,23 @@ namespace QMatrixClient
     };
 } // namespace QMatrixClient
 
-GetPushersJob::Pusher::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("pushkey", toJson(pushkey));
-    o.insert("kind", toJson(kind));
-    o.insert("app_id", toJson(appId));
-    o.insert("app_display_name", toJson(appDisplayName));
-    o.insert("device_display_name", toJson(deviceDisplayName));
-    o.insert("profile_tag", toJson(profileTag));
-    o.insert("lang", toJson(lang));
-    o.insert("data", toJson(data));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const GetPushersJob::Pusher& pod)
+    {
+        QJsonObject o;
+        o.insert("pushkey", toJson(pod.pushkey));
+        o.insert("kind", toJson(pod.kind));
+        o.insert("app_id", toJson(pod.appId));
+        o.insert("app_display_name", toJson(pod.appDisplayName));
+        o.insert("device_display_name", toJson(pod.deviceDisplayName));
+        o.insert("profile_tag", toJson(pod.profileTag));
+        o.insert("lang", toJson(pod.lang));
+        o.insert("data", toJson(pod.data));
+        
+        return o;
+    }
+
     template <> struct FromJson<GetPushersJob::Pusher>
     {
         GetPushersJob::Pusher operator()(QJsonValue jv)
@@ -110,15 +112,16 @@ BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-PostPusherJob::PusherData::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("url", toJson(url));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const PostPusherJob::PusherData& pod)
+    {
+        QJsonObject o;
+        o.insert("url", toJson(pod.url));
+        
+        return o;
+    }
+
     template <> struct FromJson<PostPusherJob::PusherData>
     {
         PostPusherJob::PusherData operator()(QJsonValue jv)

@@ -10,17 +10,18 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-SearchUserDirectoryJob::User::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("user_id", toJson(userId));
-    o.insert("display_name", toJson(displayName));
-    o.insert("avatar_url", toJson(avatarUrl));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const SearchUserDirectoryJob::User& pod)
+    {
+        QJsonObject o;
+        o.insert("user_id", toJson(pod.userId));
+        o.insert("display_name", toJson(pod.displayName));
+        o.insert("avatar_url", toJson(pod.avatarUrl));
+        
+        return o;
+    }
+
     template <> struct FromJson<SearchUserDirectoryJob::User>
     {
         SearchUserDirectoryJob::User operator()(QJsonValue jv)

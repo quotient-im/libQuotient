@@ -23,7 +23,7 @@ SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType, 
         basePath % "/rooms/" % roomId % "/send/" % eventType % "/" % txnId)
     , d(new Private)
 {
-    setRequestData(Data(body));
+    setRequestData(Data(toJson(body)));
 }
 
 SendMessageJob::~SendMessageJob() = default;

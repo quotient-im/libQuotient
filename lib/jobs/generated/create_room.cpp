@@ -10,17 +10,18 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-CreateRoomJob::Invite3pid::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("id_server", toJson(idServer));
-    o.insert("medium", toJson(medium));
-    o.insert("address", toJson(address));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
+    {
+        QJsonObject o;
+        o.insert("id_server", toJson(pod.idServer));
+        o.insert("medium", toJson(pod.medium));
+        o.insert("address", toJson(pod.address));
+        
+        return o;
+    }
+
     template <> struct FromJson<CreateRoomJob::Invite3pid>
     {
         CreateRoomJob::Invite3pid operator()(QJsonValue jv)
@@ -39,17 +40,18 @@ namespace QMatrixClient
     };
 } // namespace QMatrixClient
 
-CreateRoomJob::StateEvent::operator QJsonObject() const
-{
-    QJsonObject o;
-    o.insert("type", toJson(type));
-    o.insert("state_key", toJson(stateKey));
-    o.insert("content", toJson(content));
-    
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
+    {
+        QJsonObject o;
+        o.insert("type", toJson(pod.type));
+        o.insert("state_key", toJson(pod.stateKey));
+        o.insert("content", toJson(pod.content));
+        
+        return o;
+    }
+
     template <> struct FromJson<CreateRoomJob::StateEvent>
     {
         CreateRoomJob::StateEvent operator()(QJsonValue jv)

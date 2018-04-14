@@ -16,6 +16,6 @@ PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& receiptType
     : BaseJob(HttpVerb::Post, "PostReceiptJob",
         basePath % "/rooms/" % roomId % "/receipt/" % receiptType % "/" % eventId)
 {
-    setRequestData(Data(receipt));
+    setRequestData(Data(toJson(receipt)));
 }
 

@@ -16,13 +16,13 @@ SetAccountDataJob::SetAccountDataJob(const QString& userId, const QString& type,
     : BaseJob(HttpVerb::Put, "SetAccountDataJob",
         basePath % "/user/" % userId % "/account_data/" % type)
 {
-    setRequestData(Data(content));
+    setRequestData(Data(toJson(content)));
 }
 
 SetAccountDataPerRoomJob::SetAccountDataPerRoomJob(const QString& userId, const QString& roomId, const QString& type, const QJsonObject& content)
     : BaseJob(HttpVerb::Put, "SetAccountDataPerRoomJob",
         basePath % "/user/" % userId % "/rooms/" % roomId % "/account_data/" % type)
 {
-    setRequestData(Data(content));
+    setRequestData(Data(toJson(content)));
 }
 
