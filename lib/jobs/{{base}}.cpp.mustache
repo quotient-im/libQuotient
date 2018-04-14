@@ -3,8 +3,8 @@
 {{^allModels}}
 #include "converters.h"
 {{/allModels}}{{#operations}}
-{{#producesNotJson?}}#include <QtNetwork/QNetworkReply>
-{{/producesNotJson?}}#include <QtCore/QStringBuilder>
+{{#producesNonJson?}}#include <QtNetwork/QNetworkReply>
+{{/producesNonJson?}}#include <QtCore/QStringBuilder>
 {{/operations}}
 using namespace QMatrixClient;
 {{#models.model}}{{^trivial?}}
@@ -88,8 +88,8 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}
-{{/bodyParams?}}{{#producesNotJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
-{{/producesNotJson?}}}{{!<- mind the actual brace}}
+{{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
+{{/producesNonJson?}}}{{!<- mind the actual brace}}
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
 {{#        allProperties}}
@@ -97,13 +97,13 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 {
     return d->{{paramName}};
 }
-{{/        allProperties}}{{#producesNotJson?}}
+{{/        allProperties}}{{#producesNonJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
 {
     {{#headers}}d->{{paramName}} = reply->rawHeader("{{baseName}}"); {{! We don't check for required headers yet }}
     {{/headers}}{{#properties}}d->{{paramName}} = reply;{{/properties}}
     return Success;
-}{{/       producesNotJson?}}{{^producesNotJson?}}
+}{{/       producesNonJson?}}{{^producesNonJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
@@ -112,5 +112,5 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data
             "The key '{{baseName}}' not found in the response" };
     {{/required?}}d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"));
     {{/        properties}}return Success;
-}{{/       producesNotJson?}}
+}{{/       producesNonJson?}}
 {{/allProperties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

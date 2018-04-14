@@ -57,7 +57,7 @@ namespace QMatrixClient
             {{>maybeCrefType}} {{paramName}}() const;{{/allProperties}}
 
         protected:
-            Status {{#producesNotJson?}}parseReply(QNetworkReply* reply){{/producesNotJson?}}{{^producesNotJson?}}parseJson(const QJsonDocument& data){{/producesNotJson?}} override;
+            Status {{#producesNonJson?}}parseReply(QNetworkReply* reply){{/producesNonJson?}}{{^producesNonJson?}}parseJson(const QJsonDocument& data){{/producesNonJson?}} override;
 
         private:
             class Private;
