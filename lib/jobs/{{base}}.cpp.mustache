@@ -8,12 +8,15 @@
 {{/operations}}
 using namespace QMatrixClient;
 {{#models.model}}{{^trivial?}}
-{{qualifiedName}}::operator QJsonValue() const
+namespace QMatrixClient
 {
-    QJsonObject o;
-    {{#vars}}o.insert("{{baseName}}", toJson({{nameCamelCase}}));
-    {{/vars}}
-    return o;
+    QJsonObject toJson(const {{qualifiedName}}& pod)
+    {
+        QJsonObject o;
+        {{#vars}}o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+        {{/vars}}
+        return o;
+    }
 }
 
 {{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(QJsonValue jv)
@@ -28,15 +31,16 @@ using namespace QMatrixClient;
 {{/trivial?}}{{/models.model}}{{#operations}}
 static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
 {{#    operation}}{{#models.model}}{{^trivial?}}
-{{qualifiedName}}::operator QJsonObject() const
-{
-    QJsonObject o;
-    {{#vars}}o.insert("{{baseName}}", toJson({{nameCamelCase}}));
-    {{/vars}}
-    return o;
-}
 namespace QMatrixClient
 {
+    QJsonObject toJson(const {{qualifiedName}}& pod)
+    {
+        QJsonObject o;
+        {{#vars}}o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+        {{/vars}}
+        return o;
+    }
+
     template <> struct FromJson<{{qualifiedName}}>
     {
         {{qualifiedName}} operator()(QJsonValue jv)
@@ -81,9 +85,11 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 {
 {{#headerParams?}}{{#headerParams}}    setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
 {{/headerParams}}
-{{/headerParams?}}{{!
-}}{{#bodyParams?}}{{!
-}}{{#inlineBody}}    setRequestData(Data({{nameCamelCase}}));{{/inlineBody}}{{!
+{{/headerParams?
+}}{{#bodyParams?
+}}{{#inlineBody}}    setRequestData(Data({{!
+                        }}{{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
+                        }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));{{/inlineBody
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
 {{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
     {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
