@@ -1,3 +1,5 @@
+#include <utility>
+
 /******************************************************************************
  * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
@@ -26,12 +28,13 @@
 #include <QtCore/QPointer>
 
 using namespace QMatrixClient;
+using std::move;
 
 class Avatar::Private
 {
     public:
         explicit Private(QIcon di, QUrl url = {})
-            : _defaultIcon(di), _url(url)
+            : _defaultIcon(move(di)), _url(move(url))
         { }
         QImage get(Connection* connection, QSize size,
                    get_callback_t callback) const;
@@ -51,7 +54,6 @@ class Avatar::Private
         mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
         mutable QPointer<BaseJob> _uploadRequest = nullptr;
         mutable std::vector<get_callback_t> callbacks;
-        mutable get_callback_t uploadCallback;
 };
 
 Avatar::Avatar(QIcon defaultIcon)
@@ -71,13 +73,13 @@ Avatar& Avatar::operator=(Avatar&&) = default;
 QImage Avatar::get(Connection* connection, int dimension,
                    get_callback_t callback) const
 {
-    return d->get(connection, {dimension, dimension}, callback);
+    return d->get(connection, {dimension, dimension}, move(callback));
 }
 
 QImage Avatar::get(Connection* connection, int width, int height,
                    get_callback_t callback) const
 {
-    return d->get(connection, {width, height}, callback);
+    return d->get(connection, {width, height}, move(callback));
 }
 
 bool Avatar::upload(Connection* connection, const QString& fileName,
@@ -85,7 +87,7 @@ bool Avatar::upload(Connection* connection, const QString& fileName,
 {
     if (isJobRunning(d->_uploadRequest))
         return false;
-    return d->upload(connection->uploadFile(fileName), callback);
+    return d->upload(connection->uploadFile(fileName), move(callback));
 }
 
 bool Avatar::upload(Connection* connection, QIODevice* source,
@@ -93,7 +95,7 @@ bool Avatar::upload(Connection* connection, QIODevice* source,
 {
     if (isJobRunning(d->_uploadRequest) || !source->isReadable())
         return false;
-    return d->upload(connection->uploadContent(source), callback);
+    return d->upload(connection->uploadContent(source), move(callback));
 }
 
 QString Avatar::mediaId() const
@@ -116,16 +118,18 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         _requestedSize = size;
         if (isJobRunning(_thumbnailRequest))
             _thumbnailRequest->abandon();
-        callbacks.emplace_back(std::move(callback));
+        callbacks.emplace_back(move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
-        QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success, [this]
-        {
-            _fetched = true;
-            _originalImage = _thumbnailRequest->scaledThumbnail(_requestedSize);
-            _scaledImages.clear();
-            for (auto n: callbacks)
-                n();
-        });
+        QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success,
+            _thumbnailRequest, [this] {
+                _fetched = true;
+                _originalImage =
+                        _thumbnailRequest->scaledThumbnail(_requestedSize);
+                _scaledImages.clear();
+                for (const auto& n: callbacks)
+                    n();
+                callbacks.clear();
+            });
     }
 
     if( _originalImage.isNull() )
@@ -137,7 +141,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         _defaultIcon.paint(&p, { QPoint(), _defaultIcon.actualSize(size) });
     }
 
-    for (auto p: _scaledImages)
+    for (const auto& p: _scaledImages)
         if (p.first == size)
             return p.second;
     auto result = _originalImage.scaled(size,
@@ -151,7 +155,7 @@ bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t callback)
     _uploadRequest = job;
     if (!isJobRunning(_uploadRequest))
         return false;
-    _uploadRequest->connect(_uploadRequest, &BaseJob::success,
+    _uploadRequest->connect(_uploadRequest, &BaseJob::success, _uploadRequest,
                             [job,callback] { callback(job->contentUri()); });
     return true;
 }
