@@ -302,7 +302,8 @@ QImage Room::avatar(int dimension)
 QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
-        return d->avatar.get(connection(), width, height, [=] { emit avatarChanged(); });
+        return d->avatar.get(connection(), width, height,
+                             [=] { emit avatarChanged(); });
 
     // Use the other side's avatar for 1:1's
     if (d->membersMap.size() == 2)
