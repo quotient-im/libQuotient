@@ -106,6 +106,11 @@ QString Avatar::mediaId() const
 QImage Avatar::Private::get(Connection* connection, QSize size,
                             get_callback_t callback) const
 {
+    if (!callback)
+    {
+        qCCritical(MAIN) << "Null callbacks are not allowed in Avatar::get";
+        Q_ASSERT(false);
+    }
     // FIXME: Alternating between longer-width and longer-height requests
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
@@ -118,7 +123,8 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         _requestedSize = size;
         if (isJobRunning(_thumbnailRequest))
             _thumbnailRequest->abandon();
-        callbacks.emplace_back(move(callback));
+        if (callback)
+            callbacks.emplace_back(move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
         QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success,
             _thumbnailRequest, [this] {
