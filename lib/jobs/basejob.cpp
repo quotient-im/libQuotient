@@ -337,13 +337,16 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 
 BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
-    const auto httpCode =
-            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-
     // QNetworkReply error codes seem to be flawed when it comes to HTTP;
     // see, e.g., https://github.com/QMatrixClient/libqmatrixclient/issues/200
-    // The below processing is based on
+    // so check genuine HTTP codes. The below processing is based on
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+    const auto httpCodeHeader =
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+    if (!httpCodeHeader.isValid()) // Woah, we didn't even get HTTP headers
+        return { NetworkError, reply->errorString() };
+
+    const auto httpCode = httpCodeHeader.toInt();
     if (httpCode / 100 == 2) // 2xx
     {
         if (checkContentType(reply->rawHeader("Content-Type"),
