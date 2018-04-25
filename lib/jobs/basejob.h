@@ -53,6 +53,8 @@ namespace QMatrixClient
             enum StatusCode { NoError = 0 // To be compatible with Qt conventions
                 , Success = 0
                 , Pending = 1
+                , WarningLevel = 20
+                , UnexpectedResponseTypeWarning = 21
                 , Abandoned = 50 //< A very brief period between abandoning and object deletion
                 , ErrorLevel = 100 //< Errors have codes starting from this
                 , NetworkError = 100
@@ -63,6 +65,8 @@ namespace QMatrixClient
                 , IncorrectRequestError
                 , IncorrectResponseError
                 , TooManyRequestsError
+                , RequestNotImplementedError
+                , NetworkAuthRequiredError
                 , UserDefinedError = 200
             };
 

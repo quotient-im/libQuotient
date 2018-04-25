@@ -340,36 +340,44 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     const auto httpCode =
             reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
-    if (httpCode == 429) // Qt doesn't know about it yet
-        return { TooManyRequestsError, tr("Too many requests") };
-
-    // Should we check httpCode instead? Maybe even use it in BaseJob::Status?
-    // That would make codes in logs slightly more readable.
-    switch( reply->error() )
+    // QNetworkReply error codes seem to be flawed when it comes to HTTP;
+    // see, e.g., https://github.com/QMatrixClient/libqmatrixclient/issues/200
+    // The below processing is based on
+    // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+    if (httpCode / 100 == 2) // 2xx
     {
-        case QNetworkReply::NoError:
-            if (checkContentType(reply->rawHeader("Content-Type"),
-                                 d->expectedContentTypes))
-                return NoError;
-            else // A warning in the logs might be more proper instead
-                return { IncorrectResponseError,
-                         "Incorrect content type of the response" };
-
-        case QNetworkReply::AuthenticationRequiredError:
-        case QNetworkReply::ContentAccessDenied:
-        case QNetworkReply::ContentOperationNotPermittedError:
-            return { ContentAccessError, reply->errorString() };
-
-        case QNetworkReply::ProtocolInvalidOperationError:
-        case QNetworkReply::UnknownContentError:
-            return { IncorrectRequestError, reply->errorString() };
-
-        case QNetworkReply::ContentNotFoundError:
-            return { NotFoundError, reply->errorString() };
-
-        default:
-            return { NetworkError, reply->errorString() };
+        if (checkContentType(reply->rawHeader("Content-Type"),
+                             d->expectedContentTypes))
+            return NoError;
+        else // A warning in the logs might be more proper instead
+            return { UnexpectedResponseTypeWarning,
+                     "Unexpected content type of the response" };
     }
+
+    return { [httpCode]() -> StatusCode {
+            if (httpCode / 10 == 41)
+                return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+            switch (httpCode)
+            {
+                case 401: case 403: case 407:
+                    return ContentAccessError;
+                case 404:
+                    return NotFoundError;
+                case 400: case 405: case 406: case 426: case 428:
+                case 505:
+                case 494: // Unofficial nginx "Request header too large"
+                case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+                    return IncorrectRequestError;
+                case 429:
+                    return TooManyRequestsError;
+                case 501: case 510:
+                    return RequestNotImplementedError;
+                case 511:
+                    return NetworkAuthRequiredError;
+                default:
+                    return NetworkError;
+            }
+        }(), reply->errorString() };
 }
 
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
