@@ -992,26 +992,32 @@ QString Room::roomMembername(const User* u) const
     if (username.isEmpty())
         return u->id();
 
-    // Get the list of users with the same display name. Most likely,
-    // there'll be one, but there's a chance there are more.
-    if (d->membersMap.count(username) == 1)
-        return username;
+    auto namesakesIt = qAsConst(d->membersMap).find(username);
 
     // We expect a user to be a member of the room - but technically it is
     // possible to invoke roomMemberName() even for non-members. In such case
-    // we return the name _with_ id, to stay on a safe side.
-    // XXX: Causes a storm of false alarms when scrolling through older events
-    // with left users; commented out until we have a proper backtracking of
-    // room state ("room time machine").
-//    if ( !namesakes.contains(u) )
-//    {
-//        qCWarning()
-//            << "Room::roomMemberName(): user" << u->id()
-//            << "is not a member of the room" << id();
-//    }
+    // we return the full name, just in case.
+    if (namesakesIt == d->membersMap.cend())
+        return u->fullName(this);
 
-    // In case of more than one namesake, use the full name to disambiguate
-    return u->fullName(this);
+    auto nextUserIt = namesakesIt + 1;
+    if (nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
+        return username; // No disambiguation necessary
+
+    // Check if we can get away just attaching the bridge postfix
+    // (extension to the spec)
+    QVector<QString> bridges;
+    for (; namesakesIt != d->membersMap.cend() && namesakesIt.key() == username;
+         ++namesakesIt)
+    {
+        const auto bridgeName = (*namesakesIt)->bridged();
+        if (bridges.contains(bridgeName)) // Two accounts on the same bridge
+            return u->fullName(this); // Disambiguate fully
+        // Don't bother sorting, not so many bridges out there
+        bridges.push_back(bridgeName);
+    }
+
+    return u->rawName(this); // Disambiguate using the bridge postfix only
 }
 
 QString Room::roomMembername(const QString& userId) const
