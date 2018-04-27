@@ -311,7 +311,7 @@ QString User::displayname(const Room* room) const
 {
     auto name = d->nameForRoom(room);
     return name.isEmpty() ? d->userId :
-           room ? room->roomMembername(name) : name;
+           room ? room->roomMembername(this) : name;
 }
 
 QString User::fullName(const Room* room) const

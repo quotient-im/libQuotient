@@ -590,6 +590,7 @@ Room* Connection::invitation(const QString& roomId) const
 
 User* Connection::user(const QString& userId)
 {
+    Q_ASSERT(userId.startsWith('@') && userId.contains(':'));
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
     auto* user = userFactory(this, userId);
