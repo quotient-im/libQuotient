@@ -389,12 +389,12 @@ void User::processEvent(RoomMemberEvent* event, const Room* room)
         // FIXME: the hint doesn't work for bridged users
         auto oldNameHint =
                 d->nameForRoom(room, event->prevContent()->displayName);
-        updateName(event->displayName(), oldNameHint, room);
+        updateName(newName, oldNameHint, room);
         updateAvatarUrl(event->avatarUrl(),
                         d->avatarUrlForRoom(room, event->prevContent()->avatarUrl),
                         room);
     } else {
-        updateName(event->displayName(), room);
+        updateName(newName, room);
         updateAvatarUrl(event->avatarUrl(), d->avatarUrlForRoom(room), room);
     }
 }
