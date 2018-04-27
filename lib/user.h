@@ -50,24 +50,33 @@ namespace QMatrixClient
 
             /** Get the name chosen by the user
              * This may be empty if the user didn't choose the name or cleared
-             * it.
-             * \sa displayName
+             * it. If the user is bridged, the bridge postfix (such as '(IRC)')
+             * is stripped out. No disambiguation for the room is done.
+             * \sa displayName, rawName
              */
             QString name(const Room* room = nullptr) const;
 
+            /** Get the user name along with the bridge postfix
+             * This function is similar to name() but appends the bridge postfix
+             * (such as '(IRC)') to the user name. No disambiguation is done.
+             * \sa name, displayName
+             */
+            QString rawName(const Room* room = nullptr) const;
+
             /** Get the displayed user name
-             * This method returns the result of name() if its non-empty;
-             * otherwise it returns user id. This is convenient to show a user
-             * name outside of a room context. In a room context, user names
-             * should be disambiguated.
-             * \sa name, id, fullName Room::roomMembername
+             * When \p room is null, this method returns result of name() if
+             * the name is non-empty; otherwise it returns user id.
+             * When \p room is non-null, this call is equivalent to
+             * Room::roomMembername invocation for the user (i.e. the user's
+             * disambiguated room-specific name is returned).
+             * \sa name, id, fullName, Room::roomMembername
              */
             QString displayname(const Room* room = nullptr) const;
 
             /** Get user name and id in one string
              * The constructed string follows the format 'name (id)'
-             * used for users disambiguation in a room context and in other
-             * places.
+             * which the spec recommends for users disambiguation in
+             * a room context and in other places.
              * \sa displayName, Room::roomMembername
              */
             QString fullName(const Room* room = nullptr) const;

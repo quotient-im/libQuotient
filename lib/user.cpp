@@ -220,6 +220,12 @@ QString User::name(const Room* room) const
     return d->nameForRoom(room);
 }
 
+QString User::rawName(const Room* room) const
+{
+    return d->bridged.isEmpty() ? name(room) :
+                                  name(room) % " (" % d->bridged % ')';
+}
+
 void User::updateName(const QString& newName, const Room* room)
 {
     updateName(newName, d->nameForRoom(room), room);
