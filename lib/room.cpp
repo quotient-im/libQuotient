@@ -1796,7 +1796,7 @@ QJsonObject Room::Private::toJson() const
         for (const auto *m : membersMap)
             appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
                 { { QStringLiteral("membership"), QStringLiteral("join") }
-                , { QStringLiteral("displayname"), m->name(q) }
+                , { QStringLiteral("displayname"), m->rawName(q) }
                 , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
             }, m->id());
 
