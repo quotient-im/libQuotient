@@ -109,7 +109,7 @@ class Room::Private
         QHash<const User*, QString> lastReadEventIds;
         QString serverReadMarker;
         TagsMap tags;
-        QHash<QString, QVariantHash> accountData;
+        QHash<QString, AccountDataMap> accountData;
         QString prevBatch;
         QPointer<RoomMessagesJob> roomMessagesJob;
 
@@ -302,7 +302,8 @@ QImage Room::avatar(int dimension)
 QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
-        return d->avatar.get(connection(), width, height, [=] { emit avatarChanged(); });
+        return d->avatar.get(connection(), width, height,
+                             [=] { emit avatarChanged(); });
 
     // Use the other side's avatar for 1:1's
     if (d->membersMap.size() == 2)
@@ -637,7 +638,7 @@ bool Room::hasAccountData(const QString& type) const
     return d->accountData.contains(type);
 }
 
-QVariantHash Room::accountData(const QString& type) const
+Room::AccountDataMap Room::accountData(const QString& type) const
 {
     return d->accountData.value(type);
 }
@@ -991,26 +992,32 @@ QString Room::roomMembername(const User* u) const
     if (username.isEmpty())
         return u->id();
 
-    // Get the list of users with the same display name. Most likely,
-    // there'll be one, but there's a chance there are more.
-    if (d->membersMap.count(username) == 1)
-        return username;
+    auto namesakesIt = qAsConst(d->membersMap).find(username);
 
     // We expect a user to be a member of the room - but technically it is
     // possible to invoke roomMemberName() even for non-members. In such case
-    // we return the name _with_ id, to stay on a safe side.
-    // XXX: Causes a storm of false alarms when scrolling through older events
-    // with left users; commented out until we have a proper backtracking of
-    // room state ("room time machine").
-//    if ( !namesakes.contains(u) )
-//    {
-//        qCWarning()
-//            << "Room::roomMemberName(): user" << u->id()
-//            << "is not a member of the room" << id();
-//    }
+    // we return the full name, just in case.
+    if (namesakesIt == d->membersMap.cend())
+        return u->fullName(this);
 
-    // In case of more than one namesake, use the full name to disambiguate
-    return u->fullName(this);
+    auto nextUserIt = namesakesIt + 1;
+    if (nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
+        return username; // No disambiguation necessary
+
+    // Check if we can get away just attaching the bridge postfix
+    // (extension to the spec)
+    QVector<QString> bridges;
+    for (; namesakesIt != d->membersMap.cend() && namesakesIt.key() == username;
+         ++namesakesIt)
+    {
+        const auto bridgeName = (*namesakesIt)->bridged();
+        if (bridges.contains(bridgeName)) // Two accounts on the same bridge
+            return u->fullName(this); // Disambiguate fully
+        // Don't bother sorting, not so many bridges out there
+        bridges.push_back(bridgeName);
+    }
+
+    return u->rawName(this); // Disambiguate using the bridge postfix only
 }
 
 QString Room::roomMembername(const QString& userId) const
@@ -1653,7 +1660,7 @@ void Room::processAccountDataEvent(EventPtr event)
         }
         default:
             d->accountData[event->jsonType()] =
-                    event->contentJson().toVariantHash();
+                    fromJson<AccountDataMap>(event->contentJson());
             emit accountDataChanged(event->jsonType());
     }
 }
@@ -1795,7 +1802,7 @@ QJsonObject Room::Private::toJson() const
         for (const auto *m : membersMap)
             appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
                 { { QStringLiteral("membership"), QStringLiteral("join") }
-                , { QStringLiteral("displayname"), m->name(q) }
+                , { QStringLiteral("displayname"), m->rawName(q) }
                 , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
             }, m->id());
 
@@ -1816,7 +1823,7 @@ QJsonObject Room::Private::toJson() const
     {
         for (auto it = accountData.begin(); it != accountData.end(); ++it)
             appendEvent(accountDataEvents, it.key(),
-                        QJsonObject::fromVariantHash(it.value()));
+                        QMatrixClient::toJson(it.value()));
     }
     result.insert("account_data", QJsonObject {{ "events", accountDataEvents }});
 

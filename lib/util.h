@@ -20,6 +20,7 @@
 
 #include <QtCore/QMetaEnum>
 #include <QtCore/QDebug>
+#include <QtCore/QPointer>
 
 #include <functional>
 #include <memory>
@@ -41,6 +42,7 @@ namespace QMatrixClient
     }
 #endif
 
+    /** static_cast<> for unique_ptr's */
     template <typename T1, typename PtrT2>
     inline auto unique_ptr_cast(PtrT2&& p)
     {
@@ -55,5 +57,31 @@ namespace QMatrixClient
     template <typename T>
     static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
 #endif
+
+    /** A guard pointer that disconnects an interested object upon destruction
+     * It's almost QPointer<> except that you have to initialise it with one
+     * more additional parameter - a pointer to a QObject that will be
+     * disconnected from signals of the underlying pointer upon the guard's
+     * destruction.
+     */
+    template <typename T>
+    class ConnectionsGuard : public QPointer<T>
+    {
+        public:
+            ConnectionsGuard(T* publisher, QObject* subscriber)
+                : QPointer<T>(publisher), subscriber(subscriber)
+            { }
+            ~ConnectionsGuard()
+            {
+                if (*this)
+                    (*this)->disconnect(subscriber);
+            }
+            ConnectionsGuard(ConnectionsGuard&&) noexcept = default;
+            ConnectionsGuard& operator=(ConnectionsGuard&&) noexcept = default;
+            using QPointer<T>::operator=;
+
+        private:
+            QObject* subscriber;
+    };
 }  // namespace QMatrixClient
 

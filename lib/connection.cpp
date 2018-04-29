@@ -84,7 +84,7 @@ class Connection::Private
         QVector<QString> roomIdsToForget;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
-        QHash<QString, QVariantHash> accountData;
+        QHash<QString, AccountDataMap> accountData;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -336,7 +336,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
             continue;
         }
         d->accountData[accountEvent->jsonType()] =
-                accountEvent->contentJson().toVariantHash();
+                fromJson<AccountDataMap>(accountEvent->contentJson());
         emit accountDataChanged(accountEvent->jsonType());
     }
 }
@@ -590,6 +590,7 @@ Room* Connection::invitation(const QString& roomId) const
 
 User* Connection::user(const QString& userId)
 {
+    Q_ASSERT(userId.startsWith('@') && userId.contains(':'));
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
     auto* user = userFactory(this, userId);
@@ -657,7 +658,7 @@ bool Connection::hasAccountData(const QString& type) const
     return d->accountData.contains(type);
 }
 
-QVariantHash Connection::accountData(const QString& type) const
+Connection::AccountDataMap Connection::accountData(const QString& type) const
 {
     return d->accountData.value(type);
 }
@@ -847,7 +848,7 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 7;
+static constexpr int CACHE_VERSION_MAJOR = 8;
 static constexpr int CACHE_VERSION_MINOR = 0;
 
 void Connection::saveState(const QUrl &toFile) const
@@ -909,7 +910,7 @@ void Connection::saveState(const QUrl &toFile) const
         for (auto it = d->accountData.begin(); it != d->accountData.end(); ++it)
             accountDataEvents.append(QJsonObject {
                 {"type", it.key()},
-                {"content", QJsonObject::fromVariantHash(it.value())}
+                {"content", QMatrixClient::toJson(it.value())}
             });
         rootObj.insert("account_data",
             QJsonObject {{ QStringLiteral("events"), accountDataEvents }});

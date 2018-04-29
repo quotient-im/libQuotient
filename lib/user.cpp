@@ -220,6 +220,12 @@ QString User::name(const Room* room) const
     return d->nameForRoom(room);
 }
 
+QString User::rawName(const Room* room) const
+{
+    return d->bridged.isEmpty() ? name(room) :
+                                  name(room) % " (" % d->bridged % ')';
+}
+
 void User::updateName(const QString& newName, const Room* room)
 {
     updateName(newName, d->nameForRoom(room), room);
@@ -305,7 +311,7 @@ QString User::displayname(const Room* room) const
 {
     auto name = d->nameForRoom(room);
     return name.isEmpty() ? d->userId :
-           room ? room->roomMembername(name) : name;
+           room ? room->roomMembername(this) : name;
 }
 
 QString User::fullName(const Room* room) const
@@ -389,12 +395,12 @@ void User::processEvent(RoomMemberEvent* event, const Room* room)
         // FIXME: the hint doesn't work for bridged users
         auto oldNameHint =
                 d->nameForRoom(room, event->prevContent()->displayName);
-        updateName(event->displayName(), oldNameHint, room);
+        updateName(newName, oldNameHint, room);
         updateAvatarUrl(event->avatarUrl(),
                         d->avatarUrlForRoom(room, event->prevContent()->avatarUrl),
                         room);
     } else {
-        updateName(event->displayName(), room);
+        updateName(newName, room);
         updateAvatarUrl(event->avatarUrl(), d->avatarUrlForRoom(room), room);
     }
 }

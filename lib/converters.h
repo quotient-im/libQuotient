@@ -21,6 +21,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray> // Includes <QtCore/QJsonValue>
 #include <QtCore/QDate>
+#include <QtCore/QVariant>
 
 namespace QMatrixClient
 {
@@ -50,6 +51,18 @@ namespace QMatrixClient
     {
         return QJsonValue(bytes.constData());
     }
+
+    inline QJsonObject toJson(const QVariantMap& map)
+    {
+        return QJsonObject::fromVariantMap(map);
+    }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+    inline QJsonObject toJson(const QVariantHash& hMap)
+    {
+        return QJsonObject::fromVariantHash(hMap);
+    }
+#endif
 
     template <typename T>
     inline QJsonObject toJson(const QHash<QString, T>& hashMap)
@@ -162,6 +175,24 @@ namespace QMatrixClient
             return fromJson<QString>(jv).toLatin1();
         }
     };
+
+    template <> struct FromJson<QVariantMap>
+    {
+        inline auto operator()(const QJsonValue& jv) const
+        {
+            return jv.toObject().toVariantMap();
+        }
+    };
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+    template <> struct FromJson<QVariantHash>
+    {
+        inline auto operator()(const QJsonValue& jv) const
+        {
+            return jv.toObject().toVariantHash();
+        }
+    };
+#endif
 
     template <typename T> struct FromJson<QHash<QString, T>>
     {
