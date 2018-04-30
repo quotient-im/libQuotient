@@ -24,16 +24,16 @@ namespace QMatrixClient
 
     template <> struct FromJson<CreateRoomJob::Invite3pid>
     {
-        CreateRoomJob::Invite3pid operator()(QJsonValue jv)
+        CreateRoomJob::Invite3pid operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             CreateRoomJob::Invite3pid result;
             result.idServer =
-            fromJson<QString>(o.value("id_server"));
+                fromJson<QString>(o.value("id_server"));
             result.medium =
-            fromJson<QString>(o.value("medium"));
+                fromJson<QString>(o.value("medium"));
             result.address =
-            fromJson<QString>(o.value("address"));
+                fromJson<QString>(o.value("address"));
             
             return result;
         }
@@ -54,16 +54,16 @@ namespace QMatrixClient
 
     template <> struct FromJson<CreateRoomJob::StateEvent>
     {
-        CreateRoomJob::StateEvent operator()(QJsonValue jv)
+        CreateRoomJob::StateEvent operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             CreateRoomJob::StateEvent result;
             result.type =
-            fromJson<QString>(o.value("type"));
+                fromJson<QString>(o.value("type"));
             result.stateKey =
-            fromJson<QString>(o.value("state_key"));
+                fromJson<QString>(o.value("state_key"));
             result.content =
-            fromJson<QJsonObject>(o.value("content"));
+                fromJson<QJsonObject>(o.value("content"));
             
             return result;
         }

@@ -22,12 +22,12 @@ namespace QMatrixClient
 
     template <> struct FromJson<GetPushersJob::PusherData>
     {
-        GetPushersJob::PusherData operator()(QJsonValue jv)
+        GetPushersJob::PusherData operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             GetPushersJob::PusherData result;
             result.url =
-            fromJson<QString>(o.value("url"));
+                fromJson<QString>(o.value("url"));
             
             return result;
         }
@@ -53,26 +53,26 @@ namespace QMatrixClient
 
     template <> struct FromJson<GetPushersJob::Pusher>
     {
-        GetPushersJob::Pusher operator()(QJsonValue jv)
+        GetPushersJob::Pusher operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             GetPushersJob::Pusher result;
             result.pushkey =
-            fromJson<QString>(o.value("pushkey"));
+                fromJson<QString>(o.value("pushkey"));
             result.kind =
-            fromJson<QString>(o.value("kind"));
+                fromJson<QString>(o.value("kind"));
             result.appId =
-            fromJson<QString>(o.value("app_id"));
+                fromJson<QString>(o.value("app_id"));
             result.appDisplayName =
-            fromJson<QString>(o.value("app_display_name"));
+                fromJson<QString>(o.value("app_display_name"));
             result.deviceDisplayName =
-            fromJson<QString>(o.value("device_display_name"));
+                fromJson<QString>(o.value("device_display_name"));
             result.profileTag =
-            fromJson<QString>(o.value("profile_tag"));
+                fromJson<QString>(o.value("profile_tag"));
             result.lang =
-            fromJson<QString>(o.value("lang"));
+                fromJson<QString>(o.value("lang"));
             result.data =
-            fromJson<GetPushersJob::PusherData>(o.value("data"));
+                fromJson<GetPushersJob::PusherData>(o.value("data"));
             
             return result;
         }
@@ -124,12 +124,12 @@ namespace QMatrixClient
 
     template <> struct FromJson<PostPusherJob::PusherData>
     {
-        PostPusherJob::PusherData operator()(QJsonValue jv)
+        PostPusherJob::PusherData operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             PostPusherJob::PusherData result;
             result.url =
-            fromJson<QString>(o.value("url"));
+                fromJson<QString>(o.value("url"));
             
             return result;
         }

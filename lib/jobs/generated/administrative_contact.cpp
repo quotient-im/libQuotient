@@ -23,14 +23,14 @@ namespace QMatrixClient
 
     template <> struct FromJson<GetAccount3PIDsJob::ThirdPartyIdentifier>
     {
-        GetAccount3PIDsJob::ThirdPartyIdentifier operator()(QJsonValue jv)
+        GetAccount3PIDsJob::ThirdPartyIdentifier operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             GetAccount3PIDsJob::ThirdPartyIdentifier result;
             result.medium =
-            fromJson<QString>(o.value("medium"));
+                fromJson<QString>(o.value("medium"));
             result.address =
-            fromJson<QString>(o.value("address"));
+                fromJson<QString>(o.value("address"));
             
             return result;
         }
@@ -84,16 +84,16 @@ namespace QMatrixClient
 
     template <> struct FromJson<Post3PIDsJob::ThreePidCredentials>
     {
-        Post3PIDsJob::ThreePidCredentials operator()(QJsonValue jv)
+        Post3PIDsJob::ThreePidCredentials operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             Post3PIDsJob::ThreePidCredentials result;
             result.clientSecret =
-            fromJson<QString>(o.value("client_secret"));
+                fromJson<QString>(o.value("client_secret"));
             result.idServer =
-            fromJson<QString>(o.value("id_server"));
+                fromJson<QString>(o.value("id_server"));
             result.sid =
-            fromJson<QString>(o.value("sid"));
+                fromJson<QString>(o.value("sid"));
             
             return result;
         }
