@@ -19,9 +19,9 @@ namespace QMatrixClient
     }
 }
 
-{{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(QJsonValue jv)
+{{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(const QJsonValue& jv)
 {
-    QJsonObject o = jv.toObject();
+    const auto& o = jv.toObject();
     {{qualifiedName}} result;
     {{#vars}}result.{{nameCamelCase}} =
         fromJson<{{dataType.name}}>(o.value("{{baseName}}"));
@@ -43,12 +43,12 @@ namespace QMatrixClient
 
     template <> struct FromJson<{{qualifiedName}}>
     {
-        {{qualifiedName}} operator()(QJsonValue jv)
+        {{qualifiedName}} operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             {{qualifiedName}} result;
             {{#vars}}result.{{nameCamelCase}} =
-            fromJson<{{dataType.qualifiedName}}>(o.value("{{baseName}}"));
+                fromJson<{{dataType.qualifiedName}}>(o.value("{{baseName}}"));
             {{/vars}}
             return result;
         }

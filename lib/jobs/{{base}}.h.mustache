@@ -23,7 +23,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<{{name}}>
     {
-        {{name}} operator()(QJsonValue jv);
+        {{name}} operator()(const QJsonValue& jv);
     };
 {{/    trivial?}}{{/model}}
 {{/models}}{{#operations}}    // Operations
