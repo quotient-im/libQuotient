@@ -42,6 +42,7 @@ HEADERS += \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/jobs/generated/*.h, false) \
+    $$files($$SRCPATH/jobs/generated/definitions/*.h, false) \
     $$SRCPATH/logging.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
@@ -73,6 +74,7 @@ SOURCES += \
     $$SRCPATH/jobs/setroomstatejob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/jobs/generated/*.cpp, false) \
+    $$files($$SRCPATH/jobs/generated/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/settings.cpp \
     $$SRCPATH/networksettings.cpp \

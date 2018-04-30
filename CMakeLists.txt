@@ -91,36 +91,37 @@ set(libqmatrixclient_SRCS
     lib/jobs/downloadfilejob.cpp
 )
 
-set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server/)
+set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server)
 file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
     ${API_DEF_PATH}/*.yaml
     ${API_DEF_PATH}/definitions/*.yaml
     ${MATRIX_DOC_PATH}/event-schemas/schema/*
 )
-set(JOBS_SRC_DIR lib/jobs)
+set(GTAD_CONFIG_DIR lib/jobs)
+set(GEN_SRC_DIR lib/jobs/generated)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
-        ${GTAD_PATH} --config ${JOBS_SRC_DIR}/gtad.yaml --out ${JOBS_SRC_DIR}/generated
-            ${MATRIX_DOC_PATH}/api/client-server
+        ${GTAD_PATH} --config ${GTAD_CONFIG_DIR}/gtad.yaml --out ${GEN_SRC_DIR}
+            ${API_DEF_PATH}
             cas_login_redirect.yaml- cas_login_ticket.yaml-
-            old_sync.yaml- room_initial_sync.yaml-
-            sync.yaml- room_state.yaml-
-            event_context.yaml- joining.yaml-
-            notifications.yaml- peeking_events.yaml-
-            pushrules.yaml- rooms.yaml- search.yaml-
+            old_sync.yaml- room_initial_sync.yaml- # deprecated
+            sync.yaml-
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        SOURCES ${JOBS_SRC_DIR}/gtad.yaml
-                ${JOBS_SRC_DIR}/{{base}}.h.mustache ${JOBS_SRC_DIR}/{{base}}.cpp.mustache
+        SOURCES ${GTAD_CONFIG_DIR}/gtad.yaml
+                ${GTAD_CONFIG_DIR}/{{base}}.h.mustache
+                ${GTAD_CONFIG_DIR}/{{base}}.cpp.mustache
                 ${API_DEFS}
         VERBATIM
     )
 endif()
 
-aux_source_directory(${JOBS_SRC_DIR}/generated libqmatrixclient_job_SRCS)
+aux_source_directory(${GEN_SRC_DIR} libqmatrixclient_job_SRCS)
+aux_source_directory(${GEN_SRC_DIR}/definitions libqmatrixclient_def_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
-add_library(QMatrixClient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
+add_library(QMatrixClient ${libqmatrixclient_SRCS}
+            ${libqmatrixclient_job_SRCS} ${libqmatrixclient_def_SRCS})
 set(API_VERSION "0.2")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
