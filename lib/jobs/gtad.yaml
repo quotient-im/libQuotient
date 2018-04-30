@@ -1,87 +1,89 @@
-preprocess:
-  "%CLIENT_RELEASE_LABEL%": r0
-  "%CLIENT_MAJOR_VERSION%": r0
-  # FIXME: the below only fixes C++ compilation but not actual work - the code
-  # will try to reach out for wrong values in JSON payloads
-  #"signed:": "signedData:"
-  #"unsigned:": "unsignedData:"
-  #"default:": "isDefault:"
+analyzer:
+  subst:
+    "%CLIENT_RELEASE_LABEL%": r0
+    "%CLIENT_MAJOR_VERSION%": r0
+  identifiers:
+    signed: signedData
+    unsigned: unsignedData
+    default: isDefault
+    origin_server_ts: originServerTimestamp
 
-# Structure:
-# swaggerType: <targetTypeSpec>
-# OR
-# swaggerType:
-#   - swaggerFormat: <targetTypeSpec>
-#   - /swaggerFormatRegEx/: <targetTypeSpec>
-#   - //: <targetTypeSpec> # default, if the format doesn't mach anything above
-# WHERE
-# targetTypeSpec = targetType OR
-#   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
-types:
-  integer:
-  - int64: qint64
-  - int32: qint32
-  - //: int
-  number:
-  - float: float
-  - //: double
-  boolean: { type: bool, initializer: false }
-  string:
-  - byte: &ByteStream
-      type: QIODevice*
-      #initializer: '"{{defaultValue}}"'
-      #string?: true
-      imports: <QtCore/QIODevice>
-  - binary: *ByteStream
-  - date:
-      type: QDate
-      initializer: QDate::fromString("{{defaultValue}}")
+  types:
+    # Structure:
+    # swaggerType: <targetTypeSpec>
+    # OR
+    # swaggerType:
+    #   - swaggerFormat: <targetTypeSpec>
+    #   - /swaggerFormatRegEx/: <targetTypeSpec>
+    #   - //: <targetTypeSpec> # default, if the format doesn't mach anything above
+    # WHERE
+    # targetTypeSpec = targetType OR
+    #   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
+    integer:
+    - int64: qint64
+    - int32: qint32
+    - //: int
+    number:
+    - float: float
+    - //: double
+    boolean: { type: bool, initializer: false }
+    string:
+    - byte: &ByteStream
+        type: QIODevice*
+        #initializer: '"{{defaultValue}}"'
+        #string?: true
+        imports: <QtCore/QIODevice>
+    - binary: *ByteStream
+    - date:
+        type: QDate
+        initializer: QDate::fromString("{{defaultValue}}")
+        avoidCopy?: true
+        imports: <QtCore/QDate>
+    - dateTime:
+        type: QDateTime
+        initializer: QDateTime::fromString("{{defaultValue}}")
+        avoidCopy?: true
+        imports: <QtCore/QDateTime>
+    - //:
+        type: QString
+        initializer: QStringLiteral("{{defaultValue}}")
+        string?: true
+        avoidCopy?: true
+    file: *ByteStream
+    object:
+      type: QJsonObject
       avoidCopy?: true
-      imports: <QtCore/QDate>
-  - dateTime:
-      type: QDateTime
-      initializer: QDateTime::fromString("{{defaultValue}}")
+      imports: <QtCore/QJsonObject>
+    array:
+    - /.+/:
+        type: "QVector<{{1}}>"
+        avoidCopy?: true
+        imports: <QtCore/QVector>
+    - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
+    schema:
       avoidCopy?: true
-      imports: <QtCore/QDateTime>
-  - //:
-      type: QString
-      initializer: QStringLiteral("{{defaultValue}}")
-      string?: true
-      avoidCopy?: true
-  file: *ByteStream
-  object:
-    type: QJsonObject
-    avoidCopy?: true
-    imports: <QtCore/QJsonObject>
-  array:
-  - /.+/:
-      type: "QVector<{{1}}>"
-      avoidCopy?: true
-      imports: <QtCore/QVector>
-  - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
-  schema:
-    avoidCopy?: true
 
-#operations:
+  #operations:
 
-env:
-  _scopeRenderer: "{{scopeCamelCase}}Job::"
-  _literalQuote: '"'
-  maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
-  qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
-  initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
-  joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
-  joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
-  passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'
-  paramToString: '{{#string?}}{{nameCamelCase}}{{/string?}}{{^string?}}QString("%1").arg({{nameCamelCase}}){{/string?}}'
-#  preamble: preamble.mustache
-  copyrightName: Kitsune Ral
-  copyrightEmail: <kitsune-ral@users.sf.net>
-#  imports: { set: }
+mustache:
+  definitions:
+    _scopeRenderer: "{{scopeCamelCase}}Job::"
+    _literalQuote: '"'
+    maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}"
+    qualifiedMaybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}"
+    initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
+    joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
+    joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
+    passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'
+    paramToString: '{{#string?}}{{nameCamelCase}}{{/string?}}{{^string?}}QString("%1").arg({{nameCamelCase}}){{/string?}}'
+  #  preamble: preamble.mustache
+    copyrightName: Kitsune Ral
+    copyrightEmail: <kitsune-ral@users.sf.net>
+  #  imports: { set: }
 
-templates:
-- "{{base}}.h.mustache"
-- "{{base}}.cpp.mustache"
+  templates:
+  - "{{base}}.h.mustache"
+  - "{{base}}.cpp.mustache"
 
-#outFilesList: apifiles.txt
+  #outFilesList: apifiles.txt
 
