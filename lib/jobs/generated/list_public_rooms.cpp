@@ -29,28 +29,28 @@ namespace QMatrixClient
 {
     template <> struct FromJson<GetPublicRoomsJob::PublicRoomsChunk>
     {
-        GetPublicRoomsJob::PublicRoomsChunk operator()(QJsonValue jv)
+        GetPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             GetPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-            fromJson<QVector<QString>>(o.value("aliases"));
+                fromJson<QVector<QString>>(o.value("aliases"));
             result.canonicalAlias =
-            fromJson<QString>(o.value("canonical_alias"));
+                fromJson<QString>(o.value("canonical_alias"));
             result.name =
-            fromJson<QString>(o.value("name"));
+                fromJson<QString>(o.value("name"));
             result.numJoinedMembers =
-            fromJson<double>(o.value("num_joined_members"));
+                fromJson<double>(o.value("num_joined_members"));
             result.roomId =
-            fromJson<QString>(o.value("room_id"));
+                fromJson<QString>(o.value("room_id"));
             result.topic =
-            fromJson<QString>(o.value("topic"));
+                fromJson<QString>(o.value("topic"));
             result.worldReadable =
-            fromJson<bool>(o.value("world_readable"));
+                fromJson<bool>(o.value("world_readable"));
             result.guestCanJoin =
-            fromJson<bool>(o.value("guest_can_join"));
+                fromJson<bool>(o.value("guest_can_join"));
             result.avatarUrl =
-            fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(o.value("avatar_url"));
             
             return result;
         }
@@ -139,12 +139,12 @@ namespace QMatrixClient
 {
     template <> struct FromJson<QueryPublicRoomsJob::Filter>
     {
-        QueryPublicRoomsJob::Filter operator()(QJsonValue jv)
+        QueryPublicRoomsJob::Filter operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             QueryPublicRoomsJob::Filter result;
             result.genericSearchTerm =
-            fromJson<QString>(o.value("generic_search_term"));
+                fromJson<QString>(o.value("generic_search_term"));
             
             return result;
         }
@@ -170,28 +170,28 @@ namespace QMatrixClient
 {
     template <> struct FromJson<QueryPublicRoomsJob::PublicRoomsChunk>
     {
-        QueryPublicRoomsJob::PublicRoomsChunk operator()(QJsonValue jv)
+        QueryPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
         {
-            QJsonObject o = jv.toObject();
+            const auto& o = jv.toObject();
             QueryPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-            fromJson<QVector<QString>>(o.value("aliases"));
+                fromJson<QVector<QString>>(o.value("aliases"));
             result.canonicalAlias =
-            fromJson<QString>(o.value("canonical_alias"));
+                fromJson<QString>(o.value("canonical_alias"));
             result.name =
-            fromJson<QString>(o.value("name"));
+                fromJson<QString>(o.value("name"));
             result.numJoinedMembers =
-            fromJson<double>(o.value("num_joined_members"));
+                fromJson<double>(o.value("num_joined_members"));
             result.roomId =
-            fromJson<QString>(o.value("room_id"));
+                fromJson<QString>(o.value("room_id"));
             result.topic =
-            fromJson<QString>(o.value("topic"));
+                fromJson<QString>(o.value("topic"));
             result.worldReadable =
-            fromJson<bool>(o.value("world_readable"));
+                fromJson<bool>(o.value("world_readable"));
             result.guestCanJoin =
-            fromJson<bool>(o.value("guest_can_join"));
+                fromJson<bool>(o.value("guest_can_join"));
             result.avatarUrl =
-            fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(o.value("avatar_url"));
             
             return result;
         }
