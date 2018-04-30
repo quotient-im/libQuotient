@@ -78,6 +78,7 @@ namespace QMatrixClient
             }
             ConnectionsGuard(ConnectionsGuard&&) noexcept = default;
             ConnectionsGuard& operator=(ConnectionsGuard&&) noexcept = default;
+            ConnectionsGuard& operator=(const ConnectionsGuard&) = delete;
             using QPointer<T>::operator=;
 
         private:
