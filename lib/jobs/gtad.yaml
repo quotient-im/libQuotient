@@ -51,15 +51,24 @@ analyzer:
         avoidCopy?: true
     file: *ByteStream
     object:
-      type: QJsonObject
-      avoidCopy?: true
-      imports: <QtCore/QJsonObject>
+    - definitions/event.yaml:
+        type: EventPtr
+        imports: '"events/event.h"'
+    - //:
+        type: QJsonObject
+        avoidCopy?: true
+        imports: <QtCore/QJsonObject>
     array:
+    - Notification:
+        type: "std::vector<{{1}}>"
+        avoidCopy?: true
+        imports: <vector>
     - /.+/:
         type: "QVector<{{1}}>"
         avoidCopy?: true
         imports: <QtCore/QVector>
     - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
+    variant: { type: QVariant, "avoidCopy?": true, imports: <QtCore/QVariant> }
     schema:
       avoidCopy?: true
 
