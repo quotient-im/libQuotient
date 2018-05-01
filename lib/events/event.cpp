@@ -87,7 +87,7 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
 {
     // Check more specific event types first
     if (auto e = doMakeEvent<RoomEvent>(obj))
-        return e;
+        return ptrCast<Event>(move(e));
 
     return makeIfMatches<Event,
         TypingEvent, ReceiptEvent, TagEvent, ReadMarkerEvent, DirectChatEvent>(
@@ -162,7 +162,7 @@ RoomEventPtr _impl::doMakeEvent(const QJsonObject& obj)
 {
     // Check more specific event types first
     if (auto e = doMakeEvent<StateEventBase>(obj))
-        return e;
+        return ptrCast<RoomEvent>(move(e));
 
     return makeIfMatches<RoomEvent,
         RoomMessageEvent, RedactionEvent>(obj, obj["type"].toString());
