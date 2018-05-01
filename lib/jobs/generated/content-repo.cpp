@@ -65,7 +65,7 @@ class GetContentJob::Private
 
 QUrl GetContentJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/download/" % serverName % "/" % mediaId);
 }
 
@@ -112,7 +112,7 @@ class GetContentOverrideNameJob::Private
 
 QUrl GetContentOverrideNameJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/download/" % serverName % "/" % mediaId % "/" % fileName);
 }
 
@@ -168,7 +168,7 @@ BaseJob::Query queryToGetContentThumbnail(int width, int height, const QString& 
 
 QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width, int height, const QString& method)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/thumbnail/" % serverName % "/" % mediaId,
             queryToGetContentThumbnail(width, height, method));
 }
@@ -205,11 +205,11 @@ BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 class GetUrlPreviewJob::Private
 {
     public:
-        double matrixImageSize;
+        qint64 matrixImageSize;
         QString ogImage;
 };
 
-BaseJob::Query queryToGetUrlPreview(const QString& url, double ts)
+BaseJob::Query queryToGetUrlPreview(const QString& url, qint64 ts)
 {
     BaseJob::Query _q;
     _q.addQueryItem("url", url);
@@ -217,14 +217,14 @@ BaseJob::Query queryToGetUrlPreview(const QString& url, double ts)
     return _q;
 }
 
-QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url, double ts)
+QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url, qint64 ts)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/preview_url",
             queryToGetUrlPreview(url, ts));
 }
 
-GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, double ts)
+GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, qint64 ts)
     : BaseJob(HttpVerb::Get, "GetUrlPreviewJob",
         basePath % "/preview_url",
         queryToGetUrlPreview(url, ts))
@@ -234,7 +234,7 @@ GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, double ts)
 
 GetUrlPreviewJob::~GetUrlPreviewJob() = default;
 
-double GetUrlPreviewJob::matrixImageSize() const
+qint64 GetUrlPreviewJob::matrixImageSize() const
 {
     return d->matrixImageSize;
 }
@@ -247,7 +247,7 @@ const QString& GetUrlPreviewJob::ogImage() const
 BaseJob::Status GetUrlPreviewJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->matrixImageSize = fromJson<double>(json.value("matrix:image:size"));
+    d->matrixImageSize = fromJson<qint64>(json.value("matrix:image:size"));
     d->ogImage = fromJson<QString>(json.value("og:image"));
     return Success;
 }

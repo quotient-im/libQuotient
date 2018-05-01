@@ -111,12 +111,12 @@ namespace QMatrixClient
              * a URL for GetUrlPreviewJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, double ts = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, qint64 ts = {});
 
-            explicit GetUrlPreviewJob(const QString& url, double ts = {});
+            explicit GetUrlPreviewJob(const QString& url, qint64 ts = {});
             ~GetUrlPreviewJob() override;
 
-            double matrixImageSize() const;
+            qint64 matrixImageSize() const;
             const QString& ogImage() const;
 
         protected:

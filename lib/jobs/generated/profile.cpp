@@ -30,7 +30,7 @@ class GetDisplayNameJob::Private
 
 QUrl GetDisplayNameJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/profile/" % userId % "/displayname");
 }
 
@@ -73,7 +73,7 @@ class GetAvatarUrlJob::Private
 
 QUrl GetAvatarUrlJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/profile/" % userId % "/avatar_url");
 }
 
@@ -107,7 +107,7 @@ class GetUserProfileJob::Private
 
 QUrl GetUserProfileJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/profile/" % userId);
 }
 

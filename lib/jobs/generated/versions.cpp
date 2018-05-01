@@ -20,7 +20,7 @@ class GetVersionsJob::Private
 
 QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/versions");
 }
 
