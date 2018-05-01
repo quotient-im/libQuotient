@@ -55,6 +55,7 @@
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
+using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
 using std::llround;
 #endif
@@ -74,7 +75,7 @@ class Room::Private
         typedef QMultiHash<QString, User*> members_map_t;
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
-            : q(nullptr), connection(c), id(std::move(id_))
+            : q(nullptr), connection(c), id(move(id_))
             , joinState(initialJoinState)
         { }
 
@@ -228,7 +229,7 @@ class Room::Private
 
 RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
 {
-    return std::exchange(evt, std::move(other));
+    return std::exchange(evt, move(other));
 }
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
@@ -1389,7 +1390,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
-    const auto insertedSize = insertEvents(std::move(normalEvents), Newer);
+    const auto insertedSize = insertEvents(move(normalEvents), Newer);
     const auto from = timeline.cend() - insertedSize;
     if (insertedSize > 0)
     {
@@ -1436,7 +1437,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     emit q->aboutToAddHistoricalMessages(normalEvents);
-    const auto insertedSize = insertEvents(std::move(normalEvents), Older);
+    const auto insertedSize = insertEvents(move(normalEvents), Older);
     const auto from = timeline.crend() - insertedSize;
 
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
