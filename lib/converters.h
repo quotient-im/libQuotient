@@ -34,6 +34,15 @@ namespace QMatrixClient
 #endif
 
     template <typename T>
+    inline QJsonArray toJson(const std::vector<T>& vals)
+    {
+        QJsonArray ar;
+        for (const auto& v: vals)
+            ar.push_back(toJson(v));
+        return ar;
+    }
+
+    template <typename T>
     inline QJsonArray toJson(const QVector<T>& vals)
     {
         QJsonArray ar;
@@ -139,6 +148,18 @@ namespace QMatrixClient
         QJsonArray operator()(const QJsonValue& jv) const
         {
             return jv.toArray();
+        }
+    };
+
+    template <typename T> struct FromJson<std::vector<T>>
+    {
+        std::vector<T> operator()(const QJsonValue& jv) const
+        {
+            const auto jsonArray = jv.toArray();
+            std::vector<T> vect; vect.resize(size_t(jsonArray.size()));
+            std::transform(jsonArray.begin(), jsonArray.end(),
+                           vect.begin(), FromJson<T>());
+            return vect;
         }
     };
 
