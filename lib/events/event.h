@@ -18,14 +18,8 @@
 
 #pragma once
 
-#include <QtCore/QString>
-#include <QtCore/QDateTime>
-#include <QtCore/QJsonObject>
-#include <QtCore/QJsonArray>
-
+#include "converters.h"
 #include "util.h"
-
-#include <memory>
 
 namespace QMatrixClient
 {
@@ -109,6 +103,14 @@ namespace QMatrixClient
         template <>
         EventPtr doMakeEvent<Event>(const QJsonObject& obj);
     }
+
+    template <> struct FromJson<EventPtr>
+    {
+        EventPtr operator()(const QJsonValue& jv) const
+        {
+            return makeEvent<Event>(jv.toObject());
+        }
+    };
 
     /**
      * \brief A vector of pointers to events with deserialisation capabilities
