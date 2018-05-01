@@ -71,7 +71,7 @@ BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef
 {{/queryParams?}}{{^bodyParams}}
 QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDef}}{{/allParams}}{{/allParams?}})
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
             queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}});
 }
