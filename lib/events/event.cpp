@@ -87,7 +87,7 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
 {
     // Check more specific event types first
     if (auto e = doMakeEvent<RoomEvent>(obj))
-        return e;
+        return ptrCast<Event>(move(e));
 
     return makeIfMatches<Event,
         TypingEvent, ReceiptEvent, TagEvent, ReadMarkerEvent, DirectChatEvent>(
