@@ -167,7 +167,7 @@ namespace QMatrixClient
             // constructors and destructors
             explicit RoomEvent(Type type);
             RoomEvent(Type type, const QJsonObject& rep);
-            ~RoomEvent();
+            ~RoomEvent() override;
 
             QString id() const { return _id; }
             QDateTime timestamp() const;
@@ -204,9 +204,6 @@ namespace QMatrixClient
 
         private:
             QString _id;
-//            QString _roomId;
-//            QString _senderId;
-//            QDateTime _serverTimestamp;
             event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
