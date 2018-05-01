@@ -6,6 +6,8 @@
 
 #include "../basejob.h"
 
+#include <vector>
+#include "events/event.h"
 #include <QtCore/QJsonObject>
 #include <QtCore/QVector>
 
@@ -20,26 +22,7 @@ namespace QMatrixClient
         public:
             // Inner data structures
 
-            struct Unsigned
-            {
-                qint64 age;
-                QJsonObject prevContent;
-                QString transactionId;
-                QJsonObject redactedBecause;
-                
-            };
-
-            struct Event
-            {
-                QString eventId;
-                QJsonObject content;
-                qint64 originServerTimestamp;
-                QString sender;
-                QString stateKey;
-                QString type;
-                Unsigned unsignedData;
-                
-            };
+            using Event = EventPtr;
 
             struct Notification
             {
@@ -65,7 +48,7 @@ namespace QMatrixClient
             ~GetNotificationsJob() override;
 
             const QString& nextToken() const;
-            const QVector<Notification>& notifications() const;
+            const std::vector<Notification>& notifications() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

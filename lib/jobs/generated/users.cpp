@@ -47,7 +47,7 @@ class SearchUserDirectoryJob::Private
         bool limited;
 };
 
-SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, double limit)
+SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, int limit)
     : BaseJob(HttpVerb::Post, "SearchUserDirectoryJob",
         basePath % "/user_directory/search")
     , d(new Private)

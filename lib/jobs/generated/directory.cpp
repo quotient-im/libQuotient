@@ -31,7 +31,7 @@ class GetRoomIdByAliasJob::Private
 
 QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/room/" % roomAlias);
 }
 
@@ -64,7 +64,7 @@ BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 
 QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/room/" % roomAlias);
 }
 

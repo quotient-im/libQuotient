@@ -20,7 +20,7 @@ class GetTokenOwnerJob::Private
 
 QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/account/whoami");
 }
 

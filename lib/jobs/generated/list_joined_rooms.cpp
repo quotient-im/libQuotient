@@ -20,7 +20,7 @@ class GetJoinedRoomsJob::Private
 
 QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/joined_rooms");
 }
 

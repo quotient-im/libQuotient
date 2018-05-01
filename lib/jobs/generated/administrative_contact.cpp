@@ -45,7 +45,7 @@ class GetAccount3PIDsJob::Private
 
 QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/account/3pid");
 }
 
@@ -112,7 +112,7 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
 
 QUrl RequestTokenTo3PIDJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/account/3pid/email/requestToken");
 }
 

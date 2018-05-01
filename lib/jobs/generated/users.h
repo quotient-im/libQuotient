@@ -29,7 +29,7 @@ namespace QMatrixClient
 
             // End of inner data structures
 
-            explicit SearchUserDirectoryJob(const QString& searchTerm, double limit = {});
+            explicit SearchUserDirectoryJob(const QString& searchTerm, int limit = {});
             ~SearchUserDirectoryJob() override;
 
             const QVector<User>& results() const;

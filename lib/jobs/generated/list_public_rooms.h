@@ -53,7 +53,7 @@ namespace QMatrixClient
                 QVector<QString> aliases;
                 QString canonicalAlias;
                 QString name;
-                double numJoinedMembers;
+                qint64 numJoinedMembers;
                 QString roomId;
                 QString topic;
                 bool worldReadable;
@@ -69,15 +69,15 @@ namespace QMatrixClient
              * a URL for GetPublicRoomsJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, double limit = {}, const QString& since = {}, const QString& server = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, int limit = {}, const QString& since = {}, const QString& server = {});
 
-            explicit GetPublicRoomsJob(double limit = {}, const QString& since = {}, const QString& server = {});
+            explicit GetPublicRoomsJob(int limit = {}, const QString& since = {}, const QString& server = {});
             ~GetPublicRoomsJob() override;
 
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;
             const QString& prevBatch() const;
-            double totalRoomCountEstimate() const;
+            qint64 totalRoomCountEstimate() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -103,7 +103,7 @@ namespace QMatrixClient
                 QVector<QString> aliases;
                 QString canonicalAlias;
                 QString name;
-                double numJoinedMembers;
+                qint64 numJoinedMembers;
                 QString roomId;
                 QString topic;
                 bool worldReadable;
@@ -114,13 +114,13 @@ namespace QMatrixClient
 
             // End of inner data structures
 
-            explicit QueryPublicRoomsJob(const QString& server = {}, double limit = {}, const QString& since = {}, const Filter& filter = {});
+            explicit QueryPublicRoomsJob(const QString& server = {}, int limit = {}, const QString& since = {}, const Filter& filter = {});
             ~QueryPublicRoomsJob() override;
 
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;
             const QString& prevBatch() const;
-            double totalRoomCountEstimate() const;
+            qint64 totalRoomCountEstimate() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

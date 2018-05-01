@@ -20,7 +20,7 @@ class GetRoomTagsJob::Private
 
 QUrl GetRoomTagsJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/user/" % userId % "/rooms/" % roomId % "/tags");
 }
 
@@ -54,7 +54,7 @@ SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const
 
 QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId, const QString& tag)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/user/" % userId % "/rooms/" % roomId % "/tags/" % tag);
 }
 

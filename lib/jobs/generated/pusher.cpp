@@ -87,7 +87,7 @@ class GetPushersJob::Private
 
 QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/pushers");
 }
 

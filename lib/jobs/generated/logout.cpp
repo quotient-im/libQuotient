@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 QUrl LogoutJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/logout");
 }
 

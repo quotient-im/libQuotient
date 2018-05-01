@@ -18,7 +18,7 @@ class GetRoomVisibilityOnDirectoryJob::Private
 
 QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/directory/list/room/" % roomId);
 }
 
@@ -84,7 +84,7 @@ namespace QMatrixClient
             result.name =
                 fromJson<QString>(o.value("name"));
             result.numJoinedMembers =
-                fromJson<double>(o.value("num_joined_members"));
+                fromJson<qint64>(o.value("num_joined_members"));
             result.roomId =
                 fromJson<QString>(o.value("room_id"));
             result.topic =
@@ -107,10 +107,10 @@ class GetPublicRoomsJob::Private
         QVector<PublicRoomsChunk> chunk;
         QString nextBatch;
         QString prevBatch;
-        double totalRoomCountEstimate;
+        qint64 totalRoomCountEstimate;
 };
 
-BaseJob::Query queryToGetPublicRooms(double limit, const QString& since, const QString& server)
+BaseJob::Query queryToGetPublicRooms(int limit, const QString& since, const QString& server)
 {
     BaseJob::Query _q;
     _q.addQueryItem("limit", QString("%1").arg(limit));
@@ -121,14 +121,14 @@ BaseJob::Query queryToGetPublicRooms(double limit, const QString& since, const Q
     return _q;
 }
 
-QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, double limit, const QString& since, const QString& server)
+QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, int limit, const QString& since, const QString& server)
 {
-    return BaseJob::makeRequestUrl(baseUrl,
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/publicRooms",
             queryToGetPublicRooms(limit, since, server));
 }
 
-GetPublicRoomsJob::GetPublicRoomsJob(double limit, const QString& since, const QString& server)
+GetPublicRoomsJob::GetPublicRoomsJob(int limit, const QString& since, const QString& server)
     : BaseJob(HttpVerb::Get, "GetPublicRoomsJob",
         basePath % "/publicRooms",
         queryToGetPublicRooms(limit, since, server),
@@ -154,7 +154,7 @@ const QString& GetPublicRoomsJob::prevBatch() const
     return d->prevBatch;
 }
 
-double GetPublicRoomsJob::totalRoomCountEstimate() const
+qint64 GetPublicRoomsJob::totalRoomCountEstimate() const
 {
     return d->totalRoomCountEstimate;
 }
@@ -168,7 +168,7 @@ BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
     d->chunk = fromJson<QVector<PublicRoomsChunk>>(json.value("chunk"));
     d->nextBatch = fromJson<QString>(json.value("next_batch"));
     d->prevBatch = fromJson<QString>(json.value("prev_batch"));
-    d->totalRoomCountEstimate = fromJson<double>(json.value("total_room_count_estimate"));
+    d->totalRoomCountEstimate = fromJson<qint64>(json.value("total_room_count_estimate"));
     return Success;
 }
 
@@ -227,7 +227,7 @@ namespace QMatrixClient
             result.name =
                 fromJson<QString>(o.value("name"));
             result.numJoinedMembers =
-                fromJson<double>(o.value("num_joined_members"));
+                fromJson<qint64>(o.value("num_joined_members"));
             result.roomId =
                 fromJson<QString>(o.value("room_id"));
             result.topic =
@@ -250,7 +250,7 @@ class QueryPublicRoomsJob::Private
         QVector<PublicRoomsChunk> chunk;
         QString nextBatch;
         QString prevBatch;
-        double totalRoomCountEstimate;
+        qint64 totalRoomCountEstimate;
 };
 
 BaseJob::Query queryToQueryPublicRooms(const QString& server)
@@ -261,7 +261,7 @@ BaseJob::Query queryToQueryPublicRooms(const QString& server)
     return _q;
 }
 
-QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, double limit, const QString& since, const Filter& filter)
+QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, int limit, const QString& since, const Filter& filter)
     : BaseJob(HttpVerb::Post, "QueryPublicRoomsJob",
         basePath % "/publicRooms",
         queryToQueryPublicRooms(server))
@@ -292,7 +292,7 @@ const QString& QueryPublicRoomsJob::prevBatch() const
     return d->prevBatch;
 }
 
-double QueryPublicRoomsJob::totalRoomCountEstimate() const
+qint64 QueryPublicRoomsJob::totalRoomCountEstimate() const
 {
     return d->totalRoomCountEstimate;
 }
@@ -306,7 +306,7 @@ BaseJob::Status QueryPublicRoomsJob::parseJson(const QJsonDocument& data)
     d->chunk = fromJson<QVector<PublicRoomsChunk>>(json.value("chunk"));
     d->nextBatch = fromJson<QString>(json.value("next_batch"));
     d->prevBatch = fromJson<QString>(json.value("prev_batch"));
-    d->totalRoomCountEstimate = fromJson<double>(json.value("total_room_count_estimate"));
+    d->totalRoomCountEstimate = fromJson<qint64>(json.value("total_room_count_estimate"));
     return Success;
 }
 
