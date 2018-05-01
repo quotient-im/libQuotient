@@ -306,9 +306,8 @@ void Connection::onSyncSuccess(SyncData &&data) {
     {
         if (accountEvent->type() == EventType::DirectChat)
         {
-            const auto usersToDCs =
-                    unique_ptr_cast<DirectChatEvent>(accountEvent)
-                    ->usersToDirectChats();
+            const auto usersToDCs = ptrCast<DirectChatEvent>(move(accountEvent))
+                                        ->usersToDirectChats();
             DirectChatsMap removals =
                 erase_if(d->directChats, [&usersToDCs] (auto it) {
                     return !usersToDCs.contains(it.key()->id(), it.value());

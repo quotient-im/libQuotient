@@ -67,16 +67,17 @@ const QJsonObject Event::contentJson() const
 }
 
 template <typename BaseEventT>
-inline BaseEventT* makeIfMatches(const QJsonObject&, const QString&)
+inline event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject&, const QString&)
 {
     return nullptr;
 }
 
 template <typename BaseEventT, typename EventT, typename... EventTs>
-inline BaseEventT* makeIfMatches(const QJsonObject& o, const QString& selector)
+inline event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& o,
+                                              const QString& selector)
 {
     if (selector == EventT::TypeId)
-        return new EventT(o);
+        return _impl::create<EventT>(o);
 
     return makeIfMatches<BaseEventT, EventTs...>(o, selector);
 }
@@ -86,11 +87,11 @@ EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
 {
     // Check more specific event types first
     if (auto e = doMakeEvent<RoomEvent>(obj))
-        return EventPtr(move(e));
+        return e;
 
-    return EventPtr { makeIfMatches<Event,
+    return makeIfMatches<Event,
         TypingEvent, ReceiptEvent, TagEvent, ReadMarkerEvent, DirectChatEvent>(
-                    obj, obj["type"].toString()) };
+                    obj, obj["type"].toString());
 }
 
 RoomEvent::RoomEvent(Event::Type type) : Event(type) { }
@@ -118,8 +119,7 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
     auto redaction = unsignedData.value("redacted_because");
     if (redaction.isObject())
     {
-        _redactedBecause =
-                std::make_unique<RedactionEvent>(redaction.toObject());
+        _redactedBecause = _impl::create<RedactionEvent>(redaction.toObject());
         return;
     }
 

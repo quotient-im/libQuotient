@@ -46,10 +46,12 @@ namespace QMatrixClient
             using index_t = int;
 
             TimelineItem(RoomEventPtr&& e, index_t number)
-                : evt(move(e)), idx(number) { }
+                : evt(std::move(e)), idx(number) { }
 
-            RoomEvent* event() const { return evt.get(); }
-            RoomEvent* operator->() const { return evt.operator->(); }
+            const RoomEvent* event() const { return rawPtr(evt); }
+            template <typename EventT>
+            const EventT* viewAs() const { return weakPtr<const EventT>(evt); }
+            const RoomEventPtr& operator->() const { return evt; }
             index_t index() const { return idx; }
 
             // Used for event redaction
@@ -407,12 +409,12 @@ namespace QMatrixClient
 
         protected:
             virtual void processStateEvents(const RoomEvents& events);
-            virtual void processEphemeralEvent(EventPtr event);
-            virtual void processAccountDataEvent(EventPtr event);
+            virtual void processEphemeralEvent(EventPtr&& event);
+            virtual void processAccountDataEvent(EventPtr&& event);
             virtual void onAddNewTimelineEvents(timeline_iter_t from) { }
             virtual void onAddHistoricalTimelineEvents(rev_iter_t from) { }
-            virtual void onRedaction(const RoomEvent* prevEvent,
-                                     const RoomEvent* after) { }
+            virtual void onRedaction(const RoomEvent& prevEvent,
+                                     const RoomEvent& after) { }
 
         private:
             class Private;
