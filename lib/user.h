@@ -103,7 +103,8 @@ namespace QMatrixClient
             QString avatarMediaId(const Room* room = nullptr) const;
             QUrl avatarUrl(const Room* room = nullptr) const;
 
-            void processEvent(RoomMemberEvent* event, const Room* r = nullptr);
+            void processEvent(const RoomMemberEvent* event,
+                              const Room* r = nullptr);
 
         public slots:
             void rename(const QString& newName);
