@@ -358,7 +358,7 @@ QUrl User::avatarUrl(const Room* room) const
     return avatarObject(room).url();
 }
 
-void User::processEvent(RoomMemberEvent* event, const Room* room)
+void User::processEvent(const RoomMemberEvent* event, const Room* room)
 {
     if (event->membership() != MembershipType::Invite &&
             event->membership() != MembershipType::Join)

@@ -18,22 +18,40 @@
 
 #pragma once
 
-#include <QtCore/QString>
-#include <QtCore/QDateTime>
-#include <QtCore/QJsonObject>
-#include <QtCore/QJsonArray>
-
+#include "converters.h"
 #include "util.h"
-
-#include <memory>
 
 namespace QMatrixClient
 {
     template <typename EventT>
     using event_ptr_tt = std::unique_ptr<EventT>;
 
+    template <typename EventT>
+    inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
+    {
+        return ptr.get();
+    }
+
+    template <typename TargetEventT, typename EventT>
+    inline TargetEventT* weakPtr(const event_ptr_tt<EventT>& ptr)
+    {
+        return static_cast<TargetEventT*>(rawPtr(ptr));
+    }
+
+    template <typename TargetT, typename SourceT>
+    inline event_ptr_tt<TargetT> ptrCast(event_ptr_tt<SourceT>&& ptr)
+    {
+        return unique_ptr_cast<TargetT>(ptr);
+    }
+
     namespace _impl
     {
+        template <typename EventT, typename... ArgTs>
+        inline event_ptr_tt<EventT> create(ArgTs&&... args)
+        {
+            return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
+        }
+
         template <typename EventT>
         event_ptr_tt<EventT> doMakeEvent(const QJsonObject& obj);
     }
@@ -100,7 +118,7 @@ namespace QMatrixClient
     {
         auto e = _impl::doMakeEvent<EventT>(obj);
         if (!e)
-            e = std::make_unique<EventT>(EventType::Unknown, obj);
+            e = _impl::create<EventT>(EventType::Unknown, obj);
         return e;
     }
 
@@ -109,6 +127,14 @@ namespace QMatrixClient
         template <>
         EventPtr doMakeEvent<Event>(const QJsonObject& obj);
     }
+
+    template <> struct FromJson<EventPtr>
+    {
+        EventPtr operator()(const QJsonValue& jv) const
+        {
+            return makeEvent<Event>(jv.toObject());
+        }
+    };
 
     /**
      * \brief A vector of pointers to events with deserialisation capabilities
@@ -165,16 +191,16 @@ namespace QMatrixClient
             // constructors and destructors
             explicit RoomEvent(Type type);
             RoomEvent(Type type, const QJsonObject& rep);
-            ~RoomEvent();
+            ~RoomEvent() override;
 
             QString id() const { return _id; }
             QDateTime timestamp() const;
             QString roomId() const;
             QString senderId() const;
             bool isRedacted() const { return bool(_redactedBecause); }
-            const RedactionEvent* redactedBecause() const
+            const event_ptr_tt<RedactionEvent>& redactedBecause() const
             {
-                return _redactedBecause.get();
+                return _redactedBecause;
             }
             QString redactionReason() const;
             const QString& transactionId() const { return _txnId; }
@@ -202,9 +228,6 @@ namespace QMatrixClient
 
         private:
             QString _id;
-//            QString _roomId;
-//            QString _senderId;
-//            QDateTime _serverTimestamp;
             event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };

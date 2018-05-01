@@ -55,6 +55,7 @@
 
 using namespace QMatrixClient;
 using namespace std::placeholders;
+using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
 using std::llround;
 #endif
@@ -74,7 +75,7 @@ class Room::Private
         typedef QMultiHash<QString, User*> members_map_t;
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
-            : q(nullptr), connection(c), id(std::move(id_))
+            : q(nullptr), connection(c), id(move(id_))
             , joinState(initialJoinState)
         { }
 
@@ -204,7 +205,7 @@ class Room::Private
          * Tries to find an event in the timeline and redact it; deletes the
          * redaction event whether the redacted event was found or not.
          */
-        void processRedaction(RoomEventPtr redactionEvent);
+        void processRedaction(RoomEventPtr&& redactionEvent);
 
         void broadcastTagUpdates()
         {
@@ -228,7 +229,7 @@ class Room::Private
 
 RoomEventPtr TimelineItem::replaceEvent(RoomEventPtr&& other)
 {
-    return std::exchange(evt, std::move(other));
+    return std::exchange(evt, move(other));
 }
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
@@ -711,7 +712,7 @@ Room::Private::getEventWithFile(const QString& eventId) const
     if (evtIt != timeline.rend() &&
             evtIt->event()->type() == EventType::RoomMessage)
     {
-        auto* event = static_cast<const RoomMessageEvent*>(evtIt->event());
+        auto* event = evtIt->viewAs<RoomMessageEvent>();
         if (event->hasFileContent())
             return event;
     }
@@ -1286,11 +1287,10 @@ inline bool isRedaction(const RoomEventPtr& e)
     return e->type() == EventType::Redaction;
 }
 
-void Room::Private::processRedaction(RoomEventPtr redactionEvent)
+void Room::Private::processRedaction(RoomEventPtr&& redactionEvent)
 {
     Q_ASSERT(redactionEvent && isRedaction(redactionEvent));
-    const auto& redaction =
-            static_cast<const RedactionEvent*>(redactionEvent.get());
+    const auto& redaction = ptrCast<RedactionEvent>(move(redactionEvent));
 
     const auto pIdx = eventsIndex.find(redaction->redactedEvent());
     if (pIdx == eventsIndex.end())
@@ -1359,9 +1359,9 @@ void Room::Private::processRedaction(RoomEventPtr redactionEvent)
     // notify everyone and delete the old event
     RoomEventPtr oldEvent
         { ti.replaceEvent(makeEvent<RoomEvent>(originalJson)) };
-    q->onRedaction(oldEvent.get(), ti.event());
+    q->onRedaction(*oldEvent, *ti.event());
     qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction->id();
-    emit q->replacedEvent(ti.event(), oldEvent.get());
+    emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
 }
 
 Connection* Room::connection() const
@@ -1389,7 +1389,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
-    const auto insertedSize = insertEvents(std::move(normalEvents), Newer);
+    const auto insertedSize = insertEvents(move(normalEvents), Newer);
     const auto from = timeline.cend() - insertedSize;
     if (insertedSize > 0)
     {
@@ -1436,7 +1436,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     emit q->aboutToAddHistoricalMessages(normalEvents);
-    const auto insertedSize = insertEvents(std::move(normalEvents), Older);
+    const auto insertedSize = insertEvents(move(normalEvents), Older);
     const auto from = timeline.crend() - insertedSize;
 
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
@@ -1455,25 +1455,24 @@ void Room::processStateEvents(const RoomEvents& events)
     bool emitNamesChanged = false;
     for (const auto& e: events)
     {
-        auto* event = e.get();
-        switch (event->type())
+        switch (e->type())
         {
             case EventType::RoomName: {
-                auto nameEvent = static_cast<RoomNameEvent*>(event);
+                auto* nameEvent = weakPtr<const RoomNameEvent>(e);
                 d->name = nameEvent->name();
                 qCDebug(MAIN) << "Room name updated:" << d->name;
                 emitNamesChanged = true;
                 break;
             }
             case EventType::RoomAliases: {
-                auto aliasesEvent = static_cast<RoomAliasesEvent*>(event);
+                auto* aliasesEvent = weakPtr<const RoomAliasesEvent>(e);
                 d->aliases = aliasesEvent->aliases();
                 qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
                 emitNamesChanged = true;
                 break;
             }
             case EventType::RoomCanonicalAlias: {
-                auto aliasEvent = static_cast<RoomCanonicalAliasEvent*>(event);
+                auto* aliasEvent = weakPtr<const RoomCanonicalAliasEvent>(e);
                 d->canonicalAlias = aliasEvent->alias();
                 setObjectName(d->canonicalAlias);
                 qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
@@ -1481,7 +1480,7 @@ void Room::processStateEvents(const RoomEvents& events)
                 break;
             }
             case EventType::RoomTopic: {
-                auto topicEvent = static_cast<RoomTopicEvent*>(event);
+                auto* topicEvent = weakPtr<const RoomTopicEvent>(e);
                 d->topic = topicEvent->topic();
                 qCDebug(MAIN) << "Room topic updated:" << d->topic;
                 emit topicChanged();
@@ -1489,7 +1488,7 @@ void Room::processStateEvents(const RoomEvents& events)
             }
             case EventType::RoomAvatar: {
                 const auto& avatarEventContent =
-                        static_cast<RoomAvatarEvent*>(event)->content();
+                        weakPtr<const RoomAvatarEvent>(e)->content();
                 if (d->avatar.updateUrl(avatarEventContent.url))
                 {
                     qCDebug(MAIN) << "Room avatar URL updated:"
@@ -1499,7 +1498,7 @@ void Room::processStateEvents(const RoomEvents& events)
                 break;
             }
             case EventType::RoomMember: {
-                auto memberEvent = static_cast<RoomMemberEvent*>(event);
+                auto* memberEvent = weakPtr<const RoomMemberEvent>(e);
                 auto u = user(memberEvent->userId());
                 u->processEvent(memberEvent, this);
                 if (u == localUser() && memberJoinState(u) == JoinState::Invite
@@ -1540,7 +1539,7 @@ void Room::processStateEvents(const RoomEvents& events)
             case EventType::RoomEncryption:
             {
                 d->encryptionAlgorithm =
-                        static_cast<EncryptionEvent*>(event)->algorithm();
+                        weakPtr<const EncryptionEvent>(e)->algorithm();
                 qCDebug(MAIN) << "Encryption switched on in" << displayName();
                 emit encryption();
                 break;
@@ -1554,13 +1553,13 @@ void Room::processStateEvents(const RoomEvents& events)
     d->updateDisplayname();
 }
 
-void Room::processEphemeralEvent(EventPtr event)
+void Room::processEphemeralEvent(EventPtr&& event)
 {
     QElapsedTimer et; et.start();
     switch (event->type())
     {
         case EventType::Typing: {
-            auto typingEvent = static_cast<TypingEvent*>(event.get());
+            auto typingEvent = ptrCast<TypingEvent>(move(event));
             d->usersTyping.clear();
             for( const QString& userId: typingEvent->users() )
             {
@@ -1575,7 +1574,7 @@ void Room::processEphemeralEvent(EventPtr event)
             break;
         }
         case EventType::Receipt: {
-            auto receiptEvent = static_cast<ReceiptEvent*>(event.get());
+            auto receiptEvent = ptrCast<ReceiptEvent>(move(event));
             for( const auto &p: receiptEvent->eventsWithReceipts() )
             {
                 {
@@ -1629,13 +1628,13 @@ void Room::processEphemeralEvent(EventPtr event)
     }
 }
 
-void Room::processAccountDataEvent(EventPtr event)
+void Room::processAccountDataEvent(EventPtr&& event)
 {
     switch (event->type())
     {
         case EventType::Tag:
         {
-            auto newTags = static_cast<TagEvent*>(event.get())->tags();
+            auto newTags = ptrCast<const TagEvent>(move(event))->tags();
             if (newTags == d->tags)
                 break;
             d->tags = newTags;
@@ -1646,16 +1645,15 @@ void Room::processAccountDataEvent(EventPtr event)
         }
         case EventType::ReadMarker:
         {
-            const auto* rmEvent = static_cast<ReadMarkerEvent*>(event.get());
-            const auto& readEventId = rmEvent->event_id();
+            auto readEventId =
+                    ptrCast<const ReadMarkerEvent>(move(event))->event_id();
             qCDebug(MAIN) << "Server-side read marker at" << readEventId;
             d->serverReadMarker = readEventId;
             const auto newMarker = findInTimeline(readEventId);
             if (newMarker != timelineEdge())
                 d->markMessagesAsRead(newMarker);
-            else {
+            else
                 d->setLastReadEvent(localUser(), readEventId);
-            }
             break;
         }
         default:
