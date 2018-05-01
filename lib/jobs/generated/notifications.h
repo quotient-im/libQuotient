@@ -22,12 +22,10 @@ namespace QMatrixClient
         public:
             // Inner data structures
 
-            using Event = EventPtr;
-
             struct Notification
             {
                 QVector<QJsonObject> actions;
-                Event event;
+                EventPtr event;
                 QString profileTag;
                 bool read;
                 QString roomId;

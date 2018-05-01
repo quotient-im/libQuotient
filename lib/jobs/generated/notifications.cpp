@@ -21,7 +21,7 @@ namespace QMatrixClient
             result.actions =
                 fromJson<QVector<QJsonObject>>(o.value("actions"));
             result.event =
-                fromJson<GetNotificationsJob::Event>(o.value("event"));
+                fromJson<EventPtr>(o.value("event"));
             result.profileTag =
                 fromJson<QString>(o.value("profile_tag"));
             result.read =
