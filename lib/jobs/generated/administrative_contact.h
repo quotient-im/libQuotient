@@ -23,7 +23,6 @@ namespace QMatrixClient
             {
                 QString medium;
                 QString address;
-                
             };
 
             // End of inner data structures
@@ -58,7 +57,6 @@ namespace QMatrixClient
                 QString clientSecret;
                 QString idServer;
                 QString sid;
-                
             };
 
             // End of inner data structures

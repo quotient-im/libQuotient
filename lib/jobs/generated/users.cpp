@@ -12,15 +12,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 namespace QMatrixClient
 {
-    QJsonObject toJson(const SearchUserDirectoryJob::User& pod)
-    {
-        QJsonObject o;
-        o.insert("user_id", toJson(pod.userId));
-        o.insert("display_name", toJson(pod.displayName));
-        o.insert("avatar_url", toJson(pod.avatarUrl));
-        
-        return o;
-    }
+    // Converters
 
     template <> struct FromJson<SearchUserDirectoryJob::User>
     {
@@ -34,7 +26,7 @@ namespace QMatrixClient
                 fromJson<QString>(o.value("display_name"));
             result.avatarUrl =
                 fromJson<QString>(o.value("avatar_url"));
-            
+
             return result;
         }
     };

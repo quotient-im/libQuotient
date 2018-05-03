@@ -25,7 +25,6 @@ namespace QMatrixClient
                 QString idServer;
                 QString medium;
                 QString address;
-                
             };
 
             struct StateEvent
@@ -33,7 +32,6 @@ namespace QMatrixClient
                 QString type;
                 QString stateKey;
                 QJsonObject content;
-                
             };
 
             // End of inner data structures

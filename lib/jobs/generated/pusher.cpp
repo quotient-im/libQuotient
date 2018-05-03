@@ -12,13 +12,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 namespace QMatrixClient
 {
-    QJsonObject toJson(const GetPushersJob::PusherData& pod)
-    {
-        QJsonObject o;
-        o.insert("url", toJson(pod.url));
-        
-        return o;
-    }
+    // Converters
 
     template <> struct FromJson<GetPushersJob::PusherData>
     {
@@ -28,28 +22,10 @@ namespace QMatrixClient
             GetPushersJob::PusherData result;
             result.url =
                 fromJson<QString>(o.value("url"));
-            
+
             return result;
         }
     };
-} // namespace QMatrixClient
-
-namespace QMatrixClient
-{
-    QJsonObject toJson(const GetPushersJob::Pusher& pod)
-    {
-        QJsonObject o;
-        o.insert("pushkey", toJson(pod.pushkey));
-        o.insert("kind", toJson(pod.kind));
-        o.insert("app_id", toJson(pod.appId));
-        o.insert("app_display_name", toJson(pod.appDisplayName));
-        o.insert("device_display_name", toJson(pod.deviceDisplayName));
-        o.insert("profile_tag", toJson(pod.profileTag));
-        o.insert("lang", toJson(pod.lang));
-        o.insert("data", toJson(pod.data));
-        
-        return o;
-    }
 
     template <> struct FromJson<GetPushersJob::Pusher>
     {
@@ -73,7 +49,7 @@ namespace QMatrixClient
                 fromJson<QString>(o.value("lang"));
             result.data =
                 fromJson<GetPushersJob::PusherData>(o.value("data"));
-            
+
             return result;
         }
     };
@@ -114,26 +90,15 @@ BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 
 namespace QMatrixClient
 {
+    // Converters
+
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
         QJsonObject o;
         o.insert("url", toJson(pod.url));
-        
+
         return o;
     }
-
-    template <> struct FromJson<PostPusherJob::PusherData>
-    {
-        PostPusherJob::PusherData operator()(const QJsonValue& jv)
-        {
-            const auto& o = jv.toObject();
-            PostPusherJob::PusherData result;
-            result.url =
-                fromJson<QString>(o.value("url"));
-            
-            return result;
-        }
-    };
 } // namespace QMatrixClient
 
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag, bool append)

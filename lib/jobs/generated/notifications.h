@@ -6,7 +6,6 @@
 
 #include "../basejob.h"
 
-#include <vector>
 #include "events/event.h"
 #include <QtCore/QJsonObject>
 #include <QtCore/QVector>
@@ -30,7 +29,6 @@ namespace QMatrixClient
                 bool read;
                 QString roomId;
                 qint64 ts;
-                
             };
 
             // End of inner data structures
@@ -46,7 +44,7 @@ namespace QMatrixClient
             ~GetNotificationsJob() override;
 
             const QString& nextToken() const;
-            const std::vector<Notification>& notifications() const;
+            std::vector<Notification>&& notifications();
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

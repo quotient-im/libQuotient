@@ -24,7 +24,6 @@ namespace QMatrixClient
                 QString userId;
                 QString displayName;
                 QString avatarUrl;
-                
             };
 
             // End of inner data structures

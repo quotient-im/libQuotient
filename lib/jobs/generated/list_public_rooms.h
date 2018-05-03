@@ -59,7 +59,6 @@ namespace QMatrixClient
                 bool worldReadable;
                 bool guestCanJoin;
                 QString avatarUrl;
-                
             };
 
             // End of inner data structures
@@ -95,7 +94,6 @@ namespace QMatrixClient
             struct Filter
             {
                 QString genericSearchTerm;
-                
             };
 
             struct PublicRoomsChunk
@@ -109,7 +107,6 @@ namespace QMatrixClient
                 bool worldReadable;
                 bool guestCanJoin;
                 QString avatarUrl;
-                
             };
 
             // End of inner data structures

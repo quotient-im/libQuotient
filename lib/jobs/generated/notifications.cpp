@@ -12,6 +12,8 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 namespace QMatrixClient
 {
+    // Converters
+
     template <> struct FromJson<GetNotificationsJob::Notification>
     {
         GetNotificationsJob::Notification operator()(const QJsonValue& jv)
@@ -30,7 +32,7 @@ namespace QMatrixClient
                 fromJson<QString>(o.value("room_id"));
             result.ts =
                 fromJson<qint64>(o.value("ts"));
-            
+
             return result;
         }
     };
@@ -76,9 +78,9 @@ const QString& GetNotificationsJob::nextToken() const
     return d->nextToken;
 }
 
-const std::vector<GetNotificationsJob::Notification>& GetNotificationsJob::notifications() const
+std::vector<GetNotificationsJob::Notification>&& GetNotificationsJob::notifications()
 {
-    return d->notifications;
+    return std::move(d->notifications);
 }
 
 BaseJob::Status GetNotificationsJob::parseJson(const QJsonDocument& data)

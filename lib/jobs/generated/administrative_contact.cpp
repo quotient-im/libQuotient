@@ -12,14 +12,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 namespace QMatrixClient
 {
-    QJsonObject toJson(const GetAccount3PIDsJob::ThirdPartyIdentifier& pod)
-    {
-        QJsonObject o;
-        o.insert("medium", toJson(pod.medium));
-        o.insert("address", toJson(pod.address));
-        
-        return o;
-    }
+    // Converters
 
     template <> struct FromJson<GetAccount3PIDsJob::ThirdPartyIdentifier>
     {
@@ -31,7 +24,7 @@ namespace QMatrixClient
                 fromJson<QString>(o.value("medium"));
             result.address =
                 fromJson<QString>(o.value("address"));
-            
+
             return result;
         }
     };
@@ -72,32 +65,17 @@ BaseJob::Status GetAccount3PIDsJob::parseJson(const QJsonDocument& data)
 
 namespace QMatrixClient
 {
+    // Converters
+
     QJsonObject toJson(const Post3PIDsJob::ThreePidCredentials& pod)
     {
         QJsonObject o;
         o.insert("client_secret", toJson(pod.clientSecret));
         o.insert("id_server", toJson(pod.idServer));
         o.insert("sid", toJson(pod.sid));
-        
+
         return o;
     }
-
-    template <> struct FromJson<Post3PIDsJob::ThreePidCredentials>
-    {
-        Post3PIDsJob::ThreePidCredentials operator()(const QJsonValue& jv)
-        {
-            const auto& o = jv.toObject();
-            Post3PIDsJob::ThreePidCredentials result;
-            result.clientSecret =
-                fromJson<QString>(o.value("client_secret"));
-            result.idServer =
-                fromJson<QString>(o.value("id_server"));
-            result.sid =
-                fromJson<QString>(o.value("sid"));
-            
-            return result;
-        }
-    };
 } // namespace QMatrixClient
 
 Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)

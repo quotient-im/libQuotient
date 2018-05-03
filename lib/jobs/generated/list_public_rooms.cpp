@@ -55,21 +55,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& 
 
 namespace QMatrixClient
 {
-    QJsonObject toJson(const GetPublicRoomsJob::PublicRoomsChunk& pod)
-    {
-        QJsonObject o;
-        o.insert("aliases", toJson(pod.aliases));
-        o.insert("canonical_alias", toJson(pod.canonicalAlias));
-        o.insert("name", toJson(pod.name));
-        o.insert("num_joined_members", toJson(pod.numJoinedMembers));
-        o.insert("room_id", toJson(pod.roomId));
-        o.insert("topic", toJson(pod.topic));
-        o.insert("world_readable", toJson(pod.worldReadable));
-        o.insert("guest_can_join", toJson(pod.guestCanJoin));
-        o.insert("avatar_url", toJson(pod.avatarUrl));
-        
-        return o;
-    }
+    // Converters
 
     template <> struct FromJson<GetPublicRoomsJob::PublicRoomsChunk>
     {
@@ -95,7 +81,7 @@ namespace QMatrixClient
                 fromJson<bool>(o.value("guest_can_join"));
             result.avatarUrl =
                 fromJson<QString>(o.value("avatar_url"));
-            
+
             return result;
         }
     };
@@ -174,43 +160,13 @@ BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
 
 namespace QMatrixClient
 {
+    // Converters
+
     QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
     {
         QJsonObject o;
         o.insert("generic_search_term", toJson(pod.genericSearchTerm));
-        
-        return o;
-    }
 
-    template <> struct FromJson<QueryPublicRoomsJob::Filter>
-    {
-        QueryPublicRoomsJob::Filter operator()(const QJsonValue& jv)
-        {
-            const auto& o = jv.toObject();
-            QueryPublicRoomsJob::Filter result;
-            result.genericSearchTerm =
-                fromJson<QString>(o.value("generic_search_term"));
-            
-            return result;
-        }
-    };
-} // namespace QMatrixClient
-
-namespace QMatrixClient
-{
-    QJsonObject toJson(const QueryPublicRoomsJob::PublicRoomsChunk& pod)
-    {
-        QJsonObject o;
-        o.insert("aliases", toJson(pod.aliases));
-        o.insert("canonical_alias", toJson(pod.canonicalAlias));
-        o.insert("name", toJson(pod.name));
-        o.insert("num_joined_members", toJson(pod.numJoinedMembers));
-        o.insert("room_id", toJson(pod.roomId));
-        o.insert("topic", toJson(pod.topic));
-        o.insert("world_readable", toJson(pod.worldReadable));
-        o.insert("guest_can_join", toJson(pod.guestCanJoin));
-        o.insert("avatar_url", toJson(pod.avatarUrl));
-        
         return o;
     }
 
@@ -238,7 +194,7 @@ namespace QMatrixClient
                 fromJson<bool>(o.value("guest_can_join"));
             result.avatarUrl =
                 fromJson<QString>(o.value("avatar_url"));
-            
+
             return result;
         }
     };

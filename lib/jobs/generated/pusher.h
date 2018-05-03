@@ -22,7 +22,6 @@ namespace QMatrixClient
             struct PusherData
             {
                 QString url;
-                
             };
 
             struct Pusher
@@ -35,7 +34,6 @@ namespace QMatrixClient
                 QString profileTag;
                 QString lang;
                 PusherData data;
-                
             };
 
             // End of inner data structures
@@ -68,7 +66,6 @@ namespace QMatrixClient
             struct PusherData
             {
                 QString url;
-                
             };
 
             // End of inner data structures
