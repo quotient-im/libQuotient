@@ -56,12 +56,14 @@ namespace QMatrixClient
 
             using MembershipType = MemberEventContent::MembershipType;
 
+            explicit RoomMemberEvent(Type type, const QJsonObject& obj)
+                : StateEvent(type, obj)
+            { }
             RoomMemberEvent(MemberEventContent&& c)
                 : StateEvent(Type::RoomMember, c)
             { }
             explicit RoomMemberEvent(const QJsonObject& obj)
-                : StateEvent(Type::RoomMember, obj)
-//                , _userId(obj["state_key"].toString())
+                : RoomMemberEvent(Type::RoomMember, obj)
             { }
 
             MembershipType membership() const  { return content().membership; }
@@ -72,7 +74,6 @@ namespace QMatrixClient
             QUrl avatarUrl() const      { return content().avatarUrl; }
 
         private:
-//            QString _userId;
             REGISTER_ENUM(MembershipType)
     };
 }  // namespace QMatrixClient

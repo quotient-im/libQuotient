@@ -96,32 +96,32 @@ namespace QMatrixClient
 
     template <> struct FromJson<bool>
     {
-        bool operator()(const QJsonValue& jv) const { return jv.toBool(); }
+        auto operator()(const QJsonValue& jv) const { return jv.toBool(); }
     };
 
     template <> struct FromJson<int>
     {
-        int operator()(const QJsonValue& jv) const { return jv.toInt(); }
+        auto operator()(const QJsonValue& jv) const { return jv.toInt(); }
     };
 
     template <> struct FromJson<double>
     {
-        double operator()(const QJsonValue& jv) const { return jv.toDouble(); }
+        auto operator()(const QJsonValue& jv) const { return jv.toDouble(); }
     };
 
     template <> struct FromJson<qint64>
     {
-        qint64 operator()(const QJsonValue& jv) const { return qint64(jv.toDouble()); }
+        auto operator()(const QJsonValue& jv) const { return qint64(jv.toDouble()); }
     };
 
     template <> struct FromJson<QString>
     {
-        QString operator()(const QJsonValue& jv) const { return jv.toString(); }
+        auto operator()(const QJsonValue& jv) const { return jv.toString(); }
     };
 
     template <> struct FromJson<QDateTime>
     {
-        QDateTime operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
         }
@@ -129,7 +129,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QDate>
     {
-        QDate operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return fromJson<QDateTime>(jv).date();
         }
@@ -137,7 +137,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QJsonObject>
     {
-        QJsonObject operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return jv.toObject();
         }
@@ -145,7 +145,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QJsonArray>
     {
-        QJsonArray operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return jv.toArray();
         }
@@ -153,10 +153,11 @@ namespace QMatrixClient
 
     template <typename T> struct FromJson<std::vector<T>>
     {
-        std::vector<T> operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
+            using size_type = typename std::vector<T>::size_type;
             const auto jsonArray = jv.toArray();
-            std::vector<T> vect; vect.resize(size_t(jsonArray.size()));
+            std::vector<T> vect; vect.resize(size_type(jsonArray.size()));
             std::transform(jsonArray.begin(), jsonArray.end(),
                            vect.begin(), FromJson<T>());
             return vect;
@@ -165,7 +166,7 @@ namespace QMatrixClient
 
     template <typename T> struct FromJson<QVector<T>>
     {
-        QVector<T> operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             const auto jsonArray = jv.toArray();
             QVector<T> vect; vect.resize(jsonArray.size());
@@ -177,7 +178,7 @@ namespace QMatrixClient
 
     template <typename T> struct FromJson<QList<T>>
     {
-        QList<T> operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             const auto jsonArray = jv.toArray();
             QList<T> sl; sl.reserve(jsonArray.size());
@@ -191,7 +192,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QByteArray>
     {
-        inline QByteArray operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return fromJson<QString>(jv).toLatin1();
         }
@@ -199,7 +200,7 @@ namespace QMatrixClient
 
     template <> struct FromJson<QVariantMap>
     {
-        inline auto operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return jv.toObject().toVariantMap();
         }
@@ -208,7 +209,7 @@ namespace QMatrixClient
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
     template <> struct FromJson<QVariantHash>
     {
-        inline auto operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             return jv.toObject().toVariantHash();
         }
@@ -217,7 +218,7 @@ namespace QMatrixClient
 
     template <typename T> struct FromJson<QHash<QString, T>>
     {
-        QHash<QString, T> operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
             const auto json = jv.toObject();
             QHash<QString, T> h; h.reserve(json.size());
