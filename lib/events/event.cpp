@@ -160,14 +160,13 @@ void RoomEvent::addId(const QString& id)
 template <>
 RoomEventPtr _impl::doMakeEvent(const QJsonObject& obj)
 {
-    return RoomEventPtr { makeIfMatches<RoomEvent,
-        RoomMessageEvent, RoomNameEvent, RoomAliasesEvent,
-        RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
-        RoomAvatarEvent, EncryptionEvent, RedactionEvent>
-            (obj, obj["type"].toString()) };
-}
+    // Check more specific event types first
+    if (auto e = doMakeEvent<StateEventBase>(obj))
+        return e;
 
-StateEventBase::~StateEventBase() = default;
+    return makeIfMatches<RoomEvent,
+        RoomMessageEvent, RedactionEvent>(obj, obj["type"].toString());
+}
 
 bool StateEventBase::repeatsState() const
 {
@@ -175,4 +174,14 @@ bool StateEventBase::repeatsState() const
     auto prevContentJson = originalJsonObject().value("unsigned")
                                 .toObject().value("prev_content");
     return contentJson == prevContentJson;
+}
+
+template<>
+StateEventPtr _impl::doMakeEvent<StateEventBase>(const QJsonObject& obj)
+{
+    return makeIfMatches<StateEventBase,
+        RoomNameEvent, RoomAliasesEvent,
+        RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
+        RoomAvatarEvent, EncryptionEvent>(obj, obj["type"].toString());
+
 }

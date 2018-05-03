@@ -331,9 +331,7 @@ namespace QMatrixClient
                                                 RoomEvent* event) const;
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             virtual void leaveRoom( Room* room );
-            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
-            virtual RoomMessagesJob* getMessages(Room* room,
-                                                 const QString& from) const;
+
         signals:
             /**
              * @deprecated

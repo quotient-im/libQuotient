@@ -54,9 +54,15 @@ SyncDataList&& SyncData::takeRoomData()
     return std::move(roomData);
 }
 
-SyncBatch<Event>&& SyncData::takeAccountData()
+Events&& SyncData::takeAccountData()
 {
     return std::move(accountData);
+}
+
+template <typename EventsArrayT, typename StrT>
+inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
+{
+    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"));
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
@@ -71,7 +77,7 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
     auto json = data.object();
     nextBatch_ = json.value("next_batch").toString();
     // TODO: presence
-    accountData.fromJson(json);
+    accountData = load<Events>(json, "account_data");
 
     QJsonObject rooms = json.value("rooms").toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
@@ -96,32 +102,25 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
-    , state(joinState == JoinState::Invite ? "invite_state" : "state")
-    , timeline("timeline")
-    , ephemeral("ephemeral")
-    , accountData("account_data")
+    , state(load<StateEvents>(room_,
+                joinState == JoinState::Invite ? "invite_state" : "state"))
 {
     switch (joinState) {
-        case JoinState::Invite:
-            state.fromJson(room_);
-            break;
         case JoinState::Join:
-            state.fromJson(room_);
-            timeline.fromJson(room_);
-            ephemeral.fromJson(room_);
-            accountData.fromJson(room_);
-            break;
+            ephemeral = load<Events>(room_, "ephemeral");
+            accountData = load<Events>(room_, "account_data");
+            // [[fallthrough]]
         case JoinState::Leave:
-            state.fromJson(room_);
-            timeline.fromJson(room_);
-            break;
-    default:
-        qCWarning(SYNCJOB) << "SyncRoomData: Unknown JoinState value, ignoring:" << int(joinState);
-    }
+        {
+            timeline = load<RoomEvents>(room_, "timeline");
+            auto timelineJson = room_.value("timeline").toObject();
+            timelineLimited = timelineJson.value("limited").toBool();
+            timelinePrevBatch = timelineJson.value("prev_batch").toString();
 
-    auto timelineJson = room_.value("timeline").toObject();
-    timelineLimited = timelineJson.value("limited").toBool();
-    timelinePrevBatch = timelineJson.value("prev_batch").toString();
+            break;
+        }
+        default: /* nothing on top of state */;
+    }
 
     auto unreadJson = room_.value("unread_notifications").toObject();
     unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);

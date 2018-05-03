@@ -30,7 +30,6 @@
 #include "jobs/generated/account-data.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/joinroomjob.h"
-#include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -370,11 +369,6 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
 void Connection::leaveRoom(Room* room)
 {
     callApi<LeaveRoomJob>(room->id());
-}
-
-RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
-{
-    return callApi<RoomMessagesJob>(room->id(), from);
 }
 
 inline auto splitMediaId(const QString& mediaId)

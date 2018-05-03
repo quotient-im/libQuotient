@@ -25,6 +25,7 @@
 #include "jobs/generated/receipts.h"
 #include "jobs/generated/redaction.h"
 #include "jobs/generated/account-data.h"
+#include "jobs/generated/message_pagination.h"
 #include "jobs/setroomstatejob.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -33,7 +34,6 @@
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
 #include "jobs/sendeventjob.h"
-#include "jobs/roommessagesjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/postreadmarkersjob.h"
@@ -112,7 +112,7 @@ class Room::Private
         TagsMap tags;
         QHash<QString, AccountDataMap> accountData;
         QString prevBatch;
-        QPointer<RoomMessagesJob> roomMessagesJob;
+        QPointer<GetRoomEventsJob> eventsHistoryJob;
 
         struct FileTransferPrivateInfo
         {
@@ -1036,21 +1036,31 @@ void Room::updateData(SyncRoomData&& data)
     for (auto&& event: data.accountData)
         processAccountDataEvent(move(event));
 
+    bool emitNamesChanged = false;
     if (!data.state.empty())
     {
         et.restart();
-        processStateEvents(data.state);
-        qCDebug(PROFILER) << "*** Room::processStateEvents(state):"
+        for (const auto& e: data.state)
+            emitNamesChanged |= processStateEvent(*e);
+
+        qCDebug(PROFILER) << "*** Room::processStateEvents():"
                           << data.state.size() << "event(s)," << et;
     }
     if (!data.timeline.empty())
     {
         et.restart();
         // State changes can arrive in a timeline event; so check those.
-        processStateEvents(data.timeline);
+        for (const auto& e: data.timeline)
+            emitNamesChanged |= processStateEvent(*e);
         qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
                           << data.timeline.size() << "event(s)," << et;
+    }
+    if (emitNamesChanged)
+        emit namesChanged(this);
+    d->updateDisplayname();
 
+    if (!data.timeline.empty())
+    {
         et.restart();
         d->addNewMessageEvents(move(data.timeline));
         qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et;
@@ -1122,13 +1132,13 @@ void Room::getPreviousContent(int limit)
 
 void Room::Private::getPreviousContent(int limit)
 {
-    if( !isJobRunning(roomMessagesJob) )
+    if( !isJobRunning(eventsHistoryJob) )
     {
-        roomMessagesJob =
-                connection->callApi<RoomMessagesJob>(id, prevBatch, limit);
-        connect( roomMessagesJob, &RoomMessagesJob::success, [=] {
-            prevBatch = roomMessagesJob->end();
-            addHistoricalMessageEvents(roomMessagesJob->releaseEvents());
+        eventsHistoryJob =
+            connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
+        connect( eventsHistoryJob, &BaseJob::success, q, [=] {
+            prevBatch = eventsHistoryJob->end();
+            addHistoricalMessageEvents(eventsHistoryJob->chunk());
         });
     }
 }
@@ -1450,107 +1460,95 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
 }
 
-void Room::processStateEvents(const RoomEvents& events)
+bool Room::processStateEvent(const RoomEvent& e)
 {
-    bool emitNamesChanged = false;
-    for (const auto& e: events)
+    switch (e.type())
     {
-        switch (e->type())
-        {
-            case EventType::RoomName: {
-                auto* nameEvent = weakPtr<const RoomNameEvent>(e);
-                d->name = nameEvent->name();
-                qCDebug(MAIN) << "Room name updated:" << d->name;
-                emitNamesChanged = true;
-                break;
-            }
-            case EventType::RoomAliases: {
-                auto* aliasesEvent = weakPtr<const RoomAliasesEvent>(e);
-                d->aliases = aliasesEvent->aliases();
-                qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
-                emitNamesChanged = true;
-                break;
-            }
-            case EventType::RoomCanonicalAlias: {
-                auto* aliasEvent = weakPtr<const RoomCanonicalAliasEvent>(e);
-                d->canonicalAlias = aliasEvent->alias();
-                setObjectName(d->canonicalAlias);
-                qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
-                emitNamesChanged = true;
-                break;
-            }
-            case EventType::RoomTopic: {
-                auto* topicEvent = weakPtr<const RoomTopicEvent>(e);
-                d->topic = topicEvent->topic();
-                qCDebug(MAIN) << "Room topic updated:" << d->topic;
-                emit topicChanged();
-                break;
-            }
-            case EventType::RoomAvatar: {
-                const auto& avatarEventContent =
-                        weakPtr<const RoomAvatarEvent>(e)->content();
-                if (d->avatar.updateUrl(avatarEventContent.url))
-                {
-                    qCDebug(MAIN) << "Room avatar URL updated:"
-                                  << avatarEventContent.url.toString();
-                    emit avatarChanged();
-                }
-                break;
-            }
-            case EventType::RoomMember: {
-                auto* memberEvent = weakPtr<const RoomMemberEvent>(e);
-                auto u = user(memberEvent->userId());
-                u->processEvent(memberEvent, this);
-                if (u == localUser() && memberJoinState(u) == JoinState::Invite
-                        && memberEvent->isDirect())
-                    connection()->addToDirectChats(this,
-                                    user(memberEvent->senderId()));
-
-                if( memberEvent->membership() == MembershipType::Join )
-                {
-                    if (memberJoinState(u) != JoinState::Join)
-                    {
-                        d->insertMemberIntoMap(u);
-                        connect(u, &User::nameAboutToChange, this,
-                            [=] (QString newName, QString, const Room* context) {
-                                if (context == this)
-                                    emit memberAboutToRename(u, newName);
-                            });
-                        connect(u, &User::nameChanged, this,
-                            [=] (QString, QString oldName, const Room* context) {
-                                if (context == this)
-                                    d->renameMember(u, oldName);
-                            });
-                        emit userAdded(u);
-                    }
-                }
-                else if( memberEvent->membership() == MembershipType::Leave )
-                {
-                    if (memberJoinState(u) == JoinState::Join)
-                    {
-                        if (!d->membersLeft.contains(u))
-                            d->membersLeft.append(u);
-                        d->removeMemberFromMap(u->name(this), u);
-                        emit userRemoved(u);
-                    }
-                }
-                break;
-            }
-            case EventType::RoomEncryption:
-            {
-                d->encryptionAlgorithm =
-                        weakPtr<const EncryptionEvent>(e)->algorithm();
-                qCDebug(MAIN) << "Encryption switched on in" << displayName();
-                emit encryption();
-                break;
-            }
-            default: /* Ignore events of other types */;
+        case EventType::RoomName: {
+            d->name = static_cast<const RoomNameEvent&>(e).name();
+            qCDebug(MAIN) << "Room name updated:" << d->name;
+            return true;
         }
+        case EventType::RoomAliases: {
+            d->aliases = static_cast<const RoomAliasesEvent&>(e).aliases();
+            qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
+            return true;
+        }
+        case EventType::RoomCanonicalAlias: {
+            d->canonicalAlias =
+                    static_cast<const RoomCanonicalAliasEvent&>(e).alias();
+            setObjectName(d->canonicalAlias);
+            qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
+            return true;
+        }
+        case EventType::RoomTopic: {
+            d->topic = static_cast<const RoomTopicEvent&>(e).topic();
+            qCDebug(MAIN) << "Room topic updated:" << d->topic;
+            emit topicChanged();
+            return false;
+        }
+        case EventType::RoomAvatar: {
+            const auto& avatarEventContent =
+                    static_cast<const RoomAvatarEvent&>(e).content();
+            if (d->avatar.updateUrl(avatarEventContent.url))
+            {
+                qCDebug(MAIN) << "Room avatar URL updated:"
+                              << avatarEventContent.url.toString();
+                emit avatarChanged();
+            }
+            return false;
+        }
+        case EventType::RoomMember: {
+            const auto& memberEvent = static_cast<const RoomMemberEvent&>(e);
+            auto* u = user(memberEvent.userId());
+            u->processEvent(memberEvent, this);
+            if (u == localUser() && memberJoinState(u) == JoinState::Invite
+                    && memberEvent.isDirect())
+                connection()->addToDirectChats(this,
+                                user(memberEvent.senderId()));
+
+            if( memberEvent.membership() == MembershipType::Join )
+            {
+                if (memberJoinState(u) != JoinState::Join)
+                {
+                    d->insertMemberIntoMap(u);
+                    connect(u, &User::nameAboutToChange, this,
+                        [=] (QString newName, QString, const Room* context) {
+                            if (context == this)
+                                emit memberAboutToRename(u, newName);
+                        });
+                    connect(u, &User::nameChanged, this,
+                        [=] (QString, QString oldName, const Room* context) {
+                            if (context == this)
+                                d->renameMember(u, oldName);
+                        });
+                    emit userAdded(u);
+                }
+            }
+            else if( memberEvent.membership() == MembershipType::Leave )
+            {
+                if (memberJoinState(u) == JoinState::Join)
+                {
+                    if (!d->membersLeft.contains(u))
+                        d->membersLeft.append(u);
+                    d->removeMemberFromMap(u->name(this), u);
+                    emit userRemoved(u);
+                }
+            }
+            return false;
+        }
+        case EventType::RoomEncryption:
+        {
+            d->encryptionAlgorithm =
+                    static_cast<const EncryptionEvent&>(e).algorithm();
+            qCDebug(MAIN) << "Encryption switched on in" << displayName();
+            emit encryption();
+            return false;
+        }
+        default:
+            /* Ignore events of other types */
+            return false;
     }
-    if (emitNamesChanged) {
-        emit namesChanged(this);
-    }
-    d->updateDisplayname();
 }
 
 void Room::processEphemeralEvent(EventPtr&& event)

@@ -408,13 +408,14 @@ namespace QMatrixClient
             void fileTransferCancelled(QString id);
 
         protected:
-            virtual void processStateEvents(const RoomEvents& events);
+            /// Returns true if any of room names/aliases has changed
+            virtual bool processStateEvent(const RoomEvent& e);
             virtual void processEphemeralEvent(EventPtr&& event);
             virtual void processAccountDataEvent(EventPtr&& event);
-            virtual void onAddNewTimelineEvents(timeline_iter_t from) { }
-            virtual void onAddHistoricalTimelineEvents(rev_iter_t from) { }
-            virtual void onRedaction(const RoomEvent& prevEvent,
-                                     const RoomEvent& after) { }
+            virtual void onAddNewTimelineEvents(timeline_iter_t /*from*/) { }
+            virtual void onAddHistoricalTimelineEvents(rev_iter_t /*from*/) { }
+            virtual void onRedaction(const RoomEvent& /*prevEvent*/,
+                                     const RoomEvent& /*after*/) { }
 
         private:
             class Private;

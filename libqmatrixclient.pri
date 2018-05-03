@@ -35,7 +35,6 @@ HEADERS += \
     $$SRCPATH/jobs/sendeventjob.h \
     $$SRCPATH/jobs/postreceiptjob.h \
     $$SRCPATH/jobs/joinroomjob.h \
-    $$SRCPATH/jobs/roommessagesjob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
     $$SRCPATH/jobs/setroomstatejob.h \
@@ -68,7 +67,6 @@ SOURCES += \
     $$SRCPATH/jobs/sendeventjob.cpp \
     $$SRCPATH/jobs/postreceiptjob.cpp \
     $$SRCPATH/jobs/joinroomjob.cpp \
-    $$SRCPATH/jobs/roommessagesjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/setroomstatejob.cpp \

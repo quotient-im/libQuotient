@@ -26,30 +26,15 @@
 
 namespace QMatrixClient
 {
-    template <typename EventT>
-    class SyncBatch : public EventsBatch<EventT>
-    {
-        public:
-            explicit SyncBatch(QString k) : jsonKey(std::move(k)) { }
-            void fromJson(const QJsonObject& roomContents)
-            {
-                EventsBatch<EventT>::fromJson(
-                            roomContents[jsonKey].toObject(), "events");
-            }
-
-        private:
-            QString jsonKey;
-    };
-
     class SyncRoomData
     {
         public:
             QString roomId;
             JoinState joinState;
-            SyncBatch<RoomEvent> state;
-            SyncBatch<RoomEvent> timeline;
-            SyncBatch<Event> ephemeral;
-            SyncBatch<Event> accountData;
+            StateEvents state;
+            RoomEvents timeline;
+            Events ephemeral;
+            Events accountData;
 
             bool timelineLimited;
             QString timelinePrevBatch;
@@ -71,13 +56,13 @@ namespace QMatrixClient
     {
         public:
             BaseJob::Status parseJson(const QJsonDocument &data);
-            SyncBatch<Event>&& takeAccountData();
+            Events&& takeAccountData();
             SyncDataList&& takeRoomData();
             QString nextBatch() const;
 
         private:
             QString nextBatch_;
-            SyncBatch<Event> accountData { "account_data" };
+            Events accountData;
             SyncDataList roomData;
     };
 

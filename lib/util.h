@@ -58,6 +58,37 @@ namespace QMatrixClient
     static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
 #endif
 
+    /** An abstraction over a pair of iterators
+     * This is a very basic range type over a container with iterators that
+     * are at least ForwardIterators. Inspired by Ranges TS.
+     */
+    template <typename ArrayT>
+    class Range
+    {
+            // Looking forward for Ranges TS to produce something (in C++23?..)
+            using iterator = typename ArrayT::iterator;
+            using const_iterator = typename ArrayT::const_iterator;
+            using size_type = typename ArrayT::size_type;
+        public:
+            Range(ArrayT& arr) : from(std::begin(arr)), to(std::end(arr)) { }
+            Range(iterator from, iterator to) : from(from), to(to) { }
+
+            size_type size() const
+            {
+                Q_ASSERT(std::distance(from, to) >= 0);
+                return size_type(std::distance(from, to));
+            }
+            bool empty() const { return from == to; }
+            const_iterator begin() const { return from; }
+            const_iterator end() const { return to; }
+            iterator begin() { return from; }
+            iterator end() { return to; }
+
+        private:
+            iterator from;
+            iterator to;
+    };
+
     /** A guard pointer that disconnects an interested object upon destruction
      * It's almost QPointer<> except that you have to initialise it with one
      * more additional parameter - a pointer to a QObject that will be

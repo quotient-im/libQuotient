@@ -53,7 +53,10 @@ namespace QMatrixClient
         }
 
         template <typename EventT>
-        event_ptr_tt<EventT> doMakeEvent(const QJsonObject& obj);
+        inline event_ptr_tt<EventT> doMakeEvent(const QJsonObject& obj)
+        {
+            return create<EventT>(obj);
+        }
     }
 
     class Event
@@ -114,7 +117,7 @@ namespace QMatrixClient
      * parameter type) and create an event object of that type.
      */
     template <typename EventT>
-    event_ptr_tt<EventT> makeEvent(const QJsonObject& obj)
+    inline event_ptr_tt<EventT> makeEvent(const QJsonObject& obj)
     {
         auto e = _impl::doMakeEvent<EventT>(obj);
         if (!e)
@@ -128,50 +131,17 @@ namespace QMatrixClient
         EventPtr doMakeEvent<Event>(const QJsonObject& obj);
     }
 
-    template <> struct FromJson<EventPtr>
+    template <typename EventT> struct FromJson<event_ptr_tt<EventT>>
     {
-        EventPtr operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonValue& jv) const
         {
-            return makeEvent<Event>(jv.toObject());
+            return makeEvent<EventT>(jv.toObject());
         }
     };
 
-    /**
-     * \brief A vector of pointers to events with deserialisation capabilities
-     *
-     * This is a simple wrapper over a generic vector type that adds
-     * a convenience method to deserialise events from QJsonArray.
-     * \tparam EventT base type of all events in the vector
-     */
     template <typename EventT>
-    class EventsBatch : public std::vector<event_ptr_tt<EventT>>
-    {
-        public:
-            /**
-             * \brief Deserialise events from an array
-             *
-             * Given the following JSON construct, creates events from
-             * the array stored at key "node":
-             * \code
-             * "container": {
-             *     "node": [ { "event_id": "!evt1:srv.org", ... }, ... ]
-             * }
-             * \endcode
-             * \param container - the wrapping JSON object
-             * \param node - the key in container that holds the array of events
-             */
-            void fromJson(const QJsonObject& container, const QString& node)
-            {
-                const auto objs = container.value(node).toArray();
-                using size_type = typename std::vector<event_ptr_tt<EventT>>::size_type;
-                // The below line accommodates the difference in size types of
-                // STL and Qt containers.
-                this->reserve(static_cast<size_type>(objs.size()));
-                for (const auto& objValue: objs)
-                    this->emplace_back(makeEvent<EventT>(objValue.toObject()));
-            }
-    };
-    using Events = EventsBatch<Event>;
+    using EventsArray = std::vector<event_ptr_tt<EventT>>;
+    using Events = EventsArray<Event>;
 
     class RedactionEvent;
 
@@ -231,37 +201,15 @@ namespace QMatrixClient
             event_ptr_tt<RedactionEvent> _redactedBecause;
             QString _txnId;
     };
-    using RoomEvents = EventsBatch<RoomEvent>;
     using RoomEventPtr = event_ptr_tt<RoomEvent>;
+    using RoomEvents = EventsArray<RoomEvent>;
+    using RoomEventsRange = Range<RoomEvents>;
 
     namespace _impl
     {
         template <>
         RoomEventPtr doMakeEvent<RoomEvent>(const QJsonObject& obj);
     }
-
-    /**
-     * Conceptually similar to QStringView (but much more primitive), it's a
-     * simple abstraction over a pair of RoomEvents::const_iterator values
-     * referring to the beginning and the end of a range in a RoomEvents
-     * container.
-     */
-    struct RoomEventsRange
-    {
-        RoomEvents::iterator from;
-        RoomEvents::iterator to;
-
-        RoomEvents::size_type size() const
-        {
-            Q_ASSERT(std::distance(from, to) >= 0);
-            return RoomEvents::size_type(std::distance(from, to));
-        }
-        bool empty() const { return from == to; }
-        RoomEvents::const_iterator begin() const { return from; }
-        RoomEvents::const_iterator end() const { return to; }
-        RoomEvents::iterator begin() { return from; }
-        RoomEvents::iterator end() { return to; }
-    };
 
     class StateEventBase: public RoomEvent
     {
@@ -273,10 +221,18 @@ namespace QMatrixClient
             explicit StateEventBase(Type type)
                 : RoomEvent(type)
             { }
-            ~StateEventBase() override = 0;
+            ~StateEventBase() override = default;
 
             virtual bool repeatsState() const;
     };
+    using StateEventPtr = event_ptr_tt<StateEventBase>;
+    using StateEvents = EventsArray<StateEventBase>;
+
+    namespace _impl
+    {
+        template <>
+        StateEventPtr doMakeEvent<StateEventBase>(const QJsonObject& obj);
+    }
 
     template <typename ContentT>
     struct Prev
