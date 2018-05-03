@@ -205,7 +205,7 @@ class Room::Private
          * Tries to find an event in the timeline and redact it; deletes the
          * redaction event whether the redacted event was found or not.
          */
-        void processRedaction(RoomEventPtr&& redactionEvent);
+        void processRedaction(event_ptr_tt<RedactionEvent>&& redaction);
 
         void broadcastTagUpdates()
         {
@@ -1287,11 +1287,8 @@ inline bool isRedaction(const RoomEventPtr& e)
     return e->type() == EventType::Redaction;
 }
 
-void Room::Private::processRedaction(RoomEventPtr&& redactionEvent)
+void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
 {
-    Q_ASSERT(redactionEvent && isRedaction(redactionEvent));
-    const auto& redaction = ptrCast<RedactionEvent>(move(redactionEvent));
-
     const auto pIdx = eventsIndex.find(redaction->redactedEvent());
     if (pIdx == eventsIndex.end())
     {
@@ -1385,7 +1382,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     const auto normalsBegin =
             stable_partition(events.begin(), events.end(), isRedaction);
     RoomEventsRange redactions { events.begin(), normalsBegin },
-                   normalEvents { normalsBegin, events.end() };
+                    normalEvents { normalsBegin, events.end() };
 
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
@@ -1399,7 +1396,10 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         q->onAddNewTimelineEvents(from);
     }
     for (auto&& r: redactions)
-        processRedaction(move(r));
+    {
+        Q_ASSERT(isRedaction(r));
+        processRedaction(ptrCast<RedactionEvent>(move(r)));
+    }
     if (insertedSize > 0)
     {
         emit q->addedMessages();
