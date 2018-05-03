@@ -7,18 +7,15 @@
 {{/producesNonJson?}}#include <QtCore/QStringBuilder>
 {{/operations}}
 using namespace QMatrixClient;
-{{#models.model}}{{^trivial?}}
-namespace QMatrixClient
+{{#models.model}}{{#in?}}
+QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
 {
-    QJsonObject toJson(const {{qualifiedName}}& pod)
-    {
-        QJsonObject o;
-        {{#vars}}o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
-        {{/vars}}
-        return o;
-    }
+    QJsonObject o;
+{{#vars}}    o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+{{/vars}}
+    return o;
 }
-
+{{/in?}}{{#out?}}
 {{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(const QJsonValue& jv)
 {
     const auto& o = jv.toObject();
@@ -28,33 +25,35 @@ namespace QMatrixClient
     {{/vars}}
     return result;
 }
-{{/trivial?}}{{/models.model}}{{#operations}}
+{{/out?}}{{/models.model}}{{#operations}}
 static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
-{{#    operation}}{{#models.model}}{{^trivial?}}
+{{#    operation}}{{#models}}
 namespace QMatrixClient
 {
+    // Converters
+{{#model}}{{#in?}}
     QJsonObject toJson(const {{qualifiedName}}& pod)
     {
         QJsonObject o;
-        {{#vars}}o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
-        {{/vars}}
+{{#vars}}        o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+{{/vars}}
         return o;
     }
-
+{{/in?}}{{#out?}}
     template <> struct FromJson<{{qualifiedName}}>
     {
         {{qualifiedName}} operator()(const QJsonValue& jv)
         {
             const auto& o = jv.toObject();
             {{qualifiedName}} result;
-            {{#vars}}result.{{nameCamelCase}} =
+{{#vars}}            result.{{nameCamelCase}} =
                 fromJson<{{dataType.qualifiedName}}>(o.value("{{baseName}}"));
-            {{/vars}}
+{{/vars}}
             return result;
         }
     };
-} // namespace QMatrixClient
-{{/    trivial?}}{{/models.model}}{{#responses}}{{#normalResponse?}}{{#allProperties?}}
+{{/out?}}{{/model}}} // namespace QMatrixClient
+{{/    models}}{{#responses}}{{#normalResponse?}}{{#allProperties?}}
 class {{camelCaseOperationId}}Job::Private
 {
     public:{{#allProperties}}
@@ -99,9 +98,9 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
 {{#        allProperties}}
-{{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}() const
+{{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}(){{^noCopy?}} const{{/noCopy?}}
 {
-    return d->{{paramName}};
+    return {{#noCopy?}}std::move({{/noCopy?}}d->{{paramName}}{{#noCopy?}}){{/noCopy?}};
 }
 {{/        allProperties}}{{#producesNonJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)

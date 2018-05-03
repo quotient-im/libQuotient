@@ -10,39 +10,33 @@
 namespace QMatrixClient
 {
 {{#models}}    // Data structures
-{{#    model}}{{#trivial?}}
-    using {{name}} = {{parent.name}};
-{{/    trivial?}}{{^trivial?}}
+{{#    model}}
     struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
     {
-        {{#vars}}{{dataType.name}} {{nameCamelCase}};
-        {{/vars}}{{!
-}}    };
-
+{{#vars}}        {{dataType.name}} {{nameCamelCase}};
+{{/vars}}    };
+{{#in?}}
     QJsonObject toJson(const {{name}}& pod);
-
+{{/in?}}{{#out?}}
     template <> struct FromJson<{{name}}>
     {
         {{name}} operator()(const QJsonValue& jv);
     };
-{{/    trivial?}}{{/model}}
+{{/    out?}}{{/model}}
 {{/models}}{{#operations}}    // Operations
 {{#    operation}}
     class {{camelCaseOperationId}}Job : public BaseJob
     {
-        public:{{#        models}}
+        public:{{#models}}
             // Inner data structures
-{{#            model}}{{#trivial?}}
-            using {{name}} = {{parent.name}};
-{{/                trivial?}}{{^trivial?}}
+{{#            model}}
             struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
             {
-                {{#vars}}{{dataType.name}} {{nameCamelCase}};
-                {{/vars}}
-            };
-{{/        trivial?}}{{/model}}
+{{#vars}}                {{dataType.name}} {{nameCamelCase}};
+{{/vars}}            };
+{{/            model}}
             // End of inner data structures
-{{/models}}{{^bodyParams}}
+{{/        models}}{{^bodyParams}}
             /** Construct a URL out of baseUrl and usual parameters passed to
              * {{camelCaseOperationId}}Job. This function can be used when
              * a URL for {{camelCaseOperationId}}Job is necessary but the job
@@ -54,7 +48,7 @@ namespace QMatrixClient
 }}{{#        responses}}{{#normalResponse?}}{{#allProperties?}}
             ~{{camelCaseOperationId}}Job() override;
 {{#allProperties}}
-            {{>maybeCrefType}} {{paramName}}() const;{{/allProperties}}
+            {{>maybeCrefType}} {{paramName}}(){{^noCopy?}} const{{/noCopy?}};{{/allProperties}}
 
         protected:
             Status {{#producesNonJson?}}parseReply(QNetworkReply* reply){{/producesNonJson?}}{{^producesNonJson?}}parseJson(const QJsonDocument& data){{/producesNonJson?}} override;
