@@ -4,10 +4,10 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:beineri/opt-qt563-trusty'
+    - sourceline: 'ppa:beineri/opt-qt571-trusty'
     packages:
     - g++-5
-    - qt56base
+    - qt57base
     - valgrind
 
 matrix:
@@ -22,7 +22,7 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt56/bin/qt56-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
 
 install:
 - git clone https://github.com/QMatrixClient/matrix-doc.git
