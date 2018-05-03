@@ -52,17 +52,17 @@ analyzer:
         avoidCopy?: true
     file: *ByteStream
     object:
-    - /.+m\.room\.member/: # A stub for EventsBatch<RoomMemberEvent>
+    - /m\.room\.member$/: # A stub for EventsBatch<RoomMemberEvent>
         type: none
-    - /.+state_event.yaml/:
+    - /state_event.yaml$/:
         type: StateEventPtr
         noCopy?: true
         imports: '"events/event.h"'
-    - /.*room_event.yaml/:
+    - /room_event.yaml$/:
         type: RoomEventPtr
         noCopy?: true
         imports: '"events/event.h"'
-    - /.*event.yaml/:
+    - /event.yaml$/:
         type: EventPtr
         noCopy?: true
         imports: '"events/event.h"'
@@ -75,17 +75,17 @@ analyzer:
         type: "std::vector<{{1}}>"
         noCopy?: true
         imports: '"events/event.h"'
-    - /.+m\.room\.member/:
+    - /m\.room\.member$/:
         type: "EventsArray<RoomMemberEvent>"
         noCopy?: true
         imports: '"events/roommemberevent.h"'
-    - /.+state_event.yaml/:
+    - /state_event.yaml$/:
         type: StateEvents
         noCopy?: true
-    - /.+room_event.yaml/:
+    - /room_event.yaml$/:
         type: RoomEvents
         noCopy?: true
-    - /.+event.yaml/:
+    - /event.yaml$/:
         type: Events
         noCopy?: true
     - /.+/:
