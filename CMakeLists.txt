@@ -84,7 +84,6 @@ set(libqmatrixclient_SRCS
     lib/jobs/checkauthmethods.cpp
     lib/jobs/sendeventjob.cpp
     lib/jobs/setroomstatejob.cpp
-    lib/jobs/joinroomjob.cpp
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
