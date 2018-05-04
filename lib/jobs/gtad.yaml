@@ -110,7 +110,7 @@ analyzer:
         avoidCopy?: true
         imports: <QtCore/QVariantHash>
     variant: { type: QVariant, "avoidCopy?": true, imports: <QtCore/QVariant> }
-    schema:
+    schema: # Properties of inline structure definitions
       avoidCopy?: true
 
   #operations:
@@ -130,7 +130,6 @@ mustache:
   #  preamble: preamble.mustache
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>
-  #  imports: { set: }
 
   templates:
   - "{{base}}.h.mustache"
