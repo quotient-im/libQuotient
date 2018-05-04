@@ -7,6 +7,7 @@
 #include "../basejob.h"
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QHash>
 
 
 namespace QMatrixClient
@@ -16,6 +17,6 @@ namespace QMatrixClient
     class SendToDeviceJob : public BaseJob
     {
         public:
-            explicit SendToDeviceJob(const QString& eventType, const QString& txnId, const QJsonObject& messages = {});
+            explicit SendToDeviceJob(const QString& eventType, const QString& txnId, const QHash<QString, QHash<QString, QJsonObject>>& messages = {});
     };
 } // namespace QMatrixClient

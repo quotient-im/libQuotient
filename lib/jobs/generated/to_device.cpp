@@ -12,7 +12,7 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-SendToDeviceJob::SendToDeviceJob(const QString& eventType, const QString& txnId, const QJsonObject& messages)
+SendToDeviceJob::SendToDeviceJob(const QString& eventType, const QString& txnId, const QHash<QString, QHash<QString, QJsonObject>>& messages)
     : BaseJob(HttpVerb::Put, "SendToDeviceJob",
         basePath % "/sendToDevice/" % eventType % "/" % txnId)
 {
