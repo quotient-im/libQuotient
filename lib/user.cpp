@@ -23,7 +23,7 @@
 #include "avatar.h"
 #include "events/event.h"
 #include "events/roommemberevent.h"
-#include "jobs/setroomstatejob.h"
+#include "jobs/generated/room_state.h"
 #include "jobs/generated/profile.h"
 #include "jobs/generated/content-repo.h"
 
@@ -277,8 +277,7 @@ void User::rename(const QString& newName, const Room* r)
                "Attempt to rename a user that's not a room member");
     MemberEventContent evtC;
     evtC.displayName = newName;
-    auto job = d->connection->callApi<SetRoomStateJob>(
-                r->id(), id(), RoomMemberEvent(move(evtC)));
+    auto job = r->setMemberState(id(), RoomMemberEvent(move(evtC)));
     connect(job, &BaseJob::success, this, [=] { updateName(newName, r); });
 }
 

@@ -26,7 +26,7 @@
 #include "jobs/generated/redaction.h"
 #include "jobs/generated/account-data.h"
 #include "jobs/generated/message_pagination.h"
-#include "jobs/setroomstatejob.h"
+#include "jobs/generated/room_state.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
@@ -198,6 +198,20 @@ class Room::Private
                                           bool force = false);
 
         void markMessagesAsRead(rev_iter_t upToMarker);
+
+        template <typename EvT>
+        auto requestSetState(const QString& stateKey, const EvT& event)
+        {
+            return connection->callApi<SetRoomStateWithKeyJob>(
+                        id, EvT::typeId(), stateKey, event.toJson());
+        }
+
+        template <typename EvT>
+        auto requestSetState(const EvT& event)
+        {
+            return connection->callApi<SetRoomStateJob>(
+                        id, EvT::typeId(), event.toJson());
+        }
 
         /**
          * @brief Apply redaction to the timeline
@@ -1110,19 +1124,17 @@ void Room::postMessage(const RoomMessageEvent& event)
 
 void Room::setName(const QString& newName)
 {
-    connection()->callApi<SetRoomStateJob>(id(), RoomNameEvent(newName));
+    d->requestSetState(RoomNameEvent(newName));
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    connection()->callApi<SetRoomStateJob>(id(),
-                                           RoomCanonicalAliasEvent(newAlias));
+    d->requestSetState(RoomCanonicalAliasEvent(newAlias));
 }
 
 void Room::setTopic(const QString& newTopic)
 {
-    RoomTopicEvent evt(newTopic);
-    connection()->callApi<SetRoomStateJob>(id(), evt);
+    d->requestSetState(RoomTopicEvent(newTopic));
 }
 
 void Room::getPreviousContent(int limit)
@@ -1151,6 +1163,11 @@ void Room::inviteToRoom(const QString& memberId)
 LeaveRoomJob* Room::leaveRoom()
 {
     return connection()->callApi<LeaveRoomJob>(id());
+}
+
+SetRoomStateWithKeyJob*Room::setMemberState(const QString& memberId, const RoomMemberEvent& event) const
+{
+    return d->requestSetState(memberId, event);
 }
 
 void Room::kickMember(const QString& memberId, const QString& reason)

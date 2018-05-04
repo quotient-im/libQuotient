@@ -32,10 +32,12 @@
 namespace QMatrixClient
 {
     class Event;
+    class RoomMemberEvent;
     class Connection;
     class User;
     class MemberSorter;
     class LeaveRoomJob;
+    class SetRoomStateWithKeyJob;
     class RedactEventJob;
 
     class TimelineItem
@@ -344,6 +346,8 @@ namespace QMatrixClient
 
             void inviteToRoom(const QString& memberId);
             LeaveRoomJob* leaveRoom();
+            SetRoomStateWithKeyJob* setMemberState(
+                    const QString& memberId, const RoomMemberEvent& event) const;
             void kickMember(const QString& memberId, const QString& reason = {});
             void ban(const QString& userId, const QString& reason = {});
             void unban(const QString& userId);

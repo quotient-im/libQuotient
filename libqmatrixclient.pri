@@ -36,7 +36,6 @@ HEADERS += \
     $$SRCPATH/jobs/postreceiptjob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
-    $$SRCPATH/jobs/setroomstatejob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/jobs/generated/*.h, false) \
@@ -67,7 +66,6 @@ SOURCES += \
     $$SRCPATH/jobs/postreceiptjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
-    $$SRCPATH/jobs/setroomstatejob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/jobs/generated/*.cpp, false) \
     $$files($$SRCPATH/jobs/generated/definitions/*.cpp, false) \
