@@ -23,6 +23,20 @@
 #include <QtCore/QDate>
 #include <QtCore/QVariant>
 
+#include <unordered_map>
+
+// Enable std::unordered_map<QString, T>
+namespace std
+{
+    template <> struct hash<QString>
+    {
+        size_t operator()(const QString& s) const Q_DECL_NOEXCEPT
+        {
+            return qHash(s, uint(qGlobalQHashSeed()));
+        }
+    };
+}
+
 namespace QMatrixClient
 {
     // This catches anything implicitly convertible to QJsonValue/Object/Array
@@ -75,6 +89,15 @@ namespace QMatrixClient
 
     template <typename T>
     inline QJsonObject toJson(const QHash<QString, T>& hashMap)
+    {
+        QJsonObject json;
+        for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
+            json.insert(it.key(), toJson(it.value()));
+        return json;
+    }
+
+    template <typename T>
+    inline QJsonObject toJson(const std::unordered_map<QString, T>& hashMap)
     {
         QJsonObject json;
         for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
@@ -224,6 +247,18 @@ namespace QMatrixClient
             QHash<QString, T> h; h.reserve(json.size());
             for (auto it = json.begin(); it != json.end(); ++it)
                 h.insert(it.key(), fromJson<T>(it.value()));
+            return h;
+        }
+    };
+
+    template <typename T> struct FromJson<std::unordered_map<QString, T>>
+    {
+        auto operator()(const QJsonValue& jv) const
+        {
+            const auto json = jv.toObject();
+            std::unordered_map<QString, T> h; h.reserve(size_t(json.size()));
+            for (auto it = json.begin(); it != json.end(); ++it)
+                h.insert(std::make_pair(it.key(), fromJson<T>(it.value())));
             return h;
         }
     };
