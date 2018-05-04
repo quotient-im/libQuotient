@@ -26,7 +26,7 @@ class GetRoomIdByAliasJob::Private
 {
     public:
         QString roomId;
-        QVector<QString> servers;
+        QStringList servers;
 };
 
 QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
@@ -49,7 +49,7 @@ const QString& GetRoomIdByAliasJob::roomId() const
     return d->roomId;
 }
 
-const QVector<QString>& GetRoomIdByAliasJob::servers() const
+const QStringList& GetRoomIdByAliasJob::servers() const
 {
     return d->servers;
 }
@@ -58,7 +58,7 @@ BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     d->roomId = fromJson<QString>(json.value("room_id"));
-    d->servers = fromJson<QVector<QString>>(json.value("servers"));
+    d->servers = fromJson<QStringList>(json.value("servers"));
     return Success;
 }
 

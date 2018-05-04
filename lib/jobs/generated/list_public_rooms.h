@@ -7,6 +7,7 @@
 #include "../basejob.h"
 
 #include <QtCore/QVector>
+#include <QtCore/QStringList>
 
 #include "converters.h"
 
@@ -53,7 +54,7 @@ namespace QMatrixClient
 
             struct PublicRoomsChunk
             {
-                QVector<QString> aliases;
+                QStringList aliases;
                 QString canonicalAlias;
                 QString name;
                 qint64 numJoinedMembers;
@@ -104,7 +105,7 @@ namespace QMatrixClient
 
             struct PublicRoomsChunk
             {
-                QVector<QString> aliases;
+                QStringList aliases;
                 QString canonicalAlias;
                 QString name;
                 qint64 numJoinedMembers;

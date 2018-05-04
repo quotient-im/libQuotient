@@ -64,7 +64,7 @@ namespace QMatrixClient
             const auto& o = jv.toObject();
             GetPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-                fromJson<QVector<QString>>(o.value("aliases"));
+                fromJson<QStringList>(o.value("aliases"));
             result.canonicalAlias =
                 fromJson<QString>(o.value("canonical_alias"));
             result.name =
@@ -177,7 +177,7 @@ namespace QMatrixClient
             const auto& o = jv.toObject();
             QueryPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-                fromJson<QVector<QString>>(o.value("aliases"));
+                fromJson<QStringList>(o.value("aliases"));
             result.canonicalAlias =
                 fromJson<QString>(o.value("canonical_alias"));
             result.name =

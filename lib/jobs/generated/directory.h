@@ -6,7 +6,7 @@
 
 #include "../basejob.h"
 
-#include <QtCore/QVector>
+#include <QtCore/QStringList>
 
 
 namespace QMatrixClient
@@ -36,7 +36,7 @@ namespace QMatrixClient
             // Result properties
 
             const QString& roomId() const;
-            const QVector<QString>& servers() const;
+            const QStringList& servers() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

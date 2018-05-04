@@ -6,8 +6,9 @@
 
 #include "../basejob.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QVector>
+#include <QtCore/QJsonObject>
+#include <QtCore/QStringList>
 
 #include "converters.h"
 
@@ -36,7 +37,7 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit CreateRoomJob(const QString& visibility = {}, const QString& roomAliasName = {}, const QString& name = {}, const QString& topic = {}, const QVector<QString>& invite = {}, const QVector<Invite3pid>& invite3pid = {}, const QJsonObject& creationContent = {}, const QVector<StateEvent>& initialState = {}, const QString& preset = {}, bool isDirect = {}, bool guestCanJoin = {});
+            explicit CreateRoomJob(const QString& visibility = {}, const QString& roomAliasName = {}, const QString& name = {}, const QString& topic = {}, const QStringList& invite = {}, const QVector<Invite3pid>& invite3pid = {}, const QJsonObject& creationContent = {}, const QVector<StateEvent>& initialState = {}, const QString& preset = {}, bool isDirect = {}, bool guestCanJoin = {});
             ~CreateRoomJob() override;
 
             // Result properties

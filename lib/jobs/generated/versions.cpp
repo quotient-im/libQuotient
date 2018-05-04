@@ -15,7 +15,7 @@ static const auto basePath = QStringLiteral("/_matrix/client");
 class GetVersionsJob::Private
 {
     public:
-        QVector<QString> versions;
+        QStringList versions;
 };
 
 QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
@@ -33,7 +33,7 @@ GetVersionsJob::GetVersionsJob()
 
 GetVersionsJob::~GetVersionsJob() = default;
 
-const QVector<QString>& GetVersionsJob::versions() const
+const QStringList& GetVersionsJob::versions() const
 {
     return d->versions;
 }
@@ -41,7 +41,7 @@ const QVector<QString>& GetVersionsJob::versions() const
 BaseJob::Status GetVersionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->versions = fromJson<QVector<QString>>(json.value("versions"));
+    d->versions = fromJson<QStringList>(json.value("versions"));
     return Success;
 }
 

@@ -441,7 +441,7 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QString& alias, const QString& name, const QString& topic,
-    const QVector<QString>& invites, const QString& presetName,
+    const QStringList& invites, const QString& presetName,
     bool isDirect, bool guestsCanJoin,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,

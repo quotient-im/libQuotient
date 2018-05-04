@@ -15,7 +15,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class GetJoinedRoomsJob::Private
 {
     public:
-        QVector<QString> joinedRooms;
+        QStringList joinedRooms;
 };
 
 QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
@@ -33,7 +33,7 @@ GetJoinedRoomsJob::GetJoinedRoomsJob()
 
 GetJoinedRoomsJob::~GetJoinedRoomsJob() = default;
 
-const QVector<QString>& GetJoinedRoomsJob::joinedRooms() const
+const QStringList& GetJoinedRoomsJob::joinedRooms() const
 {
     return d->joinedRooms;
 }
@@ -44,7 +44,7 @@ BaseJob::Status GetJoinedRoomsJob::parseJson(const QJsonDocument& data)
     if (!json.contains("joined_rooms"))
         return { JsonParseError,
             "The key 'joined_rooms' not found in the response" };
-    d->joinedRooms = fromJson<QVector<QString>>(json.value("joined_rooms"));
+    d->joinedRooms = fromJson<QStringList>(json.value("joined_rooms"));
     return Success;
 }
 
