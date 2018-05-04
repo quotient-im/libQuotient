@@ -16,6 +16,8 @@ namespace QMatrixClient
     class GetVersionsJob : public BaseJob
     {
         public:
+            explicit GetVersionsJob();
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetVersionsJob. This function can be used when
              * a URL for GetVersionsJob is necessary but the job
@@ -23,8 +25,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit GetVersionsJob();
             ~GetVersionsJob() override;
+
+            // Result properties
 
             const QVector<QString>& versions() const;
 

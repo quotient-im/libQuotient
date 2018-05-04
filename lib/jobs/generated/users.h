@@ -26,10 +26,12 @@ namespace QMatrixClient
                 QString avatarUrl;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit SearchUserDirectoryJob(const QString& searchTerm, int limit = {});
             ~SearchUserDirectoryJob() override;
+
+            // Result properties
 
             const QVector<User>& results() const;
             bool limited() const;

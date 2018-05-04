@@ -25,7 +25,9 @@ namespace QMatrixClient
                 QString address;
             };
 
-            // End of inner data structures
+            // Construction/destruction
+
+            explicit GetAccount3PIDsJob();
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetAccount3PIDsJob. This function can be used when
@@ -34,8 +36,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit GetAccount3PIDsJob();
             ~GetAccount3PIDsJob() override;
+
+            // Result properties
 
             const QVector<ThirdPartyIdentifier>& threepids() const;
 
@@ -59,7 +62,7 @@ namespace QMatrixClient
                 QString sid;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind = {});
     };
@@ -67,6 +70,8 @@ namespace QMatrixClient
     class RequestTokenTo3PIDJob : public BaseJob
     {
         public:
+            explicit RequestTokenTo3PIDJob();
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * RequestTokenTo3PIDJob. This function can be used when
              * a URL for RequestTokenTo3PIDJob is necessary but the job
@@ -74,6 +79,5 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit RequestTokenTo3PIDJob();
     };
 } // namespace QMatrixClient

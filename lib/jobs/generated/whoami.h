@@ -15,6 +15,8 @@ namespace QMatrixClient
     class GetTokenOwnerJob : public BaseJob
     {
         public:
+            explicit GetTokenOwnerJob();
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetTokenOwnerJob. This function can be used when
              * a URL for GetTokenOwnerJob is necessary but the job
@@ -22,8 +24,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit GetTokenOwnerJob();
             ~GetTokenOwnerJob() override;
+
+            // Result properties
 
             const QString& userId() const;
 

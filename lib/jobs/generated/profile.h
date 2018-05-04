@@ -21,6 +21,8 @@ namespace QMatrixClient
     class GetDisplayNameJob : public BaseJob
     {
         public:
+            explicit GetDisplayNameJob(const QString& userId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetDisplayNameJob. This function can be used when
              * a URL for GetDisplayNameJob is necessary but the job
@@ -28,8 +30,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
 
-            explicit GetDisplayNameJob(const QString& userId);
             ~GetDisplayNameJob() override;
+
+            // Result properties
 
             const QString& displayname() const;
 
@@ -50,6 +53,8 @@ namespace QMatrixClient
     class GetAvatarUrlJob : public BaseJob
     {
         public:
+            explicit GetAvatarUrlJob(const QString& userId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetAvatarUrlJob. This function can be used when
              * a URL for GetAvatarUrlJob is necessary but the job
@@ -57,8 +62,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
 
-            explicit GetAvatarUrlJob(const QString& userId);
             ~GetAvatarUrlJob() override;
+
+            // Result properties
 
             const QString& avatarUrl() const;
 
@@ -73,6 +79,8 @@ namespace QMatrixClient
     class GetUserProfileJob : public BaseJob
     {
         public:
+            explicit GetUserProfileJob(const QString& userId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetUserProfileJob. This function can be used when
              * a URL for GetUserProfileJob is necessary but the job
@@ -80,8 +88,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
 
-            explicit GetUserProfileJob(const QString& userId);
             ~GetUserProfileJob() override;
+
+            // Result properties
 
             const QString& avatarUrl() const;
             const QString& displayname() const;

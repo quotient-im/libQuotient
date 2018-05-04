@@ -19,6 +19,8 @@ namespace QMatrixClient
             explicit SendMessageJob(const QString& roomId, const QString& eventType, const QString& txnId, const QJsonObject& body = {});
             ~SendMessageJob() override;
 
+            // Result properties
+
             const QString& eventId() const;
 
         protected:

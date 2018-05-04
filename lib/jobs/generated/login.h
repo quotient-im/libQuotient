@@ -18,6 +18,8 @@ namespace QMatrixClient
             explicit LoginJob(const QString& type, const QString& user = {}, const QString& medium = {}, const QString& address = {}, const QString& password = {}, const QString& token = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
             ~LoginJob() override;
 
+            // Result properties
+
             const QString& userId() const;
             const QString& accessToken() const;
             const QString& homeServer() const;

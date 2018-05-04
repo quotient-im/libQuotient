@@ -16,6 +16,8 @@ namespace QMatrixClient
     class GetJoinedRoomsJob : public BaseJob
     {
         public:
+            explicit GetJoinedRoomsJob();
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetJoinedRoomsJob. This function can be used when
              * a URL for GetJoinedRoomsJob is necessary but the job
@@ -23,8 +25,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit GetJoinedRoomsJob();
             ~GetJoinedRoomsJob() override;
+
+            // Result properties
 
             const QVector<QString>& joinedRooms() const;
 

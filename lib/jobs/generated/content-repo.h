@@ -19,6 +19,8 @@ namespace QMatrixClient
             explicit UploadContentJob(QIODevice* content, const QString& filename = {}, const QString& contentType = {});
             ~UploadContentJob() override;
 
+            // Result properties
+
             const QString& contentUri() const;
 
         protected:
@@ -32,6 +34,8 @@ namespace QMatrixClient
     class GetContentJob : public BaseJob
     {
         public:
+            explicit GetContentJob(const QString& serverName, const QString& mediaId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentJob. This function can be used when
              * a URL for GetContentJob is necessary but the job
@@ -39,8 +43,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId);
 
-            explicit GetContentJob(const QString& serverName, const QString& mediaId);
             ~GetContentJob() override;
+
+            // Result properties
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
@@ -57,6 +62,8 @@ namespace QMatrixClient
     class GetContentOverrideNameJob : public BaseJob
     {
         public:
+            explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentOverrideNameJob. This function can be used when
              * a URL for GetContentOverrideNameJob is necessary but the job
@@ -64,8 +71,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName);
 
-            explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName);
             ~GetContentOverrideNameJob() override;
+
+            // Result properties
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
@@ -82,6 +90,8 @@ namespace QMatrixClient
     class GetContentThumbnailJob : public BaseJob
     {
         public:
+            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentThumbnailJob. This function can be used when
              * a URL for GetContentThumbnailJob is necessary but the job
@@ -89,8 +99,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
 
-            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
             ~GetContentThumbnailJob() override;
+
+            // Result properties
 
             const QString& contentType() const;
             QIODevice* content() const;
@@ -106,6 +117,8 @@ namespace QMatrixClient
     class GetUrlPreviewJob : public BaseJob
     {
         public:
+            explicit GetUrlPreviewJob(const QString& url, qint64 ts = {});
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetUrlPreviewJob. This function can be used when
              * a URL for GetUrlPreviewJob is necessary but the job
@@ -113,8 +126,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, qint64 ts = {});
 
-            explicit GetUrlPreviewJob(const QString& url, qint64 ts = {});
             ~GetUrlPreviewJob() override;
+
+            // Result properties
 
             qint64 matrixImageSize() const;
             const QString& ogImage() const;

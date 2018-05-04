@@ -16,6 +16,8 @@ namespace QMatrixClient
     class GetRoomTagsJob : public BaseJob
     {
         public:
+            explicit GetRoomTagsJob(const QString& userId, const QString& roomId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetRoomTagsJob. This function can be used when
              * a URL for GetRoomTagsJob is necessary but the job
@@ -23,8 +25,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId);
 
-            explicit GetRoomTagsJob(const QString& userId, const QString& roomId);
             ~GetRoomTagsJob() override;
+
+            // Result properties
 
             const QJsonObject& tags() const;
 
@@ -45,6 +48,8 @@ namespace QMatrixClient
     class DeleteRoomTagJob : public BaseJob
     {
         public:
+            explicit DeleteRoomTagJob(const QString& userId, const QString& roomId, const QString& tag);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * DeleteRoomTagJob. This function can be used when
              * a URL for DeleteRoomTagJob is necessary but the job
@@ -52,6 +57,5 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId, const QString& tag);
 
-            explicit DeleteRoomTagJob(const QString& userId, const QString& roomId, const QString& tag);
     };
 } // namespace QMatrixClient

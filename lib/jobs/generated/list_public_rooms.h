@@ -17,6 +17,8 @@ namespace QMatrixClient
     class GetRoomVisibilityOnDirectoryJob : public BaseJob
     {
         public:
+            explicit GetRoomVisibilityOnDirectoryJob(const QString& roomId);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetRoomVisibilityOnDirectoryJob. This function can be used when
              * a URL for GetRoomVisibilityOnDirectoryJob is necessary but the job
@@ -24,8 +26,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
 
-            explicit GetRoomVisibilityOnDirectoryJob(const QString& roomId);
             ~GetRoomVisibilityOnDirectoryJob() override;
+
+            // Result properties
 
             const QString& visibility() const;
 
@@ -61,7 +64,9 @@ namespace QMatrixClient
                 QString avatarUrl;
             };
 
-            // End of inner data structures
+            // Construction/destruction
+
+            explicit GetPublicRoomsJob(int limit = {}, const QString& since = {}, const QString& server = {});
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetPublicRoomsJob. This function can be used when
@@ -70,8 +75,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, int limit = {}, const QString& since = {}, const QString& server = {});
 
-            explicit GetPublicRoomsJob(int limit = {}, const QString& since = {}, const QString& server = {});
             ~GetPublicRoomsJob() override;
+
+            // Result properties
 
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;
@@ -109,10 +115,12 @@ namespace QMatrixClient
                 QString avatarUrl;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit QueryPublicRoomsJob(const QString& server = {}, int limit = {}, const QString& since = {}, const Filter& filter = {});
             ~QueryPublicRoomsJob() override;
+
+            // Result properties
 
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;

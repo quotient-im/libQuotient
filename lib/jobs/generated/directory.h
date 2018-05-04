@@ -22,6 +22,8 @@ namespace QMatrixClient
     class GetRoomIdByAliasJob : public BaseJob
     {
         public:
+            explicit GetRoomIdByAliasJob(const QString& roomAlias);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetRoomIdByAliasJob. This function can be used when
              * a URL for GetRoomIdByAliasJob is necessary but the job
@@ -29,8 +31,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomAlias);
 
-            explicit GetRoomIdByAliasJob(const QString& roomAlias);
             ~GetRoomIdByAliasJob() override;
+
+            // Result properties
 
             const QString& roomId() const;
             const QVector<QString>& servers() const;
@@ -46,6 +49,8 @@ namespace QMatrixClient
     class DeleteRoomAliasJob : public BaseJob
     {
         public:
+            explicit DeleteRoomAliasJob(const QString& roomAlias);
+
             /** Construct a URL out of baseUrl and usual parameters passed to
              * DeleteRoomAliasJob. This function can be used when
              * a URL for DeleteRoomAliasJob is necessary but the job
@@ -53,6 +58,5 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomAlias);
 
-            explicit DeleteRoomAliasJob(const QString& roomAlias);
     };
 } // namespace QMatrixClient

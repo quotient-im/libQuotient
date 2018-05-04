@@ -18,6 +18,8 @@ namespace QMatrixClient
             explicit RedactEventJob(const QString& roomId, const QString& eventId, const QString& txnId, const QString& reason = {});
             ~RedactEventJob() override;
 
+            // Result properties
+
             const QString& eventId() const;
 
         protected:

@@ -31,7 +31,9 @@ namespace QMatrixClient
                 qint64 ts;
             };
 
-            // End of inner data structures
+            // Construction/destruction
+
+            explicit GetNotificationsJob(const QString& from = {}, int limit = {}, const QString& only = {});
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetNotificationsJob. This function can be used when
@@ -40,8 +42,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {}, int limit = {}, const QString& only = {});
 
-            explicit GetNotificationsJob(const QString& from = {}, int limit = {}, const QString& only = {});
             ~GetNotificationsJob() override;
+
+            // Result properties
 
             const QString& nextToken() const;
             std::vector<Notification>&& notifications();

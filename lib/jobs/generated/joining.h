@@ -27,10 +27,12 @@ namespace QMatrixClient
                 QJsonObject signatures;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& thirdPartySigned = {});
             ~JoinRoomByIdJob() override;
+
+            // Result properties
 
             const QString& roomId() const;
 
@@ -60,10 +62,12 @@ namespace QMatrixClient
                 Signed signedData;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& thirdPartySigned = {});
             ~JoinRoomJob() override;
+
+            // Result properties
 
             const QString& roomId() const;
 

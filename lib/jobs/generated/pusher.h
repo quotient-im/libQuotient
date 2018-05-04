@@ -36,7 +36,9 @@ namespace QMatrixClient
                 PusherData data;
             };
 
-            // End of inner data structures
+            // Construction/destruction
+
+            explicit GetPushersJob();
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetPushersJob. This function can be used when
@@ -45,8 +47,9 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
 
-            explicit GetPushersJob();
             ~GetPushersJob() override;
+
+            // Result properties
 
             const QVector<Pusher>& pushers() const;
 
@@ -68,7 +71,7 @@ namespace QMatrixClient
                 QString url;
             };
 
-            // End of inner data structures
+            // Construction/destruction
 
             explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag = {}, bool append = {});
     };

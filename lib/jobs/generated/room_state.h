@@ -19,6 +19,8 @@ namespace QMatrixClient
             explicit SetRoomStateWithKeyJob(const QString& roomId, const QString& eventType, const QString& stateKey, const QJsonObject& body = {});
             ~SetRoomStateWithKeyJob() override;
 
+            // Result properties
+
             const QString& eventId() const;
 
         protected:
@@ -34,6 +36,8 @@ namespace QMatrixClient
         public:
             explicit SetRoomStateJob(const QString& roomId, const QString& eventType, const QJsonObject& body = {});
             ~SetRoomStateJob() override;
+
+            // Result properties
 
             const QString& eventId() const;
 
