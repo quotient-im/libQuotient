@@ -94,8 +94,12 @@ analyzer:
         imports: <QtCore/QVector>
     - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
     map:
+    - /state_event.yaml$/:
+        type: "std::unordered_map<QString, {{1}}>"
+        noCopy?: true
+        imports: <unordered_map>
     - /.+/:
-        type: QHash<QString, {{1}}>
+        type: "QHash<QString, {{1}}>"
         avoidCopy?: true
         imports: <QtCore/QHash>
     - //:
