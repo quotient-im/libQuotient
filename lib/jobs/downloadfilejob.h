@@ -1,6 +1,6 @@
 #pragma once
 
-#include "generated/content-repo.h"
+#include "csapi/content-repo.h"
 
 namespace QMatrixClient
 {

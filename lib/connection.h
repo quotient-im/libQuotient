@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "jobs/generated/create_room.h"
+#include "csapi/create_room.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>

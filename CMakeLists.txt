@@ -94,8 +94,8 @@ file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
     ${API_DEF_PATH}/definitions/*.yaml
     ${MATRIX_DOC_PATH}/event-schemas/schema/*
 )
-set(GTAD_CONFIG_DIR lib/jobs)
-set(GEN_SRC_DIR lib/jobs/generated)
+set(GTAD_CONFIG_DIR lib/csapi)
+set(GEN_SRC_DIR lib/csapi)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
         ${GTAD_PATH} --config ${GTAD_CONFIG_DIR}/gtad.yaml --out ${GEN_SRC_DIR}

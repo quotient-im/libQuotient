@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "generated/content-repo.h"
+#include "csapi/content-repo.h"
 
 #include <QtGui/QPixmap>
 

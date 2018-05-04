@@ -23,9 +23,9 @@
 #include "avatar.h"
 #include "events/event.h"
 #include "events/roommemberevent.h"
-#include "jobs/generated/room_state.h"
-#include "jobs/generated/profile.h"
-#include "jobs/generated/content-repo.h"
+#include "csapi/room_state.h"
+#include "csapi/profile.h"
+#include "csapi/content-repo.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>

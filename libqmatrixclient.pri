@@ -38,8 +38,8 @@ HEADERS += \
     $$SRCPATH/jobs/mediathumbnailjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
-    $$files($$SRCPATH/jobs/generated/*.h, false) \
-    $$files($$SRCPATH/jobs/generated/definitions/*.h, false) \
+    $$files($$SRCPATH/csapi/*.h, false) \
+    $$files($$SRCPATH/csapi/definitions/*.h, false) \
     $$SRCPATH/logging.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
@@ -67,8 +67,8 @@ SOURCES += \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
-    $$files($$SRCPATH/jobs/generated/*.cpp, false) \
-    $$files($$SRCPATH/jobs/generated/definitions/*.cpp, false) \
+    $$files($$SRCPATH/csapi/*.cpp, false) \
+    $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/settings.cpp \
     $$SRCPATH/networksettings.cpp \
