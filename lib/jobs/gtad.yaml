@@ -71,6 +71,10 @@ analyzer:
         avoidCopy?: true
         imports: <QtCore/QJsonObject>
     array:
+    - string:
+        type: QStringList
+        avoidCopy?: true
+        imports: <QtCore/QStringList>
     - /^Notification|Result$/:
         type: "std::vector<{{1}}>"
         noCopy?: true
