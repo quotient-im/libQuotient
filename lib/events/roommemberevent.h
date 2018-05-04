@@ -52,7 +52,7 @@ namespace QMatrixClient
     {
             Q_GADGET
         public:
-            static constexpr const char* TypeId = "m.room.member";
+            static constexpr const char* typeId() { return "m.room.member"; }
 
             using MembershipType = MemberEventContent::MembershipType;
 

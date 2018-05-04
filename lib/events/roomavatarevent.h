@@ -37,7 +37,7 @@ namespace QMatrixClient
                 : StateEvent(Type::RoomAvatar, obj)
             { }
 
-            static constexpr const char* TypeId = "m.room.avatar";
+            static constexpr const char* typeId() { return "m.room.avatar"; }
     };
 
 }  // namespace QMatrixClient

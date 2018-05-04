@@ -36,7 +36,7 @@ namespace QMatrixClient
                             const EvT& event)
                 : BaseJob(HttpVerb::Put, "SetRoomStateJob",
                           QStringLiteral("_matrix/client/r0/rooms/%1/state/%2/%3")
-                              .arg(roomId, EvT::TypeId, stateKey),
+                              .arg(roomId, EvT::typeId(), stateKey),
                           Query(),
                           Data(event.toJson()))
             { }
@@ -48,7 +48,7 @@ namespace QMatrixClient
             SetRoomStateJob(const QString& roomId, const EvT& event)
                 : BaseJob(HttpVerb::Put, "SetRoomStateJob",
                           QStringLiteral("_matrix/client/r0/rooms/%1/state/%2")
-                              .arg(roomId, EvT::TypeId),
+                              .arg(roomId, EvT::typeId()),
                           Query(),
                           Data(event.toJson()))
             { }

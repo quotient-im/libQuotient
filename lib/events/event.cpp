@@ -76,7 +76,7 @@ template <typename BaseEventT, typename EventT, typename... EventTs>
 inline event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& o,
                                               const QString& selector)
 {
-    if (selector == EventT::TypeId)
+    if (selector == EventT::typeId())
         return _impl::create<EventT>(o);
 
     return makeIfMatches<BaseEventT, EventTs...>(o, selector);

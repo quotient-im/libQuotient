@@ -29,6 +29,6 @@ namespace QMatrixClient
 
             QMultiHash<QString, QString> usersToDirectChats() const;
 
-            static constexpr const char * TypeId = "m.direct";
+            static constexpr const char* typeId() { return "m.direct"; }
     };
 }

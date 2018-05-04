@@ -1774,7 +1774,7 @@ void appendEvent(QJsonArray& events, const QString& type,
 template <typename EvtT>
 void appendEvent(QJsonArray& events, const EvtT& event)
 {
-    appendEvent(events, EvtT::TypeId, event.toJson());
+    appendEvent(events, EvtT::typeId(), event.toJson());
 }
 
 QJsonObject Room::Private::toJson() const

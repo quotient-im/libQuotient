@@ -42,7 +42,7 @@ namespace QMatrixClient
             EventsWithReceipts eventsWithReceipts() const
             { return _eventsWithReceipts; }
 
-            static constexpr const char* const TypeId = "m.receipt";
+            static constexpr const char* typeId() { return "m.receipt"; }
 
         private:
             EventsWithReceipts _eventsWithReceipts;
