@@ -53,7 +53,6 @@ analyzer:
     file: *ByteStream
     object:
     - /m\.room\.member$/: # A stub for EventsBatch<RoomMemberEvent>
-        type: none
     - /state_event.yaml$/:
         type: StateEventPtr
         noCopy?: true
@@ -98,7 +97,7 @@ analyzer:
         imports: <QtCore/QVector>
     - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
     map:
-    - /state_event.yaml$/:
+    - RoomState:
         type: "std::unordered_map<QString, {{1}}>"
         noCopy?: true
         imports: <unordered_map>
