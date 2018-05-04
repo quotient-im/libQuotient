@@ -93,6 +93,15 @@ analyzer:
         avoidCopy?: true
         imports: <QtCore/QVector>
     - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
+    map:
+    - /.+/:
+        type: QHash<QString, {{1}}>
+        avoidCopy?: true
+        imports: <QtCore/QHash>
+    - //:
+        type: QVariantHash
+        avoidCopy?: true
+        imports: <QtCore/QVariantHash>
     variant: { type: QVariant, "avoidCopy?": true, imports: <QtCore/QVariant> }
     schema:
       avoidCopy?: true
