@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "jobs/generated/create_room.h"
+#include "csapi/create_room.h"
 #include "joinstate.h"
 
 #include <QtCore/QObject>
@@ -272,8 +272,8 @@ namespace QMatrixClient
              */
             CreateRoomJob* createRoom(RoomVisibility visibility,
                 const QString& alias, const QString& name, const QString& topic,
-                const QVector<QString>& invites, const QString& presetName = {}, bool isDirect = false,
-                bool guestsCanJoin = false,
+                const QStringList& invites, const QString& presetName = {},
+                bool isDirect = false, bool guestsCanJoin = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
                 const QJsonObject& creationContent = {});
@@ -331,9 +331,7 @@ namespace QMatrixClient
                                                 RoomEvent* event) const;
             /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
             virtual void leaveRoom( Room* room );
-            /** @deprecated User callApi<RoomMessagesJob>() or Room::getPreviousContent() instead */
-            virtual RoomMessagesJob* getMessages(Room* room,
-                                                 const QString& from) const;
+
         signals:
             /**
              * @deprecated

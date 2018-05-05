@@ -1,0 +1,121 @@
+{{#@filePartial}}preamble{{/@filePartial}}
+#include "{{filenameBase}}.h"
+{{^allModels}}
+#include "converters.h"
+{{/allModels}}{{#operations}}
+{{#producesNonJson?}}#include <QtNetwork/QNetworkReply>
+{{/producesNonJson?}}#include <QtCore/QStringBuilder>
+{{/operations}}
+using namespace QMatrixClient;
+{{#models.model}}{{#in?}}
+QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
+{
+    QJsonObject o;
+{{#vars}}    o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+{{/vars}}
+    return o;
+}
+{{/in?}}{{#out?}}
+{{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(const QJsonValue& jv)
+{
+    const auto& o = jv.toObject();
+    {{qualifiedName}} result;
+    {{#vars}}result.{{nameCamelCase}} =
+        fromJson<{{dataType.name}}>(o.value("{{baseName}}"));
+    {{/vars}}
+    return result;
+}
+{{/out?}}{{/models.model}}{{#operations}}
+static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
+{{#    operation}}{{#models}}
+namespace QMatrixClient
+{
+    // Converters
+{{#model}}{{#in?}}
+    QJsonObject toJson(const {{qualifiedName}}& pod)
+    {
+        QJsonObject o;
+{{#vars}}        o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
+{{/vars}}
+        return o;
+    }
+{{/in?}}{{#out?}}
+    template <> struct FromJson<{{qualifiedName}}>
+    {
+        {{qualifiedName}} operator()(const QJsonValue& jv)
+        {
+            const auto& o = jv.toObject();
+            {{qualifiedName}} result;
+{{#vars}}            result.{{nameCamelCase}} =
+                fromJson<{{dataType.qualifiedName}}>(o.value("{{baseName}}"));
+{{/vars}}
+            return result;
+        }
+    };
+{{/out?}}{{/model}}} // namespace QMatrixClient
+{{/    models}}{{#responses}}{{#normalResponse?}}{{#allProperties?}}
+class {{camelCaseOperationId}}Job::Private
+{
+    public:{{#allProperties}}
+        {{dataType.name}} {{paramName}};{{/allProperties}}
+};
+{{/    allProperties?}}{{/normalResponse?}}{{/responses}}{{#queryParams?}}
+BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
+{
+    BaseJob::Query _q;{{#queryParams}}
+{{^required?}}{{#string?}}    if (!{{nameCamelCase}}.isEmpty())
+    {{/string?}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+    return _q;
+}
+{{/queryParams?}}{{^bodyParams}}
+QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDef}}{{/allParams}}{{/allParams?}})
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+            queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}});
+}
+{{/    bodyParams}}
+{{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDef}}{{/allParams}})
+    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
+        basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+        queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}}{{#skipAuth}}{{#queryParams?}},
+        {}{{/queryParams?}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
+    , d(new Private){{/allProperties?}}{{/normalResponse?}}{{/responses}}
+{
+{{#headerParams?}}{{#headerParams}}    setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
+{{/headerParams}}
+{{/headerParams?
+}}{{#bodyParams?
+}}{{#inlineBody}}    setRequestData(Data({{!
+                        }}{{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
+                        }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));{{/inlineBody
+}}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
+{{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
+    {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
+    setRequestData(_data);{{/inlineBody}}
+{{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
+{{/producesNonJson?}}}{{!<- mind the actual brace}}
+{{#    responses}}{{#normalResponse?}}{{#allProperties?}}
+{{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
+{{#        allProperties}}
+{{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}(){{^noCopy?}} const{{/noCopy?}}
+{
+    return {{#noCopy?}}std::move({{/noCopy?}}d->{{paramName}}{{#noCopy?}}){{/noCopy?}};
+}
+{{/        allProperties}}{{#producesNonJson?}}
+BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
+{
+    {{#headers}}d->{{paramName}} = reply->rawHeader("{{baseName}}"); {{! We don't check for required headers yet }}
+    {{/headers}}{{#properties}}d->{{paramName}} = reply;{{/properties}}
+    return Success;
+}{{/       producesNonJson?}}{{^producesNonJson?}}
+BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
+{
+    auto json = data.object();
+    {{#        properties}}{{#required?}}if (!json.contains("{{baseName}}"))
+        return { JsonParseError,
+            "The key '{{baseName}}' not found in the response" };
+    {{/required?}}d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"));
+    {{/        properties}}return Success;
+}{{/       producesNonJson?}}
+{{/allProperties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

@@ -25,7 +25,7 @@ namespace QMatrixClient
     class RedactionEvent : public RoomEvent
     {
         public:
-            static constexpr const char* const TypeId = "m.room.redaction";
+            static constexpr const char* typeId() { return "m.room.redaction"; }
 
             explicit RedactionEvent(const QJsonObject& obj)
                 : RoomEvent(Type::Redaction, obj)

@@ -23,9 +23,9 @@
 #include "avatar.h"
 #include "events/event.h"
 #include "events/roommemberevent.h"
-#include "jobs/setroomstatejob.h"
-#include "jobs/generated/profile.h"
-#include "jobs/generated/content-repo.h"
+#include "csapi/room_state.h"
+#include "csapi/profile.h"
+#include "csapi/content-repo.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
@@ -277,8 +277,7 @@ void User::rename(const QString& newName, const Room* r)
                "Attempt to rename a user that's not a room member");
     MemberEventContent evtC;
     evtC.displayName = newName;
-    auto job = d->connection->callApi<SetRoomStateJob>(
-                r->id(), id(), RoomMemberEvent(move(evtC)));
+    auto job = r->setMemberState(id(), RoomMemberEvent(move(evtC)));
     connect(job, &BaseJob::success, this, [=] { updateName(newName, r); });
 }
 
@@ -358,19 +357,20 @@ QUrl User::avatarUrl(const Room* room) const
     return avatarObject(room).url();
 }
 
-void User::processEvent(const RoomMemberEvent* event, const Room* room)
+void User::processEvent(const RoomMemberEvent& event, const Room* room)
 {
-    if (event->membership() != MembershipType::Invite &&
-            event->membership() != MembershipType::Join)
+    Q_ASSERT(room);
+    if (event.membership() != MembershipType::Invite &&
+            event.membership() != MembershipType::Join)
         return;
 
     auto aboutToEnter = room->memberJoinState(this) == JoinState::Leave &&
-            (event->membership() == MembershipType::Join ||
-             event->membership() == MembershipType::Invite);
+            (event.membership() == MembershipType::Join ||
+             event.membership() == MembershipType::Invite);
     if (aboutToEnter)
         ++d->totalRooms;
 
-    auto newName = event->displayName();
+    auto newName = event.displayName();
     // `bridged` value uses the same notification signal as the name;
     // it is assumed that first setting of the bridge occurs together with
     // the first setting of the name, and further bridge updates are
@@ -390,17 +390,17 @@ void User::processEvent(const RoomMemberEvent* event, const Room* room)
         }
         newName.truncate(match.capturedStart(0));
     }
-    if (event->prevContent())
+    if (event.prevContent())
     {
         // FIXME: the hint doesn't work for bridged users
         auto oldNameHint =
-                d->nameForRoom(room, event->prevContent()->displayName);
+                d->nameForRoom(room, event.prevContent()->displayName);
         updateName(newName, oldNameHint, room);
-        updateAvatarUrl(event->avatarUrl(),
-                        d->avatarUrlForRoom(room, event->prevContent()->avatarUrl),
+        updateAvatarUrl(event.avatarUrl(),
+                        d->avatarUrlForRoom(room, event.prevContent()->avatarUrl),
                         room);
     } else {
         updateName(newName, room);
-        updateAvatarUrl(event->avatarUrl(), d->avatarUrlForRoom(room), room);
+        updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
     }
 }

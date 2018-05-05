@@ -23,14 +23,13 @@
 #include "events/directchatevent.h"
 #include "room.h"
 #include "settings.h"
-#include "jobs/generated/login.h"
-#include "jobs/generated/logout.h"
-#include "jobs/generated/receipts.h"
-#include "jobs/generated/leaving.h"
-#include "jobs/generated/account-data.h"
+#include "csapi/login.h"
+#include "csapi/logout.h"
+#include "csapi/receipts.h"
+#include "csapi/leaving.h"
+#include "csapi/account-data.h"
+#include "csapi/joining.h"
 #include "jobs/sendeventjob.h"
-#include "jobs/joinroomjob.h"
-#include "jobs/roommessagesjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -372,11 +371,6 @@ void Connection::leaveRoom(Room* room)
     callApi<LeaveRoomJob>(room->id());
 }
 
-RoomMessagesJob* Connection::getMessages(Room* room, const QString& from) const
-{
-    return callApi<RoomMessagesJob>(room->id(), from);
-}
-
 inline auto splitMediaId(const QString& mediaId)
 {
     auto idParts = mediaId.split('/');
@@ -447,7 +441,7 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QString& alias, const QString& name, const QString& topic,
-    const QVector<QString>& invites, const QString& presetName,
+    const QStringList& invites, const QString& presetName,
     bool isDirect, bool guestsCanJoin,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,

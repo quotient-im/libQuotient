@@ -54,8 +54,7 @@ namespace QMatrixClient
     class _Name : public Event \
     { \
         public: \
-            static constexpr const char* TypeId = _TypeId; \
-            static const char* typeId() { return TypeId; } \
+            static constexpr const char* typeId() { return _TypeId; } \
             explicit _Name(const QJsonObject& obj) \
                 : Event((_EnumType), obj) \
                 , _content(contentJson(), QStringLiteral(#_ContentKey)) \

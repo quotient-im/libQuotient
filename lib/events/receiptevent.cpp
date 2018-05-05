@@ -43,7 +43,7 @@ using namespace QMatrixClient;
 ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
     : Event(Type::Receipt, obj)
 {
-    Q_ASSERT(obj["type"].toString() == TypeId);
+    Q_ASSERT(obj["type"].toString() == typeId());
 
     const QJsonObject contents = contentJson();
     _eventsWithReceipts.reserve(contents.size());

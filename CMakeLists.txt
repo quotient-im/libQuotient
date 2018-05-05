@@ -52,6 +52,11 @@ if (CMAKE_BUILD_TYPE)
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
+if (MATRIX_DOC_PATH AND GTAD_PATH)
+    message( STATUS "Generating API stubs enabled" )
+    message( STATUS "  Using GTAD at ${GTAD_PATH}" )
+    message( STATUS "  Using CS API files at ${MATRIX_DOC_PATH}/api/client-server" )
+endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
 
@@ -78,19 +83,42 @@ set(libqmatrixclient_SRCS
     lib/jobs/basejob.cpp
     lib/jobs/checkauthmethods.cpp
     lib/jobs/sendeventjob.cpp
-    lib/jobs/setroomstatejob.cpp
-    lib/jobs/joinroomjob.cpp
-    lib/jobs/roommessagesjob.cpp
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
 )
 
-aux_source_directory(lib/jobs/generated libqmatrixclient_job_SRCS)
+set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server)
+file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
+    ${API_DEF_PATH}/*.yaml
+    ${API_DEF_PATH}/definitions/*.yaml
+    ${MATRIX_DOC_PATH}/event-schemas/schema/*
+)
+set(GTAD_CONFIG_DIR lib/csapi)
+set(GEN_SRC_DIR lib/csapi)
+if (MATRIX_DOC_PATH AND GTAD_PATH)
+    add_custom_target(update-api
+        ${GTAD_PATH} --config ${GTAD_CONFIG_DIR}/gtad.yaml --out ${GEN_SRC_DIR}
+            ${API_DEF_PATH}
+            cas_login_redirect.yaml- cas_login_ticket.yaml-
+            old_sync.yaml- room_initial_sync.yaml- # deprecated
+            sync.yaml-
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        SOURCES ${GTAD_CONFIG_DIR}/gtad.yaml
+                ${GTAD_CONFIG_DIR}/{{base}}.h.mustache
+                ${GTAD_CONFIG_DIR}/{{base}}.cpp.mustache
+                ${API_DEFS}
+        VERBATIM
+    )
+endif()
+
+aux_source_directory(${GEN_SRC_DIR} libqmatrixclient_job_SRCS)
+aux_source_directory(${GEN_SRC_DIR}/definitions libqmatrixclient_def_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
-add_library(QMatrixClient ${libqmatrixclient_SRCS} ${libqmatrixclient_job_SRCS})
+add_library(QMatrixClient ${libqmatrixclient_SRCS}
+            ${libqmatrixclient_job_SRCS} ${libqmatrixclient_def_SRCS})
 set(API_VERSION "0.2")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )

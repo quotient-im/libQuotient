@@ -65,7 +65,7 @@ namespace QMatrixClient
 
             QJsonObject toJson() const;
 
-            static constexpr const char* TypeId = "m.room.message";
+            static constexpr const char* typeId() { return "m.room.message"; }
 
         private:
             QString _msgtype;

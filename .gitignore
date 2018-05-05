@@ -8,3 +8,5 @@ build
 Makefile*
 object_script.*
 .qmake*
+debug/
+release/

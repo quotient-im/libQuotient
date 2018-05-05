@@ -4,10 +4,10 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:beineri/opt-qt563-trusty'
+    - sourceline: 'ppa:beineri/opt-qt571-trusty'
     packages:
     - g++-5
-    - qt56base
+    - qt57base
     - valgrind
 
 matrix:
@@ -22,16 +22,27 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt56/bin/qt56-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
+
+install:
+- git clone https://github.com/QMatrixClient/matrix-doc.git
+- git clone --recursive https://github.com/KitsuneRal/gtad.git
+- pushd gtad
+- cmake -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
+- cmake --build .
+- popd
+
+before_script:
+- mkdir build && pushd build
+- cmake -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install ..
+- cmake --build . --target update-api
+- popd
 
 script:
-# Build and install with CMake
-- mkdir build && pushd build
-- cmake -DCMAKE_INSTALL_PREFIX=../install ..
-- cmake --build . --target all
-- cmake --build . --target install
+- cmake --build build --target all
+- cmake --build build --target install
 # Build qmc-example with the installed library
-- popd && mkdir build-example && pushd build-example
+- mkdir build-example && pushd build-example
 - cmake -DCMAKE_PREFIX_PATH=../install ../examples
 - cmake --build . --target all
 - popd

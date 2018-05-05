@@ -34,14 +34,12 @@ HEADERS += \
     $$SRCPATH/jobs/passwordlogin.h \
     $$SRCPATH/jobs/sendeventjob.h \
     $$SRCPATH/jobs/postreceiptjob.h \
-    $$SRCPATH/jobs/joinroomjob.h \
-    $$SRCPATH/jobs/roommessagesjob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
-    $$SRCPATH/jobs/setroomstatejob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
-    $$files($$SRCPATH/jobs/generated/*.h, false) \
+    $$files($$SRCPATH/csapi/*.h, false) \
+    $$files($$SRCPATH/csapi/definitions/*.h, false) \
     $$SRCPATH/logging.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
@@ -66,13 +64,11 @@ SOURCES += \
     $$SRCPATH/jobs/passwordlogin.cpp \
     $$SRCPATH/jobs/sendeventjob.cpp \
     $$SRCPATH/jobs/postreceiptjob.cpp \
-    $$SRCPATH/jobs/joinroomjob.cpp \
-    $$SRCPATH/jobs/roommessagesjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
-    $$SRCPATH/jobs/setroomstatejob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
-    $$files($$SRCPATH/jobs/generated/*.cpp, false) \
+    $$files($$SRCPATH/csapi/*.cpp, false) \
+    $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/settings.cpp \
     $$SRCPATH/networksettings.cpp \

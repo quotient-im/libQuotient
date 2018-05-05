@@ -108,6 +108,42 @@ We will gladly give credit to anyone who reports a vulnerability so that we can 
 
 The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
 
+### Generated C++ code for CS API
+The code in lib/csapi, although it resides in Git, is actually generated from the official Matrix Swagger/OpenAPI definition files. If you're unhappy with something in that directory and want to improve the code, you have to understand the way these files are produced and setup some additional tooling. The shortest possible procedure resembling the below text can be found in .travis.yml (our Travis CI configuration actually regenerates those files upon every build). The generating sequence only works with CMake atm; patches to enable it with qmake are (you guessed it) very welcome.
+
+#### Why generate the code at all?
+Because before both original authors of libQMatrixClient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
+
+#### Prerequisites for CS API code generation
+1. Get the source code of GTAD and its dependencies, e.g. using the command: `git clone --recursive https://github.com/KitsuneRal/gtad.git`
+2. Build GTAD: in the source code directory, do `cmake . && cmake --build .` (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`, similar to libQMatrixClient itself).
+3. Get the Matrix CS API definitions that are included in the matrix-doc repo: `git clone https://github.com/QMatrixClient/matrix-doc.git` (QMatrixClient/matrix-doc is a fork that's known to produce working code; you may want to use your own fork if you wish to alter something in the API).
+
+#### Generating lib/csapi contents
+1. Pass additional configuration to CMake when configuring libQMatrixClient, namely: `-DMATRIX_DOC_PATH=<path you your matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`. If everything's right, these two CMake variables will be mentioned in CMake output and will trigger configuration of an additional build target, see the next step.
+2. Generate the code: `cmake --build <your build dir> --target update-api`; if you use CMake with GNU Make, you can just do `make update-api` instead. Building this target will create (overwriting without warning) .h and .cpp files in lib/csapi directory for all YAML files it can find in `matrix-doc/api/client-server`.
+3. Once you've done that, you can build the library as usual.
+
+#### Changing things in lib/csapi
+See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQMatrixClient are described here.
+
+GTAD uses the following three kinds of sources:
+1. OpenAPI files. Each file is treated as a separate source (because this is how GTAD works now).
+2. A configuration file, in our case it's lib/csapi/gtad.yaml - this one is common for the whole API.
+3. Source code template files: lib/csapi/{{base}}.*.mustache - also common.
+
+The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the libQMatrixClient room - I (Kitsune) will be very glad to help you out.
+
+The types map in gtad.yaml is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
+* `avoidCopy?` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
+* `noCopy?` - some types are not copyable at all and must be moved instead (an obvious example is anything "tainted" with a member of type `std::unique_ptr<>`). The template will use `T&&` instead of `T` or `const T&` to pass such types around.
+* `initializer` - this is a _partial_ (see Mustache documentation for explanations but basically it's a macro that allows Mustache in itself and substitutes Mustache macros when it is substituted by the Mustache processor) that specifies how exactly a default value should be passed to the parameter. E.g., a default value for a `QString` parameter is enclosed into `QStringLiteral`.
+* `string?` - indicates that the type has an interface similar to that of `QString`; it is used in the template to test parameters of those types for emptiness and skip insertion of them into request payloads so that the server is not confused with existing JSON keys (`/login` is notably picky about that).
+
+Instead of relying on the event structure definition in the OpenAPI files, gtad.yaml uses pointers to libQMatrixClient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code. Similarly, when the inner type of an array is unknown, `QJsonArray` is exposed into the library interface.
+
+Although GTAD is now engaged to generate (almost) the entire set of CS API calls (except `/sync` - the hand-written implementation is still better for this particular one), not all files are added to Git. In general, the rule is that only files "looking good enough" are added to Git (and therefore become a part of the official library API); but some of the calls still receive, or return, opaque `QJsonObject` or `QJsonArray` even when the original API definition is elaborate enough because GTAD still doesn't convert some OpenAPI constructs. The work is ongoing to bring those onboard (either by further development on GTAD or by extending the configuration in `gtad.yaml`).
+
 ### Library API and doc-comments
 
 Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you.

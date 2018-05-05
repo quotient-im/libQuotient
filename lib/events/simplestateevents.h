@@ -28,7 +28,7 @@ namespace QMatrixClient
         : public StateEvent<EventContent::SimpleContent<_ContentType>> \
     { \
         public: \
-            static constexpr const char* TypeId = _TypeId; \
+            static constexpr const char* typeId() { return _TypeId; } \
             explicit _Name(const QJsonObject& obj) \
                 : StateEvent(_EnumType, obj, QStringLiteral(#_ContentKey)) \
             { } \

@@ -27,7 +27,7 @@ namespace QMatrixClient
     class TypingEvent: public Event
     {
         public:
-            static constexpr const char* const TypeId = "m.typing";
+            static constexpr const char* typeId() { return "m.typing"; }
 
             TypingEvent(const QJsonObject& obj);
 
