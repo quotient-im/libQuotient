@@ -20,7 +20,7 @@ The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrix
 
 Tags starting with `v` represent released versions; `rc` mark release candidates.
 
-## Pre-requisites
+### Pre-requisites
 - a Linux, OSX or Windows system (desktop versions tried; Ubuntu Touch is known to work; mobile Windows and iOS might work too but never tried)
   - For Ubuntu flavours - zesty or later (or a derivative) is good enough out of the box; older ones will need PPAs at least for a newer Qt; in particular, if you have xenial you're advised to add Kubuntu Backports PPA for it
 - a Git client to check out this repo
@@ -44,8 +44,8 @@ Just install things from the list above using your preferred package manager. If
 
 There are no official MinGW-based 64-bit packages for Qt. If you're determined to build a 64-bit library, either use a Visual Studio toolchain or build Qt5 yourself as described in Qt documentation.
 
-## Build
-### CMake-based
+### Building
+#### CMake-based
 In the root directory of the project sources:
 ```
 mkdir build_dir
@@ -61,7 +61,7 @@ cmake --build . --target install
 ```
 This will also install cmake package config files; once this is done, you can use `examples/CMakeLists.txt` to compile the example with the _installed_ library. This file is a good starting point for your own CMake-based project using libQMatrixClient.
 
-### qmake-based
+#### qmake-based
 The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `qmc-example.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
 ```
 qmake qmc-example.pro
@@ -83,6 +83,8 @@ CMake Warning at CMakeLists.txt:11 (find_package):
   "Qt5Widgets", but CMake did not find one.
 ```
 ...then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+
+#### Logging configuration
 
 libqmatrixclient uses Qt's logging categories to make switching certain types of logging easier. In case of troubles at runtime (bugs, crashes) you can increase logging if you add the following to the `QT_LOGGING_RULES` environment variable:
 ```
