@@ -4,9 +4,9 @@
 {{#operations}}#include "jobs/basejob.h"
 {{/operations}}
 {{#imports}}#include {{_}}
-{{/imports}}
-{{#allModels}}#include "converters.h"
-{{/allModels}}
+{{/imports}}{{#models}}
+#include "converters.h"
+{{/models}}
 namespace QMatrixClient
 {
 {{#models}}    // Data structures

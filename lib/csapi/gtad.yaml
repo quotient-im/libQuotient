@@ -52,7 +52,6 @@ analyzer:
         avoidCopy?: true
     file: *ByteStream
     object:
-    - /m\.room\.member$/: # A stub for EventsBatch<RoomMemberEvent>
     - /state_event.yaml$/:
         type: StateEventPtr
         noCopy?: true
@@ -108,8 +107,11 @@ analyzer:
     - //:
         type: QVariantHash
         avoidCopy?: true
-        imports: <QtCore/QVariantHash>
-    variant: { type: QVariant, "avoidCopy?": true, imports: <QtCore/QVariant> }
+        imports: '"variant_converters.h"'
+    variant:
+      type: QVariant
+      avoidCopy?: true
+      imports: '"variant_converters.h"'
     schema: # Properties of inline structure definitions
       avoidCopy?: true
 

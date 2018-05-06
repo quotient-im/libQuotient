@@ -1,8 +1,8 @@
 {{#@filePartial}}preamble{{/@filePartial}}
 #include "{{filenameBase}}.h"
-{{^allModels}}
+{{^models}}
 #include "converters.h"
-{{/allModels}}{{#operations}}
+{{/models}}{{#operations}}
 {{#producesNonJson?}}#include <QtNetwork/QNetworkReply>
 {{/producesNonJson?}}#include <QtCore/QStringBuilder>
 {{/operations}}
