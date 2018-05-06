@@ -30,8 +30,6 @@ HEADERS += \
     $$SRCPATH/events/redactionevent.h \
     $$SRCPATH/jobs/requestdata.h \
     $$SRCPATH/jobs/basejob.h \
-    $$SRCPATH/jobs/checkauthmethods.h \
-    $$SRCPATH/jobs/passwordlogin.h \
     $$SRCPATH/jobs/sendeventjob.h \
     $$SRCPATH/jobs/postreceiptjob.h \
     $$SRCPATH/jobs/syncjob.h \
@@ -61,8 +59,6 @@ SOURCES += \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
-    $$SRCPATH/jobs/checkauthmethods.cpp \
-    $$SRCPATH/jobs/passwordlogin.cpp \
     $$SRCPATH/jobs/sendeventjob.cpp \
     $$SRCPATH/jobs/postreceiptjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \

@@ -81,7 +81,6 @@ set(libqmatrixclient_SRCS
     lib/events/directchatevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
-    lib/jobs/checkauthmethods.cpp
     lib/jobs/sendeventjob.cpp
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
