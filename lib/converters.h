@@ -23,6 +23,7 @@
 #include <QtCore/QDate>
 
 #include <unordered_map>
+#include <vector>
 
 // Enable std::unordered_map<QString, T>
 namespace std
