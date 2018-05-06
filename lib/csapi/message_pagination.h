@@ -8,7 +8,6 @@
 
 #include "events/event.h"
 
-
 namespace QMatrixClient
 {
     // Operations

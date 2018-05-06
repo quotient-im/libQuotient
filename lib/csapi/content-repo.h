@@ -8,7 +8,6 @@
 
 #include <QtCore/QIODevice>
 
-
 namespace QMatrixClient
 {
     // Operations

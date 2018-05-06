@@ -13,8 +13,6 @@
 #include <QtCore/QStringList>
 #include <QtCore/QVector>
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     // Operations

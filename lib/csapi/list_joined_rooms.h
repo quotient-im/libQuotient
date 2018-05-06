@@ -8,7 +8,6 @@
 
 #include <QtCore/QStringList>
 
-
 namespace QMatrixClient
 {
     // Operations

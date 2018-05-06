@@ -9,8 +9,6 @@
 #include <QtCore/QHash>
 #include <QtCore/QVector>
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     // Operations

@@ -33,6 +33,7 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
+#include "variant_converters.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>

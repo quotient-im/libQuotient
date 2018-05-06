@@ -43,7 +43,8 @@ HEADERS += \
     $$SRCPATH/logging.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
-    $$SRCPATH/networkaccessmanager.h
+    $$SRCPATH/networkaccessmanager.h \
+    $$PWD/lib/variant_converters.h
 
 SOURCES += \
     $$SRCPATH/connectiondata.cpp \

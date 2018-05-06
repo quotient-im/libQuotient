@@ -7,7 +7,6 @@
 #include "jobs/basejob.h"
 
 
-
 namespace QMatrixClient
 {
     // Operations

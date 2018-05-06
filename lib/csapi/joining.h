@@ -8,8 +8,6 @@
 
 #include <QtCore/QJsonObject>
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     // Operations

@@ -4,6 +4,8 @@
 
 #include "create_room.h"
 
+#include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;

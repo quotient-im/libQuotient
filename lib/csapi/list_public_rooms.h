@@ -9,8 +9,6 @@
 #include <QtCore/QVector>
 #include <QtCore/QStringList>
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     // Operations

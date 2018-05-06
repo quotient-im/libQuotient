@@ -4,6 +4,8 @@
 
 #include "search.h"
 
+#include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;

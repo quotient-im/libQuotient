@@ -4,6 +4,8 @@
 
 #include "list_public_rooms.h"
 
+#include "converters.h"
+
 #include <QtCore/QStringBuilder>
 
 using namespace QMatrixClient;

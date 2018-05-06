@@ -10,8 +10,6 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QStringList>
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     // Operations

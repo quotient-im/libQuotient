@@ -23,10 +23,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrlQuery>
-
-// Any job that parses the response will need the below two.
 #include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
 
 class QNetworkReply;
 class QSslError;
