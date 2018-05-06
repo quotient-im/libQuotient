@@ -1698,8 +1698,9 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
     );
 
     // Spec extension. A single person in the chat but not the local user
-    // (the local user is apparently invited).
-    if (userlist.size() == 1 && !isLocalUser(first_two.front()))
+    // (the local user is invited).
+    if (userlist.size() == 1 && !isLocalUser(first_two.front()) &&
+            joinState == JoinState::Invite)
         return tr("Invitation from %1")
                 .arg(q->roomMembername(first_two.front()));
 
