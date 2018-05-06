@@ -119,7 +119,7 @@ set(example_SRCS examples/qmc-example.cpp)
 
 add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_job_SRCS} ${libqmatrixclient_def_SRCS})
-set(API_VERSION "0.2")
+set(API_VERSION "0.3")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
 set_property(TARGET QMatrixClient PROPERTY
