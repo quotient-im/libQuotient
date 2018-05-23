@@ -196,7 +196,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
     connect(loginJob, &BaseJob::failure, this,
         [this, loginJob] {
-            emit loginError(loginJob->errorString());
+            emit loginError(loginJob->errorString(), loginJob->errorDetails());
         });
 }
 
@@ -269,13 +269,18 @@ void Connection::sync(int timeout)
         d->syncJob = nullptr;
         emit syncDone();
     });
-    connect( job, &SyncJob::retryScheduled, this, &Connection::networkError);
+    connect( job, &SyncJob::retryScheduled, this,
+        [this,job] (int retriesTaken, int nextInMilliseconds)
+        {
+            emit networkError(job->errorString(), job->errorDetails(),
+                              retriesTaken, nextInMilliseconds);
+        });
     connect( job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
-            emit loginError(job->errorString());
+            emit loginError(job->errorString(), job->errorDetails());
         else
-            emit syncError(job->errorString());
+            emit syncError(job->errorString(), job->errorDetails());
     });
 }
 

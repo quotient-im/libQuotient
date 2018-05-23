@@ -72,6 +72,7 @@ class BaseJob::Private
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         Status status = Pending;
+        QByteArray details; //< In case of error, contains the raw response body
 
         QTimer timer;
         QTimer retryTimer;
@@ -264,45 +265,41 @@ void BaseJob::checkReply()
 void BaseJob::gotReply()
 {
     checkReply();
-    qCDebug(d->logCat).nospace().noquote() << this << " returned HTTP code "
-        << d->reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
-        << ": " << (d->reply->error() == QNetworkReply::NoError ?
-                    "Success" : d->reply->errorString())
-        << " (URL: " << d->reply->url().toDisplayString() << ")";
     if (status().good())
         setStatus(parseReply(d->reply.data()));
     else {
-        const auto body = d->reply->readAll();
-        if (!body.isEmpty())
+        // FIXME: Factor out to smth like BaseJob::handleError()
+        d->details = d->reply->readAll();
+        const auto jsonBody =
+                d->reply->rawHeader("Content-Type") == "application/json";
+        qCDebug(d->logCat).noquote()
+                << "Error body (truncated if long):" << d->details.left(500);
+        if (jsonBody)
         {
-            qCDebug(d->logCat).noquote() << "Error body:" << body;
-            auto json = QJsonDocument::fromJson(body).object();
-            if (json.isEmpty())
-                setStatus(IncorrectRequestError, body);
-            else {
-                if (error() == TooManyRequestsError ||
-                        json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
-                {
-                    QString msg = tr("Too many requests");
-                    auto retryInterval = json.value("retry_after_ms").toInt(-1);
-                    if (retryInterval != -1)
-                        msg += tr(", next retry advised after %1 ms")
-                                .arg(retryInterval);
-                    else // We still have to figure some reasonable interval
-                        retryInterval = getNextRetryInterval();
+            auto json = QJsonDocument::fromJson(d->details).object();
+            if (error() == TooManyRequestsError ||
+                    json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
+            {
+                QString msg = tr("Too many requests");
+                auto retryInterval = json.value("retry_after_ms").toInt(-1);
+                if (retryInterval != -1)
+                    msg += tr(", next retry advised after %1 ms")
+                            .arg(retryInterval);
+                else // We still have to figure some reasonable interval
+                    retryInterval = getNextRetryInterval();
 
-                    setStatus(TooManyRequestsError, msg);
+                setStatus(TooManyRequestsError, msg);
 
-                    // Shortcut to retry instead of executing finishJob()
-                    stop();
-                    qCWarning(d->logCat)
-                            << this << "will retry in" << retryInterval << "ms";
-                    d->retryTimer.start(retryInterval);
-                    emit retryScheduled(d->retriesTaken, retryInterval);
-                    return;
-                }
-                setStatus(IncorrectRequestError, json.value("error").toString());
+                // Shortcut to retry instead of executing finishJob()
+                stop();
+                qCWarning(d->logCat)
+                        << this << "will retry in" << retryInterval << "ms";
+                d->retryTimer.start(retryInterval);
+                emit retryScheduled(d->retriesTaken, retryInterval);
+                return;
             }
+            if (!json.isEmpty())
+                setStatus(IncorrectRequestError, json.value("error").toString());
         }
     }
 
@@ -343,12 +340,21 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     const auto httpCodeHeader =
             reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-    if (!httpCodeHeader.isValid()) // Woah, we didn't even get HTTP headers
+    if (!httpCodeHeader.isValid())
+    {
+        qCWarning(d->logCat) << this << "didn't get valid HTTP headers";
         return { NetworkError, reply->errorString() };
+    }
 
+    const QString replyState = reply->isRunning() ? "(tentative)" : "(final)";
+    const auto urlString = '|' + d->reply->url().toDisplayString();
     const auto httpCode = httpCodeHeader.toInt();
+    const auto reason =
+        reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
     if (httpCode / 100 == 2) // 2xx
     {
+        qCDebug(d->logCat).noquote().nospace() << this << urlString;
+        qCDebug(d->logCat).noquote() << "  " << httpCode << reason << replyState;
         if (checkContentType(reply->rawHeader("Content-Type"),
                              d->expectedContentTypes))
             return NoError;
@@ -357,6 +363,8 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
                      "Unexpected content type of the response" };
     }
 
+    qCWarning(d->logCat).noquote().nospace() << this << urlString;
+    qCWarning(d->logCat).noquote() << "  " << httpCode << reason << replyState;
     return { [httpCode]() -> StatusCode {
             if (httpCode / 10 == 41)
                 return httpCode == 410 ? IncorrectRequestError : NotFoundError;
@@ -426,8 +434,8 @@ void BaseJob::finishJob()
         const auto retryInterval =
                 error() == TimeoutError ? 0 : getNextRetryInterval();
         ++d->retriesTaken;
-        qCWarning(d->logCat) << this << "will retry" << d->retriesTaken
-                   << "in" << retryInterval/1000 << "s";
+        qCWarning(d->logCat).nospace() << this << ": retry #" << d->retriesTaken
+                   << " in " << retryInterval/1000 << " s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
         return;
@@ -490,17 +498,22 @@ QString BaseJob::errorString() const
     return d->status.message;
 }
 
+QByteArray BaseJob::errorDetails() const
+{
+    return d->details;
+}
+
 void BaseJob::setStatus(Status s)
 {
-    d->status = s;
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
+    d->status = std::move(s);
 }
 
 void BaseJob::setStatus(int code, QString message)
 {
     message.replace(d->connection->accessToken(), "(REDACTED)");
-    setStatus({ code, message });
+    setStatus({ code, std::move(message) });
 }
 
 void BaseJob::abandon()

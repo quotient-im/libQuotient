@@ -123,6 +123,7 @@ namespace QMatrixClient
             Status status() const;
             int error() const;
             virtual QString errorString() const;
+            QByteArray errorDetails() const;
 
             int maxRetries() const;
             void setMaxRetries(int newMaxRetries);

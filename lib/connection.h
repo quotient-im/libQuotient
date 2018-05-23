@@ -351,11 +351,12 @@ namespace QMatrixClient
             void connected();
             void reconnected(); //< Unused; use connected() instead
             void loggedOut();
-            void loginError(QString error);
-            void networkError(int retriesTaken, int inMilliseconds);
+            void loginError(QString message, QByteArray details);
+            void networkError(QString message, QByteArray details,
+                              int retriesTaken, int nextRetryInMilliseconds);
 
             void syncDone();
-            void syncError(QString error);
+            void syncError(QString message, QByteArray details);
 
             void newUser(User* user);
 
