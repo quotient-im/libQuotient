@@ -121,6 +121,8 @@ namespace QMatrixClient
             Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY unreadMessagesChanged)
             Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
             Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
+            Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
+            Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
 
         public:
             using Timeline = std::deque<TimelineItem>;
@@ -310,7 +312,7 @@ namespace QMatrixClient
             bool isLowPriority() const;
 
             /** Check whether this room is a direct chat */
-            bool isDirectChat() const;
+            Q_INVOKABLE bool isDirectChat() const;
 
             /** Get the list of users this room is a direct chat with */
             QList<const User*> directChatUsers() const;
