@@ -27,21 +27,14 @@ LoginJob::LoginJob(const QString& type, const QString& user, const QString& medi
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("type", toJson(type));
-    if (!user.isEmpty())
-        _data.insert("user", toJson(user));
-    if (!medium.isEmpty())
-        _data.insert("medium", toJson(medium));
-    if (!address.isEmpty())
-        _data.insert("address", toJson(address));
-    if (!password.isEmpty())
-        _data.insert("password", toJson(password));
-    if (!token.isEmpty())
-        _data.insert("token", toJson(token));
-    if (!deviceId.isEmpty())
-        _data.insert("device_id", toJson(deviceId));
-    if (!initialDeviceDisplayName.isEmpty())
-        _data.insert("initial_device_display_name", toJson(initialDeviceDisplayName));
+    addToJson<>(_data, "type", type);
+    addToJson<IfNotEmpty>(_data, "user", user);
+    addToJson<IfNotEmpty>(_data, "medium", medium);
+    addToJson<IfNotEmpty>(_data, "address", address);
+    addToJson<IfNotEmpty>(_data, "password", password);
+    addToJson<IfNotEmpty>(_data, "token", token);
+    addToJson<IfNotEmpty>(_data, "device_id", deviceId);
+    addToJson<IfNotEmpty>(_data, "initial_device_display_name", initialDeviceDisplayName);
     setRequestData(_data);
 }
 

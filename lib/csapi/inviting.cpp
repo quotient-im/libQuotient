@@ -17,7 +17,7 @@ InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
         basePath % "/rooms/" % roomId % "/invite")
 {
     QJsonObject _data;
-    _data.insert("user_id", toJson(userId));
+    addToJson<>(_data, "user_id", userId);
     setRequestData(_data);
 }
 

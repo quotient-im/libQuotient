@@ -20,14 +20,14 @@ namespace QMatrixClient
     {
         GetWhoIsJob::ConnectionInfo operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetWhoIsJob::ConnectionInfo result;
             result.ip =
-                fromJson<QString>(o.value("ip"));
+                fromJson<QString>(_json.value("ip"));
             result.lastSeen =
-                fromJson<qint64>(o.value("last_seen"));
+                fromJson<qint64>(_json.value("last_seen"));
             result.userAgent =
-                fromJson<QString>(o.value("user_agent"));
+                fromJson<QString>(_json.value("user_agent"));
 
             return result;
         }
@@ -37,10 +37,10 @@ namespace QMatrixClient
     {
         GetWhoIsJob::SessionInfo operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetWhoIsJob::SessionInfo result;
             result.connections =
-                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(o.value("connections"));
+                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(_json.value("connections"));
 
             return result;
         }
@@ -50,10 +50,10 @@ namespace QMatrixClient
     {
         GetWhoIsJob::DeviceInfo operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetWhoIsJob::DeviceInfo result;
             result.sessions =
-                fromJson<QVector<GetWhoIsJob::SessionInfo>>(o.value("sessions"));
+                fromJson<QVector<GetWhoIsJob::SessionInfo>>(_json.value("sessions"));
 
             return result;
         }

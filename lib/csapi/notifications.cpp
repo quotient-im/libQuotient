@@ -20,20 +20,20 @@ namespace QMatrixClient
     {
         GetNotificationsJob::Notification operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetNotificationsJob::Notification result;
             result.actions =
-                fromJson<QVector<QJsonObject>>(o.value("actions"));
+                fromJson<QVector<QJsonObject>>(_json.value("actions"));
             result.event =
-                fromJson<EventPtr>(o.value("event"));
+                fromJson<EventPtr>(_json.value("event"));
             result.profileTag =
-                fromJson<QString>(o.value("profile_tag"));
+                fromJson<QString>(_json.value("profile_tag"));
             result.read =
-                fromJson<bool>(o.value("read"));
+                fromJson<bool>(_json.value("read"));
             result.roomId =
-                fromJson<QString>(o.value("room_id"));
+                fromJson<QString>(_json.value("room_id"));
             result.ts =
-                fromJson<qint64>(o.value("ts"));
+                fromJson<qint64>(_json.value("ts"));
 
             return result;
         }

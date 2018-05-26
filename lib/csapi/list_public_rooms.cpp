@@ -50,8 +50,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& 
         basePath % "/directory/list/room/" % roomId)
 {
     QJsonObject _data;
-    if (!visibility.isEmpty())
-        _data.insert("visibility", toJson(visibility));
+    addToJson<IfNotEmpty>(_data, "visibility", visibility);
     setRequestData(_data);
 }
 
@@ -63,26 +62,26 @@ namespace QMatrixClient
     {
         GetPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-                fromJson<QStringList>(o.value("aliases"));
+                fromJson<QStringList>(_json.value("aliases"));
             result.canonicalAlias =
-                fromJson<QString>(o.value("canonical_alias"));
+                fromJson<QString>(_json.value("canonical_alias"));
             result.name =
-                fromJson<QString>(o.value("name"));
+                fromJson<QString>(_json.value("name"));
             result.numJoinedMembers =
-                fromJson<qint64>(o.value("num_joined_members"));
+                fromJson<qint64>(_json.value("num_joined_members"));
             result.roomId =
-                fromJson<QString>(o.value("room_id"));
+                fromJson<QString>(_json.value("room_id"));
             result.topic =
-                fromJson<QString>(o.value("topic"));
+                fromJson<QString>(_json.value("topic"));
             result.worldReadable =
-                fromJson<bool>(o.value("world_readable"));
+                fromJson<bool>(_json.value("world_readable"));
             result.guestCanJoin =
-                fromJson<bool>(o.value("guest_can_join"));
+                fromJson<bool>(_json.value("guest_can_join"));
             result.avatarUrl =
-                fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(_json.value("avatar_url"));
 
             return result;
         }
@@ -166,36 +165,38 @@ namespace QMatrixClient
 
     QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
     {
-        QJsonObject o;
-        o.insert("generic_search_term", toJson(pod.genericSearchTerm));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "generic_search_term", pod.genericSearchTerm);
+        return _json;
     }
 
     template <> struct FromJson<QueryPublicRoomsJob::PublicRoomsChunk>
     {
         QueryPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             QueryPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-                fromJson<QStringList>(o.value("aliases"));
+                fromJson<QStringList>(_json.value("aliases"));
             result.canonicalAlias =
-                fromJson<QString>(o.value("canonical_alias"));
+                fromJson<QString>(_json.value("canonical_alias"));
             result.name =
-                fromJson<QString>(o.value("name"));
+                fromJson<QString>(_json.value("name"));
             result.numJoinedMembers =
-                fromJson<qint64>(o.value("num_joined_members"));
+                fromJson<qint64>(_json.value("num_joined_members"));
             result.roomId =
-                fromJson<QString>(o.value("room_id"));
+                fromJson<QString>(_json.value("room_id"));
             result.topic =
-                fromJson<QString>(o.value("topic"));
+                fromJson<QString>(_json.value("topic"));
             result.worldReadable =
-                fromJson<bool>(o.value("world_readable"));
+                fromJson<bool>(_json.value("world_readable"));
             result.guestCanJoin =
-                fromJson<bool>(o.value("guest_can_join"));
+                fromJson<bool>(_json.value("guest_can_join"));
             result.avatarUrl =
-                fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(_json.value("avatar_url"));
 
             return result;
         }
@@ -226,10 +227,9 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, int limit, const
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("limit", toJson(limit));
-    if (!since.isEmpty())
-        _data.insert("since", toJson(since));
-    _data.insert("filter", toJson(filter));
+    addToJson<IfNotEmpty>(_data, "limit", limit);
+    addToJson<IfNotEmpty>(_data, "since", since);
+    addToJson<IfNotEmpty>(_data, "filter", filter);
     setRequestData(_data);
 }
 

@@ -20,10 +20,10 @@ namespace QMatrixClient
     {
         GetPushersJob::PusherData operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetPushersJob::PusherData result;
             result.url =
-                fromJson<QString>(o.value("url"));
+                fromJson<QString>(_json.value("url"));
 
             return result;
         }
@@ -33,24 +33,24 @@ namespace QMatrixClient
     {
         GetPushersJob::Pusher operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetPushersJob::Pusher result;
             result.pushkey =
-                fromJson<QString>(o.value("pushkey"));
+                fromJson<QString>(_json.value("pushkey"));
             result.kind =
-                fromJson<QString>(o.value("kind"));
+                fromJson<QString>(_json.value("kind"));
             result.appId =
-                fromJson<QString>(o.value("app_id"));
+                fromJson<QString>(_json.value("app_id"));
             result.appDisplayName =
-                fromJson<QString>(o.value("app_display_name"));
+                fromJson<QString>(_json.value("app_display_name"));
             result.deviceDisplayName =
-                fromJson<QString>(o.value("device_display_name"));
+                fromJson<QString>(_json.value("device_display_name"));
             result.profileTag =
-                fromJson<QString>(o.value("profile_tag"));
+                fromJson<QString>(_json.value("profile_tag"));
             result.lang =
-                fromJson<QString>(o.value("lang"));
+                fromJson<QString>(_json.value("lang"));
             result.data =
-                fromJson<GetPushersJob::PusherData>(o.value("data"));
+                fromJson<GetPushersJob::PusherData>(_json.value("data"));
 
             return result;
         }
@@ -96,10 +96,12 @@ namespace QMatrixClient
 
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
-        QJsonObject o;
-        o.insert("url", toJson(pod.url));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "url", pod.url);
+        return _json;
     }
 } // namespace QMatrixClient
 
@@ -108,16 +110,15 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const 
         basePath % "/pushers/set")
 {
     QJsonObject _data;
-    _data.insert("pushkey", toJson(pushkey));
-    _data.insert("kind", toJson(kind));
-    _data.insert("app_id", toJson(appId));
-    _data.insert("app_display_name", toJson(appDisplayName));
-    _data.insert("device_display_name", toJson(deviceDisplayName));
-    if (!profileTag.isEmpty())
-        _data.insert("profile_tag", toJson(profileTag));
-    _data.insert("lang", toJson(lang));
-    _data.insert("data", toJson(data));
-    _data.insert("append", toJson(append));
+    addToJson<>(_data, "pushkey", pushkey);
+    addToJson<>(_data, "kind", kind);
+    addToJson<>(_data, "app_id", appId);
+    addToJson<>(_data, "app_display_name", appDisplayName);
+    addToJson<>(_data, "device_display_name", deviceDisplayName);
+    addToJson<IfNotEmpty>(_data, "profile_tag", profileTag);
+    addToJson<>(_data, "lang", lang);
+    addToJson<>(_data, "data", data);
+    addToJson<IfNotEmpty>(_data, "append", append);
     setRequestData(_data);
 }
 

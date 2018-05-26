@@ -17,9 +17,8 @@ BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reas
         basePath % "/rooms/" % roomId % "/ban")
 {
     QJsonObject _data;
-    _data.insert("user_id", toJson(userId));
-    if (!reason.isEmpty())
-        _data.insert("reason", toJson(reason));
+    addToJson<>(_data, "user_id", userId);
+    addToJson<IfNotEmpty>(_data, "reason", reason);
     setRequestData(_data);
 }
 
@@ -28,7 +27,7 @@ UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
         basePath % "/rooms/" % roomId % "/unban")
 {
     QJsonObject _data;
-    _data.insert("user_id", toJson(userId));
+    addToJson<>(_data, "user_id", userId);
     setRequestData(_data);
 }
 

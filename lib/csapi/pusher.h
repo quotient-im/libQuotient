@@ -7,6 +7,7 @@
 #include "jobs/basejob.h"
 
 #include <QtCore/QVector>
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -67,10 +68,12 @@ namespace QMatrixClient
             struct PusherData
             {
                 QString url;
+
+                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag = {}, bool append = {});
+            explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag = {}, bool append = false);
     };
 } // namespace QMatrixClient

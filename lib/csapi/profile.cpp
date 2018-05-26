@@ -17,8 +17,7 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displ
         basePath % "/profile/" % userId % "/displayname")
 {
     QJsonObject _data;
-    if (!displayname.isEmpty())
-        _data.insert("displayname", toJson(displayname));
+    addToJson<IfNotEmpty>(_data, "displayname", displayname);
     setRequestData(_data);
 }
 
@@ -60,8 +59,7 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl
         basePath % "/profile/" % userId % "/avatar_url")
 {
     QJsonObject _data;
-    if (!avatarUrl.isEmpty())
-        _data.insert("avatar_url", toJson(avatarUrl));
+    addToJson<IfNotEmpty>(_data, "avatar_url", avatarUrl);
     setRequestData(_data);
 }
 

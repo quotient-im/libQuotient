@@ -8,9 +8,10 @@
 
 #include <unordered_map>
 #include <QtCore/QHash>
-#include <QtCore/QJsonObject>
 #include "events/event.h"
+#include <QtCore/QJsonObject>
 #include <QtCore/QStringList>
+#include "converters.h"
 #include <QtCore/QVector>
 
 namespace QMatrixClient
@@ -27,16 +28,22 @@ namespace QMatrixClient
                 int beforeLimit;
                 int afterLimit;
                 bool includeProfile;
+
+                bool omitted;
             };
 
             struct Group
             {
                 QString key;
+
+                bool omitted;
             };
 
             struct Groupings
             {
                 QVector<Group> groupBy;
+
+                bool omitted;
             };
 
             struct RoomEventsCriteria
@@ -48,11 +55,15 @@ namespace QMatrixClient
                 IncludeEventContext eventContext;
                 bool includeState;
                 Groupings groupings;
+
+                bool omitted;
             };
 
             struct Categories
             {
                 RoomEventsCriteria roomEvents;
+
+                bool omitted;
             };
 
             struct UserProfile

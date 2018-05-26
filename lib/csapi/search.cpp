@@ -18,62 +18,72 @@ namespace QMatrixClient
 
     QJsonObject toJson(const SearchJob::IncludeEventContext& pod)
     {
-        QJsonObject o;
-        o.insert("before_limit", toJson(pod.beforeLimit));
-        o.insert("after_limit", toJson(pod.afterLimit));
-        o.insert("include_profile", toJson(pod.includeProfile));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "before_limit", pod.beforeLimit);
+        addToJson<IfNotEmpty>(_json, "after_limit", pod.afterLimit);
+        addToJson<IfNotEmpty>(_json, "include_profile", pod.includeProfile);
+        return _json;
     }
 
     QJsonObject toJson(const SearchJob::Group& pod)
     {
-        QJsonObject o;
-        o.insert("key", toJson(pod.key));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "key", pod.key);
+        return _json;
     }
 
     QJsonObject toJson(const SearchJob::Groupings& pod)
     {
-        QJsonObject o;
-        o.insert("group_by", toJson(pod.groupBy));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "group_by", pod.groupBy);
+        return _json;
     }
 
     QJsonObject toJson(const SearchJob::RoomEventsCriteria& pod)
     {
-        QJsonObject o;
-        o.insert("search_term", toJson(pod.searchTerm));
-        o.insert("keys", toJson(pod.keys));
-        o.insert("filter", toJson(pod.filter));
-        o.insert("order_by", toJson(pod.orderBy));
-        o.insert("event_context", toJson(pod.eventContext));
-        o.insert("include_state", toJson(pod.includeState));
-        o.insert("groupings", toJson(pod.groupings));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "search_term", pod.searchTerm);
+        addToJson<IfNotEmpty>(_json, "keys", pod.keys);
+        addToJson<IfNotEmpty>(_json, "filter", pod.filter);
+        addToJson<IfNotEmpty>(_json, "order_by", pod.orderBy);
+        addToJson<IfNotEmpty>(_json, "event_context", pod.eventContext);
+        addToJson<IfNotEmpty>(_json, "include_state", pod.includeState);
+        addToJson<IfNotEmpty>(_json, "groupings", pod.groupings);
+        return _json;
     }
 
     QJsonObject toJson(const SearchJob::Categories& pod)
     {
-        QJsonObject o;
-        o.insert("room_events", toJson(pod.roomEvents));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "room_events", pod.roomEvents);
+        return _json;
     }
 
     template <> struct FromJson<SearchJob::UserProfile>
     {
         SearchJob::UserProfile operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::UserProfile result;
             result.displayname =
-                fromJson<QString>(o.value("displayname"));
+                fromJson<QString>(_json.value("displayname"));
             result.avatarUrl =
-                fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(_json.value("avatar_url"));
 
             return result;
         }
@@ -83,18 +93,18 @@ namespace QMatrixClient
     {
         SearchJob::EventContext operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::EventContext result;
             result.begin =
-                fromJson<QString>(o.value("start"));
+                fromJson<QString>(_json.value("start"));
             result.end =
-                fromJson<QString>(o.value("end"));
+                fromJson<QString>(_json.value("end"));
             result.profileInfo =
-                fromJson<QHash<QString, SearchJob::UserProfile>>(o.value("profile_info"));
+                fromJson<QHash<QString, SearchJob::UserProfile>>(_json.value("profile_info"));
             result.eventsBefore =
-                fromJson<RoomEvents>(o.value("events_before"));
+                fromJson<RoomEvents>(_json.value("events_before"));
             result.eventsAfter =
-                fromJson<RoomEvents>(o.value("events_after"));
+                fromJson<RoomEvents>(_json.value("events_after"));
 
             return result;
         }
@@ -104,14 +114,14 @@ namespace QMatrixClient
     {
         SearchJob::Result operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::Result result;
             result.rank =
-                fromJson<double>(o.value("rank"));
+                fromJson<double>(_json.value("rank"));
             result.result =
-                fromJson<RoomEventPtr>(o.value("result"));
+                fromJson<RoomEventPtr>(_json.value("result"));
             result.context =
-                fromJson<SearchJob::EventContext>(o.value("context"));
+                fromJson<SearchJob::EventContext>(_json.value("context"));
 
             return result;
         }
@@ -121,14 +131,14 @@ namespace QMatrixClient
     {
         SearchJob::GroupValue operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::GroupValue result;
             result.nextBatch =
-                fromJson<QString>(o.value("next_batch"));
+                fromJson<QString>(_json.value("next_batch"));
             result.order =
-                fromJson<int>(o.value("order"));
+                fromJson<int>(_json.value("order"));
             result.results =
-                fromJson<QStringList>(o.value("results"));
+                fromJson<QStringList>(_json.value("results"));
 
             return result;
         }
@@ -138,18 +148,18 @@ namespace QMatrixClient
     {
         SearchJob::ResultRoomEvents operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::ResultRoomEvents result;
             result.count =
-                fromJson<qint64>(o.value("count"));
+                fromJson<qint64>(_json.value("count"));
             result.results =
-                fromJson<std::vector<SearchJob::Result>>(o.value("results"));
+                fromJson<std::vector<SearchJob::Result>>(_json.value("results"));
             result.state =
-                fromJson<std::unordered_map<QString, StateEvents>>(o.value("state"));
+                fromJson<std::unordered_map<QString, StateEvents>>(_json.value("state"));
             result.groups =
-                fromJson<QHash<QString, QHash<QString, SearchJob::GroupValue>>>(o.value("groups"));
+                fromJson<QHash<QString, QHash<QString, SearchJob::GroupValue>>>(_json.value("groups"));
             result.nextBatch =
-                fromJson<QString>(o.value("next_batch"));
+                fromJson<QString>(_json.value("next_batch"));
 
             return result;
         }
@@ -159,10 +169,10 @@ namespace QMatrixClient
     {
         SearchJob::ResultCategories operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchJob::ResultCategories result;
             result.roomEvents =
-                fromJson<SearchJob::ResultRoomEvents>(o.value("room_events"));
+                fromJson<SearchJob::ResultRoomEvents>(_json.value("room_events"));
 
             return result;
         }
@@ -190,7 +200,7 @@ SearchJob::SearchJob(const Categories& searchCategories, const QString& nextBatc
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("search_categories", toJson(searchCategories));
+    addToJson<>(_data, "search_categories", searchCategories);
     setRequestData(_data);
 }
 

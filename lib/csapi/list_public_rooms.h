@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 #include <QtCore/QVector>
 #include <QtCore/QStringList>
 
@@ -99,6 +100,8 @@ namespace QMatrixClient
             struct Filter
             {
                 QString genericSearchTerm;
+
+                bool omitted;
             };
 
             struct PublicRoomsChunk
@@ -116,7 +119,7 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit QueryPublicRoomsJob(const QString& server = {}, int limit = {}, const QString& since = {}, const Filter& filter = {});
+            explicit QueryPublicRoomsJob(const QString& server = {}, int limit = {}, const QString& since = {}, const Filter& filter = omitted<Filter>());
             ~QueryPublicRoomsJob() override;
 
             // Result properties

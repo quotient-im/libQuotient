@@ -18,22 +18,26 @@ namespace QMatrixClient
 
     QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
     {
-        QJsonObject o;
-        o.insert("id_server", toJson(pod.idServer));
-        o.insert("medium", toJson(pod.medium));
-        o.insert("address", toJson(pod.address));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "id_server", pod.idServer);
+        addToJson<>(_json, "medium", pod.medium);
+        addToJson<>(_json, "address", pod.address);
+        return _json;
     }
 
     QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
     {
-        QJsonObject o;
-        o.insert("type", toJson(pod.type));
-        o.insert("state_key", toJson(pod.stateKey));
-        o.insert("content", toJson(pod.content));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<IfNotEmpty>(_json, "type", pod.type);
+        addToJson<IfNotEmpty>(_json, "state_key", pod.stateKey);
+        addToJson<IfNotEmpty>(_json, "content", pod.content);
+        return _json;
     }
 } // namespace QMatrixClient
 
@@ -49,22 +53,17 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
     , d(new Private)
 {
     QJsonObject _data;
-    if (!visibility.isEmpty())
-        _data.insert("visibility", toJson(visibility));
-    if (!roomAliasName.isEmpty())
-        _data.insert("room_alias_name", toJson(roomAliasName));
-    if (!name.isEmpty())
-        _data.insert("name", toJson(name));
-    if (!topic.isEmpty())
-        _data.insert("topic", toJson(topic));
-    _data.insert("invite", toJson(invite));
-    _data.insert("invite_3pid", toJson(invite3pid));
-    _data.insert("creation_content", toJson(creationContent));
-    _data.insert("initial_state", toJson(initialState));
-    if (!preset.isEmpty())
-        _data.insert("preset", toJson(preset));
-    _data.insert("is_direct", toJson(isDirect));
-    _data.insert("guest_can_join", toJson(guestCanJoin));
+    addToJson<IfNotEmpty>(_data, "visibility", visibility);
+    addToJson<IfNotEmpty>(_data, "room_alias_name", roomAliasName);
+    addToJson<IfNotEmpty>(_data, "name", name);
+    addToJson<IfNotEmpty>(_data, "topic", topic);
+    addToJson<IfNotEmpty>(_data, "invite", invite);
+    addToJson<IfNotEmpty>(_data, "invite_3pid", invite3pid);
+    addToJson<IfNotEmpty>(_data, "creation_content", creationContent);
+    addToJson<IfNotEmpty>(_data, "initial_state", initialState);
+    addToJson<IfNotEmpty>(_data, "preset", preset);
+    addToJson<IfNotEmpty>(_data, "is_direct", isDirect);
+    addToJson<IfNotEmpty>(_data, "guest_can_join", guestCanJoin);
     setRequestData(_data);
 }
 

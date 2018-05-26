@@ -20,14 +20,14 @@ namespace QMatrixClient
     {
         SearchUserDirectoryJob::User operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             SearchUserDirectoryJob::User result;
             result.userId =
-                fromJson<QString>(o.value("user_id"));
+                fromJson<QString>(_json.value("user_id"));
             result.displayName =
-                fromJson<QString>(o.value("display_name"));
+                fromJson<QString>(_json.value("display_name"));
             result.avatarUrl =
-                fromJson<QString>(o.value("avatar_url"));
+                fromJson<QString>(_json.value("avatar_url"));
 
             return result;
         }
@@ -47,8 +47,8 @@ SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, int li
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("search_term", toJson(searchTerm));
-    _data.insert("limit", toJson(limit));
+    addToJson<>(_data, "search_term", searchTerm);
+    addToJson<IfNotEmpty>(_data, "limit", limit);
     setRequestData(_data);
 }
 

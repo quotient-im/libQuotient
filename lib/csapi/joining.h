@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 #include <QtCore/QJsonObject>
 
 namespace QMatrixClient
@@ -23,11 +24,13 @@ namespace QMatrixClient
                 QString mxid;
                 QString token;
                 QJsonObject signatures;
+
+                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& thirdPartySigned = {});
+            explicit JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& thirdPartySigned = omitted<ThirdPartySigned>());
             ~JoinRoomByIdJob() override;
 
             // Result properties
@@ -53,16 +56,20 @@ namespace QMatrixClient
                 QString mxid;
                 QString token;
                 QJsonObject signatures;
+
+                bool omitted;
             };
 
             struct ThirdPartySigned
             {
                 Signed signedData;
+
+                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& thirdPartySigned = {});
+            explicit JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& thirdPartySigned = omitted<ThirdPartySigned>());
             ~JoinRoomJob() override;
 
             // Result properties

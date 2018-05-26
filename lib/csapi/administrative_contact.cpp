@@ -20,12 +20,12 @@ namespace QMatrixClient
     {
         GetAccount3PIDsJob::ThirdPartyIdentifier operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             GetAccount3PIDsJob::ThirdPartyIdentifier result;
             result.medium =
-                fromJson<QString>(o.value("medium"));
+                fromJson<QString>(_json.value("medium"));
             result.address =
-                fromJson<QString>(o.value("address"));
+                fromJson<QString>(_json.value("address"));
 
             return result;
         }
@@ -71,12 +71,14 @@ namespace QMatrixClient
 
     QJsonObject toJson(const Post3PIDsJob::ThreePidCredentials& pod)
     {
-        QJsonObject o;
-        o.insert("client_secret", toJson(pod.clientSecret));
-        o.insert("id_server", toJson(pod.idServer));
-        o.insert("sid", toJson(pod.sid));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "client_secret", pod.clientSecret);
+        addToJson<>(_json, "id_server", pod.idServer);
+        addToJson<>(_json, "sid", pod.sid);
+        return _json;
     }
 } // namespace QMatrixClient
 
@@ -85,8 +87,8 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
         basePath % "/account/3pid")
 {
     QJsonObject _data;
-    _data.insert("three_pid_creds", toJson(threePidCreds));
-    _data.insert("bind", toJson(bind));
+    addToJson<>(_data, "three_pid_creds", threePidCreds);
+    addToJson<IfNotEmpty>(_data, "bind", bind);
     setRequestData(_data);
 }
 

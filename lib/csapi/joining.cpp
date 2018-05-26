@@ -18,13 +18,15 @@ namespace QMatrixClient
 
     QJsonObject toJson(const JoinRoomByIdJob::ThirdPartySigned& pod)
     {
-        QJsonObject o;
-        o.insert("sender", toJson(pod.sender));
-        o.insert("mxid", toJson(pod.mxid));
-        o.insert("token", toJson(pod.token));
-        o.insert("signatures", toJson(pod.signatures));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "sender", pod.sender);
+        addToJson<>(_json, "mxid", pod.mxid);
+        addToJson<>(_json, "token", pod.token);
+        addToJson<>(_json, "signatures", pod.signatures);
+        return _json;
     }
 } // namespace QMatrixClient
 
@@ -40,7 +42,7 @@ JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& 
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("third_party_signed", toJson(thirdPartySigned));
+    addToJson<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
     setRequestData(_data);
 }
 
@@ -67,21 +69,25 @@ namespace QMatrixClient
 
     QJsonObject toJson(const JoinRoomJob::Signed& pod)
     {
-        QJsonObject o;
-        o.insert("sender", toJson(pod.sender));
-        o.insert("mxid", toJson(pod.mxid));
-        o.insert("token", toJson(pod.token));
-        o.insert("signatures", toJson(pod.signatures));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "sender", pod.sender);
+        addToJson<>(_json, "mxid", pod.mxid);
+        addToJson<>(_json, "token", pod.token);
+        addToJson<>(_json, "signatures", pod.signatures);
+        return _json;
     }
 
     QJsonObject toJson(const JoinRoomJob::ThirdPartySigned& pod)
     {
-        QJsonObject o;
-        o.insert("signed", toJson(pod.signedData));
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
 
-        return o;
+        addToJson<>(_json, "signed", pod.signedData);
+        return _json;
     }
 } // namespace QMatrixClient
 
@@ -97,7 +103,7 @@ JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& t
     , d(new Private)
 {
     QJsonObject _data;
-    _data.insert("third_party_signed", toJson(thirdPartySigned));
+    addToJson<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
     setRequestData(_data);
 }
 

@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 #include <QtCore/QVector>
 
 namespace QMatrixClient
@@ -58,11 +59,13 @@ namespace QMatrixClient
                 QString clientSecret;
                 QString idServer;
                 QString sid;
+
+                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind = {});
+            explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind = false);
     };
 
     class RequestTokenTo3PIDJob : public BaseJob

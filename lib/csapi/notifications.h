@@ -6,9 +6,10 @@
 
 #include "jobs/basejob.h"
 
-#include "events/event.h"
 #include <QtCore/QJsonObject>
+#include "events/event.h"
 #include <QtCore/QVector>
+#include "converters.h"
 
 namespace QMatrixClient
 {

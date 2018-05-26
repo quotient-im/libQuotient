@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 #include <QtCore/QVector>
 
 namespace QMatrixClient
