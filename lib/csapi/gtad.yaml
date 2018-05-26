@@ -27,12 +27,10 @@ analyzer:
     number:
     - float: float
     - //: double
-    boolean: { type: bool, initializer: false }
+    boolean: { type: bool, omitted: false }
     string:
     - byte: &ByteStream
         type: QIODevice*
-        #initializer: '"{{defaultValue}}"'
-        #string?: true
         imports: <QtCore/QIODevice>
     - binary: *ByteStream
     - date:
@@ -114,6 +112,8 @@ analyzer:
       imports: '"variant_converters.h"'
     schema: # Properties of inline structure definitions
       avoidCopy?: true
+      omitted: omitted<{{dataType.name}}>()
+      imports: '"converters.h"'
 
   #operations:
 
@@ -121,10 +121,12 @@ mustache:
   definitions:
     _scopeRenderer: "{{scopeCamelCase}}Job::"
     _literalQuote: '"'
+    # Default value for omitted
+    omitted: '{}'
     maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
     qualifiedMaybeCrefType:
       "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
-    initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{}{{/defaultValue}}"
+    initializeDefaultValue: "{{#defaultValue}}{{#initializer}}{{>initializer}}{{/initializer}}{{/defaultValue}}{{^defaultValue}}{{>omitted}}{{/defaultValue}}"
     joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'

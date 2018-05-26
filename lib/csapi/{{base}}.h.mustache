@@ -14,7 +14,9 @@ namespace QMatrixClient
     struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
     {
 {{#vars}}        {{dataType.name}} {{nameCamelCase}};
-{{/vars}}    };
+{{/vars}}{{#in?}}
+        bool omitted;
+{{/in?}}    };
 {{#in?}}
     QJsonObject toJson(const {{name}}& pod);
 {{/in?}}{{#out?}}
@@ -33,7 +35,9 @@ namespace QMatrixClient
             struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
             {
 {{#vars}}                {{dataType.name}} {{nameCamelCase}};
-{{/vars}}            };
+{{/vars}}{{#in?}}
+                bool omitted;
+{{/in?}}            };
 {{/            model}}
             // Construction/destruction
 {{/        models}}

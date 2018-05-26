@@ -24,6 +24,12 @@
 
 #include <unordered_map>
 #include <vector>
+#if 0 // Waiting for C++17
+#include <experimental/optional>
+
+template <typename T>
+using optional = std::experimental::optional<T>;
+#endif
 
 // Enable std::unordered_map<QString, T>
 namespace std
@@ -43,9 +49,9 @@ namespace QMatrixClient
     inline QJsonValue toJson(const QJsonValue& val) { return val; }
     inline QJsonObject toJson(const QJsonObject& o) { return o; }
     inline QJsonArray toJson(const QJsonArray& arr) { return arr; }
-#ifdef _MSC_VER // MSVC gets lost and doesn't know which overload to use
-    inline QJsonValue toJson(const QString& s) { return s; }
-#endif
+    // Special-case QStrings so that we could use isEmpty() on them
+    // (see _impl::AddNote<> below)
+    inline QString toJson(const QString& s) { return s; }
 
     template <typename T>
     inline QJsonArray toJson(const std::vector<T>& vals)
@@ -70,9 +76,9 @@ namespace QMatrixClient
         return QJsonArray::fromStringList(strings);
     }
 
-    inline QJsonValue toJson(const QByteArray& bytes)
+    inline QString toJson(const QByteArray& bytes)
     {
-        return QJsonValue(bytes.constData());
+        return bytes.constData();
     }
 
     template <typename T>
@@ -92,6 +98,17 @@ namespace QMatrixClient
             json.insert(it.key(), toJson(it.value()));
         return json;
     }
+
+#if 0
+    template <typename T>
+    inline auto toJson(const optional<T>& optVal)
+    {
+        if (optVal)
+            return toJson(optVal.value());
+
+        return decltype(toJson(std::declval<T>()))();
+    }
+#endif
 
     template <typename T>
     struct FromJson
@@ -232,4 +249,54 @@ namespace QMatrixClient
             return h;
         }
     };
+
+    // Conditional insertion into a QJsonObject
+
+    namespace _impl
+    {
+        // This one is for types that don't have isEmpty()
+        template <typename JsonT, typename = bool>
+        struct AddNode
+        {
+            static void impl(QJsonObject& o, QString key, JsonT&& value)
+            {
+                o.insert(std::move(key), std::forward<JsonT>(value));
+            }
+        };
+
+        // This one is for types that have isEmpty()
+        template <typename JsonT>
+        struct AddNode<JsonT, decltype(std::declval<JsonT>().isEmpty())>
+        {
+            static void impl(QJsonObject& o, QString key, JsonT&& value)
+            {
+                if (!value.isEmpty())
+                    o.insert(std::move(key), std::forward<JsonT>(value));
+            }
+        };
+    }
+
+    static constexpr bool IfNotEmpty = false;
+
+    template <bool Force = true, typename ValT = void>
+    inline void addToJson(QJsonObject& o, QString key, ValT&& value)
+    {
+        auto&& json = toJson(std::forward<ValT>(value));
+        // QJsonValue doesn't have isEmpty and consumes all other types
+        // (QString, QJsonObject etc.).
+        _impl::AddNode<std::conditional_t<Force, QJsonValue, decltype(json)>>
+                ::impl(o, std::move(key), std::move(json));
+    }
+
+    /** Construct an "omitted" value of a given type
+     * This is a workaround for the time being while we're not C++17 and
+     * cannot use `optional`.
+     */
+    template <typename T>
+    inline T omitted()
+    {
+        T val;
+        val.omitted = true;
+        return val;
+    }
 }  // namespace QMatrixClient

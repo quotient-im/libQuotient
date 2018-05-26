@@ -10,18 +10,20 @@ using namespace QMatrixClient;
 {{#models.model}}{{#in?}}
 QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
 {
-    QJsonObject o;
-{{#vars}}    o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
-{{/vars}}
-    return o;
+    QJsonObject _json;
+    if (pod.omitted)
+        return _json;
+{{#vars}}
+    addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+    return _json;
 }
 {{/in?}}{{#out?}}
 {{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(const QJsonValue& jv)
 {
-    const auto& o = jv.toObject();
+    const auto& _json = jv.toObject();
     {{qualifiedName}} result;
     {{#vars}}result.{{nameCamelCase}} =
-        fromJson<{{dataType.name}}>(o.value("{{baseName}}"));
+        fromJson<{{dataType.name}}>(_json.value("{{baseName}}"));
     {{/vars}}
     return result;
 }
@@ -34,20 +36,22 @@ namespace QMatrixClient
 {{#model}}{{#in?}}
     QJsonObject toJson(const {{qualifiedName}}& pod)
     {
-        QJsonObject o;
-{{#vars}}        o.insert("{{baseName}}", toJson(pod.{{nameCamelCase}}));
-{{/vars}}
-        return o;
+        QJsonObject _json;
+        if (pod.omitted)
+            return _json;
+{{#vars}}
+        addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+        return _json;
     }
 {{/in?}}{{#out?}}
     template <> struct FromJson<{{qualifiedName}}>
     {
         {{qualifiedName}} operator()(const QJsonValue& jv)
         {
-            const auto& o = jv.toObject();
+            const auto& _json = jv.toObject();
             {{qualifiedName}} result;
 {{#vars}}            result.{{nameCamelCase}} =
-                fromJson<{{dataType.qualifiedName}}>(o.value("{{baseName}}"));
+                fromJson<{{dataType.qualifiedName}}>(_json.value("{{baseName}}"));
 {{/vars}}
             return result;
         }
@@ -90,8 +94,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
                         }}{{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
                         }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));{{/inlineBody
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
-{{^required?}}{{#string?}}    if (!{{paramName}}.isEmpty())
-    {{/string?}}{{/required?}}    _data.insert("{{baseName}}", toJson({{paramName}}));{{/bodyParams}}
+    addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_data, "{{baseName}}", {{paramName}});{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}
 {{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
 {{/producesNonJson?}}}{{!<- mind the actual brace}}
