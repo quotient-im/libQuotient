@@ -523,6 +523,8 @@ void BaseJob::abandon()
     this->disconnect();
     if (d->reply)
         d->reply->disconnect(this);
+    emit finished(this);
+
     deleteLater();
 }
 

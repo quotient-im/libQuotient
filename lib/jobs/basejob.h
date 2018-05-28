@@ -144,8 +144,8 @@ namespace QMatrixClient
              * Abandons the result of this job, arrived or unarrived.
              *
              * This aborts waiting for a reply from the server (if there was
-             * any pending) and deletes the job object. It is always done quietly
-             * (as opposed to KJob::kill() that can trigger emitting the result).
+             * any pending) and deletes the job object. No result signals
+             * (result, success, failure) are emitted.
              */
             void abandon();
 
@@ -172,20 +172,19 @@ namespace QMatrixClient
              * use finishJob() instead.
              *
              * In general, to be notified of a job's completion, client code
-             * should connect to success() and failure()
-             * rather than finished(), so that kill() is indeed quiet.
-             * However if you store a list of jobs and they might get killed
-             * silently, then you must connect to this instead of result(),
-             * to avoid dangling pointers in your list.
+             * should connect to result(), success(), or failure()
+             * rather than finished(). However if you store a list of jobs
+             * and need to track their lifecycle, then you should connect to this
+             * instead of result(), to avoid dangling pointers in your list.
              *
              * @param job the job that emitted this signal
              *
-             * @see success, failure
+             * @see result, success, failure
              */
             void finished(BaseJob* job);
 
             /**
-             * Emitted when the job is finished (except when killed).
+             * Emitted when the job is finished (except when abandoned).
              *
              * Use error() to know if the job was finished with error.
              *
@@ -196,13 +195,17 @@ namespace QMatrixClient
             void result(BaseJob* job);
 
             /**
-             * Emitted together with result() but only if there's no error.
+             * Emitted together with result() in case there's no error.
+             *
+             * @see result, failure
              */
             void success(BaseJob*);
 
             /**
              * Emitted together with result() if there's an error.
-             * Same as result(), this won't be emitted in case of kill().
+             * Similar to result(), this won't be emitted in case of abandon().
+             *
+             * @see result, success
              */
             void failure(BaseJob*);
 
