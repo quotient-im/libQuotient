@@ -14,21 +14,19 @@
    match-leak-kinds: possible
    fun:_Znwm
    fun:_ZN15QtSharedPointer20ExternalRefCountData9getAndRefEPK7QObject
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
    sendPostedEvents3
    Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
    ...
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
    fun:_ZN7QObject5eventEP6QEvent
    fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
    fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
    fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
-   obj:/opt/qt56/lib/libQt5Core.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Core.so.*
 }
 
 {
@@ -40,27 +38,11 @@
 }
 
 {
-   sendPostedEvents5
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:realloc
-   fun:_ZN9QListData12realloc_growEi
-   fun:_ZN9QListData7prependEv
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
-   fun:_ZN7QObject5eventEP6QEvent
-   fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
-   fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
-   fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
-}
-
-{
    QObject_connect
    Memcheck:Leak
    match-leak-kinds: possible
    ...
-   obj:/opt/qt56/lib/libQt5Core.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Core.so.*
    fun:_ZN7QObject7connectEPKS_PKcS1_S3_N2Qt14ConnectionTypeE
 }
 
@@ -70,7 +52,7 @@
    match-leak-kinds: possible
    fun:_Znwm
    fun:_ZN13QNetworkProxyC1ENS_9ProxyTypeERK7QStringtS3_S3_
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
@@ -96,9 +78,8 @@
    Memcheck:Leak
    match-leak-kinds: possible
    fun:_Znwm
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   ...
+   obj:/opt/qt56/lib/libQt5Network.so.*
    fun:_ZN7QObject5eventEP6QEvent
    fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
    fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
@@ -111,7 +92,7 @@
     match-leak-kinds: possible
     fun:_Znwm
     ...
-    obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+    obj:/opt/qt56/lib/libQt5Network.so.*
     fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
 }
 
@@ -121,7 +102,7 @@
    match-leak-kinds: possible
    fun:_Znwm
    fun:_ZN12QMapDataBase10createDataEv
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
@@ -147,7 +128,7 @@
    match-leak-kinds: possible
    fun:_Znwm
    fun:_ZN7QObjectC1EPS_
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
@@ -155,7 +136,7 @@
    Memcheck:Leak
    match-leak-kinds: possible
    fun:_Znam
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
@@ -167,5 +148,5 @@
    ...
    obj:/lib/x86_64-linux-gnu/libcrypto.so.1.0.0
    ...
-   obj:/opt/qt56/lib/libQt5Network.so.5.6.3
+   obj:/opt/qt56/lib/libQt5Network.so.*
 }
