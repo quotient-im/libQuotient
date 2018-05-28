@@ -505,14 +505,18 @@ QByteArray BaseJob::errorDetails() const
 
 void BaseJob::setStatus(Status s)
 {
+    if (d->status == s)
+        return;
+
+    s.message.replace(d->connection->accessToken(), "(REDACTED)");
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
     d->status = std::move(s);
+    emit statusChanged(d->status);
 }
 
 void BaseJob::setStatus(int code, QString message)
 {
-    message.replace(d->connection->accessToken(), "(REDACTED)");
     setStatus({ code, std::move(message) });
 }
 

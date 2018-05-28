@@ -107,6 +107,15 @@ namespace QMatrixClient
                                 << s.code << ": " << s.message;
                     }
 
+                    bool operator==(const Status& other) const
+                    {
+                        return code == other.code && message == other.message;
+                    }
+                    bool operator!=(const Status& other) const
+                    {
+                        return !operator==(other);
+                    }
+
                     int code;
                     QString message;
             };
@@ -155,6 +164,9 @@ namespace QMatrixClient
 
             /** The job has sent a network request */
             void started();
+
+            /** The job has changed its status */
+            void statusChanged(Status newStatus);
 
             /**
              * The previous network request has failed; the next attempt will
