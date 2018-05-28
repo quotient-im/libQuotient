@@ -71,6 +71,7 @@ set(libqmatrixclient_SRCS
     lib/avatar.cpp
     lib/settings.cpp
     lib/networksettings.cpp
+    lib/util.cpp
     lib/events/event.cpp
     lib/events/eventcontent.cpp
     lib/events/roommessageevent.cpp

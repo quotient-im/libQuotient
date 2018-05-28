@@ -115,5 +115,10 @@ namespace QMatrixClient
         private:
             QObject* subscriber;
     };
+
+    /** Pretty-prints plain text into HTML
+     * This includes HTML escaping of <,>,",& and URLs linkification.
+     */
+    QString prettyPrint(const QString& plainText);
 }  // namespace QMatrixClient
 

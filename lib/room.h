@@ -323,7 +323,9 @@ namespace QMatrixClient
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
-             * This includes HTML escaping of <,>,",& and URLs linkification.
+             * As of now, it's exactly the same as QMatrixClient::prettyPrint();
+             * in the future, it will also linkify room aliases, mxids etc.
+             * using the room context.
              */
             QString prettyPrint(const QString& plainText) const;
 

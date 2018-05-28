@@ -50,6 +50,7 @@ SOURCES += \
     $$SRCPATH/room.cpp \
     $$SRCPATH/user.cpp \
     $$SRCPATH/avatar.cpp \
+    $$SRCPATH/util.cpp \
     $$SRCPATH/events/event.cpp \
     $$SRCPATH/events/eventcontent.cpp \
     $$SRCPATH/events/roommessageevent.cpp \
