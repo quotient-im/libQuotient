@@ -196,7 +196,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
     connect(loginJob, &BaseJob::failure, this,
         [this, loginJob] {
-            emit loginError(loginJob->errorString(), loginJob->errorDetails());
+            emit loginError(loginJob->errorString(), loginJob->errorRawData());
         });
 }
 
@@ -263,7 +263,7 @@ void Connection::sync(int timeout)
     // Raw string: http://en.cppreference.com/w/cpp/language/string_literal
     const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
     auto job = d->syncJob =
-            callApi<SyncJob>(d->data->lastEvent(), filter, timeout);
+            callApi<SyncJob>(InBackground, d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
@@ -272,15 +272,19 @@ void Connection::sync(int timeout)
     connect( job, &SyncJob::retryScheduled, this,
         [this,job] (int retriesTaken, int nextInMilliseconds)
         {
-            emit networkError(job->errorString(), job->errorDetails(),
+            emit networkError(job->errorString(), job->errorRawData(),
                               retriesTaken, nextInMilliseconds);
         });
     connect( job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError)
-            emit loginError(job->errorString(), job->errorDetails());
+        {
+            qCWarning(SYNCJOB)
+                << "Sync job failed with ContentAccessError - login expired?";
+            emit loginError(job->errorString(), job->errorRawData());
+        }
         else
-            emit syncError(job->errorString(), job->errorDetails());
+            emit syncError(job->errorString(), job->errorRawData());
     });
 }
 
@@ -386,22 +390,24 @@ inline auto splitMediaId(const QString& mediaId)
     return idParts;
 }
 
-MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId, QSize requestedSize) const
+MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
+    QSize requestedSize, RunningPolicy policy) const
 {
     auto idParts = splitMediaId(mediaId);
-    return callApi<MediaThumbnailJob>(idParts.front(), idParts.back(),
-                                      requestedSize);
+    return callApi<MediaThumbnailJob>(policy,
+        idParts.front(), idParts.back(), requestedSize);
 }
 
-MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, QSize requestedSize) const
+MediaThumbnailJob* Connection::getThumbnail(const QUrl& url,
+    QSize requestedSize, RunningPolicy policy) const
 {
-    return getThumbnail(url.authority() + url.path(), requestedSize);
+    return getThumbnail(url.authority() + url.path(), requestedSize, policy);
 }
 
-MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
-                                            int requestedHeight) const
+MediaThumbnailJob* Connection::getThumbnail(const QUrl& url,
+    int requestedWidth, int requestedHeight, RunningPolicy policy) const
 {
-    return getThumbnail(url, QSize(requestedWidth, requestedHeight));
+    return getThumbnail(url, QSize(requestedWidth, requestedHeight), policy);
 }
 
 UploadContentJob* Connection::uploadContent(QIODevice* contentSource,

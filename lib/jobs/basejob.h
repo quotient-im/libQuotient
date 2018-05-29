@@ -43,6 +43,7 @@ namespace QMatrixClient
     class BaseJob: public QObject
     {
             Q_OBJECT
+            Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
             Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
         public:
             /* Just in case, the values are compatible with KJob
@@ -55,7 +56,7 @@ namespace QMatrixClient
                 , Abandoned = 50 //< A very brief period between abandoning and object deletion
                 , ErrorLevel = 100 //< Errors have codes starting from this
                 , NetworkError = 100
-                , JsonParseError
+                , JsonParseError // TODO: Merge into IncorrectResponseError
                 , TimeoutError
                 , ContentAccessError
                 , NotFoundError
@@ -129,10 +130,15 @@ namespace QMatrixClient
                     const Query& query, Data&& data = {},
                     bool needsToken = true);
 
+            QUrl requestUrl() const;
+            bool isBackground() const;
+
             Status status() const;
             int error() const;
+            QString errorCaption() const;
             virtual QString errorString() const;
-            QByteArray errorDetails() const;
+            QByteArray errorRawData() const;
+            QUrl errorUrl() const;
 
             int maxRetries() const;
             void setMaxRetries(int newMaxRetries);
@@ -147,7 +153,8 @@ namespace QMatrixClient
             }
 
         public slots:
-            void start(const ConnectionData* connData);
+            void start(const ConnectionData* connData,
+                       bool inBackground = false);
 
             /**
              * Abandons the result of this job, arrived or unarrived.
@@ -302,7 +309,7 @@ namespace QMatrixClient
             void timeout();
 
         private slots:
-            void sendRequest();
+            void sendRequest(bool inBackground);
             void checkReply();
             void gotReply();
 

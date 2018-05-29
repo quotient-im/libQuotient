@@ -46,13 +46,13 @@ class BaseJob::Private
     public:
         // Using an idiom from clang-tidy:
         // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-        Private(HttpVerb v, QString endpoint, QUrlQuery q, Data&& data, bool nt)
-            : verb(v), apiEndpoint(std::move(endpoint))
-            , requestQuery(std::move(q)), requestData(std::move(data))
-            , needsToken(nt)
+        Private(HttpVerb v, QString endpoint, const QUrlQuery& q,
+                Data&& data, bool nt)
+            : verb(v), apiEndpoint(std::move(endpoint)), requestQuery(q)
+            , requestData(std::move(data)), needsToken(nt)
         { }
         
-        void sendRequest();
+        void sendRequest(bool inBackground);
         const JobTimeoutConfig& getCurrentTimeoutConfig() const;
 
         const ConnectionData* connection = nullptr;
@@ -72,7 +72,8 @@ class BaseJob::Private
 
         QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
         Status status = Pending;
-        QByteArray details; //< In case of error, contains the raw response body
+        QByteArray rawResponse;
+        QUrl errorUrl; //< May contain a URL to help with some errors
 
         QTimer timer;
         QTimer retryTimer;
@@ -97,14 +98,23 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     setExpectedContentTypes({ "application/json" });
     d->timer.setSingleShot(true);
     connect (&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
-    d->retryTimer.setSingleShot(true);
-    connect (&d->retryTimer, &QTimer::timeout, this, &BaseJob::sendRequest);
 }
 
 BaseJob::~BaseJob()
 {
     stop();
     qCDebug(d->logCat) << this << "destroyed";
+}
+
+QUrl BaseJob::requestUrl() const
+{
+    return d->reply ? d->reply->request().url() : QUrl();
+}
+
+bool BaseJob::isBackground() const
+{
+    return d->reply && d->reply->request().attribute(
+                        QNetworkRequest::BackgroundRequestAttribute).toBool();
 }
 
 const QString& BaseJob::apiEndpoint() const
@@ -180,7 +190,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl,
     return baseUrl;
 }
 
-void BaseJob::Private::sendRequest()
+void BaseJob::Private::sendRequest(bool inBackground)
 {
     QNetworkRequest req
         { makeRequestUrl(connection->baseUrl(), apiEndpoint, requestQuery) };
@@ -188,6 +198,7 @@ void BaseJob::Private::sendRequest()
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setRawHeader(QByteArray("Authorization"),
                      QByteArray("Bearer ") + connection->accessToken());
+    req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
@@ -220,26 +231,30 @@ void BaseJob::afterStart(const ConnectionData*, QNetworkReply*)
 void BaseJob::beforeAbandon(QNetworkReply*)
 { }
 
-void BaseJob::start(const ConnectionData* connData)
+void BaseJob::start(const ConnectionData* connData, bool inBackground)
 {
     d->connection = connData;
+    d->retryTimer.setSingleShot(true);
+    connect (&d->retryTimer, &QTimer::timeout,
+             this, [this,inBackground] { sendRequest(inBackground); });
+
     beforeStart(connData);
     if (status().good())
-        sendRequest();
+        sendRequest(inBackground);
     if (status().good())
         afterStart(connData, d->reply.data());
     if (!status().good())
         QTimer::singleShot(0, this, &BaseJob::finishJob);
 }
 
-void BaseJob::sendRequest()
+void BaseJob::sendRequest(bool inBackground)
 {
     emit aboutToStart();
     d->retryTimer.stop(); // In case we were counting down at the moment
     qCDebug(d->logCat) << this << "sending request to" << d->apiEndpoint;
     if (!d->requestQuery.isEmpty())
         qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
-    d->sendRequest();
+    d->sendRequest(inBackground);
     connect( d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply );
     if (d->reply->isRunning())
     {
@@ -269,14 +284,14 @@ void BaseJob::gotReply()
         setStatus(parseReply(d->reply.data()));
     else {
         // FIXME: Factor out to smth like BaseJob::handleError()
-        d->details = d->reply->readAll();
+        d->rawResponse = d->reply->readAll();
         const auto jsonBody =
                 d->reply->rawHeader("Content-Type") == "application/json";
         qCDebug(d->logCat).noquote()
-                << "Error body (truncated if long):" << d->details.left(500);
+                << "Error body (truncated if long):" << d->rawResponse.left(500);
         if (jsonBody)
         {
-            auto json = QJsonDocument::fromJson(d->details).object();
+            auto json = QJsonDocument::fromJson(d->rawResponse).object();
             if (error() == TooManyRequestsError ||
                     json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
             {
@@ -393,8 +408,9 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 {
+    d->rawResponse = reply->readAll();
     QJsonParseError error;
-    QJsonDocument json = QJsonDocument::fromJson(reply->readAll(), &error);
+    const auto& json = QJsonDocument::fromJson(d->rawResponse, &error);
     if( error.error == QJsonParseError::NoError )
         return parseJson(json);
     else
@@ -493,14 +509,58 @@ int BaseJob::error() const
     return d->status.code;
 }
 
+QString BaseJob::errorCaption() const
+{
+    switch (d->status.code)
+    {
+        case Success:
+            return tr("Success");
+        case Pending:
+            return tr("Request still pending response");
+        case UnexpectedResponseTypeWarning:
+            return tr("Warning: Unexpected response type");
+        case Abandoned:
+            return tr("Request was abandoned");
+        case NetworkError:
+            return tr("Network problems");
+        case JsonParseError:
+            return tr("Response could not be parsed");
+        case TimeoutError:
+            return tr("Request timed out");
+        case ContentAccessError:
+            return tr("Access error");
+        case NotFoundError:
+            return tr("Requested data not found");
+        case IncorrectRequestError:
+            return tr("Invalid request");
+        case IncorrectResponseError:
+            return tr("Response could not be parsed");
+        case TooManyRequestsError:
+            return tr("Too many requests");
+        case RequestNotImplementedError:
+            return tr("Function not implemented by the server");
+        case NetworkAuthRequiredError:
+            return tr("Network authentication required");
+        case UserConsentRequiredError:
+            return tr("User consent required");
+        default:
+            return tr("Request failed");
+    }
+}
+
 QString BaseJob::errorString() const
 {
     return d->status.message;
 }
 
-QByteArray BaseJob::errorDetails() const
+QByteArray BaseJob::errorRawData() const
 {
-    return d->details;
+    return d->rawResponse;
+}
+
+QUrl BaseJob::errorUrl() const
+{
+    return d->errorUrl;
 }
 
 void BaseJob::setStatus(Status s)

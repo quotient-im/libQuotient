@@ -46,6 +46,13 @@ namespace QMatrixClient
     class GetContentJob;
     class DownloadFileJob;
 
+    /** Enumeration with flags defining the network job running policy
+     * So far only background/foreground flags are available.
+     *
+     * \sa Connection::callApi
+     */
+    enum RunningPolicy { InForeground = 0x0, InBackground = 0x1 };
+
     class Connection: public QObject {
             Q_OBJECT
 
@@ -191,18 +198,37 @@ namespace QMatrixClient
             bool cacheState() const;
             void setCacheState(bool newValue);
 
-            /**
+            /** Start a job of a specified type with specified arguments and policy
+             *
              * This is a universal method to start a job of a type passed
-             * as a template parameter. Arguments to callApi() are arguments
-             * to the job constructor _except_ the first ConnectionData*
-             * argument - callApi() will pass it automatically.
+             * as a template parameter. The policy allows to fine-tune the way
+             * the job is executed - as of this writing it means a choice
+             * between "foreground" and "background".
+             *
+             * \param runningPolicy controls how the job is executed
+             * \param jobArgs arguments to the job constructor
+             *
+             * \sa BaseJob::isBackground. QNetworkRequest::BackgroundRequestAttribute
+             */
+            template <typename JobT, typename... JobArgTs>
+            JobT* callApi(RunningPolicy runningPolicy,
+                          JobArgTs&&... jobArgs) const
+            {
+                auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
+                connect(job, &BaseJob::failure, this, &Connection::requestFailed);
+                job->start(connectionData(), runningPolicy&InBackground);
+                return job;
+            }
+
+            /** Start a job of a specified type with specified arguments
+             *
+             * This is an overload that calls the job with "foreground" policy.
              */
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs&&... jobArgs) const
             {
-                auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
-                job->start(connectionData());
-                return job;
+                return callApi<JobT>(InForeground,
+                                     std::forward<JobArgTs>(jobArgs)...);
             }
 
             /** Generates a new transaction id. Transaction id's are unique within
@@ -246,12 +272,12 @@ namespace QMatrixClient
             void stopSync();
 
             virtual MediaThumbnailJob* getThumbnail(const QString& mediaId,
-                                                    QSize requestedSize) const;
+                QSize requestedSize, RunningPolicy policy = InBackground) const;
             MediaThumbnailJob* getThumbnail(const QUrl& url,
-                                            QSize requestedSize) const;
+                QSize requestedSize, RunningPolicy policy = InBackground) const;
             MediaThumbnailJob* getThumbnail(const QUrl& url,
-                                            int requestedWidth,
-                                            int requestedHeight) const;
+                int requestedWidth, int requestedHeight,
+                RunningPolicy policy = InBackground) const;
 
             // QIODevice* should already be open
             UploadContentJob* uploadContent(QIODevice* contentSource,
@@ -349,9 +375,26 @@ namespace QMatrixClient
             void homeserverChanged(QUrl baseUrl);
 
             void connected();
-            void reconnected(); //< Unused; use connected() instead
+            void reconnected(); //< \deprecated Use connected() instead
             void loggedOut();
             void loginError(QString message, QByteArray details);
+
+            /** A network request (job) failed
+             *
+             * @param request - the pointer to the failed job
+             */
+            void requestFailed(BaseJob* request);
+
+            /** A network request (job) failed due to network problems
+             *
+             * This is _only_ emitted when the job will retry on its own;
+             * once it gives up, requestFailed() will be emitted.
+             *
+             * @param message - message about the network problem
+             * @param details - raw error details, if any available
+             * @param retriesTaken - how many retries have already been taken
+             * @param nextRetryInMilliseconds - when the job will retry again
+             */
             void networkError(QString message, QByteArray details,
                               int retriesTaken, int nextRetryInMilliseconds);
 
