@@ -65,6 +65,7 @@ namespace QMatrixClient
                 , TooManyRequestsError
                 , RequestNotImplementedError
                 , NetworkAuthRequiredError
+                , UserConsentRequiredError
                 , UserDefinedError = 200
             };
 

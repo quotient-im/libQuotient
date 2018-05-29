@@ -313,7 +313,15 @@ void BaseJob::gotReply()
                 emit retryScheduled(d->retriesTaken, retryInterval);
                 return;
             }
-            if (!json.isEmpty())
+            if (json.value("errcode").toString() == "M_CONSENT_NOT_GIVEN")
+            {
+                auto urlString = json.value("consent_uri").toString();
+                setStatus(UserConsentRequiredError,
+                    tr("You must agree with the server's privacy policy; "
+                       "please visit %1").arg(urlString));
+                d->errorUrl = urlString;
+            }
+            if (!json.isEmpty()) // FIXME: The below is not localisable
                 setStatus(IncorrectRequestError, json.value("error").toString());
         }
     }
@@ -414,7 +422,7 @@ BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
     if( error.error == QJsonParseError::NoError )
         return parseJson(json);
     else
-        return { JsonParseError, error.errorString() };
+        return { IncorrectResponseError, error.errorString() };
 }
 
 BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
