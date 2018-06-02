@@ -19,9 +19,6 @@ namespace QMatrixClient
     QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "id_server", pod.idServer);
         addToJson<>(_json, "medium", pod.medium);
         addToJson<>(_json, "address", pod.address);
@@ -31,9 +28,6 @@ namespace QMatrixClient
     QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "type", pod.type);
         addToJson<IfNotEmpty>(_json, "state_key", pod.stateKey);
         addToJson<IfNotEmpty>(_json, "content", pod.content);

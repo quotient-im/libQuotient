@@ -6,9 +6,9 @@
 
 #include "jobs/basejob.h"
 
-#include "converters.h"
 #include <QtCore/QVector>
 #include <QtCore/QStringList>
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -66,14 +66,14 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit GetPublicRoomsJob(int limit = {}, const QString& since = {}, const QString& server = {});
+            explicit GetPublicRoomsJob(Omittable<int> limit = none, const QString& since = {}, const QString& server = {});
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetPublicRoomsJob. This function can be used when
              * a URL for GetPublicRoomsJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, int limit = {}, const QString& since = {}, const QString& server = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, Omittable<int> limit = none, const QString& since = {}, const QString& server = {});
 
             ~GetPublicRoomsJob() override;
 
@@ -82,7 +82,7 @@ namespace QMatrixClient
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;
             const QString& prevBatch() const;
-            qint64 totalRoomCountEstimate() const;
+            Omittable<qint64> totalRoomCountEstimate() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -100,8 +100,6 @@ namespace QMatrixClient
             struct Filter
             {
                 QString genericSearchTerm;
-
-                bool omitted;
             };
 
             struct PublicRoomsChunk
@@ -119,7 +117,7 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit QueryPublicRoomsJob(const QString& server = {}, int limit = {}, const QString& since = {}, const Filter& filter = omitted<Filter>());
+            explicit QueryPublicRoomsJob(const QString& server = {}, Omittable<int> limit = none, const QString& since = {}, const Omittable<Filter>& filter = none);
             ~QueryPublicRoomsJob() override;
 
             // Result properties
@@ -127,7 +125,7 @@ namespace QMatrixClient
             const QVector<PublicRoomsChunk>& chunk() const;
             const QString& nextBatch() const;
             const QString& prevBatch() const;
-            qint64 totalRoomCountEstimate() const;
+            Omittable<qint64> totalRoomCountEstimate() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

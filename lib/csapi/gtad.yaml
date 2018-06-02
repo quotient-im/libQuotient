@@ -9,111 +9,99 @@ analyzer:
     origin_server_ts: originServerTimestamp # Instead of originServerTs
     start: begin # Because start() is a method in BaseJob
 
+  # Structure inside `types`:
+  # - swaggerType: <targetTypeSpec>
+  # OR
+  # - swaggerType:
+  #   - swaggerFormat: <targetTypeSpec>
+  #   - /swaggerFormatRegEx/: <targetTypeSpec>
+  #   - //: <targetTypeSpec> # default, if the format doesn't mach anything above
+  # WHERE
+  # targetTypeSpec = targetType OR
+  #   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
+  # swaggerType can be @apply/@on pair; attributes from the map under @apply
+  # are added to each type from the sequence under @on.
   types:
-    # Structure:
-    # swaggerType: <targetTypeSpec>
-    # OR
-    # swaggerType:
-    #   - swaggerFormat: <targetTypeSpec>
-    #   - /swaggerFormatRegEx/: <targetTypeSpec>
-    #   - //: <targetTypeSpec> # default, if the format doesn't mach anything above
-    # WHERE
-    # targetTypeSpec = targetType OR
-    #   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
-    integer:
-    - int64: qint64
-    - int32: qint32
-    - //: int
-    number:
-    - float: float
-    - //: double
-    boolean: { type: bool, omitted: false }
-    string:
+  - +set: &UseOmittable
+      useOmittable:
+      imports: [ '"converters.h"' ]
+      omittedValue: none # See `none` in converters.h
+    +on:
+    - integer:
+      - int64: qint64
+      - int32: qint32
+      - //: int
+    - number:
+      - float: float
+      - //: double
+  - boolean: { type: bool, omittedValue: 'false' }
+  - string:
     - byte: &ByteStream
         type: QIODevice*
         imports: <QtCore/QIODevice>
     - binary: *ByteStream
-    - date:
-        type: QDate
-        initializer: QDate::fromString("{{defaultValue}}")
-        avoidCopy?: true
-        imports: <QtCore/QDate>
-    - dateTime:
-        type: QDateTime
-        initializer: QDateTime::fromString("{{defaultValue}}")
-        avoidCopy?: true
-        imports: <QtCore/QDateTime>
-    - //:
-        type: QString
-        initializer: QStringLiteral("{{defaultValue}}")
-        string?: true
-        avoidCopy?: true
-    file: *ByteStream
-    object:
-    - /state_event.yaml$/:
-        type: StateEventPtr
-        noCopy?: true
-        imports: '"events/event.h"'
-    - /room_event.yaml$/:
-        type: RoomEventPtr
-        noCopy?: true
-        imports: '"events/event.h"'
-    - /event.yaml$/:
-        type: EventPtr
-        noCopy?: true
-        imports: '"events/event.h"'
-    - //:
-        type: QJsonObject
-        avoidCopy?: true
-        imports: <QtCore/QJsonObject>
-    array:
-    - string:
-        type: QStringList
-        avoidCopy?: true
-        imports: <QtCore/QStringList>
-    - /^Notification|Result$/:
-        type: "std::vector<{{1}}>"
-        noCopy?: true
-        imports: '"events/event.h"'
-    - /m\.room\.member$/:
-        type: "EventsArray<RoomMemberEvent>"
-        noCopy?: true
-        imports: '"events/roommemberevent.h"'
-    - /state_event.yaml$/:
-        type: StateEvents
-        noCopy?: true
-    - /room_event.yaml$/:
-        type: RoomEvents
-        noCopy?: true
-    - /event.yaml$/:
-        type: Events
-        noCopy?: true
-    - /.+/:
-        type: "QVector<{{1}}>"
-        avoidCopy?: true
-        imports: <QtCore/QVector>
-    - //: { type: QJsonArray, "avoidCopy?": true, imports: <QtCore/QJsonArray> }
-    map:
-    - RoomState:
-        type: "std::unordered_map<QString, {{1}}>"
-        noCopy?: true
-        imports: <unordered_map>
-    - /.+/:
-        type: "QHash<QString, {{1}}>"
-        avoidCopy?: true
-        imports: <QtCore/QHash>
-    - //:
-        type: QVariantHash
-        avoidCopy?: true
-        imports: '"variant_converters.h"'
-    variant:
-      type: QVariant
-      avoidCopy?: true
-      imports: '"variant_converters.h"'
-    schema: # Properties of inline structure definitions
-      avoidCopy?: true
-      omitted: omitted<{{dataType.name}}>()
-      imports: '"converters.h"'
+    - +set: { "avoidCopy?": true }
+      +on:
+      - date:
+          type: QDate
+          initializer: QDate::fromString("{{defaultValue}}")
+          imports: <QtCore/QDate>
+      - dateTime:
+          type: QDateTime
+          initializer: QDateTime::fromString("{{defaultValue}}")
+          imports: <QtCore/QDateTime>
+      - //:
+          type: QString
+          initializer: QStringLiteral("{{defaultValue}}")
+          string?: true
+  - file: *ByteStream
+  - +set: { "avoidCopy?": true }
+    +on:
+    - object: { type: QJsonObject, imports: <QtCore/QJsonObject> }
+    - $ref:
+      - /m\.room\.member$/: pass # This $ref is only used in an array, see below
+      - +set: { "noCopy?": true }
+        +on:
+        - /state_event.yaml$/:
+            { type: StateEventPtr, imports: '"events/event.h"' }
+        - /room_event.yaml$/:
+            { type: RoomEventPtr, imports: '"events/event.h"' }
+        - /event.yaml$/:
+            { type: EventPtr, imports: '"events/event.h"' }
+    - array:
+      - string: { type: QStringList, imports: <QtCore/QStringList> }
+      - +set: { "noCopy?": true}
+        +on:
+        - /^Notification|Result$/:
+            type: "std::vector<{{1}}>"
+            imports: '"events/event.h"'
+        - /m\.room\.member$/:
+            type: "EventsArray<RoomMemberEvent>"
+            imports: '"events/roommemberevent.h"'
+        - /state_event.yaml$/:
+            type: StateEvents
+        - /room_event.yaml$/:
+            type: RoomEvents
+        - /event.yaml$/:
+            type: Events
+      - /.+/: { type: "QVector<{{1}}>", imports: <QtCore/QVector> }
+      - //: { type: QJsonArray, imports: <QtCore/QJsonArray> }
+    # `additionalProperties` in OpenAPI
+    - map:
+      - RoomState:
+          type: "std::unordered_map<QString, {{1}}>"
+          noCopy?: true
+          imports: <unordered_map>
+      - /.+/:
+          type: "QHash<QString, {{1}}>"
+          imports: <QtCore/QHash>
+      - //:
+          type: QVariantHash
+          imports: '"variant_converters.h"'
+    # A sequence `type` in OpenAPI
+    - variant: { type: QVariant, imports: '"variant_converters.h"' }
+    - schema: # Properties of inline structure definitions
+        *UseOmittable
 
   #operations:
 
@@ -121,12 +109,15 @@ mustache:
   definitions:
     _scopeRenderer: "{{scopeCamelCase}}Job::"
     _literalQuote: '"'
-    # Default value for omitted
-    omitted: '{}'
-    maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.name}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
+    omittedValue: '{}' # default value to initialize omitted parameters with
+    openOmittable: "{{^required?}}{{#useOmittable}}Omittable<{{/useOmittable}}{{/required?}}"
+    closeOmittable: "{{^required?}}{{#useOmittable}}>{{/useOmittable}}{{/required?}}"
+    maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"
+    qualifiedMaybeOmittableType: "{{>openOmittable}}{{dataType.qualifiedName}}{{>closeOmittable}}"
+    maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{>maybeOmittableType}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
     qualifiedMaybeCrefType:
-      "{{#avoidCopy?}}const {{/avoidCopy?}}{{dataType.qualifiedName}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
-    initializeDefaultValue: "{{#defaultValue}}{{#initializer}}{{>initializer}}{{/initializer}}{{/defaultValue}}{{^defaultValue}}{{>omitted}}{{/defaultValue}}"
+      "{{#avoidCopy?}}const {{/avoidCopy?}}{{>qualifiedMaybeOmittableType}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
+    initializeDefaultValue: "{{#defaultValue}}{{#initializer}}{{>initializer}}{{/initializer}}{{/defaultValue}}{{^defaultValue}}{{>omittedValue}}{{/defaultValue}}"
     joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'

@@ -59,8 +59,6 @@ namespace QMatrixClient
                 QString clientSecret;
                 QString idServer;
                 QString sid;
-
-                bool omitted;
             };
 
             // Construction/destruction

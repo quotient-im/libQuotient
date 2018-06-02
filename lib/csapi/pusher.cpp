@@ -97,9 +97,6 @@ namespace QMatrixClient
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "url", pod.url);
         return _json;
     }

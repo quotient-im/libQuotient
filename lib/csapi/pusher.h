@@ -32,7 +32,7 @@ namespace QMatrixClient
                 QString deviceDisplayName;
                 QString profileTag;
                 QString lang;
-                PusherData data;
+                Omittable<PusherData> data;
             };
 
             // Construction/destruction
@@ -68,8 +68,6 @@ namespace QMatrixClient
             struct PusherData
             {
                 QString url;
-
-                bool omitted;
             };
 
             // Construction/destruction

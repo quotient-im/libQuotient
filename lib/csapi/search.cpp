@@ -19,9 +19,6 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::IncludeEventContext& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "before_limit", pod.beforeLimit);
         addToJson<IfNotEmpty>(_json, "after_limit", pod.afterLimit);
         addToJson<IfNotEmpty>(_json, "include_profile", pod.includeProfile);
@@ -31,9 +28,6 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::Group& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "key", pod.key);
         return _json;
     }
@@ -41,9 +35,6 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::Groupings& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "group_by", pod.groupBy);
         return _json;
     }
@@ -51,9 +42,6 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::RoomEventsCriteria& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "search_term", pod.searchTerm);
         addToJson<IfNotEmpty>(_json, "keys", pod.keys);
         addToJson<IfNotEmpty>(_json, "filter", pod.filter);
@@ -67,9 +55,6 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::Categories& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<IfNotEmpty>(_json, "room_events", pod.roomEvents);
         return _json;
     }

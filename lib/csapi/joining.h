@@ -24,13 +24,11 @@ namespace QMatrixClient
                 QString mxid;
                 QString token;
                 QJsonObject signatures;
-
-                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& thirdPartySigned = omitted<ThirdPartySigned>());
+            explicit JoinRoomByIdJob(const QString& roomId, const Omittable<ThirdPartySigned>& thirdPartySigned = none);
             ~JoinRoomByIdJob() override;
 
             // Result properties
@@ -56,20 +54,16 @@ namespace QMatrixClient
                 QString mxid;
                 QString token;
                 QJsonObject signatures;
-
-                bool omitted;
             };
 
             struct ThirdPartySigned
             {
                 Signed signedData;
-
-                bool omitted;
             };
 
             // Construction/destruction
 
-            explicit JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& thirdPartySigned = omitted<ThirdPartySigned>());
+            explicit JoinRoomJob(const QString& roomIdOrAlias, const Omittable<ThirdPartySigned>& thirdPartySigned = none);
             ~JoinRoomJob() override;
 
             // Result properties

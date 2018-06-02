@@ -45,6 +45,47 @@ namespace std
 
 namespace QMatrixClient
 {
+    struct NoneTag {};
+    constexpr NoneTag none {};
+
+    /** A crude substitute for `optional` while we're not C++17
+     *
+     * Only works with default-constructible types.
+     */
+    template <typename T>
+    class Omittable
+    {
+        public:
+            explicit Omittable() : Omittable(none) { }
+            Omittable(NoneTag) : _omitted(true) { }
+            Omittable(const T& val) : _value(val), _omitted(false) { }
+            Omittable(T&& val) : _value(std::move(val)), _omitted(false) { }
+            Omittable<T>& operator=(const T& val)
+            {
+                _value = val;
+                _omitted = false;
+                return *this;
+            }
+            Omittable<T>& operator=(T&& val)
+            {
+                _value = std::move(val);
+                _omitted = false;
+                return *this;
+            }
+
+            bool omitted() const { return _omitted; }
+            const T& value() const { return _value; }
+            T& value() { return _value; }
+            T&& release() { _omitted = true; return std::move(value); }
+
+            operator bool() const { return !_omitted; }
+
+        private:
+            T _value;
+            bool _omitted;
+    };
+
+
     // This catches anything implicitly convertible to QJsonValue/Object/Array
     inline QJsonValue toJson(const QJsonValue& val) { return val; }
     inline QJsonObject toJson(const QJsonObject& o) { return o; }
@@ -97,6 +138,16 @@ namespace QMatrixClient
         for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
             json.insert(it.key(), toJson(it.value()));
         return json;
+    }
+
+    template <typename T>
+    inline auto toJson(const Omittable<T>& omittable)
+        -> decltype(toJson(omittable.value()))
+    {
+        if (omittable)
+            return toJson(omittable.value());
+
+        return {};
     }
 
 #if 0
@@ -286,17 +337,5 @@ namespace QMatrixClient
         // (QString, QJsonObject etc.).
         _impl::AddNode<std::conditional_t<Force, QJsonValue, decltype(json)>>
                 ::impl(o, std::move(key), std::move(json));
-    }
-
-    /** Construct an "omitted" value of a given type
-     * This is a workaround for the time being while we're not C++17 and
-     * cannot use `optional`.
-     */
-    template <typename T>
-    inline T omitted()
-    {
-        T val;
-        val.omitted = true;
-        return val;
     }
 }  // namespace QMatrixClient

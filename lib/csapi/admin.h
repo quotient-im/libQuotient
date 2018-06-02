@@ -6,9 +6,9 @@
 
 #include "jobs/basejob.h"
 
+#include <QtCore/QVector>
 #include <QtCore/QHash>
 #include "converters.h"
-#include <QtCore/QVector>
 
 namespace QMatrixClient
 {
@@ -22,7 +22,7 @@ namespace QMatrixClient
             struct ConnectionInfo
             {
                 QString ip;
-                qint64 lastSeen;
+                Omittable<qint64> lastSeen;
                 QString userAgent;
             };
 

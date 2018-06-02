@@ -19,9 +19,6 @@ namespace QMatrixClient
     QJsonObject toJson(const JoinRoomByIdJob::ThirdPartySigned& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "sender", pod.sender);
         addToJson<>(_json, "mxid", pod.mxid);
         addToJson<>(_json, "token", pod.token);
@@ -36,7 +33,7 @@ class JoinRoomByIdJob::Private
         QString roomId;
 };
 
-JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId, const ThirdPartySigned& thirdPartySigned)
+JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId, const Omittable<ThirdPartySigned>& thirdPartySigned)
     : BaseJob(HttpVerb::Post, "JoinRoomByIdJob",
         basePath % "/rooms/" % roomId % "/join")
     , d(new Private)
@@ -70,9 +67,6 @@ namespace QMatrixClient
     QJsonObject toJson(const JoinRoomJob::Signed& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "sender", pod.sender);
         addToJson<>(_json, "mxid", pod.mxid);
         addToJson<>(_json, "token", pod.token);
@@ -83,9 +77,6 @@ namespace QMatrixClient
     QJsonObject toJson(const JoinRoomJob::ThirdPartySigned& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "signed", pod.signedData);
         return _json;
     }
@@ -97,7 +88,7 @@ class JoinRoomJob::Private
         QString roomId;
 };
 
-JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const ThirdPartySigned& thirdPartySigned)
+JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const Omittable<ThirdPartySigned>& thirdPartySigned)
     : BaseJob(HttpVerb::Post, "JoinRoomJob",
         basePath % "/join/" % roomIdOrAlias)
     , d(new Private)

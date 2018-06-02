@@ -23,21 +23,21 @@ class GetEventContextJob::Private
         StateEvents state;
 };
 
-BaseJob::Query queryToGetEventContext(int limit)
+BaseJob::Query queryToGetEventContext(Omittable<int> limit)
 {
     BaseJob::Query _q;
     _q.addQueryItem("limit", QString("%1").arg(limit));
     return _q;
 }
 
-QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId, int limit)
+QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId, Omittable<int> limit)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/rooms/" % roomId % "/context/" % eventId,
             queryToGetEventContext(limit));
 }
 
-GetEventContextJob::GetEventContextJob(const QString& roomId, const QString& eventId, int limit)
+GetEventContextJob::GetEventContextJob(const QString& roomId, const QString& eventId, Omittable<int> limit)
     : BaseJob(HttpVerb::Get, "GetEventContextJob",
         basePath % "/rooms/" % roomId % "/context/" % eventId,
         queryToGetEventContext(limit))

@@ -6,10 +6,10 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
+#include <QtCore/QVector>
 #include <QtCore/QJsonObject>
 #include "events/event.h"
-#include <QtCore/QVector>
-#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -32,14 +32,14 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit GetNotificationsJob(const QString& from = {}, int limit = {}, const QString& only = {});
+            explicit GetNotificationsJob(const QString& from = {}, Omittable<int> limit = none, const QString& only = {});
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetNotificationsJob. This function can be used when
              * a URL for GetNotificationsJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {}, int limit = {}, const QString& only = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {}, Omittable<int> limit = none, const QString& only = {});
 
             ~GetNotificationsJob() override;
 

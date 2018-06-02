@@ -25,8 +25,6 @@ namespace QMatrixClient
                 QString idServer;
                 QString medium;
                 QString address;
-
-                bool omitted;
             };
 
             struct StateEvent
@@ -34,8 +32,6 @@ namespace QMatrixClient
                 QString type;
                 QString stateKey;
                 QJsonObject content;
-
-                bool omitted;
             };
 
             // Construction/destruction

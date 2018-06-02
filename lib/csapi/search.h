@@ -25,25 +25,19 @@ namespace QMatrixClient
 
             struct IncludeEventContext
             {
-                int beforeLimit;
-                int afterLimit;
+                Omittable<int> beforeLimit;
+                Omittable<int> afterLimit;
                 bool includeProfile;
-
-                bool omitted;
             };
 
             struct Group
             {
                 QString key;
-
-                bool omitted;
             };
 
             struct Groupings
             {
                 QVector<Group> groupBy;
-
-                bool omitted;
             };
 
             struct RoomEventsCriteria
@@ -52,18 +46,14 @@ namespace QMatrixClient
                 QStringList keys;
                 QJsonObject filter;
                 QString orderBy;
-                IncludeEventContext eventContext;
+                Omittable<IncludeEventContext> eventContext;
                 bool includeState;
-                Groupings groupings;
-
-                bool omitted;
+                Omittable<Groupings> groupings;
             };
 
             struct Categories
             {
-                RoomEventsCriteria roomEvents;
-
-                bool omitted;
+                Omittable<RoomEventsCriteria> roomEvents;
             };
 
             struct UserProfile
@@ -83,21 +73,21 @@ namespace QMatrixClient
 
             struct Result
             {
-                double rank;
+                Omittable<double> rank;
                 RoomEventPtr result;
-                EventContext context;
+                Omittable<EventContext> context;
             };
 
             struct GroupValue
             {
                 QString nextBatch;
-                int order;
+                Omittable<int> order;
                 QStringList results;
             };
 
             struct ResultRoomEvents
             {
-                qint64 count;
+                Omittable<qint64> count;
                 std::vector<Result> results;
                 std::unordered_map<QString, StateEvents> state;
                 QHash<QString, QHash<QString, GroupValue>> groups;
@@ -106,7 +96,7 @@ namespace QMatrixClient
 
             struct ResultCategories
             {
-                ResultRoomEvents roomEvents;
+                Omittable<ResultRoomEvents> roomEvents;
             };
 
             // Construction/destruction

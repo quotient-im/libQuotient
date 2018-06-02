@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -14,6 +15,6 @@ namespace QMatrixClient
     class SetTypingJob : public BaseJob
     {
         public:
-            explicit SetTypingJob(const QString& userId, const QString& roomId, bool typing, int timeout = {});
+            explicit SetTypingJob(const QString& userId, const QString& roomId, bool typing, Omittable<int> timeout = none);
     };
 } // namespace QMatrixClient

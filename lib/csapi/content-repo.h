@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "converters.h"
 #include <QtCore/QIODevice>
 
 namespace QMatrixClient
@@ -89,14 +90,14 @@ namespace QMatrixClient
     class GetContentThumbnailJob : public BaseJob
     {
         public:
-            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
+            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {});
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentThumbnailJob. This function can be used when
              * a URL for GetContentThumbnailJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width = {}, int height = {}, const QString& method = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {});
 
             ~GetContentThumbnailJob() override;
 
@@ -116,20 +117,20 @@ namespace QMatrixClient
     class GetUrlPreviewJob : public BaseJob
     {
         public:
-            explicit GetUrlPreviewJob(const QString& url, qint64 ts = {});
+            explicit GetUrlPreviewJob(const QString& url, Omittable<qint64> ts = none);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetUrlPreviewJob. This function can be used when
              * a URL for GetUrlPreviewJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, qint64 ts = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& url, Omittable<qint64> ts = none);
 
             ~GetUrlPreviewJob() override;
 
             // Result properties
 
-            qint64 matrixImageSize() const;
+            Omittable<qint64> matrixImageSize() const;
             const QString& ogImage() const;
 
         protected:

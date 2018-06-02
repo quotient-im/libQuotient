@@ -6,8 +6,8 @@
 
 #include "jobs/basejob.h"
 
-#include "converters.h"
 #include <QtCore/QVector>
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -27,7 +27,7 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit SearchUserDirectoryJob(const QString& searchTerm, int limit = {});
+            explicit SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit = none);
             ~SearchUserDirectoryJob() override;
 
             // Result properties

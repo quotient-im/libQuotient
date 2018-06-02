@@ -72,9 +72,6 @@ namespace QMatrixClient
     QJsonObject toJson(const Post3PIDsJob::ThreePidCredentials& pod)
     {
         QJsonObject _json;
-        if (pod.omitted)
-            return _json;
-
         addToJson<>(_json, "client_secret", pod.clientSecret);
         addToJson<>(_json, "id_server", pod.idServer);
         addToJson<>(_json, "sid", pod.sid);

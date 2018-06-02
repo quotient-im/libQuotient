@@ -7,6 +7,7 @@
 #include "jobs/basejob.h"
 
 #include "events/event.h"
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -15,14 +16,14 @@ namespace QMatrixClient
     class GetEventContextJob : public BaseJob
     {
         public:
-            explicit GetEventContextJob(const QString& roomId, const QString& eventId, int limit = {});
+            explicit GetEventContextJob(const QString& roomId, const QString& eventId, Omittable<int> limit = none);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetEventContextJob. This function can be used when
              * a URL for GetEventContextJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId, int limit = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId, Omittable<int> limit = none);
 
             ~GetEventContextJob() override;
 

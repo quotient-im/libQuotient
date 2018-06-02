@@ -12,7 +12,7 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool typing, int timeout)
+SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool typing, Omittable<int> timeout)
     : BaseJob(HttpVerb::Put, "SetTypingJob",
         basePath % "/rooms/" % roomId % "/typing/" % userId)
 {

@@ -47,7 +47,7 @@ class GetNotificationsJob::Private
         std::vector<Notification> notifications;
 };
 
-BaseJob::Query queryToGetNotifications(const QString& from, int limit, const QString& only)
+BaseJob::Query queryToGetNotifications(const QString& from, Omittable<int> limit, const QString& only)
 {
     BaseJob::Query _q;
     if (!from.isEmpty())
@@ -58,14 +58,14 @@ BaseJob::Query queryToGetNotifications(const QString& from, int limit, const QSt
     return _q;
 }
 
-QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from, int limit, const QString& only)
+QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omittable<int> limit, const QString& only)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/notifications",
             queryToGetNotifications(from, limit, only));
 }
 
-GetNotificationsJob::GetNotificationsJob(const QString& from, int limit, const QString& only)
+GetNotificationsJob::GetNotificationsJob(const QString& from, Omittable<int> limit, const QString& only)
     : BaseJob(HttpVerb::Get, "GetNotificationsJob",
         basePath % "/notifications",
         queryToGetNotifications(from, limit, only))
