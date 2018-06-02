@@ -50,7 +50,7 @@ namespace QMatrixClient
 
             // Result properties
 {{#allProperties}}
-            {{>maybeCrefType}} {{paramName}}(){{^noCopy?}} const{{/noCopy?}};{{/allProperties}}
+            {{>maybeCrefType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}};{{/allProperties}}
 
         protected:
             Status {{#producesNonJson?}}parseReply(QNetworkReply* reply){{/producesNonJson?}}{{^producesNonJson?}}parseJson(const QJsonDocument& data){{/producesNonJson?}} override;

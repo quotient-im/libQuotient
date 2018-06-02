@@ -40,7 +40,7 @@ analyzer:
         type: QIODevice*
         imports: <QtCore/QIODevice>
     - binary: *ByteStream
-    - +set: { "avoidCopy?": true }
+    - +set: { avoidCopy: }
       +on:
       - date:
           type: QDate
@@ -53,14 +53,14 @@ analyzer:
       - //:
           type: QString
           initializer: QStringLiteral("{{defaultValue}}")
-          string?: true
+          isString:
   - file: *ByteStream
-  - +set: { "avoidCopy?": true }
+  - +set: { avoidCopy: }
     +on:
     - object: { type: QJsonObject, imports: <QtCore/QJsonObject> }
     - $ref:
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
-      - +set: { "noCopy?": true }
+      - +set: { moveOnly: }
         +on:
         - /state_event.yaml$/:
             { type: StateEventPtr, imports: '"events/event.h"' }
@@ -70,7 +70,7 @@ analyzer:
             { type: EventPtr, imports: '"events/event.h"' }
     - array:
       - string: { type: QStringList, imports: <QtCore/QStringList> }
-      - +set: { "noCopy?": true}
+      - +set: { moveOnly: }
         +on:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
@@ -90,7 +90,7 @@ analyzer:
     - map:
       - RoomState:
           type: "std::unordered_map<QString, {{1}}>"
-          noCopy?: true
+          moveOnly:
           imports: <unordered_map>
       - /.+/:
           type: "QHash<QString, {{1}}>"
@@ -114,14 +114,14 @@ mustache:
     closeOmittable: "{{^required?}}{{#useOmittable}}>{{/useOmittable}}{{/required?}}"
     maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"
     qualifiedMaybeOmittableType: "{{>openOmittable}}{{dataType.qualifiedName}}{{>closeOmittable}}"
-    maybeCrefType: "{{#avoidCopy?}}const {{/avoidCopy?}}{{>maybeOmittableType}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
+    maybeCrefType: "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}{{#moveOnly}}&&{{/moveOnly}}"
     qualifiedMaybeCrefType:
-      "{{#avoidCopy?}}const {{/avoidCopy?}}{{>qualifiedMaybeOmittableType}}{{#avoidCopy?}}&{{/avoidCopy?}}{{#noCopy?}}&&{{/noCopy?}}"
+      "{{#avoidCopy}}const {{/avoidCopy}}{{>qualifiedMaybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}{{#moveOnly}}&&{{/moveOnly}}"
     initializeDefaultValue: "{{#defaultValue}}{{#initializer}}{{>initializer}}{{/initializer}}{{/defaultValue}}{{^defaultValue}}{{>omittedValue}}{{/defaultValue}}"
     joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'
-    paramToString: '{{#string?}}{{nameCamelCase}}{{/string?}}{{^string?}}QString("%1").arg({{nameCamelCase}}){{/string?}}'
+    paramToString: '{{#isString}}{{nameCamelCase}}{{/isString}}{{^isString}}QString("%1").arg({{nameCamelCase}}){{/isString}}'
   #  preamble: preamble.mustache
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>

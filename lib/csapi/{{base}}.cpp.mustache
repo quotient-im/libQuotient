@@ -61,8 +61,8 @@ class {{camelCaseOperationId}}Job::Private
 BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     BaseJob::Query _q;{{#queryParams}}
-{{^required?}}{{#string?}}    if (!{{nameCamelCase}}.isEmpty())
-    {{/string?}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+{{^required?}}{{#isString}}    if (!{{nameCamelCase}}.isEmpty())
+    {{/isString}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
     return _q;
 }
 {{/queryParams?}}{{^bodyParams}}
@@ -95,9 +95,9 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;
 {{#        allProperties}}
-{{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}(){{^noCopy?}} const{{/noCopy?}}
+{{>qualifiedMaybeCrefType}} {{camelCaseOperationId}}Job::{{paramName}}(){{^moveOnly}} const{{/moveOnly}}
 {
-    return {{#noCopy?}}std::move({{/noCopy?}}d->{{paramName}}{{#noCopy?}}){{/noCopy?}};
+    return {{#moveOnly}}std::move({{/moveOnly}}d->{{paramName}}{{#moveOnly}}){{/moveOnly}};
 }
 {{/        allProperties}}{{#producesNonJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
