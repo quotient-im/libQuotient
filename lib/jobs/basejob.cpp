@@ -315,13 +315,10 @@ void BaseJob::gotReply()
             }
             if (json.value("errcode").toString() == "M_CONSENT_NOT_GIVEN")
             {
-                auto urlString = json.value("consent_uri").toString();
-                setStatus(UserConsentRequiredError,
-                    tr("You must agree with the server's privacy policy; "
-                       "please visit %1").arg(urlString));
-                d->errorUrl = urlString;
+                d->status.code = UserConsentRequiredError;
+                d->errorUrl = json.value("consent_uri").toString();
             }
-            if (!json.isEmpty()) // FIXME: The below is not localisable
+            else if (!json.isEmpty()) // FIXME: The below is not localisable
                 setStatus(IncorrectRequestError, json.value("error").toString());
         }
     }
@@ -538,7 +535,7 @@ QString BaseJob::errorCaption() const
         case ContentAccessError:
             return tr("Access error");
         case NotFoundError:
-            return tr("Requested data not found");
+            return tr("Not found");
         case IncorrectRequestError:
             return tr("Invalid request");
         case IncorrectResponseError:
