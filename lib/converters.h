@@ -76,7 +76,7 @@ namespace QMatrixClient
             bool omitted() const { return _omitted; }
             const T& value() const { return _value; }
             T& value() { return _value; }
-            T&& release() { _omitted = true; return std::move(value); }
+            T&& release() { _omitted = true; return std::move(_value); }
 
             operator bool() const { return !_omitted; }
 
