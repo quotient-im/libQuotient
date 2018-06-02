@@ -3,6 +3,8 @@
 #include "room.h"
 #include "user.h"
 #include "jobs/sendeventjob.h"
+#include "csapi/joining.h"
+#include "csapi/leaving.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
@@ -21,34 +23,38 @@ class QMCTest : public QObject
         QMCTest(Connection* conn, const QString& testRoomName, QString source);
 
     private slots:
-        void onNewRoom(Room* r, const QString& testRoomName);
-            void doTests();
-                void addAndRemoveTag();
-                void sendAndRedact();
-                    void checkRedactionOutcome(QString evtIdToRedact,
-                                               RoomEventsRange events);
-                void markDirectChat();
-                    void checkDirectChatOutcome(
-                            const Connection::DirectChatsMap& added);
+        void setup(const QString& testRoomName);
+        void onNewRoom(Room* r);
+        void startTests();
+            void addAndRemoveTag();
+            void sendAndRedact();
+                void checkRedactionOutcome(QString evtIdToRedact,
+                                   RoomEventsRange events);
+            void markDirectChat();
+                void checkDirectChatOutcome(
+                        const Connection::DirectChatsMap& added);
+        void leave();
         void finalize();
 
     private:
         QScopedPointer<Connection, QScopedPointerDeleteLater> c;
+        QStringList running;
+        QStringList succeeded;
+        QStringList failed;
         QString origin;
         Room* targetRoom = nullptr;
-        int semaphor = 0;
-
 };
 
 #define QMC_CHECK(description, condition) \
 { \
-    cout << (description) \
-         << (!!(condition) ? " successul" : " FAILED") << endl; \
-    targetRoom->postMessage(origin % ": " % QStringLiteral(description) % \
-        (!!(condition) ? QStringLiteral(" successful") : \
-                         QStringLiteral(" FAILED")), \
-        !!(condition) ? MessageEventType::Notice : MessageEventType::Text); \
-    --semaphor; \
+    const bool result = !!(condition); \
+    Q_ASSERT(running.removeOne(description)); \
+    (result ? succeeded : failed).push_back(description); \
+    cout << (description) << (result ? " successul" : " FAILED") << endl; \
+    if (targetRoom) \
+        targetRoom->postMessage(origin % ": " % QStringLiteral(description) % \
+            (result ? QStringLiteral(" successful") : QStringLiteral(" FAILED")), \
+            result ? MessageEventType::Notice : MessageEventType::Text); \
 }
 
 QMCTest::QMCTest(Connection* conn, const QString& testRoomName, QString source)
@@ -59,50 +65,69 @@ QMCTest::QMCTest(Connection* conn, const QString& testRoomName, QString source)
     if (!testRoomName.isEmpty())
         cout << "Test room name: " << testRoomName.toStdString() << endl;
 
-    connect(c.data(), &Connection::newRoom,
-            this, [this,testRoomName] (Room* r) { onNewRoom(r, testRoomName); });
-    connect(c.data(), &Connection::syncDone, c.data(), [this] {
-        cout << "Sync complete, " << semaphor << " tests in the air" << endl;
-        if (semaphor)
+    connect(c.data(), &Connection::connected,
+            this, std::bind(&QMCTest::setup, this, testRoomName));
+    connect(c.data(), &Connection::loadedRoomState, this, &QMCTest::onNewRoom);
+    // Big countdown watchdog
+    QTimer::singleShot(180000, this, &QMCTest::leave);
+}
+
+void QMCTest::setup(const QString& testRoomName)
+{
+    cout << "Connected, server: "
+         << c->homeserver().toDisplayString().toStdString() << endl;
+    cout << "Access token: " << c->accessToken().toStdString() << endl;
+
+    // Setting up sync loop
+    c->sync();
+    connect(c.data(), &Connection::syncDone, c.data(), [this,testRoomName] {
+        cout << "Sync complete, "
+             << running.size() << " tests in the air" << endl;
+        if (!running.isEmpty())
             c->sync(10000);
         else if (targetRoom)
         {
             auto j = c->callApi<SendEventJob>(targetRoom->id(),
-                    RoomMessageEvent(origin % ": All tests finished"));
-            connect(j, &BaseJob::finished, this, &QMCTest::finalize);
+                                              RoomMessageEvent(origin % ": All tests finished"));
+            connect(j, &BaseJob::finished, this, &QMCTest::leave);
         }
         else
             finalize();
     });
-    // Big countdown watchdog
-    QTimer::singleShot(180000, this, &QMCTest::finalize);
+
+    // Join a testroom, if provided
+    if (!targetRoom && !testRoomName.isEmpty())
+    {
+        cout << "Joining " << testRoomName.toStdString() << endl;
+        running.push_back("Join room");
+        auto joinJob = c->joinRoom(testRoomName);
+        connect(joinJob, &BaseJob::failure, this,
+            [this] { QMC_CHECK("Join room", false); finalize(); });
+        // As of BaseJob::success, a Room object is not guaranteed to even
+        // exist; it's a mere confirmation that the server processed
+        // the request.
+        connect(c.data(), &Connection::loadedRoomState, this,
+            [this,testRoomName] (Room* room) {
+                Q_ASSERT(room); // It's a grave failure if room is nullptr here
+                if (room->canonicalAlias() != testRoomName)
+                    return; // Not our room
+
+                targetRoom = room;
+                QMC_CHECK("Join room", true);
+                startTests();
+            });
+    }
 }
 
-void QMCTest::onNewRoom(Room* r, const QString& testRoomName)
+void QMCTest::onNewRoom(Room* r)
 {
-    cout << "New room: " << r->id().toStdString() << endl;
-    connect(r, &Room::namesChanged, this, [=] {
-        cout << "Room " << r->id().toStdString() << ", name(s) changed:" << endl
-             << "  Name: " << r->name().toStdString() << endl
-             << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
-             << endl << endl;
-        if (!testRoomName.isEmpty() && (r->name() == testRoomName ||
-                r->canonicalAlias() == testRoomName))
-        {
-            cout << "Found the target room, proceeding for tests" << endl;
-            targetRoom = r;
-            ++semaphor;
-            auto j = targetRoom->connection()->callApi<SendEventJob>(
-                targetRoom->id(),
-                RoomMessageEvent(origin % ": connected to test room",
-                MessageEventType::Notice));
-            connect(j, &BaseJob::success,
-                    this, [this] { doTests(); --semaphor; });
-        }
-    });
+    cout << "New room: " << r->id().toStdString() << endl
+         << "  Name: " << r->name().toStdString() << endl
+         << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
+         << endl;
     connect(r, &Room::aboutToAddNewMessages, r, [r] (RoomEventsRange timeline) {
         cout << timeline.size() << " new event(s) in room "
-             << r->id().toStdString() << endl;
+             << r->canonicalAlias().toStdString() << endl;
 //        for (const auto& item: timeline)
 //        {
 //            cout << "From: "
@@ -114,15 +139,17 @@ void QMCTest::onNewRoom(Room* r, const QString& testRoomName)
     });
 }
 
-void QMCTest::doTests()
+void QMCTest::startTests()
 {
-    ++semaphor; addAndRemoveTag();
-    ++semaphor; sendAndRedact();
-    ++semaphor; markDirectChat();
+    cout << "Starting tests" << endl;
+    addAndRemoveTag();
+    sendAndRedact();
+    markDirectChat();
 }
 
 void QMCTest::addAndRemoveTag()
 {
+    running.push_back("Tagging test");
     static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
     // Pre-requisite
     if (targetRoom->tags().contains(TestTag))
@@ -147,6 +174,7 @@ void QMCTest::addAndRemoveTag()
 
 void QMCTest::sendAndRedact()
 {
+    running.push_back("Redaction");
     cout << "Sending a message to redact" << endl;
     auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
             RoomMessageEvent(origin % ": Message to redact"));
@@ -229,8 +257,9 @@ void QMCTest::markDirectChat()
 
 void QMCTest::checkDirectChatOutcome(const Connection::DirectChatsMap& added)
 {
+    running.push_back("Direct chat test");
     disconnect(c.data(), &Connection::directChatsListChanged, nullptr, nullptr);
-    if (!c->isDirectChat(targetRoom->id()))
+    if (!targetRoom->isDirectChat())
     {
         cout << "The room has not been marked as a direct chat" << endl;
         QMC_CHECK("Direct chat test", false);
@@ -243,21 +272,36 @@ void QMCTest::checkDirectChatOutcome(const Connection::DirectChatsMap& added)
         return;
     }
 
-    cout << "Room marked as a direct chat, unmarking now" << endl;
+    cout << "Unmarking the direct chat" << endl;
     c->removeFromDirectChats(targetRoom->id(), c->user());
     QMC_CHECK("Direct chat test", !c->isDirectChat(targetRoom->id()));
 }
 
+void QMCTest::leave()
+{
+    if (targetRoom)
+    {
+        cout << "Leaving the room" << endl;
+        connect(targetRoom->leaveRoom(), &BaseJob::finished,
+                this, &QMCTest::finalize);
+    }
+    else
+        finalize();
+}
+
 void QMCTest::finalize()
 {
-    if (semaphor)
-        cout << "One or more tests FAILED" << endl;
     cout << "Logging out" << endl;
     c->logout();
-    connect(c.data(), &Connection::loggedOut, QCoreApplication::instance(),
+    connect(c.data(), &Connection::loggedOut, qApp,
         [this] {
+            if (!failed.isEmpty())
+            cout << "FAILED: " << failed.join(", ").toStdString() << endl;
+            if (!running.isEmpty())
+                cout << "DID NOT FINISH: "
+                     << running.join(", ").toStdString() << endl;
             QCoreApplication::processEvents();
-            QCoreApplication::exit(semaphor);
+            QCoreApplication::exit(failed.size() + running.size());
         });
 }
 
@@ -273,12 +317,6 @@ int main(int argc, char* argv[])
     cout << "Connecting to the server as " << argv[1] << endl;
     auto conn = new Connection;
     conn->connectToServer(argv[1], argv[2], argv[3]);
-    QObject::connect(conn, &Connection::connected, [=] {
-        cout << "Connected, server: "
-             << conn->homeserver().toDisplayString().toStdString() << endl;
-        cout << "Access token: " << conn->accessToken().toStdString() << endl;
-        conn->sync();
-    });
     QMCTest test { conn, argc >= 5 ? argv[4] : nullptr,
                          argc >= 6 ? argv[5] : nullptr };
     return app.exec();
