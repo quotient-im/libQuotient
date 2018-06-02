@@ -278,7 +278,7 @@ namespace QMatrixClient
 
     static constexpr bool IfNotEmpty = false;
 
-    template <bool Force = true, typename ValT = void>
+    template <bool Force = true, typename ValT>
     inline void addToJson(QJsonObject& o, QString key, ValT&& value)
     {
         auto&& json = toJson(std::forward<ValT>(value));
