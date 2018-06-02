@@ -121,7 +121,7 @@ mustache:
     joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{#@join}}, {{/@join}}'
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{#@join}}, {{/@join}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{#@join}}, {{/@join}}{{/queryParams}}'
-    paramToString: '{{#isString}}{{nameCamelCase}}{{/isString}}{{^isString}}QString("%1").arg({{nameCamelCase}}){{/isString}}'
+    paramToString: '{{#isString}}{{nameCamelCase}}{{/isString}}{{^isString}}QString("%1").arg({{nameCamelCase}}{{^required?}}{{#useOmittable}}.value(){{/useOmittable}}{{/required?}}){{/isString}}'
   #  preamble: preamble.mustache
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>

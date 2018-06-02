@@ -27,7 +27,8 @@ BaseJob::Query queryToGetRoomEvents(const QString& from, const QString& to, cons
     if (!to.isEmpty())
         _q.addQueryItem("to", to);
     _q.addQueryItem("dir", dir);
-    _q.addQueryItem("limit", QString("%1").arg(limit));
+    if (limit)
+        _q.addQueryItem("limit", QString("%1").arg(limit.value()));
     if (!filter.isEmpty())
         _q.addQueryItem("filter", filter);
     return _q;

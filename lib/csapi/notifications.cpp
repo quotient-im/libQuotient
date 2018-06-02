@@ -52,7 +52,8 @@ BaseJob::Query queryToGetNotifications(const QString& from, Omittable<int> limit
     BaseJob::Query _q;
     if (!from.isEmpty())
         _q.addQueryItem("from", from);
-    _q.addQueryItem("limit", QString("%1").arg(limit));
+    if (limit)
+        _q.addQueryItem("limit", QString("%1").arg(limit.value()));
     if (!only.isEmpty())
         _q.addQueryItem("only", only);
     return _q;

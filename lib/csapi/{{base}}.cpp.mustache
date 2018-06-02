@@ -62,7 +62,9 @@ BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef
 {
     BaseJob::Query _q;{{#queryParams}}
 {{^required?}}{{#isString}}    if (!{{nameCamelCase}}.isEmpty())
-    {{/isString}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+    {{/isString}}{{!
+}}{{#useOmittable}}    if ({{nameCamelCase}})
+    {{/useOmittable}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
     return _q;
 }
 {{/queryParams?}}{{^bodyParams}}

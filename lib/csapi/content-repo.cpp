@@ -159,8 +159,10 @@ class GetContentThumbnailJob::Private
 BaseJob::Query queryToGetContentThumbnail(Omittable<int> width, Omittable<int> height, const QString& method)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("width", QString("%1").arg(width));
-    _q.addQueryItem("height", QString("%1").arg(height));
+    if (width)
+        _q.addQueryItem("width", QString("%1").arg(width.value()));
+    if (height)
+        _q.addQueryItem("height", QString("%1").arg(height.value()));
     if (!method.isEmpty())
         _q.addQueryItem("method", method);
     return _q;
@@ -213,7 +215,8 @@ BaseJob::Query queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
 {
     BaseJob::Query _q;
     _q.addQueryItem("url", url);
-    _q.addQueryItem("ts", QString("%1").arg(ts));
+    if (ts)
+        _q.addQueryItem("ts", QString("%1").arg(ts.value()));
     return _q;
 }
 
