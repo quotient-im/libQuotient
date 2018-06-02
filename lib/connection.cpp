@@ -82,6 +82,7 @@ class Connection::Private
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
+        QVector<Room*> firstTimeRooms;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
         QHash<QString, AccountDataMap> accountData;
@@ -308,7 +309,11 @@ void Connection::onSyncSuccess(SyncData &&data) {
                  << "state - suspiciously fast turnaround";
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
+        {
             r->updateData(std::move(roomData));
+            if (d->firstTimeRooms.removeOne(r))
+                emit loadedRoomState(r);
+        }
         QCoreApplication::processEvents();
     }
     for (auto&& accountEvent: data.takeAccountData())
@@ -804,6 +809,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
             return nullptr;
         }
         d->roomMap.insert(roomKey, room);
+        d->firstTimeRooms.push_back(room);
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)

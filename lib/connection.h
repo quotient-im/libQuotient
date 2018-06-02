@@ -435,18 +435,22 @@ namespace QMatrixClient
             /** A new room object has been created */
             void newRoom(Room* room);
 
-            /** Invitation to a room received
+            /** A room invitation is seen for the first time
              *
-             * If the same room is in Left state, it's passed in prev.
+             * If the same room is in Left state, it's passed in prev. Beware
+             * that initial sync will trigger this signal for all rooms in
+             * Invite state.
              */
             void invitedRoom(Room* room, Room* prev);
 
-            /** A room has just been joined
+            /** A joined room is seen for the first time
              *
              * It's not the same as receiving a room in "join" section of sync
-             * response (rooms will be there even after joining). If this room
-             * was in Invite state before, the respective object is passed in
-             * prev (and it will be deleted shortly afterwards).
+             * response (rooms will be there even after joining); it's also
+             * not (exactly) the same as actual joining action of a user (all
+             * rooms coming in initial sync will trigger this signal too). If
+             * this room was in Invite state before, the respective object is
+             * passed in prev (and it will be deleted shortly afterwards).
              */
             void joinedRoom(Room* room, Room* prev);
 
@@ -454,7 +458,10 @@ namespace QMatrixClient
              *
              * If this room has been in Invite state (as in case of rejecting
              * an invitation), the respective object will be passed in prev
-             * (and will be deleted shortly afterwards).
+             * (and will be deleted shortly afterwards). Note that, similar
+             * to invitedRoom and joinedRoom, this signal is triggered for all
+             * Left rooms upon initial sync (not only those that were left
+             * right before the sync).
              */
             void leftRoom(Room* room, Room* prev);
 
@@ -471,6 +478,16 @@ namespace QMatrixClient
              *       a direct chat room.
              */
             void createdRoom(Room* room);
+
+            /** The first sync for the room has been completed
+             *
+             * This signal is emitted after the room has been synced the first
+             * time. This is the right signal to connect to if you need to
+             * access the room state (name, aliases, members); state transition
+             * signals (newRoom, joinedRoom etc.) come earlier, when the room
+             * has just been created.
+             */
+            void loadedRoomState(Room* room);
 
             /** Account data (except direct chats) have changed */
             void accountDataChanged(QString type);
