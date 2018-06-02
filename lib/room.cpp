@@ -190,7 +190,7 @@ class Room::Private
         /**
          * Removes events from the passed container that are already in the timeline
          */
-        void dropDuplicateEvents(RoomEvents* events) const;
+        void dropDuplicateEvents(RoomEvents& events) const;
 
         void setLastReadEvent(User* u, const QString& eventId);
         void updateUnreadCount(rev_iter_t from, rev_iter_t to);
@@ -1248,28 +1248,28 @@ void Room::cancelFileTransfer(const QString& id)
     emit fileTransferCancelled(id);
 }
 
-void Room::Private::dropDuplicateEvents(RoomEvents* events) const
+void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 {
-    if (events->empty())
+    if (events.empty())
         return;
 
     // Multiple-remove (by different criteria), single-erase
     // 1. Check for duplicates against the timeline.
-    auto dupsBegin = remove_if(events->begin(), events->end(),
+    auto dupsBegin = remove_if(events.begin(), events.end(),
             [&] (const RoomEventPtr& e)
                 { return eventsIndex.contains(e->id()); });
 
     // 2. Check for duplicates within the batch if there are still events.
-    for (auto eIt = events->begin(); distance(eIt, dupsBegin) > 1; ++eIt)
+    for (auto eIt = events.begin(); distance(eIt, dupsBegin) > 1; ++eIt)
         dupsBegin = remove_if(eIt + 1, dupsBegin,
                 [&] (const RoomEventPtr& e)
                     { return e->id() == (*eIt)->id(); });
-    if (dupsBegin == events->end())
+    if (dupsBegin == events.end())
         return;
 
-    qCDebug(EVENTS) << "Dropping" << distance(dupsBegin, events->end())
+    qCDebug(EVENTS) << "Dropping" << distance(dupsBegin, events.end())
                     << "duplicate event(s)";
-    events->erase(dupsBegin, events->end());
+    events.erase(dupsBegin, events.end());
 }
 
 inline bool isRedaction(const RoomEventPtr& e)
@@ -1366,7 +1366,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     auto timelineSize = timeline.size();
 
-    dropDuplicateEvents(&events);
+    dropDuplicateEvents(events);
     // We want to process redactions in the order of arrival (covering the
     // case of one redaction superseding another one), hence stable partition.
     const auto normalsBegin =
@@ -1418,7 +1418,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
     const auto timelineSize = timeline.size();
 
-    dropDuplicateEvents(&events);
+    dropDuplicateEvents(events);
     const auto redactionsBegin =
             remove_if(events.begin(), events.end(), isRedaction);
     RoomEventsRange normalEvents { events.begin(), redactionsBegin };
