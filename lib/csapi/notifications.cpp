@@ -23,7 +23,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetNotificationsJob::Notification result;
             result.actions =
-                fromJson<QVector<QJsonObject>>(_json.value("actions"));
+                fromJson<QVector<QVariant>>(_json.value("actions"));
             result.event =
                 fromJson<EventPtr>(_json.value("event"));
             result.profileTag =

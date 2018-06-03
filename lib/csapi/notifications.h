@@ -6,10 +6,11 @@
 
 #include "jobs/basejob.h"
 
+#include "events/event.h"
 #include "converters.h"
 #include <QtCore/QVector>
+#include <QtCore/QVariant>
 #include <QtCore/QJsonObject>
-#include "events/event.h"
 
 namespace QMatrixClient
 {
@@ -22,7 +23,7 @@ namespace QMatrixClient
 
             struct Notification
             {
-                QVector<QJsonObject> actions;
+                QVector<QVariant> actions;
                 EventPtr event;
                 QString profileTag;
                 bool read;
