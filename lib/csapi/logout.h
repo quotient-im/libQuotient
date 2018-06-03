@@ -24,4 +24,18 @@ namespace QMatrixClient
             static QUrl makeRequestUrl(QUrl baseUrl);
 
     };
+
+    class LogoutAllJob : public BaseJob
+    {
+        public:
+            explicit LogoutAllJob();
+
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * LogoutAllJob. This function can be used when
+             * a URL for LogoutAllJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
+    };
 } // namespace QMatrixClient

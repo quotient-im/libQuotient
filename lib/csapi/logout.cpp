@@ -24,3 +24,15 @@ LogoutJob::LogoutJob()
 {
 }
 
+QUrl LogoutAllJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath % "/logout/all");
+}
+
+LogoutAllJob::LogoutAllJob()
+    : BaseJob(HttpVerb::Post, "LogoutAllJob",
+        basePath % "/logout/all")
+{
+}
+

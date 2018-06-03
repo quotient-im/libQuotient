@@ -34,14 +34,14 @@ namespace QMatrixClient
     class GetContentJob : public BaseJob
     {
         public:
-            explicit GetContentJob(const QString& serverName, const QString& mediaId);
+            explicit GetContentJob(const QString& serverName, const QString& mediaId, bool allowRemote = true);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentJob. This function can be used when
              * a URL for GetContentJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId);
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, bool allowRemote = true);
 
             ~GetContentJob() override;
 
@@ -62,14 +62,14 @@ namespace QMatrixClient
     class GetContentOverrideNameJob : public BaseJob
     {
         public:
-            explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName);
+            explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId, const QString& fileName, bool allowRemote = true);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentOverrideNameJob. This function can be used when
              * a URL for GetContentOverrideNameJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName);
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, const QString& fileName, bool allowRemote = true);
 
             ~GetContentOverrideNameJob() override;
 
@@ -90,14 +90,14 @@ namespace QMatrixClient
     class GetContentThumbnailJob : public BaseJob
     {
         public:
-            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {});
+            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {}, bool allowRemote = true);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentThumbnailJob. This function can be used when
              * a URL for GetContentThumbnailJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {}, bool allowRemote = true);
 
             ~GetContentThumbnailJob() override;
 
