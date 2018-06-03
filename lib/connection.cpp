@@ -23,6 +23,7 @@
 #include "events/directchatevent.h"
 #include "room.h"
 #include "settings.h"
+#include "converters.h"
 #include "csapi/login.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
@@ -33,7 +34,6 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
-#include "variant_converters.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>

@@ -50,7 +50,7 @@ analyzer:
           type: QDateTime
           initializer: QDateTime::fromString("{{defaultValue}}")
           imports: <QtCore/QDateTime>
-      - //:
+      - //: &QString
           type: QString
           initializer: QStringLiteral("{{defaultValue}}")
           isString:
@@ -68,7 +68,7 @@ analyzer:
         - /event.yaml$/:
             { type: EventPtr, imports: '"events/event.h"' }
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
-      - //: # Apply "avoidCopy" to all other ref'ed types
+      - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - array:
       - string: { type: QStringList, imports: <QtCore/QStringList> }
       - +set: { moveOnly: }
@@ -96,9 +96,10 @@ analyzer:
           imports: <QtCore/QHash>
       - //:
           type: QVariantHash
-          imports: '"variant_converters.h"'
+          imports: <QtCore/QVariant>
     - variant: # A sequence `type` (multitype) in OpenAPI
-        { type: QVariant, imports: '"variant_converters.h"' }
+      - "string|null": *QString
+      - //: { type: QVariant, imports: <QtCore/QVariant> }
     - schema: # Properties of inline structure definitions
         *UseOmittable
 

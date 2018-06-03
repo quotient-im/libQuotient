@@ -16,41 +16,44 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#pragma once
+#include "converters.h"
 
 #include <QtCore/QVariant>
 
-#include "converters.h"
+using namespace QMatrixClient;
 
-namespace QMatrixClient
+QJsonValue toJson(const QVariant& v)
 {
-    inline QJsonObject toJson(const QVariantMap& map)
-    {
-        return QJsonObject::fromVariantMap(map);
-    }
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-    inline QJsonObject toJson(const QVariantHash& hMap)
-    {
-        return QJsonObject::fromVariantHash(hMap);
-    }
-#endif
-
-    template <> struct FromJson<QVariantMap>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            return jv.toObject().toVariantMap();
-        }
-    };
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-    template <> struct FromJson<QVariantHash>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            return jv.toObject().toVariantHash();
-        }
-    };
-#endif
+    return QJsonValue::fromVariant(v);
 }
+
+QJsonObject toJson(const QVariantMap& map)
+{
+    return QJsonObject::fromVariantMap(map);
+}
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+QJsonObject toJson(const QVariantHash& hMap)
+{
+    return QJsonObject::fromVariantHash(hMap);
+}
+#endif
+
+QVariant FromJson<QVariant>::operator()(const QJsonValue& jv) const
+{
+    return jv.toVariant();
+}
+
+QMap<QString, QVariant>
+FromJson<QMap<QString, QVariant>>::operator()(const QJsonValue& jv) const
+{
+    return jv.toObject().toVariantMap();
+}
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+QHash<QString, QVariant>
+FromJson<QHash<QString, QVariant>>::operator()(const QJsonValue& jv) const
+{
+    return jv.toObject().toVariantHash();
+}
+#endif

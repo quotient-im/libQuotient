@@ -43,6 +43,8 @@ namespace std
     };
 }
 
+class QVariant;
+
 namespace QMatrixClient
 {
     struct NoneTag {};
@@ -87,12 +89,29 @@ namespace QMatrixClient
 
 
     // This catches anything implicitly convertible to QJsonValue/Object/Array
-    inline QJsonValue toJson(const QJsonValue& val) { return val; }
-    inline QJsonObject toJson(const QJsonObject& o) { return o; }
-    inline QJsonArray toJson(const QJsonArray& arr) { return arr; }
-    // Special-case QStrings so that we could use isEmpty() on them
-    // (see _impl::AddNote<> below)
-    inline QString toJson(const QString& s) { return s; }
+    inline auto toJson(const QJsonValue& val) { return val; }
+    inline auto toJson(const QJsonObject& o) { return o; }
+    inline auto toJson(const QJsonArray& arr) { return arr; }
+    // Special-case QStrings and bools to avoid ambiguity between QJsonValue
+    // and QVariant (also, QString.isEmpty() is used in _impl::AddNote<> below)
+    inline auto toJson(const QString& s) { return s; }
+    inline QJsonValue toJson(bool b) { return b; }
+
+    inline QJsonArray toJson(const QStringList& strings)
+    {
+        return QJsonArray::fromStringList(strings);
+    }
+
+    inline QString toJson(const QByteArray& bytes)
+    {
+        return bytes.constData();
+    }
+
+    QJsonValue toJson(const QVariant& v);
+    QJsonObject toJson(const QMap<QString, QVariant>& map);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+    QJsonObject toJson(const QHash<QString, QVariant>& hMap);
+#endif
 
     template <typename T>
     inline QJsonArray toJson(const std::vector<T>& vals)
@@ -110,16 +129,6 @@ namespace QMatrixClient
         for (const auto& v: vals)
             ar.push_back(toJson(v));
         return ar;
-    }
-
-    inline QJsonArray toJson(const QStringList& strings)
-    {
-        return QJsonArray::fromStringList(strings);
-    }
-
-    inline QString toJson(const QByteArray& bytes)
-    {
-        return bytes.constData();
     }
 
     template <typename T>
@@ -230,6 +239,19 @@ namespace QMatrixClient
         }
     };
 
+    template <> struct FromJson<QByteArray>
+    {
+        auto operator()(const QJsonValue& jv) const
+        {
+            return fromJson<QString>(jv).toLatin1();
+        }
+    };
+
+    template <> struct FromJson<QVariant>
+    {
+        QVariant operator()(const QJsonValue& jv) const;
+    };
+
     template <typename T> struct FromJson<std::vector<T>>
     {
         auto operator()(const QJsonValue& jv) const
@@ -269,12 +291,9 @@ namespace QMatrixClient
 
     template <> struct FromJson<QStringList> : FromJson<QList<QString>> { };
 
-    template <> struct FromJson<QByteArray>
+    template <> struct FromJson<QMap<QString, QVariant>>
     {
-        auto operator()(const QJsonValue& jv) const
-        {
-            return fromJson<QString>(jv).toLatin1();
-        }
+        QMap<QString, QVariant> operator()(const QJsonValue& jv) const;
     };
 
     template <typename T> struct FromJson<QHash<QString, T>>
@@ -288,6 +307,13 @@ namespace QMatrixClient
             return h;
         }
     };
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+    template <> struct FromJson<QHash<QString, QVariant>>
+    {
+        QHash<QString, QVariant> operator()(const QJsonValue& jv) const;
+    };
+#endif
 
     template <typename T> struct FromJson<std::unordered_map<QString, T>>
     {
@@ -325,7 +351,7 @@ namespace QMatrixClient
                     o.insert(std::move(key), std::forward<JsonT>(value));
             }
         };
-    }
+    }  // namespace _impl
 
     static constexpr bool IfNotEmpty = false;
 

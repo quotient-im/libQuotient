@@ -40,7 +40,7 @@
 #include "avatar.h"
 #include "connection.h"
 #include "user.h"
-#include "variant_converters.h"
+#include "converters.h"
 
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
