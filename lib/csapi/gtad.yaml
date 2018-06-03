@@ -57,7 +57,7 @@ analyzer:
   - file: *ByteStream
   - +set: { avoidCopy: }
     +on:
-    - object: { type: QJsonObject, imports: <QtCore/QJsonObject> }
+    - object: &QJsonObject { type: QJsonObject, imports: <QtCore/QJsonObject> }
     - $ref:
       - +set: { moveOnly: }
         +on:
@@ -101,7 +101,8 @@ analyzer:
       - "string|null": *QString
       - //: { type: QVariant, imports: <QtCore/QVariant> }
     - schema: # Properties of inline structure definitions
-        *UseOmittable
+      - TurnServerCredentials: *QJsonObject # Because it's used as is
+      - //: *UseOmittable
 
   #operations:
 
