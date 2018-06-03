@@ -85,8 +85,7 @@ analyzer:
             type: RoomEvents
         - /event.yaml$/:
             type: Events
-      - /.+/: { type: "QVector<{{1}}>", imports: <QtCore/QVector> }
-      - //: { type: QJsonArray, imports: <QtCore/QJsonArray> }
+      - //: { type: "QVector<{{1}}>", imports: <QtCore/QVector> }
     - map: # `additionalProperties` in OpenAPI
       - RoomState:
           type: "std::unordered_map<QString, {{1}}>"
