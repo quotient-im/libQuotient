@@ -8,9 +8,8 @@
 
 #include <unordered_map>
 #include <QtCore/QHash>
-#include "events/event.h"
 #include <QtCore/QJsonObject>
-#include <QtCore/QStringList>
+#include "events/event.h"
 #include "converters.h"
 #include <QtCore/QVector>
 

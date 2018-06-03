@@ -70,7 +70,7 @@ analyzer:
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
       - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - array:
-      - string: { type: QStringList, imports: <QtCore/QStringList> }
+      - string: QStringList
       - +set: { moveOnly: }
         +on:
         - /^Notification|Result$/:

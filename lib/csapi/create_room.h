@@ -7,9 +7,8 @@
 #include "jobs/basejob.h"
 
 #include <QtCore/QJsonObject>
-#include <QtCore/QStringList>
-#include <QtCore/QVector>
 #include "converters.h"
+#include <QtCore/QVector>
 
 namespace QMatrixClient
 {

@@ -6,7 +6,6 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QStringList>
 
 namespace QMatrixClient
 {
