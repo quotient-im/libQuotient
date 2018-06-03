@@ -60,7 +60,7 @@ class GetContentJob::Private
     public:
         QString contentType;
         QString contentDisposition;
-        QIODevice* content;
+        QIODevice* data;
 };
 
 BaseJob::Query queryToGetContent(bool allowRemote)
@@ -99,16 +99,16 @@ const QString& GetContentJob::contentDisposition() const
     return d->contentDisposition;
 }
 
-QIODevice* GetContentJob::content() const
+QIODevice* GetContentJob::data() const
 {
-    return d->content;
+    return d->data;
 }
 
 BaseJob::Status GetContentJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
     d->contentDisposition = reply->rawHeader("Content-Disposition"); 
-    d->content = reply;
+    d->data = reply;
     return Success;
 }
 
@@ -117,7 +117,7 @@ class GetContentOverrideNameJob::Private
     public:
         QString contentType;
         QString contentDisposition;
-        QIODevice* content;
+        QIODevice* data;
 };
 
 BaseJob::Query queryToGetContentOverrideName(bool allowRemote)
@@ -156,16 +156,16 @@ const QString& GetContentOverrideNameJob::contentDisposition() const
     return d->contentDisposition;
 }
 
-QIODevice* GetContentOverrideNameJob::content() const
+QIODevice* GetContentOverrideNameJob::data() const
 {
-    return d->content;
+    return d->data;
 }
 
 BaseJob::Status GetContentOverrideNameJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
     d->contentDisposition = reply->rawHeader("Content-Disposition"); 
-    d->content = reply;
+    d->data = reply;
     return Success;
 }
 
@@ -173,7 +173,7 @@ class GetContentThumbnailJob::Private
 {
     public:
         QString contentType;
-        QIODevice* content;
+        QIODevice* data;
 };
 
 BaseJob::Query queryToGetContentThumbnail(Omittable<int> width, Omittable<int> height, const QString& method, bool allowRemote)
@@ -213,15 +213,15 @@ const QString& GetContentThumbnailJob::contentType() const
     return d->contentType;
 }
 
-QIODevice* GetContentThumbnailJob::content() const
+QIODevice* GetContentThumbnailJob::data() const
 {
-    return d->content;
+    return d->data;
 }
 
 BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 {
     d->contentType = reply->rawHeader("Content-Type"); 
-    d->content = reply;
+    d->data = reply;
     return Success;
 }
 

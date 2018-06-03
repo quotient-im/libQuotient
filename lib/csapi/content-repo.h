@@ -49,7 +49,7 @@ namespace QMatrixClient
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
-            QIODevice* content() const;
+            QIODevice* data() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
@@ -77,7 +77,7 @@ namespace QMatrixClient
 
             const QString& contentType() const;
             const QString& contentDisposition() const;
-            QIODevice* content() const;
+            QIODevice* data() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
@@ -104,7 +104,7 @@ namespace QMatrixClient
             // Result properties
 
             const QString& contentType() const;
-            QIODevice* content() const;
+            QIODevice* data() const;
 
         protected:
             Status parseReply(QNetworkReply* reply) override;
