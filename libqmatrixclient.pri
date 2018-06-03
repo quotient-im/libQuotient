@@ -39,10 +39,10 @@ HEADERS += \
     $$files($$SRCPATH/csapi/*.h, false) \
     $$files($$SRCPATH/csapi/definitions/*.h, false) \
     $$SRCPATH/logging.h \
+    $$SRCPATH/converters.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
-    $$SRCPATH/networkaccessmanager.h \
-    $$PWD/lib/variant_converters.h
+    $$SRCPATH/networkaccessmanager.h
 
 SOURCES += \
     $$SRCPATH/connectiondata.cpp \
@@ -68,6 +68,7 @@ SOURCES += \
     $$files($$SRCPATH/csapi/*.cpp, false) \
     $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
+    $$SRCPATH/converters.cpp \
     $$SRCPATH/settings.cpp \
     $$SRCPATH/networksettings.cpp \
     $$SRCPATH/networkaccessmanager.cpp

@@ -22,18 +22,18 @@
 
 using namespace QMatrixClient;
 
-QJsonValue toJson(const QVariant& v)
+QJsonValue QMatrixClient::toJson(const QVariant& v)
 {
     return QJsonValue::fromVariant(v);
 }
 
-QJsonObject toJson(const QVariantMap& map)
+QJsonObject QMatrixClient::toJson(const QVariantMap& map)
 {
     return QJsonObject::fromVariantMap(map);
 }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-QJsonObject toJson(const QVariantHash& hMap)
+QJsonObject QMatrixClient::toJson(const QVariantHash& hMap)
 {
     return QJsonObject::fromVariantHash(hMap);
 }
