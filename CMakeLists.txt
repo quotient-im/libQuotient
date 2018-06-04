@@ -46,6 +46,9 @@ get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 if (GTAD_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
 endif ()
+if (MATRIX_DOC_PATH)
+    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api/client-server" ABSOLUTE)
+endif ()
 
 message( STATUS )
 message( STATUS "=============================================================================" )
@@ -59,7 +62,7 @@ message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     message( STATUS "Generating API stubs enabled" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
-    message( STATUS "  Using CS API files at ${MATRIX_DOC_PATH}/api/client-server" )
+    message( STATUS "  Using CS API files at ${ABS_API_DEF_PATH}" )
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -93,10 +96,9 @@ set(libqmatrixclient_SRCS
     lib/jobs/downloadfilejob.cpp
 )
 
-set(API_DEF_PATH ${MATRIX_DOC_PATH}/api/client-server)
 file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
-    ${API_DEF_PATH}/*.yaml
-    ${API_DEF_PATH}/definitions/*.yaml
+    ${ABS_API_DEF_PATH}/*.yaml
+    ${ABS_API_DEF_PATH}/definitions/*.yaml
     ${MATRIX_DOC_PATH}/event-schemas/schema/*
 )
 set(CSAPI_DIR csapi)
@@ -104,7 +106,7 @@ set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
         ${ABS_GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
-            ${API_DEF_PATH}
+            ${ABS_API_DEF_PATH}
             cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml- # deprecated
             sync.yaml-
