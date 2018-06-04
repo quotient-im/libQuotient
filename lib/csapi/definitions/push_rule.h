@@ -5,7 +5,7 @@
 #pragma once
 
 
-#include "lib/csapi/definitions/push_condition.h"
+#include "csapi/definitions/push_condition.h"
 #include "converters.h"
 #include <QtCore/QVector>
 #include <QtCore/QVariant>

@@ -7,7 +7,7 @@
 
 #include <QtCore/QVector>
 #include "converters.h"
-#include "lib/csapi/definitions/push_rule.h"
+#include "csapi/definitions/push_rule.h"
 
 #include "converters.h"
 

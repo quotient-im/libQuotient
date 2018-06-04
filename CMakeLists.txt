@@ -95,26 +95,26 @@ file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
     ${API_DEF_PATH}/definitions/*.yaml
     ${MATRIX_DOC_PATH}/event-schemas/schema/*
 )
-set(GTAD_CONFIG_DIR lib/csapi)
-set(GEN_SRC_DIR lib/csapi)
+set(CSAPI_DIR csapi)
+set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     add_custom_target(update-api
-        ${GTAD_PATH} --config ${GTAD_CONFIG_DIR}/gtad.yaml --out ${GEN_SRC_DIR}
+        ${GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
             ${API_DEF_PATH}
             cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml- # deprecated
             sync.yaml-
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        SOURCES ${GTAD_CONFIG_DIR}/gtad.yaml
-                ${GTAD_CONFIG_DIR}/{{base}}.h.mustache
-                ${GTAD_CONFIG_DIR}/{{base}}.cpp.mustache
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
+        SOURCES ${FULL_CSAPI_DIR}/gtad.yaml
+                ${FULL_CSAPI_DIR}/{{base}}.h.mustache
+                ${FULL_CSAPI_DIR}/{{base}}.cpp.mustache
                 ${API_DEFS}
         VERBATIM
     )
 endif()
 
-aux_source_directory(${GEN_SRC_DIR} libqmatrixclient_job_SRCS)
-aux_source_directory(${GEN_SRC_DIR}/definitions libqmatrixclient_def_SRCS)
+aux_source_directory(${FULL_CSAPI_DIR} libqmatrixclient_job_SRCS)
+aux_source_directory(${FULL_CSAPI_DIR}/definitions libqmatrixclient_def_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 

@@ -6,11 +6,11 @@
 
 #include "jobs/basejob.h"
 
-#include "lib/csapi/definitions/push_ruleset.h"
-#include <QtCore/QVector>
+#include "csapi/definitions/push_ruleset.h"
 #include "converters.h"
-#include "lib/csapi/definitions/push_rule.h"
-#include "lib/csapi/definitions/push_condition.h"
+#include "csapi/definitions/push_rule.h"
+#include <QtCore/QVector>
+#include "csapi/definitions/push_condition.h"
 
 namespace QMatrixClient
 {
