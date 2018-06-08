@@ -61,10 +61,7 @@ class {{camelCaseOperationId}}Job::Private
 BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     BaseJob::Query _q;{{#queryParams}}
-{{^required?}}{{#isString}}    if (!{{nameCamelCase}}.isEmpty())
-    {{/isString}}{{!
-}}{{#useOmittable}}    if ({{nameCamelCase}})
-    {{/useOmittable}}{{/required?}}    _q.addQueryItem("{{baseName}}", {{>paramToString}});{{/queryParams}}
+    addToQuery<{{^required?}}IfNotEmpty{{/required?}}>(_q, "{{baseName}}", {{paramName}});{{/queryParams}}
     return _q;
 }
 {{/queryParams?}}{{^bodyParams}}

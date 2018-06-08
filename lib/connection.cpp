@@ -30,6 +30,7 @@
 #include "csapi/leaving.h"
 #include "csapi/account-data.h"
 #include "csapi/joining.h"
+#include "csapi/to_device.h"
 #include "jobs/sendeventjob.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
@@ -570,6 +571,25 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     return forgetJob;
 }
 
+SendToDeviceJob* Connection::sendToDevices(const QString& eventType,
+        const UsersToDevicesToEvents& eventsMap) const
+{
+    QHash<QString, QHash<QString, QJsonObject>> json;
+    json.reserve(int(eventsMap.size()));
+    std::for_each(eventsMap.begin(), eventsMap.end(),
+        [&json] (const auto& userTodevicesToEvents) {
+            auto& jsonUser = json[userTodevicesToEvents.first];
+            const auto& devicesToEvents = userTodevicesToEvents.second;
+            std::for_each(devicesToEvents.begin(), devicesToEvents.end(),
+                [&jsonUser] (const auto& deviceToEvents) {
+                    jsonUser.insert(deviceToEvents.first,
+                                    deviceToEvents.second.toJson());
+                });
+        });
+    return callApi<SendToDeviceJob>(InBackground,
+                eventType, generateTxnId(), json);
+}
+
 QUrl Connection::homeserver() const
 {
     return d->data->baseUrl();
@@ -845,7 +865,7 @@ Connection::room_factory_t Connection::roomFactory =
 Connection::user_factory_t Connection::userFactory =
     [](Connection* c, const QString& id) { return new User(id, c); };
 
-QByteArray Connection::generateTxnId()
+QByteArray Connection::generateTxnId() const
 {
     return d->data->generateTxnId();
 }

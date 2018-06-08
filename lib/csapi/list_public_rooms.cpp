@@ -100,12 +100,9 @@ class GetPublicRoomsJob::Private
 BaseJob::Query queryToGetPublicRooms(Omittable<int> limit, const QString& since, const QString& server)
 {
     BaseJob::Query _q;
-    if (limit)
-        _q.addQueryItem("limit", QString("%1").arg(limit.value()));
-    if (!since.isEmpty())
-        _q.addQueryItem("since", since);
-    if (!server.isEmpty())
-        _q.addQueryItem("server", server);
+    addToQuery<IfNotEmpty>(_q, "limit", limit);
+    addToQuery<IfNotEmpty>(_q, "since", since);
+    addToQuery<IfNotEmpty>(_q, "server", server);
     return _q;
 }
 
@@ -213,8 +210,7 @@ class QueryPublicRoomsJob::Private
 BaseJob::Query queryToQueryPublicRooms(const QString& server)
 {
     BaseJob::Query _q;
-    if (!server.isEmpty())
-        _q.addQueryItem("server", server);
+    addToQuery<IfNotEmpty>(_q, "server", server);
     return _q;
 }
 

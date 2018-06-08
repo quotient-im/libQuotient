@@ -164,8 +164,8 @@ class GetKeysChangesJob::Private
 BaseJob::Query queryToGetKeysChanges(const QString& from, const QString& to)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("from", from);
-    _q.addQueryItem("to", to);
+    addToQuery<>(_q, "from", from);
+    addToQuery<>(_q, "to", to);
     return _q;
 }
 

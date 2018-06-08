@@ -45,6 +45,8 @@ namespace QMatrixClient
     class UploadContentJob;
     class GetContentJob;
     class DownloadFileJob;
+    class SendToDeviceJob;
+    class Event;
 
     /** Enumeration with flags defining the network job running policy
      * So far only background/foreground flags are available.
@@ -76,6 +78,10 @@ namespace QMatrixClient
             using AccountDataMap = std::conditional_t<
                 QT_VERSION >= QT_VERSION_CHECK(5, 5, 0),
                 QVariantHash, QVariantMap>;
+
+            using UsersToDevicesToEvents =
+                std::unordered_map<QString,
+                    std::unordered_map<QString, const Event&>>;
 
             enum RoomVisibility { PublishRoom, UnpublishRoom }; // FIXME: Should go inside CreateRoomJob
 
@@ -234,7 +240,7 @@ namespace QMatrixClient
             /** Generates a new transaction id. Transaction id's are unique within
              * a single Connection object
              */
-            Q_INVOKABLE QByteArray generateTxnId();
+            Q_INVOKABLE QByteArray generateTxnId() const;
 
             template <typename T = Room>
             static void setRoomType()
@@ -346,6 +352,9 @@ namespace QMatrixClient
              * Room object anymore.
              */
             ForgetRoomJob* forgetRoom(const QString& id);
+
+            SendToDeviceJob* sendToDevices(const QString& eventType,
+                    const UsersToDevicesToEvents& eventsMap) const;
 
             // Old API that will be abolished any time soon. DO NOT USE.
 

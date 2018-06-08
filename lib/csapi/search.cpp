@@ -173,8 +173,7 @@ class SearchJob::Private
 BaseJob::Query queryToSearch(const QString& nextBatch)
 {
     BaseJob::Query _q;
-    if (!nextBatch.isEmpty())
-        _q.addQueryItem("next_batch", nextBatch);
+    addToQuery<IfNotEmpty>(_q, "next_batch", nextBatch);
     return _q;
 }
 

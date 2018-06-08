@@ -63,7 +63,7 @@ namespace QMatrixClient
             bool hasFileContent() const;
             bool hasThumbnail() const;
 
-            QJsonObject toJson() const;
+            QJsonObject toJson() const override;
 
             static constexpr const char* typeId() { return "m.room.message"; }
 

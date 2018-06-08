@@ -24,8 +24,7 @@ class RegisterJob::Private
 BaseJob::Query queryToRegister(const QString& kind)
 {
     BaseJob::Query _q;
-    if (!kind.isEmpty())
-        _q.addQueryItem("kind", kind);
+    addToQuery<IfNotEmpty>(_q, "kind", kind);
     return _q;
 }
 
@@ -130,7 +129,7 @@ class CheckUsernameAvailabilityJob::Private
 BaseJob::Query queryToCheckUsernameAvailability(const QString& username)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("username", username);
+    addToQuery<>(_q, "username", username);
     return _q;
 }
 

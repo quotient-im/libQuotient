@@ -22,8 +22,7 @@ class UploadContentJob::Private
 BaseJob::Query queryToUploadContent(const QString& filename)
 {
     BaseJob::Query _q;
-    if (!filename.isEmpty())
-        _q.addQueryItem("filename", filename);
+    addToQuery<IfNotEmpty>(_q, "filename", filename);
     return _q;
 }
 
@@ -66,7 +65,7 @@ class GetContentJob::Private
 BaseJob::Query queryToGetContent(bool allowRemote)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("allow_remote", QString("%1").arg(allowRemote));
+    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
@@ -123,7 +122,7 @@ class GetContentOverrideNameJob::Private
 BaseJob::Query queryToGetContentOverrideName(bool allowRemote)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("allow_remote", QString("%1").arg(allowRemote));
+    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
@@ -179,13 +178,10 @@ class GetContentThumbnailJob::Private
 BaseJob::Query queryToGetContentThumbnail(Omittable<int> width, Omittable<int> height, const QString& method, bool allowRemote)
 {
     BaseJob::Query _q;
-    if (width)
-        _q.addQueryItem("width", QString("%1").arg(width.value()));
-    if (height)
-        _q.addQueryItem("height", QString("%1").arg(height.value()));
-    if (!method.isEmpty())
-        _q.addQueryItem("method", method);
-    _q.addQueryItem("allow_remote", QString("%1").arg(allowRemote));
+    addToQuery<IfNotEmpty>(_q, "width", width);
+    addToQuery<IfNotEmpty>(_q, "height", height);
+    addToQuery<IfNotEmpty>(_q, "method", method);
+    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
@@ -235,9 +231,8 @@ class GetUrlPreviewJob::Private
 BaseJob::Query queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
 {
     BaseJob::Query _q;
-    _q.addQueryItem("url", url);
-    if (ts)
-        _q.addQueryItem("ts", QString("%1").arg(ts.value()));
+    addToQuery<>(_q, "url", url);
+    addToQuery<IfNotEmpty>(_q, "ts", ts);
     return _q;
 }
 

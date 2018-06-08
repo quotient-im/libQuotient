@@ -21,9 +21,11 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray> // Includes <QtCore/QJsonValue>
 #include <QtCore/QDate>
+#include <QtCore/QUrlQuery>
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 #if 0 // Waiting for C++17
 #include <experimental/optional>
 
@@ -332,25 +334,39 @@ namespace QMatrixClient
     namespace _impl
     {
         // This one is for types that don't have isEmpty()
-        template <typename JsonT, typename = bool>
+        template <typename InserterT, typename JsonT, typename = bool>
         struct AddNode
         {
-            static void impl(QJsonObject& o, QString key, JsonT&& value)
+            static void impl(InserterT inserter, QString key, JsonT&& value)
             {
-                o.insert(std::move(key), std::forward<JsonT>(value));
+                inserter(std::move(key), std::forward<JsonT>(value));
             }
         };
 
         // This one is for types that have isEmpty()
-        template <typename JsonT>
-        struct AddNode<JsonT, decltype(std::declval<JsonT>().isEmpty())>
+        template <typename InserterT, typename JsonT>
+        struct AddNode<InserterT, JsonT,
+                       decltype(std::declval<JsonT>().isEmpty())>
         {
-            static void impl(QJsonObject& o, QString key, JsonT&& value)
+            static void impl(InserterT inserter, QString key, JsonT&& value)
             {
                 if (!value.isEmpty())
-                    o.insert(std::move(key), std::forward<JsonT>(value));
+                    inserter(std::move(key), std::forward<JsonT>(value));
             }
         };
+
+        template <bool Force, typename InserterT, typename ValT>
+        inline void maybeAdd(InserterT inserter, QString key, ValT&& value)
+        {
+            auto&& json = toJson(std::forward<ValT>(value));
+            // QJsonValue doesn't have isEmpty and consumes all other types
+            // (QString, QJsonObject etc.).
+            AddNode<InserterT,
+                    std::conditional_t<Force, QJsonValue, decltype(json)>>
+                ::impl(inserter, std::move(key), std::move(json));
+
+        }
+
     }  // namespace _impl
 
     static constexpr bool IfNotEmpty = false;
@@ -358,10 +374,33 @@ namespace QMatrixClient
     template <bool Force = true, typename ValT>
     inline void addToJson(QJsonObject& o, QString key, ValT&& value)
     {
-        auto&& json = toJson(std::forward<ValT>(value));
-        // QJsonValue doesn't have isEmpty and consumes all other types
-        // (QString, QJsonObject etc.).
-        _impl::AddNode<std::conditional_t<Force, QJsonValue, decltype(json)>>
-                ::impl(o, std::move(key), std::move(json));
+        using namespace std::placeholders;
+        _impl::maybeAdd<Force>(bind(&QJsonObject::insert, o, _1, _2),
+                               key, value);
     }
+
+    template <bool Force = true, typename ValT>
+    inline void addToQuery(QUrlQuery& query, QString key, ValT&& value)
+    {
+        using namespace std::placeholders;
+        _impl::maybeAdd<Force>(
+            [&query] (QString k, auto&& jsonValue) {
+                query.addQueryItem(k, jsonValue.toString());
+        }, key, value);
+    }
+
+    template <bool Force = true>
+    inline void addToQuery(QUrlQuery& query, QString key, QString value)
+    {
+        if (Force || !value.isEmpty())
+            query.addQueryItem(key, value);
+    }
+
+    template <bool Force = true>
+    inline void addToQuery(QUrlQuery& query, QString key, bool value)
+    {
+        query.addQueryItem(key,
+            value ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+
 }  // namespace QMatrixClient

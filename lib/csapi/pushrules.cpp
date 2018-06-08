@@ -99,10 +99,8 @@ DeletePushRuleJob::DeletePushRuleJob(const QString& scope, const QString& kind, 
 BaseJob::Query queryToSetPushRule(const QString& before, const QString& after)
 {
     BaseJob::Query _q;
-    if (!before.isEmpty())
-        _q.addQueryItem("before", before);
-    if (!after.isEmpty())
-        _q.addQueryItem("after", after);
+    addToQuery<IfNotEmpty>(_q, "before", before);
+    addToQuery<IfNotEmpty>(_q, "after", after);
     return _q;
 }
 

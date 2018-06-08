@@ -26,8 +26,7 @@ class GetEventContextJob::Private
 BaseJob::Query queryToGetEventContext(Omittable<int> limit)
 {
     BaseJob::Query _q;
-    if (limit)
-        _q.addQueryItem("limit", QString("%1").arg(limit.value()));
+    addToQuery<IfNotEmpty>(_q, "limit", limit);
     return _q;
 }
 

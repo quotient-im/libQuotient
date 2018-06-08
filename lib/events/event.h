@@ -100,6 +100,8 @@ namespace QMatrixClient
 
             const QJsonObject contentJson() const;
 
+            virtual QJsonObject toJson() const { Q_ASSERT(false); }
+
         private:
             Type _type;
             QJsonObject _originalJson;
@@ -273,7 +275,7 @@ namespace QMatrixClient
                 , _content(std::forward<ContentParamTs>(contentParams)...)
             { }
 
-            QJsonObject toJson() const { return _content.toJson(); }
+            QJsonObject toJson() const override { return _content.toJson(); }
 
             const ContentT& content() const { return _content; }
             /** @deprecated Use prevContent instead */
