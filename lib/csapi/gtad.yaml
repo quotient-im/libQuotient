@@ -67,6 +67,7 @@ analyzer:
             { type: RoomEventPtr, imports: '"events/event.h"' }
         - /event.yaml$/:
             { type: EventPtr, imports: '"events/event.h"' }
+      - /auth_data.yaml$/: *QJsonObject # GTAD 0.6 cannot cope with this one
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
       - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - schema: # Properties of inline structure definitions
