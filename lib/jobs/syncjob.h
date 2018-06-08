@@ -56,13 +56,17 @@ namespace QMatrixClient
     {
         public:
             BaseJob::Status parseJson(const QJsonDocument &data);
+            Events&& takePresenceData();
             Events&& takeAccountData();
+            Events&& takeToDeviceEvents();
             SyncDataList&& takeRoomData();
             QString nextBatch() const;
 
         private:
             QString nextBatch_;
+            Events presenceData;
             Events accountData;
+            Events toDeviceEvents;
             SyncDataList roomData;
     };
 

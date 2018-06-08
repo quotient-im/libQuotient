@@ -54,9 +54,19 @@ SyncDataList&& SyncData::takeRoomData()
     return std::move(roomData);
 }
 
+Events&& SyncData::takePresenceData()
+{
+    return std::move(presenceData);
+}
+
 Events&& SyncData::takeAccountData()
 {
     return std::move(accountData);
+}
+
+Events&&SyncData::takeToDeviceEvents()
+{
+    return std::move(toDeviceEvents);
 }
 
 template <typename EventsArrayT, typename StrT>
@@ -76,8 +86,9 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
 
     auto json = data.object();
     nextBatch_ = json.value("next_batch").toString();
-    // TODO: presence
+    presenceData = load<Events>(json, "presence");
     accountData = load<Events>(json, "account_data");
+    toDeviceEvents = load<Events>(json, "to_device");
 
     QJsonObject rooms = json.value("rooms").toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
