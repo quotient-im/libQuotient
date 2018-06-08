@@ -69,6 +69,9 @@ analyzer:
             { type: EventPtr, imports: '"events/event.h"' }
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
       - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
+    - schema: # Properties of inline structure definitions
+      - TurnServerCredentials: *QJsonObject # Because it's used as is
+      - //: *UseOmittable
     - array:
       - string: QStringList
       - +set: { moveOnly: }
@@ -98,11 +101,8 @@ analyzer:
           type: QVariantHash
           imports: <QtCore/QVariant>
     - variant: # A sequence `type` (multitype) in OpenAPI
-      - "string|null": *QString
+      - /^string,null|null,string$/: *QString
       - //: { type: QVariant, imports: <QtCore/QVariant> }
-    - schema: # Properties of inline structure definitions
-      - TurnServerCredentials: *QJsonObject # Because it's used as is
-      - //: *UseOmittable
 
   #operations:
 
