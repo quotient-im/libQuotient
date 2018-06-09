@@ -9,11 +9,11 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const Filter& pod)
 {
     QJsonObject _json;
-    addToJson<IfNotEmpty>(_json, "limit", pod.limit);
-    addToJson<IfNotEmpty>(_json, "not_senders", pod.notSenders);
-    addToJson<IfNotEmpty>(_json, "not_types", pod.notTypes);
-    addToJson<IfNotEmpty>(_json, "senders", pod.senders);
-    addToJson<IfNotEmpty>(_json, "types", pod.types);
+    addParam<IfNotEmpty>(_json, "limit", pod.limit);
+    addParam<IfNotEmpty>(_json, "not_senders", pod.notSenders);
+    addParam<IfNotEmpty>(_json, "not_types", pod.notTypes);
+    addParam<IfNotEmpty>(_json, "senders", pod.senders);
+    addParam<IfNotEmpty>(_json, "types", pod.types);
     return _json;
 }
 

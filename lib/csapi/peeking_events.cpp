@@ -23,9 +23,9 @@ class PeekEventsJob::Private
 BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout, const QString& roomId)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "from", from);
-    addToQuery<IfNotEmpty>(_q, "timeout", timeout);
-    addToQuery<IfNotEmpty>(_q, "room_id", roomId);
+    addParam<IfNotEmpty>(_q, "from", from);
+    addParam<IfNotEmpty>(_q, "timeout", timeout);
+    addParam<IfNotEmpty>(_q, "room_id", roomId);
     return _q;
 }
 

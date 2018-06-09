@@ -17,8 +17,8 @@ ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId
         basePath % "/rooms/" % roomId % "/report/" % eventId)
 {
     QJsonObject _data;
-    addToJson<>(_data, "score", score);
-    addToJson<>(_data, "reason", reason);
+    addParam<>(_data, "score", score);
+    addParam<>(_data, "reason", reason);
     setRequestData(_data);
 }
 

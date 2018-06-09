@@ -17,8 +17,8 @@ SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool ty
         basePath % "/rooms/" % roomId % "/typing/" % userId)
 {
     QJsonObject _data;
-    addToJson<>(_data, "typing", typing);
-    addToJson<IfNotEmpty>(_data, "timeout", timeout);
+    addParam<>(_data, "typing", typing);
+    addParam<IfNotEmpty>(_data, "timeout", timeout);
     setRequestData(_data);
 }
 

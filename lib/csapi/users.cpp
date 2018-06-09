@@ -47,8 +47,8 @@ SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, Omitta
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<>(_data, "search_term", searchTerm);
-    addToJson<IfNotEmpty>(_data, "limit", limit);
+    addParam<>(_data, "search_term", searchTerm);
+    addParam<IfNotEmpty>(_data, "limit", limit);
     setRequestData(_data);
 }
 

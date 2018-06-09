@@ -23,11 +23,11 @@ class GetRoomEventsJob::Private
 BaseJob::Query queryToGetRoomEvents(const QString& from, const QString& to, const QString& dir, Omittable<int> limit, const QString& filter)
 {
     BaseJob::Query _q;
-    addToQuery<>(_q, "from", from);
-    addToQuery<IfNotEmpty>(_q, "to", to);
-    addToQuery<>(_q, "dir", dir);
-    addToQuery<IfNotEmpty>(_q, "limit", limit);
-    addToQuery<IfNotEmpty>(_q, "filter", filter);
+    addParam<>(_q, "from", from);
+    addParam<IfNotEmpty>(_q, "to", to);
+    addParam<>(_q, "dir", dir);
+    addParam<IfNotEmpty>(_q, "limit", limit);
+    addParam<IfNotEmpty>(_q, "filter", filter);
     return _q;
 }
 

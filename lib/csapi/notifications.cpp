@@ -50,9 +50,9 @@ class GetNotificationsJob::Private
 BaseJob::Query queryToGetNotifications(const QString& from, Omittable<int> limit, const QString& only)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "from", from);
-    addToQuery<IfNotEmpty>(_q, "limit", limit);
-    addToQuery<IfNotEmpty>(_q, "only", only);
+    addParam<IfNotEmpty>(_q, "from", from);
+    addParam<IfNotEmpty>(_q, "limit", limit);
+    addParam<IfNotEmpty>(_q, "only", only);
     return _q;
 }
 

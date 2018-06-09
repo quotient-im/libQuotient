@@ -17,7 +17,7 @@ SendToDeviceJob::SendToDeviceJob(const QString& eventType, const QString& txnId,
         basePath % "/sendToDevice/" % eventType % "/" % txnId)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "messages", messages);
+    addParam<IfNotEmpty>(_data, "messages", messages);
     setRequestData(_data);
 }
 

@@ -22,7 +22,7 @@
 
 using namespace QMatrixClient;
 
-QJsonValue QMatrixClient::toJson(const QVariant& v)
+QJsonValue QMatrixClient::variantToJson(const QVariant& v)
 {
     return QJsonValue::fromVariant(v);
 }

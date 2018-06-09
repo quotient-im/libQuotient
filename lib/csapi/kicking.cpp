@@ -17,8 +17,8 @@ KickJob::KickJob(const QString& roomId, const QString& userId, const QString& re
         basePath % "/rooms/" % roomId % "/kick")
 {
     QJsonObject _data;
-    addToJson<>(_data, "user_id", userId);
-    addToJson<IfNotEmpty>(_data, "reason", reason);
+    addParam<>(_data, "user_id", userId);
+    addParam<IfNotEmpty>(_data, "reason", reason);
     setRequestData(_data);
 }
 

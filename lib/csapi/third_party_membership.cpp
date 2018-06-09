@@ -17,9 +17,9 @@ InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
         basePath % "/rooms/" % roomId % "/invite")
 {
     QJsonObject _data;
-    addToJson<>(_data, "id_server", idServer);
-    addToJson<>(_data, "medium", medium);
-    addToJson<>(_data, "address", address);
+    addParam<>(_data, "id_server", idServer);
+    addParam<>(_data, "medium", medium);
+    addParam<>(_data, "address", address);
     setRequestData(_data);
 }
 

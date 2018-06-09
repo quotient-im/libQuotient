@@ -9,12 +9,12 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const PushRule& pod)
 {
     QJsonObject _json;
-    addToJson<>(_json, "actions", pod.actions);
-    addToJson<>(_json, "default", pod.isDefault);
-    addToJson<>(_json, "enabled", pod.enabled);
-    addToJson<>(_json, "rule_id", pod.ruleId);
-    addToJson<IfNotEmpty>(_json, "conditions", pod.conditions);
-    addToJson<IfNotEmpty>(_json, "pattern", pod.pattern);
+    addParam<>(_json, "actions", pod.actions);
+    addParam<>(_json, "default", pod.isDefault);
+    addParam<>(_json, "enabled", pod.enabled);
+    addParam<>(_json, "rule_id", pod.ruleId);
+    addParam<IfNotEmpty>(_json, "conditions", pod.conditions);
+    addParam<IfNotEmpty>(_json, "pattern", pod.pattern);
     return _json;
 }
 

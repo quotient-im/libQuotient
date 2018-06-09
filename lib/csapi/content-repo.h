@@ -90,14 +90,14 @@ namespace QMatrixClient
     class GetContentThumbnailJob : public BaseJob
     {
         public:
-            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {}, bool allowRemote = true);
+            explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width, int height, const QString& method = {}, bool allowRemote = true);
 
             /** Construct a URL out of baseUrl and usual parameters passed to
              * GetContentThumbnailJob. This function can be used when
              * a URL for GetContentThumbnailJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, Omittable<int> width = none, Omittable<int> height = none, const QString& method = {}, bool allowRemote = true);
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width, int height, const QString& method = {}, bool allowRemote = true);
 
             ~GetContentThumbnailJob() override;
 

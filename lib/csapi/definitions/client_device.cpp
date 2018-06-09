@@ -9,10 +9,10 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const Device& pod)
 {
     QJsonObject _json;
-    addToJson<>(_json, "device_id", pod.deviceId);
-    addToJson<IfNotEmpty>(_json, "display_name", pod.displayName);
-    addToJson<IfNotEmpty>(_json, "last_seen_ip", pod.lastSeenIp);
-    addToJson<IfNotEmpty>(_json, "last_seen_ts", pod.lastSeenTs);
+    addParam<>(_json, "device_id", pod.deviceId);
+    addParam<IfNotEmpty>(_json, "display_name", pod.displayName);
+    addParam<IfNotEmpty>(_json, "last_seen_ip", pod.lastSeenIp);
+    addParam<IfNotEmpty>(_json, "last_seen_ts", pod.lastSeenTs);
     return _json;
 }
 

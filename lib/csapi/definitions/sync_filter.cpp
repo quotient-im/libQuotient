@@ -9,13 +9,13 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const RoomFilter& pod)
 {
     QJsonObject _json;
-    addToJson<IfNotEmpty>(_json, "not_rooms", pod.notRooms);
-    addToJson<IfNotEmpty>(_json, "rooms", pod.rooms);
-    addToJson<IfNotEmpty>(_json, "ephemeral", pod.ephemeral);
-    addToJson<IfNotEmpty>(_json, "include_leave", pod.includeLeave);
-    addToJson<IfNotEmpty>(_json, "state", pod.state);
-    addToJson<IfNotEmpty>(_json, "timeline", pod.timeline);
-    addToJson<IfNotEmpty>(_json, "account_data", pod.accountData);
+    addParam<IfNotEmpty>(_json, "not_rooms", pod.notRooms);
+    addParam<IfNotEmpty>(_json, "rooms", pod.rooms);
+    addParam<IfNotEmpty>(_json, "ephemeral", pod.ephemeral);
+    addParam<IfNotEmpty>(_json, "include_leave", pod.includeLeave);
+    addParam<IfNotEmpty>(_json, "state", pod.state);
+    addParam<IfNotEmpty>(_json, "timeline", pod.timeline);
+    addParam<IfNotEmpty>(_json, "account_data", pod.accountData);
     return _json;
 }
 
@@ -44,11 +44,11 @@ RoomFilter FromJson<RoomFilter>::operator()(const QJsonValue& jv)
 QJsonObject QMatrixClient::toJson(const SyncFilter& pod)
 {
     QJsonObject _json;
-    addToJson<IfNotEmpty>(_json, "event_fields", pod.eventFields);
-    addToJson<IfNotEmpty>(_json, "event_format", pod.eventFormat);
-    addToJson<IfNotEmpty>(_json, "presence", pod.presence);
-    addToJson<IfNotEmpty>(_json, "account_data", pod.accountData);
-    addToJson<IfNotEmpty>(_json, "room", pod.room);
+    addParam<IfNotEmpty>(_json, "event_fields", pod.eventFields);
+    addParam<IfNotEmpty>(_json, "event_format", pod.eventFormat);
+    addParam<IfNotEmpty>(_json, "presence", pod.presence);
+    addParam<IfNotEmpty>(_json, "account_data", pod.accountData);
+    addParam<IfNotEmpty>(_json, "room", pod.room);
     return _json;
 }
 

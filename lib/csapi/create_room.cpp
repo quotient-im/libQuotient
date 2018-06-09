@@ -19,18 +19,18 @@ namespace QMatrixClient
     QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
     {
         QJsonObject _json;
-        addToJson<>(_json, "id_server", pod.idServer);
-        addToJson<>(_json, "medium", pod.medium);
-        addToJson<>(_json, "address", pod.address);
+        addParam<>(_json, "id_server", pod.idServer);
+        addParam<>(_json, "medium", pod.medium);
+        addParam<>(_json, "address", pod.address);
         return _json;
     }
 
     QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "type", pod.type);
-        addToJson<IfNotEmpty>(_json, "state_key", pod.stateKey);
-        addToJson<IfNotEmpty>(_json, "content", pod.content);
+        addParam<IfNotEmpty>(_json, "type", pod.type);
+        addParam<IfNotEmpty>(_json, "state_key", pod.stateKey);
+        addParam<IfNotEmpty>(_json, "content", pod.content);
         return _json;
     }
 } // namespace QMatrixClient
@@ -47,17 +47,17 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "visibility", visibility);
-    addToJson<IfNotEmpty>(_data, "room_alias_name", roomAliasName);
-    addToJson<IfNotEmpty>(_data, "name", name);
-    addToJson<IfNotEmpty>(_data, "topic", topic);
-    addToJson<IfNotEmpty>(_data, "invite", invite);
-    addToJson<IfNotEmpty>(_data, "invite_3pid", invite3pid);
-    addToJson<IfNotEmpty>(_data, "creation_content", creationContent);
-    addToJson<IfNotEmpty>(_data, "initial_state", initialState);
-    addToJson<IfNotEmpty>(_data, "preset", preset);
-    addToJson<IfNotEmpty>(_data, "is_direct", isDirect);
-    addToJson<IfNotEmpty>(_data, "guest_can_join", guestCanJoin);
+    addParam<IfNotEmpty>(_data, "visibility", visibility);
+    addParam<IfNotEmpty>(_data, "room_alias_name", roomAliasName);
+    addParam<IfNotEmpty>(_data, "name", name);
+    addParam<IfNotEmpty>(_data, "topic", topic);
+    addParam<IfNotEmpty>(_data, "invite", invite);
+    addParam<IfNotEmpty>(_data, "invite_3pid", invite3pid);
+    addParam<IfNotEmpty>(_data, "creation_content", creationContent);
+    addParam<IfNotEmpty>(_data, "initial_state", initialState);
+    addParam<IfNotEmpty>(_data, "preset", preset);
+    addParam<IfNotEmpty>(_data, "is_direct", isDirect);
+    addParam<IfNotEmpty>(_data, "guest_can_join", guestCanJoin);
     setRequestData(_data);
 }
 

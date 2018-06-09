@@ -9,9 +9,9 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const RoomEventFilter& pod)
 {
     QJsonObject _json;
-    addToJson<IfNotEmpty>(_json, "not_rooms", pod.notRooms);
-    addToJson<IfNotEmpty>(_json, "rooms", pod.rooms);
-    addToJson<IfNotEmpty>(_json, "contains_url", pod.containsUrl);
+    addParam<IfNotEmpty>(_json, "not_rooms", pod.notRooms);
+    addParam<IfNotEmpty>(_json, "rooms", pod.rooms);
+    addParam<IfNotEmpty>(_json, "contains_url", pod.containsUrl);
     return _json;
 }
 

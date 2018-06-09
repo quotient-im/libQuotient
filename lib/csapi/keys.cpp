@@ -24,8 +24,8 @@ UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys, const QHas
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "device_keys", deviceKeys);
-    addToJson<IfNotEmpty>(_data, "one_time_keys", oneTimeKeys);
+    addParam<IfNotEmpty>(_data, "device_keys", deviceKeys);
+    addParam<IfNotEmpty>(_data, "one_time_keys", oneTimeKeys);
     setRequestData(_data);
 }
 
@@ -90,9 +90,9 @@ QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, Omitta
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "timeout", timeout);
-    addToJson<>(_data, "device_keys", deviceKeys);
-    addToJson<IfNotEmpty>(_data, "token", token);
+    addParam<IfNotEmpty>(_data, "timeout", timeout);
+    addParam<>(_data, "device_keys", deviceKeys);
+    addParam<IfNotEmpty>(_data, "token", token);
     setRequestData(_data);
 }
 
@@ -129,8 +129,8 @@ ClaimKeysJob::ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTim
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "timeout", timeout);
-    addToJson<>(_data, "one_time_keys", oneTimeKeys);
+    addParam<IfNotEmpty>(_data, "timeout", timeout);
+    addParam<>(_data, "one_time_keys", oneTimeKeys);
     setRequestData(_data);
 }
 
@@ -164,8 +164,8 @@ class GetKeysChangesJob::Private
 BaseJob::Query queryToGetKeysChanges(const QString& from, const QString& to)
 {
     BaseJob::Query _q;
-    addToQuery<>(_q, "from", from);
-    addToQuery<>(_q, "to", to);
+    addParam<>(_q, "from", from);
+    addParam<>(_q, "to", to);
     return _q;
 }
 

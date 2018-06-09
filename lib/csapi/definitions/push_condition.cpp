@@ -9,10 +9,10 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const PushCondition& pod)
 {
     QJsonObject _json;
-    addToJson<>(_json, "kind", pod.kind);
-    addToJson<IfNotEmpty>(_json, "key", pod.key);
-    addToJson<IfNotEmpty>(_json, "pattern", pod.pattern);
-    addToJson<IfNotEmpty>(_json, "is", pod.is);
+    addParam<>(_json, "kind", pod.kind);
+    addParam<IfNotEmpty>(_json, "key", pod.key);
+    addParam<IfNotEmpty>(_json, "pattern", pod.pattern);
+    addParam<IfNotEmpty>(_json, "is", pod.is);
     return _json;
 }
 

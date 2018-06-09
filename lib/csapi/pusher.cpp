@@ -97,7 +97,7 @@ namespace QMatrixClient
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "url", pod.url);
+        addParam<IfNotEmpty>(_json, "url", pod.url);
         return _json;
     }
 } // namespace QMatrixClient
@@ -107,15 +107,15 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const 
         basePath % "/pushers/set")
 {
     QJsonObject _data;
-    addToJson<>(_data, "pushkey", pushkey);
-    addToJson<>(_data, "kind", kind);
-    addToJson<>(_data, "app_id", appId);
-    addToJson<>(_data, "app_display_name", appDisplayName);
-    addToJson<>(_data, "device_display_name", deviceDisplayName);
-    addToJson<IfNotEmpty>(_data, "profile_tag", profileTag);
-    addToJson<>(_data, "lang", lang);
-    addToJson<>(_data, "data", data);
-    addToJson<IfNotEmpty>(_data, "append", append);
+    addParam<>(_data, "pushkey", pushkey);
+    addParam<>(_data, "kind", kind);
+    addParam<>(_data, "app_id", appId);
+    addParam<>(_data, "app_display_name", appDisplayName);
+    addParam<>(_data, "device_display_name", deviceDisplayName);
+    addParam<IfNotEmpty>(_data, "profile_tag", profileTag);
+    addParam<>(_data, "lang", lang);
+    addParam<>(_data, "data", data);
+    addParam<IfNotEmpty>(_data, "append", append);
     setRequestData(_data);
 }
 

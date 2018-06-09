@@ -11,7 +11,7 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
 {
     QJsonObject _json;{{#vars}}
-    addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
     return _json;
 }
 {{/in?}}{{#out?}}
@@ -34,7 +34,7 @@ namespace QMatrixClient
     QJsonObject toJson(const {{qualifiedName}}& pod)
     {
         QJsonObject _json;{{#vars}}
-        addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
         return _json;
     }
 {{/in?}}{{#out?}}
@@ -61,7 +61,7 @@ class {{camelCaseOperationId}}Job::Private
 BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     BaseJob::Query _q;{{#queryParams}}
-    addToQuery<{{^required?}}IfNotEmpty{{/required?}}>(_q, "{{baseName}}", {{paramName}});{{/queryParams}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q, "{{baseName}}", {{paramName}});{{/queryParams}}
     return _q;
 }
 {{/queryParams?}}{{^bodyParams}}
@@ -87,7 +87,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
                         }}{{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
                         }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));{{/inlineBody
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
-    addToJson<{{^required?}}IfNotEmpty{{/required?}}>(_data, "{{baseName}}", {{paramName}});{{/bodyParams}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_data, "{{baseName}}", {{paramName}});{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}
 {{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
 {{/producesNonJson?}}}{{!<- mind the actual brace}}

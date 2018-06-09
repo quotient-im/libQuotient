@@ -99,8 +99,8 @@ DeletePushRuleJob::DeletePushRuleJob(const QString& scope, const QString& kind, 
 BaseJob::Query queryToSetPushRule(const QString& before, const QString& after)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "before", before);
-    addToQuery<IfNotEmpty>(_q, "after", after);
+    addParam<IfNotEmpty>(_q, "before", before);
+    addParam<IfNotEmpty>(_q, "after", after);
     return _q;
 }
 
@@ -110,9 +110,9 @@ SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind, const 
         queryToSetPushRule(before, after))
 {
     QJsonObject _data;
-    addToJson<>(_data, "actions", actions);
-    addToJson<IfNotEmpty>(_data, "conditions", conditions);
-    addToJson<IfNotEmpty>(_data, "pattern", pattern);
+    addParam<>(_data, "actions", actions);
+    addParam<IfNotEmpty>(_data, "conditions", conditions);
+    addParam<IfNotEmpty>(_data, "pattern", pattern);
     setRequestData(_data);
 }
 
@@ -157,7 +157,7 @@ SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope, const QString
         basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId % "/enabled")
 {
     QJsonObject _data;
-    addToJson<>(_data, "enabled", enabled);
+    addParam<>(_data, "enabled", enabled);
     setRequestData(_data);
 }
 
@@ -202,7 +202,7 @@ SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope, const QString
         basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId % "/actions")
 {
     QJsonObject _data;
-    addToJson<>(_data, "actions", actions);
+    addParam<>(_data, "actions", actions);
     setRequestData(_data);
 }
 

@@ -19,10 +19,10 @@ namespace QMatrixClient
     QJsonObject toJson(const JoinRoomByIdJob::ThirdPartySigned& pod)
     {
         QJsonObject _json;
-        addToJson<>(_json, "sender", pod.sender);
-        addToJson<>(_json, "mxid", pod.mxid);
-        addToJson<>(_json, "token", pod.token);
-        addToJson<>(_json, "signatures", pod.signatures);
+        addParam<>(_json, "sender", pod.sender);
+        addParam<>(_json, "mxid", pod.mxid);
+        addParam<>(_json, "token", pod.token);
+        addParam<>(_json, "signatures", pod.signatures);
         return _json;
     }
 } // namespace QMatrixClient
@@ -39,7 +39,7 @@ JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId, const Omittable<ThirdPar
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
+    addParam<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
     setRequestData(_data);
 }
 
@@ -67,17 +67,17 @@ namespace QMatrixClient
     QJsonObject toJson(const JoinRoomJob::Signed& pod)
     {
         QJsonObject _json;
-        addToJson<>(_json, "sender", pod.sender);
-        addToJson<>(_json, "mxid", pod.mxid);
-        addToJson<>(_json, "token", pod.token);
-        addToJson<>(_json, "signatures", pod.signatures);
+        addParam<>(_json, "sender", pod.sender);
+        addParam<>(_json, "mxid", pod.mxid);
+        addParam<>(_json, "token", pod.token);
+        addParam<>(_json, "signatures", pod.signatures);
         return _json;
     }
 
     QJsonObject toJson(const JoinRoomJob::ThirdPartySigned& pod)
     {
         QJsonObject _json;
-        addToJson<>(_json, "signed", pod.signedData);
+        addParam<>(_json, "signed", pod.signedData);
         return _json;
     }
 } // namespace QMatrixClient
@@ -94,7 +94,7 @@ JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const Omittable<ThirdPart
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
+    addParam<IfNotEmpty>(_data, "third_party_signed", thirdPartySigned);
     setRequestData(_data);
 }
 

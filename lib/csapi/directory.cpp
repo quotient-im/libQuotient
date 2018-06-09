@@ -17,7 +17,7 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
         basePath % "/room/" % roomAlias)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "room_id", roomId);
+    addParam<IfNotEmpty>(_data, "room_id", roomId);
     setRequestData(_data);
 }
 

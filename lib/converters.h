@@ -82,22 +82,20 @@ namespace QMatrixClient
             T& value() { return _value; }
             T&& release() { _omitted = true; return std::move(_value); }
 
-            operator bool() const { return !_omitted; }
+            operator bool() const { return !omitted(); }
 
         private:
             T _value;
             bool _omitted;
     };
 
-
     // This catches anything implicitly convertible to QJsonValue/Object/Array
     inline auto toJson(const QJsonValue& val) { return val; }
     inline auto toJson(const QJsonObject& o) { return o; }
     inline auto toJson(const QJsonArray& arr) { return arr; }
     // Special-case QStrings and bools to avoid ambiguity between QJsonValue
-    // and QVariant (also, QString.isEmpty() is used in _impl::AddNote<> below)
+    // and QVariant (also, QString.isEmpty() is used in _impl::AddNode<> below)
     inline auto toJson(const QString& s) { return s; }
-    inline QJsonValue toJson(bool b) { return b; }
 
     inline QJsonArray toJson(const QStringList& strings)
     {
@@ -109,7 +107,18 @@ namespace QMatrixClient
         return bytes.constData();
     }
 
-    QJsonValue toJson(const QVariant& v);
+    // QVariant is outrageously omnivorous - it consumes whatever is not
+    // exactly matching the signature of other toJson overloads. The trick
+    // below disables implicit conversion to QVariant through its numerous
+    // non-explicit constructors.
+    QJsonValue variantToJson(const QVariant& v);
+    template <typename T>
+    inline auto toJson(T&& var)
+        -> std::enable_if_t<std::is_same<std::decay_t<T>, QVariant>::value,
+                            QJsonValue>
+    {
+        return variantToJson(var);
+    }
     QJsonObject toJson(const QMap<QString, QVariant>& map);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
     QJsonObject toJson(const QHash<QString, QVariant>& hMap);
@@ -149,16 +158,6 @@ namespace QMatrixClient
         for (auto it = hashMap.begin(); it != hashMap.end(); ++it)
             json.insert(it.key(), toJson(it.value()));
         return json;
-    }
-
-    template <typename T>
-    inline auto toJson(const Omittable<T>& omittable)
-        -> decltype(toJson(omittable.value()))
-    {
-        if (omittable)
-            return toJson(omittable.value());
-
-        return {};
     }
 
 #if 0
@@ -333,74 +332,72 @@ namespace QMatrixClient
 
     namespace _impl
     {
+        template <typename ValT>
+        inline void addTo(QJsonObject& o, const QString& k, ValT&& v)
+        { o.insert(k, toJson(v)); }
+
+        template <typename ValT>
+        inline void addTo(QUrlQuery& q, const QString& k, ValT&& v)
+        { q.addQueryItem(k, QString("%1").arg(v)); }
+
+        // OpenAPI is entirely JSON-based, which means representing bools as
+        // textual true/false, rather than 1/0.
+        template <typename ValT>
+        inline void addTo(QUrlQuery& q, const QString& k, bool v)
+        {
+            q.addQueryItem(k, v ? QStringLiteral("true")
+                                : QStringLiteral("false"));
+        }
+
         // This one is for types that don't have isEmpty()
-        template <typename InserterT, typename JsonT, typename = bool>
+        template <typename ValT, bool Force = true, typename = bool>
         struct AddNode
         {
-            static void impl(InserterT inserter, QString key, JsonT&& value)
+            template <typename ContT, typename ForwardedT>
+            static void impl(ContT& container, const QString& key,
+                             ForwardedT&& value)
             {
-                inserter(std::move(key), std::forward<JsonT>(value));
+                addTo(container, key, std::forward<ForwardedT>(value));
             }
         };
 
         // This one is for types that have isEmpty()
-        template <typename InserterT, typename JsonT>
-        struct AddNode<InserterT, JsonT,
-                       decltype(std::declval<JsonT>().isEmpty())>
+        template <typename ValT>
+        struct AddNode<ValT, false,
+                       decltype(std::declval<ValT>().isEmpty())>
         {
-            static void impl(InserterT inserter, QString key, JsonT&& value)
+            template <typename ContT, typename ForwardedT>
+            static void impl(ContT& container, const QString& key,
+                             ForwardedT&& value)
             {
                 if (!value.isEmpty())
-                    inserter(std::move(key), std::forward<JsonT>(value));
+                    AddNode<ValT>::impl(container,
+                                        key, std::forward<ForwardedT>(value));
             }
         };
 
-        template <bool Force, typename InserterT, typename ValT>
-        inline void maybeAdd(InserterT inserter, QString key, ValT&& value)
+        // This is a special one that unfolds Omittable<>
+        template <typename ValT, bool Force>
+        struct AddNode<Omittable<ValT>, Force>
         {
-            auto&& json = toJson(std::forward<ValT>(value));
-            // QJsonValue doesn't have isEmpty and consumes all other types
-            // (QString, QJsonObject etc.).
-            AddNode<InserterT,
-                    std::conditional_t<Force, QJsonValue, decltype(json)>>
-                ::impl(inserter, std::move(key), std::move(json));
-
-        }
-
+            template <typename ContT, typename OmittableT>
+            static void impl(ContT& container,
+                             const QString& key, const OmittableT& value)
+            {
+                if (!value.omitted())
+                    AddNode<ValT>::impl(container, key, value.value());
+                else if (Force) // Edge case, no value but must put something
+                    AddNode<ValT>::impl(container, key, QString{});
+            }
+        };
     }  // namespace _impl
 
     static constexpr bool IfNotEmpty = false;
 
-    template <bool Force = true, typename ValT>
-    inline void addToJson(QJsonObject& o, QString key, ValT&& value)
+    template <bool Force = true, typename ContT, typename ValT>
+    inline void addParam(ContT& container, const QString& key, ValT&& value)
     {
-        using namespace std::placeholders;
-        _impl::maybeAdd<Force>(bind(&QJsonObject::insert, o, _1, _2),
-                               key, value);
+        _impl::AddNode<std::decay_t<ValT>, Force>
+                ::impl(container, key, std::forward<ValT>(value));
     }
-
-    template <bool Force = true, typename ValT>
-    inline void addToQuery(QUrlQuery& query, QString key, ValT&& value)
-    {
-        using namespace std::placeholders;
-        _impl::maybeAdd<Force>(
-            [&query] (QString k, auto&& jsonValue) {
-                query.addQueryItem(k, jsonValue.toString());
-        }, key, value);
-    }
-
-    template <bool Force = true>
-    inline void addToQuery(QUrlQuery& query, QString key, QString value)
-    {
-        if (Force || !value.isEmpty())
-            query.addQueryItem(key, value);
-    }
-
-    template <bool Force = true>
-    inline void addToQuery(QUrlQuery& query, QString key, bool value)
-    {
-        query.addQueryItem(key,
-            value ? QStringLiteral("true") : QStringLiteral("false"));
-    }
-
 }  // namespace QMatrixClient

@@ -9,11 +9,11 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const DeviceKeys& pod)
 {
     QJsonObject _json;
-    addToJson<>(_json, "user_id", pod.userId);
-    addToJson<>(_json, "device_id", pod.deviceId);
-    addToJson<>(_json, "algorithms", pod.algorithms);
-    addToJson<>(_json, "keys", pod.keys);
-    addToJson<>(_json, "signatures", pod.signatures);
+    addParam<>(_json, "user_id", pod.userId);
+    addParam<>(_json, "device_id", pod.deviceId);
+    addParam<>(_json, "algorithms", pod.algorithms);
+    addParam<>(_json, "keys", pod.keys);
+    addParam<>(_json, "signatures", pod.signatures);
     return _json;
 }
 

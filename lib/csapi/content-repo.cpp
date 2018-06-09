@@ -22,7 +22,7 @@ class UploadContentJob::Private
 BaseJob::Query queryToUploadContent(const QString& filename)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "filename", filename);
+    addParam<IfNotEmpty>(_q, "filename", filename);
     return _q;
 }
 
@@ -65,7 +65,7 @@ class GetContentJob::Private
 BaseJob::Query queryToGetContent(bool allowRemote)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
+    addParam<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
@@ -122,7 +122,7 @@ class GetContentOverrideNameJob::Private
 BaseJob::Query queryToGetContentOverrideName(bool allowRemote)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
+    addParam<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
@@ -175,24 +175,24 @@ class GetContentThumbnailJob::Private
         QIODevice* data;
 };
 
-BaseJob::Query queryToGetContentThumbnail(Omittable<int> width, Omittable<int> height, const QString& method, bool allowRemote)
+BaseJob::Query queryToGetContentThumbnail(int width, int height, const QString& method, bool allowRemote)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "width", width);
-    addToQuery<IfNotEmpty>(_q, "height", height);
-    addToQuery<IfNotEmpty>(_q, "method", method);
-    addToQuery<IfNotEmpty>(_q, "allow_remote", allowRemote);
+    addParam<>(_q, "width", width);
+    addParam<>(_q, "height", height);
+    addParam<IfNotEmpty>(_q, "method", method);
+    addParam<IfNotEmpty>(_q, "allow_remote", allowRemote);
     return _q;
 }
 
-QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, Omittable<int> width, Omittable<int> height, const QString& method, bool allowRemote)
+QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId, int width, int height, const QString& method, bool allowRemote)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/thumbnail/" % serverName % "/" % mediaId,
             queryToGetContentThumbnail(width, height, method, allowRemote));
 }
 
-GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId, Omittable<int> width, Omittable<int> height, const QString& method, bool allowRemote)
+GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width, int height, const QString& method, bool allowRemote)
     : BaseJob(HttpVerb::Get, "GetContentThumbnailJob",
         basePath % "/thumbnail/" % serverName % "/" % mediaId,
         queryToGetContentThumbnail(width, height, method, allowRemote),
@@ -231,8 +231,8 @@ class GetUrlPreviewJob::Private
 BaseJob::Query queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
 {
     BaseJob::Query _q;
-    addToQuery<>(_q, "url", url);
-    addToQuery<IfNotEmpty>(_q, "ts", ts);
+    addParam<>(_q, "url", url);
+    addParam<IfNotEmpty>(_q, "ts", ts);
     return _q;
 }
 

@@ -50,7 +50,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& 
         basePath % "/directory/list/room/" % roomId)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "visibility", visibility);
+    addParam<IfNotEmpty>(_data, "visibility", visibility);
     setRequestData(_data);
 }
 
@@ -100,9 +100,9 @@ class GetPublicRoomsJob::Private
 BaseJob::Query queryToGetPublicRooms(Omittable<int> limit, const QString& since, const QString& server)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "limit", limit);
-    addToQuery<IfNotEmpty>(_q, "since", since);
-    addToQuery<IfNotEmpty>(_q, "server", server);
+    addParam<IfNotEmpty>(_q, "limit", limit);
+    addParam<IfNotEmpty>(_q, "since", since);
+    addParam<IfNotEmpty>(_q, "server", server);
     return _q;
 }
 
@@ -164,7 +164,7 @@ namespace QMatrixClient
     QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "generic_search_term", pod.genericSearchTerm);
+        addParam<IfNotEmpty>(_json, "generic_search_term", pod.genericSearchTerm);
         return _json;
     }
 
@@ -210,7 +210,7 @@ class QueryPublicRoomsJob::Private
 BaseJob::Query queryToQueryPublicRooms(const QString& server)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "server", server);
+    addParam<IfNotEmpty>(_q, "server", server);
     return _q;
 }
 
@@ -221,9 +221,9 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> l
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "limit", limit);
-    addToJson<IfNotEmpty>(_data, "since", since);
-    addToJson<IfNotEmpty>(_data, "filter", filter);
+    addParam<IfNotEmpty>(_data, "limit", limit);
+    addParam<IfNotEmpty>(_data, "since", since);
+    addParam<IfNotEmpty>(_data, "filter", filter);
     setRequestData(_data);
 }
 

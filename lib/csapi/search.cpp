@@ -19,43 +19,43 @@ namespace QMatrixClient
     QJsonObject toJson(const SearchJob::IncludeEventContext& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "before_limit", pod.beforeLimit);
-        addToJson<IfNotEmpty>(_json, "after_limit", pod.afterLimit);
-        addToJson<IfNotEmpty>(_json, "include_profile", pod.includeProfile);
+        addParam<IfNotEmpty>(_json, "before_limit", pod.beforeLimit);
+        addParam<IfNotEmpty>(_json, "after_limit", pod.afterLimit);
+        addParam<IfNotEmpty>(_json, "include_profile", pod.includeProfile);
         return _json;
     }
 
     QJsonObject toJson(const SearchJob::Group& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "key", pod.key);
+        addParam<IfNotEmpty>(_json, "key", pod.key);
         return _json;
     }
 
     QJsonObject toJson(const SearchJob::Groupings& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "group_by", pod.groupBy);
+        addParam<IfNotEmpty>(_json, "group_by", pod.groupBy);
         return _json;
     }
 
     QJsonObject toJson(const SearchJob::RoomEventsCriteria& pod)
     {
         QJsonObject _json;
-        addToJson<>(_json, "search_term", pod.searchTerm);
-        addToJson<IfNotEmpty>(_json, "keys", pod.keys);
-        addToJson<IfNotEmpty>(_json, "filter", pod.filter);
-        addToJson<IfNotEmpty>(_json, "order_by", pod.orderBy);
-        addToJson<IfNotEmpty>(_json, "event_context", pod.eventContext);
-        addToJson<IfNotEmpty>(_json, "include_state", pod.includeState);
-        addToJson<IfNotEmpty>(_json, "groupings", pod.groupings);
+        addParam<>(_json, "search_term", pod.searchTerm);
+        addParam<IfNotEmpty>(_json, "keys", pod.keys);
+        addParam<IfNotEmpty>(_json, "filter", pod.filter);
+        addParam<IfNotEmpty>(_json, "order_by", pod.orderBy);
+        addParam<IfNotEmpty>(_json, "event_context", pod.eventContext);
+        addParam<IfNotEmpty>(_json, "include_state", pod.includeState);
+        addParam<IfNotEmpty>(_json, "groupings", pod.groupings);
         return _json;
     }
 
     QJsonObject toJson(const SearchJob::Categories& pod)
     {
         QJsonObject _json;
-        addToJson<IfNotEmpty>(_json, "room_events", pod.roomEvents);
+        addParam<IfNotEmpty>(_json, "room_events", pod.roomEvents);
         return _json;
     }
 
@@ -173,7 +173,7 @@ class SearchJob::Private
 BaseJob::Query queryToSearch(const QString& nextBatch)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "next_batch", nextBatch);
+    addParam<IfNotEmpty>(_q, "next_batch", nextBatch);
     return _q;
 }
 
@@ -184,7 +184,7 @@ SearchJob::SearchJob(const Categories& searchCategories, const QString& nextBatc
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<>(_data, "search_categories", searchCategories);
+    addParam<>(_data, "search_categories", searchCategories);
     setRequestData(_data);
 }
 

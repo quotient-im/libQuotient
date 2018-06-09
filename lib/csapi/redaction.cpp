@@ -24,7 +24,7 @@ RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, co
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "reason", reason);
+    addParam<IfNotEmpty>(_data, "reason", reason);
     setRequestData(_data);
 }
 

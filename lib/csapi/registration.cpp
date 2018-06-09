@@ -24,7 +24,7 @@ class RegisterJob::Private
 BaseJob::Query queryToRegister(const QString& kind)
 {
     BaseJob::Query _q;
-    addToQuery<IfNotEmpty>(_q, "kind", kind);
+    addParam<IfNotEmpty>(_q, "kind", kind);
     return _q;
 }
 
@@ -36,12 +36,12 @@ RegisterJob::RegisterJob(const QString& kind, const QJsonObject& auth, bool bind
     , d(new Private)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "auth", auth);
-    addToJson<IfNotEmpty>(_data, "bind_email", bindEmail);
-    addToJson<IfNotEmpty>(_data, "username", username);
-    addToJson<IfNotEmpty>(_data, "password", password);
-    addToJson<IfNotEmpty>(_data, "device_id", deviceId);
-    addToJson<IfNotEmpty>(_data, "initial_device_display_name", initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_data, "auth", auth);
+    addParam<IfNotEmpty>(_data, "bind_email", bindEmail);
+    addParam<IfNotEmpty>(_data, "username", username);
+    addParam<IfNotEmpty>(_data, "password", password);
+    addParam<IfNotEmpty>(_data, "device_id", deviceId);
+    addParam<IfNotEmpty>(_data, "initial_device_display_name", initialDeviceDisplayName);
     setRequestData(_data);
 }
 
@@ -82,10 +82,10 @@ RequestTokenToRegisterJob::RequestTokenToRegisterJob(const QString& clientSecret
         basePath % "/register/email/requestToken", false)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "id_server", idServer);
-    addToJson<>(_data, "client_secret", clientSecret);
-    addToJson<>(_data, "email", email);
-    addToJson<>(_data, "send_attempt", sendAttempt);
+    addParam<IfNotEmpty>(_data, "id_server", idServer);
+    addParam<>(_data, "client_secret", clientSecret);
+    addParam<>(_data, "email", email);
+    addParam<>(_data, "send_attempt", sendAttempt);
     setRequestData(_data);
 }
 
@@ -94,8 +94,8 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword, const QJsonObje
         basePath % "/account/password")
 {
     QJsonObject _data;
-    addToJson<>(_data, "new_password", newPassword);
-    addToJson<IfNotEmpty>(_data, "auth", auth);
+    addParam<>(_data, "new_password", newPassword);
+    addParam<IfNotEmpty>(_data, "auth", auth);
     setRequestData(_data);
 }
 
@@ -116,7 +116,7 @@ DeactivateAccountJob::DeactivateAccountJob(const QJsonObject& auth)
         basePath % "/account/deactivate")
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "auth", auth);
+    addParam<IfNotEmpty>(_data, "auth", auth);
     setRequestData(_data);
 }
 
@@ -129,7 +129,7 @@ class CheckUsernameAvailabilityJob::Private
 BaseJob::Query queryToCheckUsernameAvailability(const QString& username)
 {
     BaseJob::Query _q;
-    addToQuery<>(_q, "username", username);
+    addParam<>(_q, "username", username);
     return _q;
 }
 

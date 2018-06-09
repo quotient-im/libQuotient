@@ -17,8 +17,8 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence, c
         basePath % "/presence/" % userId % "/status")
 {
     QJsonObject _data;
-    addToJson<>(_data, "presence", presence);
-    addToJson<IfNotEmpty>(_data, "status_msg", statusMsg);
+    addParam<>(_data, "presence", presence);
+    addParam<IfNotEmpty>(_data, "status_msg", statusMsg);
     setRequestData(_data);
 }
 
@@ -84,8 +84,8 @@ ModifyPresenceListJob::ModifyPresenceListJob(const QString& userId, const QStrin
         basePath % "/presence/list/" % userId)
 {
     QJsonObject _data;
-    addToJson<IfNotEmpty>(_data, "invite", invite);
-    addToJson<IfNotEmpty>(_data, "drop", drop);
+    addParam<IfNotEmpty>(_data, "invite", invite);
+    addParam<IfNotEmpty>(_data, "drop", drop);
     setRequestData(_data);
 }
 
