@@ -342,7 +342,6 @@ namespace QMatrixClient
 
         // OpenAPI is entirely JSON-based, which means representing bools as
         // textual true/false, rather than 1/0.
-        template <typename ValT>
         inline void addTo(QUrlQuery& q, const QString& k, bool v)
         {
             q.addQueryItem(k, v ? QStringLiteral("true")
