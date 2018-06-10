@@ -264,8 +264,8 @@ void Connection::sync(int timeout)
 
     // Raw string: http://en.cppreference.com/w/cpp/language/string_literal
     const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
-    auto job = d->syncJob =
-            callApi<SyncJob>(InBackground, d->data->lastEvent(), filter, timeout);
+    auto job = d->syncJob = callApi<SyncJob>(BackgroundRequest,
+                                         d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
@@ -586,7 +586,7 @@ SendToDeviceJob* Connection::sendToDevices(const QString& eventType,
                                     deviceToEvents.second.toJson());
                 });
         });
-    return callApi<SendToDeviceJob>(InBackground,
+    return callApi<SendToDeviceJob>(BackgroundRequest,
                 eventType, generateTxnId(), json);
 }
 

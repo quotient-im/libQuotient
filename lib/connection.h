@@ -53,7 +53,7 @@ namespace QMatrixClient
      *
      * \sa Connection::callApi
      */
-    enum RunningPolicy { InForeground = 0x0, InBackground = 0x1 };
+    enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
 
     class Connection: public QObject {
             Q_OBJECT
@@ -222,7 +222,7 @@ namespace QMatrixClient
             {
                 auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
                 connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-                job->start(connectionData(), runningPolicy&InBackground);
+                job->start(connectionData(), runningPolicy&BackgroundRequest);
                 return job;
             }
 
@@ -233,7 +233,7 @@ namespace QMatrixClient
             template <typename JobT, typename... JobArgTs>
             JobT* callApi(JobArgTs&&... jobArgs) const
             {
-                return callApi<JobT>(InForeground,
+                return callApi<JobT>(ForegroundRequest,
                                      std::forward<JobArgTs>(jobArgs)...);
             }
 
@@ -278,12 +278,12 @@ namespace QMatrixClient
             void stopSync();
 
             virtual MediaThumbnailJob* getThumbnail(const QString& mediaId,
-                QSize requestedSize, RunningPolicy policy = InBackground) const;
+                QSize requestedSize, RunningPolicy policy = BackgroundRequest) const;
             MediaThumbnailJob* getThumbnail(const QUrl& url,
-                QSize requestedSize, RunningPolicy policy = InBackground) const;
+                QSize requestedSize, RunningPolicy policy = BackgroundRequest) const;
             MediaThumbnailJob* getThumbnail(const QUrl& url,
                 int requestedWidth, int requestedHeight,
-                RunningPolicy policy = InBackground) const;
+                RunningPolicy policy = BackgroundRequest) const;
 
             // QIODevice* should already be open
             UploadContentJob* uploadContent(QIODevice* contentSource,
