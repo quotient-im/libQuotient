@@ -198,7 +198,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
     connect(loginJob, &BaseJob::failure, this,
         [this, loginJob] {
-            emit loginError(loginJob->errorString(), loginJob->errorRawData());
+            emit loginError(loginJob->errorString(), loginJob->rawData());
         });
 }
 
@@ -274,7 +274,7 @@ void Connection::sync(int timeout)
     connect( job, &SyncJob::retryScheduled, this,
         [this,job] (int retriesTaken, int nextInMilliseconds)
         {
-            emit networkError(job->errorString(), job->errorRawData(),
+            emit networkError(job->errorString(), job->rawData(),
                               retriesTaken, nextInMilliseconds);
         });
     connect( job, &SyncJob::failure, this, [this, job] {
@@ -283,10 +283,10 @@ void Connection::sync(int timeout)
         {
             qCWarning(SYNCJOB)
                 << "Sync job failed with ContentAccessError - login expired?";
-            emit loginError(job->errorString(), job->errorRawData());
+            emit loginError(job->errorString(), job->rawData());
         }
         else
-            emit syncError(job->errorString(), job->errorRawData());
+            emit syncError(job->errorString(), job->rawData());
     });
 }
 

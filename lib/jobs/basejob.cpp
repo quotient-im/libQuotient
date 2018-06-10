@@ -509,12 +509,12 @@ BaseJob::Status BaseJob::status() const
     return d->status;
 }
 
-int BaseJob::error() const
+QByteArray BaseJob::rawData() const
 {
-    return d->status.code;
+    return d->rawResponse;
 }
 
-QString BaseJob::errorCaption() const
+QString BaseJob::statusCaption() const
 {
     switch (d->status.code)
     {
@@ -553,14 +553,14 @@ QString BaseJob::errorCaption() const
     }
 }
 
+int BaseJob::error() const
+{
+    return d->status.code;
+}
+
 QString BaseJob::errorString() const
 {
     return d->status.message;
-}
-
-QByteArray BaseJob::errorRawData() const
-{
-    return d->rawResponse;
 }
 
 QUrl BaseJob::errorUrl() const

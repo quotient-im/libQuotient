@@ -134,11 +134,21 @@ namespace QMatrixClient
             QUrl requestUrl() const;
             bool isBackground() const;
 
+            /** Current status of the job */
             Status status() const;
+            /** Short human-friendly message on the job status */
+            QString statusCaption() const;
+            /** Raw response body as received from the server */
+            QByteArray rawData() const;
+
+            /** Error (more generally, status) code
+             * Equivalent to status().code
+             * \sa status
+             */
             int error() const;
-            QString errorCaption() const;
+            /** Error-specific message, as returned by the server */
             virtual QString errorString() const;
-            QByteArray errorRawData() const;
+            /** A URL to help/clarify the error, if provided by the server */
             QUrl errorUrl() const;
 
             int maxRetries() const;
