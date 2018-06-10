@@ -53,7 +53,7 @@ cd build_dir
 cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
 cmake --build . --target all
 ```
-This will get you the compiled library in `build_dir` inside your project sources. Only static builds of libqmatrixclient are tested at the moment; experiments with dynamic builds are welcome. The three known projects to link with libqmatrixclient are Quaternion, uMatriks and Tensor; you should take a look at their source code before doing something big with libqmatrixclient on your own. For smaller things, taking a look at qmc-example should give you a basic idea of using the library.
+This will get you the compiled library in `build_dir` inside your project sources. Static builds are tested on all supported platforms. Dynamic builds of libqmatrixclient are only tested on Linux at the moment; experiments with dynamic builds on Windows/OSX are welcome. Taking a look at [qmc-example](https://github.com/QMatrixClient/libqmatrixclient/tree/master/examples) (used to test the library) should give you a basic idea of using libQMatrixClient; for more extensive usage check out the source code of [Quaternion](https://github.com/QMatrixClient/Quaternion) (the reference client built on QMatrixClient).
 
 You can install the library with CMake:
 ```
@@ -101,4 +101,4 @@ QT_LOGGING_RULES="libqmatrixclient.*.debug=true,libqmatrixclient.jobs.debug=fals
 ```
 
 #### Cache format
-In case of troubles with room state and troubles with caching it may be useful to switch cache format from binary to JSON. To do that, set the following value in your client's configuration file/registry key (you might need to create the libqmatrixclient key for that): `libqmatrixclient/cache_type` to `json`. This will make cache saving and loading work slightly slower but the cache will be in a text JSON file (very long and unindented so prepare a good JSON viewer or text editor with JSON formatting capabilities).
+In case of troubles with room state and caching it may be useful to switch cache format from binary to JSON. To do that, set the following value in your client's configuration file/registry key (you might need to create the libqmatrixclient key for that): `libqmatrixclient/cache_type` to `json`. This will make cache saving and loading work slightly slower but the cache will be in a text JSON file (very long and unindented so prepare a good JSON viewer or text editor with JSON formatting capabilities).
