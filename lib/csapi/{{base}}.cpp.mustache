@@ -89,7 +89,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
     addParam<{{^required?}}IfNotEmpty{{/required?}}>(_data, "{{baseName}}", {{paramName}});{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}
-{{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join}}, {{/@join}}{{/produces}} });
+{{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{#@join,}}{{/produces}} });
 {{/producesNonJson?}}}{{!<- mind the actual brace}}
 {{#    responses}}{{#normalResponse?}}{{#allProperties?}}
 {{camelCaseOperationId}}Job::~{{camelCaseOperationId}}Job() = default;

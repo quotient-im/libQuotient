@@ -11,7 +11,7 @@ namespace QMatrixClient
 {
 {{#models}}    // Data structures
 {{#    model}}
-    struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
+    struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>join,}}{{/parents}}{{/parents?}}
     {
 {{#vars}}        {{>maybeOmittableType}} {{nameCamelCase}};
 {{/vars}}    };
@@ -30,7 +30,7 @@ namespace QMatrixClient
         public:{{#models}}
             // Inner data structures
 {{#            model}}
-            struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{#@join}}, {{/@join}}{{/parents}}{{/parents?}}
+            struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>join,}}{{/parents}}{{/parents?}}
             {
 {{#vars}}                {{>maybeOmittableType}} {{nameCamelCase}};
 {{/vars}}            };
