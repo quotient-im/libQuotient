@@ -100,7 +100,7 @@ namespace QMatrixClient
 
             const QJsonObject contentJson() const;
 
-            virtual QJsonObject toJson() const { Q_ASSERT(false); }
+            virtual QJsonObject toJson() const { Q_ASSERT(false); return {}; }
 
         private:
             Type _type;
