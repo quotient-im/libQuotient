@@ -40,7 +40,11 @@ namespace std
     {
         size_t operator()(const QString& s) const Q_DECL_NOEXCEPT
         {
-            return qHash(s, uint(qGlobalQHashSeed()));
+            return qHash(s
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
+                         , uint(qGlobalQHashSeed())
+#endif
+                         );
         }
     };
 }
