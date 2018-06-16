@@ -497,6 +497,9 @@ void Connection::doInDirectChat(const QString& userId,
         if (auto r = room(roomId, JoinState::Join))
         {
             Q_ASSERT(r->id() == roomId);
+            // A direct chat with yourself should only involve yourself :)
+            if (userId == d->userId && r->memberCount() > 1)
+                continue;
             qCDebug(MAIN) << "Requested direct chat with" << userId
                           << "is already available as" << r->id();
             operation(r);
