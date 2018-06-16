@@ -96,14 +96,14 @@ set(libqmatrixclient_SRCS
     lib/jobs/downloadfilejob.cpp
 )
 
-file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
-    ${ABS_API_DEF_PATH}/*.yaml
-    ${ABS_API_DEF_PATH}/definitions/*.yaml
-    ${MATRIX_DOC_PATH}/event-schemas/schema/*
-)
 set(CSAPI_DIR csapi)
 set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 if (MATRIX_DOC_PATH AND GTAD_PATH)
+    file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
+        ${ABS_API_DEF_PATH}/*.yaml
+        ${ABS_API_DEF_PATH}/definitions/*.yaml
+        ${MATRIX_DOC_PATH}/event-schemas/schema/*
+    )
     add_custom_target(update-api
         ${ABS_GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
             ${ABS_API_DEF_PATH}
