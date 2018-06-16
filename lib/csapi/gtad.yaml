@@ -113,7 +113,7 @@ mustache:
     _literalQuote: '"'
     omittedValue: '{}' # default value to initialize omitted parameters with
     initializer: '{{defaultValue}}'
-    join,: '{{#@join}}, {{/@join}}'
+    cjoin: '{{#@join}}, {{/@join}}'
     openOmittable: "{{^required?}}{{#useOmittable}}{{^defaultValue}}Omittable<{{/defaultValue}}{{/useOmittable}}{{/required?}}"
     closeOmittable: "{{^required?}}{{#useOmittable}}{{^defaultValue}}>{{/defaultValue}}{{/useOmittable}}{{/required?}}"
     maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"
@@ -122,9 +122,9 @@ mustache:
     qualifiedMaybeCrefType:
       "{{#avoidCopy}}const {{/avoidCopy}}{{>qualifiedMaybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}{{#moveOnly}}&&{{/moveOnly}}"
     initializeDefaultValue: "{{#defaultValue}}{{>initializer}}{{/defaultValue}}{{^defaultValue}}{{>omittedValue}}{{/defaultValue}}"
-    joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{>join,}}'
-    joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{>join,}}'
-    passQueryParams: '{{#queryParams}}{{paramName}}{{>join,}}{{/queryParams}}'
+    joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{>cjoin}}'
+    joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{>cjoin}}'
+    passQueryParams: '{{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}'
   #  preamble: preamble.mustache
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>
