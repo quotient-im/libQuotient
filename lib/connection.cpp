@@ -486,6 +486,7 @@ void Connection::doInDirectChat(const QString& userId,
     // There can be more than one DC; find the first valid, and delete invalid
     // (left/forgotten) ones along the way.
     const auto* u = user(userId);
+    DirectChatsMap removals;
     for (auto it = d->directChats.find(u);
          it != d->directChats.end() && it.key() == u; ++it)
     {
@@ -509,8 +510,15 @@ void Connection::doInDirectChat(const QString& userId,
             });
         }
         qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
-                        << roomId << "is not valid, discarding it";
-        removeFromDirectChats(roomId);
+                        << roomId << "is not valid and will be discarded";
+        // Postpone actual deletion until we finish iterating d->directChats.
+        removals.insert(it.key(), it.value());
+    }
+    if (!removals.isEmpty())
+    {
+        for (auto it = removals.cbegin(); it != removals.cend(); ++it)
+            d->directChats.remove(it.key(), it.value());
+        d->broadcastDirectChatUpdates({}, removals);
     }
 
     auto j = createDirectChat(userId);
