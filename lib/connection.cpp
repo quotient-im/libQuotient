@@ -465,9 +465,12 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
     const QJsonObject& creationContent)
 {
+    // FIXME: switch to using QStringList instead of const QStringList& in 0.4
+    auto filteredInvites = invites;
+    filteredInvites.removeOne(d->userId); // The creator is by definition in the room
     auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? "public" : "private", alias, name,
-            topic, invites, invite3pids, creationContent, initialState,
+            topic, filteredInvites, invite3pids, creationContent, initialState,
             presetName, isDirect, guestsCanJoin);
     connect(job, &BaseJob::success, this, [this,job] {
         emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
