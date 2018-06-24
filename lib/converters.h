@@ -25,7 +25,6 @@
 
 #include <unordered_map>
 #include <vector>
-#include <functional>
 #if 0 // Waiting for C++17
 #include <experimental/optional>
 
@@ -147,6 +146,15 @@ namespace QMatrixClient
     }
 
     template <typename T>
+    inline QJsonObject toJson(const QSet<T>& set)
+    {
+        QJsonObject json;
+        for (auto e: set)
+            json.insert(toJson(e), QJsonObject{});
+        return json;
+    }
+
+    template <typename T>
     inline QJsonObject toJson(const QHash<QString, T>& hashMap)
     {
         QJsonObject json;
@@ -163,17 +171,6 @@ namespace QMatrixClient
             json.insert(it.key(), toJson(it.value()));
         return json;
     }
-
-#if 0
-    template <typename T>
-    inline auto toJson(const optional<T>& optVal)
-    {
-        if (optVal)
-            return toJson(optVal.value());
-
-        return decltype(toJson(std::declval<T>()))();
-    }
-#endif
 
     template <typename T>
     struct FromJson
@@ -301,6 +298,18 @@ namespace QMatrixClient
         QMap<QString, QVariant> operator()(const QJsonValue& jv) const;
     };
 
+    template <typename T> struct FromJson<QSet<T>>
+    {
+        auto operator()(const QJsonValue& jv) const
+        {
+            const auto json = jv.toObject();
+            QSet<T> s; s.reserve(json.size());
+            for (auto it = json.begin(); it != json.end(); ++it)
+                s.insert(it.key());
+            return s;
+        }
+    };
+
     template <typename T> struct FromJson<QHash<QString, T>>
     {
         auto operator()(const QJsonValue& jv) const
@@ -393,6 +402,24 @@ namespace QMatrixClient
                     AddNode<ValT>::impl(container, key, QString{});
             }
         };
+
+#if 0
+        // This is a special one that unfolds optional<>
+        template <typename ValT, bool Force>
+        struct AddNode<optional<ValT>, Force>
+        {
+            template <typename ContT, typename OptionalT>
+            static void impl(ContT& container,
+                             const QString& key, const OptionalT& value)
+            {
+                if (value)
+                    AddNode<ValT>::impl(container, key, value.value());
+                else if (Force) // Edge case, no value but must put something
+                    AddNode<ValT>::impl(container, key, QString{});
+            }
+        };
+#endif
+
     }  // namespace _impl
 
     static constexpr bool IfNotEmpty = false;
