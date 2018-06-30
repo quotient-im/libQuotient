@@ -166,11 +166,12 @@ namespace QMatrixClient
             User* user();
             QString userId() const;
             QString deviceId() const;
-            /** @deprecated Use accessToken() instead. */
-            Q_INVOKABLE QString token() const;
             QByteArray accessToken() const;
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
+
+            [[deprecated("Use accessToken() instead")]]
+            Q_INVOKABLE QString token() const;
 
             /**
              * Call this before first sync to load from previously saved file.
