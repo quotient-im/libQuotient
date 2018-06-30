@@ -26,7 +26,7 @@ static const auto RegExpOptions =
     | QRegularExpression::UseUnicodePropertiesOption;
 
 /** Converts all that looks like a URL into HTML links */
-static void linkifyUrls(QString& htmlEscapedText)
+[[gnu::const]] static void linkifyUrls(QString& htmlEscapedText)
 {
     // regexp is originally taken from Konsole (https://github.com/KDE/konsole)
     // full url:
