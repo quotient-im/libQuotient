@@ -72,7 +72,7 @@ class Room::Private
 {
     public:
         /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
-        typedef QMultiHash<QString, User*> members_map_t;
+        using members_map_t = QMultiHash<QString, User*>;
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
             : q(nullptr), connection(c), id(move(id_))
@@ -184,8 +184,8 @@ class Room::Private
          * @param placement - position and direction of insertion: Older for
          *                    historical messages, Newer for new ones
          */
-        Timeline::size_type insertEvents(RoomEventsRange&& events,
-                                         EventsPlacement placement);
+        Timeline::size_type moveEventsToTimeline(RoomEventsRange events,
+                                                 EventsPlacement placement);
 
         /**
          * Removes events from the passed container that are already in the timeline
@@ -857,7 +857,7 @@ QList< User* > Room::users() const
 QStringList Room::memberNames() const
 {
     QStringList res;
-    for (auto u : d->membersMap)
+    for (auto u : qAsConst(d->membersMap))
         res.append( roomMembername(u) );
 
     return res;
@@ -931,8 +931,8 @@ inline auto makeErrorStr(const Event& e, QByteArray msg)
     return msg.append("; event dump follows:\n").append(e.originalJson());
 }
 
-Room::Timeline::size_type Room::Private::insertEvents(RoomEventsRange&& events,
-                                                      EventsPlacement placement)
+Room::Timeline::size_type Room::Private::moveEventsToTimeline(
+    RoomEventsRange events, EventsPlacement placement)
 {
     // Historical messages arrive in newest-to-oldest order, so the process for
     // them is symmetric to the one for new messages.
@@ -1376,7 +1376,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
-    const auto insertedSize = insertEvents(move(normalEvents), Newer);
+    const auto insertedSize = moveEventsToTimeline(normalEvents, Newer);
     const auto from = timeline.cend() - insertedSize;
     if (insertedSize > 0)
     {
@@ -1426,7 +1426,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     emit q->aboutToAddHistoricalMessages(normalEvents);
-    const auto insertedSize = insertEvents(move(normalEvents), Older);
+    const auto insertedSize = moveEventsToTimeline(normalEvents, Older);
     const auto from = timeline.crend() - insertedSize;
 
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize

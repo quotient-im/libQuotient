@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <QtCore/QMetaEnum>
-#include <QtCore/QDebug>
+//#include <QtCore/QMetaEnum> // We're about to drop REGISTER_ENUM,
+//#include <QtCore/QDebug>    // therefore these are commented out
 #include <QtCore/QPointer>
 
 #include <functional>
