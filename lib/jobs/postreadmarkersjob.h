@@ -20,6 +20,8 @@
 
 #include "basejob.h"
 
+#include <QtCore/QJsonObject>
+
 using namespace QMatrixClient;
 
 class PostReadMarkersJob : public BaseJob

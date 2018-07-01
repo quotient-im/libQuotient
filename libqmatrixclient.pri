@@ -31,7 +31,6 @@ HEADERS += \
     $$SRCPATH/jobs/requestdata.h \
     $$SRCPATH/jobs/basejob.h \
     $$SRCPATH/jobs/sendeventjob.h \
-    $$SRCPATH/jobs/postreceiptjob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
@@ -61,7 +60,6 @@ SOURCES += \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/sendeventjob.cpp \
-    $$SRCPATH/jobs/postreceiptjob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \

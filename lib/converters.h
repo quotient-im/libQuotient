@@ -65,8 +65,8 @@ namespace QMatrixClient
         public:
             explicit Omittable() : Omittable(none) { }
             Omittable(NoneTag) : _omitted(true) { }
-            Omittable(const T& val) : _value(val), _omitted(false) { }
-            Omittable(T&& val) : _value(std::move(val)), _omitted(false) { }
+            Omittable(const T& val) : _value(val) { }
+            Omittable(T&& val) : _value(std::move(val)) { }
             Omittable<T>& operator=(const T& val)
             {
                 _value = val;
@@ -89,7 +89,7 @@ namespace QMatrixClient
 
         private:
             T _value;
-            bool _omitted;
+            bool _omitted = false;
     };
 
     // This catches anything implicitly convertible to QJsonValue/Object/Array
@@ -175,7 +175,7 @@ namespace QMatrixClient
     template <typename T>
     struct FromJson
     {
-        T operator()(const QJsonValue& jv) const { return static_cast<T>(jv); }
+        T operator()(const QJsonValue& jv) const { return T(jv); }
     };
 
     template <typename T>
