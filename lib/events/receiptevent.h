@@ -20,6 +20,8 @@
 
 #include "event.h"
 
+#include <QtCore/QVector>
+
 namespace QMatrixClient
 {
     struct Receipt
