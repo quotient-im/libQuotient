@@ -37,6 +37,8 @@ namespace QMatrixClient
             Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
             Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
         public:
+            DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
+
             enum class MsgType
             {
                 Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
@@ -44,18 +46,15 @@ namespace QMatrixClient
 
             RoomMessageEvent(const QString& plainBody,
                              const QString& jsonMsgType,
-                             EventContent::TypedBase* content = nullptr)
-                : RoomEvent(Type::RoomMessage)
-                , _msgtype(jsonMsgType), _plainBody(plainBody), _content(content)
-            { }
+                             EventContent::TypedBase* content = nullptr);
             explicit RoomMessageEvent(const QString& plainBody,
                                       MsgType msgType = MsgType::Text,
                                       EventContent::TypedBase* content = nullptr);
             explicit RoomMessageEvent(const QJsonObject& obj);
 
             MsgType msgtype() const;
-            QString rawMsgtype() const       { return _msgtype; }
-            const QString& plainBody() const { return _plainBody; }
+            QString rawMsgtype() const;
+            QString plainBody() const;
             EventContent::TypedBase* content() const
                                              { return _content.data(); }
             QMimeType mimeType() const;
@@ -63,17 +62,12 @@ namespace QMatrixClient
             bool hasFileContent() const;
             bool hasThumbnail() const;
 
-            QJsonObject toJson() const override;
-
-            static constexpr const char* typeId() { return "m.room.message"; }
-
         private:
-            QString _msgtype;
-            QString _plainBody;
             QScopedPointer<EventContent::TypedBase> _content;
 
             REGISTER_ENUM(MsgType)
     };
+    DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
     using MessageEventType = RoomMessageEvent::MsgType;
 
     namespace EventContent
@@ -140,16 +134,16 @@ namespace QMatrixClient
             public:
                 PlayableContent(const QJsonObject& json)
                     : ContentT(json)
-                    , duration(ContentT::originalInfoJson["duration"].toInt())
+                    , duration(ContentT::originalInfoJson["duration"_ls].toInt())
                 { }
 
             protected:
                 void fillJson(QJsonObject* json) const override
                 {
                     ContentT::fillJson(json);
-                    auto infoJson = json->take("info").toObject();
-                    infoJson.insert("duration", duration);
-                    json->insert("info", infoJson);
+                    auto infoJson = json->take("info"_ls).toObject();
+                    infoJson.insert(QStringLiteral("duration"), duration);
+                    json->insert(QStringLiteral("info"), infoJson);
                 }
 
             public:

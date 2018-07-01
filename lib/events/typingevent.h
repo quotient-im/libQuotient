@@ -20,20 +20,19 @@
 
 #include "event.h"
 
-#include <QtCore/QStringList>
-
 namespace QMatrixClient
 {
     class TypingEvent: public Event
     {
         public:
-            static constexpr const char* typeId() { return "m.typing"; }
+            DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
 
             TypingEvent(const QJsonObject& obj);
 
-            QStringList users() const { return _users; }
+            const QStringList& users() const { return _users; }
 
         private:
             QStringList _users;
     };
+    DEFINE_EVENTTYPE_ALIAS(Typing, TypingEvent)
 }  // namespace QMatrixClient

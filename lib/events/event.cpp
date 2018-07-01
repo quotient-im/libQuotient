@@ -33,117 +33,93 @@
 
 using namespace QMatrixClient;
 
-Event::Event(Type type, const QJsonObject& rep)
-    : _type(type), _originalJson(rep)
+event_type_t EventTypeRegistry::nextTypeId()
 {
-    if (!rep.contains("content") &&
-            !rep.value("unsigned").toObject().contains("redacted_because"))
+    static event_type_t typeIndex = unknownTypeId();
+    return ++typeIndex;
+}
+
+Event::Event(Type type, const QJsonObject& json)
+    : _type(type), _json(json)
+{
+    if (!json.contains(ContentKeyL) &&
+            !json.value(UnsignedKeyL).toObject().contains(RedactedCauseKeyL))
     {
         qCWarning(EVENTS) << "Event without 'content' node";
-        qCWarning(EVENTS) << formatJson << rep;
+        qCWarning(EVENTS) << formatJson << json;
     }
 }
 
+Event::Event(Type type, event_mtype_t matrixType, const QJsonObject& contentJson)
+    : Event(type, basicEventJson(matrixType, contentJson))
+{ }
+
 Event::~Event() = default;
 
-QString Event::jsonType() const
+QString Event::matrixType() const
 {
-    return originalJsonObject().value("type").toString();
+    return fullJson()[TypeKeyL].toString();
 }
 
 QByteArray Event::originalJson() const
 {
-    return QJsonDocument(_originalJson).toJson();
-}
-
-QJsonObject Event::originalJsonObject() const
-{
-    return _originalJson;
+    return QJsonDocument(_json).toJson();
 }
 
 const QJsonObject Event::contentJson() const
 {
-    return _originalJson["content"].toObject();
+    return fullJson()[ContentKeyL].toObject();
 }
 
-template <typename BaseEventT>
-inline event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject&, const QString&)
+const QJsonObject Event::unsignedJson() const
 {
-    return nullptr;
+    return fullJson()[UnsignedKeyL].toObject();
 }
 
-template <typename BaseEventT, typename EventT, typename... EventTs>
-inline event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& o,
-                                              const QString& selector)
+[[gnu::unused]] static auto roomEventTypeInitialised =
+        EventTypeRegistry::chainFactories<Event, RoomEvent>();
+
+RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
+                     const QJsonObject& contentJson)
+    : Event(type, matrixType, contentJson)
+{ }
+
+RoomEvent::RoomEvent(Type type, const QJsonObject& json)
+    : Event(type, json)
 {
-    if (selector == EventT::typeId())
-        return _impl::create<EventT>(o);
-
-    return makeIfMatches<BaseEventT, EventTs...>(o, selector);
-}
-
-template <>
-EventPtr _impl::doMakeEvent<Event>(const QJsonObject& obj)
-{
-    // Check more specific event types first
-    if (auto e = doMakeEvent<RoomEvent>(obj))
-        return ptrCast<Event>(move(e));
-
-    return makeIfMatches<Event,
-        TypingEvent, ReceiptEvent, TagEvent, ReadMarkerEvent, DirectChatEvent>(
-                    obj, obj["type"].toString());
-}
-
-RoomEvent::RoomEvent(Event::Type type) : Event(type) { }
-
-RoomEvent::RoomEvent(Type type, const QJsonObject& rep)
-    : Event(type, rep)
-    , _id(rep["event_id"].toString())
-{
-//    if (_id.isEmpty())
-//    {
-//        qCWarning(EVENTS) << "Can't find event_id in a room event";
-//        qCWarning(EVENTS) << formatJson << rep;
-//    }
-//    if (!rep.contains("origin_server_ts"))
-//    {
-//        qCWarning(EVENTS) << "Can't find server timestamp in a room event";
-//        qCWarning(EVENTS) << formatJson << rep;
-//    }
-//    if (_senderId.isEmpty())
-//    {
-//        qCWarning(EVENTS) << "Can't find sender in a room event";
-//        qCWarning(EVENTS) << formatJson << rep;
-//    }
-    auto unsignedData = rep["unsigned"].toObject();
-    auto redaction = unsignedData.value("redacted_because");
+    const auto unsignedData = json[UnsignedKeyL].toObject();
+    const auto redaction = unsignedData[RedactedCauseKeyL];
     if (redaction.isObject())
     {
-        _redactedBecause = _impl::create<RedactionEvent>(redaction.toObject());
+        _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
         return;
     }
 
-    _txnId = unsignedData.value("transactionId").toString();
+    _txnId = unsignedData.value("transactionId"_ls).toString();
     if (!_txnId.isEmpty())
         qCDebug(EVENTS) << "Event transactionId:" << _txnId;
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
+QString RoomEvent::id() const
+{
+    return fullJson()[EventIdKeyL].toString();
+}
+
 QDateTime RoomEvent::timestamp() const
 {
-    return QMatrixClient::fromJson<QDateTime>(
-                originalJsonObject().value("origin_server_ts"));
+    return QMatrixClient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
 }
 
 QString RoomEvent::roomId() const
 {
-    return originalJsonObject().value("room_id").toString();
+    return fullJson()["room_id"_ls].toString();
 }
 
 QString RoomEvent::senderId() const
 {
-    return originalJsonObject().value("sender").toString();
+    return fullJson()["sender"_ls].toString();
 }
 
 QString RoomEvent::redactionReason() const
@@ -151,37 +127,17 @@ QString RoomEvent::redactionReason() const
     return isRedacted() ? _redactedBecause->reason() : QString{};
 }
 
-void RoomEvent::addId(const QString& id)
+void RoomEvent::addId(const QString& newId)
 {
-    Q_ASSERT(_id.isEmpty()); Q_ASSERT(!id.isEmpty());
-    _id = id;
+    Q_ASSERT(id().isEmpty()); Q_ASSERT(!newId.isEmpty());
+    editJson().insert(EventIdKey, newId);
 }
 
-template <>
-RoomEventPtr _impl::doMakeEvent(const QJsonObject& obj)
-{
-    // Check more specific event types first
-    if (auto e = doMakeEvent<StateEventBase>(obj))
-        return ptrCast<RoomEvent>(move(e));
-
-    return makeIfMatches<RoomEvent,
-        RoomMessageEvent, RedactionEvent>(obj, obj["type"].toString());
-}
+[[gnu::unused]] static auto stateEventTypeInitialised =
+        EventTypeRegistry::chainFactories<RoomEvent, StateEventBase>();
 
 bool StateEventBase::repeatsState() const
 {
-    auto contentJson = originalJsonObject().value("content");
-    auto prevContentJson = originalJsonObject().value("unsigned")
-                                .toObject().value("prev_content");
-    return contentJson == prevContentJson;
-}
-
-template<>
-StateEventPtr _impl::doMakeEvent<StateEventBase>(const QJsonObject& obj)
-{
-    return makeIfMatches<StateEventBase,
-        RoomNameEvent, RoomAliasesEvent,
-        RoomCanonicalAliasEvent, RoomMemberEvent, RoomTopicEvent,
-        RoomAvatarEvent, EncryptionEvent>(obj, obj["type"].toString());
-
+    const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
+    return fullJson().value(ContentKeyL) == prevContentJson;
 }

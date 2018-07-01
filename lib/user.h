@@ -106,10 +106,18 @@ namespace QMatrixClient
             void processEvent(const RoomMemberEvent& event, const Room* r);
 
         public slots:
+            /** Set a new name in the global user profile */
             void rename(const QString& newName);
+            /** Set a new name for the user in one room */
             void rename(const QString& newName, const Room* r);
+            /** Upload the file and use it as an avatar */
             bool setAvatar(const QString& fileName);
+            /** Upload contents of the QIODevice and set that as an avatar */
             bool setAvatar(QIODevice* source);
+            /** Create or find a direct chat with this user
+             * The resulting chat is returned asynchronously via
+             * Connection::directChatAvailable()
+             */
             void requestDirectChat();
 
         signals:

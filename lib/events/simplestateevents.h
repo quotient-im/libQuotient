@@ -23,31 +23,69 @@
 
 namespace QMatrixClient
 {
-#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _EnumType, _ContentType, _ContentKey) \
-    class _Name \
-        : public StateEvent<EventContent::SimpleContent<_ContentType>> \
+    namespace EventContent
+    {
+        template <typename T>
+        class SimpleContent: public Base
+        {
+            public:
+                using value_type = T;
+
+                // The constructor is templated to enable perfect forwarding
+                template <typename TT>
+                SimpleContent(QString keyName, TT&& value)
+                    : value(std::forward<TT>(value)), key(std::move(keyName))
+                { }
+                SimpleContent(const QJsonObject& json, QString keyName)
+                    : Base(json)
+                    , value(QMatrixClient::fromJson<T>(json[keyName]))
+                    , key(std::move(keyName))
+                { }
+
+            public:
+                T value;
+
+            protected:
+                QString key;
+
+            private:
+                void fillJson(QJsonObject* json) const override
+                {
+                    Q_ASSERT(json);
+                    json->insert(key, QMatrixClient::toJson(value));
+                }
+        };
+    } // namespace EventContent
+
+#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ContentType, _ContentKey) \
+    class _Name : public StateEvent<EventContent::SimpleContent<_ContentType>> \
     { \
         public: \
-            static constexpr const char* typeId() { return _TypeId; } \
+            using content_type = _ContentType; \
+            DEFINE_EVENT_TYPEID(_TypeId, _Name) \
             explicit _Name(const QJsonObject& obj) \
-                : StateEvent(_EnumType, obj, QStringLiteral(#_ContentKey)) \
+                : StateEvent(typeId(), obj, QStringLiteral(#_ContentKey)) \
             { } \
             template <typename T> \
             explicit _Name(T&& value) \
-                : StateEvent(_EnumType, QStringLiteral(#_ContentKey), \
+                : StateEvent(typeId(), matrixTypeId(), \
+                             QStringLiteral(#_ContentKey), \
                              std::forward<T>(value)) \
             { } \
-            const _ContentType& _ContentKey() const { return content().value; } \
-    };
+            auto _ContentKey() const { return content().value; } \
+    }; // End of macro
 
-    DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name",
-                              Event::Type::RoomName, QString, name)
+    DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
+    DEFINE_EVENTTYPE_ALIAS(RoomName, RoomNameEvent)
     DEFINE_SIMPLE_STATE_EVENT(RoomAliasesEvent, "m.room.aliases",
-                              Event::Type::RoomAliases, QStringList, aliases)
+                              QStringList, aliases)
+    DEFINE_EVENTTYPE_ALIAS(RoomAliases, RoomAliasesEvent)
     DEFINE_SIMPLE_STATE_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias",
-                              Event::Type::RoomCanonicalAlias, QString, alias)
-    DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic",
-                              Event::Type::RoomTopic, QString, topic)
+                              QString, alias)
+    DEFINE_EVENTTYPE_ALIAS(RoomCanonicalAlias, RoomCanonicalAliasEvent)
+    DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
+    DEFINE_EVENTTYPE_ALIAS(RoomTopic, RoomTopicEvent)
     DEFINE_SIMPLE_STATE_EVENT(EncryptionEvent, "m.room.encryption",
-                              Event::Type::RoomEncryption, QString, algorithm)
+                              QString, algorithm)
+    DEFINE_EVENTTYPE_ALIAS(RoomEncryption, EncryptionEvent)
 } // namespace QMatrixClient

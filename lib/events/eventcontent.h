@@ -21,13 +21,10 @@
 // This file contains generic event content definitions, applicable to room
 // message events as well as other events (e.g., avatars).
 
-#include "converters.h"
-
+#include <QtCore/QJsonObject>
 #include <QtCore/QMimeType>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
-
-#include <functional>
 
 namespace QMatrixClient
 {
@@ -56,37 +53,6 @@ namespace QMatrixClient
 
             protected:
                 virtual void fillJson(QJsonObject* o) const = 0;
-        };
-
-        template <typename T = QString>
-        class SimpleContent: public Base
-        {
-            public:
-                using value_type = T;
-
-                // The constructor is templated to enable perfect forwarding
-                template <typename TT>
-                SimpleContent(QString keyName, TT&& value)
-                    : value(std::forward<TT>(value)), key(std::move(keyName))
-                { }
-                SimpleContent(const QJsonObject& json, QString keyName)
-                    : Base(json)
-                    , value(QMatrixClient::fromJson<T>(json[keyName]))
-                    , key(std::move(keyName))
-                { }
-
-            public:
-                T value;
-
-            protected:
-                QString key;
-
-            private:
-                void fillJson(QJsonObject* json) const override
-                {
-                    Q_ASSERT(json);
-                    json->insert(key, QMatrixClient::toJson(value));
-                }
         };
 
         // The below structures fairly follow CS spec 11.2.1.6. The overall

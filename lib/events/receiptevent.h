@@ -39,14 +39,14 @@ namespace QMatrixClient
     class ReceiptEvent: public Event
     {
         public:
+            DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
             explicit ReceiptEvent(const QJsonObject& obj);
 
-            EventsWithReceipts eventsWithReceipts() const
+            const EventsWithReceipts& eventsWithReceipts() const
             { return _eventsWithReceipts; }
-
-            static constexpr const char* typeId() { return "m.receipt"; }
 
         private:
             EventsWithReceipts _eventsWithReceipts;
     };
+    DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
 }  // namespace QMatrixClient

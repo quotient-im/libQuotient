@@ -17,8 +17,8 @@
  */
 
 #include "eventcontent.h"
+#include "util.h"
 
-#include <QtCore/QUrl>
 #include <QtCore/QMimeDatabase>
 
 using namespace QMatrixClient::EventContent;
@@ -39,9 +39,9 @@ FileInfo::FileInfo(const QUrl& u, int payloadSize, const QMimeType& mimeType,
 FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
                    const QString& originalFilename)
     : originalInfoJson(infoJson)
-    , mimeType(QMimeDatabase().mimeTypeForName(infoJson["mimetype"].toString()))
+    , mimeType(QMimeDatabase().mimeTypeForName(infoJson["mimetype"_ls].toString()))
     , url(u)
-    , payloadSize(infoJson["size"].toInt())
+    , payloadSize(infoJson["size"_ls].toInt())
     , originalName(originalFilename)
 {
     if (!mimeType.isValid())
@@ -51,8 +51,8 @@ FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
 void FileInfo::fillInfoJson(QJsonObject* infoJson) const
 {
     Q_ASSERT(infoJson);
-    infoJson->insert("size", payloadSize);
-    infoJson->insert("mimetype", mimeType.name());
+    infoJson->insert(QStringLiteral("size"), payloadSize);
+    infoJson->insert(QStringLiteral("mimetype"), mimeType.name());
 }
 
 ImageInfo::ImageInfo(const QUrl& u, int fileSize, QMimeType mimeType,
@@ -63,23 +63,24 @@ ImageInfo::ImageInfo(const QUrl& u, int fileSize, QMimeType mimeType,
 ImageInfo::ImageInfo(const QUrl& u, const QJsonObject& infoJson,
                      const QString& originalFilename)
     : FileInfo(u, infoJson, originalFilename)
-    , imageSize(infoJson["w"].toInt(), infoJson["h"].toInt())
+    , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
 { }
 
 void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
 {
     FileInfo::fillInfoJson(infoJson);
-    infoJson->insert("w", imageSize.width());
-    infoJson->insert("h", imageSize.height());
+    infoJson->insert(QStringLiteral("w"), imageSize.width());
+    infoJson->insert(QStringLiteral("h"), imageSize.height());
 }
 
 Thumbnail::Thumbnail(const QJsonObject& infoJson)
-    : ImageInfo(infoJson["thumbnail_url"].toString(),
-                infoJson["thumbnail_info"].toObject())
+    : ImageInfo(infoJson["thumbnail_url"_ls].toString(),
+                infoJson["thumbnail_info"_ls].toObject())
 { }
 
 void Thumbnail::fillInfoJson(QJsonObject* infoJson) const
 {
-    infoJson->insert("thumbnail_url", url.toString());
-    infoJson->insert("thumbnail_info", toInfoJson<ImageInfo>(*this));
+    infoJson->insert(QStringLiteral("thumbnail_url"), url.toString());
+    infoJson->insert(QStringLiteral("thumbnail_info"),
+                     toInfoJson<ImageInfo>(*this));
 }
