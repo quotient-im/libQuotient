@@ -33,7 +33,7 @@ namespace QMatrixClient
     }
 
     template <typename TargetEventT, typename EventT>
-    inline TargetEventT* weakPtr(const event_ptr_tt<EventT>& ptr)
+    inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
     {
         return static_cast<TargetEventT*>(rawPtr(ptr));
     }
