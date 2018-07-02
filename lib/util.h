@@ -18,9 +18,11 @@
 
 #pragma once
 
-//#include <QtCore/QMetaEnum> // We're about to drop REGISTER_ENUM,
-//#include <QtCore/QDebug>    // therefore these are commented out
 #include <QtCore/QPointer>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 5, 0))
+#include <QtCore/QMetaEnum>
+#include <QtCore/QDebug>
+#endif
 
 #include <functional>
 #include <memory>
