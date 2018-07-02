@@ -20,6 +20,7 @@
 
 #include "csapi/create_room.h"
 #include "joinstate.h"
+#include "events/accountdataevents.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
@@ -32,7 +33,6 @@ namespace QMatrixClient
 {
     class Room;
     class User;
-    class RoomEvent;
     class ConnectionData;
 
     class SyncJob;
@@ -46,7 +46,6 @@ namespace QMatrixClient
     class GetContentJob;
     class DownloadFileJob;
     class SendToDeviceJob;
-    class Event;
 
     /** Enumeration with flags defining the network job running policy
      * So far only background/foreground flags are available.
@@ -74,10 +73,7 @@ namespace QMatrixClient
                 std::function<User*(Connection*, const QString&)>;
 
             using DirectChatsMap = QMultiHash<const User*, QString>;
-
-            using AccountDataMap = std::conditional_t<
-                QT_VERSION >= QT_VERSION_CHECK(5, 5, 0),
-                QVariantHash, QVariantMap>;
+            using IgnoredUsersList = IgnoredUsersEvent::content_type;
 
             using UsersToDevicesToEvents =
                 std::unordered_map<QString,
@@ -101,11 +97,37 @@ namespace QMatrixClient
             bool hasAccountData(const QString& type) const;
 
             /** Get a generic account data event of the given type
-             * This returns a generic hashmap for any account data event
+             * This returns an account data event of the given type
              * stored on the server. Direct chats map cannot be retrieved
              * using this method _yet_; use directChats() instead.
              */
-            AccountDataMap accountData(const QString& type) const;
+            const EventPtr& accountData(const QString& type) const;
+
+            /** Get a generic account data event of the given type
+             * This returns an account data event of the given type
+             * stored on the server. Direct chats map cannot be retrieved
+             * using this method _yet_; use directChats() instead.
+             */
+            template <typename EventT>
+            const typename EventT::content_type accountData() const
+            {
+                if (const auto& eventPtr = accountData(EventT::matrixTypeId()))
+                    return eventPtr->content();
+                return {};
+            }
+
+            /** Get account data as a JSON object
+             * This returns the content part of the account data event
+             * of the given type. Direct chats map cannot be retrieved using
+             * this method _yet_; use directChats() instead.
+             */
+            Q_INVOKABLE QJsonObject accountDataJson(const QString& type) const;
+
+            /** Set a generic account data event of the given type */
+            void setAccountData(EventPtr&& event);
+
+            Q_INVOKABLE void setAccountData(const QString& type,
+                                            const QJsonObject& content);
 
             /** Get all Invited and Joined rooms grouped by tag
              * \return a hashmap from tag name to a vector of room pointers,
@@ -153,6 +175,27 @@ namespace QMatrixClient
              * a direct chat; an empty list if the room is not a direct chat
              */
             QList<const User*> directChatUsers(const Room* room) const;
+
+            /** Check whether a particular user is in the ignore list */
+            bool isIgnored(const User* user) const;
+
+            /** Get the whole list of ignored users */
+            IgnoredUsersList ignoredUsers() const;
+
+            /** Add the user to the ignore list
+             * The change signal is emitted synchronously, without waiting
+             * to complete synchronisation with the server.
+             *
+             * \sa ignoredUsersListChanged
+             */
+            void addToIgnoredUsers(const User* user);
+
+            /** Remove the user from the ignore list
+             * Similar to adding, the change signal is emitted synchronously.
+             *
+             * \sa ignoredUsersListChanged
+             */
+            void removeFromIgnoredUsers(const User* user);
 
             /** Get the full list of users known to this account */
             QMap<QString, User*> users() const;
@@ -515,6 +558,9 @@ namespace QMatrixClient
              */
             void directChatsListChanged(DirectChatsMap additions,
                                         DirectChatsMap removals);
+
+            void ignoredUsersListChanged(IgnoredUsersList additions,
+                                         IgnoredUsersList removals);
 
             void cacheStateChanged();
 

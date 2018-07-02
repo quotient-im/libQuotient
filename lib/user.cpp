@@ -199,6 +199,12 @@ User::User(QString userId, Connection* connection)
     setObjectName(userId);
 }
 
+Connection* User::connection() const
+{
+    Q_ASSERT(d->connection);
+    return d->connection;
+}
+
 User::~User() = default;
 
 QString User::id() const
@@ -260,7 +266,7 @@ void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
 
 void User::rename(const QString& newName)
 {
-    auto job = d->connection->callApi<SetDisplayNameJob>(id(), newName);
+    auto job = connection()->callApi<SetDisplayNameJob>(id(), newName);
     connect(job, &BaseJob::success, this, [=] { updateName(newName); });
 }
 
@@ -283,20 +289,29 @@ void User::rename(const QString& newName, const Room* r)
 
 bool User::setAvatar(const QString& fileName)
 {
-    return avatarObject().upload(d->connection, fileName,
+    return avatarObject().upload(connection(), fileName,
                 std::bind(&Private::setAvatarOnServer, d.data(), _1, this));
 }
 
 bool User::setAvatar(QIODevice* source)
 {
-    return avatarObject().upload(d->connection, source,
+    return avatarObject().upload(connection(), source,
                 std::bind(&Private::setAvatarOnServer, d.data(), _1, this));
 }
 
 void User::requestDirectChat()
 {
-    Q_ASSERT(d->connection);
-    d->connection->requestDirectChat(d->userId);
+    connection()->requestDirectChat(d->userId);
+}
+
+void User::ignore()
+{
+    connection()->addToIgnoredUsers(this);
+}
+
+void User::unmarkIgnore()
+{
+    connection()->removeFromIgnoredUsers(this);
 }
 
 void User::Private::setAvatarOnServer(QString contentUri, User* q)

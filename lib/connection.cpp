@@ -19,11 +19,9 @@
 #include "connection.h"
 #include "connectiondata.h"
 #include "user.h"
-#include "events/event.h"
 #include "events/directchatevent.h"
 #include "room.h"
 #include "settings.h"
-#include "converters.h"
 #include "csapi/login.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
@@ -90,7 +88,7 @@ class Connection::Private
         QVector<Room*> firstTimeRooms;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
-        QHash<QString, AccountDataMap> accountData;
+        std::unordered_map<QString, EventPtr> accountData;
         QString userId;
 
         SyncJob* syncJob = nullptr;
@@ -103,6 +101,30 @@ class Connection::Private
                               const QString& deviceId);
         void broadcastDirectChatUpdates(const DirectChatsMap& additions,
                                         const DirectChatsMap& removals);
+
+        template <typename EventT>
+        EventT* unpackAccountData() const
+        {
+            const auto& eventIt = accountData.find(EventT::matrixTypeId());
+            return eventIt == accountData.end()
+                    ? nullptr : weakPtrCast<EventT>(eventIt->second);
+        }
+
+        void packAndSendAccountData(EventPtr&& event)
+        {
+            const auto eventType = event->matrixType();
+            q->callApi<SetAccountDataJob>(userId, eventType,
+                                          event->contentJson());
+            accountData[eventType] = std::move(event);
+            emit q->accountDataChanged(eventType);
+        }
+
+        template <typename EventT, typename ContentT>
+        void packAndSendAccountData(ContentT&& content)
+        {
+            packAndSendAccountData(
+                        makeEvent<EventT>(std::forward<ContentT>(content)));
+        }
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -325,7 +347,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
     }
     for (auto&& accountEvent: data.takeAccountData())
     {
-        if (accountEvent->type() == EventType::DirectChat)
+        if (is<DirectChatEvent>(*accountEvent))
         {
             const auto usersToDCs = ptrCast<DirectChatEvent>(move(accountEvent))
                                         ->usersToDirectChats();
@@ -355,9 +377,21 @@ void Connection::onSyncSuccess(SyncData &&data) {
 
             continue;
         }
-        d->accountData[accountEvent->matrixType()] =
-                fromJson<AccountDataMap>(accountEvent->contentJson());
-        emit accountDataChanged(accountEvent->matrixType());
+        if (is<IgnoredUsersEvent>(*accountEvent))
+            qCDebug(MAIN) << "Users ignored by" << d->userId << "updated:"
+                << QStringList::fromSet(ignoredUsers()).join(',');
+
+        auto& currentData = d->accountData[accountEvent->matrixType()];
+        // A polymorphic event-specific comparison might be a bit more
+        // efficient; maaybe do it another day
+        if (!currentData ||
+                currentData->contentJson() != accountEvent->contentJson())
+        {
+            currentData = std::move(accountEvent);
+            qCDebug(MAIN) << "Updated account data of type"
+                          << currentData->matrixType();
+            emit accountDataChanged(currentData->matrixType());
+        }
     }
 }
 
@@ -705,12 +739,30 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
 
 bool Connection::hasAccountData(const QString& type) const
 {
-    return d->accountData.contains(type);
+    return d->accountData.find(type) != d->accountData.cend();
 }
 
-Connection::AccountDataMap Connection::accountData(const QString& type) const
+const EventPtr& Connection::accountData(const QString& type) const
 {
-    return d->accountData.value(type);
+    static EventPtr NoEventPtr {};
+    auto it = d->accountData.find(type);
+    return it == d->accountData.end() ? NoEventPtr : it->second;
+}
+
+QJsonObject Connection::accountDataJson(const QString& type) const
+{
+    const auto& eventPtr = accountData(type);
+    return eventPtr ? eventPtr->contentJson() : QJsonObject();
+}
+
+void Connection::setAccountData(EventPtr&& event)
+{
+    d->packAndSendAccountData(std::move(event));
+}
+
+void Connection::setAccountData(const QString& type, const QJsonObject& content)
+{
+    d->packAndSendAccountData(loadEvent<Event>(type, content));
 }
 
 QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
@@ -813,6 +865,42 @@ QList<const User*> Connection::directChatUsers(const Room* room) const
 {
     Q_ASSERT(room != nullptr);
     return d->directChats.keys(room->id());
+}
+
+bool Connection::isIgnored(const User* user) const
+{
+    return ignoredUsers().contains(user->id());
+}
+
+Connection::IgnoredUsersList Connection::ignoredUsers() const
+{
+    const auto* event = d->unpackAccountData<IgnoredUsersEvent>();
+    return event ? event->ignored_users() : IgnoredUsersList();
+}
+
+void Connection::addToIgnoredUsers(const User* user)
+{
+    Q_ASSERT(user != nullptr);
+
+    auto ignoreList = ignoredUsers();
+    if (!ignoreList.contains(user->id()))
+    {
+        ignoreList.insert(user->id());
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({{ user->id() }}, {});
+    }
+}
+
+void Connection::removeFromIgnoredUsers(const User* user)
+{
+    Q_ASSERT(user != nullptr);
+
+    auto ignoreList = ignoredUsers();
+    if (ignoreList.remove(user->id()) != 0)
+    {
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({}, {{ user->id() }});
+    }
 }
 
 QMap<QString, User*> Connection::users() const
@@ -952,17 +1040,12 @@ void Connection::saveState(const QUrl &toFile) const
     }
     {
         QJsonArray accountDataEvents {
-            QJsonObject {
-                { QStringLiteral("type"), QStringLiteral("m.direct") },
-                { QStringLiteral("content"), toJson(d->directChats) }
-            }
+            basicEventJson(QStringLiteral("m.direct"), toJson(d->directChats))
         };
+        for (const auto &e : d->accountData)
+            accountDataEvents.append(
+                basicEventJson(e.first, e.second->contentJson()));
 
-        for (auto it = d->accountData.begin(); it != d->accountData.end(); ++it)
-            accountDataEvents.append(QJsonObject {
-                {"type", it.key()},
-                {"content", QMatrixClient::toJson(it.value())}
-            });
         rootObj.insert("account_data",
             QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
     }
