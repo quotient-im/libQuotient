@@ -18,8 +18,10 @@ QUrl LogoutJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/logout");
 }
 
+static const auto LogoutJobName = QStringLiteral("LogoutJob");
+
 LogoutJob::LogoutJob()
-    : BaseJob(HttpVerb::Post, "LogoutJob",
+    : BaseJob(HttpVerb::Post, LogoutJobName,
         basePath % "/logout")
 {
 }
@@ -30,8 +32,10 @@ QUrl LogoutAllJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/logout/all");
 }
 
+static const auto LogoutAllJobName = QStringLiteral("LogoutAllJob");
+
 LogoutAllJob::LogoutAllJob()
-    : BaseJob(HttpVerb::Post, "LogoutAllJob",
+    : BaseJob(HttpVerb::Post, LogoutAllJobName,
         basePath % "/logout/all")
 {
 }

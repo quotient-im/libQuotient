@@ -21,20 +21,22 @@ class LoginJob::Private
         QString deviceId;
 };
 
+static const auto LoginJobName = QStringLiteral("LoginJob");
+
 LoginJob::LoginJob(const QString& type, const QString& user, const QString& medium, const QString& address, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName)
-    : BaseJob(HttpVerb::Post, "LoginJob",
+    : BaseJob(HttpVerb::Post, LoginJobName,
         basePath % "/login", false)
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<>(_data, "type", type);
-    addParam<IfNotEmpty>(_data, "user", user);
-    addParam<IfNotEmpty>(_data, "medium", medium);
-    addParam<IfNotEmpty>(_data, "address", address);
-    addParam<IfNotEmpty>(_data, "password", password);
-    addParam<IfNotEmpty>(_data, "token", token);
-    addParam<IfNotEmpty>(_data, "device_id", deviceId);
-    addParam<IfNotEmpty>(_data, "initial_device_display_name", initialDeviceDisplayName);
+    addParam<>(_data, QStringLiteral("type"), type);
+    addParam<IfNotEmpty>(_data, QStringLiteral("user"), user);
+    addParam<IfNotEmpty>(_data, QStringLiteral("medium"), medium);
+    addParam<IfNotEmpty>(_data, QStringLiteral("address"), address);
+    addParam<IfNotEmpty>(_data, QStringLiteral("password"), password);
+    addParam<IfNotEmpty>(_data, QStringLiteral("token"), token);
+    addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
+    addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"), initialDeviceDisplayName);
     setRequestData(_data);
 }
 
@@ -63,10 +65,10 @@ const QString& LoginJob::deviceId() const
 BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->userId = fromJson<QString>(json.value("user_id"));
-    d->accessToken = fromJson<QString>(json.value("access_token"));
-    d->homeServer = fromJson<QString>(json.value("home_server"));
-    d->deviceId = fromJson<QString>(json.value("device_id"));
+    d->userId = fromJson<QString>(json.value("user_id"_ls));
+    d->accessToken = fromJson<QString>(json.value("access_token"_ls));
+    d->homeServer = fromJson<QString>(json.value("home_server"_ls));
+    d->deviceId = fromJson<QString>(json.value("device_id"_ls));
     return Success;
 }
 

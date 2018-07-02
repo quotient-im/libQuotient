@@ -18,8 +18,10 @@ class SendMessageJob::Private
         QString eventId;
 };
 
+static const auto SendMessageJobName = QStringLiteral("SendMessageJob");
+
 SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType, const QString& txnId, const QJsonObject& body)
-    : BaseJob(HttpVerb::Put, "SendMessageJob",
+    : BaseJob(HttpVerb::Put, SendMessageJobName,
         basePath % "/rooms/" % roomId % "/send/" % eventType % "/" % txnId)
     , d(new Private)
 {
@@ -36,7 +38,7 @@ const QString& SendMessageJob::eventId() const
 BaseJob::Status SendMessageJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"));
+    d->eventId = fromJson<QString>(json.value("event_id"_ls));
     return Success;
 }
 

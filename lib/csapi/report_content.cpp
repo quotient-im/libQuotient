@@ -12,13 +12,15 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+static const auto ReportContentJobName = QStringLiteral("ReportContentJob");
+
 ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId, int score, const QString& reason)
-    : BaseJob(HttpVerb::Post, "ReportContentJob",
+    : BaseJob(HttpVerb::Post, ReportContentJobName,
         basePath % "/rooms/" % roomId % "/report/" % eventId)
 {
     QJsonObject _data;
-    addParam<>(_data, "score", score);
-    addParam<>(_data, "reason", reason);
+    addParam<>(_data, QStringLiteral("score"), score);
+    addParam<>(_data, QStringLiteral("reason"), reason);
     setRequestData(_data);
 }
 

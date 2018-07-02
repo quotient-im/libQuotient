@@ -12,22 +12,26 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+static const auto BanJobName = QStringLiteral("BanJob");
+
 BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reason)
-    : BaseJob(HttpVerb::Post, "BanJob",
+    : BaseJob(HttpVerb::Post, BanJobName,
         basePath % "/rooms/" % roomId % "/ban")
 {
     QJsonObject _data;
-    addParam<>(_data, "user_id", userId);
-    addParam<IfNotEmpty>(_data, "reason", reason);
+    addParam<>(_data, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
     setRequestData(_data);
 }
 
+static const auto UnbanJobName = QStringLiteral("UnbanJob");
+
 UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
-    : BaseJob(HttpVerb::Post, "UnbanJob",
+    : BaseJob(HttpVerb::Post, UnbanJobName,
         basePath % "/rooms/" % roomId % "/unban")
 {
     QJsonObject _data;
-    addParam<>(_data, "user_id", userId);
+    addParam<>(_data, QStringLiteral("user_id"), userId);
     setRequestData(_data);
 }
 

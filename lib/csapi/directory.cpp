@@ -12,12 +12,14 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0/directory");
 
+static const auto SetRoomAliasJobName = QStringLiteral("SetRoomAliasJob");
+
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
-    : BaseJob(HttpVerb::Put, "SetRoomAliasJob",
+    : BaseJob(HttpVerb::Put, SetRoomAliasJobName,
         basePath % "/room/" % roomAlias)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "room_id", roomId);
+    addParam<IfNotEmpty>(_data, QStringLiteral("room_id"), roomId);
     setRequestData(_data);
 }
 
@@ -34,8 +36,10 @@ QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
             basePath % "/room/" % roomAlias);
 }
 
+static const auto GetRoomIdByAliasJobName = QStringLiteral("GetRoomIdByAliasJob");
+
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Get, "GetRoomIdByAliasJob",
+    : BaseJob(HttpVerb::Get, GetRoomIdByAliasJobName,
         basePath % "/room/" % roomAlias, false)
     , d(new Private)
 {
@@ -56,8 +60,8 @@ const QStringList& GetRoomIdByAliasJob::servers() const
 BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->roomId = fromJson<QString>(json.value("room_id"));
-    d->servers = fromJson<QStringList>(json.value("servers"));
+    d->roomId = fromJson<QString>(json.value("room_id"_ls));
+    d->servers = fromJson<QStringList>(json.value("servers"_ls));
     return Success;
 }
 
@@ -67,8 +71,10 @@ QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
             basePath % "/room/" % roomAlias);
 }
 
+static const auto DeleteRoomAliasJobName = QStringLiteral("DeleteRoomAliasJob");
+
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Delete, "DeleteRoomAliasJob",
+    : BaseJob(HttpVerb::Delete, DeleteRoomAliasJobName,
         basePath % "/room/" % roomAlias)
 {
 }

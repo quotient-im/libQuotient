@@ -24,8 +24,10 @@ QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/versions");
 }
 
+static const auto GetVersionsJobName = QStringLiteral("GetVersionsJob");
+
 GetVersionsJob::GetVersionsJob()
-    : BaseJob(HttpVerb::Get, "GetVersionsJob",
+    : BaseJob(HttpVerb::Get, GetVersionsJobName,
         basePath % "/versions", false)
     , d(new Private)
 {
@@ -41,7 +43,7 @@ const QStringList& GetVersionsJob::versions() const
 BaseJob::Status GetVersionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->versions = fromJson<QStringList>(json.value("versions"));
+    d->versions = fromJson<QStringList>(json.value("versions"_ls));
     return Success;
 }
 

@@ -32,13 +32,13 @@ SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
     if( !filter.isEmpty() )
-        query.addQueryItem("filter", filter);
+        query.addQueryItem(QStringLiteral("filter"), filter);
     if( !presence.isEmpty() )
-        query.addQueryItem("set_presence", presence);
+        query.addQueryItem(QStringLiteral("set_presence"), presence);
     if( timeout >= 0 )
-        query.addQueryItem("timeout", QString::number(timeout));
+        query.addQueryItem(QStringLiteral("timeout"), QString::number(timeout));
     if( !since.isEmpty() )
-        query.addQueryItem("since", since);
+        query.addQueryItem(QStringLiteral("since"), since);
     setRequestQuery(query);
 
     setMaxRetries(std::numeric_limits<int>::max());
@@ -72,7 +72,7 @@ Events&&SyncData::takeToDeviceEvents()
 template <typename EventsArrayT, typename StrT>
 inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
 {
-    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"));
+    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
@@ -85,12 +85,12 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
     QElapsedTimer et; et.start();
 
     auto json = data.object();
-    nextBatch_ = json.value("next_batch").toString();
-    presenceData = load<Events>(json, "presence");
-    accountData = load<Events>(json, "account_data");
-    toDeviceEvents = load<Events>(json, "to_device");
+    nextBatch_ = json.value("next_batch"_ls).toString();
+    presenceData = load<Events>(json, "presence"_ls);
+    accountData = load<Events>(json, "account_data"_ls);
+    toDeviceEvents = load<Events>(json, "to_device"_ls);
 
-    QJsonObject rooms = json.value("rooms").toObject();
+    auto rooms = json.value("rooms"_ls).toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
     auto totalRooms = 0;
     auto totalEvents = 0;
@@ -123,30 +123,31 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
     : roomId(roomId_)
     , joinState(joinState_)
     , state(load<StateEvents>(room_,
-                joinState == JoinState::Invite ? "invite_state" : "state"))
+                joinState == JoinState::Invite ? "invite_state"_ls : "state"_ls))
 {
     switch (joinState) {
         case JoinState::Join:
-            ephemeral = load<Events>(room_, "ephemeral");
-            accountData = load<Events>(room_, "account_data");
+            ephemeral = load<Events>(room_, "ephemeral"_ls);
+            accountData = load<Events>(room_, "account_data"_ls);
             FALLTHROUGH;
         case JoinState::Leave:
         {
-            timeline = load<RoomEvents>(room_, "timeline");
-            auto timelineJson = room_.value("timeline").toObject();
-            timelineLimited = timelineJson.value("limited").toBool();
-            timelinePrevBatch = timelineJson.value("prev_batch").toString();
+            timeline = load<RoomEvents>(room_, "timeline"_ls);
+            const auto timelineJson = room_.value("timeline"_ls).toObject();
+            timelineLimited = timelineJson.value("limited"_ls).toBool();
+            timelinePrevBatch = timelineJson.value("prev_batch"_ls).toString();
 
             break;
         }
         default: /* nothing on top of state */;
     }
 
-    auto unreadJson = room_.value("unread_notifications").toObject();
+    const auto unreadJson = room_.value("unread_notifications"_ls).toObject();
     unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);
-    highlightCount = unreadJson.value("highlight_count").toInt();
-    notificationCount = unreadJson.value("notification_count").toInt();
+    highlightCount = unreadJson.value("highlight_count"_ls).toInt();
+    notificationCount = unreadJson.value("notification_count"_ls).toInt();
     if (highlightCount > 0 || notificationCount > 0)
-        qCDebug(SYNCJOB) << "Highlights: " << highlightCount
-                         << " Notifications:" << notificationCount;
+        qCDebug(SYNCJOB) << "Room" << roomId_
+                         << "has highlights:" << highlightCount
+                         << "and notifications:" << notificationCount;
 }

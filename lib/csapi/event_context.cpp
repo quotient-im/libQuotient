@@ -26,7 +26,7 @@ class GetEventContextJob::Private
 BaseJob::Query queryToGetEventContext(Omittable<int> limit)
 {
     BaseJob::Query _q;
-    addParam<IfNotEmpty>(_q, "limit", limit);
+    addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
     return _q;
 }
 
@@ -37,8 +37,10 @@ QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, con
             queryToGetEventContext(limit));
 }
 
+static const auto GetEventContextJobName = QStringLiteral("GetEventContextJob");
+
 GetEventContextJob::GetEventContextJob(const QString& roomId, const QString& eventId, Omittable<int> limit)
-    : BaseJob(HttpVerb::Get, "GetEventContextJob",
+    : BaseJob(HttpVerb::Get, GetEventContextJobName,
         basePath % "/rooms/" % roomId % "/context/" % eventId,
         queryToGetEventContext(limit))
     , d(new Private)
@@ -80,12 +82,12 @@ StateEvents&& GetEventContextJob::state()
 BaseJob::Status GetEventContextJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->begin = fromJson<QString>(json.value("start"));
-    d->end = fromJson<QString>(json.value("end"));
-    d->eventsBefore = fromJson<RoomEvents>(json.value("events_before"));
-    d->event = fromJson<RoomEventPtr>(json.value("event"));
-    d->eventsAfter = fromJson<RoomEvents>(json.value("events_after"));
-    d->state = fromJson<StateEvents>(json.value("state"));
+    d->begin = fromJson<QString>(json.value("start"_ls));
+    d->end = fromJson<QString>(json.value("end"_ls));
+    d->eventsBefore = fromJson<RoomEvents>(json.value("events_before"_ls));
+    d->event = fromJson<RoomEventPtr>(json.value("event"_ls));
+    d->eventsAfter = fromJson<RoomEvents>(json.value("events_after"_ls));
+    d->state = fromJson<StateEvents>(json.value("state"_ls));
     return Success;
 }
 

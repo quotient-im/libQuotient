@@ -23,7 +23,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetPushersJob::PusherData result;
             result.url =
-                fromJson<QString>(_json.value("url"));
+                fromJson<QString>(_json.value("url"_ls));
 
             return result;
         }
@@ -36,21 +36,21 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetPushersJob::Pusher result;
             result.pushkey =
-                fromJson<QString>(_json.value("pushkey"));
+                fromJson<QString>(_json.value("pushkey"_ls));
             result.kind =
-                fromJson<QString>(_json.value("kind"));
+                fromJson<QString>(_json.value("kind"_ls));
             result.appId =
-                fromJson<QString>(_json.value("app_id"));
+                fromJson<QString>(_json.value("app_id"_ls));
             result.appDisplayName =
-                fromJson<QString>(_json.value("app_display_name"));
+                fromJson<QString>(_json.value("app_display_name"_ls));
             result.deviceDisplayName =
-                fromJson<QString>(_json.value("device_display_name"));
+                fromJson<QString>(_json.value("device_display_name"_ls));
             result.profileTag =
-                fromJson<QString>(_json.value("profile_tag"));
+                fromJson<QString>(_json.value("profile_tag"_ls));
             result.lang =
-                fromJson<QString>(_json.value("lang"));
+                fromJson<QString>(_json.value("lang"_ls));
             result.data =
-                fromJson<GetPushersJob::PusherData>(_json.value("data"));
+                fromJson<GetPushersJob::PusherData>(_json.value("data"_ls));
 
             return result;
         }
@@ -69,8 +69,10 @@ QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/pushers");
 }
 
+static const auto GetPushersJobName = QStringLiteral("GetPushersJob");
+
 GetPushersJob::GetPushersJob()
-    : BaseJob(HttpVerb::Get, "GetPushersJob",
+    : BaseJob(HttpVerb::Get, GetPushersJobName,
         basePath % "/pushers")
     , d(new Private)
 {
@@ -86,7 +88,7 @@ const QVector<GetPushersJob::Pusher>& GetPushersJob::pushers() const
 BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->pushers = fromJson<QVector<Pusher>>(json.value("pushers"));
+    d->pushers = fromJson<QVector<Pusher>>(json.value("pushers"_ls));
     return Success;
 }
 
@@ -97,25 +99,27 @@ namespace QMatrixClient
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
         QJsonObject _json;
-        addParam<IfNotEmpty>(_json, "url", pod.url);
+        addParam<IfNotEmpty>(_json, QStringLiteral("url"), pod.url);
         return _json;
     }
 } // namespace QMatrixClient
 
+static const auto PostPusherJobName = QStringLiteral("PostPusherJob");
+
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag, bool append)
-    : BaseJob(HttpVerb::Post, "PostPusherJob",
+    : BaseJob(HttpVerb::Post, PostPusherJobName,
         basePath % "/pushers/set")
 {
     QJsonObject _data;
-    addParam<>(_data, "pushkey", pushkey);
-    addParam<>(_data, "kind", kind);
-    addParam<>(_data, "app_id", appId);
-    addParam<>(_data, "app_display_name", appDisplayName);
-    addParam<>(_data, "device_display_name", deviceDisplayName);
-    addParam<IfNotEmpty>(_data, "profile_tag", profileTag);
-    addParam<>(_data, "lang", lang);
-    addParam<>(_data, "data", data);
-    addParam<IfNotEmpty>(_data, "append", append);
+    addParam<>(_data, QStringLiteral("pushkey"), pushkey);
+    addParam<>(_data, QStringLiteral("kind"), kind);
+    addParam<>(_data, QStringLiteral("app_id"), appId);
+    addParam<>(_data, QStringLiteral("app_display_name"), appDisplayName);
+    addParam<>(_data, QStringLiteral("device_display_name"), deviceDisplayName);
+    addParam<IfNotEmpty>(_data, QStringLiteral("profile_tag"), profileTag);
+    addParam<>(_data, QStringLiteral("lang"), lang);
+    addParam<>(_data, QStringLiteral("data"), data);
+    addParam<IfNotEmpty>(_data, QStringLiteral("append"), append);
     setRequestData(_data);
 }
 

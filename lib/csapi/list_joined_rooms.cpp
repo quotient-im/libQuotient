@@ -24,8 +24,10 @@ QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/joined_rooms");
 }
 
+static const auto GetJoinedRoomsJobName = QStringLiteral("GetJoinedRoomsJob");
+
 GetJoinedRoomsJob::GetJoinedRoomsJob()
-    : BaseJob(HttpVerb::Get, "GetJoinedRoomsJob",
+    : BaseJob(HttpVerb::Get, GetJoinedRoomsJobName,
         basePath % "/joined_rooms")
     , d(new Private)
 {
@@ -41,10 +43,10 @@ const QStringList& GetJoinedRoomsJob::joinedRooms() const
 BaseJob::Status GetJoinedRoomsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("joined_rooms"))
+    if (!json.contains("joined_rooms"_ls))
         return { JsonParseError,
             "The key 'joined_rooms' not found in the response" };
-    d->joinedRooms = fromJson<QStringList>(json.value("joined_rooms"));
+    d->joinedRooms = fromJson<QStringList>(json.value("joined_rooms"_ls));
     return Success;
 }
 

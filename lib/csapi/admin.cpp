@@ -23,11 +23,11 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetWhoIsJob::ConnectionInfo result;
             result.ip =
-                fromJson<QString>(_json.value("ip"));
+                fromJson<QString>(_json.value("ip"_ls));
             result.lastSeen =
-                fromJson<qint64>(_json.value("last_seen"));
+                fromJson<qint64>(_json.value("last_seen"_ls));
             result.userAgent =
-                fromJson<QString>(_json.value("user_agent"));
+                fromJson<QString>(_json.value("user_agent"_ls));
 
             return result;
         }
@@ -40,7 +40,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetWhoIsJob::SessionInfo result;
             result.connections =
-                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(_json.value("connections"));
+                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(_json.value("connections"_ls));
 
             return result;
         }
@@ -53,7 +53,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetWhoIsJob::DeviceInfo result;
             result.sessions =
-                fromJson<QVector<GetWhoIsJob::SessionInfo>>(_json.value("sessions"));
+                fromJson<QVector<GetWhoIsJob::SessionInfo>>(_json.value("sessions"_ls));
 
             return result;
         }
@@ -73,8 +73,10 @@ QUrl GetWhoIsJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
             basePath % "/admin/whois/" % userId);
 }
 
+static const auto GetWhoIsJobName = QStringLiteral("GetWhoIsJob");
+
 GetWhoIsJob::GetWhoIsJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, "GetWhoIsJob",
+    : BaseJob(HttpVerb::Get, GetWhoIsJobName,
         basePath % "/admin/whois/" % userId)
     , d(new Private)
 {
@@ -95,8 +97,8 @@ const QHash<QString, GetWhoIsJob::DeviceInfo>& GetWhoIsJob::devices() const
 BaseJob::Status GetWhoIsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->userId = fromJson<QString>(json.value("user_id"));
-    d->devices = fromJson<QHash<QString, DeviceInfo>>(json.value("devices"));
+    d->userId = fromJson<QString>(json.value("user_id"_ls));
+    d->devices = fromJson<QHash<QString, DeviceInfo>>(json.value("devices"_ls));
     return Success;
 }
 
