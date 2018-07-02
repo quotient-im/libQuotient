@@ -168,7 +168,7 @@ class Room::Private
         {
             return !ti->isRedacted() &&
                 ti->senderId() != connection->userId() &&
-                ti->is<RoomMessageEvent>();
+                is<RoomMessageEvent>(*ti);
         }
 
         void addNewMessageEvents(RoomEvents&& events);
@@ -725,7 +725,7 @@ const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
     auto evtIt = q->findInTimeline(eventId);
-    if (evtIt != timeline.rend() && evtIt->event()->is<RoomMessageEvent>())
+    if (evtIt != timeline.rend() && is<RoomMessageEvent>(**evtIt))
     {
         auto* event = evtIt->viewAs<RoomMessageEvent>();
         if (event->hasFileContent())
@@ -1275,7 +1275,7 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 
 inline bool isRedaction(const RoomEventPtr& e)
 {
-    return e && e->is<RedactionEvent>();
+    return e && is<RedactionEvent>(*e);
 }
 
 void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)

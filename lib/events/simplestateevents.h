@@ -73,7 +73,9 @@ namespace QMatrixClient
                              std::forward<T>(value)) \
             { } \
             auto _ContentKey() const { return content().value; } \
-    }; // End of macro
+    }; \
+    REGISTER_EVENT_TYPE(_Name) \
+    // End of macro
 
     DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
     DEFINE_EVENTTYPE_ALIAS(RoomName, RoomNameEvent)

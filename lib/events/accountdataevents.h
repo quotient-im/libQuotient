@@ -65,8 +65,10 @@ namespace QMatrixClient
                                         toJson(std::move(content)) } }) \
             { } \
             auto _ContentKey() const \
-            { return fromJson<content_type>(contentJson()[#_ContentKey]); } \
-    }; // End of macro
+            { return fromJson<content_type>(contentJson()[#_ContentKey##_ls]); } \
+    }; \
+    REGISTER_EVENT_TYPE(_Name) \
+    // End of macro
 
     DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", TagsMap, tags)
     DEFINE_SIMPLE_EVENT(ReadMarkerEvent, "m.fully_read", QString, event_id)

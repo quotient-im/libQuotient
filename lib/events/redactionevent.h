@@ -36,5 +36,6 @@ namespace QMatrixClient
             QString reason() const
             { return contentJson()["reason"_ls].toString(); }
     };
+    REGISTER_EVENT_TYPE(RedactionEvent)
     DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
 } // namespace QMatrixClient

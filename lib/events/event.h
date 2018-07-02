@@ -21,6 +21,8 @@
 #include "converters.h"
 #include "util.h"
 
+#include <typeindex>
+
 namespace QMatrixClient
 {
     // === event_ptr_tt<> and type casting facilities ===
@@ -46,10 +48,7 @@ namespace QMatrixClient
         return unique_ptr_cast<TargetT>(ptr);
     }
 
-    // === Predefined types and JSON key names
-
-    using event_type_t = uint;
-    using event_mtype_t = const char*;
+    // === Standard Matrix key names and basicEventJson() ===
 
     static const auto TypeKey = QStringLiteral("type");
     static const auto ContentKey = QStringLiteral("content");
@@ -61,7 +60,41 @@ namespace QMatrixClient
     static const auto RedactedCauseKeyL = "redacted_because"_ls;
     static const auto PrevContentKeyL = "prev_content"_ls;
 
+    // Minimal correct Matrix event JSON
+    template <typename StrT>
+    inline QJsonObject basicEventJson(StrT matrixType,
+                                      const QJsonObject& content)
+    {
+        return { { TypeKey, std::forward<StrT>(matrixType) },
+                 { ContentKey, content } };
+    }
+
     // === Event factory ===
+
+    using event_type_t = size_t;
+    using event_mtype_t = const char*;
+
+    template <typename EventT>
+    struct EventTypeTraits
+    {
+        static const event_type_t id;
+    };
+
+    template <>
+    struct EventTypeTraits<void>
+    {
+        static constexpr event_type_t id = 0;
+    };
+
+    event_type_t nextTypeId();
+
+    template <typename EventT>
+    const event_type_t EventTypeTraits<EventT>::id = nextTypeId();
+
+    template <typename EventT>
+    inline event_type_t typeId() { return EventTypeTraits<std::decay_t<EventT>>::id; }
+
+    inline event_type_t unknownEventTypeId() { return typeId<void>(); }
 
     template <typename EventT, typename... ArgTs>
     inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
@@ -69,11 +102,15 @@ namespace QMatrixClient
         return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
     }
 
-    class EventTypeRegistry
+    template <typename BaseEventT>
+    class EventFactory
     {
         public:
-            static constexpr event_type_t unknownTypeId() { return 0; }
-            static event_type_t nextTypeId();
+            template <typename FnT>
+            static void addMethod(FnT&& method)
+            {
+                factories().emplace_back(std::forward<FnT>(method));
+            }
 
             /** Chain two type factories
              * Adds the factory class of EventT2 (EventT2::factory_t) to
@@ -83,53 +120,11 @@ namespace QMatrixClient
              * to include RoomEvent types into the more general Event factory,
              * and state event types into the RoomEvent factory.
              */
-            template <typename EventT1, typename EventT2>
-            static auto chainFactories()
+            template <typename EventT>
+            static auto chainFactory()
             {
-                EventT1::factory_t::addFactory(&EventT2::factory_t::make);
+                addMethod(&EventT::factory_t::make);
                 return 0;
-            }
-
-            /** Add a type to its default factory
-             * Adds a standard factory method (via makeEvent<>) for a given
-             * type to EventT::factory_t factory class so that it can be
-             * created dynamically from loadEvent<>().
-             *
-             * \tparam EventT the type to enable dynamic creation of
-             * \return the registered type id
-             * \sa loadEvent, Event::type
-             */
-            template <typename EventT>
-            static auto addType()
-            {
-                EventT::factory_t::addFactory(
-                    [] (const QJsonObject& json, const QString& jsonMatrixType)
-                    {
-                        return EventT::matrixTypeId() == jsonMatrixType
-                                ? makeEvent<EventT>(json) : nullptr;
-                    });
-                return nextTypeId();
-            }
-
-            template <typename EventT>
-            static auto typeId() { return _typeId<std::decay_t<EventT>>; }
-
-        private:
-            template <typename EventT>
-            static const event_type_t _typeId;
-    };
-
-    template <typename EventT>
-    const event_type_t EventTypeRegistry::_typeId = addType<EventT>();
-
-    template <typename BaseEventT>
-    class EventFactory
-    {
-        public:
-            template <typename FnT>
-            static void addFactory(FnT&& factory)
-            {
-                factories().emplace_back(std::forward<FnT>(factory));
             }
 
             static event_ptr_tt<BaseEventT> make(const QJsonObject& json,
@@ -138,8 +133,7 @@ namespace QMatrixClient
                 for (const auto& f: factories())
                     if (auto e = f(json, matrixType))
                         return e;
-                return makeEvent<BaseEventT>(EventTypeRegistry::unknownTypeId(),
-                                             json);
+                return makeEvent<BaseEventT>(unknownEventTypeId(), json);
             }
 
         private:
@@ -153,12 +147,24 @@ namespace QMatrixClient
             }
     };
 
-    template <typename StrT>
-    inline QJsonObject basicEventJson(StrT matrixType,
-                                      const QJsonObject& content)
+    /** Add a type to its default factory
+     * Adds a standard factory method (via makeEvent<>) for a given
+     * type to EventT::factory_t factory class so that it can be
+     * created dynamically from loadEvent<>().
+     *
+     * \tparam EventT the type to enable dynamic creation of
+     * \return the registered type id
+     * \sa loadEvent, Event::type
+     */
+    template <typename EventT>
+    inline void setupFactory()
     {
-        return { { TypeKey, std::forward<StrT>(matrixType) },
-                 { ContentKey, content } };
+        EventT::factory_t::addMethod(
+            [] (const QJsonObject& json, const QString& jsonMatrixType)
+            {
+                return EventT::matrixTypeId() == jsonMatrixType
+                        ? makeEvent<EventT>(json) : nullptr;
+            });
     }
 
     /** Create an event with proper type from a JSON object
@@ -199,6 +205,8 @@ namespace QMatrixClient
     class Event
     {
             Q_GADGET
+            Q_PROPERTY(Type type READ type CONSTANT)
+            Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
         public:
             using Type = event_type_t;
             using factory_t = EventFactory<Event>;
@@ -228,22 +236,12 @@ namespace QMatrixClient
 
             virtual bool isStateEvent() const { return false; }
 
-            template <typename EventT>
-            bool is() const
-            {
-                const auto eventTypeId = EventTypeRegistry::typeId<EventT>();
-                return _type == eventTypeId;
-            }
-
         protected:
             QJsonObject& editJson() { return _json; }
 
         private:
             Type _type;
             QJsonObject _json;
-
-            Q_PROPERTY(Type type READ type CONSTANT)
-            Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
     };
     using EventPtr = event_ptr_tt<Event>;
 
@@ -251,33 +249,47 @@ namespace QMatrixClient
     using EventsArray = std::vector<event_ptr_tt<EventT>>;
     using Events = EventsArray<Event>;
 
+    // === Macros used with event class definitions ===
+
     // This macro should be used in a public section of an event class to
     // provide matrixTypeId() and typeId().
 #define DEFINE_EVENT_TYPEID(_Id, _Type) \
     static constexpr event_mtype_t matrixTypeId() { return _Id; } \
-    static event_type_t typeId() { return EventTypeRegistry::typeId<_Type>(); }
+    static auto typeId() { return QMatrixClient::typeId<_Type>(); } \
+    // End of macro
 
-    // This macro should be put after an event class definition to define an
-    // additional constant that can be used for an event type id. The constant
-    // will be inside EventType namespace. This is for back-compatibility,
-    // to support clients checking for EventType::ShortName (previously
-    // EventType was a typedef for an enumeration). New code should use
-    // either typeId() for a specific event type, or (better) casting methods
-    // defined in the very beginning of this file.
+    // This macro should be put after an event class definition (in .h or .cpp)
+    // to enable its deserialisation from a /sync and other
+    // polymorphic event arrays
+#define REGISTER_EVENT_TYPE(_Type) \
+    namespace { \
+        [[gnu::unused]] \
+        static const auto _factoryAdded##_Type = ( setupFactory<_Type>(), 0); \
+    } \
+    // End of macro
+
+    // This macro provides constants in EventType:: namespace for
+    // back-compatibility with libQMatrixClient 0.3 event type system.
 #define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) \
     namespace EventType \
     { \
-        [[deprecated("Use "#_Type"::typeId(), Event::is<>() or visit<>()")]] \
-        static const auto _Id { _Type::typeId() }; \
-    } // End of macro
+        [[deprecated("Use typeId<>(), is<>() or visit<>()")]] \
+        static const auto _Id = typeId<_Type>(); \
+    } \
+    // End of macro
 
-    // === visit<>() ===
+    // === is<>() and visit<>() ===
+
+    template <typename EventT>
+    inline bool is(const Event& e) { return e.type() == typeId<EventT>(); }
+
+    inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
 
     template <typename FnT>
     inline fn_return_t<FnT> visit(const Event& event, FnT visitor)
     {
         using event_type = fn_arg_t<FnT>;
-        if (event.is<event_type>())
+        if (is<event_type>(event))
             return visitor(static_cast<event_type>(event));
         return fn_return_t<FnT>();
     }
@@ -286,7 +298,7 @@ namespace QMatrixClient
     inline auto visit(const Event& event, FnT visitor1, FnTs&&... visitors)
     {
         using event_type1 = fn_arg_t<FnT>;
-        if (event.is<event_type1>())
+        if (is<event_type1>(event))
             return visitor1(static_cast<event_type1&>(event));
 
         return visit(event, std::forward<FnTs>(visitors)...);

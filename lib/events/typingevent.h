@@ -34,5 +34,6 @@ namespace QMatrixClient
         private:
             QStringList _users;
     };
+    REGISTER_EVENT_TYPE(TypingEvent)
     DEFINE_EVENTTYPE_ALIAS(Typing, TypingEvent)
 }  // namespace QMatrixClient

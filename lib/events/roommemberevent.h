@@ -80,5 +80,6 @@ namespace QMatrixClient
         private:
             REGISTER_ENUM(MembershipType)
     };
+    REGISTER_EVENT_TYPE(RoomMemberEvent)
     DEFINE_EVENTTYPE_ALIAS(RoomMember, RoomMemberEvent)
 }  // namespace QMatrixClient

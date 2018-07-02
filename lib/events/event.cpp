@@ -18,26 +18,12 @@
 
 #include "event.h"
 
-#include "roommessageevent.h"
-#include "simplestateevents.h"
-#include "roommemberevent.h"
-#include "roomavatarevent.h"
-#include "typingevent.h"
-#include "receiptevent.h"
-#include "accountdataevents.h"
-#include "directchatevent.h"
 #include "redactionevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
 
 using namespace QMatrixClient;
-
-event_type_t EventTypeRegistry::nextTypeId()
-{
-    static event_type_t typeIndex = unknownTypeId();
-    return ++typeIndex;
-}
 
 Event::Event(Type type, const QJsonObject& json)
     : _type(type), _json(json)
@@ -77,7 +63,7 @@ const QJsonObject Event::unsignedJson() const
 }
 
 [[gnu::unused]] static auto roomEventTypeInitialised =
-        EventTypeRegistry::chainFactories<Event, RoomEvent>();
+        Event::factory_t::chainFactory<RoomEvent>();
 
 RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
                      const QJsonObject& contentJson)
@@ -134,10 +120,16 @@ void RoomEvent::addId(const QString& newId)
 }
 
 [[gnu::unused]] static auto stateEventTypeInitialised =
-        EventTypeRegistry::chainFactories<RoomEvent, StateEventBase>();
+        RoomEvent::factory_t::chainFactory<StateEventBase>();
 
 bool StateEventBase::repeatsState() const
 {
     const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
     return fullJson().value(ContentKeyL) == prevContentJson;
+}
+
+event_type_t QMatrixClient::nextTypeId()
+{
+    static event_type_t _id = EventTypeTraits<void>::id;
+    return ++_id;
 }
