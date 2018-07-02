@@ -48,12 +48,16 @@ namespace QMatrixClient
             using index_t = int;
 
             TimelineItem(RoomEventPtr&& e, index_t number)
-                : evt(std::move(e)), idx(number) { }
+                : evt(std::move(e)), idx(number)
+            {
+                Q_ASSERT(evt);
+            }
 
             const RoomEvent* event() const { return rawPtr(evt); }
             template <typename EventT>
             const EventT* viewAs() const { return weakPtrCast<const EventT>(evt); }
             const RoomEventPtr& operator->() const { return evt; }
+            const RoomEvent& operator*() const { return *evt; }
             index_t index() const { return idx; }
 
             // Used for event redaction
