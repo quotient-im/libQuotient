@@ -139,7 +139,7 @@ namespace QMatrixClient
             /** Short human-friendly message on the job status */
             QString statusCaption() const;
             /** Raw response body as received from the server */
-            QByteArray rawData() const;
+            QByteArray rawData(int bytesAtMost = -1) const;
 
             /** Error (more generally, status) code
              * Equivalent to status().code

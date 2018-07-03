@@ -509,9 +509,10 @@ BaseJob::Status BaseJob::status() const
     return d->status;
 }
 
-QByteArray BaseJob::rawData() const
+QByteArray BaseJob::rawData(int bytesAtMost) const
 {
-    return d->rawResponse;
+    return bytesAtMost > 0 ?
+        d->rawResponse.left(bytesAtMost) + "...(truncated)" : d->rawResponse;
 }
 
 QString BaseJob::statusCaption() const
