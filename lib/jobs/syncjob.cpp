@@ -129,7 +129,7 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
         case JoinState::Join:
             ephemeral = load<Events>(room_, "ephemeral");
             accountData = load<Events>(room_, "account_data");
-            // [[fallthrough]]
+            FALLTHROUGH;
         case JoinState::Leave:
         {
             timeline = load<RoomEvents>(room_, "timeline");

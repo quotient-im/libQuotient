@@ -27,6 +27,14 @@
 #include <functional>
 #include <memory>
 
+#if __cplusplus >= 201703L
+#define FALLTHROUGH [[fallthrough]]
+#elif __has_cpp_attribute(clang::fallthrough)
+#define FALLTHROUGH [[clang::fallthrough]]
+#else
+#define FALLTHROUGH // -fallthrough
+#endif
+
 namespace QMatrixClient
 {
     // The below enables pretty-printing of enums in logs
