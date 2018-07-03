@@ -92,17 +92,26 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
 
     QJsonObject rooms = json.value("rooms").toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
+    auto totalRooms = 0;
+    auto totalEvents = 0;
     for (size_t i = 0; i < JoinStateStrings.size(); ++i, ii <<= 1)
     {
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(static_cast<size_t>(rs.size()));
         for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
+        {
             roomData.emplace_back(roomIt.key(), JoinState(ii),
                                   roomIt.value().toObject());
+            const auto& r = roomData.back();
+            totalEvents += r.state.size() + r.ephemeral.size() +
+                           r.accountData.size() + r.timeline.size();
+        }
+        totalRooms += roomData.size();
     }
     qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
-                      << rooms.size() << "room(s) in" << et;
+                      << totalRooms << "room(s),"
+                      << totalEvents << "event(s) in" << et;
     return BaseJob::Success;
 }
 
