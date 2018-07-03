@@ -263,7 +263,8 @@ void Connection::sync(int timeout)
         return;
 
     // Raw string: http://en.cppreference.com/w/cpp/language/string_literal
-    const QString filter { R"({"room": { "timeline": { "limit": 100 } } })" };
+    const auto filter =
+        QStringLiteral(R"({"room": { "timeline": { "limit": 100 } } })");
     auto job = d->syncJob = callApi<SyncJob>(BackgroundRequest,
                                          d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, this, [this, job] {
