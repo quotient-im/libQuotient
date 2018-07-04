@@ -20,6 +20,8 @@
 
 #include "event.h"
 
+#include <QtCore/QDateTime>
+
 namespace QMatrixClient {
     class RedactionEvent;
 
