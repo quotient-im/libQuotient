@@ -87,6 +87,7 @@ namespace QMatrixClient
             struct ResultRoomEvents
             {
                 Omittable<qint64> count;
+                QStringList highlights;
                 std::vector<Result> results;
                 std::unordered_map<QString, StateEvents> state;
                 QHash<QString, QHash<QString, GroupValue>> groups;

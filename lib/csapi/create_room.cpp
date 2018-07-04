@@ -28,9 +28,9 @@ namespace QMatrixClient
     QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
     {
         QJsonObject _json;
-        addParam<IfNotEmpty>(_json, QStringLiteral("type"), pod.type);
+        addParam<>(_json, QStringLiteral("type"), pod.type);
         addParam<IfNotEmpty>(_json, QStringLiteral("state_key"), pod.stateKey);
-        addParam<IfNotEmpty>(_json, QStringLiteral("content"), pod.content);
+        addParam<>(_json, QStringLiteral("content"), pod.content);
         return _json;
     }
 } // namespace QMatrixClient

@@ -137,6 +137,8 @@ namespace QMatrixClient
             SearchJob::ResultRoomEvents result;
             result.count =
                 fromJson<qint64>(_json.value("count"_ls));
+            result.highlights =
+                fromJson<QStringList>(_json.value("highlights"_ls));
             result.results =
                 fromJson<std::vector<SearchJob::Result>>(_json.value("results"_ls));
             result.state =
