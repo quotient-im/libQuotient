@@ -23,11 +23,11 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             SearchUserDirectoryJob::User result;
             result.userId =
-                fromJson<QString>(_json.value("user_id"));
+                fromJson<QString>(_json.value("user_id"_ls));
             result.displayName =
-                fromJson<QString>(_json.value("display_name"));
+                fromJson<QString>(_json.value("display_name"_ls));
             result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"));
+                fromJson<QString>(_json.value("avatar_url"_ls));
 
             return result;
         }
@@ -41,14 +41,16 @@ class SearchUserDirectoryJob::Private
         bool limited;
 };
 
+static const auto SearchUserDirectoryJobName = QStringLiteral("SearchUserDirectoryJob");
+
 SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit)
-    : BaseJob(HttpVerb::Post, "SearchUserDirectoryJob",
+    : BaseJob(HttpVerb::Post, SearchUserDirectoryJobName,
         basePath % "/user_directory/search")
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<>(_data, "search_term", searchTerm);
-    addParam<IfNotEmpty>(_data, "limit", limit);
+    addParam<>(_data, QStringLiteral("search_term"), searchTerm);
+    addParam<IfNotEmpty>(_data, QStringLiteral("limit"), limit);
     setRequestData(_data);
 }
 
@@ -67,14 +69,14 @@ bool SearchUserDirectoryJob::limited() const
 BaseJob::Status SearchUserDirectoryJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("results"))
+    if (!json.contains("results"_ls))
         return { JsonParseError,
             "The key 'results' not found in the response" };
-    d->results = fromJson<QVector<User>>(json.value("results"));
-    if (!json.contains("limited"))
+    d->results = fromJson<QVector<User>>(json.value("results"_ls));
+    if (!json.contains("limited"_ls))
         return { JsonParseError,
             "The key 'limited' not found in the response" };
-    d->limited = fromJson<bool>(json.value("limited"));
+    d->limited = fromJson<bool>(json.value("limited"_ls));
     return Success;
 }
 

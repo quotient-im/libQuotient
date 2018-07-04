@@ -18,14 +18,16 @@ class UploadKeysJob::Private
         QHash<QString, int> oneTimeKeyCounts;
 };
 
+static const auto UploadKeysJobName = QStringLiteral("UploadKeysJob");
+
 UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys, const QHash<QString, QVariant>& oneTimeKeys)
-    : BaseJob(HttpVerb::Post, "UploadKeysJob",
+    : BaseJob(HttpVerb::Post, UploadKeysJobName,
         basePath % "/keys/upload")
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "device_keys", deviceKeys);
-    addParam<IfNotEmpty>(_data, "one_time_keys", oneTimeKeys);
+    addParam<IfNotEmpty>(_data, QStringLiteral("device_keys"), deviceKeys);
+    addParam<IfNotEmpty>(_data, QStringLiteral("one_time_keys"), oneTimeKeys);
     setRequestData(_data);
 }
 
@@ -39,10 +41,10 @@ const QHash<QString, int>& UploadKeysJob::oneTimeKeyCounts() const
 BaseJob::Status UploadKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("one_time_key_counts"))
+    if (!json.contains("one_time_key_counts"_ls))
         return { JsonParseError,
             "The key 'one_time_key_counts' not found in the response" };
-    d->oneTimeKeyCounts = fromJson<QHash<QString, int>>(json.value("one_time_key_counts"));
+    d->oneTimeKeyCounts = fromJson<QHash<QString, int>>(json.value("one_time_key_counts"_ls));
     return Success;
 }
 
@@ -57,7 +59,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             QueryKeysJob::UnsignedDeviceInfo result;
             result.deviceDisplayName =
-                fromJson<QString>(_json.value("device_display_name"));
+                fromJson<QString>(_json.value("device_display_name"_ls));
 
             return result;
         }
@@ -70,7 +72,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             QueryKeysJob::DeviceInformation result;
             result.unsignedData =
-                fromJson<QueryKeysJob::UnsignedDeviceInfo>(_json.value("unsigned"));
+                fromJson<QueryKeysJob::UnsignedDeviceInfo>(_json.value("unsigned"_ls));
 
             return result;
         }
@@ -84,15 +86,17 @@ class QueryKeysJob::Private
         QHash<QString, QHash<QString, DeviceInformation>> deviceKeys;
 };
 
+static const auto QueryKeysJobName = QStringLiteral("QueryKeysJob");
+
 QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, Omittable<int> timeout, const QString& token)
-    : BaseJob(HttpVerb::Post, "QueryKeysJob",
+    : BaseJob(HttpVerb::Post, QueryKeysJobName,
         basePath % "/keys/query")
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "timeout", timeout);
-    addParam<>(_data, "device_keys", deviceKeys);
-    addParam<IfNotEmpty>(_data, "token", token);
+    addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
+    addParam<>(_data, QStringLiteral("device_keys"), deviceKeys);
+    addParam<IfNotEmpty>(_data, QStringLiteral("token"), token);
     setRequestData(_data);
 }
 
@@ -111,8 +115,8 @@ const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& QueryKeys
 BaseJob::Status QueryKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"));
-    d->deviceKeys = fromJson<QHash<QString, QHash<QString, DeviceInformation>>>(json.value("device_keys"));
+    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"_ls));
+    d->deviceKeys = fromJson<QHash<QString, QHash<QString, DeviceInformation>>>(json.value("device_keys"_ls));
     return Success;
 }
 
@@ -123,14 +127,16 @@ class ClaimKeysJob::Private
         QHash<QString, QHash<QString, QVariant>> oneTimeKeys;
 };
 
+static const auto ClaimKeysJobName = QStringLiteral("ClaimKeysJob");
+
 ClaimKeysJob::ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys, Omittable<int> timeout)
-    : BaseJob(HttpVerb::Post, "ClaimKeysJob",
+    : BaseJob(HttpVerb::Post, ClaimKeysJobName,
         basePath % "/keys/claim")
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "timeout", timeout);
-    addParam<>(_data, "one_time_keys", oneTimeKeys);
+    addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
+    addParam<>(_data, QStringLiteral("one_time_keys"), oneTimeKeys);
     setRequestData(_data);
 }
 
@@ -149,8 +155,8 @@ const QHash<QString, QHash<QString, QVariant>>& ClaimKeysJob::oneTimeKeys() cons
 BaseJob::Status ClaimKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"));
-    d->oneTimeKeys = fromJson<QHash<QString, QHash<QString, QVariant>>>(json.value("one_time_keys"));
+    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"_ls));
+    d->oneTimeKeys = fromJson<QHash<QString, QHash<QString, QVariant>>>(json.value("one_time_keys"_ls));
     return Success;
 }
 
@@ -164,8 +170,8 @@ class GetKeysChangesJob::Private
 BaseJob::Query queryToGetKeysChanges(const QString& from, const QString& to)
 {
     BaseJob::Query _q;
-    addParam<>(_q, "from", from);
-    addParam<>(_q, "to", to);
+    addParam<>(_q, QStringLiteral("from"), from);
+    addParam<>(_q, QStringLiteral("to"), to);
     return _q;
 }
 
@@ -176,8 +182,10 @@ QUrl GetKeysChangesJob::makeRequestUrl(QUrl baseUrl, const QString& from, const 
             queryToGetKeysChanges(from, to));
 }
 
+static const auto GetKeysChangesJobName = QStringLiteral("GetKeysChangesJob");
+
 GetKeysChangesJob::GetKeysChangesJob(const QString& from, const QString& to)
-    : BaseJob(HttpVerb::Get, "GetKeysChangesJob",
+    : BaseJob(HttpVerb::Get, GetKeysChangesJobName,
         basePath % "/keys/changes",
         queryToGetKeysChanges(from, to))
     , d(new Private)
@@ -199,8 +207,8 @@ const QStringList& GetKeysChangesJob::left() const
 BaseJob::Status GetKeysChangesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->changed = fromJson<QStringList>(json.value("changed"));
-    d->left = fromJson<QStringList>(json.value("left"));
+    d->changed = fromJson<QStringList>(json.value("changed"_ls));
+    d->left = fromJson<QStringList>(json.value("left"_ls));
     return Success;
 }
 

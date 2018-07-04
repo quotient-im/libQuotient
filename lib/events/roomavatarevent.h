@@ -20,8 +20,6 @@
 
 #include "event.h"
 
-#include <utility>
-
 #include "eventcontent.h"
 
 namespace QMatrixClient
@@ -33,11 +31,12 @@ namespace QMatrixClient
             // without a thumbnail. But The Spec says there be thumbnails, and
             // we follow The Spec.
         public:
+            DEFINE_EVENT_TYPEID("m.room.avatar", RoomAvatarEvent)
             explicit RoomAvatarEvent(const QJsonObject& obj)
-                : StateEvent(Type::RoomAvatar, obj)
+                : StateEvent(typeId(), obj)
             { }
-
-            static constexpr const char* typeId() { return "m.room.avatar"; }
+            QUrl url() const { return content().url; }
     };
-
+    REGISTER_EVENT_TYPE(RoomAvatarEvent)
+    DEFINE_EVENTTYPE_ALIAS(RoomAvatar, RoomAvatarEvent)
 }  // namespace QMatrixClient

@@ -62,11 +62,11 @@ analyzer:
       - +set: { moveOnly: }
         +on:
         - /state_event.yaml$/:
-            { type: StateEventPtr, imports: '"events/event.h"' }
+            { type: StateEventPtr, imports: '"events/eventloader.h"' }
         - /room_event.yaml$/:
-            { type: RoomEventPtr, imports: '"events/event.h"' }
+            { type: RoomEventPtr, imports: '"events/eventloader.h"' }
         - /event.yaml$/:
-            { type: EventPtr, imports: '"events/event.h"' }
+            { type: EventPtr, imports: '"events/eventloader.h"' }
       - /auth_data.yaml$/: *QJsonObject # GTAD 0.6 cannot cope with this one
       - /m\.room\.member$/: pass # This $ref is only used in an array, see below
       - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
@@ -79,7 +79,7 @@ analyzer:
         +on:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
-            imports: '"events/event.h"'
+            imports: '"events/eventloader.h"'
         - /m\.room\.member$/:
             type: "EventsArray<RoomMemberEvent>"
             imports: '"events/roommemberevent.h"'

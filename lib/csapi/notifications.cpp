@@ -23,17 +23,17 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetNotificationsJob::Notification result;
             result.actions =
-                fromJson<QVector<QVariant>>(_json.value("actions"));
+                fromJson<QVector<QVariant>>(_json.value("actions"_ls));
             result.event =
-                fromJson<EventPtr>(_json.value("event"));
+                fromJson<EventPtr>(_json.value("event"_ls));
             result.profileTag =
-                fromJson<QString>(_json.value("profile_tag"));
+                fromJson<QString>(_json.value("profile_tag"_ls));
             result.read =
-                fromJson<bool>(_json.value("read"));
+                fromJson<bool>(_json.value("read"_ls));
             result.roomId =
-                fromJson<QString>(_json.value("room_id"));
+                fromJson<QString>(_json.value("room_id"_ls));
             result.ts =
-                fromJson<qint64>(_json.value("ts"));
+                fromJson<qint64>(_json.value("ts"_ls));
 
             return result;
         }
@@ -50,9 +50,9 @@ class GetNotificationsJob::Private
 BaseJob::Query queryToGetNotifications(const QString& from, Omittable<int> limit, const QString& only)
 {
     BaseJob::Query _q;
-    addParam<IfNotEmpty>(_q, "from", from);
-    addParam<IfNotEmpty>(_q, "limit", limit);
-    addParam<IfNotEmpty>(_q, "only", only);
+    addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
+    addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
+    addParam<IfNotEmpty>(_q, QStringLiteral("only"), only);
     return _q;
 }
 
@@ -63,8 +63,10 @@ QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omit
             queryToGetNotifications(from, limit, only));
 }
 
+static const auto GetNotificationsJobName = QStringLiteral("GetNotificationsJob");
+
 GetNotificationsJob::GetNotificationsJob(const QString& from, Omittable<int> limit, const QString& only)
-    : BaseJob(HttpVerb::Get, "GetNotificationsJob",
+    : BaseJob(HttpVerb::Get, GetNotificationsJobName,
         basePath % "/notifications",
         queryToGetNotifications(from, limit, only))
     , d(new Private)
@@ -86,11 +88,11 @@ std::vector<GetNotificationsJob::Notification>&& GetNotificationsJob::notificati
 BaseJob::Status GetNotificationsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->nextToken = fromJson<QString>(json.value("next_token"));
-    if (!json.contains("notifications"))
+    d->nextToken = fromJson<QString>(json.value("next_token"_ls));
+    if (!json.contains("notifications"_ls))
         return { JsonParseError,
             "The key 'notifications' not found in the response" };
-    d->notifications = fromJson<std::vector<Notification>>(json.value("notifications"));
+    d->notifications = fromJson<std::vector<Notification>>(json.value("notifications"_ls));
     return Success;
 }
 

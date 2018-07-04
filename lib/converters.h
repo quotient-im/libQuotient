@@ -18,10 +18,14 @@
 
 #pragma once
 
+#include "util.h"
+
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray> // Includes <QtCore/QJsonValue>
 #include <QtCore/QDate>
 #include <QtCore/QUrlQuery>
+#include <QtCore/QSet>
+#include <QtCore/QVector>
 
 #include <unordered_map>
 #include <vector>
@@ -351,7 +355,7 @@ namespace QMatrixClient
 
         template <typename ValT>
         inline void addTo(QUrlQuery& q, const QString& k, ValT&& v)
-        { q.addQueryItem(k, QString("%1").arg(v)); }
+        { q.addQueryItem(k, QStringLiteral("%1").arg(v)); }
 
         // OpenAPI is entirely JSON-based, which means representing bools as
         // textual true/false, rather than 1/0.

@@ -41,11 +41,9 @@ Example of a Receipt Event:
 using namespace QMatrixClient;
 
 ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
-    : Event(Type::Receipt, obj)
+    : Event(typeId(), obj)
 {
-    Q_ASSERT(obj["type"].toString() == typeId());
-
-    const QJsonObject contents = contentJson();
+    const auto& contents = contentJson();
     _eventsWithReceipts.reserve(contents.size());
     for( auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt )
     {
@@ -55,14 +53,15 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
             qCDebug(EPHEMERAL) << "ReceiptEvent content follows:\n" << contents;
             continue;
         }
-        const QJsonObject reads = eventIt.value().toObject().value("m.read").toObject();
+        const QJsonObject reads = eventIt.value().toObject()
+                                    .value("m.read"_ls).toObject();
         QVector<Receipt> receipts;
         receipts.reserve(reads.size());
         for( auto userIt = reads.begin(); userIt != reads.end(); ++userIt )
         {
             const QJsonObject user = userIt.value().toObject();
             receipts.push_back({userIt.key(),
-                                QMatrixClient::fromJson<QDateTime>(user["ts"])});
+                                fromJson<QDateTime>(user["ts"_ls])});
         }
         _eventsWithReceipts.push_back({eventIt.key(), std::move(receipts)});
     }

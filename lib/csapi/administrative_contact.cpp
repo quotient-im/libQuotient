@@ -23,9 +23,9 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             GetAccount3PIDsJob::ThirdPartyIdentifier result;
             result.medium =
-                fromJson<QString>(_json.value("medium"));
+                fromJson<QString>(_json.value("medium"_ls));
             result.address =
-                fromJson<QString>(_json.value("address"));
+                fromJson<QString>(_json.value("address"_ls));
 
             return result;
         }
@@ -44,8 +44,10 @@ QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/account/3pid");
 }
 
+static const auto GetAccount3PIDsJobName = QStringLiteral("GetAccount3PIDsJob");
+
 GetAccount3PIDsJob::GetAccount3PIDsJob()
-    : BaseJob(HttpVerb::Get, "GetAccount3PIDsJob",
+    : BaseJob(HttpVerb::Get, GetAccount3PIDsJobName,
         basePath % "/account/3pid")
     , d(new Private)
 {
@@ -61,7 +63,7 @@ const QVector<GetAccount3PIDsJob::ThirdPartyIdentifier>& GetAccount3PIDsJob::thr
 BaseJob::Status GetAccount3PIDsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->threepids = fromJson<QVector<ThirdPartyIdentifier>>(json.value("threepids"));
+    d->threepids = fromJson<QVector<ThirdPartyIdentifier>>(json.value("threepids"_ls));
     return Success;
 }
 
@@ -72,20 +74,22 @@ namespace QMatrixClient
     QJsonObject toJson(const Post3PIDsJob::ThreePidCredentials& pod)
     {
         QJsonObject _json;
-        addParam<>(_json, "client_secret", pod.clientSecret);
-        addParam<>(_json, "id_server", pod.idServer);
-        addParam<>(_json, "sid", pod.sid);
+        addParam<>(_json, QStringLiteral("client_secret"), pod.clientSecret);
+        addParam<>(_json, QStringLiteral("id_server"), pod.idServer);
+        addParam<>(_json, QStringLiteral("sid"), pod.sid);
         return _json;
     }
 } // namespace QMatrixClient
 
+static const auto Post3PIDsJobName = QStringLiteral("Post3PIDsJob");
+
 Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
-    : BaseJob(HttpVerb::Post, "Post3PIDsJob",
+    : BaseJob(HttpVerb::Post, Post3PIDsJobName,
         basePath % "/account/3pid")
 {
     QJsonObject _data;
-    addParam<>(_data, "three_pid_creds", threePidCreds);
-    addParam<IfNotEmpty>(_data, "bind", bind);
+    addParam<>(_data, QStringLiteral("three_pid_creds"), threePidCreds);
+    addParam<IfNotEmpty>(_data, QStringLiteral("bind"), bind);
     setRequestData(_data);
 }
 
@@ -95,8 +99,10 @@ QUrl RequestTokenTo3PIDJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/account/3pid/email/requestToken");
 }
 
+static const auto RequestTokenTo3PIDJobName = QStringLiteral("RequestTokenTo3PIDJob");
+
 RequestTokenTo3PIDJob::RequestTokenTo3PIDJob()
-    : BaseJob(HttpVerb::Post, "RequestTokenTo3PIDJob",
+    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDJobName,
         basePath % "/account/3pid/email/requestToken", false)
 {
 }

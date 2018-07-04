@@ -25,19 +25,17 @@ namespace QMatrixClient
     class RedactionEvent : public RoomEvent
     {
         public:
-            static constexpr const char* typeId() { return "m.room.redaction"; }
+            DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
 
             explicit RedactionEvent(const QJsonObject& obj)
-                : RoomEvent(Type::Redaction, obj)
-                , _redactedEvent(obj.value("redacts").toString())
-                , _reason(contentJson().value("reason").toString())
+                : RoomEvent(typeId(), obj)
             { }
 
-            const QString& redactedEvent() const { return _redactedEvent; }
-            const QString& reason() const { return _reason; }
-
-        private:
-            QString _redactedEvent;
-            QString _reason;
+            QString redactedEvent() const
+            { return fullJson()["redacts"_ls].toString(); }
+            QString reason() const
+            { return contentJson()["reason"_ls].toString(); }
     };
+    REGISTER_EVENT_TYPE(RedactionEvent)
+    DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
 } // namespace QMatrixClient

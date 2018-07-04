@@ -18,15 +18,15 @@
 
 #include "typingevent.h"
 
+#include <QtCore/QJsonArray>
+
 using namespace QMatrixClient;
 
 TypingEvent::TypingEvent(const QJsonObject& obj)
-    : Event(Type::Typing, obj)
+    : Event(typeId(), obj)
 {
-    QJsonValue result;
-    result= contentJson()["user_ids"];
-    QJsonArray array = result.toArray();
-    for( const QJsonValue& user: array )
+    const auto& array = contentJson()["user_ids"_ls].toArray();
+    for(const auto& user: array )
         _users.push_back(user.toString());
 }
 

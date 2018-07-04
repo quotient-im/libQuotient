@@ -59,6 +59,42 @@ namespace QMatrixClient
         return std::unique_ptr<T1>(static_cast<T1*>(p.release()));
     }
 
+    /** Determine traits of an arbitrary function/lambda/functor
+     * This only works with arity of 1 (1-argument) for now but is extendable
+     * to other cases. Also, doesn't work with generic lambdas and function
+     * objects that have operator() overloaded
+     * \sa https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
+     */
+    template <typename T>
+    struct function_traits : public function_traits<decltype(&T::operator())>
+    { }; // A generic function object that has (non-overloaded) operator()
+
+    // Specialisation for a function
+    template <typename ReturnT, typename ArgT>
+    struct function_traits<ReturnT(ArgT)>
+    {
+        using return_type = ReturnT;
+        using arg_type = ArgT;
+    };
+
+    // Specialisation for a member function
+    template <typename ReturnT, typename ClassT, typename ArgT>
+    struct function_traits<ReturnT(ClassT::*)(ArgT)>
+        : function_traits<ReturnT(ArgT)>
+    { };
+
+    // Specialisation for a const member function
+    template <typename ReturnT, typename ClassT, typename ArgT>
+    struct function_traits<ReturnT(ClassT::*)(ArgT) const>
+        : function_traits<ReturnT(ArgT)>
+    { };
+
+    template <typename FnT>
+    using fn_return_t = typename function_traits<FnT>::return_type;
+
+    template <typename FnT>
+    using fn_arg_t = typename function_traits<FnT>::arg_type;
+
 #if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
     // Copy-pasted from Qt 5.10
     template <typename T>
@@ -67,6 +103,11 @@ namespace QMatrixClient
     template <typename T>
     static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
 #endif
+
+    inline auto operator"" _ls(const char* s, std::size_t size)
+    {
+        return QLatin1String(s, int(size));
+    }
 
     /** An abstraction over a pair of iterators
      * This is a very basic range type over a container with iterators that

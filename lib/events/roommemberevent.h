@@ -18,11 +18,8 @@
 
 #pragma once
 
-#include "event.h"
-
+#include "stateevent.h"
 #include "eventcontent.h"
-
-#include <QtCore/QUrl>
 
 namespace QMatrixClient
 {
@@ -36,6 +33,9 @@ namespace QMatrixClient
                 : membership(mt)
             { }
             explicit MemberEventContent(const QJsonObject& json);
+            explicit MemberEventContent(const QJsonValue& jv)
+                : MemberEventContent(jv.toObject())
+            { }
 
             MembershipType membership;
             bool isDirect = false;
@@ -52,23 +52,26 @@ namespace QMatrixClient
     {
             Q_GADGET
         public:
-            static constexpr const char* typeId() { return "m.room.member"; }
+            DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
             using MembershipType = MemberEventContent::MembershipType;
 
-            explicit RoomMemberEvent(Type type, const QJsonObject& obj)
-                : StateEvent(type, obj)
+            explicit RoomMemberEvent(const QJsonObject& obj)
+                : StateEvent(typeId(), obj)
             { }
             RoomMemberEvent(MemberEventContent&& c)
-                : StateEvent(Type::RoomMember, c)
+                : StateEvent(typeId(), matrixTypeId(), c.toJson())
             { }
-            explicit RoomMemberEvent(const QJsonObject& obj)
-                : RoomMemberEvent(Type::RoomMember, obj)
+
+            // This is a special constructor enabling RoomMemberEvent to be
+            // a base class for more specific member events.
+            RoomMemberEvent(Type type, const QJsonObject& fullJson)
+                : StateEvent(type, fullJson)
             { }
 
             MembershipType membership() const  { return content().membership; }
             QString userId() const
-            { return originalJsonObject().value("state_key").toString(); }
+                { return fullJson()["state_key"_ls].toString(); }
             bool isDirect() const { return content().isDirect; }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
@@ -76,4 +79,6 @@ namespace QMatrixClient
         private:
             REGISTER_ENUM(MembershipType)
     };
+    REGISTER_EVENT_TYPE(RoomMemberEvent)
+    DEFINE_EVENTTYPE_ALIAS(RoomMember, RoomMemberEvent)
 }  // namespace QMatrixClient

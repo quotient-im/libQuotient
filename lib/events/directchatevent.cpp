@@ -18,18 +18,14 @@
 
 #include "directchatevent.h"
 
-#include "converters.h"
+#include <QtCore/QJsonArray>
 
 using namespace QMatrixClient;
-
-DirectChatEvent::DirectChatEvent(const QJsonObject& obj)
-    : Event(Type::DirectChat, obj)
-{ }
 
 QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const
 {
     QMultiHash<QString, QString> result;
-    const auto json = contentJson();
+    const auto& json = contentJson();
     for (auto it = json.begin(); it != json.end(); ++it)
     {
         // Beware of range-for's over temporary returned from temporary

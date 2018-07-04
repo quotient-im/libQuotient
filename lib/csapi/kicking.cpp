@@ -12,13 +12,15 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+static const auto KickJobName = QStringLiteral("KickJob");
+
 KickJob::KickJob(const QString& roomId, const QString& userId, const QString& reason)
-    : BaseJob(HttpVerb::Post, "KickJob",
+    : BaseJob(HttpVerb::Post, KickJobName,
         basePath % "/rooms/" % roomId % "/kick")
 {
     QJsonObject _data;
-    addParam<>(_data, "user_id", userId);
-    addParam<IfNotEmpty>(_data, "reason", reason);
+    addParam<>(_data, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
     setRequestData(_data);
 }
 

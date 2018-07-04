@@ -24,8 +24,10 @@ QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/account/whoami");
 }
 
+static const auto GetTokenOwnerJobName = QStringLiteral("GetTokenOwnerJob");
+
 GetTokenOwnerJob::GetTokenOwnerJob()
-    : BaseJob(HttpVerb::Get, "GetTokenOwnerJob",
+    : BaseJob(HttpVerb::Get, GetTokenOwnerJobName,
         basePath % "/account/whoami")
     , d(new Private)
 {
@@ -41,10 +43,10 @@ const QString& GetTokenOwnerJob::userId() const
 BaseJob::Status GetTokenOwnerJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("user_id"))
+    if (!json.contains("user_id"_ls))
         return { JsonParseError,
             "The key 'user_id' not found in the response" };
-    d->userId = fromJson<QString>(json.value("user_id"));
+    d->userId = fromJson<QString>(json.value("user_id"_ls));
     return Success;
 }
 

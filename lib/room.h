@@ -48,12 +48,16 @@ namespace QMatrixClient
             using index_t = int;
 
             TimelineItem(RoomEventPtr&& e, index_t number)
-                : evt(std::move(e)), idx(number) { }
+                : evt(std::move(e)), idx(number)
+            {
+                Q_ASSERT(evt);
+            }
 
             const RoomEvent* event() const { return rawPtr(evt); }
             template <typename EventT>
             const EventT* viewAs() const { return weakPtrCast<const EventT>(evt); }
             const RoomEventPtr& operator->() const { return evt; }
+            const RoomEvent& operator*() const { return *evt; }
             index_t index() const { return idx; }
 
             // Used for event redaction
@@ -128,10 +132,6 @@ namespace QMatrixClient
             using Timeline = std::deque<TimelineItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
             using timeline_iter_t = Timeline::const_iterator;
-
-            using AccountDataMap = std::conditional_t<
-                QT_VERSION >= QT_VERSION_CHECK(5, 5, 0),
-                QVariantHash, QVariantMap>;
 
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
@@ -279,7 +279,7 @@ namespace QMatrixClient
              * stored on the server. Tags and read markers cannot be retrieved
              * using this method _yet_.
              */
-            AccountDataMap accountData(const QString& type) const;
+            const EventPtr& accountData(const QString& type) const;
 
             QStringList tagNames() const;
             TagsMap tags() const;

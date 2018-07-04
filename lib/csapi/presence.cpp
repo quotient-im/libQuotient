@@ -12,13 +12,15 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+static const auto SetPresenceJobName = QStringLiteral("SetPresenceJob");
+
 SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence, const QString& statusMsg)
-    : BaseJob(HttpVerb::Put, "SetPresenceJob",
+    : BaseJob(HttpVerb::Put, SetPresenceJobName,
         basePath % "/presence/" % userId % "/status")
 {
     QJsonObject _data;
-    addParam<>(_data, "presence", presence);
-    addParam<IfNotEmpty>(_data, "status_msg", statusMsg);
+    addParam<>(_data, QStringLiteral("presence"), presence);
+    addParam<IfNotEmpty>(_data, QStringLiteral("status_msg"), statusMsg);
     setRequestData(_data);
 }
 
@@ -37,8 +39,10 @@ QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
             basePath % "/presence/" % userId % "/status");
 }
 
+static const auto GetPresenceJobName = QStringLiteral("GetPresenceJob");
+
 GetPresenceJob::GetPresenceJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, "GetPresenceJob",
+    : BaseJob(HttpVerb::Get, GetPresenceJobName,
         basePath % "/presence/" % userId % "/status", false)
     , d(new Private)
 {
@@ -69,23 +73,25 @@ bool GetPresenceJob::currentlyActive() const
 BaseJob::Status GetPresenceJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("presence"))
+    if (!json.contains("presence"_ls))
         return { JsonParseError,
             "The key 'presence' not found in the response" };
-    d->presence = fromJson<QString>(json.value("presence"));
-    d->lastActiveAgo = fromJson<int>(json.value("last_active_ago"));
-    d->statusMsg = fromJson<QString>(json.value("status_msg"));
-    d->currentlyActive = fromJson<bool>(json.value("currently_active"));
+    d->presence = fromJson<QString>(json.value("presence"_ls));
+    d->lastActiveAgo = fromJson<int>(json.value("last_active_ago"_ls));
+    d->statusMsg = fromJson<QString>(json.value("status_msg"_ls));
+    d->currentlyActive = fromJson<bool>(json.value("currently_active"_ls));
     return Success;
 }
 
+static const auto ModifyPresenceListJobName = QStringLiteral("ModifyPresenceListJob");
+
 ModifyPresenceListJob::ModifyPresenceListJob(const QString& userId, const QStringList& invite, const QStringList& drop)
-    : BaseJob(HttpVerb::Post, "ModifyPresenceListJob",
+    : BaseJob(HttpVerb::Post, ModifyPresenceListJobName,
         basePath % "/presence/list/" % userId)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "invite", invite);
-    addParam<IfNotEmpty>(_data, "drop", drop);
+    addParam<IfNotEmpty>(_data, QStringLiteral("invite"), invite);
+    addParam<IfNotEmpty>(_data, QStringLiteral("drop"), drop);
     setRequestData(_data);
 }
 
@@ -101,8 +107,10 @@ QUrl GetPresenceForListJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
             basePath % "/presence/list/" % userId);
 }
 
+static const auto GetPresenceForListJobName = QStringLiteral("GetPresenceForListJob");
+
 GetPresenceForListJob::GetPresenceForListJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, "GetPresenceForListJob",
+    : BaseJob(HttpVerb::Get, GetPresenceForListJobName,
         basePath % "/presence/list/" % userId, false)
     , d(new Private)
 {
@@ -118,10 +126,10 @@ Events&& GetPresenceForListJob::data()
 BaseJob::Status GetPresenceForListJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("data"))
+    if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<Events>(json.value("data"));
+    d->data = fromJson<Events>(json.value("data"_ls));
     return Success;
 }
 

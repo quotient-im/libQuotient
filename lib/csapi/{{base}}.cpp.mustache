@@ -11,7 +11,7 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
 {
     QJsonObject _json;{{#vars}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});{{/vars}}
     return _json;
 }
 {{/in?}}{{#out?}}
@@ -20,7 +20,7 @@ QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
     const auto& _json = jv.toObject();
     {{qualifiedName}} result;
     {{#vars}}result.{{nameCamelCase}} =
-        fromJson<{{dataType.name}}>(_json.value("{{baseName}}"));
+        fromJson<{{dataType.name}}>(_json.value("{{baseName}}"_ls));
     {{/vars}}
     return result;
 }
@@ -34,7 +34,7 @@ namespace QMatrixClient
     QJsonObject toJson(const {{qualifiedName}}& pod)
     {
         QJsonObject _json;{{#vars}}
-        addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, "{{baseName}}", pod.{{nameCamelCase}});{{/vars}}
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});{{/vars}}
         return _json;
     }
 {{/in?}}{{#out?}}
@@ -45,7 +45,7 @@ namespace QMatrixClient
             const auto& _json = jv.toObject();
             {{qualifiedName}} result;
 {{#vars}}            result.{{nameCamelCase}} =
-                fromJson<{{dataType.qualifiedName}}>(_json.value("{{baseName}}"));
+                fromJson<{{dataType.qualifiedName}}>(_json.value("{{baseName}}"_ls));
 {{/vars}}
             return result;
         }
@@ -61,7 +61,7 @@ class {{camelCaseOperationId}}Job::Private
 BaseJob::Query queryTo{{camelCaseOperationId}}({{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     BaseJob::Query _q;{{#queryParams}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q, "{{baseName}}", {{paramName}});{{/queryParams}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q, QStringLiteral("{{baseName}}"), {{paramName}});{{/queryParams}}
     return _q;
 }
 {{/queryParams?}}{{^bodyParams}}
@@ -72,8 +72,10 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
             queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}});
 }
 {{/    bodyParams}}
+static const auto {{camelCaseOperationId}}JobName = QStringLiteral("{{camelCaseOperationId}}Job");
+
 {{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDef}}{{/allParams}})
-    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, "{{camelCaseOperationId}}Job",
+    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, {{camelCaseOperationId}}JobName,
         basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
         queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}}{{#skipAuth}}{{#queryParams?}},
         {}{{/queryParams?}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
@@ -87,7 +89,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
                         }}{{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
                         }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));{{/inlineBody
 }}{{^inlineBody}}    QJsonObject _data;{{#bodyParams}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_data, "{{baseName}}", {{paramName}});{{/bodyParams}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_data, QStringLiteral("{{baseName}}"), {{paramName}});{{/bodyParams}}
     setRequestData(_data);{{/inlineBody}}
 {{/bodyParams?}}{{#producesNonJson?}}    setExpectedContentTypes({ {{#produces}}"{{_}}"{{>cjoin}}{{/produces}} });
 {{/producesNonJson?}}}{{!<- mind the actual brace}}
@@ -108,10 +110,10 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
 BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    {{#        properties}}{{#required?}}if (!json.contains("{{baseName}}"))
+    {{#        properties}}{{#required?}}if (!json.contains("{{baseName}}"_ls))
         return { JsonParseError,
             "The key '{{baseName}}' not found in the response" };
-    {{/required?}}d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"));
+    {{/required?}}d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"_ls));
     {{/        properties}}return Success;
 }{{/       producesNonJson?}}
 {{/allProperties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

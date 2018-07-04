@@ -12,12 +12,14 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+static const auto SendToDeviceJobName = QStringLiteral("SendToDeviceJob");
+
 SendToDeviceJob::SendToDeviceJob(const QString& eventType, const QString& txnId, const QHash<QString, QHash<QString, QJsonObject>>& messages)
-    : BaseJob(HttpVerb::Put, "SendToDeviceJob",
+    : BaseJob(HttpVerb::Put, SendToDeviceJobName,
         basePath % "/sendToDevice/" % eventType % "/" % txnId)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "messages", messages);
+    addParam<IfNotEmpty>(_data, QStringLiteral("messages"), messages);
     setRequestData(_data);
 }
 

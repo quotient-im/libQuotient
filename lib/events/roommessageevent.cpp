@@ -35,7 +35,7 @@ TypedBase* make(const QJsonObject& json)
 
 struct MsgTypeDesc
 {
-    QString jsonType;
+    QString matrixType;
     MsgType enumType;
     TypedBase* (*maker)(const QJsonObject&);
 };
@@ -56,20 +56,39 @@ QString msgTypeToJson(MsgType enumType)
     auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
         [=](const MsgTypeDesc& mtd) { return mtd.enumType == enumType; });
     if (it != msgTypes.end())
-        return it->jsonType;
+        return it->matrixType;
 
     return {};
 }
 
-MsgType jsonToMsgType(const QString& jsonType)
+MsgType jsonToMsgType(const QString& matrixType)
 {
     auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
-        [=](const MsgTypeDesc& mtd) { return mtd.jsonType == jsonType; });
+        [=](const MsgTypeDesc& mtd) { return mtd.matrixType == matrixType; });
     if (it != msgTypes.end())
         return it->enumType;
 
     return MsgType::Unknown;
 }
+
+inline QJsonObject toMsgJson(const QString& plainBody, const QString& jsonMsgType,
+                      TypedBase* content)
+{
+    auto json = content ? content->toJson() : QJsonObject();
+    json.insert(QStringLiteral("msgtype"), jsonMsgType);
+    json.insert(QStringLiteral("body"), plainBody);
+    return json;
+}
+
+static const auto MsgTypeKey = "msgtype"_ls;
+static const auto BodyKey = "body"_ls;
+
+RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
+        const QString& jsonMsgType, TypedBase* content)
+    : RoomEvent(typeId(), matrixTypeId(),
+                toMsgJson(plainBody, jsonMsgType, content))
+    , _content(content)
+{ }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                    MsgType msgType, TypedBase* content)
@@ -77,18 +96,16 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
 { }
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
-    : RoomEvent(Type::RoomMessage, obj), _content(nullptr)
+    : RoomEvent(typeId(), obj), _content(nullptr)
 {
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if ( content.contains("msgtype") && content.contains("body") )
+    if ( content.contains(MsgTypeKey) && content.contains(BodyKey) )
     {
-        _plainBody = content["body"].toString();
-
-        _msgtype = content["msgtype"].toString();
+        auto msgtype = content[MsgTypeKey].toString();
         for (const auto& mt: msgTypes)
-            if (mt.jsonType == _msgtype)
+            if (mt.matrixType == msgtype)
                 _content.reset(mt.maker(content));
 
         if (!_content)
@@ -107,13 +124,25 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
 
 RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 {
-    return jsonToMsgType(_msgtype);
+    return jsonToMsgType(rawMsgtype());
+}
+
+QString RoomMessageEvent::rawMsgtype() const
+{
+    return contentJson()[MsgTypeKey].toString();
+}
+
+QString RoomMessageEvent::plainBody() const
+{
+    return contentJson()[BodyKey].toString();
 }
 
 QMimeType RoomMessageEvent::mimeType() const
 {
-    return _content ? _content->type() :
-                      QMimeDatabase().mimeTypeForName("text/plain");
+    static const auto PlainTextMimeType =
+            QMimeDatabase().mimeTypeForName("text/plain");
+    return _content ? _content->type() : PlainTextMimeType;
+                      ;
 }
 
 bool RoomMessageEvent::hasTextContent() const
@@ -133,14 +162,6 @@ bool RoomMessageEvent::hasThumbnail() const
     return content() && content()->thumbnailInfo();
 }
 
-QJsonObject RoomMessageEvent::toJson() const
-{
-    QJsonObject obj = _content ? _content->toJson() : QJsonObject();
-    obj.insert("msgtype", msgTypeToJson(msgtype()));
-    obj.insert("body", plainBody());
-    return obj;
-}
-
 TextContent::TextContent(const QString& text, const QString& contentType)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
 { }
@@ -148,26 +169,29 @@ TextContent::TextContent(const QString& text, const QString& contentType)
 TextContent::TextContent(const QJsonObject& json)
 {
     QMimeDatabase db;
+    static const auto PlainTextMimeType = db.mimeTypeForName("text/plain");
+    static const auto HtmlMimeType = db.mimeTypeForName("text/html");
 
     // Special-casing the custom matrix.org's (actually, Riot's) way
     // of sending HTML messages.
-    if (json["format"].toString() == "org.matrix.custom.html")
+    if (json["format"_ls].toString() == "org.matrix.custom.html")
     {
-        mimeType = db.mimeTypeForName("text/html");
-        body = json["formatted_body"].toString();
+        mimeType = HtmlMimeType;
+        body = json["formatted_body"_ls].toString();
     } else {
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
-        mimeType = db.mimeTypeForName("text/plain");
-        body = json["body"].toString();
+        mimeType = PlainTextMimeType;
+        body = json[BodyKey].toString();
     }
 }
 
 void TextContent::fillJson(QJsonObject* json) const
 {
     Q_ASSERT(json);
-    json->insert("format", QStringLiteral("org.matrix.custom.html"));
-    json->insert("formatted_body", body);
+    json->insert(QStringLiteral("format"),
+                 QStringLiteral("org.matrix.custom.html"));
+    json->insert(QStringLiteral("formatted_body"), body);
 }
 
 LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
@@ -176,8 +200,8 @@ LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbna
 
 LocationContent::LocationContent(const QJsonObject& json)
     : TypedBase(json)
-    , geoUri(json["geo_uri"].toString())
-    , thumbnail(json["info"].toObject())
+    , geoUri(json["geo_uri"_ls].toString())
+    , thumbnail(json["info"_ls].toObject())
 { }
 
 QMimeType LocationContent::type() const
@@ -188,6 +212,6 @@ QMimeType LocationContent::type() const
 void LocationContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
-    o->insert("geo_uri", geoUri);
-    o->insert("info", toInfoJson(thumbnail));
+    o->insert(QStringLiteral("geo_uri"), geoUri);
+    o->insert(QStringLiteral("info"), toInfoJson(thumbnail));
 }

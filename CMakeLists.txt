@@ -81,6 +81,8 @@ set(libqmatrixclient_SRCS
     lib/converters.cpp
     lib/util.cpp
     lib/events/event.cpp
+    lib/events/roomevent.cpp
+    lib/events/stateevent.cpp
     lib/events/eventcontent.cpp
     lib/events/roommessageevent.cpp
     lib/events/roommemberevent.cpp

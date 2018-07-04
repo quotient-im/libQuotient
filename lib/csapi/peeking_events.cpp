@@ -23,9 +23,9 @@ class PeekEventsJob::Private
 BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout, const QString& roomId)
 {
     BaseJob::Query _q;
-    addParam<IfNotEmpty>(_q, "from", from);
-    addParam<IfNotEmpty>(_q, "timeout", timeout);
-    addParam<IfNotEmpty>(_q, "room_id", roomId);
+    addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
+    addParam<IfNotEmpty>(_q, QStringLiteral("timeout"), timeout);
+    addParam<IfNotEmpty>(_q, QStringLiteral("room_id"), roomId);
     return _q;
 }
 
@@ -36,8 +36,10 @@ QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omittable<
             queryToPeekEvents(from, timeout, roomId));
 }
 
+static const auto PeekEventsJobName = QStringLiteral("PeekEventsJob");
+
 PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout, const QString& roomId)
-    : BaseJob(HttpVerb::Get, "PeekEventsJob",
+    : BaseJob(HttpVerb::Get, PeekEventsJobName,
         basePath % "/events",
         queryToPeekEvents(from, timeout, roomId))
     , d(new Private)
@@ -64,9 +66,9 @@ RoomEvents&& PeekEventsJob::chunk()
 BaseJob::Status PeekEventsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->begin = fromJson<QString>(json.value("start"));
-    d->end = fromJson<QString>(json.value("end"));
-    d->chunk = fromJson<RoomEvents>(json.value("chunk"));
+    d->begin = fromJson<QString>(json.value("start"_ls));
+    d->end = fromJson<QString>(json.value("end"_ls));
+    d->chunk = fromJson<RoomEvents>(json.value("chunk"_ls));
     return Success;
 }
 

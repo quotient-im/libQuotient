@@ -24,8 +24,10 @@ QUrl GetTurnServerJob::makeRequestUrl(QUrl baseUrl)
             basePath % "/voip/turnServer");
 }
 
+static const auto GetTurnServerJobName = QStringLiteral("GetTurnServerJob");
+
 GetTurnServerJob::GetTurnServerJob()
-    : BaseJob(HttpVerb::Get, "GetTurnServerJob",
+    : BaseJob(HttpVerb::Get, GetTurnServerJobName,
         basePath % "/voip/turnServer")
     , d(new Private)
 {
@@ -41,10 +43,10 @@ const QJsonObject& GetTurnServerJob::data() const
 BaseJob::Status GetTurnServerJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("data"))
+    if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<QJsonObject>(json.value("data"));
+    d->data = fromJson<QJsonObject>(json.value("data"_ls));
     return Success;
 }
 

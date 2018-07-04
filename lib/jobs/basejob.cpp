@@ -19,6 +19,7 @@
 #include "basejob.h"
 
 #include "connectiondata.h"
+#include "util.h"
 
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
@@ -196,7 +197,7 @@ void BaseJob::Private::sendRequest(bool inBackground)
         { makeRequestUrl(connection->baseUrl(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    req.setRawHeader(QByteArray("Authorization"),
+    req.setRawHeader("Authorization",
                      QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
@@ -292,11 +293,12 @@ void BaseJob::gotReply()
         if (jsonBody)
         {
             auto json = QJsonDocument::fromJson(d->rawResponse).object();
+            const auto errCode = json.value("errcode"_ls).toString();
             if (error() == TooManyRequestsError ||
-                    json.value("errcode").toString() == "M_LIMIT_EXCEEDED")
+                    errCode == "M_LIMIT_EXCEEDED")
             {
                 QString msg = tr("Too many requests");
-                auto retryInterval = json.value("retry_after_ms").toInt(-1);
+                auto retryInterval = json.value("retry_after_ms"_ls).toInt(-1);
                 if (retryInterval != -1)
                     msg += tr(", next retry advised after %1 ms")
                             .arg(retryInterval);
@@ -313,13 +315,14 @@ void BaseJob::gotReply()
                 emit retryScheduled(d->retriesTaken, retryInterval);
                 return;
             }
-            if (json.value("errcode").toString() == "M_CONSENT_NOT_GIVEN")
+            if (errCode == "M_CONSENT_NOT_GIVEN")
             {
                 d->status.code = UserConsentRequiredError;
-                d->errorUrl = json.value("consent_uri").toString();
+                d->errorUrl = json.value("consent_uri"_ls).toString();
             }
-            else if (!json.isEmpty()) // FIXME: The below is not localisable
-                setStatus(IncorrectRequestError, json.value("error").toString());
+            else if (!json.isEmpty()) // Not localisable on the client side
+                setStatus(IncorrectRequestError,
+                          json.value("error"_ls).toString());
         }
     }
 
@@ -366,7 +369,8 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
         return { NetworkError, reply->errorString() };
     }
 
-    const QString replyState = reply->isRunning() ? "(tentative)" : "(final)";
+    const QString replyState = reply->isRunning() ?
+                QStringLiteral("(tentative)") : QStringLiteral("(final)");
     const auto urlString = '|' + d->reply->url().toDisplayString();
     const auto httpCode = httpCodeHeader.toInt();
     const auto reason =
@@ -375,12 +379,11 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     {
         qCDebug(d->logCat).noquote().nospace() << this << urlString;
         qCDebug(d->logCat).noquote() << "  " << httpCode << reason << replyState;
-        if (checkContentType(reply->rawHeader("Content-Type"),
+        if (!checkContentType(reply->rawHeader("Content-Type"),
                              d->expectedContentTypes))
-            return NoError;
-        else // A warning in the logs might be more proper instead
             return { UnexpectedResponseTypeWarning,
                      "Unexpected content type of the response" };
+        return NoError;
     }
 
     qCWarning(d->logCat).noquote().nospace() << this << urlString;

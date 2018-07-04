@@ -18,8 +18,10 @@ class DefineFilterJob::Private
         QString filterId;
 };
 
+static const auto DefineFilterJobName = QStringLiteral("DefineFilterJob");
+
 DefineFilterJob::DefineFilterJob(const QString& userId, const SyncFilter& filter)
-    : BaseJob(HttpVerb::Post, "DefineFilterJob",
+    : BaseJob(HttpVerb::Post, DefineFilterJobName,
         basePath % "/user/" % userId % "/filter")
     , d(new Private)
 {
@@ -36,7 +38,7 @@ const QString& DefineFilterJob::filterId() const
 BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->filterId = fromJson<QString>(json.value("filter_id"));
+    d->filterId = fromJson<QString>(json.value("filter_id"_ls));
     return Success;
 }
 
@@ -52,8 +54,10 @@ QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QSt
             basePath % "/user/" % userId % "/filter/" % filterId);
 }
 
+static const auto GetFilterJobName = QStringLiteral("GetFilterJob");
+
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
-    : BaseJob(HttpVerb::Get, "GetFilterJob",
+    : BaseJob(HttpVerb::Get, GetFilterJobName,
         basePath % "/user/" % userId % "/filter/" % filterId)
     , d(new Private)
 {
@@ -69,10 +73,10 @@ const SyncFilter& GetFilterJob::data() const
 BaseJob::Status GetFilterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("data"))
+    if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<SyncFilter>(json.value("data"));
+    d->data = fromJson<SyncFilter>(json.value("data"_ls));
     return Success;
 }
 

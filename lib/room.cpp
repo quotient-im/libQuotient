@@ -110,7 +110,7 @@ class Room::Private
         QHash<const User*, QString> lastReadEventIds;
         QString serverReadMarker;
         TagsMap tags;
-        QHash<QString, AccountDataMap> accountData;
+        std::unordered_map<QString, EventPtr> accountData;
         QString prevBatch;
         QPointer<GetRoomEventsJob> eventsHistoryJob;
 
@@ -168,7 +168,7 @@ class Room::Private
         {
             return !ti->isRedacted() &&
                 ti->senderId() != connection->userId() &&
-                ti->type() == EventType::RoomMessage;
+                is<RoomMessageEvent>(*ti);
         }
 
         void addNewMessageEvents(RoomEvents&& events);
@@ -203,14 +203,14 @@ class Room::Private
         auto requestSetState(const QString& stateKey, const EvT& event)
         {
             return connection->callApi<SetRoomStateWithKeyJob>(
-                        id, EvT::typeId(), stateKey, event.toJson());
+                        id, EvT::matrixTypeId(), stateKey, event.contentJson());
         }
 
         template <typename EvT>
         auto requestSetState(const EvT& event)
         {
             return connection->callApi<SetRoomStateJob>(
-                        id, EvT::typeId(), event.toJson());
+                        id, EvT::matrixTypeId(), event.contentJson());
         }
 
         /**
@@ -224,8 +224,8 @@ class Room::Private
         void broadcastTagUpdates()
         {
             connection->callApi<SetAccountDataPerRoomJob>(
-                    connection->userId(), id, TagEvent::typeId(),
-                        TagEvent(tags).toJson());
+                    connection->userId(), id, TagEvent::matrixTypeId(),
+                        TagEvent(tags).fullJson());
             emit q->tagsChanged();
         }
 
@@ -650,12 +650,14 @@ void Room::resetHighlightCount()
 
 bool Room::hasAccountData(const QString& type) const
 {
-    return d->accountData.contains(type);
+    return d->accountData.find(type) != d->accountData.end();
 }
 
-Room::AccountDataMap Room::accountData(const QString& type) const
+const EventPtr& Room::accountData(const QString& type) const
 {
-    return d->accountData.value(type);
+    static EventPtr NoEventPtr {};
+    const auto it = d->accountData.find(type);
+    return it != d->accountData.end() ? it->second : NoEventPtr;
 }
 
 QStringList Room::tagNames() const
@@ -723,8 +725,7 @@ const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
     auto evtIt = q->findInTimeline(eventId);
-    if (evtIt != timeline.rend() &&
-            evtIt->event()->type() == EventType::RoomMessage)
+    if (evtIt != timeline.rend() && is<RoomMessageEvent>(**evtIt))
     {
         auto* event = evtIt->viewAs<RoomMessageEvent>();
         if (event->hasFileContent())
@@ -1274,7 +1275,7 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 
 inline bool isRedaction(const RoomEventPtr& e)
 {
-    return e->type() == EventType::Redaction;
+    return e && is<RedactionEvent>(*e);
 }
 
 void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
@@ -1292,26 +1293,30 @@ void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
 
     // Apply the redaction procedure from chapter 6.5 of The Spec
     auto originalJson = ti->originalJsonObject();
-    if (originalJson.value("unsigned").toObject()
-            .value("redacted_because").toObject()
-            .value("event_id") == redaction->id())
+    if (originalJson.value(UnsignedKeyL).toObject()
+            .value(RedactedCauseKeyL).toObject()
+            .value(EventIdKeyL) == redaction->id())
     {
         qCDebug(MAIN) << "Redaction" << redaction->id()
             << "of event" << ti.event()->id() << "already done, skipping";
         return;
     }
     static const QStringList keepKeys =
-        { "event_id", "type", "room_id", "sender", "state_key",
-          "prev_content", "content", "origin_server_ts" };
-    static const
-        std::vector<std::pair<EventType, QStringList>> keepContentKeysMap
-        { { Event::Type::RoomMember,    { "membership" } }
-        , { Event::Type::RoomCreate,    { "creator" } }
-        , { Event::Type::RoomJoinRules, { "join_rule" } }
-        , { Event::Type::RoomPowerLevels,
-            { "ban", "events", "events_default", "kick", "redact",
-              "state_default", "users", "users_default" } }
-        , { Event::Type::RoomAliases,   { "alias" } }
+        { EventIdKey, TypeKey, QStringLiteral("room_id"),
+          QStringLiteral("sender"), QStringLiteral("state_key"),
+          QStringLiteral("prev_content"), ContentKey,
+          QStringLiteral("origin_server_ts") };
+
+        std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap
+        { { RoomMemberEvent::typeId(), { QStringLiteral("membership") } }
+//        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
+//        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
+//        , { RoomPowerLevels::typeId(),
+//            { QStringLiteral("ban"), QStringLiteral("events"),
+//              QStringLiteral("events_default"), QStringLiteral("kick"),
+//              QStringLiteral("redact"), QStringLiteral("state_default"),
+//              QStringLiteral("users"), QStringLiteral("users_default") } }
+        , { RoomAliasesEvent::typeId(),   { QStringLiteral("alias") } }
         };
     for (auto it = originalJson.begin(); it != originalJson.end();)
     {
@@ -1325,10 +1330,10 @@ void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
                     [&ti](const auto& t) { return ti->type() == t.first; } );
     if (keepContentKeys == keepContentKeysMap.end())
     {
-        originalJson.remove("content");
-        originalJson.remove("prev_content");
+        originalJson.remove(ContentKeyL);
+        originalJson.remove(PrevContentKeyL);
     } else {
-        auto content = originalJson.take("content").toObject();
+        auto content = originalJson.take(ContentKeyL).toObject();
         for (auto it = content.begin(); it != content.end(); )
         {
             if (!keepContentKeys->second.contains(it.key()))
@@ -1336,16 +1341,15 @@ void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
             else
                 ++it;
         }
-        originalJson.insert("content", content);
+        originalJson.insert(ContentKey, content);
     }
-    auto unsignedData = originalJson.take("unsigned").toObject();
-    unsignedData["redacted_because"] = redaction->originalJsonObject();
-    originalJson.insert("unsigned", unsignedData);
+    auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
+    unsignedData[RedactedCauseKeyL] = redaction->originalJsonObject();
+    originalJson.insert(QStringLiteral("unsigned"), unsignedData);
 
     // Make a new event from the redacted JSON, exchange events,
     // notify everyone and delete the old event
-    RoomEventPtr oldEvent
-        { ti.replaceEvent(makeEvent<RoomEvent>(originalJson)) };
+    auto oldEvent = ti.replaceEvent(loadEvent<RoomEvent>(originalJson));
     q->onRedaction(*oldEvent, *ti.event());
     qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction->id();
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
@@ -1442,52 +1446,48 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
 bool Room::processStateEvent(const RoomEvent& e)
 {
-    switch (e.type())
-    {
-        case EventType::RoomName: {
-            d->name = static_cast<const RoomNameEvent&>(e).name();
+    return visit(e
+        , [this] (const RoomNameEvent& evt) {
+            d->name = evt.name();
             qCDebug(MAIN) << "Room name updated:" << d->name;
             return true;
         }
-        case EventType::RoomAliases: {
-            d->aliases = static_cast<const RoomAliasesEvent&>(e).aliases();
+        , [this] (const RoomAliasesEvent& evt) {
+            d->aliases = evt.aliases();
             qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
             return true;
         }
-        case EventType::RoomCanonicalAlias: {
-            d->canonicalAlias =
-                    static_cast<const RoomCanonicalAliasEvent&>(e).alias();
+        , [this] (const RoomCanonicalAliasEvent& evt) {
+            d->canonicalAlias = evt.alias();
             setObjectName(d->canonicalAlias);
-            qCDebug(MAIN) << "Room canonical alias updated:" << d->canonicalAlias;
+            qCDebug(MAIN) << "Room canonical alias updated:"
+                          << d->canonicalAlias;
             return true;
         }
-        case EventType::RoomTopic: {
-            d->topic = static_cast<const RoomTopicEvent&>(e).topic();
+        , [this] (const RoomTopicEvent& evt) {
+            d->topic = evt.topic();
             qCDebug(MAIN) << "Room topic updated:" << d->topic;
             emit topicChanged();
             return false;
         }
-        case EventType::RoomAvatar: {
-            const auto& avatarEventContent =
-                    static_cast<const RoomAvatarEvent&>(e).content();
-            if (d->avatar.updateUrl(avatarEventContent.url))
+        , [this] (const RoomAvatarEvent& evt) {
+            if (d->avatar.updateUrl(evt.url()))
             {
                 qCDebug(MAIN) << "Room avatar URL updated:"
-                              << avatarEventContent.url.toString();
+                              << evt.url().toString();
                 emit avatarChanged();
             }
             return false;
         }
-        case EventType::RoomMember: {
-            const auto& memberEvent = static_cast<const RoomMemberEvent&>(e);
-            auto* u = user(memberEvent.userId());
-            u->processEvent(memberEvent, this);
+        , [this] (const RoomMemberEvent& evt) {
+            auto* u = user(evt.userId());
+            u->processEvent(evt, this);
             if (u == localUser() && memberJoinState(u) == JoinState::Invite
-                    && memberEvent.isDirect())
+                    && evt.isDirect())
                 connection()->addToDirectChats(this,
-                                user(memberEvent.senderId()));
+                                user(evt.senderId()));
 
-            if( memberEvent.membership() == MembershipType::Join )
+            if( evt.membership() == MembershipType::Join )
             {
                 if (memberJoinState(u) != JoinState::Join)
                 {
@@ -1505,7 +1505,7 @@ bool Room::processStateEvent(const RoomEvent& e)
                     emit userAdded(u);
                 }
             }
-            else if( memberEvent.membership() == MembershipType::Leave )
+            else if( evt.membership() == MembershipType::Leave )
             {
                 if (memberJoinState(u) == JoinState::Join)
                 {
@@ -1517,52 +1517,43 @@ bool Room::processStateEvent(const RoomEvent& e)
             }
             return false;
         }
-        case EventType::RoomEncryption:
-        {
-            d->encryptionAlgorithm =
-                    static_cast<const EncryptionEvent&>(e).algorithm();
-            qCDebug(MAIN) << "Encryption switched on in" << displayName();
+        , [this] (const EncryptionEvent& evt) {
+            d->encryptionAlgorithm = evt.algorithm();
+            qCDebug(MAIN) << "Encryption switched on in room" << id()
+                          << "with algorithm" << d->encryptionAlgorithm;
             emit encryption();
             return false;
         }
-        default:
-            /* Ignore events of other types */
-            return false;
-    }
+    );
 }
 
 void Room::processEphemeralEvent(EventPtr&& event)
 {
     QElapsedTimer et; et.start();
-    switch (event->type())
-    {
-        case EventType::Typing: {
-            auto typingEvent = ptrCast<TypingEvent>(move(event));
+    visit(event
+        , [this,et] (const TypingEvent& evt) {
             d->usersTyping.clear();
-            for( const QString& userId: typingEvent->users() )
+            for( const QString& userId: qAsConst(evt.users()) )
             {
                 auto u = user(userId);
                 if (memberJoinState(u) == JoinState::Join)
                     d->usersTyping.append(u);
             }
-            if (!typingEvent->users().isEmpty())
+            if (!evt.users().isEmpty())
                 qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
-                    << typingEvent->users().size() << "users," << et;
+                    << evt.users().size() << "users," << et;
             emit typingChanged();
-            break;
         }
-        case EventType::Receipt: {
-            auto receiptEvent = ptrCast<ReceiptEvent>(move(event));
-            for( const auto &p: receiptEvent->eventsWithReceipts() )
+        , [this,et] (const ReceiptEvent& evt) {
+            for( const auto &p: qAsConst(evt.eventsWithReceipts()) )
             {
                 {
                     if (p.receipts.size() == 1)
                         qCDebug(EPHEMERAL) << "Marking" << p.evtId
-                                           << "as read for" << p.receipts[0].userId;
+                            << "as read for" << p.receipts[0].userId;
                     else
                         qCDebug(EPHEMERAL) << "Marking" << p.evtId
-                                           << "as read for"
-                                           << p.receipts.size() << "users";
+                            << "as read for" << p.receipts.size() << "users";
                 }
                 const auto newMarker = findInTimeline(p.evtId);
                 if (newMarker != timelineEdge())
@@ -1578,7 +1569,7 @@ void Room::processEphemeralEvent(EventPtr&& event)
                 } else
                 {
                     qCDebug(EPHEMERAL) << "Event" << p.evtId
-                                       << "not found; saving read receipts anyway";
+                        << "not found; saving read receipts anyway";
                     // If the event is not found (most likely, because it's too old
                     // and hasn't been fetched from the server yet), but there is
                     // a previous marker for a user, keep the previous marker.
@@ -1594,37 +1585,28 @@ void Room::processEphemeralEvent(EventPtr&& event)
                     }
                 }
             }
-            if (!receiptEvent->eventsWithReceipts().isEmpty())
+            if (!evt.eventsWithReceipts().isEmpty())
                 qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
-                    << receiptEvent->eventsWithReceipts().size()
+                    << evt.eventsWithReceipts().size()
                     << "events with receipts," << et;
-            break;
         }
-        default:
-            qCWarning(EPHEMERAL) << "Unexpected event type in 'ephemeral' batch:"
-                                 << event->jsonType();
-    }
+    );
 }
 
 void Room::processAccountDataEvent(EventPtr&& event)
 {
-    switch (event->type())
-    {
-        case EventType::Tag:
-        {
-            auto newTags = ptrCast<const TagEvent>(move(event))->tags();
+    visit(event
+        , [this] (const TagEvent& evt) {
+            auto newTags = evt.tags();
             if (newTags == d->tags)
-                break;
+                return;
             d->tags = newTags;
             qCDebug(MAIN) << "Room" << id() << "is tagged with:"
                           << tagNames().join(", ");
             emit tagsChanged();
-            break;
         }
-        case EventType::ReadMarker:
-        {
-            auto readEventId =
-                    ptrCast<const ReadMarkerEvent>(move(event))->event_id();
+        , [this] (const ReadMarkerEvent& evt) {
+            auto readEventId = evt.event_id();
             qCDebug(MAIN) << "Server-side read marker at" << readEventId;
             d->serverReadMarker = readEventId;
             const auto newMarker = findInTimeline(readEventId);
@@ -1632,12 +1614,18 @@ void Room::processAccountDataEvent(EventPtr&& event)
                 d->markMessagesAsRead(newMarker);
             else
                 d->setLastReadEvent(localUser(), readEventId);
-            break;
         }
-        default:
-            d->accountData[event->jsonType()] =
-                    fromJson<AccountDataMap>(event->contentJson());
-            emit accountDataChanged(event->jsonType());
+    );
+    // For all account data events
+    auto& currentData = d->accountData[event->matrixType()];
+    // A polymorphic event-specific comparison might be a bit more
+    // efficient; maaybe do it another day
+    if (!currentData || currentData->contentJson() != event->contentJson())
+    {
+        currentData = std::move(event);
+        qCDebug(MAIN) << "Updated account data of type"
+                      << currentData->matrixType();
+        emit accountDataChanged(currentData->matrixType());
     }
 }
 
@@ -1674,8 +1662,8 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
     // ii. Two users besides the current one.
     if (userlist.size() == 3)
         return tr("%1 and %2")
-                .arg(q->roomMembername(first_two[0]))
-                .arg(q->roomMembername(first_two[1]));
+                .arg(q->roomMembername(first_two[0]),
+                     q->roomMembername(first_two[1]));
 
     // iii. More users.
     if (userlist.size() > 3)
@@ -1731,11 +1719,11 @@ void appendStateEvent(QJsonArray& events, const QString& type,
                       const QJsonObject& content, const QString& stateKey = {})
 {
     if (!content.isEmpty() || !stateKey.isEmpty())
-        events.append(QJsonObject
-            { { QStringLiteral("type"), type }
-            , { QStringLiteral("content"), content }
-            , { QStringLiteral("state_key"), stateKey }
-            });
+    {
+        auto json = basicEventJson(type, content);
+        json.insert(QStringLiteral("state_key"), stateKey);
+        events.append(json);
+    }
 }
 
 #define ADD_STATE_EVENT(events, type, name, content) \
@@ -1746,16 +1734,13 @@ void appendEvent(QJsonArray& events, const QString& type,
                  const QJsonObject& content)
 {
     if (!content.isEmpty())
-        events.append(QJsonObject
-            { { QStringLiteral("type"), type }
-            , { QStringLiteral("content"), content }
-            });
+        events.append(basicEventJson(type, content));
 }
 
 template <typename EvtT>
 void appendEvent(QJsonArray& events, const EvtT& event)
 {
-    appendEvent(events, EvtT::typeId(), event.toJson());
+    appendEvent(events, EvtT::matrixTypeId(), event.toJson());
 }
 
 QJsonObject Room::Private::toJson() const
@@ -1790,29 +1775,23 @@ QJsonObject Room::Private::toJson() const
     }
 
     QJsonArray accountDataEvents;
-    if (!tags.empty())
-        appendEvent(accountDataEvents, TagEvent(tags));
-
-    if (!serverReadMarker.isEmpty())
-        appendEvent(accountDataEvents, ReadMarkerEvent(serverReadMarker));
-
     if (!accountData.empty())
     {
-        for (auto it = accountData.begin(); it != accountData.end(); ++it)
-            appendEvent(accountDataEvents, it.key(),
-                        QMatrixClient::toJson(it.value()));
+        for (const auto& e: accountData)
+            appendEvent(accountDataEvents, e.first, e.second->contentJson());
     }
-    result.insert("account_data", QJsonObject {{ "events", accountDataEvents }});
+    result.insert(QStringLiteral("account_data"),
+                  QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
 
-    QJsonObject unreadNotificationsObj;
+    QJsonObject unreadNotifObj
+        { { SyncRoomData::UnreadCountKey, unreadMessages } };
 
-    unreadNotificationsObj.insert(SyncRoomData::UnreadCountKey, unreadMessages);
     if (highlightCount > 0)
-        unreadNotificationsObj.insert("highlight_count", highlightCount);
+        unreadNotifObj.insert(QStringLiteral("highlight_count"), highlightCount);
     if (notificationCount > 0)
-        unreadNotificationsObj.insert("notification_count", notificationCount);
+        unreadNotifObj.insert(QStringLiteral("notification_count"), notificationCount);
 
-    result.insert("unread_notifications", unreadNotificationsObj);
+    result.insert(QStringLiteral("unread_notifications"), unreadNotifObj);
 
     if (et.elapsed() > 50)
         qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;

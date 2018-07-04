@@ -355,9 +355,9 @@ void Connection::onSyncSuccess(SyncData &&data) {
 
             continue;
         }
-        d->accountData[accountEvent->jsonType()] =
+        d->accountData[accountEvent->matrixType()] =
                 fromJson<AccountDataMap>(accountEvent->contentJson());
-        emit accountDataChanged(accountEvent->jsonType());
+        emit accountDataChanged(accountEvent->matrixType());
     }
 }
 
@@ -603,7 +603,7 @@ SendToDeviceJob* Connection::sendToDevices(const QString& eventType,
             std::for_each(devicesToEvents.begin(), devicesToEvents.end(),
                 [&jsonUser] (const auto& deviceToEvents) {
                     jsonUser.insert(deviceToEvents.first,
-                                    deviceToEvents.second.toJson());
+                                    deviceToEvents.second.contentJson());
                 });
         });
     return callApi<SendToDeviceJob>(BackgroundRequest,
@@ -1048,4 +1048,3 @@ void Connection::setCacheState(bool newValue)
         emit cacheStateChanged();
     }
 }
-

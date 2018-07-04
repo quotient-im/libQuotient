@@ -35,7 +35,7 @@ void SendEventJob::beforeStart(const ConnectionData* connData)
 
 BaseJob::Status SendEventJob::parseJson(const QJsonDocument& data)
 {
-    _eventId = data.object().value("event_id").toString();
+    _eventId = data.object().value("event_id"_ls).toString();
     if (!_eventId.isEmpty())
         return Success;
 

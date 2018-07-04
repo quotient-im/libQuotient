@@ -22,6 +22,7 @@
 
 #include "event.h"
 #include "eventcontent.h"
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -32,7 +33,7 @@ namespace QMatrixClient
     {
         TagRecord (QString order = {}) : order(std::move(order)) { }
         explicit TagRecord(const QJsonValue& jv)
-            : order(jv.toObject().value("order").toString())
+            : order(jv.toObject().value("order"_ls).toString())
         { }
 
         QString order;
@@ -50,28 +51,31 @@ namespace QMatrixClient
 
     using TagsMap = QHash<QString, TagRecord>;
 
-#define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _EnumType, _ContentType, _ContentKey) \
+#define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey) \
     class _Name : public Event \
     { \
         public: \
-            static constexpr const char* typeId() { return _TypeId; } \
-            explicit _Name(const QJsonObject& obj) \
-                : Event((_EnumType), obj) \
-                , _content(contentJson(), QStringLiteral(#_ContentKey)) \
+            using content_type = _ContentType; \
+            DEFINE_EVENT_TYPEID(_TypeId, _Name) \
+            explicit _Name(QJsonObject obj) \
+                : Event(typeId(), std::move(obj)) \
             { } \
-            template <typename... Ts> \
-            explicit _Name(Ts&&... contentArgs) \
-                : Event(_EnumType) \
-                , _content(QStringLiteral(#_ContentKey), \
-                           std::forward<Ts>(contentArgs)...) \
+            explicit _Name(_ContentType content) \
+                : Event(typeId(), matrixTypeId(), \
+                        QJsonObject { { QStringLiteral(#_ContentKey), \
+                                        toJson(std::move(content)) } }) \
             { } \
-            const _ContentType& _ContentKey() const { return _content.value; } \
-            QJsonObject toJson() const { return _content.toJson(); } \
-        protected: \
-            EventContent::SimpleContent<_ContentType> _content; \
-    };
+            auto _ContentKey() const \
+            { return fromJson<content_type>(contentJson()[#_ContentKey##_ls]); } \
+    }; \
+    REGISTER_EVENT_TYPE(_Name) \
+    // End of macro
 
-    DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", EventType::Tag, TagsMap, tags)
-    DEFINE_SIMPLE_EVENT(ReadMarkerEvent, "m.fully_read", EventType::ReadMarker,
-                        QString, event_id)
+    DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", TagsMap, tags)
+    DEFINE_SIMPLE_EVENT(ReadMarkerEvent, "m.fully_read", QString, event_id)
+    DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, "m.ignored_user_list",
+                        QSet<QString>, ignored_users)
+
+    DEFINE_EVENTTYPE_ALIAS(Tag, TagEvent)
+    DEFINE_EVENTTYPE_ALIAS(ReadMarker, ReadMarkerEvent)
 }

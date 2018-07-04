@@ -18,13 +18,15 @@ class RedactEventJob::Private
         QString eventId;
 };
 
+static const auto RedactEventJobName = QStringLiteral("RedactEventJob");
+
 RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, const QString& txnId, const QString& reason)
-    : BaseJob(HttpVerb::Put, "RedactEventJob",
+    : BaseJob(HttpVerb::Put, RedactEventJobName,
         basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
     , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, "reason", reason);
+    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
     setRequestData(_data);
 }
 
@@ -38,7 +40,7 @@ const QString& RedactEventJob::eventId() const
 BaseJob::Status RedactEventJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"));
+    d->eventId = fromJson<QString>(json.value("event_id"_ls));
     return Success;
 }
 

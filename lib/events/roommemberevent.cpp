@@ -18,6 +18,7 @@
 
 #include "roommemberevent.h"
 
+#include "converters.h"
 #include "logging.h"
 
 #include <array>
@@ -50,10 +51,10 @@ namespace QMatrixClient
 }
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
-    : membership(fromJson<MembershipType>(json["membership"]))
-    , isDirect(json["is_direct"].toBool())
-    , displayName(json["displayname"].toString())
-    , avatarUrl(json["avatar_url"].toString())
+    : membership(fromJson<MembershipType>(json["membership"_ls]))
+    , isDirect(json["is_direct"_ls].toBool())
+    , displayName(json["displayname"_ls].toString())
+    , avatarUrl(json["avatar_url"_ls].toString())
 { }
 
 void MemberEventContent::fillJson(QJsonObject* o) const
@@ -62,8 +63,8 @@ void MemberEventContent::fillJson(QJsonObject* o) const
     Q_ASSERT_X(membership != MembershipType::Undefined, __FUNCTION__,
              "The key 'membership' must be explicit in MemberEventContent");
     if (membership != MembershipType::Undefined)
-        o->insert("membership", membershipStrings[membership]);
-    o->insert("displayname", displayName);
+        o->insert(QStringLiteral("membership"), membershipStrings[membership]);
+    o->insert(QStringLiteral("displayname"), displayName);
     if (avatarUrl.isValid())
-        o->insert("avatar_url", avatarUrl.toString());
+        o->insert(QStringLiteral("avatar_url"), avatarUrl.toString());
 }

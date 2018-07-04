@@ -25,10 +25,14 @@ namespace QMatrixClient
     class DirectChatEvent : public Event
     {
         public:
-            explicit DirectChatEvent(const QJsonObject& obj);
+            DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
+
+            explicit DirectChatEvent(const QJsonObject& obj)
+                : Event(typeId(), obj)
+            { }
 
             QMultiHash<QString, QString> usersToDirectChats() const;
-
-            static constexpr const char* typeId() { return "m.direct"; }
     };
+    REGISTER_EVENT_TYPE(DirectChatEvent)
+    DEFINE_EVENTTYPE_ALIAS(DirectChat, DirectChatEvent)
 }
