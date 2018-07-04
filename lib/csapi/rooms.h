@@ -6,8 +6,8 @@
 
 #include "jobs/basejob.h"
 
-#include "events/event.h"
 #include "events/roommemberevent.h"
+#include "events/eventloader.h"
 #include <QtCore/QHash>
 #include "converters.h"
 

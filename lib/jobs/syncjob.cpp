@@ -18,6 +18,8 @@
 
 #include "syncjob.h"
 
+#include "events/eventloader.h"
+
 #include <QtCore/QElapsedTimer>
 
 using namespace QMatrixClient;

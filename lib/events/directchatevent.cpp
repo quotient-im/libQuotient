@@ -18,6 +18,8 @@
 
 #include "directchatevent.h"
 
+#include <QtCore/QJsonArray>
+
 using namespace QMatrixClient;
 
 QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const

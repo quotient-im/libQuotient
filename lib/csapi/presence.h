@@ -6,7 +6,7 @@
 
 #include "jobs/basejob.h"
 
-#include "events/event.h"
+#include "events/eventloader.h"
 #include "converters.h"
 
 namespace QMatrixClient

@@ -21,7 +21,7 @@
 #include "basejob.h"
 
 #include "joinstate.h"
-#include "events/event.h"
+#include "events/stateevent.h"
 #include "util.h"
 
 namespace QMatrixClient

@@ -18,6 +18,8 @@ HEADERS += \
     $$SRCPATH/avatar.h \
     $$SRCPATH/util.h \
     $$SRCPATH/events/event.h \
+    $$SRCPATH/events/roomevent.h \
+    $$SRCPATH/events/stateevent.h \
     $$SRCPATH/events/eventcontent.h \
     $$SRCPATH/events/roommessageevent.h \
     $$SRCPATH/events/simplestateevents.h \
@@ -28,6 +30,7 @@ HEADERS += \
     $$SRCPATH/events/accountdataevents.h \
     $$SRCPATH/events/directchatevent.h \
     $$SRCPATH/events/redactionevent.h \
+    $$SRCPATH/events/eventloader.h \
     $$SRCPATH/jobs/requestdata.h \
     $$SRCPATH/jobs/basejob.h \
     $$SRCPATH/jobs/sendeventjob.h \
@@ -51,6 +54,8 @@ SOURCES += \
     $$SRCPATH/avatar.cpp \
     $$SRCPATH/util.cpp \
     $$SRCPATH/events/event.cpp \
+    $$SRCPATH/events/roomevent.cpp \
+    $$SRCPATH/events/stateevent.cpp \
     $$SRCPATH/events/eventcontent.cpp \
     $$SRCPATH/events/roommessageevent.cpp \
     $$SRCPATH/events/roommemberevent.cpp \

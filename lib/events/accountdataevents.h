@@ -22,6 +22,7 @@
 
 #include "event.h"
 #include "eventcontent.h"
+#include "converters.h"
 
 namespace QMatrixClient
 {

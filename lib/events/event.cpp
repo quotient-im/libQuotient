@@ -18,12 +18,17 @@
 
 #include "event.h"
 
-#include "redactionevent.h"
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
 
 using namespace QMatrixClient;
+
+event_type_t QMatrixClient::nextTypeId()
+{
+    static event_type_t _id = EventTypeTraits<void>::id;
+    return ++_id;
+}
 
 Event::Event(Type type, const QJsonObject& json)
     : _type(type), _json(json)
@@ -60,76 +65,4 @@ const QJsonObject Event::contentJson() const
 const QJsonObject Event::unsignedJson() const
 {
     return fullJson()[UnsignedKeyL].toObject();
-}
-
-[[gnu::unused]] static auto roomEventTypeInitialised =
-        Event::factory_t::chainFactory<RoomEvent>();
-
-RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
-                     const QJsonObject& contentJson)
-    : Event(type, matrixType, contentJson)
-{ }
-
-RoomEvent::RoomEvent(Type type, const QJsonObject& json)
-    : Event(type, json)
-{
-    const auto unsignedData = json[UnsignedKeyL].toObject();
-    const auto redaction = unsignedData[RedactedCauseKeyL];
-    if (redaction.isObject())
-    {
-        _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
-        return;
-    }
-
-    _txnId = unsignedData.value("transactionId"_ls).toString();
-    if (!_txnId.isEmpty())
-        qCDebug(EVENTS) << "Event transactionId:" << _txnId;
-}
-
-RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
-
-QString RoomEvent::id() const
-{
-    return fullJson()[EventIdKeyL].toString();
-}
-
-QDateTime RoomEvent::timestamp() const
-{
-    return QMatrixClient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
-}
-
-QString RoomEvent::roomId() const
-{
-    return fullJson()["room_id"_ls].toString();
-}
-
-QString RoomEvent::senderId() const
-{
-    return fullJson()["sender"_ls].toString();
-}
-
-QString RoomEvent::redactionReason() const
-{
-    return isRedacted() ? _redactedBecause->reason() : QString{};
-}
-
-void RoomEvent::addId(const QString& newId)
-{
-    Q_ASSERT(id().isEmpty()); Q_ASSERT(!newId.isEmpty());
-    editJson().insert(EventIdKey, newId);
-}
-
-[[gnu::unused]] static auto stateEventTypeInitialised =
-        RoomEvent::factory_t::chainFactory<StateEventBase>();
-
-bool StateEventBase::repeatsState() const
-{
-    const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
-    return fullJson().value(ContentKeyL) == prevContentJson;
-}
-
-event_type_t QMatrixClient::nextTypeId()
-{
-    static event_type_t _id = EventTypeTraits<void>::id;
-    return ++_id;
 }

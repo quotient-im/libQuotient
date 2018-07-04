@@ -21,6 +21,7 @@
 #include "event.h"
 
 #include <QtCore/QVector>
+#include <QtCore/QDateTime>
 
 namespace QMatrixClient
 {

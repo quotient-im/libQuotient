@@ -6,12 +6,12 @@
 
 #include "jobs/basejob.h"
 
-#include <unordered_map>
-#include <QtCore/QHash>
 #include <QtCore/QJsonObject>
-#include "events/event.h"
 #include "converters.h"
 #include <QtCore/QVector>
+#include <unordered_map>
+#include <QtCore/QHash>
+#include "events/eventloader.h"
 
 namespace QMatrixClient
 {

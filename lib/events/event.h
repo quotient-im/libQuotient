@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "converters.h"
 #include "util.h"
 
-#include <typeindex>
+#include <QtCore/QJsonObject>
 
 namespace QMatrixClient
 {
@@ -167,39 +166,6 @@ namespace QMatrixClient
             });
     }
 
-    /** Create an event with proper type from a JSON object
-     * Use this factory template to detect the type from the JSON object
-     * contents (the detected event type should derive from the template
-     * parameter type) and create an event object of that type.
-     */
-    template <typename BaseEventT>
-    inline event_ptr_tt<BaseEventT> loadEvent(const QJsonObject& fullJson)
-    {
-        return EventFactory<BaseEventT>
-                ::make(fullJson, fullJson[TypeKeyL].toString());
-    }
-
-    /** Create an event from a type string and content JSON
-     * Use this factory template to resolve the C++ type from the Matrix
-     * type string in \p matrixType and create an event of that type that has
-     * its content part set to \p content.
-     */
-    template <typename BaseEventT>
-    inline event_ptr_tt<BaseEventT> loadEvent(const QString& matrixType,
-                                              const QJsonObject& content)
-    {
-        return EventFactory<BaseEventT>
-                ::make(basicEventJson(matrixType, content), matrixType);
-    }
-
-    template <typename EventT> struct FromJson<event_ptr_tt<EventT>>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            return loadEvent<EventT>(jv.toObject());
-        }
-    };
-
     // === Event ===
 
     class Event
@@ -313,144 +279,6 @@ namespace QMatrixClient
         return return_type();
     }
 
-    // === RoomEvent ===
-
-    class RedactionEvent;
-
-    /** This class corresponds to m.room.* events */
-    class RoomEvent : public Event
-    {
-            Q_GADGET
-            Q_PROPERTY(QString id READ id)
-            Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
-            Q_PROPERTY(QString roomId READ roomId CONSTANT)
-            Q_PROPERTY(QString senderId READ senderId CONSTANT)
-            Q_PROPERTY(QString redactionReason READ redactionReason)
-            Q_PROPERTY(bool isRedacted READ isRedacted)
-            Q_PROPERTY(QString transactionId READ transactionId)
-        public:
-            using factory_t = EventFactory<RoomEvent>;
-
-            // RedactionEvent is an incomplete type here so we cannot inline
-            // constructors and destructors and we cannot use 'using'.
-            RoomEvent(Type type, event_mtype_t matrixType,
-                      const QJsonObject& contentJson = {});
-            RoomEvent(Type type, const QJsonObject& json);
-            ~RoomEvent() override;
-
-            QString id() const;
-            QDateTime timestamp() const;
-            QString roomId() const;
-            QString senderId() const;
-            bool isRedacted() const { return bool(_redactedBecause); }
-            const event_ptr_tt<RedactionEvent>& redactedBecause() const
-            {
-                return _redactedBecause;
-            }
-            QString redactionReason() const;
-            const QString& transactionId() const { return _txnId; }
-
-            /**
-             * Sets the transaction id for locally created events. This should be
-             * done before the event is exposed to any code using the respective
-             * Q_PROPERTY.
-             *
-             * \param txnId - transaction id, normally obtained from
-             * Connection::generateTxnId()
-             */
-            void setTransactionId(const QString& txnId) { _txnId = txnId; }
-
-            /**
-             * Sets event id for locally created events
-             *
-             * When a new event is created locally, it has no server id yet.
-             * This function allows to add the id once the confirmation from
-             * the server is received. There should be no id set previously
-             * in the event. It's the responsibility of the code calling addId()
-             * to notify clients that use Q_PROPERTY(id) about its change
-             */
-            void addId(const QString& newId);
-
-        private:
-            event_ptr_tt<RedactionEvent> _redactedBecause;
-            QString _txnId;
-    };
-    using RoomEventPtr = event_ptr_tt<RoomEvent>;
-    using RoomEvents = EventsArray<RoomEvent>;
-    using RoomEventsRange = Range<RoomEvents>;
-
-    // === State events ===
-
-    class StateEventBase: public RoomEvent
-    {
-        public:
-            using factory_t = EventFactory<StateEventBase>;
-
-            using RoomEvent::RoomEvent;
-            ~StateEventBase() override = default;
-
-            bool isStateEvent() const override { return true; }
-            virtual bool repeatsState() const;
-    };
-    using StateEventPtr = event_ptr_tt<StateEventBase>;
-    using StateEvents = EventsArray<StateEventBase>;
-
-    template <typename ContentT>
-    struct Prev
-    {
-        template <typename... ContentParamTs>
-        explicit Prev(const QJsonObject& unsignedJson,
-                      ContentParamTs&&... contentParams)
-            : senderId(unsignedJson.value("prev_sender"_ls).toString())
-            , content(unsignedJson.value(PrevContentKeyL).toObject(),
-                       std::forward<ContentParamTs>(contentParams)...)
-        { }
-
-        QString senderId;
-        ContentT content;
-    };
-
-    template <typename ContentT>
-    class StateEvent: public StateEventBase
-    {
-        public:
-            using content_type = ContentT;
-
-            template <typename... ContentParamTs>
-            explicit StateEvent(Type type, const QJsonObject& fullJson,
-                                ContentParamTs&&... contentParams)
-                : StateEventBase(type, fullJson)
-                , _content(contentJson(),
-                           std::forward<ContentParamTs>(contentParams)...)
-            {
-                const auto& unsignedData = unsignedJson();
-                if (unsignedData.contains(PrevContentKeyL))
-                    _prev = std::make_unique<Prev<ContentT>>(unsignedData,
-                                std::forward<ContentParamTs>(contentParams)...);
-            }
-            template <typename... ContentParamTs>
-            explicit StateEvent(Type type, event_mtype_t matrixType,
-                                ContentParamTs&&... contentParams)
-                : StateEventBase(type, matrixType)
-                , _content(std::forward<ContentParamTs>(contentParams)...)
-            {
-                editJson().insert(ContentKey, _content.toJson());
-            }
-
-            const ContentT& content() const { return _content; }
-            [[deprecated("Use prevContent instead")]]
-            const ContentT* prev_content() const { return prevContent(); }
-            const ContentT* prevContent() const
-            { return _prev ? &_prev->content : nullptr; }
-            QString prevSenderId() const
-                { return _prev ? _prev->senderId : QString(); }
-
-        protected:
-            ContentT _content;
-            std::unique_ptr<Prev<ContentT>> _prev;
-    };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Event*)
-Q_DECLARE_METATYPE(QMatrixClient::RoomEvent*)
 Q_DECLARE_METATYPE(const QMatrixClient::Event*)
-Q_DECLARE_METATYPE(const QMatrixClient::RoomEvent*)

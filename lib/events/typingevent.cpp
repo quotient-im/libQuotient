@@ -18,6 +18,8 @@
 
 #include "typingevent.h"
 
+#include <QtCore/QJsonArray>
+
 using namespace QMatrixClient;
 
 TypingEvent::TypingEvent(const QJsonObject& obj)
