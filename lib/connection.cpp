@@ -20,6 +20,7 @@
 #include "connectiondata.h"
 #include "user.h"
 #include "events/directchatevent.h"
+#include "events/eventloader.h"
 #include "room.h"
 #include "settings.h"
 #include "csapi/login.h"

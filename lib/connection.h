@@ -34,6 +34,7 @@ namespace QMatrixClient
     class Room;
     class User;
     class ConnectionData;
+    class RoomEvent;
 
     class SyncJob;
     class SyncData;
