@@ -285,12 +285,28 @@ namespace QMatrixClient
 
     inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
 
+    template <typename FnT, typename DefaultT>
+    inline auto visit(const Event& event, FnT visitor,
+                      DefaultT&& defaultValue)
+        -> std::enable_if_t<
+            std::is_convertible<DefaultT, fn_return_t<FnT>>::value,
+            fn_return_t<FnT>>
+    {
+        using event_type = fn_arg_t<FnT>;
+        if (is<event_type>(event))
+            return visitor(static_cast<event_type>(event));
+        return std::forward<fn_return_t<FnT>>(defaultValue);
+    }
+
     template <typename FnT>
     inline fn_return_t<FnT> visit(const Event& event, FnT visitor)
     {
         using event_type = fn_arg_t<FnT>;
         if (is<event_type>(event))
             return visitor(static_cast<event_type>(event));
+        // Cannot define in terms of the previous overload because
+        // fn_return_t<FnT> may be void and void() is not a valid default
+        // parameter value.
         return fn_return_t<FnT>();
     }
 
@@ -312,7 +328,6 @@ namespace QMatrixClient
             return visit(*eptr, visitors...);
         return return_type();
     }
-
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Event*)
 Q_DECLARE_METATYPE(const QMatrixClient::Event*)
