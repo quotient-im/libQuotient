@@ -35,6 +35,11 @@
 #define FALLTHROUGH // -fallthrough
 #endif
 
+// Along the lines of Q_DISABLE_COPY
+#define DISABLE_MOVE(_ClassName) \
+    _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
+    _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
+
 namespace QMatrixClient
 {
     // The below enables pretty-printing of enums in logs
