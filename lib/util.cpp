@@ -25,8 +25,8 @@ static const auto RegExpOptions =
     | QRegularExpression::OptimizeOnFirstUsageOption
     | QRegularExpression::UseUnicodePropertiesOption;
 
-/** Converts all that looks like a URL into HTML links */
-[[gnu::const]] static void linkifyUrls(QString& htmlEscapedText)
+// Converts all that looks like a URL into HTML links
+static void linkifyUrls(QString& htmlEscapedText)
 {
     // regexp is originally taken from Konsole (https://github.com/KDE/konsole)
     // full url:
@@ -56,7 +56,7 @@ QString QMatrixClient::prettyPrint(const QString& plainText)
 {
     auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
             plainText.toHtmlEscaped() + QStringLiteral("</span>");
-    pt.replace('\n', "<br/>");
+    pt.replace('\n', QStringLiteral("<br/>"));
 
     linkifyUrls(pt);
     return pt;
