@@ -68,10 +68,49 @@ namespace QMatrixClient
                  { ContentKey, content } };
     }
 
-    // === Event factory ===
+    // === Event types and event types registry ===
 
     using event_type_t = size_t;
     using event_mtype_t = const char*;
+
+    class EventTypeRegistry
+    {
+        public:
+            ~EventTypeRegistry() = default;
+
+            static event_type_t initializeTypeId(event_mtype_t matrixTypeId);
+
+            template <typename EventT>
+            static inline event_type_t initializeTypeId()
+            {
+                return initializeTypeId(EventT::matrixTypeId());
+            }
+
+            static event_mtype_t getMatrixType(event_type_t typeId)
+            {
+                return typeId < get().eventTypes.size()
+                        ? get().eventTypes[typeId] : "";
+            }
+
+        private:
+            EventTypeRegistry() = default;
+            Q_DISABLE_COPY(EventTypeRegistry)
+            DISABLE_MOVE(EventTypeRegistry)
+
+            static EventTypeRegistry& get()
+            {
+                static EventTypeRegistry etr;
+                return etr;
+            }
+
+            std::vector<event_mtype_t> eventTypes;
+    };
+
+    template <>
+    inline event_type_t EventTypeRegistry::initializeTypeId<void>()
+    {
+        return initializeTypeId("");
+    }
 
     template <typename EventT>
     struct EventTypeTraits
@@ -79,21 +118,16 @@ namespace QMatrixClient
         static const event_type_t id;
     };
 
-    template <>
-    struct EventTypeTraits<void>
-    {
-        static constexpr event_type_t id = 0;
-    };
-
-    event_type_t nextTypeId();
-
     template <typename EventT>
-    const event_type_t EventTypeTraits<EventT>::id = nextTypeId();
+    const event_type_t EventTypeTraits<EventT>::id =
+            EventTypeRegistry::initializeTypeId<EventT>();
 
     template <typename EventT>
     inline event_type_t typeId() { return EventTypeTraits<std::decay_t<EventT>>::id; }
 
     inline event_type_t unknownEventTypeId() { return typeId<void>(); }
+
+    // === EventFactory ===
 
     template <typename EventT, typename... ArgTs>
     inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)

@@ -24,10 +24,16 @@
 
 using namespace QMatrixClient;
 
-event_type_t QMatrixClient::nextTypeId()
+event_type_t EventTypeRegistry::initializeTypeId(event_mtype_t matrixTypeId)
 {
-    static event_type_t _id = EventTypeTraits<void>::id;
-    return ++_id;
+    const auto id = get().eventTypes.size();
+    get().eventTypes.push_back(matrixTypeId);
+    if (strncmp(matrixTypeId, "", 1) == 0)
+        qDebug(EVENTS) << "Initialized unknown event type with id" << id;
+    else
+        qDebug(EVENTS) << "Initialized event type" << matrixTypeId
+                       << "with id" << id;
+    return id;
 }
 
 Event::Event(Type type, const QJsonObject& json)
