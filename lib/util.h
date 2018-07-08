@@ -77,12 +77,17 @@ namespace QMatrixClient
         public:
             explicit Omittable() : Omittable(none) { }
             Omittable(NoneTag) : _omitted(true) { }
-            template <typename TT>
-            Omittable(TT&& val) : _value(std::forward<TT>(val)) { }
-            template <typename TT>
-            Omittable<T>& operator=(TT& val)
+            Omittable(const T& val) : _value(val) { }
+            Omittable(T&& val) : _value(std::move(val)) { }
+            Omittable<T>& operator=(const T& val)
             {
-                _value = std::forward<TT>(val);
+                _value = val;
+                _omitted = false;
+                return *this;
+            }
+            Omittable<T>& operator=(T&& val)
+            {
+                _value = std::move(val);
                 _omitted = false;
                 return *this;
             }
