@@ -64,6 +64,50 @@ namespace QMatrixClient
         return std::unique_ptr<T1>(static_cast<T1*>(p.release()));
     }
 
+    struct NoneTag {};
+    constexpr NoneTag none {};
+
+    /** A crude substitute for `optional` while we're not C++17
+     *
+     * Only works with default-constructible types.
+     */
+    template <typename T>
+    class Omittable
+    {
+        public:
+            explicit Omittable() : Omittable(none) { }
+            Omittable(NoneTag) : _omitted(true) { }
+            Omittable(const T& val) : _value(val) { }
+            Omittable(T&& val) : _value(std::move(val)) { }
+            Omittable<T>& operator=(const T& val)
+            {
+                _value = val;
+                _omitted = false;
+                return *this;
+            }
+            Omittable<T>& operator=(T&& val)
+            {
+                _value = std::move(val);
+                _omitted = false;
+                return *this;
+            }
+
+            bool omitted() const { return _omitted; }
+            const T& value() const { return _value; }
+            T& value() { return _value; }
+            T&& release() { _omitted = true; return std::move(_value); }
+
+            operator bool() const { return !omitted(); }
+            const T& operator->() const { return &_value; }
+            T& operator->() { return &_value; }
+            const T& operator*() const { return _value; }
+            T& operator*() { return _value; }
+
+        private:
+            T _value;
+            bool _omitted = false;
+    };
+
     /** Determine traits of an arbitrary function/lambda/functor
      * This only works with arity of 1 (1-argument) for now but is extendable
      * to other cases. Also, doesn't work with generic lambdas and function

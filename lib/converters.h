@@ -56,46 +56,6 @@ class QVariant;
 
 namespace QMatrixClient
 {
-    struct NoneTag {};
-    constexpr NoneTag none {};
-
-    /** A crude substitute for `optional` while we're not C++17
-     *
-     * Only works with default-constructible types.
-     */
-    template <typename T>
-    class Omittable
-    {
-        public:
-            explicit Omittable() : Omittable(none) { }
-            Omittable(NoneTag) : _omitted(true) { }
-            Omittable(const T& val) : _value(val) { }
-            Omittable(T&& val) : _value(std::move(val)) { }
-            Omittable<T>& operator=(const T& val)
-            {
-                _value = val;
-                _omitted = false;
-                return *this;
-            }
-            Omittable<T>& operator=(T&& val)
-            {
-                _value = std::move(val);
-                _omitted = false;
-                return *this;
-            }
-
-            bool omitted() const { return _omitted; }
-            const T& value() const { return _value; }
-            T& value() { return _value; }
-            T&& release() { _omitted = true; return std::move(_value); }
-
-            operator bool() const { return !omitted(); }
-
-        private:
-            T _value;
-            bool _omitted = false;
-    };
-
     // This catches anything implicitly convertible to QJsonValue/Object/Array
     inline auto toJson(const QJsonValue& val) { return val; }
     inline auto toJson(const QJsonObject& o) { return o; }
