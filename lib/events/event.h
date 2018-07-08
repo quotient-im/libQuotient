@@ -315,10 +315,11 @@ namespace QMatrixClient
 
     // A single type-specific void visitor
     template <typename BaseEventT, typename FnT>
-    inline auto visit(const BaseEventT& event, FnT&& visitor)
-        -> std::enable_if_t<
-            is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT> &&
-            std::is_void<fn_return_t<FnT>>::value>
+    inline
+    std::enable_if_t<
+        is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT> &&
+        std::is_void<fn_return_t<FnT>>::value>
+    visit(const BaseEventT& event, FnT&& visitor)
     {
         using event_type = fn_arg_t<FnT>;
         if (is<event_type>(event))
@@ -327,11 +328,12 @@ namespace QMatrixClient
 
     // A single type-specific non-void visitor with an optional default value
     template <typename BaseEventT, typename FnT>
-    inline auto visit(const BaseEventT& event, FnT&& visitor,
-                      fn_return_t<FnT>&& defaultValue = {})
-        -> std::enable_if_t<
-            is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT>,
-            fn_return_t<FnT>> // non-voidness is guarded by defaultValue type
+    inline
+    std::enable_if_t<
+        is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT>,
+        fn_return_t<FnT>> // non-voidness is guarded by defaultValue type
+    visit(const BaseEventT& event, FnT&& visitor,
+          fn_return_t<FnT>&& defaultValue = {})
     {
         using event_type = fn_arg_t<FnT>;
         if (is<event_type>(event))
@@ -341,26 +343,16 @@ namespace QMatrixClient
 
     // A chain of 2 or more visitors
     template <typename BaseEventT, typename FnT1, typename FnT2, typename... FnTs>
-    inline auto visit(const BaseEventT& event, FnT1&& visitor1,
-                      FnT2&& visitor2, FnTs&&... visitors)
-        -> std::enable_if_t<is_event_v<BaseEventT>, fn_return_t<FnT1>>
+    inline
+    std::enable_if_t<is_event_v<BaseEventT>, fn_return_t<FnT1>>
+    visit(const BaseEventT& event, FnT1&& visitor1, FnT2&& visitor2,
+          FnTs&&... visitors)
     {
         using event_type1 = fn_arg_t<FnT1>;
         if (is<event_type1>(event))
             return visitor1(static_cast<event_type1&>(event));
         return visit(event, std::forward<FnT2>(visitor2),
                      std::forward<FnTs>(visitors)...);
-    }
-
-    // An adaptor accepting a pointer-like object instead of an event
-    template <typename EventHolderT, typename... FnTs>
-    inline auto visit(const EventHolderT& e, FnTs&&... visitors)
-        -> decltype(visit(*e, std::forward<FnTs>(visitors)...))
-    {
-        using return_type = decltype(visit(*e, std::forward<FnTs>(visitors)...));
-        if (e)
-            return visit(*e, std::forward<FnTs>(visitors)...);
-        return return_type();
     }
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Event*)

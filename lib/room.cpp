@@ -1530,7 +1530,7 @@ bool Room::processStateEvent(const RoomEvent& e)
 void Room::processEphemeralEvent(EventPtr&& event)
 {
     QElapsedTimer et; et.start();
-    visit(event
+    visit(*event
         , [this,et] (const TypingEvent& evt) {
             d->usersTyping.clear();
             for( const QString& userId: qAsConst(evt.users()) )
@@ -1595,7 +1595,7 @@ void Room::processEphemeralEvent(EventPtr&& event)
 
 void Room::processAccountDataEvent(EventPtr&& event)
 {
-    visit(event
+    visit(*event
         , [this] (const TagEvent& evt) {
             auto newTags = evt.tags();
             if (newTags == d->tags)
