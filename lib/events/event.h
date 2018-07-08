@@ -286,19 +286,17 @@ namespace QMatrixClient
     inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
 
     template <typename EventT, typename BaseEventT>
-    inline Omittable<EventT> eventCast(BaseEventT&& e)
+    inline auto eventCast(BaseEventT& e)
+        -> Omittable<decltype(static_cast<EventT&>(e))>
     {
-        if (is<EventT>(e))
-            return static_cast<EventT>(e);
-        return none;
+        return is<EventT>(e) ? static_cast<EventT&>(e) : none;
     }
 
-    template <typename EventT, typename PtrT>
-    inline EventT* eventCast(PtrT* eptr)
+    template <typename EventT, typename HolderT>
+    inline auto eventCast(const HolderT& eptr)
+        -> decltype(static_cast<EventT*>(eptr.get()))
     {
-        if (is<EventT>(*eptr))
-            return static_cast<EventT*>(eptr);
-        return {};
+        return is<EventT>(*eptr) ? static_cast<EventT*>(eptr.get()) : nullptr;
     }
 
     template <typename BaseEventT, typename FnT, typename DefaultT>
