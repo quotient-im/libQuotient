@@ -56,7 +56,7 @@ namespace QMatrixClient
             const RoomEvent* event() const { return rawPtr(evt); }
             const RoomEvent* get() const { return event(); }
             template <typename EventT>
-            const EventT* viewAs() const { return eventCast<const EventT*>(evt); }
+            const EventT* viewAs() const { return eventCast<const EventT>(evt); }
             const RoomEventPtr& operator->() const { return evt; }
             const RoomEvent& operator*() const { return *evt; }
             index_t index() const { return idx; }
