@@ -273,20 +273,36 @@ namespace QMatrixClient
 #define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) \
     namespace EventType \
     { \
-        [[deprecated("Use typeId<>(), is<>() or visit<>()")]] \
+        [[deprecated("Use is<>(), eventCast<>() or visit<>()")]] \
         static const auto _Id = typeId<_Type>(); \
     } \
     // End of macro
 
-    // === is<>() and visit<>() ===
+    // === is<>(), eventCast<>() and visit<>() ===
 
     template <typename EventT>
     inline bool is(const Event& e) { return e.type() == typeId<EventT>(); }
 
     inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
 
-    template <typename FnT, typename DefaultT>
-    inline auto visit(const Event& event, FnT visitor,
+    template <typename EventT, typename BaseEventT>
+    inline Omittable<EventT> eventCast(BaseEventT&& e)
+    {
+        if (is<EventT>(e))
+            return static_cast<EventT>(e);
+        return none;
+    }
+
+    template <typename EventT, typename PtrT>
+    inline EventT* eventCast(PtrT* eptr)
+    {
+        if (is<EventT>(*eptr))
+            return static_cast<EventT*>(eptr);
+        return {};
+    }
+
+    template <typename BaseEventT, typename FnT, typename DefaultT>
+    inline auto visit(const BaseEventT& event, FnT visitor,
                       DefaultT&& defaultValue)
         -> std::enable_if_t<
             std::is_convertible<DefaultT, fn_return_t<FnT>>::value,
