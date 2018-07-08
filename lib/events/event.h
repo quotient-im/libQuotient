@@ -35,8 +35,8 @@ namespace QMatrixClient
         return ptr.get();
     }
 
-    template <typename TargetEventT, typename EventT>
-    inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
+    template <typename TargetEventT, typename HolderT>
+    inline TargetEventT* weakPtrCast(const HolderT& ptr)
     {
         return static_cast<TargetEventT*>(rawPtr(ptr));
     }
