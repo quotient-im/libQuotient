@@ -308,16 +308,22 @@ namespace QMatrixClient
     }
 
     template <typename T>
-    constexpr auto is_event_v = std::is_base_of<Event, std::decay_t<T>>::value;
+    constexpr auto is_event()
+    {
+        return std::is_base_of<Event, std::decay_t<T>>::value;
+    }
 
     template <typename T, typename FnT>
-    constexpr auto needs_cast_v = !std::is_convertible<T, fn_arg_t<FnT>>::value;
+    constexpr auto needs_cast()
+    {
+        return !std::is_convertible<T, fn_arg_t<FnT>>::value;
+    }
 
     // A single type-specific void visitor
     template <typename BaseEventT, typename FnT>
     inline
     std::enable_if_t<
-        is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT> &&
+        is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>() &&
         std::is_void<fn_return_t<FnT>>::value>
     visit(const BaseEventT& event, FnT&& visitor)
     {
@@ -330,7 +336,7 @@ namespace QMatrixClient
     template <typename BaseEventT, typename FnT>
     inline
     std::enable_if_t<
-        is_event_v<BaseEventT> && needs_cast_v<BaseEventT, FnT>,
+        is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>(),
         fn_return_t<FnT>> // non-voidness is guarded by defaultValue type
     visit(const BaseEventT& event, FnT&& visitor,
           fn_return_t<FnT>&& defaultValue = {})
@@ -344,7 +350,7 @@ namespace QMatrixClient
     // A chain of 2 or more visitors
     template <typename BaseEventT, typename FnT1, typename FnT2, typename... FnTs>
     inline
-    std::enable_if_t<is_event_v<BaseEventT>, fn_return_t<FnT1>>
+    std::enable_if_t<is_event<BaseEventT>(), fn_return_t<FnT1>>
     visit(const BaseEventT& event, FnT1&& visitor1, FnT2&& visitor2,
           FnTs&&... visitors)
     {
