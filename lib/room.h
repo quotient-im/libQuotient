@@ -54,8 +54,9 @@ namespace QMatrixClient
             }
 
             const RoomEvent* event() const { return rawPtr(evt); }
+            const RoomEvent* get() const { return event(); }
             template <typename EventT>
-            const EventT* viewAs() const { return weakPtrCast<const EventT>(evt); }
+            const EventT* viewAs() const { return eventCast<const EventT*>(evt); }
             const RoomEventPtr& operator->() const { return evt; }
             const RoomEvent& operator*() const { return *evt; }
             index_t index() const { return idx; }
@@ -67,6 +68,14 @@ namespace QMatrixClient
             RoomEventPtr evt;
             index_t idx;
     };
+
+    template<>
+    inline const StateEventBase* TimelineItem::viewAs<StateEventBase>() const
+    {
+        return evt->isStateEvent() ? weakPtrCast<const StateEventBase>(evt)
+                                   : nullptr;
+    }
+
     inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
     {
         QDebugStateSaver dss(d);
