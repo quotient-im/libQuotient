@@ -115,15 +115,18 @@ namespace QMatrixClient
     template <typename EventT>
     struct EventTypeTraits
     {
-        static const event_type_t id;
+        static event_type_t id()
+        {
+            static const auto id = EventTypeRegistry::initializeTypeId<EventT>();
+            return id;
+        }
     };
 
     template <typename EventT>
-    const event_type_t EventTypeTraits<EventT>::id =
-            EventTypeRegistry::initializeTypeId<EventT>();
-
-    template <typename EventT>
-    inline event_type_t typeId() { return EventTypeTraits<std::decay_t<EventT>>::id; }
+    inline event_type_t typeId()
+    {
+        return EventTypeTraits<std::decay_t<EventT>>::id();
+    }
 
     inline event_type_t unknownEventTypeId() { return typeId<void>(); }
 
@@ -268,13 +271,22 @@ namespace QMatrixClient
     } \
     // End of macro
 
+    namespace EventType
+    {
+        inline event_type_t logEventType(event_type_t id, const char* idName)
+        {
+            qDebug(EVENTS) << "Using id" << id << "for" << idName;
+            return id;
+        }
+    }
+
     // This macro provides constants in EventType:: namespace for
     // back-compatibility with libQMatrixClient 0.3 event type system.
 #define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) \
     namespace EventType \
     { \
         [[deprecated("Use is<>(), eventCast<>() or visit<>()")]] \
-        static const auto _Id = typeId<_Type>(); \
+        static const auto _Id = logEventType(typeId<_Type>(), #_Id); \
     } \
     // End of macro
 
