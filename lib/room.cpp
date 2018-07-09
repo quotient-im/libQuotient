@@ -1530,92 +1530,92 @@ bool Room::processStateEvent(const RoomEvent& e)
 void Room::processEphemeralEvent(EventPtr&& event)
 {
     QElapsedTimer et; et.start();
-    visit(*event
-        , [this,et] (const TypingEvent& evt) {
-            d->usersTyping.clear();
-            for( const QString& userId: qAsConst(evt.users()) )
-            {
-                auto u = user(userId);
-                if (memberJoinState(u) == JoinState::Join)
-                    d->usersTyping.append(u);
-            }
-            if (!evt.users().isEmpty())
-                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
-                    << evt.users().size() << "users," << et;
-            emit typingChanged();
+    if (auto* evt = eventCast<TypingEvent>(event))
+    {
+        d->usersTyping.clear();
+        for( const QString& userId: qAsConst(evt->users()) )
+        {
+            auto u = user(userId);
+            if (memberJoinState(u) == JoinState::Join)
+                d->usersTyping.append(u);
         }
-        , [this,et] (const ReceiptEvent& evt) {
-            for( const auto &p: qAsConst(evt.eventsWithReceipts()) )
+        if (!evt->users().isEmpty())
+            qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
+                << evt->users().size() << "users," << et;
+        emit typingChanged();
+    }
+    if (auto* evt = eventCast<ReceiptEvent>(event))
+    {
+        for( const auto &p: qAsConst(evt->eventsWithReceipts()) )
+        {
             {
+                if (p.receipts.size() == 1)
+                    qCDebug(EPHEMERAL) << "Marking" << p.evtId
+                        << "as read for" << p.receipts[0].userId;
+                else
+                    qCDebug(EPHEMERAL) << "Marking" << p.evtId
+                        << "as read for" << p.receipts.size() << "users";
+            }
+            const auto newMarker = findInTimeline(p.evtId);
+            if (newMarker != timelineEdge())
+            {
+                for( const Receipt& r: p.receipts )
                 {
-                    if (p.receipts.size() == 1)
-                        qCDebug(EPHEMERAL) << "Marking" << p.evtId
-                            << "as read for" << p.receipts[0].userId;
-                    else
-                        qCDebug(EPHEMERAL) << "Marking" << p.evtId
-                            << "as read for" << p.receipts.size() << "users";
+                    if (r.userId == connection()->userId())
+                        continue; // FIXME, #185
+                    auto u = user(r.userId);
+                    if (memberJoinState(u) == JoinState::Join)
+                        d->promoteReadMarker(u, newMarker);
                 }
-                const auto newMarker = findInTimeline(p.evtId);
-                if (newMarker != timelineEdge())
+            } else
+            {
+                qCDebug(EPHEMERAL) << "Event" << p.evtId
+                    << "not found; saving read receipts anyway";
+                // If the event is not found (most likely, because it's too old
+                // and hasn't been fetched from the server yet), but there is
+                // a previous marker for a user, keep the previous marker.
+                // Otherwise, blindly store the event id for this user.
+                for( const Receipt& r: p.receipts )
                 {
-                    for( const Receipt& r: p.receipts )
-                    {
-                        if (r.userId == connection()->userId())
-                            continue; // FIXME, #185
-                        auto u = user(r.userId);
-                        if (memberJoinState(u) == JoinState::Join)
-                            d->promoteReadMarker(u, newMarker);
-                    }
-                } else
-                {
-                    qCDebug(EPHEMERAL) << "Event" << p.evtId
-                        << "not found; saving read receipts anyway";
-                    // If the event is not found (most likely, because it's too old
-                    // and hasn't been fetched from the server yet), but there is
-                    // a previous marker for a user, keep the previous marker.
-                    // Otherwise, blindly store the event id for this user.
-                    for( const Receipt& r: p.receipts )
-                    {
-                        if (r.userId == connection()->userId())
-                            continue; // FIXME, #185
-                        auto u = user(r.userId);
-                        if (memberJoinState(u) == JoinState::Join &&
-                                readMarker(u) == timelineEdge())
-                            d->setLastReadEvent(u, p.evtId);
-                    }
+                    if (r.userId == connection()->userId())
+                        continue; // FIXME, #185
+                    auto u = user(r.userId);
+                    if (memberJoinState(u) == JoinState::Join &&
+                            readMarker(u) == timelineEdge())
+                        d->setLastReadEvent(u, p.evtId);
                 }
             }
-            if (!evt.eventsWithReceipts().isEmpty())
-                qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
-                    << evt.eventsWithReceipts().size()
-                    << "events with receipts," << et;
         }
-    );
+        if (!evt->eventsWithReceipts().isEmpty())
+            qCDebug(PROFILER) << "*** Room::processEphemeralEvent(receipts):"
+                << evt->eventsWithReceipts().size()
+                << "events with receipts," << et;
+    }
 }
 
 void Room::processAccountDataEvent(EventPtr&& event)
 {
-    visit(*event
-        , [this] (const TagEvent& evt) {
-            auto newTags = evt.tags();
-            if (newTags == d->tags)
-                return;
-            d->tags = newTags;
-            qCDebug(MAIN) << "Room" << id() << "is tagged with:"
-                          << tagNames().join(", ");
-            emit tagsChanged();
-        }
-        , [this] (const ReadMarkerEvent& evt) {
-            auto readEventId = evt.event_id();
-            qCDebug(MAIN) << "Server-side read marker at" << readEventId;
-            d->serverReadMarker = readEventId;
-            const auto newMarker = findInTimeline(readEventId);
-            if (newMarker != timelineEdge())
-                d->markMessagesAsRead(newMarker);
-            else
-                d->setLastReadEvent(localUser(), readEventId);
-        }
-    );
+    if (auto* evt = eventCast<TagEvent>(event))
+    {
+        auto newTags = evt->tags();
+        if (newTags == d->tags)
+            return;
+        d->tags = newTags;
+        qCDebug(MAIN) << "Room" << id() << "is tagged with:"
+                      << tagNames().join(", ");
+        emit tagsChanged();
+    }
+    if (auto* evt = eventCast<ReadMarkerEvent>(event))
+    {
+        auto readEventId = evt->event_id();
+        qCDebug(MAIN) << "Server-side read marker at" << readEventId;
+        d->serverReadMarker = readEventId;
+        const auto newMarker = findInTimeline(readEventId);
+        if (newMarker != timelineEdge())
+            d->markMessagesAsRead(newMarker);
+        else
+            d->setLastReadEvent(localUser(), readEventId);
+    }
     // For all account data events
     auto& currentData = d->accountData[event->matrixType()];
     // A polymorphic event-specific comparison might be a bit more
