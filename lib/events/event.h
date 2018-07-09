@@ -19,6 +19,7 @@
 #pragma once
 
 #include "util.h"
+#include "logging.h"
 
 #include <QtCore/QJsonObject>
 
