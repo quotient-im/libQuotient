@@ -347,6 +347,8 @@ namespace QMatrixClient
         public slots:
             void postMessage(const QString& plainText,
                              MessageEventType type = MessageEventType::Text);
+            void postHtmlMessage(const QString& plainText, const QString& htmlText,
+                             MessageEventType type = MessageEventType::Text);
             void postMessage(const RoomMessageEvent& event);
             /** @deprecated If you have a custom event type, construct the event
              * and pass it as a whole to postMessage() */

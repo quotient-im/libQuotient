@@ -1076,6 +1076,14 @@ void Room::postMessage(const QString& plainText, MessageEventType type)
     postMessage(RoomMessageEvent { plainText, type });
 }
 
+void Room::postHtmlMessage(const QString& plainText, const QString& htmlText,
+                           MessageEventType type)
+{
+    postMessage(RoomMessageEvent { plainText, type,
+        new EventContent::TextContent(htmlText, QStringLiteral("text/html")) });
+
+}
+
 void Room::postMessage(const RoomMessageEvent& event)
 {
     if (usesEncryption())

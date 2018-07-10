@@ -164,7 +164,10 @@ bool RoomMessageEvent::hasThumbnail() const
 
 TextContent::TextContent(const QString& text, const QString& contentType)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
-{ }
+{
+    if (contentType == "org.matrix.custom.html")
+        mimeType = QMimeDatabase().mimeTypeForName("text/html");
+}
 
 TextContent::TextContent(const QJsonObject& json)
 {
@@ -189,9 +192,12 @@ TextContent::TextContent(const QJsonObject& json)
 void TextContent::fillJson(QJsonObject* json) const
 {
     Q_ASSERT(json);
-    json->insert(QStringLiteral("format"),
-                 QStringLiteral("org.matrix.custom.html"));
-    json->insert(QStringLiteral("formatted_body"), body);
+    if (mimeType.inherits("text/html"))
+    {
+        json->insert(QStringLiteral("format"),
+                     QStringLiteral("org.matrix.custom.html"));
+        json->insert(QStringLiteral("formatted_body"), body);
+    }
 }
 
 LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
