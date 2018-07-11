@@ -1283,7 +1283,8 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 
 inline bool isRedaction(const RoomEventPtr& e)
 {
-    return e && is<RedactionEvent>(*e);
+    Q_ASSERT(e);
+    return is<RedactionEvent>(*e);
 }
 
 void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
