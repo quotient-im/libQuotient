@@ -23,6 +23,10 @@
 
 #include <QtCore/QJsonObject>
 
+#ifndef DISABLE_EVENTTYPE
+#define USE_EVENTTYPE 1
+#endif
+
 namespace QMatrixClient
 {
     // === event_ptr_tt<> and type casting facilities ===
@@ -276,6 +280,7 @@ namespace QMatrixClient
     } \
     // End of macro
 
+#ifdef USE_EVENTTYPE
     namespace EventType
     {
         inline event_type_t logEventType(event_type_t id, const char* idName)
@@ -294,6 +299,9 @@ namespace QMatrixClient
         static const auto _Id = logEventType(typeId<_Type>(), #_Id); \
     } \
     // End of macro
+#else
+#define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) // Nothing
+#endif
 
     // === is<>(), eventCast<>() and visit<>() ===
 
