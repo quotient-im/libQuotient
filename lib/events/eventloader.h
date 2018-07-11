@@ -22,6 +22,17 @@
 #include "converters.h"
 
 namespace QMatrixClient {
+    namespace _impl {
+        template <typename BaseEventT>
+        static inline auto loadEvent(const QJsonObject& json,
+                                     const QString& matrixType)
+        {
+            if (auto e = EventFactory<BaseEventT>::make(json, matrixType))
+                return e;
+            return makeEvent<BaseEventT>(unknownEventTypeId(), json);
+        }
+    }
+
     /** Create an event with proper type from a JSON object
      * Use this factory template to detect the type from the JSON object
      * contents (the detected event type should derive from the template
@@ -30,8 +41,8 @@ namespace QMatrixClient {
     template <typename BaseEventT>
     inline event_ptr_tt<BaseEventT> loadEvent(const QJsonObject& fullJson)
     {
-        return EventFactory<BaseEventT>
-                ::make(fullJson, fullJson[TypeKeyL].toString());
+        return _impl::loadEvent<BaseEventT>(fullJson,
+                                            fullJson[TypeKeyL].toString());
     }
 
     /** Create an event from a type string and content JSON
@@ -43,8 +54,8 @@ namespace QMatrixClient {
     inline event_ptr_tt<BaseEventT> loadEvent(const QString& matrixType,
                                               const QJsonObject& content)
     {
-        return EventFactory<BaseEventT>
-                ::make(basicEventJson(matrixType, content), matrixType);
+        return _impl::loadEvent<BaseEventT>(basicEventJson(matrixType, content),
+                                            matrixType);
     }
 
     template <typename EventT> struct FromJson<event_ptr_tt<EventT>>

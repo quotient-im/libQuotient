@@ -166,7 +166,7 @@ namespace QMatrixClient
                 for (const auto& f: factories())
                     if (auto e = f(json, matrixType))
                         return e;
-                return makeEvent<BaseEventT>(unknownEventTypeId(), json);
+                return nullptr;
             }
 
         private:
