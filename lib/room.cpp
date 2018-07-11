@@ -219,7 +219,7 @@ class Room::Private
          * Tries to find an event in the timeline and redact it; deletes the
          * redaction event whether the redacted event was found or not.
          */
-        void processRedaction(event_ptr_tt<RedactionEvent>&& redaction);
+        void processRedaction(const RedactionEvent* redaction);
 
         void broadcastTagUpdates()
         {
@@ -951,6 +951,8 @@ Room::Timeline::size_type Room::Private::moveEventsToTimeline(
         Q_ASSERT_X(!eventsIndex.contains(eId), __FUNCTION__,
                    makeErrorStr(*e, "Event is already in the timeline; "
                        "incoming events were not properly deduplicated"));
+        if (auto* redEvt = eventCast<const RedactionEvent>(e))
+            processRedaction(redEvt);
         if (placement == Older)
             timeline.emplace_front(move(e), --index);
         else
@@ -1287,7 +1289,7 @@ inline bool isRedaction(const RoomEventPtr& e)
     return is<RedactionEvent>(*e);
 }
 
-void Room::Private::processRedaction(event_ptr_tt<RedactionEvent>&& redaction)
+void Room::Private::processRedaction(const RedactionEvent* redaction)
 {
     const auto pIdx = eventsIndex.find(redaction->redactedEvent());
     if (pIdx == eventsIndex.end())
@@ -1380,12 +1382,16 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
+#ifndef KEEP_REDACTIONS_IN_TIMELINE
     // We want to process redactions in the order of arrival (covering the
     // case of one redaction superseding another one), hence stable partition.
     const auto normalsBegin =
             stable_partition(events.begin(), events.end(), isRedaction);
     RoomEventsRange redactions { events.begin(), normalsBegin },
                     normalEvents { normalsBegin, events.end() };
+#else
+    RoomEventsRange normalEvents { events };
+#endif
 
     if (!normalEvents.empty())
         emit q->aboutToAddNewMessages(normalEvents);
@@ -1398,11 +1404,13 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
                 << "new events; the last event is now" << timeline.back();
         q->onAddNewTimelineEvents(from);
     }
-    for (auto&& r: redactions)
+#ifndef KEEP_REDACTIONS_IN_TIMELINE
+    for (const auto& r: redactions)
     {
         Q_ASSERT(isRedaction(r));
-        processRedaction(ptrCast<RedactionEvent>(move(r)));
+        processRedaction(eventCast<RedactionEvent>(r));
     }
+#endif
     if (insertedSize > 0)
     {
         emit q->addedMessages();
@@ -1432,9 +1440,13 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
+#ifndef KEEP_REDACTIONS_IN_TIMELINE
     const auto redactionsBegin =
             remove_if(events.begin(), events.end(), isRedaction);
     RoomEventsRange normalEvents { events.begin(), redactionsBegin };
+#else
+    RoomEventsRange normalEvents { events };
+#endif
     if (normalEvents.empty())
         return;
 
