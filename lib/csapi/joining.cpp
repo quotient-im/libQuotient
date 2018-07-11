@@ -90,11 +90,19 @@ class JoinRoomJob::Private
         QString roomId;
 };
 
+BaseJob::Query queryToJoinRoom(const QStringList& serverName)
+{
+    BaseJob::Query _q;
+    addParam<IfNotEmpty>(_q, QStringLiteral("server_name"), serverName);
+    return _q;
+}
+
 static const auto JoinRoomJobName = QStringLiteral("JoinRoomJob");
 
-JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const Omittable<ThirdPartySigned>& thirdPartySigned)
+JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName, const Omittable<ThirdPartySigned>& thirdPartySigned)
     : BaseJob(HttpVerb::Post, JoinRoomJobName,
-        basePath % "/join/" % roomIdOrAlias)
+        basePath % "/join/" % roomIdOrAlias,
+        queryToJoinRoom(serverName))
     , d(new Private)
 {
     QJsonObject _data;

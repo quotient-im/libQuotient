@@ -281,3 +281,38 @@ BaseJob::Status GetUrlPreviewJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
+class GetConfigJob::Private
+{
+    public:
+        Omittable<double> uploadSize;
+};
+
+QUrl GetConfigJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath % "/config");
+}
+
+static const auto GetConfigJobName = QStringLiteral("GetConfigJob");
+
+GetConfigJob::GetConfigJob()
+    : BaseJob(HttpVerb::Get, GetConfigJobName,
+        basePath % "/config")
+    , d(new Private)
+{
+}
+
+GetConfigJob::~GetConfigJob() = default;
+
+Omittable<double> GetConfigJob::uploadSize() const
+{
+    return d->uploadSize;
+}
+
+BaseJob::Status GetConfigJob::parseJson(const QJsonDocument& data)
+{
+    auto json = data.object();
+    d->uploadSize = fromJson<double>(json.value("m.upload.size"_ls));
+    return Success;
+}
+

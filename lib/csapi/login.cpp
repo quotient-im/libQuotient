@@ -12,6 +12,59 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+namespace QMatrixClient
+{
+    // Converters
+
+    template <> struct FromJson<GetLoginFlowsJob::LoginFlow>
+    {
+        GetLoginFlowsJob::LoginFlow operator()(const QJsonValue& jv)
+        {
+            const auto& _json = jv.toObject();
+            GetLoginFlowsJob::LoginFlow result;
+            result.type =
+                fromJson<QString>(_json.value("type"_ls));
+
+            return result;
+        }
+    };
+} // namespace QMatrixClient
+
+class GetLoginFlowsJob::Private
+{
+    public:
+        QVector<LoginFlow> flows;
+};
+
+QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath % "/login");
+}
+
+static const auto GetLoginFlowsJobName = QStringLiteral("GetLoginFlowsJob");
+
+GetLoginFlowsJob::GetLoginFlowsJob()
+    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName,
+        basePath % "/login", false)
+    , d(new Private)
+{
+}
+
+GetLoginFlowsJob::~GetLoginFlowsJob() = default;
+
+const QVector<GetLoginFlowsJob::LoginFlow>& GetLoginFlowsJob::flows() const
+{
+    return d->flows;
+}
+
+BaseJob::Status GetLoginFlowsJob::parseJson(const QJsonDocument& data)
+{
+    auto json = data.object();
+    d->flows = fromJson<QVector<LoginFlow>>(json.value("flows"_ls));
+    return Success;
+}
+
 class LoginJob::Private
 {
     public:

@@ -8,6 +8,7 @@ analyzer:
     default: isDefault
     origin_server_ts: originServerTimestamp # Instead of originServerTs
     start: begin # Because start() is a method in BaseJob
+    m.upload.size: uploadSize
 
   # Structure inside `types`:
   # - swaggerType: <targetTypeSpec>

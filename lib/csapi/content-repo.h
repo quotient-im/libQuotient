@@ -140,4 +140,30 @@ namespace QMatrixClient
             class Private;
             QScopedPointer<Private> d;
     };
+
+    class GetConfigJob : public BaseJob
+    {
+        public:
+            explicit GetConfigJob();
+
+            /** Construct a URL out of baseUrl and usual parameters passed to
+             * GetConfigJob. This function can be used when
+             * a URL for GetConfigJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
+            ~GetConfigJob() override;
+
+            // Result properties
+
+            Omittable<double> uploadSize() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
+    };
 } // namespace QMatrixClient

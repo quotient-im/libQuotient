@@ -63,7 +63,7 @@ namespace QMatrixClient
 
             // Construction/destruction
 
-            explicit JoinRoomJob(const QString& roomIdOrAlias, const Omittable<ThirdPartySigned>& thirdPartySigned = none);
+            explicit JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {}, const Omittable<ThirdPartySigned>& thirdPartySigned = none);
             ~JoinRoomJob() override;
 
             // Result properties

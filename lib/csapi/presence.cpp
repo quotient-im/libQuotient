@@ -43,7 +43,7 @@ static const auto GetPresenceJobName = QStringLiteral("GetPresenceJob");
 
 GetPresenceJob::GetPresenceJob(const QString& userId)
     : BaseJob(HttpVerb::Get, GetPresenceJobName,
-        basePath % "/presence/" % userId % "/status", false)
+        basePath % "/presence/" % userId % "/status")
     , d(new Private)
 {
 }
