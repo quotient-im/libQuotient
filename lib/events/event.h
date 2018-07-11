@@ -140,9 +140,10 @@ namespace QMatrixClient
     {
         public:
             template <typename FnT>
-            static void addMethod(FnT&& method)
+            static auto addMethod(FnT&& method)
             {
                 factories().emplace_back(std::forward<FnT>(method));
+                return 0;
             }
 
             /** Chain two type factories
@@ -156,8 +157,7 @@ namespace QMatrixClient
             template <typename EventT>
             static auto chainFactory()
             {
-                addMethod(&EventT::factory_t::make);
-                return 0;
+                return addMethod(&EventT::factory_t::make);
             }
 
             static event_ptr_tt<BaseEventT> make(const QJsonObject& json,
@@ -190,14 +190,22 @@ namespace QMatrixClient
      * \sa loadEvent, Event::type
      */
     template <typename EventT>
-    inline void setupFactory()
+    inline auto setupFactory()
     {
-        EventT::factory_t::addMethod(
+        qDebug(EVENTS) << "Adding factory method for" << EventT::matrixTypeId();
+        return EventT::factory_t::addMethod(
             [] (const QJsonObject& json, const QString& jsonMatrixType)
             {
                 return EventT::matrixTypeId() == jsonMatrixType
                         ? makeEvent<EventT>(json) : nullptr;
             });
+    }
+
+    template <typename EventT>
+    inline auto registerEventType()
+    {
+        static const auto _ = setupFactory<EventT>();
+        return _;
     }
 
     // === Event ===
@@ -264,7 +272,7 @@ namespace QMatrixClient
 #define REGISTER_EVENT_TYPE(_Type) \
     namespace { \
         [[gnu::unused]] \
-        static const auto _factoryAdded##_Type = ( setupFactory<_Type>(), 0); \
+        static const auto _factoryAdded##_Type = registerEventType<_Type>(); \
     } \
     // End of macro
 
