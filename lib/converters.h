@@ -325,6 +325,12 @@ namespace QMatrixClient
                                 : QStringLiteral("false"));
         }
 
+        inline void addTo(QUrlQuery& q, const QString& k, const QStringList& vals)
+        {
+            for (const auto& v: vals)
+                q.addQueryItem(k, v);
+        }
+
         // This one is for types that don't have isEmpty()
         template <typename ValT, bool Force = true, typename = bool>
         struct AddNode
