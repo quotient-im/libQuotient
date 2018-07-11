@@ -87,11 +87,7 @@ namespace QMatrixClient
                 return initializeTypeId(EventT::matrixTypeId());
             }
 
-            static event_mtype_t getMatrixType(event_type_t typeId)
-            {
-                return typeId < get().eventTypes.size()
-                        ? get().eventTypes[typeId] : "";
-            }
+            static QString getMatrixType(event_type_t typeId);
 
         private:
             EventTypeRegistry() = default;
