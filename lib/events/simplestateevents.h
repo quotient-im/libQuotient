@@ -21,6 +21,8 @@
 #include "stateevent.h"
 #include "eventcontent.h"
 
+#include "converters.h"
+
 namespace QMatrixClient
 {
     namespace EventContent

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "event.h"
+#include "roomevent.h"
 
 namespace QMatrixClient
 {
