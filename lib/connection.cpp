@@ -467,7 +467,7 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
                                          const QString& contentType)
 {
     auto sourceFile = new QFile(fileName);
-    if (sourceFile->open(QIODevice::ReadOnly))
+    if (!sourceFile->open(QIODevice::ReadOnly))
     {
         qCWarning(MAIN) << "Couldn't open" << sourceFile->fileName()
                         << "for reading";
