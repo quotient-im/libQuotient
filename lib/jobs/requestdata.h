@@ -44,6 +44,8 @@ namespace QMatrixClient
             RequestData(QIODevice* source)
                 : _source(std::unique_ptr<QIODevice>(source))
             { }
+            RequestData(const RequestData&) = delete;
+            RequestData& operator=(const RequestData&) = delete;
             RequestData(RequestData&&) = default;
             RequestData& operator=(RequestData&&) = default;
             ~RequestData();
