@@ -59,13 +59,13 @@ QNetworkAccessManager* ConnectionData::nam() const
 
 void ConnectionData::setBaseUrl(QUrl baseUrl)
 {
-    d->baseUrl = baseUrl;
+    d->baseUrl = std::move(baseUrl);
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
 }
 
 void ConnectionData::setToken(QByteArray token)
 {
-    d->accessToken = token;
+    d->accessToken = std::move(token);
 }
 
 void ConnectionData::setHost(QString host)
