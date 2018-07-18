@@ -243,10 +243,12 @@ void Connection::Private::connectWithToken(const QString& user,
                                            const QString& deviceId)
 {
     userId = user;
+    q->user(); // Creates a User object for the local user
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << userId << "from device" << deviceId;
+    emit q->stateChanged();
     emit q->connected();
 
 }
@@ -281,6 +283,8 @@ void Connection::logout()
     auto job = callApi<LogoutJob>();
     connect( job, &LogoutJob::success, this, [this] {
         stopSync();
+        d->data->setToken({});
+        emit stateChanged();
         emit loggedOut();
     });
 }

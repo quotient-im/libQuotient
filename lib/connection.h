@@ -61,10 +61,10 @@ namespace QMatrixClient
             /** Whether or not the rooms state should be cached locally
              * \sa loadState(), saveState()
              */
-            Q_PROPERTY(User* localUser READ user CONSTANT)
-            Q_PROPERTY(QString localUserId READ userId CONSTANT)
-            Q_PROPERTY(QString deviceId READ deviceId CONSTANT)
-            Q_PROPERTY(QByteArray accessToken READ accessToken CONSTANT)
+            Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)
+            Q_PROPERTY(QString localUserId READ userId NOTIFY stateChanged)
+            Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
+            Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
@@ -431,6 +431,13 @@ namespace QMatrixClient
             void connected();
             void reconnected(); //< \deprecated Use connected() instead
             void loggedOut();
+            /** Login data or state have changed
+             *
+             * This is a common change signal for userId, deviceId and
+             * accessToken - these properties normally only change at
+             * a successful login and logout and are constant at other times.
+             */
+            void stateChanged();
             void loginError(QString message, QByteArray details);
 
             /** A network request (job) failed
