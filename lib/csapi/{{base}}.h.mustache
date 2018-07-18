@@ -10,10 +10,12 @@
 namespace QMatrixClient
 {
 {{#models}}    // Data structures
-{{#    model}}
+{{#    model}}{{#description}}
+    /// {{_}}{{/description}}
     struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
     {
-{{#vars}}        {{>maybeOmittableType}} {{nameCamelCase}};
+{{#vars}}{{#description}}        /// {{_}}
+{{/description}}        {{>maybeOmittableType}} {{nameCamelCase}};
 {{/vars}}    };
 {{#in?}}
     QJsonObject toJson(const {{name}}& pod);
@@ -24,24 +26,34 @@ namespace QMatrixClient
     };
 {{/    out?}}{{/model}}
 {{/models}}{{#operations}}    // Operations
-{{#    operation}}
+{{#    operation}}{{#summary}}
+    /// {{summary}}{{#description?}}{{!add a linebreak between summary and description if both exist}}
+    /// {{/description?}}{{/summary}}{{#description}}
+    /// {{_}}{{/description}}
     class {{camelCaseOperationId}}Job : public BaseJob
     {
         public:{{#models}}
             // Inner data structures
-{{#            model}}
+{{#            model}}{{#description}}
+            /// {{_}}{{/description}}
             struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
             {
-{{#vars}}                {{>maybeOmittableType}} {{nameCamelCase}};
+{{#vars}}{{#description}}        /// {{_}}
+{{/description}}                {{>maybeOmittableType}} {{nameCamelCase}};
 {{/vars}}            };
 {{/            model}}
             // Construction/destruction
-{{/        models}}
+{{/        models}}{{#allParams?}}
+            /*! {{summary}}{{#allParams}}
+             * \param {{nameCamelCase}} {{#description}}
+             *   {{_}}{{/description}}{{/allParams}}
+             */{{/allParams?}}
             explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});{{^bodyParams}}
 
-            /** Construct a URL out of baseUrl and usual parameters passed to
-             * {{camelCaseOperationId}}Job. This function can be used when
-             * a URL for {{camelCaseOperationId}}Job is necessary but the job
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * {{camelCaseOperationId}}Job is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
@@ -49,7 +61,8 @@ namespace QMatrixClient
             ~{{camelCaseOperationId}}Job() override;
 
             // Result properties
-{{#allProperties}}
+{{#allProperties}}{{#description}}
+            /// {{_}}{{/description}}
             {{>maybeCrefType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}};{{/allProperties}}
 
         protected:

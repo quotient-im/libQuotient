@@ -15,14 +15,18 @@ namespace QMatrixClient
 {
     // Operations
 
+    /// List registered devices for the current user
+    /// 
+    /// Gets information about all devices for the current user.
     class GetDevicesJob : public BaseJob
     {
         public:
             explicit GetDevicesJob();
 
-            /** Construct a URL out of baseUrl and usual parameters passed to
-             * GetDevicesJob. This function can be used when
-             * a URL for GetDevicesJob is necessary but the job
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * GetDevicesJob is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
@@ -31,6 +35,7 @@ namespace QMatrixClient
 
             // Result properties
 
+            /// A list of all registered devices for this user.
             const QVector<Device>& devices() const;
 
         protected:
@@ -41,14 +46,22 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 
+    /// Get a single device
+    /// 
+    /// Gets information on a single device, by device id.
     class GetDeviceJob : public BaseJob
     {
         public:
+            /*! Get a single device
+             * \param deviceId 
+             *   The device to retrieve.
+             */
             explicit GetDeviceJob(const QString& deviceId);
 
-            /** Construct a URL out of baseUrl and usual parameters passed to
-             * GetDeviceJob. This function can be used when
-             * a URL for GetDeviceJob is necessary but the job
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * GetDeviceJob is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& deviceId);
@@ -57,6 +70,7 @@ namespace QMatrixClient
 
             // Result properties
 
+            /// Device information
             const Device& data() const;
 
         protected:
@@ -67,21 +81,55 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 
+    /// Update a device
+    /// 
+    /// Updates the metadata on the given device.
     class UpdateDeviceJob : public BaseJob
     {
         public:
+            /*! Update a device
+             * \param deviceId 
+             *   The device to update.
+             * \param displayName 
+             *   The new display name for this device. If not given, the
+             *   display name is unchanged.
+             */
             explicit UpdateDeviceJob(const QString& deviceId, const QString& displayName = {});
     };
 
+    /// Delete a device
+    /// 
+    /// This API endpoint uses the `User-Interactive Authentication API`_.
+    /// 
+    /// Deletes the given device, and invalidates any access token associated with it.
     class DeleteDeviceJob : public BaseJob
     {
         public:
+            /*! Delete a device
+             * \param deviceId 
+             *   The device to delete.
+             * \param auth 
+             *   Additional authentication information for the
+             *   user-interactive authentication API.
+             */
             explicit DeleteDeviceJob(const QString& deviceId, const QJsonObject& auth = {});
     };
 
+    /// Bulk deletion of devices
+    /// 
+    /// This API endpoint uses the `User-Interactive Authentication API`_.
+    /// 
+    /// Deletes the given devices, and invalidates any access token associated with them.
     class DeleteDevicesJob : public BaseJob
     {
         public:
+            /*! Bulk deletion of devices
+             * \param devices 
+             *   The list of device IDs to delete.
+             * \param auth 
+             *   Additional authentication information for the
+             *   user-interactive authentication API.
+             */
             explicit DeleteDevicesJob(const QStringList& devices, const QJsonObject& auth = {});
     };
 } // namespace QMatrixClient

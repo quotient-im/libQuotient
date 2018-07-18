@@ -11,14 +11,18 @@ namespace QMatrixClient
 {
     // Operations
 
+    /// Lists the user's current rooms.
+    /// 
+    /// This API returns a list of the user's current rooms.
     class GetJoinedRoomsJob : public BaseJob
     {
         public:
             explicit GetJoinedRoomsJob();
 
-            /** Construct a URL out of baseUrl and usual parameters passed to
-             * GetJoinedRoomsJob. This function can be used when
-             * a URL for GetJoinedRoomsJob is necessary but the job
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * GetJoinedRoomsJob is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl);
@@ -27,6 +31,7 @@ namespace QMatrixClient
 
             // Result properties
 
+            /// The ID of each room in which the user has ``joined`` membership.
             const QStringList& joinedRooms() const;
 
         protected:
