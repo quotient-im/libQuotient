@@ -40,6 +40,7 @@ HEADERS += \
     $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/csapi/*.h, false) \
     $$files($$SRCPATH/csapi/definitions/*.h, false) \
+    $$files($$SRCPATH/application-service/definitions/*.h, false) \
     $$SRCPATH/logging.h \
     $$SRCPATH/converters.h \
     $$SRCPATH/settings.h \
@@ -70,6 +71,7 @@ SOURCES += \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/csapi/*.cpp, false) \
     $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
+    $$files($$SRCPATH/application-service/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/converters.cpp \
     $$SRCPATH/settings.cpp \

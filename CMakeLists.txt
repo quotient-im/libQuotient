@@ -98,7 +98,9 @@ set(libqmatrixclient_SRCS
 )
 
 set(CSAPI_DIR csapi)
+set(ASAPI_DIR application-service)
 set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
+set(FULL_ASAPI_DIR lib/${ASAPI_DIR})
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${ABS_API_DEF_PATH}/*.yaml
@@ -121,13 +123,15 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
 endif()
 
 aux_source_directory(${FULL_CSAPI_DIR} libqmatrixclient_job_SRCS)
-aux_source_directory(${FULL_CSAPI_DIR}/definitions libqmatrixclient_def_SRCS)
+aux_source_directory(${FULL_CSAPI_DIR}/definitions libqmatrixclient_csdef_SRCS)
+aux_source_directory(${FULL_ASAPI_DIR}/definitions libqmatrixclient_asdef_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(QMatrixClient ${libqmatrixclient_SRCS}
-            ${libqmatrixclient_job_SRCS} ${libqmatrixclient_def_SRCS})
-set(API_VERSION "0.3")
+            ${libqmatrixclient_job_SRCS} ${libqmatrixclient_csdef_SRCS}
+            ${libqmatrixclient_asdef_SRCS})
+set(API_VERSION "0.4")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
 set_property(TARGET QMatrixClient PROPERTY
