@@ -53,7 +53,7 @@ BaseJob::Status GetProtocolsJob::parseJson(const QJsonDocument& data)
 class GetProtocolMetadataJob::Private
 {
     public:
-        Protocol data;
+        ThirdPartyProtocol data;
 };
 
 QUrl GetProtocolMetadataJob::makeRequestUrl(QUrl baseUrl, const QString& protocol)
@@ -73,7 +73,7 @@ GetProtocolMetadataJob::GetProtocolMetadataJob(const QString& protocol)
 
 GetProtocolMetadataJob::~GetProtocolMetadataJob() = default;
 
-const Protocol& GetProtocolMetadataJob::data() const
+const ThirdPartyProtocol& GetProtocolMetadataJob::data() const
 {
     return d->data;
 }
@@ -84,7 +84,7 @@ BaseJob::Status GetProtocolMetadataJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<Protocol>(json.value("data"_ls));
+    d->data = fromJson<ThirdPartyProtocol>(json.value("data"_ls));
     return Success;
 }
 

@@ -16,7 +16,7 @@ namespace QMatrixClient
     // Data structures
 
     /// List of matched third party users.
-    struct UserBatch : QVector<User>
+    struct UserBatch : QVector<ThirdPartyUser>
     {
     };
 

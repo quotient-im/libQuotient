@@ -13,7 +13,7 @@ namespace QMatrixClient
 {
     // Data structures
 
-    struct Location
+    struct ThirdPartyLocation
     {
         /// An alias for a matrix room.
         QString alias;
@@ -23,11 +23,11 @@ namespace QMatrixClient
         QJsonObject fields;
     };
 
-    QJsonObject toJson(const Location& pod);
+    QJsonObject toJson(const ThirdPartyLocation& pod);
 
-    template <> struct FromJson<Location>
+    template <> struct FromJson<ThirdPartyLocation>
     {
-        Location operator()(const QJsonValue& jv);
+        ThirdPartyLocation operator()(const QJsonValue& jv);
     };
 
 } // namespace QMatrixClient

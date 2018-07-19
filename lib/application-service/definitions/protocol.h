@@ -45,7 +45,7 @@ namespace QMatrixClient
         FieldTypes operator()(const QJsonValue& jv);
     };
 
-    struct Protocol
+    struct ThirdPartyProtocol
     {
         /// Fields used to identify a third party user.
         QStringList userFields;
@@ -61,11 +61,11 @@ namespace QMatrixClient
         QVector<QJsonObject> instances;
     };
 
-    QJsonObject toJson(const Protocol& pod);
+    QJsonObject toJson(const ThirdPartyProtocol& pod);
 
-    template <> struct FromJson<Protocol>
+    template <> struct FromJson<ThirdPartyProtocol>
     {
-        Protocol operator()(const QJsonValue& jv);
+        ThirdPartyProtocol operator()(const QJsonValue& jv);
     };
 
 } // namespace QMatrixClient

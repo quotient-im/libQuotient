@@ -6,7 +6,7 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const User& pod)
+QJsonObject QMatrixClient::toJson(const ThirdPartyUser& pod)
 {
     QJsonObject _json;
     addParam<IfNotEmpty>(_json, QStringLiteral("userid"), pod.userid);
@@ -15,10 +15,10 @@ QJsonObject QMatrixClient::toJson(const User& pod)
     return _json;
 }
 
-User FromJson<User>::operator()(const QJsonValue& jv)
+ThirdPartyUser FromJson<ThirdPartyUser>::operator()(const QJsonValue& jv)
 {
     const auto& _json = jv.toObject();
-    User result;
+    ThirdPartyUser result;
     result.userid =
         fromJson<QString>(_json.value("userid"_ls));
     result.protocol =

@@ -43,7 +43,7 @@ FieldTypes FromJson<FieldTypes>::operator()(const QJsonValue& jv)
     return result;
 }
 
-QJsonObject QMatrixClient::toJson(const Protocol& pod)
+QJsonObject QMatrixClient::toJson(const ThirdPartyProtocol& pod)
 {
     QJsonObject _json;
     addParam<IfNotEmpty>(_json, QStringLiteral("user_fields"), pod.userFields);
@@ -54,10 +54,10 @@ QJsonObject QMatrixClient::toJson(const Protocol& pod)
     return _json;
 }
 
-Protocol FromJson<Protocol>::operator()(const QJsonValue& jv)
+ThirdPartyProtocol FromJson<ThirdPartyProtocol>::operator()(const QJsonValue& jv)
 {
     const auto& _json = jv.toObject();
-    Protocol result;
+    ThirdPartyProtocol result;
     result.userFields =
         fromJson<QStringList>(_json.value("user_fields"_ls));
     result.locationFields =

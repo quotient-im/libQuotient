@@ -13,7 +13,7 @@ namespace QMatrixClient
 {
     // Data structures
 
-    struct User
+    struct ThirdPartyUser
     {
         /// A Matrix User ID represting a third party user.
         QString userid;
@@ -23,11 +23,11 @@ namespace QMatrixClient
         QJsonObject fields;
     };
 
-    QJsonObject toJson(const User& pod);
+    QJsonObject toJson(const ThirdPartyUser& pod);
 
-    template <> struct FromJson<User>
+    template <> struct FromJson<ThirdPartyUser>
     {
-        User operator()(const QJsonValue& jv);
+        ThirdPartyUser operator()(const QJsonValue& jv);
     };
 
 } // namespace QMatrixClient

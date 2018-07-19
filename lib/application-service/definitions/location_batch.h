@@ -16,7 +16,7 @@ namespace QMatrixClient
     // Data structures
 
     /// List of matched third party locations.
-    struct LocationBatch : QVector<Location>
+    struct LocationBatch : QVector<ThirdPartyLocation>
     {
     };
 

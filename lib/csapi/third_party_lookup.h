@@ -74,7 +74,7 @@ namespace QMatrixClient
             // Result properties
 
             /// The protocol was found and metadata returned.
-            const Protocol& data() const;
+            const ThirdPartyProtocol& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

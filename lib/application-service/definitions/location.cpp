@@ -6,7 +6,7 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const Location& pod)
+QJsonObject QMatrixClient::toJson(const ThirdPartyLocation& pod)
 {
     QJsonObject _json;
     addParam<IfNotEmpty>(_json, QStringLiteral("alias"), pod.alias);
@@ -15,10 +15,10 @@ QJsonObject QMatrixClient::toJson(const Location& pod)
     return _json;
 }
 
-Location FromJson<Location>::operator()(const QJsonValue& jv)
+ThirdPartyLocation FromJson<ThirdPartyLocation>::operator()(const QJsonValue& jv)
 {
     const auto& _json = jv.toObject();
-    Location result;
+    ThirdPartyLocation result;
     result.alias =
         fromJson<QString>(_json.value("alias"_ls));
     result.protocol =
