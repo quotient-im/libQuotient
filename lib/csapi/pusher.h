@@ -25,38 +25,38 @@ namespace QMatrixClient
             /// itself.
             struct PusherData
             {
-        /// Required if ``kind`` is ``http``. The URL to use to send
-        /// notifications to.
+                /// Required if ``kind`` is ``http``. The URL to use to send
+                /// notifications to.
                 QString url;
             };
 
             /// Gets all currently active pushers for the authenticated user
             struct Pusher
             {
-        /// This is a unique identifier for this pusher. See `/set` for
-        /// more detail.
-        /// Max length, 512 bytes.
+                /// This is a unique identifier for this pusher. See `/set` for
+                /// more detail.
+                /// Max length, 512 bytes.
                 QString pushkey;
-        /// The kind of pusher. ``"http"`` is a pusher that
-        /// sends HTTP pokes.
+                /// The kind of pusher. ``"http"`` is a pusher that
+                /// sends HTTP pokes.
                 QString kind;
-        /// This is a reverse-DNS style identifier for the application.
-        /// Max length, 64 chars.
+                /// This is a reverse-DNS style identifier for the application.
+                /// Max length, 64 chars.
                 QString appId;
-        /// A string that will allow the user to identify what application
-        /// owns this pusher.
+                /// A string that will allow the user to identify what application
+                /// owns this pusher.
                 QString appDisplayName;
-        /// A string that will allow the user to identify what device owns
-        /// this pusher.
+                /// A string that will allow the user to identify what device owns
+                /// this pusher.
                 QString deviceDisplayName;
-        /// This string determines which set of device specific rules this
-        /// pusher executes.
+                /// This string determines which set of device specific rules this
+                /// pusher executes.
                 QString profileTag;
-        /// The preferred language for receiving notifications (e.g. 'en'
-        /// or 'en-US')
+                /// The preferred language for receiving notifications (e.g. 'en'
+                /// or 'en-US')
                 QString lang;
-        /// A dictionary of information for the pusher implementation
-        /// itself.
+                /// A dictionary of information for the pusher implementation
+                /// itself.
                 Omittable<PusherData> data;
             };
 
@@ -102,8 +102,8 @@ namespace QMatrixClient
             /// which is the URL to use to send notifications to.
             struct PusherData
             {
-        /// Required if ``kind`` is ``http``. The URL to use to send
-        /// notifications to.
+                /// Required if ``kind`` is ``http``. The URL to use to send
+                /// notifications to.
                 QString url;
             };
 

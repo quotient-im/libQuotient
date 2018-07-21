@@ -33,11 +33,11 @@ namespace QMatrixClient
             /// specified in this document.
             struct ConnectionInfo
             {
-        /// Most recently seen IP address of the session.
+                /// Most recently seen IP address of the session.
                 QString ip;
-        /// Unix timestamp that the session was last active.
+                /// Unix timestamp that the session was last active.
                 Omittable<qint64> lastSeen;
-        /// User agent string last seen in the session.
+                /// User agent string last seen in the session.
                 QString userAgent;
             };
 
@@ -48,7 +48,7 @@ namespace QMatrixClient
             /// specified in this document.
             struct SessionInfo
             {
-        /// Information particular connections in the session.
+                /// Information particular connections in the session.
                 QVector<ConnectionInfo> connections;
             };
 
@@ -59,7 +59,7 @@ namespace QMatrixClient
             /// specified in this document.
             struct DeviceInfo
             {
-        /// A user's sessions (i.e. what they did with an access token from one login).
+                /// A user's sessions (i.e. what they did with an access token from one login).
                 QVector<SessionInfo> sessions;
             };
 

@@ -26,8 +26,8 @@ namespace QMatrixClient
             /// should pick one of these and supply it as the ``type`` when logging in.
             struct LoginFlow
             {
-        /// The login type. This is supplied as the ``type`` when
-        /// logging in.
+                /// The login type. This is supplied as the ``type`` when
+                /// logging in.
                 QString type;
             };
 

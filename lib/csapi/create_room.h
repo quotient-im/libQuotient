@@ -77,11 +77,11 @@ namespace QMatrixClient
             /// ========================  ==============  ======================  ================  =========
             struct Invite3pid
             {
-        /// The hostname+port of the identity server which should be used for third party identifier lookups.
+                /// The hostname+port of the identity server which should be used for third party identifier lookups.
                 QString idServer;
-        /// The kind of address being passed in the address field, for example ``email``.
+                /// The kind of address being passed in the address field, for example ``email``.
                 QString medium;
-        /// The invitee's third party identifier.
+                /// The invitee's third party identifier.
                 QString address;
             };
 
@@ -114,11 +114,11 @@ namespace QMatrixClient
             /// ========================  ==============  ======================  ================  =========
             struct StateEvent
             {
-        /// The type of event to send.
+                /// The type of event to send.
                 QString type;
-        /// The state_key of the state event. Defaults to an empty string.
+                /// The state_key of the state event. Defaults to an empty string.
                 QString stateKey;
-        /// The content of the event.
+                /// The content of the event.
                 QJsonObject content;
             };
 

@@ -221,9 +221,9 @@ namespace QMatrixClient
             /// This API returns a map of MXIDs to member info objects for members of the room. The current user must be in the room for it to work, unless it is an Application Service in which case any of the AS's users must be in the room. This API is primarily for Application Services and should be faster to respond than ``/members`` as it can be implemented more efficiently on the server.
             struct RoomMember
             {
-        /// The display name of the user this object is representing.
+                /// The display name of the user this object is representing.
                 QString displayName;
-        /// The mxc avatar url of the user this object is representing.
+                /// The mxc avatar url of the user this object is representing.
                 QString avatarUrl;
             };
 

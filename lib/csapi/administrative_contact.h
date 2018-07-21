@@ -38,9 +38,9 @@ namespace QMatrixClient
             /// identifiers that it will accept to reset the user's account password.
             struct ThirdPartyIdentifier
             {
-        /// The medium of the third party identifier.
+                /// The medium of the third party identifier.
                 QString medium;
-        /// The third party identifier address.
+                /// The third party identifier address.
                 QString address;
             };
 
@@ -89,11 +89,11 @@ namespace QMatrixClient
             /// The third party credentials to associate with the account.
             struct ThreePidCredentials
             {
-        /// The client secret used in the session with the Identity Server.
+                /// The client secret used in the session with the Identity Server.
                 QString clientSecret;
-        /// The Identity Server to use.
+                /// The Identity Server to use.
                 QString idServer;
-        /// The session identifier given by the Identity Server.
+                /// The session identifier given by the Identity Server.
                 QString sid;
             };
 

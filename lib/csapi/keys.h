@@ -64,16 +64,16 @@ namespace QMatrixClient
             /// signatures.
             struct UnsignedDeviceInfo
             {
-        /// The display name which the user set on the device.
+                /// The display name which the user set on the device.
                 QString deviceDisplayName;
             };
 
             /// Returns the current devices and identity keys for the given users.
             struct DeviceInformation : DeviceKeys
             {
-        /// Additional data added to the device key information
-        /// by intermediate servers, and not covered by the
-        /// signatures.
+                /// Additional data added to the device key information
+                /// by intermediate servers, and not covered by the
+                /// signatures.
                 Omittable<UnsignedDeviceInfo> unsignedData;
             };
 

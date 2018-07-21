@@ -86,25 +86,25 @@ namespace QMatrixClient
             /// of joined members, with the largest rooms first.
             struct PublicRoomsChunk
             {
-        /// Aliases of the room. May be empty.
+                /// Aliases of the room. May be empty.
                 QStringList aliases;
-        /// The canonical alias of the room, if any.
+                /// The canonical alias of the room, if any.
                 QString canonicalAlias;
-        /// The name of the room, if any.
+                /// The name of the room, if any.
                 QString name;
-        /// The number of members joined to the room.
+                /// The number of members joined to the room.
                 qint64 numJoinedMembers;
-        /// The ID of the room.
+                /// The ID of the room.
                 QString roomId;
-        /// The topic of the room, if any.
+                /// The topic of the room, if any.
                 QString topic;
-        /// Whether the room may be viewed by guest users without joining.
+                /// Whether the room may be viewed by guest users without joining.
                 bool worldReadable;
-        /// Whether guest users may join the room and participate in it.
-        /// If they can, they will be subject to ordinary power level
-        /// rules like any other user.
+                /// Whether guest users may join the room and participate in it.
+                /// If they can, they will be subject to ordinary power level
+                /// rules like any other user.
                 bool guestCanJoin;
-        /// The URL for the room's avatar, if one is set.
+                /// The URL for the room's avatar, if one is set.
                 QString avatarUrl;
             };
 
@@ -172,8 +172,8 @@ namespace QMatrixClient
             /// Filter to apply to the results.
             struct Filter
             {
-        /// A string to search for in the room metadata, e.g. name,
-        /// topic, canonical alias etc. (Optional).
+                /// A string to search for in the room metadata, e.g. name,
+                /// topic, canonical alias etc. (Optional).
                 QString genericSearchTerm;
             };
 
@@ -183,25 +183,25 @@ namespace QMatrixClient
             /// of joined members, with the largest rooms first.
             struct PublicRoomsChunk
             {
-        /// Aliases of the room. May be empty.
+                /// Aliases of the room. May be empty.
                 QStringList aliases;
-        /// The canonical alias of the room, if any.
+                /// The canonical alias of the room, if any.
                 QString canonicalAlias;
-        /// The name of the room, if any.
+                /// The name of the room, if any.
                 QString name;
-        /// The number of members joined to the room.
+                /// The number of members joined to the room.
                 qint64 numJoinedMembers;
-        /// The ID of the room.
+                /// The ID of the room.
                 QString roomId;
-        /// The topic of the room, if any.
+                /// The topic of the room, if any.
                 QString topic;
-        /// Whether the room may be viewed by guest users without joining.
+                /// Whether the room may be viewed by guest users without joining.
                 bool worldReadable;
-        /// Whether guest users may join the room and participate in it.
-        /// If they can, they will be subject to ordinary power level
-        /// rules like any other user.
+                /// Whether guest users may join the room and participate in it.
+                /// If they can, they will be subject to ordinary power level
+                /// rules like any other user.
                 bool guestCanJoin;
-        /// The URL for the room's avatar, if one is set.
+                /// The URL for the room's avatar, if one is set.
                 QString avatarUrl;
             };
 

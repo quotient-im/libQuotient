@@ -26,11 +26,11 @@ namespace QMatrixClient
             /// It searches user ID and displayname case-insensitively for users that you share a room with or that are in public rooms.
             struct User
             {
-        /// The user's matrix user ID.
+                /// The user's matrix user ID.
                 QString userId;
-        /// The display name of the user, if one exists.
+                /// The display name of the user, if one exists.
                 QString displayName;
-        /// The avatar url, as an MXC, if one exists.
+                /// The avatar url, as an MXC, if one exists.
                 QString avatarUrl;
             };
 

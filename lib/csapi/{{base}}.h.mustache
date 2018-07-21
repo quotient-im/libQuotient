@@ -38,7 +38,7 @@ namespace QMatrixClient
             /// {{_}}{{/description}}
             struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
             {
-{{#vars}}{{#description}}        /// {{_}}
+{{#vars}}{{#description}}                /// {{_}}
 {{/description}}                {{>maybeOmittableType}} {{nameCamelCase}};
 {{/vars}}            };
 {{/            model}}

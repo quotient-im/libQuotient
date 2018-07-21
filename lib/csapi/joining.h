@@ -36,13 +36,13 @@ namespace QMatrixClient
             /// A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
             struct ThirdPartySigned
             {
-        /// The Matrix ID of the user who issued the invite.
+                /// The Matrix ID of the user who issued the invite.
                 QString sender;
-        /// The Matrix ID of the invitee.
+                /// The Matrix ID of the invitee.
                 QString mxid;
-        /// The state key of the m.third_party_invite event.
+                /// The state key of the m.third_party_invite event.
                 QString token;
-        /// A signatures object containing a signature of the entire signed object.
+                /// A signatures object containing a signature of the entire signed object.
                 QJsonObject signatures;
             };
 
@@ -105,20 +105,20 @@ namespace QMatrixClient
             /// room, and perform key validity checking if required by the event.
             struct Signed
             {
-        /// The Matrix ID of the user who issued the invite.
+                /// The Matrix ID of the user who issued the invite.
                 QString sender;
-        /// The Matrix ID of the invitee.
+                /// The Matrix ID of the invitee.
                 QString mxid;
-        /// The state key of the m.third_party_invite event.
+                /// The state key of the m.third_party_invite event.
                 QString token;
-        /// A signatures object containing a signature of the entire signed object.
+                /// A signatures object containing a signature of the entire signed object.
                 QJsonObject signatures;
             };
 
             /// A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
             struct ThirdPartySigned
             {
-        /// A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
+                /// A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
                 Signed signedData;
             };
 
