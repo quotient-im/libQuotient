@@ -684,6 +684,11 @@ void Room::addTag(const QString& name, const TagRecord& record)
     d->broadcastTagUpdates();
 }
 
+void Room::addTag(const QString &name, int order)
+{
+    addTag(name, TagRecord{order});
+}
+
 void Room::removeTag(const QString& name)
 {
     if (!d->tags.contains(name))

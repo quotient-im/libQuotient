@@ -300,7 +300,8 @@ namespace QMatrixClient
              * of tags and the new set is sent to the server to update other
              * clients.
              */
-            Q_INVOKABLE void addTag(const QString& name, const TagRecord& record = {});
+            void addTag(const QString& name, const TagRecord& record = {});
+            Q_INVOKABLE void addTag(const QString& name, int order);
 
             /** Remove a tag from the room */
             Q_INVOKABLE void removeTag(const QString& name);
