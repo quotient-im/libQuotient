@@ -300,10 +300,10 @@ namespace QMatrixClient
              * of tags and the new set is sent to the server to update other
              * clients.
              */
-            void addTag(const QString& name, const TagRecord& record = {});
+            Q_INVOKABLE void addTag(const QString& name, const TagRecord& record = {});
 
             /** Remove a tag from the room */
-            void removeTag(const QString& name);
+            Q_INVOKABLE void removeTag(const QString& name);
 
             /** Overwrite the room's tags
              * This completely replaces the existing room's tags with a set
