@@ -6,11 +6,12 @@
 
 #include "jobs/basejob.h"
 
-#include "csapi/../application-service/definitions/protocol_metadata.h"
-#include "csapi/../application-service/definitions/protocol.h"
+#include "csapi/../application-service/definitions/user.h"
+#include "csapi/../application-service/definitions/location.h"
+#include <QtCore/QHash>
+#include <QtCore/QVector>
 #include "converters.h"
-#include "csapi/../application-service/definitions/location_batch.h"
-#include "csapi/../application-service/definitions/user_batch.h"
+#include "csapi/../application-service/definitions/protocol.h"
 
 namespace QMatrixClient
 {
@@ -39,7 +40,7 @@ namespace QMatrixClient
             // Result properties
 
             /// The protocols supported by the homeserver.
-            const ProtocolMetadata& data() const;
+            const QHash<QString, ThirdPartyProtocol>& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -119,7 +120,7 @@ namespace QMatrixClient
             // Result properties
 
             /// At least one portal room was found.
-            const LocationBatch& data() const;
+            const QVector<ThirdPartyLocation>& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -139,10 +140,10 @@ namespace QMatrixClient
             /*! Retrieve the Matrix User ID of a corresponding third party user.
              * \param protocol 
              *   The name of the protocol.
-             * \param field1Field2 
+             * \param fields 
              *   One or more custom fields that are passed to the AS to help identify the user.
              */
-            explicit QueryUserByProtocolJob(const QString& protocol, const QString& field1Field2 = {});
+            explicit QueryUserByProtocolJob(const QString& protocol, const QString& fields = {});
 
             /*! Construct a URL without creating a full-fledged job object
              *
@@ -150,14 +151,14 @@ namespace QMatrixClient
              * QueryUserByProtocolJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& field1Field2 = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& fields = {});
 
             ~QueryUserByProtocolJob() override;
 
             // Result properties
 
             /// The Matrix User IDs found with the given parameters.
-            const UserBatch& data() const;
+            const QVector<ThirdPartyUser>& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -193,7 +194,7 @@ namespace QMatrixClient
             // Result properties
 
             /// All found third party locations.
-            const LocationBatch& data() const;
+            const QVector<ThirdPartyLocation>& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -228,7 +229,7 @@ namespace QMatrixClient
             // Result properties
 
             /// An array of third party users.
-            const UserBatch& data() const;
+            const QVector<ThirdPartyUser>& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

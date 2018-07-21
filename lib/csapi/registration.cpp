@@ -30,7 +30,7 @@ BaseJob::Query queryToRegister(const QString& kind)
 
 static const auto RegisterJobName = QStringLiteral("RegisterJob");
 
-RegisterJob::RegisterJob(const QString& kind, const QJsonObject& auth, bool bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName)
+RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth, bool bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, RegisterJobName,
         basePath % "/register",
         queryToRegister(kind),
@@ -95,7 +95,7 @@ RequestTokenToRegisterJob::RequestTokenToRegisterJob(const QString& clientSecret
 
 static const auto ChangePasswordJobName = QStringLiteral("ChangePasswordJob");
 
-ChangePasswordJob::ChangePasswordJob(const QString& newPassword, const QJsonObject& auth)
+ChangePasswordJob::ChangePasswordJob(const QString& newPassword, const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, ChangePasswordJobName,
         basePath % "/account/password")
 {
@@ -121,7 +121,7 @@ RequestTokenToResetPasswordJob::RequestTokenToResetPasswordJob()
 
 static const auto DeactivateAccountJobName = QStringLiteral("DeactivateAccountJob");
 
-DeactivateAccountJob::DeactivateAccountJob(const QJsonObject& auth)
+DeactivateAccountJob::DeactivateAccountJob(const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, DeactivateAccountJobName,
         basePath % "/account/deactivate")
 {

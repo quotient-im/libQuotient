@@ -98,7 +98,7 @@ UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId, const QString& display
 
 static const auto DeleteDeviceJobName = QStringLiteral("DeleteDeviceJob");
 
-DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const QJsonObject& auth)
+DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Delete, DeleteDeviceJobName,
         basePath % "/devices/" % deviceId)
 {
@@ -109,7 +109,7 @@ DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const QJsonObject& aut
 
 static const auto DeleteDevicesJobName = QStringLiteral("DeleteDevicesJob");
 
-DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices, const QJsonObject& auth)
+DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices, const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, DeleteDevicesJobName,
         basePath % "/delete_devices")
 {

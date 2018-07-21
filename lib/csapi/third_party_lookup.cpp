@@ -15,7 +15,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class GetProtocolsJob::Private
 {
     public:
-        ProtocolMetadata data;
+        QHash<QString, ThirdPartyProtocol> data;
 };
 
 QUrl GetProtocolsJob::makeRequestUrl(QUrl baseUrl)
@@ -35,7 +35,7 @@ GetProtocolsJob::GetProtocolsJob()
 
 GetProtocolsJob::~GetProtocolsJob() = default;
 
-const ProtocolMetadata& GetProtocolsJob::data() const
+const QHash<QString, ThirdPartyProtocol>& GetProtocolsJob::data() const
 {
     return d->data;
 }
@@ -46,7 +46,7 @@ BaseJob::Status GetProtocolsJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<ProtocolMetadata>(json.value("data"_ls));
+    d->data = fromJson<QHash<QString, ThirdPartyProtocol>>(json.value("data"_ls));
     return Success;
 }
 
@@ -91,7 +91,7 @@ BaseJob::Status GetProtocolMetadataJob::parseJson(const QJsonDocument& data)
 class QueryLocationByProtocolJob::Private
 {
     public:
-        LocationBatch data;
+        QVector<ThirdPartyLocation> data;
 };
 
 BaseJob::Query queryToQueryLocationByProtocol(const QString& searchFields)
@@ -121,7 +121,7 @@ QueryLocationByProtocolJob::QueryLocationByProtocolJob(const QString& protocol, 
 
 QueryLocationByProtocolJob::~QueryLocationByProtocolJob() = default;
 
-const LocationBatch& QueryLocationByProtocolJob::data() const
+const QVector<ThirdPartyLocation>& QueryLocationByProtocolJob::data() const
 {
     return d->data;
 }
@@ -132,36 +132,36 @@ BaseJob::Status QueryLocationByProtocolJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<LocationBatch>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyLocation>>(json.value("data"_ls));
     return Success;
 }
 
 class QueryUserByProtocolJob::Private
 {
     public:
-        UserBatch data;
+        QVector<ThirdPartyUser> data;
 };
 
-BaseJob::Query queryToQueryUserByProtocol(const QString& field1Field2)
+BaseJob::Query queryToQueryUserByProtocol(const QString& fields)
 {
     BaseJob::Query _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("field1, field2..."), field1Field2);
+    addParam<IfNotEmpty>(_q, QStringLiteral("fields..."), fields);
     return _q;
 }
 
-QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& field1Field2)
+QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& fields)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/thirdparty/user/" % protocol,
-            queryToQueryUserByProtocol(field1Field2));
+            queryToQueryUserByProtocol(fields));
 }
 
 static const auto QueryUserByProtocolJobName = QStringLiteral("QueryUserByProtocolJob");
 
-QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QString& field1Field2)
+QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QString& fields)
     : BaseJob(HttpVerb::Get, QueryUserByProtocolJobName,
         basePath % "/thirdparty/user/" % protocol,
-        queryToQueryUserByProtocol(field1Field2),
+        queryToQueryUserByProtocol(fields),
         {}, false)
     , d(new Private)
 {
@@ -169,7 +169,7 @@ QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QS
 
 QueryUserByProtocolJob::~QueryUserByProtocolJob() = default;
 
-const UserBatch& QueryUserByProtocolJob::data() const
+const QVector<ThirdPartyUser>& QueryUserByProtocolJob::data() const
 {
     return d->data;
 }
@@ -180,14 +180,14 @@ BaseJob::Status QueryUserByProtocolJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<UserBatch>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyUser>>(json.value("data"_ls));
     return Success;
 }
 
 class QueryLocationByAliasJob::Private
 {
     public:
-        LocationBatch data;
+        QVector<ThirdPartyLocation> data;
 };
 
 BaseJob::Query queryToQueryLocationByAlias(const QString& alias)
@@ -217,7 +217,7 @@ QueryLocationByAliasJob::QueryLocationByAliasJob(const QString& alias)
 
 QueryLocationByAliasJob::~QueryLocationByAliasJob() = default;
 
-const LocationBatch& QueryLocationByAliasJob::data() const
+const QVector<ThirdPartyLocation>& QueryLocationByAliasJob::data() const
 {
     return d->data;
 }
@@ -228,14 +228,14 @@ BaseJob::Status QueryLocationByAliasJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<LocationBatch>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyLocation>>(json.value("data"_ls));
     return Success;
 }
 
 class QueryUserByIDJob::Private
 {
     public:
-        UserBatch data;
+        QVector<ThirdPartyUser> data;
 };
 
 BaseJob::Query queryToQueryUserByID(const QString& userid)
@@ -265,7 +265,7 @@ QueryUserByIDJob::QueryUserByIDJob(const QString& userid)
 
 QueryUserByIDJob::~QueryUserByIDJob() = default;
 
-const UserBatch& QueryUserByIDJob::data() const
+const QVector<ThirdPartyUser>& QueryUserByIDJob::data() const
 {
     return d->data;
 }
@@ -276,7 +276,7 @@ BaseJob::Status QueryUserByIDJob::parseJson(const QJsonDocument& data)
     if (!json.contains("data"_ls))
         return { JsonParseError,
             "The key 'data' not found in the response" };
-    d->data = fromJson<UserBatch>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyUser>>(json.value("data"_ls));
     return Success;
 }
 

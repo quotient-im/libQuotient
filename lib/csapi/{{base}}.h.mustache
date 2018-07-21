@@ -16,7 +16,9 @@ namespace QMatrixClient
     {
 {{#vars}}{{#description}}        /// {{_}}
 {{/description}}        {{>maybeOmittableType}} {{nameCamelCase}};
-{{/vars}}    };
+{{/vars}}{{#propertyMap}}{{#description}}        /// {{_}}
+{{/description}}        {{>maybeOmittableType}} {{nameCamelCase}};
+{{/propertyMap}}    };
 {{#in?}}
     QJsonObject toJson(const {{name}}& pod);
 {{/in?}}{{#out?}}
@@ -40,7 +42,9 @@ namespace QMatrixClient
             {
 {{#vars}}{{#description}}                /// {{_}}
 {{/description}}                {{>maybeOmittableType}} {{nameCamelCase}};
-{{/vars}}            };
+{{/vars}}{{#propertyMap}}{{#description}}                /// {{_}}
+{{/description}}                {{>maybeOmittableType}} {{nameCamelCase}};
+{{/propertyMap}}            };
 {{/            model}}
             // Construction/destruction
 {{/        models}}{{#allParams?}}

@@ -10,18 +10,19 @@ using namespace QMatrixClient;
 {{#models.model}}{{#in?}}
 QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
 {
-    QJsonObject _json;{{#vars}}
+    QJsonObject _json{{#propertyMap}} = toJson(pod.{{nameCamelCase}}){{/propertyMap}};{{#vars}}
     addParam<{{^required?}}IfNotEmpty{{/required?}}>(_json, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});{{/vars}}
     return _json;
 }
 {{/in?}}{{#out?}}
 {{qualifiedName}} FromJson<{{qualifiedName}}>::operator()(const QJsonValue& jv)
 {
-    const auto& _json = jv.toObject();
+    {{^propertyMap}}const auto&{{/propertyMap}}{{#propertyMap}}auto{{/propertyMap}} _json = jv.toObject();
     {{qualifiedName}} result;
     {{#vars}}result.{{nameCamelCase}} =
-        fromJson<{{dataType.name}}>(_json.value("{{baseName}}"_ls));
-    {{/vars}}
+        fromJson<{{dataType.name}}>(_json.{{#propertyMap}}take{{/propertyMap}}{{^propertyMap}}value{{/propertyMap}}("{{baseName}}"_ls));
+    {{/vars}}{{#propertyMap}}
+    result.{{nameCamelCase}} = fromJson<{{dataType.name}}>(_json);{{/propertyMap}}
     return result;
 }
 {{/out?}}{{/models.model}}{{#operations}}

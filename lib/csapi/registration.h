@@ -7,7 +7,7 @@
 #include "jobs/basejob.h"
 
 #include "converters.h"
-#include <QtCore/QJsonObject>
+#include "csapi/definitions/auth_data.h"
 
 namespace QMatrixClient
 {
@@ -75,7 +75,7 @@ namespace QMatrixClient
              *   A display name to assign to the newly-created device. Ignored
              *   if ``device_id`` corresponds to a known device.
              */
-            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const QJsonObject& auth = {}, bool bindEmail = false, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
+            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const Omittable<AuthenticationData>& auth = none, bool bindEmail = false, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
             ~RegisterJob() override;
 
             // Result properties
@@ -151,7 +151,7 @@ namespace QMatrixClient
              * \param auth 
              *   Additional authentication information for the user-interactive authentication API.
              */
-            explicit ChangePasswordJob(const QString& newPassword, const QJsonObject& auth = {});
+            explicit ChangePasswordJob(const QString& newPassword, const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of resetting a user's password
@@ -204,7 +204,7 @@ namespace QMatrixClient
              * \param auth 
              *   Additional authentication information for the user-interactive authentication API.
              */
-            explicit DeactivateAccountJob(const QJsonObject& auth = {});
+            explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Checks to see if a username is available on the server.

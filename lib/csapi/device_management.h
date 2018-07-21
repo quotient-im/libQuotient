@@ -6,7 +6,7 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QJsonObject>
+#include "csapi/definitions/auth_data.h"
 #include <QtCore/QVector>
 #include "converters.h"
 #include "csapi/definitions/client_device.h"
@@ -112,7 +112,7 @@ namespace QMatrixClient
              *   Additional authentication information for the
              *   user-interactive authentication API.
              */
-            explicit DeleteDeviceJob(const QString& deviceId, const QJsonObject& auth = {});
+            explicit DeleteDeviceJob(const QString& deviceId, const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Bulk deletion of devices
@@ -130,6 +130,6 @@ namespace QMatrixClient
              *   Additional authentication information for the
              *   user-interactive authentication API.
              */
-            explicit DeleteDevicesJob(const QStringList& devices, const QJsonObject& auth = {});
+            explicit DeleteDevicesJob(const QStringList& devices, const Omittable<AuthenticationData>& auth = none);
     };
 } // namespace QMatrixClient
