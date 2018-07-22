@@ -109,12 +109,18 @@ analyzer:
   #operations:
 
 mustache:
-  definitions:
-    _scopeRenderer: "{{scopeCamelCase}}Job::"
-    _literalQuote: '"'
+  constants:
+    # Syntax elements used by GTAD
+#    _quote: '"' # Common quote for left and right
+#    _leftQuote: '"'
+#    _rightQuote: '"'
+#    _joinChar: ',' # The character used by {{_join}} - not working yet
+    _comment: '//'
+  partials:
+    _typeRenderer: "{{#scope}}{{scopeCamelCase}}Job::{{/scope}}{{>name}}"
     omittedValue: '{}' # default value to initialize omitted parameters with
     initializer: '{{defaultValue}}'
-    cjoin: '{{#@join}}, {{/@join}}'
+    cjoin: '{{#hasMore}}, {{/hasMore}}'
     openOmittable: "{{^required?}}{{#useOmittable}}{{^defaultValue}}Omittable<{{/defaultValue}}{{/useOmittable}}{{/required?}}"
     closeOmittable: "{{^required?}}{{#useOmittable}}{{^defaultValue}}>{{/defaultValue}}{{/useOmittable}}{{/required?}}"
     maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"

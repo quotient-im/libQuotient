@@ -1,4 +1,4 @@
-{{#@filePartial}}preamble{{/@filePartial}}
+{{>preamble}}
 #include "{{filenameBase}}.h"
 {{^models}}
 #include "converters.h"
@@ -76,7 +76,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{
 static const auto {{camelCaseOperationId}}JobName = QStringLiteral("{{camelCaseOperationId}}Job");
 
 {{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDef}}{{/allParams}})
-    : BaseJob(HttpVerb::{{#@cap}}{{#@tolower}}{{httpMethod}}{{/@tolower}}{{/@cap}}, {{camelCaseOperationId}}JobName,
+    : BaseJob(HttpVerb::{{#_cap}}{{#_tolower}}{{httpMethod}}{{/_tolower}}{{/_cap}}, {{camelCaseOperationId}}JobName,
         basePath{{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
         queryTo{{camelCaseOperationId}}({{>passQueryParams}}){{/queryParams?}}{{#skipAuth}}{{#queryParams?}},
         {}{{/queryParams?}}, false{{/skipAuth}}){{#responses}}{{#normalResponse?}}{{#allProperties?}}
