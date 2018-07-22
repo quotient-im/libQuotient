@@ -4,9 +4,8 @@
 
 #pragma once
 
-
-
 #include "converters.h"
+
 
 namespace QMatrixClient
 {

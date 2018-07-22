@@ -4,12 +4,11 @@
 
 #pragma once
 
+#include "converters.h"
 
 #include "csapi/definitions/room_event_filter.h"
 #include "converters.h"
 #include "csapi/definitions/event_filter.h"
-
-#include "converters.h"
 
 namespace QMatrixClient
 {

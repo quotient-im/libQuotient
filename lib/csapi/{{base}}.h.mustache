@@ -2,11 +2,10 @@
 #pragma once
 
 {{#operations}}#include "jobs/basejob.h"
-{{/operations}}
-{{#imports}}#include {{_}}
-{{/imports}}{{#models}}
-#include "converters.h"
+{{/operations}}{{#models}}#include "converters.h"
 {{/models}}
+{{#imports}}#include {{_}}
+{{/imports}}
 namespace QMatrixClient
 {
 {{#models}}    // Data structures

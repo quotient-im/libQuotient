@@ -4,12 +4,11 @@
 
 #pragma once
 
+#include "converters.h"
 
 #include <QtCore/QVector>
 #include "converters.h"
 #include "csapi/definitions/push_rule.h"
-
-#include "converters.h"
 
 namespace QMatrixClient
 {

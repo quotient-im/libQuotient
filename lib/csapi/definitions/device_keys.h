@@ -4,10 +4,9 @@
 
 #pragma once
 
+#include "converters.h"
 
 #include <QtCore/QHash>
-
-#include "converters.h"
 
 namespace QMatrixClient
 {
