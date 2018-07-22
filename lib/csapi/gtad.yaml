@@ -21,8 +21,8 @@ analyzer:
   # WHERE
   # targetTypeSpec = targetType OR
   #   { type: targetType, imports: <filename OR [ filenames... ]>, <other attributes...> }
-  # swaggerType can be @apply/@on pair; attributes from the map under @apply
-  # are added to each type from the sequence under @on.
+  # swaggerType can be +set/+on pair; attributes from the map under +set
+  # are added to each type from the sequence under +on.
   types:
   - +set: &UseOmittable
       useOmittable:
@@ -126,7 +126,6 @@ mustache:
     joinedParamDecl: '{{>maybeCrefType}} {{paramName}}{{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{>cjoin}}'
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{>cjoin}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}'
-  #  preamble: preamble.mustache
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>
 
