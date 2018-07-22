@@ -1,5 +1,5 @@
 QT += network
-CONFIG += c++14 warn_on rtti_off create_prl
+CONFIG += c++14 warn_on rtti_off create_prl object_parallel_to_source
 
 win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -wd4100
