@@ -4,11 +4,10 @@
 
 #pragma once
 
+#include "converters.h"
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QVector>
-#include "converters.h"
-
 #include "converters.h"
 
 namespace QMatrixClient
