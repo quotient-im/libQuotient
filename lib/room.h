@@ -301,9 +301,10 @@ namespace QMatrixClient
              * clients.
              */
             void addTag(const QString& name, const TagRecord& record = {});
+            Q_INVOKABLE void addTag(const QString& name, const QString& order);
 
             /** Remove a tag from the room */
-            void removeTag(const QString& name);
+            Q_INVOKABLE void removeTag(const QString& name);
 
             /** Overwrite the room's tags
              * This completely replaces the existing room's tags with a set
