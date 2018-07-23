@@ -225,7 +225,7 @@ class Room::Private
         {
             connection->callApi<SetAccountDataPerRoomJob>(
                     connection->userId(), id, TagEvent::matrixTypeId(),
-                        TagEvent(tags).fullJson());
+                        TagEvent(tags).contentJson());
             emit q->tagsChanged();
         }
 
