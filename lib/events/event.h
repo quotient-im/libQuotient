@@ -35,13 +35,13 @@ namespace QMatrixClient
     using event_ptr_tt = std::unique_ptr<EventT>;
 
     template <typename EventT>
-    inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
+    inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr) // unwrap
     {
         return ptr.get();
     }
 
-    template <typename TargetEventT, typename HolderT>
-    inline TargetEventT* weakPtrCast(const HolderT& ptr)
+    template <typename TargetEventT, typename EventT>
+    inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
     {
         return static_cast<TargetEventT*>(rawPtr(ptr));
     }
@@ -310,18 +310,11 @@ namespace QMatrixClient
 
     inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
 
-    template <typename EventT, typename BaseEventT>
-    inline auto eventCast(BaseEventT& e)
-        -> Omittable<decltype(static_cast<EventT&>(e))>
+    template <typename EventT, typename BasePtrT>
+    inline auto eventCast(const BasePtrT& eptr)
+        -> decltype(static_cast<EventT*>(&*eptr))
     {
-        return is<EventT>(e) ? static_cast<EventT&>(e) : none;
-    }
-
-    template <typename EventT, typename HolderT>
-    inline auto eventCast(const HolderT& eptr)
-        -> decltype(static_cast<EventT*>(eptr.get()))
-    {
-        return is<EventT>(*eptr) ? static_cast<EventT*>(eptr.get()) : nullptr;
+        return is<EventT>(*eptr) ? static_cast<EventT*>(&*eptr) : nullptr;
     }
 
     // A single generic catch-all visitor
