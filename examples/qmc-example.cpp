@@ -2,7 +2,7 @@
 #include "connection.h"
 #include "room.h"
 #include "user.h"
-#include "jobs/sendeventjob.h"
+#include "csapi/room_send.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 
@@ -26,9 +26,10 @@ class QMCTest : public QObject
         void setup(const QString& testRoomName);
         void onNewRoom(Room* r);
         void startTests();
+            void sendMessage();
             void addAndRemoveTag();
             void sendAndRedact();
-                void checkRedactionOutcome(QString evtIdToRedact,
+                void checkRedactionOutcome(const QString& evtIdToRedact,
                                    RoomEventsRange events);
             void markDirectChat();
                 void checkDirectChatOutcome(
@@ -87,9 +88,8 @@ void QMCTest::setup(const QString& testRoomName)
             c->sync(10000);
         else if (targetRoom)
         {
-            auto j = c->callApi<SendEventJob>(targetRoom->id(),
-                                              RoomMessageEvent(origin % ": All tests finished"));
-            connect(j, &BaseJob::finished, this, &QMCTest::leave);
+            targetRoom->postMessage(origin % ": All tests finished");
+            connect(targetRoom, &Room::pendingEventMerged, this, &QMCTest::leave);
         }
         else
             finalize();
@@ -142,9 +142,30 @@ void QMCTest::onNewRoom(Room* r)
 void QMCTest::startTests()
 {
     cout << "Starting tests" << endl;
+    sendMessage();
     addAndRemoveTag();
     sendAndRedact();
     markDirectChat();
+}
+
+void QMCTest::sendMessage()
+{
+    running.push_back("Message sending");
+    cout << "Sending a message" << endl;
+    auto txnId = targetRoom->postMessage("Hello, " % origin % " is here");
+    auto& pending = targetRoom->pendingEvents();
+    if (pending.empty())
+    {
+        QMC_CHECK("Message sending", false);
+        return;
+    }
+    auto it = std::find_if(pending.begin(), pending.end(),
+                [&txnId] (const RoomEventPtr& e) {
+                    return e->transactionId() == txnId;
+                });
+    QMC_CHECK("Message sending", it != pending.end());
+    // TODO: Wait when it actually gets sent; check that it obtained an id
+    // Independently, check when it shows up in the timeline.
 }
 
 void QMCTest::addAndRemoveTag()
@@ -176,19 +197,22 @@ void QMCTest::sendAndRedact()
 {
     running.push_back("Redaction");
     cout << "Sending a message to redact" << endl;
-    auto* job = targetRoom->connection()->callApi<SendEventJob>(targetRoom->id(),
-            RoomMessageEvent(origin % ": Message to redact"));
-    connect(job, &BaseJob::success, targetRoom, [job,this] {
-        cout << "Message to redact has been succesfully sent, redacting" << endl;
-        targetRoom->redactEvent(job->eventId(), origin);
-        // Make sure to save the event id because the job is about to end.
-        connect(targetRoom, &Room::aboutToAddNewMessages, this,
-                std::bind(&QMCTest::checkRedactionOutcome,
-                          this, job->eventId(), _1));
-    });
+    if (auto* job = targetRoom->connection()->sendMessage(targetRoom->id(),
+            RoomMessageEvent(origin % ": message to redact")))
+    {
+        connect(job, &BaseJob::success, targetRoom, [job,this] {
+            cout << "Redacting the message" << endl;
+            targetRoom->redactEvent(job->eventId(), origin);
+            // Make sure to save the event id because the job is about to end.
+            connect(targetRoom, &Room::aboutToAddNewMessages, this,
+                    std::bind(&QMCTest::checkRedactionOutcome,
+                              this, job->eventId(), _1));
+        });
+    } else
+        QMC_CHECK("Redaction", false);
 }
 
-void QMCTest::checkRedactionOutcome(QString evtIdToRedact,
+void QMCTest::checkRedactionOutcome(const QString& evtIdToRedact,
                                     RoomEventsRange events)
 {
     static bool checkSucceeded = false;

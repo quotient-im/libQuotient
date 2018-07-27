@@ -191,6 +191,24 @@ namespace QMatrixClient
             iterator to;
     };
 
+    /** A replica of std::find_first_of that returns a pair of iterators
+     *
+     * Convenient for cases when you need to know which particular "first of"
+     * [sFirst, sLast) has been found in [first, last).
+     */
+    template<typename InputIt, typename ForwardIt, typename Pred>
+    inline std::pair<InputIt, ForwardIt> findFirstOf(
+            InputIt first, InputIt last, ForwardIt sFirst, ForwardIt sLast,
+            Pred pred)
+    {
+        for (; first != last; ++first)
+            for (auto it = sFirst; it != sLast; ++it)
+                if (pred(*first, *it))
+                    return std::make_pair(first, it);
+
+        return std::make_pair(last, sLast);
+    }
+
     /** A guard pointer that disconnects an interested object upon destruction
      * It's almost QPointer<> except that you have to initialise it with one
      * more additional parameter - a pointer to a QObject that will be
