@@ -133,6 +133,7 @@ namespace QMatrixClient
 
     // === EventFactory ===
 
+    /** Create an event of arbitrary type from its arguments */
     template <typename EventT, typename... ArgTs>
     inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
     {
