@@ -264,13 +264,9 @@ void Connection::checkAndConnect(const QString& userId,
     // Not good to go, try to fix the homeserver URL.
     if (userId.startsWith('@') && userId.indexOf(':') != -1)
     {
-        // The below construct makes a single-shot connection that triggers
-        // on the signal and then self-disconnects.
+        connectSingleShot(this, &Connection::homeserverChanged, this, connectFn);
         // NB: doResolveServer can emit resolveError, so this is a part of
         // checkAndConnect function contract.
-        QMetaObject::Connection connection;
-        connection = connect(this, &Connection::homeserverChanged,
-                        this, [=] { connectFn(); disconnect(connection); });
         resolveServer(userId);
     } else
         emit resolveError(

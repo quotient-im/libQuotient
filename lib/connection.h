@@ -48,6 +48,26 @@ namespace QMatrixClient
     class DownloadFileJob;
     class SendToDeviceJob;
 
+    /** Create a single-shot connection that triggers on the signal and
+     * then self-disconnects
+     *
+     * Only supports DirectConnection type.
+     */
+    template <typename SenderT1, typename SignalT,
+              typename ReceiverT2, typename SlotT>
+    inline auto connectSingleShot(SenderT1* sender, SignalT signal,
+                                  ReceiverT2* receiver, SlotT slot)
+    {
+        QMetaObject::Connection connection;
+        connection = QObject::connect(sender, signal, receiver, slot,
+                                      Qt::DirectConnection);
+        Q_ASSERT(connection);
+        QObject::connect(sender, signal, receiver,
+                         [connection] { QObject::disconnect(connection); },
+                         Qt::DirectConnection);
+        return connection;
+    }
+
     /** Enumeration with flags defining the network job running policy
      * So far only background/foreground flags are available.
      *
