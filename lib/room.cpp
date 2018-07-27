@@ -199,12 +199,12 @@ class Room::Private
 
         void markMessagesAsRead(rev_iter_t upToMarker);
 
-        void sendEvent(RoomEventPtr&& event);
+        QString sendEvent(RoomEventPtr&& event);
 
         template <typename EventT, typename... ArgTs>
-        void sendEvent(ArgTs&&... eventArgs)
+        QString sendEvent(ArgTs&&... eventArgs)
         {
-            sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
+            return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
         }
 
         template <typename EvT>
@@ -1102,7 +1102,7 @@ void Room::updateData(SyncRoomData&& data)
     }
 }
 
-void Room::Private::sendEvent(RoomEventPtr&& event)
+QString Room::Private::sendEvent(RoomEventPtr&& event)
 {
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd();
@@ -1127,39 +1127,40 @@ void Room::Private::sendEvent(RoomEventPtr&& event)
         pEvent->addId(call->eventId());
         emit q->pendingEventChanged(it - unsyncedEvents.begin());
     });
+    return pEvent->transactionId();
 }
 
-void Room::postMessage(const QString& type, const QString& plainText)
+QString Room::postMessage(const QString& type, const QString& plainText)
 {
-    d->sendEvent<RoomMessageEvent>(plainText, type);
+    return d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
-void Room::postMessage(const QString& plainText, MessageEventType type)
+QString Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    d->sendEvent<RoomMessageEvent>(plainText, type);
+    return d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
-void Room::postHtmlMessage(const QString& plainText, const QString& htmlText,
+QString Room::postHtmlMessage(const QString& plainText, const QString& htmlText,
                            MessageEventType type)
 {
-    d->sendEvent<RoomMessageEvent>(plainText, type,
+    return d->sendEvent<RoomMessageEvent>(plainText, type,
         new EventContent::TextContent(htmlText, QStringLiteral("text/html")));
 }
 
-void Room::postMessage(RoomEvent* event)
+QString Room::postMessage(RoomEvent* event)
 {
     if (usesEncryption())
     {
         qCCritical(MAIN) << "Room" << displayName()
             << "enforces encryption; sending encrypted messages is not supported yet";
     }
-    d->sendEvent(RoomEventPtr(event));
+    return d->sendEvent(RoomEventPtr(event));
 }
 
-void Room::postMessage(const QString& matrixType,
+QString Room::postMessage(const QString& matrixType,
                        const QJsonObject& eventContent)
 {
-    d->sendEvent(loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
+    return d->sendEvent(loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
 }
 
 void Room::setName(const QString& newName)

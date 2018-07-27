@@ -347,17 +347,18 @@ namespace QMatrixClient
             void setJoinState( JoinState state );
 
         public slots:
-            void postMessage(const QString& plainText,
-                             MessageEventType type = MessageEventType::Text);
-            void postHtmlMessage(const QString& plainText, const QString& htmlText,
-                             MessageEventType type = MessageEventType::Text);
+            QString postMessage(const QString& plainText,
+                                MessageEventType type = MessageEventType::Text);
+            QString postHtmlMessage(
+                        const QString& plainText, const QString& htmlText,
+                        MessageEventType type = MessageEventType::Text);
             /** Post a pre-created room message event; takes ownership of the event */
-            void postMessage(RoomEvent* event);
-            void postMessage(const QString& matrixType,
-                             const QJsonObject& eventContent);
+            QString postMessage(RoomEvent* event);
+            QString postMessage(const QString& matrixType,
+                                const QJsonObject& eventContent);
             /** @deprecated If you have a custom event type, construct the event
              * and pass it as a whole to postMessage() */
-            void postMessage(const QString& type, const QString& plainText);
+            QString postMessage(const QString& type, const QString& plainText);
             void setName(const QString& newName);
             void setCanonicalAlias(const QString& newAlias);
             void setTopic(const QString& newTopic);
