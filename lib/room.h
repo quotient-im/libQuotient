@@ -390,8 +390,9 @@ namespace QMatrixClient
             void addedMessages();
             void pendingEventAboutToAdd();
             void pendingEventAdded();
-            void pendingEventAboutToRemove(int pendingEventIndex);
-            void pendingEventRemoved();
+            void pendingEventAboutToMerge(RoomEvent* serverEvent,
+                                          int pendingEventIndex);
+            void pendingEventMerged();
             void pendingEventChanged(int pendingEventIndex);
 
             /**
