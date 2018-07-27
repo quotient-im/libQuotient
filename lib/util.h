@@ -78,7 +78,7 @@ namespace QMatrixClient
                 "You cannot make an Omittable<> with a reference type");
         public:
             explicit Omittable() : Omittable(none) { }
-            Omittable(NoneTag) : _value(std::decay_t<T>{}), _omitted(true) { }
+            Omittable(NoneTag) : _value(std::decay_t<T>()), _omitted(true) { }
             Omittable(const std::decay_t<T>& val) : _value(val) { }
             Omittable(std::decay_t<T>&& val) : _value(std::move(val)) { }
             Omittable<T>& operator=(const std::decay_t<T>& val)
