@@ -7,6 +7,7 @@
 #include "jobs/basejob.h"
 
 #include "csapi/../application-service/definitions/user.h"
+#include <QtCore/QJsonObject>
 #include "csapi/../application-service/definitions/location.h"
 #include <QtCore/QHash>
 #include <QtCore/QVector>
@@ -143,7 +144,7 @@ namespace QMatrixClient
              * \param fields 
              *   One or more custom fields that are passed to the AS to help identify the user.
              */
-            explicit QueryUserByProtocolJob(const QString& protocol, const QString& fields = {});
+            explicit QueryUserByProtocolJob(const QString& protocol, const QJsonObject& fields = {});
 
             /*! Construct a URL without creating a full-fledged job object
              *
@@ -151,7 +152,7 @@ namespace QMatrixClient
              * QueryUserByProtocolJob is necessary but the job
              * itself isn't.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& fields = {});
+            static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol, const QJsonObject& fields = {});
 
             ~QueryUserByProtocolJob() override;
 

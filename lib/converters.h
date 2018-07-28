@@ -331,6 +331,12 @@ namespace QMatrixClient
                 q.addQueryItem(k, v);
         }
 
+        inline void addTo(QUrlQuery& q, const QString&, const QJsonObject& vals)
+        {
+            for (auto it = vals.begin(); it != vals.end(); ++it)
+                q.addQueryItem(it.key(), it.value().toString());
+        }
+
         // This one is for types that don't have isEmpty()
         template <typename ValT, bool Force = true, typename = bool>
         struct AddNode

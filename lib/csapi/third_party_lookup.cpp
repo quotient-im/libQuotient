@@ -142,14 +142,14 @@ class QueryUserByProtocolJob::Private
         QVector<ThirdPartyUser> data;
 };
 
-BaseJob::Query queryToQueryUserByProtocol(const QString& fields)
+BaseJob::Query queryToQueryUserByProtocol(const QJsonObject& fields)
 {
     BaseJob::Query _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("fields..."), fields);
+    addParam<IfNotEmpty>(_q, QStringLiteral("fields"), fields);
     return _q;
 }
 
-QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& fields)
+QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QJsonObject& fields)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/thirdparty/user/" % protocol,
@@ -158,7 +158,7 @@ QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protoco
 
 static const auto QueryUserByProtocolJobName = QStringLiteral("QueryUserByProtocolJob");
 
-QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QString& fields)
+QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QJsonObject& fields)
     : BaseJob(HttpVerb::Get, QueryUserByProtocolJobName,
         basePath % "/thirdparty/user/" % protocol,
         queryToQueryUserByProtocol(fields),
