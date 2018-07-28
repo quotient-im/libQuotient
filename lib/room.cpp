@@ -689,12 +689,27 @@ TagRecord Room::tag(const QString& name) const
     return d->tags.value(name);
 }
 
+std::pair<bool, QString> validatedTag(QString name)
+{
+    if (name.contains('.'))
+        return { false, name };
+
+    qWarning(MAIN) << "The tag" << name
+        << "doesn't follow the CS API conventions, check your client code";
+    name.prepend("u.");
+    qWarning(MAIN) << "Using " << name << "instead";
+
+    return { true, name };
+}
+
 void Room::addTag(const QString& name, const TagRecord& record)
 {
-    if (d->tags.contains(name))
+    const auto& checkRes = validatedTag(name);
+    if (d->tags.contains(name) ||
+            (checkRes.first && d->tags.contains(checkRes.second)))
         return;
 
-    d->tags.insert(name, record);
+    d->tags.insert(checkRes.second, record);
     d->broadcastTagUpdates();
 }
 
@@ -712,10 +727,19 @@ void Room::removeTag(const QString& name)
     d->broadcastTagUpdates();
 }
 
-void Room::setTags(const TagsMap& newTags)
+void Room::setTags(TagsMap newTags)
 {
     if (newTags == d->tags)
         return;
+
+    const auto& tagNames = newTags.keys();
+    for (const auto& t: tagNames)
+    {
+        const auto& checkRes = validatedTag(t);
+        if (checkRes.first)
+            newTags.insert(checkRes.second, newTags.take(t));
+    }
+
     d->tags = newTags;
     d->broadcastTagUpdates();
 }

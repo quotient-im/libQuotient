@@ -315,7 +315,7 @@ namespace QMatrixClient
              * (because tags are saved in account data rather than in shared
              * room state).
              */
-            void setTags(const TagsMap& newTags);
+            void setTags(TagsMap newTags);
 
             /** Check whether the list of tags has m.favourite */
             bool isFavourite() const;
