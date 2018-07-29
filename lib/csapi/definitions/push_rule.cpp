@@ -6,6 +6,24 @@
 
 using namespace QMatrixClient;
 
+QJsonObject QMatrixClient::toJson(const SetTweakAction& pod)
+{
+    QJsonObject _json = toJson(pod.additionalProperties);
+    addParam<>(_json, QStringLiteral("set_tweak"), pod.setTweak);
+    return _json;
+}
+
+SetTweakAction FromJson<SetTweakAction>::operator()(const QJsonValue& jv)
+{
+    auto _json = jv.toObject();
+    SetTweakAction result;
+    result.setTweak =
+        fromJson<QString>(_json.take("set_tweak"_ls));
+    
+    result.additionalProperties = fromJson<QVariantHash>(_json);
+    return result;
+}
+
 QJsonObject QMatrixClient::toJson(const PushRule& pod)
 {
     QJsonObject _json;

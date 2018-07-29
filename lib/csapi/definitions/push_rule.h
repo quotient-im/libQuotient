@@ -7,14 +7,37 @@
 #include "converters.h"
 
 #include "csapi/definitions/push_condition.h"
-#include "converters.h"
 #include <QtCore/QVector>
 #include <QtCore/QVariant>
-#include <QtCore/QJsonObject>
+#include "converters.h"
 
 namespace QMatrixClient
 {
     // Data structures
+
+    /// Specifies an entry to the 'tweaks' dictionary sent in
+    /// the notification request to the Push Gateway.
+    /// Tweak parameters, if any, are provided as additional
+    /// key-value pairs in this structure.
+    struct SetTweakAction
+    {
+        /// The tweak type. Two predefined types are `sound`
+        /// and `highlight`; client applications and Push Gateways
+        /// may agree on additional tweak types.
+        QString setTweak;
+        /// Specifies an entry to the 'tweaks' dictionary sent in
+        /// the notification request to the Push Gateway.
+        /// Tweak parameters, if any, are provided as additional
+        /// key-value pairs in this structure.
+        QVariantHash additionalProperties;
+    };
+
+    QJsonObject toJson(const SetTweakAction& pod);
+
+    template <> struct FromJson<SetTweakAction>
+    {
+        SetTweakAction operator()(const QJsonValue& jv);
+    };
 
     struct PushRule
     {
