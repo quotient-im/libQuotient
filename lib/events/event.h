@@ -57,6 +57,7 @@ namespace QMatrixClient
     static const auto TypeKey = QStringLiteral("type");
     static const auto ContentKey = QStringLiteral("content");
     static const auto EventIdKey = QStringLiteral("event_id");
+    static const auto UnsignedKey = QStringLiteral("unsigned");
     static const auto TypeKeyL = "type"_ls;
     static const auto ContentKeyL = "content"_ls;
     static const auto EventIdKeyL = "event_id"_ls;

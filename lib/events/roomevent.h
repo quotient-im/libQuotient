@@ -35,7 +35,7 @@ namespace QMatrixClient {
             Q_PROPERTY(QString senderId READ senderId CONSTANT)
             Q_PROPERTY(QString redactionReason READ redactionReason)
             Q_PROPERTY(bool isRedacted READ isRedacted)
-            Q_PROPERTY(QString transactionId READ transactionId)
+            Q_PROPERTY(QString transactionId READ transactionId WRITE setTransactionId)
         public:
             using factory_t = EventFactory<RoomEvent>;
 
@@ -56,7 +56,7 @@ namespace QMatrixClient {
                 return _redactedBecause;
             }
             QString redactionReason() const;
-            const QString& transactionId() const { return _txnId; }
+            QString transactionId() const;
             QString stateKey() const;
 
             /**
@@ -67,7 +67,7 @@ namespace QMatrixClient {
              * \param txnId - transaction id, normally obtained from
              * Connection::generateTxnId()
              */
-            void setTransactionId(const QString& txnId) { _txnId = txnId; }
+            void setTransactionId(const QString& txnId);
 
             /**
              * Sets event id for locally created events
@@ -82,7 +82,6 @@ namespace QMatrixClient {
 
         private:
             event_ptr_tt<RedactionEvent> _redactedBecause;
-            QString _txnId;
     };
     using RoomEventPtr = event_ptr_tt<RoomEvent>;
     using RoomEvents = EventsArray<RoomEvent>;

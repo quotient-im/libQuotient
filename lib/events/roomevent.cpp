@@ -43,9 +43,9 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& json)
         return;
     }
 
-    _txnId = unsignedData.value("transactionId"_ls).toString();
-    if (!_txnId.isEmpty())
-        qCDebug(EVENTS) << "Event transactionId:" << _txnId;
+    const auto& txnId = transactionId();
+    if (!txnId.isEmpty())
+        qCDebug(EVENTS) << "Event transactionId:" << txnId;
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
@@ -75,13 +75,29 @@ QString RoomEvent::redactionReason() const
     return isRedacted() ? _redactedBecause->reason() : QString{};
 }
 
+QString RoomEvent::transactionId() const
+{
+    return unsignedJson()["transactionId"_ls].toString();
+}
+
 QString RoomEvent::stateKey() const
 {
     return fullJson()["state_key"_ls].toString();
+}
+
+void RoomEvent::setTransactionId(const QString& txnId)
+{
+    auto unsignedData = fullJson()[UnsignedKeyL].toObject();
+    unsignedData.insert(QStringLiteral("transactionId"), txnId);
+    editJson().insert(UnsignedKey, unsignedData);
+    qCDebug(EVENTS) << "New event transactionId:" << txnId;
+    Q_ASSERT(transactionId() == txnId);
 }
 
 void RoomEvent::addId(const QString& newId)
 {
     Q_ASSERT(id().isEmpty()); Q_ASSERT(!newId.isEmpty());
     editJson().insert(EventIdKey, newId);
+    qCDebug(EVENTS) << "Event txnId -> id:" << transactionId() << "->" << id();
+    Q_ASSERT(id() == newId);
 }
