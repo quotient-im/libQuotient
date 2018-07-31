@@ -192,7 +192,7 @@ class Room::Private
          */
         void dropDuplicateEvents(RoomEvents& events) const;
 
-        void setLastReadEvent(User* u, const QString& eventId);
+        void setLastReadEvent(User* u, QString eventId);
         void updateUnreadCount(rev_iter_t from, rev_iter_t to);
         void promoteReadMarker(User* u, rev_iter_t newMarker,
                                           bool force = false);
@@ -374,18 +374,18 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::Private::setLastReadEvent(User* u, const QString& eventId)
+void Room::Private::setLastReadEvent(User* u, QString eventId)
 {
     auto& storedId = lastReadEventIds[u];
     if (storedId == eventId)
         return;
-    storedId = eventId;
+    swap(storedId, eventId);
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
     {
-        if (eventId != serverReadMarker)
-            connection->callApi<PostReadMarkersJob>(id, eventId);
-        emit q->readMarkerMoved();
+        if (storedId != serverReadMarker)
+            connection->callApi<PostReadMarkersJob>(id, storedId);
+        emit q->readMarkerMoved(eventId, storedId);
     }
 }
 

@@ -423,7 +423,7 @@ namespace QMatrixClient
             void firstDisplayedEventChanged();
             void lastDisplayedEventChanged();
             void lastReadEventChanged(User* user);
-            void readMarkerMoved();
+            void readMarkerMoved(QString fromEventId, QString toEventId);
             void unreadMessagesChanged(Room* room);
 
             void accountDataChanged(QString type);
