@@ -228,9 +228,8 @@ namespace QMatrixClient
             explicit Event(Type type, const QJsonObject& json);
             explicit Event(Type type, event_mtype_t matrixType,
                            const QJsonObject& contentJson = {});
-            Event(const Event&) = delete;
+            Q_DISABLE_COPY(Event)
             Event(Event&&) = default;
-            Event& operator=(const Event&) = delete;
             Event& operator=(Event&&) = delete;
             virtual ~Event();
 
