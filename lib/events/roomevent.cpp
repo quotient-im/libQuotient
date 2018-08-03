@@ -77,7 +77,7 @@ QString RoomEvent::redactionReason() const
 
 QString RoomEvent::transactionId() const
 {
-    return unsignedJson()["transactionId"_ls].toString();
+    return unsignedJson()["transaction_id"_ls].toString();
 }
 
 QString RoomEvent::stateKey() const
@@ -88,7 +88,7 @@ QString RoomEvent::stateKey() const
 void RoomEvent::setTransactionId(const QString& txnId)
 {
     auto unsignedData = fullJson()[UnsignedKeyL].toObject();
-    unsignedData.insert(QStringLiteral("transactionId"), txnId);
+    unsignedData.insert(QStringLiteral("transaction_id"), txnId);
     editJson().insert(UnsignedKey, unsignedData);
     qCDebug(EVENTS) << "New event transactionId:" << txnId;
     Q_ASSERT(transactionId() == txnId);

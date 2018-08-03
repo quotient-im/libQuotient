@@ -22,7 +22,8 @@
 
 #include <QtCore/QDateTime>
 
-namespace QMatrixClient {
+namespace QMatrixClient
+{
     class RedactionEvent;
 
     /** This class corresponds to m.room.* events */
