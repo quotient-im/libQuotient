@@ -318,6 +318,8 @@ namespace QMatrixClient
             /** @deprecated If you have a custom event type, construct the event
              * and pass it as a whole to postMessage() */
             QString postMessage(const QString& type, const QString& plainText);
+            QString retryMessage(const QString& txnId);
+            void discardMessage(const QString& txnId);
             void setName(const QString& newName);
             void setCanonicalAlias(const QString& newAlias);
             void setTopic(const QString& newTopic);
@@ -353,6 +355,8 @@ namespace QMatrixClient
             void pendingEventAboutToMerge(RoomEvent* serverEvent,
                                           int pendingEventIndex);
             void pendingEventMerged();
+            void pendingEventAboutToDiscard(int pendingEventIndex);
+            void pendingEventDiscarded();
             void pendingEventChanged(int pendingEventIndex);
 
             /**

@@ -1195,6 +1195,27 @@ QString Room::postMessage(const QString& type, const QString& plainText)
     return d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
+QString Room::retryMessage(const QString& txnId)
+{
+    auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
+            [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
+    Q_ASSERT(it != d->unsyncedEvents.end());
+    qDebug(EVENTS) << "Retrying transaction" << txnId;
+    it->resetStatus();
+    return d->doSendEvent(it->event());
+}
+
+void Room::discardMessage(const QString& txnId)
+{
+    auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
+            [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
+    Q_ASSERT(it != d->unsyncedEvents.end());
+    qDebug(EVENTS) << "Discarding transaction" << txnId;
+    emit pendingEventAboutToDiscard(it - d->unsyncedEvents.begin());
+    d->unsyncedEvents.erase(it);
+    emit pendingEventDiscarded();
+}
+
 QString Room::postMessage(const QString& plainText, MessageEventType type)
 {
     return d->sendEvent<RoomMessageEvent>(plainText, type);
