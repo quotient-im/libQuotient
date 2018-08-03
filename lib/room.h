@@ -21,6 +21,7 @@
 #include "jobs/syncjob.h"
 #include "events/roommessageevent.h"
 #include "events/accountdataevents.h"
+#include "eventitem.h"
 #include "joinstate.h"
 
 #include <QtGui/QPixmap>
@@ -39,49 +40,6 @@ namespace QMatrixClient
     class LeaveRoomJob;
     class SetRoomStateWithKeyJob;
     class RedactEventJob;
-
-    class TimelineItem
-    {
-        public:
-            // For compatibility with Qt containers, even though we use
-            // a std:: container now for the room timeline
-            using index_t = int;
-
-            TimelineItem(RoomEventPtr&& e, index_t number)
-                : evt(std::move(e)), idx(number)
-            {
-                Q_ASSERT(evt);
-            }
-
-            const RoomEvent* event() const { return rawPtr(evt); }
-            const RoomEvent* get() const { return event(); }
-            template <typename EventT>
-            const EventT* viewAs() const { return eventCast<const EventT>(evt); }
-            const RoomEventPtr& operator->() const { return evt; }
-            const RoomEvent& operator*() const { return *evt; }
-            index_t index() const { return idx; }
-
-            // Used for event redaction
-            RoomEventPtr replaceEvent(RoomEventPtr&& other);
-
-        private:
-            RoomEventPtr evt;
-            index_t idx;
-    };
-
-    template<>
-    inline const StateEventBase* TimelineItem::viewAs<StateEventBase>() const
-    {
-        return evt->isStateEvent() ? weakPtrCast<const StateEventBase>(evt)
-                                   : nullptr;
-    }
-
-    inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
-    {
-        QDebugStateSaver dss(d);
-        d.nospace() << "(" << ti.index() << "|" << ti->id() << ")";
-        return d;
-    }
 
     class FileTransferInfo
     {
@@ -139,6 +97,7 @@ namespace QMatrixClient
 
         public:
             using Timeline = std::deque<TimelineItem>;
+            using PendingEvents = std::vector<PendingEventItem>;
             using rev_iter_t = Timeline::const_reverse_iterator;
             using timeline_iter_t = Timeline::const_iterator;
 
@@ -216,7 +175,7 @@ namespace QMatrixClient
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
             const Timeline& messageEvents() const;
-            const RoomEvents& pendingEvents() const;
+            const PendingEvents& pendingEvents() const;
             /**
              * A convenience method returning the read marker to the before-oldest
              * message

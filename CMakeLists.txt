@@ -80,6 +80,7 @@ set(libqmatrixclient_SRCS
     lib/networksettings.cpp
     lib/converters.cpp
     lib/util.cpp
+    lib/eventitem.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
     lib/events/stateevent.cpp
