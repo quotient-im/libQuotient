@@ -640,7 +640,8 @@ SendToDeviceJob* Connection::sendToDevices(const QString& eventType,
                 eventType, generateTxnId(), json);
 }
 
-SendMessageJob* Connection::sendMessage(const QString& roomId, const RoomEvent& event) const
+SendMessageJob* Connection::sendMessage(const QString& roomId,
+                                        const RoomEvent& event) const
 {
     const auto txnId = event.transactionId().isEmpty()
                             ? generateTxnId() : event.transactionId();

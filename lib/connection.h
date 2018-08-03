@@ -422,6 +422,7 @@ namespace QMatrixClient
             SendToDeviceJob* sendToDevices(const QString& eventType,
                     const UsersToDevicesToEvents& eventsMap) const;
 
+            /** \deprecated This method is experimental and may be removed any time */
             SendMessageJob* sendMessage(const QString& roomId,
                                         const RoomEvent& event) const;
 
