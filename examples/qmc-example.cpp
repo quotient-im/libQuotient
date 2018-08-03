@@ -160,7 +160,7 @@ void QMCTest::sendMessage()
         return;
     }
     auto it = std::find_if(pending.begin(), pending.end(),
-                [&txnId] (const RoomEventPtr& e) {
+                [&txnId] (const auto& e) {
                     return e->transactionId() == txnId;
                 });
     QMC_CHECK("Message sending", it != pending.end());
