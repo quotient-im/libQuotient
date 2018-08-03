@@ -1168,12 +1168,16 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
 
         });
     Room::connect(call, &BaseJob::success, q,
-        [this,call,pEvent] {
+        [this,call,pEvent,txnId] {
             // Find an event by the pointer saved in the lambda (the pointer
             // may be dangling by now but we can still search by it).
             auto it = findAsPending(pEvent);
             if (it == unsyncedEvents.end())
-                return; // The event is already synced, nothing to do
+            {
+                qDebug(EVENTS) << "Pending event for transaction" << txnId
+                               << "already merged";
+                return;
+            }
 
             it->setReachedServer(call->eventId());
             emit q->pendingEventChanged(it - unsyncedEvents.begin());
