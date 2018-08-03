@@ -399,7 +399,6 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
     const auto readMarker = q->readMarker();
     if (readMarker >= from && readMarker < to)
     {
-        qCDebug(MAIN) << "Discovered last read event in room" << displayname;
         promoteReadMarker(q->localUser(), readMarker, true);
         return;
     }
@@ -545,7 +544,11 @@ Room::rev_iter_t Room::findInTimeline(TimelineItem::index_t index) const
 Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
 {
     if (!d->timeline.empty() && d->eventsIndex.contains(evtId))
-        return findInTimeline(d->eventsIndex.value(evtId));
+    {
+        auto it = findInTimeline(d->eventsIndex.value(evtId));
+        Q_ASSERT((*it)->id() == evtId);
+        return it;
+    }
     return timelineEdge();
 }
 
@@ -1581,6 +1584,9 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         it = nextPending + 1;
         emit q->pendingEventAboutToMerge(nextPending->get(),
                     nextPendingPair.second - unsyncedEvents.begin());
+        qDebug(EVENTS) << "Merging pending event from transaction"
+                       << (*nextPending)->transactionId() << "into"
+                       << (*nextPending)->id();
         unsyncedEvents.erase(nextPendingPair.second);
         if (auto insertedSize = moveEventsToTimeline({nextPending, it}, Newer))
         {
