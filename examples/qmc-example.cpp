@@ -88,7 +88,7 @@ void QMCTest::setup(const QString& testRoomName)
             c->sync(10000);
         else if (targetRoom)
         {
-            targetRoom->postMessage(origin % ": All tests finished");
+            targetRoom->postPlainText(origin % ": All tests finished");
             connect(targetRoom, &Room::pendingEventMerged, this, &QMCTest::leave);
         }
         else
@@ -152,7 +152,7 @@ void QMCTest::sendMessage()
 {
     running.push_back("Message sending");
     cout << "Sending a message" << endl;
-    auto txnId = targetRoom->postMessage("Hello, " % origin % " is here");
+    auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
     auto& pending = targetRoom->pendingEvents();
     if (pending.empty())
     {
@@ -233,7 +233,7 @@ void QMCTest::checkRedactionOutcome(const QString& evtIdToRedact,
             const auto msg =
                     "The redacted event came in with the sync again, ignoring";
             cout << msg << endl;
-            targetRoom->postMessage(msg);
+            targetRoom->postPlainText(msg);
             return;
         }
         cout << "The sync brought already redacted message" << endl;
@@ -249,7 +249,7 @@ void QMCTest::checkRedactionOutcome(const QString& evtIdToRedact,
         const auto msg =
                 "Warning: the redacted event came non-redacted with the sync!";
         cout << msg << endl;
-        targetRoom->postMessage(msg);
+        targetRoom->postPlainText(msg);
     }
     cout << "Message came non-redacted with the sync, waiting for redaction" << endl;
     connect(targetRoom, &Room::replacedEvent, targetRoom,

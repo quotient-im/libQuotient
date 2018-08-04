@@ -1197,11 +1197,6 @@ Room::PendingEvents::iterator Room::Private::findAsPending(
     return std::find_if(unsyncedEvents.begin(), unsyncedEvents.end(), comp);
 }
 
-QString Room::postMessage(const QString& type, const QString& plainText)
-{
-    return d->sendEvent<RoomMessageEvent>(plainText, type);
-}
-
 QString Room::retryMessage(const QString& txnId)
 {
     auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
@@ -1228,14 +1223,24 @@ QString Room::postMessage(const QString& plainText, MessageEventType type)
     return d->sendEvent<RoomMessageEvent>(plainText, type);
 }
 
-QString Room::postHtmlMessage(const QString& plainText, const QString& htmlText,
+QString Room::postPlainText(const QString& plainText)
+{
+    return postMessage(plainText, MessageEventType::Text);
+}
+
+QString Room::postHtmlMessage(const QString& plainText, const QString& html,
                            MessageEventType type)
 {
     return d->sendEvent<RoomMessageEvent>(plainText, type,
-        new EventContent::TextContent(htmlText, QStringLiteral("text/html")));
+          new EventContent::TextContent(html, QStringLiteral("text/html")));
 }
 
-QString Room::postMessage(RoomEvent* event)
+QString Room::postHtmlText(const QString& plainText, const QString& html)
+{
+    return postHtmlMessage(plainText, html, MessageEventType::Text);
+}
+
+QString Room::postEvent(RoomEvent* event)
 {
     if (usesEncryption())
     {
@@ -1245,7 +1250,7 @@ QString Room::postMessage(RoomEvent* event)
     return d->sendEvent(RoomEventPtr(event));
 }
 
-QString Room::postMessage(const QString& matrixType,
+QString Room::postJson(const QString& matrixType,
                        const QJsonObject& eventContent)
 {
     return d->sendEvent(loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
