@@ -320,7 +320,7 @@ void QMCTest::finalize()
     connect(c.data(), &Connection::loggedOut, qApp,
         [this] {
             if (!failed.isEmpty())
-            cout << "FAILED: " << failed.join(", ").toStdString() << endl;
+                cout << "FAILED: " << failed.join(", ").toStdString() << endl;
             if (!running.isEmpty())
                 cout << "DID NOT FINISH: "
                      << running.join(", ").toStdString() << endl;
