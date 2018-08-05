@@ -315,6 +315,7 @@ namespace QMatrixClient
     inline auto eventCast(const BasePtrT& eptr)
         -> decltype(static_cast<EventT*>(&*eptr))
     {
+        Q_ASSERT(eptr);
         return is<EventT>(*eptr) ? static_cast<EventT*>(&*eptr) : nullptr;
     }
 
