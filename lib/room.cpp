@@ -231,7 +231,7 @@ class Room::Private
          * Tries to find an event in the timeline and redact it; deletes the
          * redaction event whether the redacted event was found or not.
          */
-        void processRedaction(const RedactionEvent* redaction);
+        bool processRedaction(const RedactionEvent& redaction);
 
         void broadcastTagUpdates()
         {
@@ -979,6 +979,7 @@ inline auto makeErrorStr(const Event& e, QByteArray msg)
 Room::Timeline::difference_type Room::Private::moveEventsToTimeline(
     RoomEventsRange events, EventsPlacement placement)
 {
+    Q_ASSERT(!events.empty());
     // Historical messages arrive in newest-to-oldest order, so the process for
     // them is symmetric to the one for new messages.
     auto index = timeline.empty() ? -int(placement) :
@@ -996,31 +997,14 @@ Room::Timeline::difference_type Room::Private::moveEventsToTimeline(
                    makeErrorStr(*e, "Event is already in the timeline; "
                        "incoming events were not properly deduplicated"));
         if (placement == Older)
-        {
-            // No need to process redaction events here: historical redacted
-            // events already come redacted.
-#ifndef KEEP_REDACTIONS_IN_TIMELINE
-            if (is<RedactionEvent>(*e))
-                continue;
-#endif
             timeline.emplace_front(move(e), --index);
-        }
         else
-        {
-            if (auto* redEvt = eventCast<const RedactionEvent>(e))
-            {
-                processRedaction(redEvt);
-#ifndef KEEP_REDACTIONS_IN_TIMELINE
-                continue;
-#endif
-            }
             timeline.emplace_back(move(e), ++index);
-        }
         eventsIndex.insert(eId, index);
         Q_ASSERT(q->findInTimeline(eId)->event()->id() == eId);
     }
     const auto insertedSize = (index - baseIndex) * int(placement);
-    Q_ASSERT(insertedSize >= 0);
+    Q_ASSERT(insertedSize == int(events.size()));
     return insertedSize;
 }
 
@@ -1463,35 +1447,16 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
     events.erase(dupsBegin, events.end());
 }
 
-inline bool isRedaction(const RoomEventPtr& e)
+/** Make a redacted event
+ *
+ * This applies the redaction procedure as defined by the CS API specification
+ * to the event's JSON and returns the resulting new event. It is
+ * the responsibility of the caller to dispose of the original event after that.
+ */
+RoomEventPtr makeRedacted(const RoomEvent& target,
+                          const RedactionEvent& redaction)
 {
-    Q_ASSERT(e);
-    return is<RedactionEvent>(*e);
-}
-
-void Room::Private::processRedaction(const RedactionEvent* redaction)
-{
-    const auto pIdx = eventsIndex.find(redaction->redactedEvent());
-    if (pIdx == eventsIndex.end())
-    {
-        qCDebug(MAIN) << "Redaction" << redaction->id()
-                      << "ignored: target event not found";
-        return; // If the target events comes later, it comes already redacted.
-    }
-    Q_ASSERT(q->isValidIndex(*pIdx));
-
-    auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
-
-    // Apply the redaction procedure from chapter 6.5 of The Spec
-    auto originalJson = ti->originalJsonObject();
-    if (originalJson.value(UnsignedKeyL).toObject()
-            .value(RedactedCauseKeyL).toObject()
-            .value(EventIdKeyL) == redaction->id())
-    {
-        qCDebug(MAIN) << "Redaction" << redaction->id()
-            << "of event" << ti.event()->id() << "already done, skipping";
-        return;
-    }
+    auto originalJson = target.originalJsonObject();
     static const QStringList keepKeys =
         { EventIdKey, TypeKey, QStringLiteral("room_id"),
           QStringLiteral("sender"), QStringLiteral("state_key"),
@@ -1518,7 +1483,7 @@ void Room::Private::processRedaction(const RedactionEvent* redaction)
     }
     auto keepContentKeys =
             find_if(keepContentKeysMap.begin(), keepContentKeysMap.end(),
-                    [&ti](const auto& t) { return ti->type() == t.first; } );
+                    [&target](const auto& t) { return target.type() == t.first; } );
     if (keepContentKeys == keepContentKeysMap.end())
     {
         originalJson.remove(ContentKeyL);
@@ -1535,15 +1500,37 @@ void Room::Private::processRedaction(const RedactionEvent* redaction)
         originalJson.insert(ContentKey, content);
     }
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
-    unsignedData[RedactedCauseKeyL] = redaction->originalJsonObject();
+    unsignedData[RedactedCauseKeyL] = redaction.originalJsonObject();
     originalJson.insert(QStringLiteral("unsigned"), unsignedData);
+
+    return loadEvent<RoomEvent>(originalJson);
+}
+
+bool Room::Private::processRedaction(const RedactionEvent& redaction)
+{
+    // Can't use findInTimeline because it returns a const iterator, and
+    // we need to change the underlying TimelineItem.
+    const auto pIdx = eventsIndex.find(redaction.redactedEvent());
+    if (pIdx == eventsIndex.end())
+        return false;
+
+    Q_ASSERT(q->isValidIndex(*pIdx));
+
+    auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
+    if (ti->isRedacted() && ti->redactedBecause()->id() == redaction.id())
+    {
+        qCDebug(MAIN) << "Redaction" << redaction.id()
+                      << "of event" << ti->id() << "already done, skipping";
+        return true;
+    }
 
     // Make a new event from the redacted JSON, exchange events,
     // notify everyone and delete the old event
-    auto oldEvent = ti.replaceEvent(loadEvent<RoomEvent>(originalJson));
+    auto oldEvent = ti.replaceEvent(makeRedacted(*ti, redaction));
     q->onRedaction(*oldEvent, *ti.event());
-    qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction->id();
+    qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction.id();
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
+    return true;
 }
 
 Connection* Room::connection() const
@@ -1557,18 +1544,49 @@ User* Room::localUser() const
     return connection()->user();
 }
 
+inline bool isRedaction(const RoomEventPtr& ep)
+{
+    Q_ASSERT(ep);
+    return is<RedactionEvent>(*ep);
+}
+
 void Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
-    auto timelineSize = timeline.size();
-
     dropDuplicateEvents(events);
-    if (events.empty())
+
+    // Pre-process redactions so that events that get redacted in the same
+    // batch landed in the timeline already redacted.
+    auto newEnd = std::find_if(events.begin(), events.end(), isRedaction);
+    // Either process the redaction, or shift the non-redaction event
+    // overwriting redactions in a remove_if fashion.
+    for(auto&& eptr: RoomEventsRange(newEnd, events.end()))
+        if (auto* r = eventCast<RedactionEvent>(eptr))
+        {
+            // Try to find the target in the timeline, then in the batch.
+            if (processRedaction(*r))
+                continue;
+            auto targetIt = std::find_if(events.begin(), newEnd,
+                [id=r->redactedEvent()] (const RoomEventPtr& ep) {
+                    return ep->id() == id;
+                });
+            if (targetIt != newEnd)
+                *targetIt = makeRedacted(**targetIt, *r);
+            else
+                qCDebug(MAIN) << "Redaction" << r->id()
+                              << "ignored: target event not found";
+            // If the target events comes later, it comes already redacted.
+        }
+        else
+            *newEnd++ = std::move(eptr);
+
+    if (events.begin() == newEnd)
         return;
 
+    auto timelineSize = timeline.size();
     auto totalInserted = 0;
-    for (auto it = events.begin(); it != events.end();)
+    for (auto it = events.begin(); it != newEnd;)
     {
-        auto nextPendingPair = findFirstOf(it, events.end(),
+        auto nextPendingPair = findFirstOf(it, newEnd,
                     unsyncedEvents.begin(), unsyncedEvents.end(), isEchoEvent);
         auto nextPending = nextPendingPair.first;
 
@@ -1583,7 +1601,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
             emit q->addedMessages();
         }
-        if (nextPending == events.end())
+        if (nextPending == newEnd)
             break;
 
         it = nextPending + 1;
@@ -1633,11 +1651,14 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
-    if (events.empty())
+    RoomEventsRange normalEvents {
+        events.begin(), remove_if(events.begin(), events.end(), isRedaction)
+    };
+    if (normalEvents.empty())
         return;
 
-    emit q->aboutToAddHistoricalMessages(events);
-    const auto insertedSize = moveEventsToTimeline(events, Older);
+    emit q->aboutToAddHistoricalMessages(normalEvents);
+    const auto insertedSize = moveEventsToTimeline(normalEvents, Older);
     const auto from = timeline.crend() - insertedSize;
 
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
