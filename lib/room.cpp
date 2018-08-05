@@ -1556,10 +1556,13 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     // Pre-process redactions so that events that get redacted in the same
     // batch landed in the timeline already redacted.
+    // XXX: The code below is written (and commented) so that it could be
+    // quickly converted to not-saving redaction events in the timeline.
+    // See #220 for details.
     auto newEnd = std::find_if(events.begin(), events.end(), isRedaction);
     // Either process the redaction, or shift the non-redaction event
     // overwriting redactions in a remove_if fashion.
-    for(auto&& eptr: RoomEventsRange(newEnd, events.end()))
+    for(const auto& eptr: RoomEventsRange(newEnd, events.end()))
         if (auto* r = eventCast<RedactionEvent>(eptr))
         {
             // Try to find the target in the timeline, then in the batch.
@@ -1573,11 +1576,13 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
                 *targetIt = makeRedacted(**targetIt, *r);
             else
                 qCDebug(MAIN) << "Redaction" << r->id()
-                              << "ignored: target event not found";
+                              << "ignored: target event" << r->redactedEvent()
+                              << "is not found";
             // If the target events comes later, it comes already redacted.
         }
-        else
-            *newEnd++ = std::move(eptr);
+//        else // This should be uncommented once we stop adding redactions to the timeline
+//            *newEnd++ = std::move(eptr);
+    newEnd = events.end(); // This line should go if/when we stop adding redactions to the timeline
 
     if (events.begin() == newEnd)
         return;
@@ -1652,7 +1657,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     dropDuplicateEvents(events);
     RoomEventsRange normalEvents {
-        events.begin(), remove_if(events.begin(), events.end(), isRedaction)
+        events.begin(), events.end() //remove_if(events.begin(), events.end(), isRedaction)
     };
     if (normalEvents.empty())
         return;
