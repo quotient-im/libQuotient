@@ -1599,12 +1599,11 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         {
             RoomEventsRange eventsSpan { it, nextPending };
             emit q->aboutToAddNewMessages(eventsSpan);
-            if (auto insertedSize = moveEventsToTimeline(eventsSpan, Newer))
-            {
-                totalInserted += insertedSize;
-                q->onAddNewTimelineEvents(timeline.cend() - insertedSize);
-            }
-            emit q->addedMessages();
+            auto insertedSize = moveEventsToTimeline(eventsSpan, Newer);
+            totalInserted += insertedSize;
+            auto firstInserted = timeline.cend() - insertedSize;
+            q->onAddNewTimelineEvents(firstInserted);
+            emit q->addedMessages(firstInserted->index(), timeline.back().index());
         }
         if (nextPending == newEnd)
             break;
@@ -1669,7 +1668,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
                   << "past events; the oldest event is now" << timeline.front();
     q->onAddHistoricalTimelineEvents(from);
-    emit q->addedMessages();
+    emit q->addedMessages(timeline.front().index(), from->index());
 
     if (from <= q->readMarker())
         updateUnreadCount(from, timeline.crend());

@@ -350,7 +350,7 @@ namespace QMatrixClient
         signals:
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);
-            void addedMessages();
+            void addedMessages(int fromIndex, int toIndex);
             void pendingEventAboutToAdd();
             void pendingEventAdded();
             void pendingEventAboutToMerge(RoomEvent* serverEvent,
