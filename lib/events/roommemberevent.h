@@ -75,6 +75,11 @@ namespace QMatrixClient
             bool isDirect() const { return content().isDirect; }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
+            bool isInvite() const;
+            bool isJoin() const;
+            bool isLeave() const;
+            bool isRename() const;
+            bool isAvatarUpdate() const;
 
         private:
             REGISTER_ENUM(MembershipType)

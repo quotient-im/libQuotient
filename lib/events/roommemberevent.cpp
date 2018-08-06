@@ -48,6 +48,7 @@ namespace QMatrixClient
             return MembershipType::Undefined;
         }
     };
+
 }
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
@@ -67,4 +68,35 @@ void MemberEventContent::fillJson(QJsonObject* o) const
     o->insert(QStringLiteral("displayname"), displayName);
     if (avatarUrl.isValid())
         o->insert(QStringLiteral("avatar_url"), avatarUrl.toString());
+}
+
+bool RoomMemberEvent::isInvite() const
+{
+    return membership() == MembershipType::Invite &&
+            (!prevContent() || prevContent()->membership != membership());
+}
+
+bool RoomMemberEvent::isJoin() const
+{
+    return membership() == MembershipType::Join &&
+            (!prevContent() || prevContent()->membership != membership());
+}
+
+bool RoomMemberEvent::isLeave() const
+{
+    return membership() == MembershipType::Leave &&
+            prevContent() && prevContent()->membership != membership() &&
+            prevContent()->membership != MembershipType::Ban;
+}
+
+bool RoomMemberEvent::isRename() const
+{
+    auto prevName = prevContent() ? prevContent()->displayName : QString();
+    return displayName() != prevName;
+}
+
+bool RoomMemberEvent::isAvatarUpdate() const
+{
+    auto prevAvatarUrl = prevContent() ? prevContent()->avatarUrl : QUrl();
+    return avatarUrl() != prevAvatarUrl;
 }
