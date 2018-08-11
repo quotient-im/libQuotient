@@ -299,9 +299,9 @@ bool User::setAvatar(QIODevice* source)
                 std::bind(&Private::setAvatarOnServer, d.data(), _1, this));
 }
 
-void User::requestDirectChat()
+void User::requestDirectChat() const
 {
-    connection()->requestDirectChat(d->userId);
+    connection()->requestDirectChat(this);
 }
 
 void User::ignore()

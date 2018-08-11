@@ -385,6 +385,15 @@ namespace QMatrixClient
              */
             void requestDirectChat(const QString& userId);
 
+            /** Get a direct chat with a single user
+             * This method may return synchronously or asynchoronously depending
+             * on whether a direct chat room with the respective person exists
+             * already.
+             *
+             * \sa directChatAvailable
+             */
+            void requestDirectChat(const User* u);
+
             /** Run an operation in a direct chat with the user
              * This method may return synchronously or asynchoronously depending
              * on whether a direct chat room with the respective person exists
@@ -392,7 +401,16 @@ namespace QMatrixClient
              * function object with the direct chat room as its parameter.
              */
             void doInDirectChat(const QString& userId,
-                                            std::function<void(Room*)> operation);
+                                const std::function<void(Room*)>& operation);
+
+            /** Run an operation in a direct chat with the user
+             * This method may return synchronously or asynchoronously depending
+             * on whether a direct chat room with the respective person exists
+             * already. Instead of emitting a signal it executes the passed
+             * function object with the direct chat room as its parameter.
+             */
+            void doInDirectChat(const User* u,
+                                const std::function<void(Room*)>& operation);
 
             /** Create a direct chat with a single user, optional name and topic
              * A room will always be created, unlike in requestDirectChat.

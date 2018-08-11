@@ -120,7 +120,7 @@ namespace QMatrixClient
              * The resulting chat is returned asynchronously via
              * Connection::directChatAvailable()
              */
-            void requestDirectChat();
+            void requestDirectChat() const;
             /** Add the user to the ignore list */
             void ignore();
             /** Remove the user from the ignore list */

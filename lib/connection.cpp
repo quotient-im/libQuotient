@@ -516,15 +516,37 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
 
 void Connection::requestDirectChat(const QString& userId)
 {
-    doInDirectChat(userId, [this] (Room* r) { emit directChatAvailable(r); });
+    if (const auto* u = user(userId))
+        requestDirectChat(u);
+    else
+        qCCritical(MAIN)
+            << "Connection::requestDirectChat: Couldn't get a user object for"
+            << userId;
+}
+
+void Connection::requestDirectChat(const User* u)
+{
+    doInDirectChat(u, [this] (Room* r) { emit directChatAvailable(r); });
 }
 
 void Connection::doInDirectChat(const QString& userId,
-                                std::function<void (Room*)> operation)
+                                const std::function<void(Room*)>& operation)
 {
+    if (const auto* u = user(userId))
+        doInDirectChat(u, operation);
+    else
+        qCCritical(MAIN)
+            << "Connection::doInDirectChat: Couldn't get a user object for"
+            << userId;
+}
+
+void Connection::doInDirectChat(const User* u,
+                                const std::function<void(Room*)>& operation)
+{
+    Q_ASSERT(u);
+    const auto& userId = u->id();
     // There can be more than one DC; find the first valid, and delete invalid
     // (left/forgotten) ones along the way.
-    const auto* u = user(userId);
     DirectChatsMap removals;
     for (auto it = d->directChats.find(u);
          it != d->directChats.end() && it.key() == u; ++it)
