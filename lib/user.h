@@ -100,7 +100,7 @@ namespace QMatrixClient
             Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
                                       const Room* room = nullptr);
             QImage avatar(int width, int height, const Room* room,
-                          Avatar::get_callback_t callback);
+                          const Avatar::get_callback_t& callback);
 
             QString avatarMediaId(const Room* room = nullptr) const;
             QUrl avatarUrl(const Room* room = nullptr) const;
@@ -120,7 +120,7 @@ namespace QMatrixClient
              * The resulting chat is returned asynchronously via
              * Connection::directChatAvailable()
              */
-            void requestDirectChat() const;
+            void requestDirectChat();
             /** Add the user to the ignore list */
             void ignore();
             /** Remove the user from the ignore list */

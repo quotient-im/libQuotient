@@ -94,7 +94,12 @@ namespace QMatrixClient
             using user_factory_t =
                 std::function<User*(Connection*, const QString&)>;
 
+            // Room ids, rather than room pointers, are used in the direct chat
+            // map types because the library keeps Invite rooms separate from
+            // rooms in Join and Leave state; and direct chats in account data
+            // are stored with no regard to their state.
             using DirectChatsMap = QMultiHash<const User*, QString>;
+            using DirectChatUsersMap = QMultiHash<QString, User*>;
             using IgnoredUsersList = IgnoredUsersEvent::content_type;
 
             using UsersToDevicesToEvents =
@@ -171,7 +176,7 @@ namespace QMatrixClient
              *
              * \sa directChatsListChanged
              */
-            void addToDirectChats(const Room* room, const User* user);
+            void addToDirectChats(const Room* room, User* user);
 
             /** Unmark the room from direct chats
              * This function removes the room id from direct chats either for
@@ -184,7 +189,7 @@ namespace QMatrixClient
              * \sa directChatsListChanged
              */
             void removeFromDirectChats(const QString& roomId,
-                                       const User* user = nullptr);
+                                       User* user = nullptr);
 
             /** Check whether the room id corresponds to a direct chat */
             bool isDirectChat(const QString& roomId) const;
@@ -196,7 +201,7 @@ namespace QMatrixClient
              * @return The list of users for which this room is marked as
              * a direct chat; an empty list if the room is not a direct chat
              */
-            QList<const User*> directChatUsers(const Room* room) const;
+            QList<User*> directChatUsers(const Room* room) const;
 
             /** Check whether a particular user is in the ignore list */
             bool isIgnored(const User* user) const;
@@ -392,7 +397,7 @@ namespace QMatrixClient
              *
              * \sa directChatAvailable
              */
-            void requestDirectChat(const User* u);
+            void requestDirectChat(User* u);
 
             /** Run an operation in a direct chat with the user
              * This method may return synchronously or asynchoronously depending
@@ -409,7 +414,7 @@ namespace QMatrixClient
              * already. Instead of emitting a signal it executes the passed
              * function object with the direct chat room as its parameter.
              */
-            void doInDirectChat(const User* u,
+            void doInDirectChat(User* u,
                                 const std::function<void(Room*)>& operation);
 
             /** Create a direct chat with a single user, optional name and topic

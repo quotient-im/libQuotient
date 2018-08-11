@@ -299,7 +299,7 @@ bool User::setAvatar(QIODevice* source)
                 std::bind(&Private::setAvatarOnServer, d.data(), _1, this));
 }
 
-void User::requestDirectChat() const
+void User::requestDirectChat()
 {
     connection()->requestDirectChat(this);
 }
@@ -356,7 +356,7 @@ QImage User::avatar(int width, int height, const Room* room)
 }
 
 QImage User::avatar(int width, int height, const Room* room,
-                    Avatar::get_callback_t callback)
+                    const Avatar::get_callback_t& callback)
 {
     return avatarObject(room).get(d->connection, width, height,
                 [=] { emit avatarChanged(this, room); callback(); });

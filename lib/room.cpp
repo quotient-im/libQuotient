@@ -332,15 +332,12 @@ QImage Room::avatar(int width, int height)
         return d->avatar.get(connection(), width, height,
                              [=] { emit avatarChanged(); });
 
-    // Use the other side's avatar for 1:1's
-    if (d->membersMap.size() == 2)
-    {
-        auto theOtherOneIt = d->membersMap.begin();
-        if (theOtherOneIt.value() == localUser())
-            ++theOtherOneIt;
-        return (*theOtherOneIt)->avatar(width, height, this,
-                                        [=] { emit avatarChanged(); });
-    }
+    // Use the first (excluding self) user's avatar for direct chats
+    const auto dcUsers = directChatUsers();
+    for (auto* u: dcUsers)
+        if (u != localUser())
+            return u->avatar(width, height, this, [=] { emit avatarChanged(); });
+
     return {};
 }
 
@@ -760,7 +757,7 @@ bool Room::isDirectChat() const
     return connection()->isDirectChat(id());
 }
 
-QList<const User*> Room::directChatUsers() const
+QList<User*> Room::directChatUsers() const
 {
     return connection()->directChatUsers(this);
 }
