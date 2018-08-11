@@ -576,7 +576,13 @@ void Connection::doInDirectChat(const User* u,
                               << userId << "as" << roomId;
                 operation(room(roomId, JoinState::Join));
             });
+            return;
         }
+        // Avoid reusing previously left chats but don't remove them
+        // from direct chat maps, either.
+        if (room(roomId, JoinState::Leave))
+            continue;
+
         qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
                         << roomId << "is not valid and will be discarded";
         // Postpone actual deletion until we finish iterating d->directChats.
