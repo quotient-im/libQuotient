@@ -364,14 +364,18 @@ void Connection::onSyncSuccess(SyncData &&data) {
             DirectChatsMap additions;
             for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it)
             {
-                const auto* u = user(it.key());
-                if (!d->directChats.contains(u, it.value()))
+                if (const auto* u = user(it.key()))
                 {
-                    additions.insert(u, it.value());
-                    d->directChats.insert(u, it.value());
-                    qCDebug(MAIN) << "Marked room" << it.value()
-                                  << "as a direct chat with" << u->id();
-                }
+                    if (!d->directChats.contains(u, it.value()))
+                    {
+                        additions.insert(u, it.value());
+                        d->directChats.insert(u, it.value());
+                        qCDebug(MAIN) << "Marked room" << it.value()
+                                      << "as a direct chat with" << u->id();
+                    }
+                } else
+                    qCWarning(MAIN)
+                            << "Couldn't get a user object for" << it.key();
             }
             if (!additions.isEmpty() || !removals.isEmpty())
                 emit directChatsListChanged(additions, removals);
@@ -591,6 +595,7 @@ void Connection::doInDirectChat(const User* u,
                       << "has been created as" << j->roomId();
         operation(room(j->roomId(), JoinState::Join));
     });
+
 }
 
 CreateRoomJob* Connection::createDirectChat(const QString& userId,
@@ -701,7 +706,13 @@ Room* Connection::invitation(const QString& roomId) const
 
 User* Connection::user(const QString& userId)
 {
-    Q_ASSERT(userId.startsWith('@') && userId.contains(':'));
+    if (userId.isEmpty())
+        return nullptr;
+    if (userId.front() != '@' || !userId.contains(':'))
+    {
+        qCCritical(MAIN) << "Malformed userId:" << userId;
+        return nullptr;
+    }
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
     auto* user = userFactory(this, userId);
@@ -712,12 +723,12 @@ User* Connection::user(const QString& userId)
 
 const User* Connection::user() const
 {
-    return d->userId.isEmpty() ? nullptr : d->userMap.value(d->userId, nullptr);
+    return d->userMap.value(d->userId, nullptr);
 }
 
 User* Connection::user()
 {
-    return d->userId.isEmpty() ? nullptr : user(d->userId);
+    return user(d->userId);
 }
 
 QString Connection::userId() const
