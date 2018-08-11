@@ -28,7 +28,8 @@ namespace QMatrixClient
     {
         Join = 0x1,
         Invite = 0x2,
-        Leave = 0x4
+        Leave = 0x4,
+        Any = Join|Invite|Leave,
     };
 
     Q_DECLARE_FLAGS(JoinStates, JoinState)
