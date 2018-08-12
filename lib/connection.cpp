@@ -599,7 +599,8 @@ void Connection::doInDirectChat(User* u,
         for (auto it = removals.cbegin(); it != removals.cend(); ++it)
         {
             d->directChats.remove(it.key(), it.value());
-            d->directChatUsers.remove(it.value(), it.key());
+            d->directChatUsers.remove(it.value(),
+                                      const_cast<User*>(it.key())); // FIXME
         }
         d->broadcastDirectChatUpdates({}, removals);
     }
