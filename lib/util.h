@@ -229,7 +229,7 @@ namespace QMatrixClient
             }
             ConnectionsGuard(ConnectionsGuard&&) = default;
             ConnectionsGuard& operator=(ConnectionsGuard&&) = default;
-            ConnectionsGuard& operator=(const ConnectionsGuard&) = delete;
+            Q_DISABLE_COPY(ConnectionsGuard)
             using QPointer<T>::operator=;
 
         private:
