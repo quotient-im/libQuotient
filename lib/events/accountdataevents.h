@@ -26,8 +26,8 @@
 
 namespace QMatrixClient
 {
-    static constexpr const char* FavouriteTag = "m.favourite";
-    static constexpr const char* LowPriorityTag = "m.lowpriority";
+    constexpr const char* FavouriteTag = "m.favourite";
+    constexpr const char* LowPriorityTag = "m.lowpriority";
 
     struct TagRecord
     {
