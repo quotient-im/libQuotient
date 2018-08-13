@@ -391,7 +391,8 @@ namespace QMatrixClient
             void unreadMessagesChanged(Room* room);
 
             void accountDataChanged(QString type);
-            void tagsChanged();
+            void tagsChanged(const TagsMap& additions,
+                             const QStringList& removals);
 
             void replacedEvent(const RoomEvent* newEvent,
                                const RoomEvent* oldEvent);

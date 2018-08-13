@@ -233,12 +233,14 @@ class Room::Private
          */
         bool processRedaction(const RedactionEvent& redaction);
 
-        void broadcastTagUpdates()
+        std::pair<TagsMap, QStringList> setTags(TagsMap newTags);
+        void broadcastTagUpdates(const TagsMap& additions,
+                                 const QStringList& removals)
         {
             connection->callApi<SetAccountDataPerRoomJob>(
                     connection->userId(), id, TagEvent::matrixTypeId(),
                         TagEvent(tags).contentJson());
-            emit q->tagsChanged();
+            emit q->tagsChanged(additions, removals);
         }
 
         QJsonObject toJson() const;
@@ -708,7 +710,7 @@ void Room::addTag(const QString& name, const TagRecord& record)
         return;
 
     d->tags.insert(checkRes.second, record);
-    d->broadcastTagUpdates();
+    d->broadcastTagUpdates({{ checkRes.second, record }}, {});
 }
 
 void Room::addTag(const QString& name, const QString& order)
@@ -722,24 +724,39 @@ void Room::removeTag(const QString& name)
         return;
 
     d->tags.remove(name);
-    d->broadcastTagUpdates();
+    d->broadcastTagUpdates({}, {{ name }});
 }
 
 void Room::setTags(TagsMap newTags)
 {
-    if (newTags == d->tags)
-        return;
+    const auto& changes = d->setTags(move(newTags));
+    d->broadcastTagUpdates(changes.first, changes.second);
+}
 
+std::pair<TagsMap, QStringList> Room::Private::setTags(TagsMap newTags)
+{
+    if (newTags == tags)
+        return {};
+
+    TagsMap additions;
     const auto& tagNames = newTags.keys();
     for (const auto& t: tagNames)
     {
         const auto& checkRes = validatedTag(t);
-        if (checkRes.first)
-            newTags.insert(checkRes.second, newTags.take(t));
+        const auto& value = checkRes.first ?
+                newTags.insert(checkRes.second, newTags.take(t)).value() :
+                newTags.value(checkRes.second);
+        if (!tags.contains(checkRes.second))
+            additions.insert(checkRes.second, value);
     }
 
-    d->tags = newTags;
-    d->broadcastTagUpdates();
+    QStringList removals;
+    for (const auto& tag: tags.keys())
+        if (!newTags.contains(tag))
+            removals.push_back(tag);
+
+    tags = newTags;
+    return { additions, removals };
 }
 
 bool Room::isFavourite() const
@@ -1826,13 +1843,13 @@ void Room::processAccountDataEvent(EventPtr&& event)
 {
     if (auto* evt = eventCast<TagEvent>(event))
     {
-        auto newTags = evt->tags();
-        if (newTags == d->tags)
-            return;
-        d->tags = newTags;
-        qCDebug(MAIN) << "Room" << id() << "is tagged with:"
-                      << tagNames().join(", ");
-        emit tagsChanged();
+        const auto& changes = d->setTags(evt->tags());
+        if (!(changes.first.empty() && changes.second.empty()))
+        {
+            qCDebug(MAIN) << "Room" << id() << "is tagged with:"
+                          << tagNames().join(", ");
+            emit tagsChanged(changes.first, changes.second);
+        }
     }
     if (auto* evt = eventCast<ReadMarkerEvent>(event))
     {
