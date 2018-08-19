@@ -367,7 +367,7 @@ namespace QMatrixClient
              */
             void namesChanged(Room* room);
             /** @brief The room displayname changed */
-            void displaynameChanged(Room* room);
+            void displaynameChanged(Room* room, QString oldName);
             void topicChanged();
             void avatarChanged();
             void userAdded(User* user);

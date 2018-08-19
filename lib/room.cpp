@@ -1705,7 +1705,8 @@ bool Room::processStateEvent(const RoomEvent& e)
         }
         , [this] (const RoomCanonicalAliasEvent& evt) {
             d->canonicalAlias = evt.alias();
-            setObjectName(d->canonicalAlias);
+            if (!d->canonicalAlias.isEmpty())
+                setObjectName(d->canonicalAlias);
             qCDebug(MAIN) << "Room canonical alias updated:"
                           << d->canonicalAlias;
             return true;
@@ -1935,6 +1936,10 @@ QString Room::Private::calculateDisplayname() const
     if (!canonicalAlias.isEmpty())
         return canonicalAlias;
 
+    // Using m.room.aliases in naming is explicitly discouraged by the spec
+    //if (!aliases.empty() && !aliases.at(0).isEmpty())
+    //    return aliases.at(0);
+
     // 3. Room members
     QString topMemberNames = roomNameFromMemberNames(membersMap.values());
     if (!topMemberNames.isEmpty())
@@ -1947,18 +1952,14 @@ QString Room::Private::calculateDisplayname() const
 
     // 5. Fail miserably
     return tr("Empty room (%1)").arg(id);
-
-    // Using m.room.aliases is explicitly discouraged by the spec
-    //if (!aliases.empty() && !aliases.at(0).isEmpty())
-    //    displayname = aliases.at(0);
 }
 
 void Room::Private::updateDisplayname()
 {
-    const QString old_name = displayname;
+    const QString oldName = displayname;
     displayname = calculateDisplayname();
-    if (old_name != displayname)
-        emit q->displaynameChanged(q);
+    if (oldName != displayname)
+        emit q->displaynameChanged(q, oldName);
 }
 
 void appendStateEvent(QJsonArray& events, const QString& type,
