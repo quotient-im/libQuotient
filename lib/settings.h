@@ -51,6 +51,15 @@ namespace QMatrixClient
                                       const QVariant &value);
             Q_INVOKABLE QVariant value(const QString &key,
                                        const QVariant &defaultValue = {}) const;
+
+            template <typename T>
+            T get(const QString& key, const T& defaultValue = {}) const
+            {
+                const auto qv = value(key, QVariant());
+                return qv.isValid() && qv.canConvert<T>() ? qv.value<T>()
+                                                          : defaultValue;
+            }
+
             Q_INVOKABLE bool contains(const QString& key) const;
             Q_INVOKABLE QStringList childGroups() const;
 
@@ -67,14 +76,23 @@ namespace QMatrixClient
     {
         public:
             template <typename... ArgTs>
-            explicit SettingsGroup(const QString& path, ArgTs... qsettingsArgs)
-                : Settings(qsettingsArgs...)
-                , groupPath(path)
+            explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
+                : Settings(std::forward<ArgTs>(qsettingsArgs)...)
+                , groupPath(std::move(path))
             { }
 
             Q_INVOKABLE bool contains(const QString& key) const;
             Q_INVOKABLE QVariant value(const QString &key,
                                        const QVariant &defaultValue = {}) const;
+
+            template <typename T>
+            T get(const QString& key, const T& defaultValue = {}) const
+            {
+                const auto qv = value(key, QVariant());
+                return qv.isValid() && qv.canConvert<T>() ? qv.value<T>()
+                                                          : defaultValue;
+            }
+
             Q_INVOKABLE QString group() const;
             Q_INVOKABLE QStringList childGroups() const;
             Q_INVOKABLE void setValue(const QString &key,
@@ -96,7 +114,7 @@ namespace QMatrixClient
 #define QMC_DEFINE_SETTING(classname, type, propname, qsettingname, defaultValue, setter) \
 type classname::propname() const \
 { \
-    return value(QStringLiteral(qsettingname), defaultValue).value<type>(); \
+    return get<type>(QStringLiteral(qsettingname), defaultValue); \
 } \
 \
 void classname::setter(type newValue) \
