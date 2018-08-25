@@ -44,7 +44,7 @@ using namespace QMatrixClient;
 
 
 CallHangupEvent::CallHangupEvent(const QJsonObject& obj)
-    : RoomEvent(CallHangup, obj)
+    : RoomEvent(typeId(), obj)
     , _callId(contentJson()["call_id"].toString())
     , _version(contentJson()["version"].toInt())
 {
@@ -52,7 +52,7 @@ CallHangupEvent::CallHangupEvent(const QJsonObject& obj)
 }
 
 CallHangupEvent::CallHangupEvent(const QString& callId)
-    : RoomEvent(CallHangup)
+    : RoomEvent(typeId(), NULL)
 {
     _version = 0;
     _callId = callId;

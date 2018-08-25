@@ -19,6 +19,7 @@
 #pragma once
 
 #include "basejob.h"
+#include <QtCore/QJsonObject>
 
 namespace QMatrixClient
 {

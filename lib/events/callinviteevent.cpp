@@ -48,7 +48,7 @@ m.call.invite
 using namespace QMatrixClient;
 
 CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
-    : RoomEvent(CallInvite, obj)
+    : RoomEvent(typeId(), obj)
     , _lifetime(contentJson()["lifetime"].toInt())
     , _sdp(contentJson()["offer"].toObject()["sdp"].toString())
     , _callId(contentJson()["call_id"].toString())
@@ -59,7 +59,7 @@ CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
 
 CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
-     : RoomEvent(CallInvite)
+    : RoomEvent(typeId(), NULL)
 {
     _version = 0;
     _callId = callId;

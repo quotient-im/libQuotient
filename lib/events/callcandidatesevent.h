@@ -19,6 +19,7 @@
 #pragma once
 
 #include "roomevent.h"
+#include <QtCore/QJsonArray>
 
 namespace QMatrixClient
 {

@@ -1313,38 +1313,38 @@ void Room::inviteCall(const QString& callId, const int lifetime,
                 const QString& sdp)
 {
     Q_ASSERT(isCallSupported());
-    CallInviteEvent rme(callId, lifetime, sdp);
-    connection()->callApi<SendMessageJob>(id(), rme);
+    auto *evt = new CallInviteEvent(callId, lifetime, sdp);
+    postEvent(evt);
 }
 
 void Room::callCandidates(const QString& callId,
                     const QJsonArray& candidates)
 {
     Q_ASSERT(isCallSupported());
-    CallCandidatesEvent rme(callId, candidates);
-    connection()->callApi<SendMessageJob>(id(), rme);
+    auto *evt = new CallCandidatesEvent(callId, candidates);
+    postEvent(evt);
 }
 
 void Room::answerCall(const QString& callId, const int lifetime,
                 const QString& sdp)
 {
     Q_ASSERT(isCallSupported());
-    CallAnswerEvent rme(callId, lifetime, sdp);
-    connection()->callApi<SendMessageJob>(id(), rme);
+    auto *evt = new CallAnswerEvent(callId, lifetime, sdp);
+    postEvent(evt);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
     Q_ASSERT(isCallSupported());
-    CallAnswerEvent rme(callId, sdp);
-    connection()->callApi<SendMessageJob>(id(), rme);
+    auto *evt = new CallAnswerEvent(callId, sdp);
+    postEvent(evt);
 }
 
 void Room::hangupCall(const QString& callId)
 {
     Q_ASSERT(isCallSupported());
-    CallHangupEvent rme(callId);
-    connection()->callApi<SendMessageJob>(id(), rme);
+    auto *evt = new CallHangupEvent(callId);
+    postEvent(evt);
 }
 
 void Room::getPreviousContent(int limit)
