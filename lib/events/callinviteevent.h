@@ -32,6 +32,8 @@ namespace QMatrixClient
           explicit CallInviteEvent(const QString& callId, const int lifetime,
                                    const QString& sdp);
 
+          bool isStateEvent() const override { return true; }
+
           const int lifetime() const { return _lifetime; }
           const QString& sdp() const { return _sdp; }
           const QString& callId() const { return _callId; }

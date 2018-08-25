@@ -33,6 +33,8 @@ namespace QMatrixClient
             explicit CallCandidatesEvent(const QString& callId,
                                          const QJsonArray& candidates);
 
+            bool isStateEvent() const override { return true; }
+
             const QJsonArray& candidates() const { return _candidates; }
             const QString& callId() const { return _callId; }
             const int version() const { return _version; }

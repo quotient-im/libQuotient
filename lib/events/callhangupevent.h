@@ -31,6 +31,8 @@ namespace QMatrixClient
 
         explicit CallHangupEvent(const QString& callId);
 
+        bool isStateEvent() const override { return true; }
+
         const QString& callId() const { return _callId; }
         const int version() const { return _version; }
 
