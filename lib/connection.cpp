@@ -34,6 +34,7 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
+#include "jobs/turnserverjob.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
@@ -1188,4 +1189,13 @@ void Connection::setCacheState(bool newValue)
         d->cacheState = newValue;
         emit cacheStateChanged();
     }
+}
+
+void Connection::getTurnServers()
+{
+  auto job = callApi<TurnServerJob>();
+  connect( job, &TurnServerJob::success, [=] {
+      emit turnServersChanged(job->toJson());
+  });
+
 }

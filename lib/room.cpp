@@ -33,6 +33,10 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
+#include "events/callinviteevent.h"
+#include "events/callcandidatesevent.h"
+#include "events/callanswerevent.h"
+#include "events/callhangupevent.h"
 #include "events/redactionevent.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -1289,6 +1293,60 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
     return le->contentJson() == re->contentJson();
 }
 
+bool Room::processCall(Room* room, const RoomEvent* event)
+{
+    if (!room->isCallSupported()) {
+        qCDebug(MAIN) << "Got call event in room with more then two"
+            << "members, Ignoring this event!";
+        return true;
+    }
+    emit callEvent(room, event);
+    return false;
+}
+
+bool Room::isCallSupported() const
+{
+  return d->membersMap.size() == 2;
+}
+
+void Room::inviteCall(const QString& callId, const int lifetime,
+                const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallInviteEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendMessageJob>(id(), rme);
+}
+
+void Room::callCandidates(const QString& callId,
+                    const QJsonArray& candidates)
+{
+    Q_ASSERT(isCallSupported());
+    CallCandidatesEvent rme(callId, candidates);
+    connection()->callApi<SendMessageJob>(id(), rme);
+}
+
+void Room::answerCall(const QString& callId, const int lifetime,
+                const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, lifetime, sdp);
+    connection()->callApi<SendMessageJob>(id(), rme);
+}
+
+void Room::answerCall(const QString& callId, const QString& sdp)
+{
+    Q_ASSERT(isCallSupported());
+    CallAnswerEvent rme(callId, sdp);
+    connection()->callApi<SendMessageJob>(id(), rme);
+}
+
+void Room::hangupCall(const QString& callId)
+{
+    Q_ASSERT(isCallSupported());
+    CallHangupEvent rme(callId);
+    connection()->callApi<SendMessageJob>(id(), rme);
+}
+
 void Room::getPreviousContent(int limit)
 {
     d->getPreviousContent(limit);
@@ -1763,6 +1821,18 @@ bool Room::processStateEvent(const RoomEvent& e)
                 }
             }
             return false;
+        }
+        , [this] (const CallAnswerEvent& evt) {
+            return processCall(this, &evt);
+        }
+        , [this] (const CallCandidatesEvent& evt) {
+            return processCall(this, &evt);
+        }
+        , [this] (const CallHangupEvent& evt) {
+            return processCall(this, &evt);
+        }
+        , [this] (const CallInviteEvent& evt) {
+            return processCall(this, &evt);
         }
         , [this] (const EncryptionEvent& evt) {
             d->encryptionAlgorithm = evt.algorithm();

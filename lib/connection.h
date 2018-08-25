@@ -242,6 +242,7 @@ namespace QMatrixClient
 
             [[deprecated("Use accessToken() instead")]]
             Q_INVOKABLE QString token() const;
+            Q_INVOKABLE void getTurnServers();
 
             /**
              * Call this before first sync to load from previously saved file.
@@ -616,6 +617,7 @@ namespace QMatrixClient
                                          IgnoredUsersList removals);
 
             void cacheStateChanged();
+            void turnServersChanged(const QJsonObject& servers);
 
         protected:
             /**

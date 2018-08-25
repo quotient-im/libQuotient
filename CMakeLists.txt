@@ -89,12 +89,17 @@ set(libqmatrixclient_SRCS
     lib/events/roommemberevent.cpp
     lib/events/typingevent.cpp
     lib/events/receiptevent.cpp
+    lib/events/callanswerevent.cpp
+    lib/events/callcandidatesevent.cpp
+    lib/events/callhangupevent.cpp
+    lib/events/callinviteevent.cpp
     lib/events/directchatevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
+    lib/jobs/turnserverjob.cpp 
 )
 
 set(CSAPI_DIR csapi)

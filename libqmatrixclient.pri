@@ -28,6 +28,10 @@ HEADERS += \
     $$SRCPATH/events/roomavatarevent.h \
     $$SRCPATH/events/typingevent.h \
     $$SRCPATH/events/receiptevent.h \
+    $$SRCPATH/events/callanswerevent.h \
+    $$SRCPATH/events/callcandidatesevent.h \
+    $$SRCPATH/events/callhangupevent.h \
+    $$SRCPATH/events/callinviteevent.h \
     $$SRCPATH/events/accountdataevents.h \
     $$SRCPATH/events/directchatevent.h \
     $$SRCPATH/events/redactionevent.h \
@@ -36,6 +40,7 @@ HEADERS += \
     $$SRCPATH/jobs/basejob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
+    $$SRCPATH/jobs/turnserverjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/csapi/*.h, false) \
@@ -62,12 +67,17 @@ SOURCES += \
     $$SRCPATH/events/roommessageevent.cpp \
     $$SRCPATH/events/roommemberevent.cpp \
     $$SRCPATH/events/typingevent.cpp \
+    $$SRCPATH/events/callanswerevent.cpp \
+    $$SRCPATH/events/callcandidatesevent.cpp \
+    $$SRCPATH/events/callhangupevent.cpp \
+    $$SRCPATH/events/callinviteevent.cpp \
     $$SRCPATH/events/receiptevent.cpp \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
+    $$SRCPATH/jobs/turnserverjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/csapi/*.cpp, false) \
     $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
