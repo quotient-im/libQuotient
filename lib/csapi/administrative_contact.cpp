@@ -93,17 +93,31 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
     setRequestData(_data);
 }
 
-QUrl RequestTokenTo3PIDJob::makeRequestUrl(QUrl baseUrl)
+QUrl RequestTokenTo3PIDEmailJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/account/3pid/email/requestToken");
 }
 
-static const auto RequestTokenTo3PIDJobName = QStringLiteral("RequestTokenTo3PIDJob");
+static const auto RequestTokenTo3PIDEmailJobName = QStringLiteral("RequestTokenTo3PIDEmailJob");
 
-RequestTokenTo3PIDJob::RequestTokenTo3PIDJob()
-    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDJobName,
+RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob()
+    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDEmailJobName,
         basePath % "/account/3pid/email/requestToken", false)
+{
+}
+
+QUrl RequestTokenTo3PIDMSISDNJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath % "/account/3pid/msisdn/requestToken");
+}
+
+static const auto RequestTokenTo3PIDMSISDNJobName = QStringLiteral("RequestTokenTo3PIDMSISDNJob");
+
+RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob()
+    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDMSISDNJobName,
+        basePath % "/account/3pid/msisdn/requestToken", false)
 {
 }
 

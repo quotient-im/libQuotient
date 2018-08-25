@@ -6,6 +6,8 @@
 
 #include "converters.h"
 
+#include <QtCore/QJsonObject>
+#include <QtCore/QHash>
 
 namespace QMatrixClient
 {

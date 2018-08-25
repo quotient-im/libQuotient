@@ -76,20 +76,21 @@ class LoginJob::Private
 
 static const auto LoginJobName = QStringLiteral("LoginJob");
 
-LoginJob::LoginJob(const QString& type, const QString& user, const QString& medium, const QString& address, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName)
+LoginJob::LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName, const QString& user, const QString& medium, const QString& address)
     : BaseJob(HttpVerb::Post, LoginJobName,
         basePath % "/login", false)
     , d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("type"), type);
-    addParam<IfNotEmpty>(_data, QStringLiteral("user"), user);
-    addParam<IfNotEmpty>(_data, QStringLiteral("medium"), medium);
-    addParam<IfNotEmpty>(_data, QStringLiteral("address"), address);
+    addParam<IfNotEmpty>(_data, QStringLiteral("identifier"), identifier);
     addParam<IfNotEmpty>(_data, QStringLiteral("password"), password);
     addParam<IfNotEmpty>(_data, QStringLiteral("token"), token);
     addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
     addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"), initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_data, QStringLiteral("user"), user);
+    addParam<IfNotEmpty>(_data, QStringLiteral("medium"), medium);
+    addParam<IfNotEmpty>(_data, QStringLiteral("address"), address);
     setRequestData(_data);
 }
 

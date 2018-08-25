@@ -15,7 +15,7 @@ namespace QMatrixClient
 
     /// Gets the current pushers for the authenticated user
     /// 
-    /// Gets all currently active pushers for the authenticated user
+    /// Gets all currently active pushers for the authenticated user.
     class GetPushersJob : public BaseJob
     {
         public:
@@ -28,12 +28,15 @@ namespace QMatrixClient
                 /// Required if ``kind`` is ``http``. The URL to use to send
                 /// notifications to.
                 QString url;
+                /// The format to use when sending notifications to the Push
+                /// Gateway.
+                QString format;
             };
 
-            /// Gets all currently active pushers for the authenticated user
+            /// Gets all currently active pushers for the authenticated user.
             struct Pusher
             {
-                /// This is a unique identifier for this pusher. See `/set` for
+                /// This is a unique identifier for this pusher. See ``/set`` for
                 /// more detail.
                 /// Max length, 512 bytes.
                 QString pushkey;
@@ -57,7 +60,7 @@ namespace QMatrixClient
                 QString lang;
                 /// A dictionary of information for the pusher implementation
                 /// itself.
-                Omittable<PusherData> data;
+                PusherData data;
             };
 
             // Construction/destruction
@@ -103,8 +106,15 @@ namespace QMatrixClient
             struct PusherData
             {
                 /// Required if ``kind`` is ``http``. The URL to use to send
-                /// notifications to.
+                /// notifications to. MUST be an HTTPS URL with a path of 
+                /// ``/_matrix/push/v1/notify``.
                 QString url;
+                /// The format to send notifications in to Push Gateways if the
+                /// ``kind`` is ``http``. The details about what fields the
+                /// homeserver should send to the push gateway are defined in the
+                /// `Push Gateway Specification`_. Currently the only format
+                /// available is 'event_id_only'.
+                QString format;
             };
 
             // Construction/destruction
@@ -117,14 +127,20 @@ namespace QMatrixClient
              *   for APNS or the Registration ID for GCM. If your notification
              *   client has no such concept, use any unique identifier.
              *   Max length, 512 bytes.
+             *   
+             *   If the ``kind`` is ``"email"``, this is the email address to
+             *   send notifications to.
              * \param kind 
              *   The kind of pusher to configure. ``"http"`` makes a pusher that
-             *   sends HTTP pokes. ``null`` deletes the pusher.
+             *   sends HTTP pokes. ``"email"`` makes a pusher that emails the
+             *   user with unread notifications. ``null`` deletes the pusher.
              * \param appId 
              *   This is a reverse-DNS style identifier for the application.
              *   It is recommended that this end with the platform, such that
              *   different platform versions get different app identifiers.
              *   Max length, 64 chars.
+             *   
+             *   If the ``kind`` is ``"email"``, this is ``"m.email"``.
              * \param appDisplayName 
              *   A string that will allow the user to identify what application
              *   owns this pusher.
@@ -133,7 +149,7 @@ namespace QMatrixClient
              *   this pusher.
              * \param lang 
              *   The preferred language for receiving notifications (e.g. 'en'
-             *   or 'en-US')
+             *   or 'en-US').
              * \param data 
              *   A dictionary of information for the pusher implementation
              *   itself. If ``kind`` is ``http``, this should contain ``url``

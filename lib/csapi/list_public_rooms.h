@@ -7,6 +7,7 @@
 #include "jobs/basejob.h"
 
 #include <QtCore/QVector>
+#include "csapi/definitions/public_rooms_response.h"
 #include "converters.h"
 
 namespace QMatrixClient
@@ -78,38 +79,6 @@ namespace QMatrixClient
     class GetPublicRoomsJob : public BaseJob
     {
         public:
-            // Inner data structures
-
-            /// Lists the public rooms on the server.
-            /// 
-            /// This API returns paginated responses. The rooms are ordered by the number
-            /// of joined members, with the largest rooms first.
-            struct PublicRoomsChunk
-            {
-                /// Aliases of the room. May be empty.
-                QStringList aliases;
-                /// The canonical alias of the room, if any.
-                QString canonicalAlias;
-                /// The name of the room, if any.
-                QString name;
-                /// The number of members joined to the room.
-                qint64 numJoinedMembers;
-                /// The ID of the room.
-                QString roomId;
-                /// The topic of the room, if any.
-                QString topic;
-                /// Whether the room may be viewed by guest users without joining.
-                bool worldReadable;
-                /// Whether guest users may join the room and participate in it.
-                /// If they can, they will be subject to ordinary power level
-                /// rules like any other user.
-                bool guestCanJoin;
-                /// The URL for the room's avatar, if one is set.
-                QString avatarUrl;
-            };
-
-            // Construction/destruction
-
             /*! Lists the public rooms on the server.
              * \param limit 
              *   Limit the number of results returned.
@@ -136,19 +105,8 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// A paginated chunk of public rooms.
-            const QVector<PublicRoomsChunk>& chunk() const;
-            /// A pagination token for the response. The absence of this token
-            /// means there are no more results to fetch and the client should
-            /// stop paginating.
-            const QString& nextBatch() const;
-            /// A pagination token that allows fetching previous results. The
-            /// absence of this token means there are no results before this
-            /// batch, i.e. this is the first batch.
-            const QString& prevBatch() const;
-            /// An estimate on the total number of public rooms, if the
-            /// server has an estimate.
-            Omittable<qint64> totalRoomCountEstimate() const;
+            /// A list of the rooms on the server.
+            const PublicRoomsResponse& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

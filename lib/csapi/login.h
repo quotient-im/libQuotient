@@ -6,8 +6,9 @@
 
 #include "jobs/basejob.h"
 
-#include "converters.h"
 #include <QtCore/QVector>
+#include "csapi/definitions/user_identifier.h"
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -76,12 +77,8 @@ namespace QMatrixClient
             /*! Authenticates the user.
              * \param type 
              *   The login type being used.
-             * \param user 
-             *   The fully qualified user ID or just local part of the user ID, to log in.
-             * \param medium 
-             *   When logging in using a third party identifier, the medium of the identifier. Must be 'email'.
-             * \param address 
-             *   Third party identifier for the user.
+             * \param identifier 
+             *   Identification information for the user.
              * \param password 
              *   Required when ``type`` is ``m.login.password``. The user's
              *   password.
@@ -94,8 +91,14 @@ namespace QMatrixClient
              * \param initialDeviceDisplayName 
              *   A display name to assign to the newly-created device. Ignored
              *   if ``device_id`` corresponds to a known device.
+             * \param user 
+             *   The fully qualified user ID or just local part of the user ID, to log in.  Deprecated in favour of ``identifier``.
+             * \param medium 
+             *   When logging in using a third party identifier, the medium of the identifier. Must be 'email'.  Deprecated in favour of ``identifier``.
+             * \param address 
+             *   Third party identifier for the user.  Deprecated in favour of ``identifier``.
              */
-            explicit LoginJob(const QString& type, const QString& user = {}, const QString& medium = {}, const QString& address = {}, const QString& password = {}, const QString& token = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
+            explicit LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier = none, const QString& password = {}, const QString& token = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {}, const QString& user = {}, const QString& medium = {}, const QString& address = {});
             ~LoginJob() override;
 
             // Result properties

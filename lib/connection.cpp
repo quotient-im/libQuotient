@@ -217,8 +217,9 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
                                    const QString& deviceId)
 {
     auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"),
-            user, /*medium*/ "", /*address*/ "", password, /*token*/ "",
-            deviceId, initialDeviceName);
+            UserIdentifier { QStringLiteral("m.id.user"),
+                             {{ QStringLiteral("user"), user }} },
+            password, /*token*/ "", deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this,
         [this, loginJob] {
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
@@ -505,19 +506,17 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QString& alias, const QString& name, const QString& topic,
-    const QStringList& invites, const QString& presetName,
-    bool isDirect, bool guestsCanJoin,
+    QStringList invites, const QString& presetName, bool isDirect,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
     const QJsonObject& creationContent)
 {
-    // FIXME: switch to using QStringList instead of const QStringList& in 0.4
-    auto filteredInvites = invites;
-    filteredInvites.removeOne(d->userId); // The creator is by definition in the room
+    invites.removeOne(d->userId); // The creator is by definition in the room
     auto job = callApi<CreateRoomJob>(
-            visibility == PublishRoom ? "public" : "private", alias, name,
-            topic, filteredInvites, invite3pids, creationContent, initialState,
-            presetName, isDirect, guestsCanJoin);
+            visibility == PublishRoom ? QStringLiteral("public")
+                                      : QStringLiteral("private"),
+            alias, name, topic, invites, invite3pids, QString(/*TODO: #233*/),
+            creationContent, initialState, presetName, isDirect);
     connect(job, &BaseJob::success, this, [this,job] {
         emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
     });

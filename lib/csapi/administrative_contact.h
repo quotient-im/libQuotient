@@ -118,15 +118,38 @@ namespace QMatrixClient
     /// validation tokens when adding an email address to an account. This API's
     /// parameters and response is identical to that of the HS API
     /// |/register/email/requestToken|_ endpoint.
-    class RequestTokenTo3PIDJob : public BaseJob
+    class RequestTokenTo3PIDEmailJob : public BaseJob
     {
         public:
-            explicit RequestTokenTo3PIDJob();
+            explicit RequestTokenTo3PIDEmailJob();
 
             /*! Construct a URL without creating a full-fledged job object
              *
              * This function can be used when a URL for
-             * RequestTokenTo3PIDJob is necessary but the job
+             * RequestTokenTo3PIDEmailJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
+    };
+
+    /// Requests a validation token be sent to the given email address for the purpose of adding a phone number to an account.
+    /// 
+    /// Proxies the identity server API ``validate/msisdn/requestToken``, but
+    /// first checks that the given phone number is **not** already associated
+    /// with an account on this Home Server. This API should be used to request
+    /// validation tokens when adding a phone number to an account. This API's
+    /// parameters and response is identical to that of the HS API
+    /// |/register/msisdn/requestToken|_ endpoint.
+    class RequestTokenTo3PIDMSISDNJob : public BaseJob
+    {
+        public:
+            explicit RequestTokenTo3PIDMSISDNJob();
+
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * RequestTokenTo3PIDMSISDNJob is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl);

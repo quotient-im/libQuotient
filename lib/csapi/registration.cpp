@@ -79,16 +79,31 @@ BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto RequestTokenToRegisterJobName = QStringLiteral("RequestTokenToRegisterJob");
+static const auto RequestTokenToRegisterEmailJobName = QStringLiteral("RequestTokenToRegisterEmailJob");
 
-RequestTokenToRegisterJob::RequestTokenToRegisterJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer)
-    : BaseJob(HttpVerb::Post, RequestTokenToRegisterJobName,
+RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer)
+    : BaseJob(HttpVerb::Post, RequestTokenToRegisterEmailJobName,
         basePath % "/register/email/requestToken", false)
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("id_server"), idServer);
     addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
     addParam<>(_data, QStringLiteral("email"), email);
+    addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    setRequestData(_data);
+}
+
+static const auto RequestTokenToRegisterMSISDNJobName = QStringLiteral("RequestTokenToRegisterMSISDNJob");
+
+RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, double sendAttempt, const QString& idServer)
+    : BaseJob(HttpVerb::Post, RequestTokenToRegisterMSISDNJobName,
+        basePath % "/register/msisdn/requestToken", false)
+{
+    QJsonObject _data;
+    addParam<IfNotEmpty>(_data, QStringLiteral("id_server"), idServer);
+    addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
+    addParam<>(_data, QStringLiteral("country"), country);
+    addParam<>(_data, QStringLiteral("phone_number"), phoneNumber);
     addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
     setRequestData(_data);
 }
@@ -105,17 +120,31 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword, const Omittable
     setRequestData(_data);
 }
 
-QUrl RequestTokenToResetPasswordJob::makeRequestUrl(QUrl baseUrl)
+QUrl RequestTokenToResetPasswordEmailJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
             basePath % "/account/password/email/requestToken");
 }
 
-static const auto RequestTokenToResetPasswordJobName = QStringLiteral("RequestTokenToResetPasswordJob");
+static const auto RequestTokenToResetPasswordEmailJobName = QStringLiteral("RequestTokenToResetPasswordEmailJob");
 
-RequestTokenToResetPasswordJob::RequestTokenToResetPasswordJob()
-    : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordJobName,
+RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob()
+    : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordEmailJobName,
         basePath % "/account/password/email/requestToken", false)
+{
+}
+
+QUrl RequestTokenToResetPasswordMSISDNJob::makeRequestUrl(QUrl baseUrl)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+            basePath % "/account/password/msisdn/requestToken");
+}
+
+static const auto RequestTokenToResetPasswordMSISDNJobName = QStringLiteral("RequestTokenToResetPasswordMSISDNJob");
+
+RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob()
+    : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordMSISDNJobName,
+        basePath % "/account/password/msisdn/requestToken", false)
 {
 }
 
