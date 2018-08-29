@@ -58,47 +58,10 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& 
     setRequestData(_data);
 }
 
-namespace QMatrixClient
-{
-    // Converters
-
-    template <> struct FromJson<GetPublicRoomsJob::PublicRoomsChunk>
-    {
-        GetPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
-        {
-            const auto& _json = jv.toObject();
-            GetPublicRoomsJob::PublicRoomsChunk result;
-            result.aliases =
-                fromJson<QStringList>(_json.value("aliases"_ls));
-            result.canonicalAlias =
-                fromJson<QString>(_json.value("canonical_alias"_ls));
-            result.name =
-                fromJson<QString>(_json.value("name"_ls));
-            result.numJoinedMembers =
-                fromJson<qint64>(_json.value("num_joined_members"_ls));
-            result.roomId =
-                fromJson<QString>(_json.value("room_id"_ls));
-            result.topic =
-                fromJson<QString>(_json.value("topic"_ls));
-            result.worldReadable =
-                fromJson<bool>(_json.value("world_readable"_ls));
-            result.guestCanJoin =
-                fromJson<bool>(_json.value("guest_can_join"_ls));
-            result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"_ls));
-
-            return result;
-        }
-    };
-} // namespace QMatrixClient
-
 class GetPublicRoomsJob::Private
 {
     public:
-        QVector<PublicRoomsChunk> chunk;
-        QString nextBatch;
-        QString prevBatch;
-        Omittable<qint64> totalRoomCountEstimate;
+        PublicRoomsResponse data;
 };
 
 BaseJob::Query queryToGetPublicRooms(Omittable<int> limit, const QString& since, const QString& server)
@@ -130,36 +93,18 @@ GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
 
 GetPublicRoomsJob::~GetPublicRoomsJob() = default;
 
-const QVector<GetPublicRoomsJob::PublicRoomsChunk>& GetPublicRoomsJob::chunk() const
+const PublicRoomsResponse& GetPublicRoomsJob::data() const
 {
-    return d->chunk;
-}
-
-const QString& GetPublicRoomsJob::nextBatch() const
-{
-    return d->nextBatch;
-}
-
-const QString& GetPublicRoomsJob::prevBatch() const
-{
-    return d->prevBatch;
-}
-
-Omittable<qint64> GetPublicRoomsJob::totalRoomCountEstimate() const
-{
-    return d->totalRoomCountEstimate;
+    return d->data;
 }
 
 BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    if (!json.contains("chunk"_ls))
+    if (!json.contains("data"_ls))
         return { JsonParseError,
-            "The key 'chunk' not found in the response" };
-    d->chunk = fromJson<QVector<PublicRoomsChunk>>(json.value("chunk"_ls));
-    d->nextBatch = fromJson<QString>(json.value("next_batch"_ls));
-    d->prevBatch = fromJson<QString>(json.value("prev_batch"_ls));
-    d->totalRoomCountEstimate = fromJson<qint64>(json.value("total_room_count_estimate"_ls));
+            "The key 'data' not found in the response" };
+    d->data = fromJson<PublicRoomsResponse>(json.value("data"_ls));
     return Success;
 }
 

@@ -24,6 +24,8 @@ namespace QMatrixClient
             GetPushersJob::PusherData result;
             result.url =
                 fromJson<QString>(_json.value("url"_ls));
+            result.format =
+                fromJson<QString>(_json.value("format"_ls));
 
             return result;
         }
@@ -100,6 +102,7 @@ namespace QMatrixClient
     {
         QJsonObject _json;
         addParam<IfNotEmpty>(_json, QStringLiteral("url"), pod.url);
+        addParam<IfNotEmpty>(_json, QStringLiteral("format"), pod.format);
         return _json;
     }
 } // namespace QMatrixClient

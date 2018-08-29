@@ -111,11 +111,9 @@ namespace QMatrixClient
     /// 
     /// Proxies the identity server API ``validate/email/requestToken``, but
     /// first checks that the given email address is not already associated
-    /// with an account on this Home Server. Note that, for consistency,
-    /// this API takes JSON objects, though the Identity Server API takes
-    /// ``x-www-form-urlencoded`` parameters. See the Identity Server API for
+    /// with an account on this Home Server. See the Identity Server API for
     /// further information.
-    class RequestTokenToRegisterJob : public BaseJob
+    class RequestTokenToRegisterEmailJob : public BaseJob
     {
         public:
             /*! Requests a validation token be sent to the given email address for the purpose of registering an account
@@ -128,7 +126,32 @@ namespace QMatrixClient
              * \param idServer 
              *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
              */
-            explicit RequestTokenToRegisterJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer = {});
+            explicit RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer = {});
+    };
+
+    /// Requests a validation token be sent to the given phone number for the purpose of registering an account
+    /// 
+    /// Proxies the identity server API ``validate/msisdn/requestToken``, but
+    /// first checks that the given phone number is not already associated
+    /// with an account on this Home Server. See the Identity Server API for
+    /// further information.
+    class RequestTokenToRegisterMSISDNJob : public BaseJob
+    {
+        public:
+            /*! Requests a validation token be sent to the given phone number for the purpose of registering an account
+             * \param clientSecret 
+             *   Client-generated secret string used to protect this session.
+             * \param country 
+             *   The two-letter uppercase ISO country code that the number in
+             *   ``phone_number`` should be parsed as if it were dialled from.
+             * \param phoneNumber 
+             *   The phone number.
+             * \param sendAttempt 
+             *   Used to distinguish protocol level retries from requests to re-send the SMS message.
+             * \param idServer 
+             *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
+             */
+            explicit RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, double sendAttempt, const QString& idServer = {});
     };
 
     /// Changes a user's password.
@@ -170,15 +193,46 @@ namespace QMatrixClient
     /// .. |/register/email/requestToken| replace:: ``/register/email/requestToken``
     /// 
     /// .. _/register/email/requestToken: #post-matrix-client-r0-register-email-requesttoken
-    class RequestTokenToResetPasswordJob : public BaseJob
+    class RequestTokenToResetPasswordEmailJob : public BaseJob
     {
         public:
-            explicit RequestTokenToResetPasswordJob();
+            explicit RequestTokenToResetPasswordEmailJob();
 
             /*! Construct a URL without creating a full-fledged job object
              *
              * This function can be used when a URL for
-             * RequestTokenToResetPasswordJob is necessary but the job
+             * RequestTokenToResetPasswordEmailJob is necessary but the job
+             * itself isn't.
+             */
+            static QUrl makeRequestUrl(QUrl baseUrl);
+
+    };
+
+    /// Requests a validation token be sent to the given phone number for the purpose of resetting a user's password.
+    /// 
+    /// Proxies the identity server API ``validate/msisdn/requestToken``, but
+    /// first checks that the given phone number **is** associated with an account
+    /// on this Home Server. This API should be used to request
+    /// validation tokens when authenticating for the
+    /// `account/password` endpoint. This API's parameters and response are
+    /// identical to that of the HS API |/register/msisdn/requestToken|_ except that
+    /// `M_THREEPID_NOT_FOUND` may be returned if no account matching the
+    /// given email address could be found. The server may instead send an
+    /// SMS message to the given address prompting the user to create an account.
+    /// `M_THREEPID_IN_USE` may not be returned.
+    /// 
+    /// .. |/register/msisdn/requestToken| replace:: ``/register/msisdn/requestToken``
+    /// 
+    /// .. _/register/msisdn/requestToken: #post-matrix-client-r0-register-email-requesttoken
+    class RequestTokenToResetPasswordMSISDNJob : public BaseJob
+    {
+        public:
+            explicit RequestTokenToResetPasswordMSISDNJob();
+
+            /*! Construct a URL without creating a full-fledged job object
+             *
+             * This function can be used when a URL for
+             * RequestTokenToResetPasswordMSISDNJob is necessary but the job
              * itself isn't.
              */
             static QUrl makeRequestUrl(QUrl baseUrl);

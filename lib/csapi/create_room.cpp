@@ -43,7 +43,7 @@ class CreateRoomJob::Private
 
 static const auto CreateRoomJobName = QStringLiteral("CreateRoomJob");
 
-CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect, bool guestCanJoin)
+CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QString& roomVersion, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect, const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, CreateRoomJobName,
         basePath % "/createRoom")
     , d(new Private)
@@ -55,11 +55,12 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
     addParam<IfNotEmpty>(_data, QStringLiteral("topic"), topic);
     addParam<IfNotEmpty>(_data, QStringLiteral("invite"), invite);
     addParam<IfNotEmpty>(_data, QStringLiteral("invite_3pid"), invite3pid);
+    addParam<IfNotEmpty>(_data, QStringLiteral("room_version"), roomVersion);
     addParam<IfNotEmpty>(_data, QStringLiteral("creation_content"), creationContent);
     addParam<IfNotEmpty>(_data, QStringLiteral("initial_state"), initialState);
     addParam<IfNotEmpty>(_data, QStringLiteral("preset"), preset);
     addParam<IfNotEmpty>(_data, QStringLiteral("is_direct"), isDirect);
-    addParam<IfNotEmpty>(_data, QStringLiteral("guest_can_join"), guestCanJoin);
+    addParam<IfNotEmpty>(_data, QStringLiteral("power_level_content_override"), powerLevelContentOverride);
     setRequestData(_data);
 }
 
@@ -73,6 +74,9 @@ const QString& CreateRoomJob::roomId() const
 BaseJob::Status CreateRoomJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
+    if (!json.contains("room_id"_ls))
+        return { JsonParseError,
+            "The key 'room_id' not found in the response" };
     d->roomId = fromJson<QString>(json.value("room_id"_ls));
     return Success;
 }

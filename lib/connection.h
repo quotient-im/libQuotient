@@ -376,8 +376,8 @@ namespace QMatrixClient
              */
             CreateRoomJob* createRoom(RoomVisibility visibility,
                 const QString& alias, const QString& name, const QString& topic,
-                const QStringList& invites, const QString& presetName = {},
-                bool isDirect = false, bool guestsCanJoin = false,
+                QStringList invites, const QString& presetName = {},
+                bool isDirect = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
                 const QJsonObject& creationContent = {});
