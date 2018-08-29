@@ -103,7 +103,7 @@ class Room::Private
         int notificationCount = 0;
         members_map_t membersMap;
         QList<User*> usersTyping;
-        QHash<QString, QList<User*>> eventIdReadUsers;
+        QMultiHash<QString, User*> eventIdReadUsers;
         QList<User*> membersLeft;
         int unreadMessages = 0;
         bool displayed = false;
@@ -377,8 +377,8 @@ void Room::Private::setLastReadEvent(User* u, QString eventId)
     auto& storedId = lastReadEventIds[u];
     if (storedId == eventId)
         return;
-    eventIdReadUsers[storedId].removeOne(u);
-    eventIdReadUsers[eventId].append(u);
+    eventIdReadUsers.remove(storedId, u);
+    eventIdReadUsers.insert(eventId, u);
     swap(storedId, eventId);
     emit q->lastReadEventChanged(u);
     if (isLocalUser(u))
@@ -641,7 +641,7 @@ QString Room::readMarkerEventId() const
 
 QList<User*> Room::usersAtEventId(const QString& eventId) {
     if (!d->eventIdReadUsers.contains(eventId)) return QList<User*>();
-    return d->eventIdReadUsers[eventId];
+    return d->eventIdReadUsers.values(eventId);
 }
 
 int Room::notificationCount() const
