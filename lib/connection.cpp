@@ -34,7 +34,7 @@
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
-#include "jobs/turnserverjob.h"
+#include "csapi/voip.h"
 
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
@@ -1193,9 +1193,9 @@ void Connection::setCacheState(bool newValue)
 
 void Connection::getTurnServers()
 {
-  auto job = callApi<TurnServerJob>();
-  connect( job, &TurnServerJob::success, [=] {
-      emit turnServersChanged(job->toJson());
+  auto job = callApi<GetTurnServerJob>();
+  connect( job, &GetTurnServerJob::success, [=] {
+      emit turnServersChanged(job->data());
   });
 
 }
