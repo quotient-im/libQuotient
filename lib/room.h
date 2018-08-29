@@ -202,6 +202,7 @@ namespace QMatrixClient
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
             QString readMarkerEventId() const;
+            QList<User*> usersAtEventId(const QString& eventId);
             /**
              * @brief Mark the event with uptoEventId as read
              *
