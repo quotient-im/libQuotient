@@ -640,7 +640,6 @@ QString Room::readMarkerEventId() const
 }
 
 QList<User*> Room::usersAtEventId(const QString& eventId) {
-    if (!d->eventIdReadUsers.contains(eventId)) return QList<User*>();
     return d->eventIdReadUsers.values(eventId);
 }
 
