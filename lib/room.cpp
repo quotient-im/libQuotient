@@ -381,6 +381,7 @@ void Room::Private::setLastReadEvent(User* u, QString eventId)
     eventIdReadUsers.insert(eventId, u);
     swap(storedId, eventId);
     emit q->lastReadEventChanged(u);
+    emit q->readMarkerForUserMoved(u, eventId, storedId);
     if (isLocalUser(u))
     {
         if (storedId != serverReadMarker)
