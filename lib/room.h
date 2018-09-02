@@ -390,9 +390,10 @@ namespace QMatrixClient
             void readMarkerMoved(QString fromEventId, QString toEventId);
             void unreadMessagesChanged(Room* room);
 
+            void accountDataAboutToChange(QString type);
             void accountDataChanged(QString type);
-            void tagsChanged(const TagsMap& additions,
-                             const QStringList& removals);
+            void tagsAboutToChange();
+            void tagsChanged();
 
             void replacedEvent(const RoomEvent* newEvent,
                                const RoomEvent* oldEvent);

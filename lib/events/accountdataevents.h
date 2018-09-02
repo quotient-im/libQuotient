@@ -31,22 +31,40 @@ namespace QMatrixClient
 
     struct TagRecord
     {
-        TagRecord (QString order = {}) : order(std::move(order)) { }
+        using order_type = Omittable<float>;
+
+        order_type order;
+
+        TagRecord (order_type order = none) : order(order) { }
         explicit TagRecord(const QJsonValue& jv)
-            : order(jv.toObject().value("order"_ls).toString())
-        { }
+        {
+            // Parse a float both from JSON double and JSON string because
+            // libqmatrixclient previously used to use strings to store order.
+            const auto orderJv = jv.toObject().value("order"_ls);
+            if (orderJv.isDouble())
+                order = fromJson<float>(orderJv);
+            else if (orderJv.isString())
+            {
+                bool ok;
+                order = orderJv.toString().toFloat(&ok);
+                if (!ok)
+                    order = none;
+            }
+        }
 
-        QString order;
-
-        bool operator==(const TagRecord& other) const
-            { return order == other.order; }
-        bool operator!=(const TagRecord& other) const
-            { return !operator==(other); }
+        bool operator<(const TagRecord& other) const
+        {
+            // Per The Spec, rooms with no order should be after those with order
+            return !order.omitted() &&
+                        (other.order.omitted() || order.value() < other.order.value());
+        }
     };
 
     inline QJsonValue toJson(const TagRecord& rec)
     {
-        return QJsonObject {{ QStringLiteral("order"), rec.order }};
+        QJsonObject o;
+        addParam(o, QStringLiteral("order"), rec.order);
+        return o;
     }
 
     using TagsMap = QHash<QString, TagRecord>;
