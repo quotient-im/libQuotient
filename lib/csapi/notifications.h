@@ -43,7 +43,7 @@ namespace QMatrixClient
                 QString roomId;
                 /// The unix timestamp at which the event notification was sent,
                 /// in milliseconds.
-                qint64 ts;
+                int ts;
             };
 
             // Construction/destruction

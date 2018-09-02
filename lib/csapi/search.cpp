@@ -131,7 +131,7 @@ namespace QMatrixClient
         {
             SearchJob::ResultRoomEvents result;
             result.count =
-                fromJson<qint64>(jo.value("count"_ls));
+                fromJson<int>(jo.value("count"_ls));
             result.highlights =
                 fromJson<QStringList>(jo.value("highlights"_ls));
             result.results =

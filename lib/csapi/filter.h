@@ -29,12 +29,15 @@ namespace QMatrixClient
              *   Returns a filter ID that may be used in future requests to
              *   restrict which events are returned to the client.
              */
-            explicit DefineFilterJob(const QString& userId, const SyncFilter& filter);
+            explicit DefineFilterJob(const QString& userId, const Filter& filter);
             ~DefineFilterJob() override;
 
             // Result properties
 
-            /// The ID of the filter that was created.
+            /// The ID of the filter that was created. Cannot start
+            /// with a ``{`` as this character is used to determine
+            /// if the filter provided is inline JSON or a previously
+            /// declared filter by homeservers on some APIs.
             const QString& filterId() const;
 
         protected:
@@ -70,7 +73,7 @@ namespace QMatrixClient
             // Result properties
 
             /// "The filter defintion"
-            const SyncFilter& data() const;
+            const Filter& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

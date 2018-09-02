@@ -21,7 +21,7 @@ namespace QMatrixClient
              * \param roomId
              *   The room ID to set.
              */
-            explicit SetRoomAliasJob(const QString& roomAlias, const QString& roomId = {});
+            explicit SetRoomAliasJob(const QString& roomAlias, const QString& roomId);
     };
 
     /// Get the room ID corresponding to this room alias.

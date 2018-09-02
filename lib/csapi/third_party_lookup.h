@@ -85,7 +85,7 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 
-    /// Retreive Matrix-side portals rooms leading to a third party location.
+    /// Retrieve Matrix-side portals rooms leading to a third party location.
     ///
     /// Requesting this endpoint with a valid protocol name results in a list
     /// of successful mapping results in a JSON array. Each result contains
@@ -98,7 +98,7 @@ namespace QMatrixClient
     class QueryLocationByProtocolJob : public BaseJob
     {
         public:
-            /*! Retreive Matrix-side portals rooms leading to a third party location.
+            /*! Retrieve Matrix-side portals rooms leading to a third party location.
              * \param protocol
              *   The protocol used to communicate to the third party network.
              * \param searchFields
@@ -170,7 +170,7 @@ namespace QMatrixClient
 
     /// Reverse-lookup third party locations given a Matrix room alias.
     ///
-    /// Retreive an array of third party network locations from a Matrix room
+    /// Retrieve an array of third party network locations from a Matrix room
     /// alias.
     class QueryLocationByAliasJob : public BaseJob
     {
@@ -206,7 +206,7 @@ namespace QMatrixClient
 
     /// Reverse-lookup third party users given a Matrix User ID.
     ///
-    /// Retreive an array of third party users from a Matrix User ID.
+    /// Retrieve an array of third party users from a Matrix User ID.
     class QueryUserByIDJob : public BaseJob
     {
         public:

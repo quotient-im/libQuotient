@@ -120,6 +120,8 @@ namespace QMatrixClient
     /// This endpoint allows the creation, modification and deletion of pushers
     /// for this user ID. The behaviour of this endpoint varies depending on the
     /// values in the JSON body.
+    /// 
+    /// When creating push rules, they MUST be enabled by default.
     class SetPushRuleJob : public BaseJob
     {
         public:

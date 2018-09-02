@@ -43,13 +43,13 @@ namespace QMatrixClient
     /// ========================  ==============  ======================  ================  =========
     ///          Preset           ``join_rules``  ``history_visibility``  ``guest_access``  Other
     /// ========================  ==============  ======================  ================  =========
-    /// ``private_chat``          ``invite``      ``shared``              ``can_join``      
+    /// ``private_chat``          ``invite``      ``shared``              ``can_join``
     /// ``trusted_private_chat``  ``invite``      ``shared``              ``can_join``      All invitees are given the same power level as the room creator.
-    /// ``public_chat``           ``public``      ``shared``              ``forbidden``     
+    /// ``public_chat``           ``public``      ``shared``              ``forbidden``
     /// ========================  ==============  ======================  ================  =========
     /// 
     /// The server will create a ``m.room.create`` event in the room with the
-    /// requesting user as the creator, alongside other keys provided in the 
+    /// requesting user as the creator, alongside other keys provided in the
     /// ``creation_content``.
     class CreateRoomJob : public BaseJob
     {
@@ -83,13 +83,13 @@ namespace QMatrixClient
             /// ========================  ==============  ======================  ================  =========
             ///          Preset           ``join_rules``  ``history_visibility``  ``guest_access``  Other
             /// ========================  ==============  ======================  ================  =========
-            /// ``private_chat``          ``invite``      ``shared``              ``can_join``      
+            /// ``private_chat``          ``invite``      ``shared``              ``can_join``
             /// ``trusted_private_chat``  ``invite``      ``shared``              ``can_join``      All invitees are given the same power level as the room creator.
-            /// ``public_chat``           ``public``      ``shared``              ``forbidden``     
+            /// ``public_chat``           ``public``      ``shared``              ``forbidden``
             /// ========================  ==============  ======================  ================  =========
             /// 
             /// The server will create a ``m.room.create`` event in the room with the
-            /// requesting user as the creator, alongside other keys provided in the 
+            /// requesting user as the creator, alongside other keys provided in the
             /// ``creation_content``.
             struct Invite3pid
             {
@@ -128,13 +128,13 @@ namespace QMatrixClient
             /// ========================  ==============  ======================  ================  =========
             ///          Preset           ``join_rules``  ``history_visibility``  ``guest_access``  Other
             /// ========================  ==============  ======================  ================  =========
-            /// ``private_chat``          ``invite``      ``shared``              ``can_join``      
+            /// ``private_chat``          ``invite``      ``shared``              ``can_join``
             /// ``trusted_private_chat``  ``invite``      ``shared``              ``can_join``      All invitees are given the same power level as the room creator.
-            /// ``public_chat``           ``public``      ``shared``              ``forbidden``     
+            /// ``public_chat``           ``public``      ``shared``              ``forbidden``
             /// ========================  ==============  ======================  ================  =========
             /// 
             /// The server will create a ``m.room.create`` event in the room with the
-            /// requesting user as the creator, alongside other keys provided in the 
+            /// requesting user as the creator, alongside other keys provided in the
             /// ``creation_content``.
             struct StateEvent
             {
@@ -204,7 +204,7 @@ namespace QMatrixClient
              *   
              *   If unspecified, the server should use the ``visibility`` to determine
              *   which preset to use. A visbility of ``public`` equates to a preset of
-             *   ``public_chat`` and ``private`` visibility equates to a preset of 
+             *   ``public_chat`` and ``private`` visibility equates to a preset of
              *   ``private_chat``.
              * \param isDirect
              *   This flag makes the server set the ``is_direct`` flag on the

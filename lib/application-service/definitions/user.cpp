@@ -9,9 +9,9 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const ThirdPartyUser& pod)
 {
     QJsonObject jo;
-    addParam<IfNotEmpty>(jo, QStringLiteral("userid"), pod.userid);
-    addParam<IfNotEmpty>(jo, QStringLiteral("protocol"), pod.protocol);
-    addParam<IfNotEmpty>(jo, QStringLiteral("fields"), pod.fields);
+    addParam<>(jo, QStringLiteral("userid"), pod.userid);
+    addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
+    addParam<>(jo, QStringLiteral("fields"), pod.fields);
     return jo;
 }
 

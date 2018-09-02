@@ -31,7 +31,7 @@ PublicRoomsChunk FromJsonObject<PublicRoomsChunk>::operator()(const QJsonObject&
     result.name =
         fromJson<QString>(jo.value("name"_ls));
     result.numJoinedMembers =
-        fromJson<qint64>(jo.value("num_joined_members"_ls));
+        fromJson<int>(jo.value("num_joined_members"_ls));
     result.roomId =
         fromJson<QString>(jo.value("room_id"_ls));
     result.topic =
@@ -66,7 +66,7 @@ PublicRoomsResponse FromJsonObject<PublicRoomsResponse>::operator()(const QJsonO
     result.prevBatch =
         fromJson<QString>(jo.value("prev_batch"_ls));
     result.totalRoomCountEstimate =
-        fromJson<qint64>(jo.value("total_room_count_estimate"_ls));
+        fromJson<int>(jo.value("total_room_count_estimate"_ls));
 
     return result;
 }

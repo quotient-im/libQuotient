@@ -9,8 +9,8 @@ using namespace QMatrixClient;
 QJsonObject QMatrixClient::toJson(const FieldType& pod)
 {
     QJsonObject jo;
-    addParam<IfNotEmpty>(jo, QStringLiteral("regexp"), pod.regexp);
-    addParam<IfNotEmpty>(jo, QStringLiteral("placeholder"), pod.placeholder);
+    addParam<>(jo, QStringLiteral("regexp"), pod.regexp);
+    addParam<>(jo, QStringLiteral("placeholder"), pod.placeholder);
     return jo;
 }
 
@@ -25,18 +25,27 @@ FieldType FromJsonObject<FieldType>::operator()(const QJsonObject& jo) const
     return result;
 }
 
-QJsonObject QMatrixClient::toJson(const FieldTypes& pod)
+QJsonObject QMatrixClient::toJson(const ProtocolInstance& pod)
 {
     QJsonObject jo;
-    addParam<IfNotEmpty>(jo, QStringLiteral("fieldname"), pod.fieldname);
+    addParam<>(jo, QStringLiteral("desc"), pod.desc);
+    addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
+    addParam<>(jo, QStringLiteral("fields"), pod.fields);
+    addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
     return jo;
 }
 
-FieldTypes FromJsonObject<FieldTypes>::operator()(const QJsonObject& jo) const
+ProtocolInstance FromJsonObject<ProtocolInstance>::operator()(const QJsonObject& jo) const
 {
-    FieldTypes result;
-    result.fieldname =
-        fromJson<FieldType>(jo.value("fieldname"_ls));
+    ProtocolInstance result;
+    result.desc =
+        fromJson<QString>(jo.value("desc"_ls));
+    result.icon =
+        fromJson<QString>(jo.value("icon"_ls));
+    result.fields =
+        fromJson<QJsonObject>(jo.value("fields"_ls));
+    result.networkId =
+        fromJson<QString>(jo.value("network_id"_ls));
 
     return result;
 }
@@ -44,11 +53,11 @@ FieldTypes FromJsonObject<FieldTypes>::operator()(const QJsonObject& jo) const
 QJsonObject QMatrixClient::toJson(const ThirdPartyProtocol& pod)
 {
     QJsonObject jo;
-    addParam<IfNotEmpty>(jo, QStringLiteral("user_fields"), pod.userFields);
-    addParam<IfNotEmpty>(jo, QStringLiteral("location_fields"), pod.locationFields);
-    addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
-    addParam<IfNotEmpty>(jo, QStringLiteral("field_types"), pod.fieldTypes);
-    addParam<IfNotEmpty>(jo, QStringLiteral("instances"), pod.instances);
+    addParam<>(jo, QStringLiteral("user_fields"), pod.userFields);
+    addParam<>(jo, QStringLiteral("location_fields"), pod.locationFields);
+    addParam<>(jo, QStringLiteral("icon"), pod.icon);
+    addParam<>(jo, QStringLiteral("field_types"), pod.fieldTypes);
+    addParam<>(jo, QStringLiteral("instances"), pod.instances);
     return jo;
 }
 
@@ -62,9 +71,9 @@ ThirdPartyProtocol FromJsonObject<ThirdPartyProtocol>::operator()(const QJsonObj
     result.icon =
         fromJson<QString>(jo.value("icon"_ls));
     result.fieldTypes =
-        fromJson<FieldTypes>(jo.value("field_types"_ls));
+        fromJson<QHash<QString, FieldType>>(jo.value("field_types"_ls));
     result.instances =
-        fromJson<QVector<QJsonObject>>(jo.value("instances"_ls));
+        fromJson<QVector<ProtocolInstance>>(jo.value("instances"_ls));
 
     return result;
 }

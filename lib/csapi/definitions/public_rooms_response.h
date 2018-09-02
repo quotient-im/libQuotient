@@ -22,7 +22,7 @@ namespace QMatrixClient
         /// The name of the room, if any.
         QString name;
         /// The number of members joined to the room.
-        qint64 numJoinedMembers;
+        int numJoinedMembers;
         /// The ID of the room.
         QString roomId;
         /// The topic of the room, if any.
@@ -59,7 +59,7 @@ namespace QMatrixClient
         QString prevBatch;
         /// An estimate on the total number of public rooms, if the
         /// server has an estimate.
-        Omittable<qint64> totalRoomCountEstimate;
+        Omittable<int> totalRoomCountEstimate;
     };
 
     QJsonObject toJson(const PublicRoomsResponse& pod);

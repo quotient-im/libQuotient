@@ -12,7 +12,7 @@ namespace QMatrixClient
 {
     // Data structures
 
-    struct Filter
+    struct EventFilter
     {
         /// The maximum number of events to return.
         Omittable<int> limit;
@@ -26,11 +26,11 @@ namespace QMatrixClient
         QStringList types;
     };
 
-    QJsonObject toJson(const Filter& pod);
+    QJsonObject toJson(const EventFilter& pod);
 
-    template <> struct FromJsonObject<Filter>
+    template <> struct FromJsonObject<EventFilter>
     {
-        Filter operator()(const QJsonObject& jo) const;
+        EventFilter operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

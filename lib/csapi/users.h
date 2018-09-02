@@ -15,15 +15,31 @@ namespace QMatrixClient
 
     /// Searches the user directory.
     ///
-    /// This API performs a server-side search over all users registered on the server.
-    /// It searches user ID and displayname case-insensitively for users that you share a room with or that are in public rooms.
+    /// Performs a search for users on the homeserver. The homeserver may
+    /// determine which subset of users are searched, however the homeserver
+    /// MUST at a minimum consider the users the requesting user shares a
+    /// room with and those who reside in public rooms (known to the homeserver).
+    /// The search MUST consider local users to the homeserver, and SHOULD
+    /// query remote users as part of the search.
+    /// 
+    /// The search is performed case-insensitively on user IDs and display
+    /// names preferably using a collation determined based upon the 
+    /// ``Accept-Language`` header provided in the request, if present.
     class SearchUserDirectoryJob : public BaseJob
     {
         public:
             // Inner data structures
 
-            /// This API performs a server-side search over all users registered on the server.
-            /// It searches user ID and displayname case-insensitively for users that you share a room with or that are in public rooms.
+            /// Performs a search for users on the homeserver. The homeserver may
+            /// determine which subset of users are searched, however the homeserver
+            /// MUST at a minimum consider the users the requesting user shares a
+            /// room with and those who reside in public rooms (known to the homeserver).
+            /// The search MUST consider local users to the homeserver, and SHOULD
+            /// query remote users as part of the search.
+            /// 
+            /// The search is performed case-insensitively on user IDs and display
+            /// names preferably using a collation determined based upon the 
+            /// ``Accept-Language`` header provided in the request, if present.
             struct User
             {
                 /// The user's matrix user ID.
@@ -40,7 +56,7 @@ namespace QMatrixClient
              * \param searchTerm
              *   The term to search for
              * \param limit
-             *   The maximum number of results to return (Defaults to 10).
+             *   The maximum number of results to return. Defaults to 10.
              */
             explicit SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit = none);
             ~SearchUserDirectoryJob() override;

@@ -47,7 +47,7 @@ if (GTAD_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
 endif ()
 if (MATRIX_DOC_PATH)
-    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api/client-server" ABSOLUTE)
+    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" ABSOLUTE)
 endif ()
 
 message( STATUS )
@@ -62,7 +62,7 @@ message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     message( STATUS "Generating API stubs enabled" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
-    message( STATUS "  Using CS API files at ${ABS_API_DEF_PATH}" )
+    message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -102,21 +102,22 @@ set(libqmatrixclient_SRCS
 )
 
 set(CSAPI_DIR csapi)
-set(ASAPI_DIR application-service)
 set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
-set(FULL_ASAPI_DIR lib/${ASAPI_DIR})
+set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
+set(ASAPI_DEF_DIR application-service/definitions)
+set(ISAPI_DEF_DIR identity/definitions)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
-        ${ABS_API_DEF_PATH}/*.yaml
-        ${ABS_API_DEF_PATH}/definitions/*.yaml
-        ${MATRIX_DOC_PATH}/event-schemas/schema/*
+        ${FULL_CSAPI_SRC_DIR}/*.yaml
+        ${ABS_API_DEF_PATH}/${ASAPI_DEF_DIR}/*.yaml
+        ${ABS_API_DEF_PATH}/${ISAPI_DEF_DIR}/*.yaml
     )
     add_custom_target(update-api
         ${ABS_GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
-            ${ABS_API_DEF_PATH}
+            ${FULL_CSAPI_SRC_DIR}
             cas_login_redirect.yaml- cas_login_ticket.yaml-
             old_sync.yaml- room_initial_sync.yaml- # deprecated
-            sync.yaml-
+            sync.yaml- # we have a better handcrafted implementation
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
         SOURCES ${FULL_CSAPI_DIR}/gtad.yaml
                 ${FULL_CSAPI_DIR}/{{base}}.h.mustache
@@ -128,13 +129,16 @@ endif()
 
 aux_source_directory(${FULL_CSAPI_DIR} libqmatrixclient_job_SRCS)
 aux_source_directory(${FULL_CSAPI_DIR}/definitions libqmatrixclient_csdef_SRCS)
-aux_source_directory(${FULL_ASAPI_DIR}/definitions libqmatrixclient_asdef_SRCS)
+aux_source_directory(${FULL_CSAPI_DIR}/definitions/wellknown libqmatrixclient_cswellknown_SRCS)
+aux_source_directory(lib/${ASAPI_DEF_DIR} libqmatrixclient_asdef_SRCS)
+aux_source_directory(lib/${ISAPI_DEF_DIR} libqmatrixclient_isdef_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_job_SRCS} ${libqmatrixclient_csdef_SRCS}
-            ${libqmatrixclient_asdef_SRCS})
+            ${libqmatrixclient_cswellknown_SRCS}
+            ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
 set(API_VERSION "0.4")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )

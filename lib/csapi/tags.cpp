@@ -12,10 +12,28 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
+namespace QMatrixClient
+{
+    // Converters
+
+    template <> struct FromJsonObject<GetRoomTagsJob::Tag>
+    {
+        GetRoomTagsJob::Tag operator()(QJsonObject jo) const
+        {
+            GetRoomTagsJob::Tag result;
+            result.order =
+                fromJson<float>(jo.take("order"_ls));
+
+            result.additionalProperties = fromJson<QVariantHash>(jo);
+            return result;
+        }
+    };
+} // namespace QMatrixClient
+
 class GetRoomTagsJob::Private
 {
     public:
-        QJsonObject tags;
+        QHash<QString, Tag> tags;
 };
 
 QUrl GetRoomTagsJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId)
@@ -35,7 +53,7 @@ GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
 
 GetRoomTagsJob::~GetRoomTagsJob() = default;
 
-const QJsonObject& GetRoomTagsJob::tags() const
+const QHash<QString, GetRoomTagsJob::Tag>& GetRoomTagsJob::tags() const
 {
     return d->tags;
 }
@@ -43,17 +61,19 @@ const QJsonObject& GetRoomTagsJob::tags() const
 BaseJob::Status GetRoomTagsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->tags = fromJson<QJsonObject>(json.value("tags"_ls));
+    d->tags = fromJson<QHash<QString, Tag>>(json.value("tags"_ls));
     return Success;
 }
 
 static const auto SetRoomTagJobName = QStringLiteral("SetRoomTagJob");
 
-SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag, const QJsonObject& body)
+SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag, Omittable<float> order)
     : BaseJob(HttpVerb::Put, SetRoomTagJobName,
         basePath % "/user/" % userId % "/rooms/" % roomId % "/tags/" % tag)
 {
-    setRequestData(Data(toJson(body)));
+    QJsonObject _data;
+    addParam<IfNotEmpty>(_data, QStringLiteral("order"), order);
+    setRequestData(_data);
 }
 
 QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId, const QString& tag)

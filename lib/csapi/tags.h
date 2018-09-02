@@ -6,7 +6,9 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QJsonObject>
+#include <QtCore/QVariant>
+#include <QtCore/QHash>
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -18,12 +20,26 @@ namespace QMatrixClient
     class GetRoomTagsJob : public BaseJob
     {
         public:
+            // Inner data structures
+
+            /// List the tags set by a user on a room.
+            struct Tag
+            {
+                /// A number in a range ``[0,1]`` describing a relative
+                /// position of the room under the given tag.
+                Omittable<float> order;
+                /// List the tags set by a user on a room.
+                QVariantHash additionalProperties;
+            };
+
+            // Construction/destruction
+
             /*! List the tags for a room.
              * \param userId
              *   The id of the user to get tags for. The access token must be
-             *   authorized to make requests for this user id.
+             *   authorized to make requests for this user ID.
              * \param roomId
-             *   The id of the room to get tags for.
+             *   The ID of the room to get tags for.
              */
             explicit GetRoomTagsJob(const QString& userId, const QString& roomId);
 
@@ -40,7 +56,7 @@ namespace QMatrixClient
             // Result properties
 
             /// List the tags set by a user on a room.
-            const QJsonObject& tags() const;
+            const QHash<QString, Tag>& tags() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
@@ -59,15 +75,16 @@ namespace QMatrixClient
             /*! Add a tag to a room.
              * \param userId
              *   The id of the user to add a tag for. The access token must be
-             *   authorized to make requests for this user id.
+             *   authorized to make requests for this user ID.
              * \param roomId
-             *   The id of the room to add a tag to.
+             *   The ID of the room to add a tag to.
              * \param tag
              *   The tag to add.
-             * \param body
-             *   Extra data for the tag, e.g. ordering.
+             * \param order
+             *   A number in a range ``[0,1]`` describing a relative
+             *   position of the room under the given tag.
              */
-            explicit SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag, const QJsonObject& body = {});
+            explicit SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag, Omittable<float> order = none);
     };
 
     /// Remove a tag from the room.
@@ -79,9 +96,9 @@ namespace QMatrixClient
             /*! Remove a tag from the room.
              * \param userId
              *   The id of the user to remove a tag for. The access token must be
-             *   authorized to make requests for this user id.
+             *   authorized to make requests for this user ID.
              * \param roomId
-             *   The id of the room to remove a tag from.
+             *   The ID of the room to remove a tag from.
              * \param tag
              *   The tag to remove.
              */

@@ -40,7 +40,7 @@ RoomFilter FromJsonObject<RoomFilter>::operator()(const QJsonObject& jo) const
     return result;
 }
 
-QJsonObject QMatrixClient::toJson(const SyncFilter& pod)
+QJsonObject QMatrixClient::toJson(const Filter& pod)
 {
     QJsonObject jo;
     addParam<IfNotEmpty>(jo, QStringLiteral("event_fields"), pod.eventFields);
@@ -51,17 +51,17 @@ QJsonObject QMatrixClient::toJson(const SyncFilter& pod)
     return jo;
 }
 
-SyncFilter FromJsonObject<SyncFilter>::operator()(const QJsonObject& jo) const
+Filter FromJsonObject<Filter>::operator()(const QJsonObject& jo) const
 {
-    SyncFilter result;
+    Filter result;
     result.eventFields =
         fromJson<QStringList>(jo.value("event_fields"_ls));
     result.eventFormat =
         fromJson<QString>(jo.value("event_format"_ls));
     result.presence =
-        fromJson<Filter>(jo.value("presence"_ls));
+        fromJson<EventFilter>(jo.value("presence"_ls));
     result.accountData =
-        fromJson<Filter>(jo.value("account_data"_ls));
+        fromJson<EventFilter>(jo.value("account_data"_ls));
     result.room =
         fromJson<RoomFilter>(jo.value("room"_ls));
 

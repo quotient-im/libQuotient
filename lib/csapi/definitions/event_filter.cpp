@@ -6,7 +6,7 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const Filter& pod)
+QJsonObject QMatrixClient::toJson(const EventFilter& pod)
 {
     QJsonObject jo;
     addParam<IfNotEmpty>(jo, QStringLiteral("limit"), pod.limit);
@@ -17,9 +17,9 @@ QJsonObject QMatrixClient::toJson(const Filter& pod)
     return jo;
 }
 
-Filter FromJsonObject<Filter>::operator()(const QJsonObject& jo) const
+EventFilter FromJsonObject<EventFilter>::operator()(const QJsonObject& jo) const
 {
-    Filter result;
+    EventFilter result;
     result.limit =
         fromJson<int>(jo.value("limit"_ls));
     result.notSenders =

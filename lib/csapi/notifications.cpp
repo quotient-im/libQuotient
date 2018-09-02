@@ -32,7 +32,7 @@ namespace QMatrixClient
             result.roomId =
                 fromJson<QString>(jo.value("room_id"_ls));
             result.ts =
-                fromJson<qint64>(jo.value("ts"_ls));
+                fromJson<int>(jo.value("ts"_ls));
 
             return result;
         }
