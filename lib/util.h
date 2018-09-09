@@ -40,6 +40,15 @@
     _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
     _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
+// Copy-pasted from Qt 5.10
+template <typename T>
+Q_DECL_CONSTEXPR typename std::add_const<T>::type &qAsConst(T &t) Q_DECL_NOTHROW { return t; }
+// prevent rvalue arguments:
+template <typename T>
+static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
+#endif
+
 namespace QMatrixClient
 {
     // The below enables pretty-printing of enums in logs
@@ -145,15 +154,6 @@ namespace QMatrixClient
 
     template <typename FnT>
     using fn_arg_t = typename function_traits<FnT>::arg_type;
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
-    // Copy-pasted from Qt 5.10
-    template <typename T>
-    Q_DECL_CONSTEXPR typename std::add_const<T>::type &qAsConst(T &t) Q_DECL_NOTHROW { return t; }
-    // prevent rvalue arguments:
-    template <typename T>
-    static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
-#endif
 
     inline auto operator"" _ls(const char* s, std::size_t size)
     {
