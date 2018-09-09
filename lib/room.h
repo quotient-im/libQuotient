@@ -301,10 +301,6 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
-            QJsonObject toJson() const;
-            void updateData(SyncRoomData&& data );
-            void setJoinState( JoinState state );
-
         public slots:
             QString postMessage(const QString& plainText, MessageEventType type);
             QString postPlainText(const QString& plainText);
@@ -403,6 +399,14 @@ namespace QMatrixClient
             void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
             void fileTransferFailed(QString id, QString errorMessage = {});
             void fileTransferCancelled(QString id);
+
+        public: // Used by Connection - not a part of the client API
+            QJsonObject toJson() const;
+            void updateData(SyncRoomData&& data );
+
+            // Clients should use Connection::joinRoom() and Room::leaveRoom()
+            // to change the room state
+            void setJoinState( JoinState state );
 
         protected:
             /// Returns true if any of room names/aliases has changed
