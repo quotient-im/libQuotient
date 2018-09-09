@@ -126,6 +126,14 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         if (callback)
             callbacks.emplace_back(move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
+        if (_originalImage.isNull() && !_defaultIcon.isNull())
+        {
+            _originalImage = QImage(_defaultIcon.actualSize(size),
+                                    QImage::Format_ARGB32_Premultiplied);
+            _originalImage.fill(Qt::transparent);
+            QPainter p { &_originalImage };
+            _defaultIcon.paint(&p, { QPoint(), _defaultIcon.actualSize(size) });
+        }
         QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success,
             _thumbnailRequest, [this] {
                 _fetched = true;
@@ -136,15 +144,6 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
                     n();
                 callbacks.clear();
             });
-    }
-
-    if( _originalImage.isNull() )
-    {
-        if (_defaultIcon.isNull())
-            return _originalImage;
-
-        QPainter p { &_originalImage };
-        _defaultIcon.paint(&p, { QPoint(), _defaultIcon.actualSize(size) });
     }
 
     for (const auto& p: _scaledImages)
