@@ -400,6 +400,9 @@ namespace QMatrixClient
             void fileTransferFailed(QString id, QString errorMessage = {});
             void fileTransferCancelled(QString id);
 
+            /// The room is about to be deleted
+            void beforeDestruction(Room*);
+
         public: // Used by Connection - not a part of the client API
             QJsonObject toJson() const;
             void updateData(SyncRoomData&& data );

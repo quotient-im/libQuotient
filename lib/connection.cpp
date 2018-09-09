@@ -656,7 +656,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
                 qCDebug(MAIN) << "Room" << r->objectName()
                               << "in state" << toCString(r->joinState())
                               << "will be deleted";
-                emit aboutToDeleteRoom(r);
+                emit r->beforeDestruction(r);
                 r->deleteLater();
             }
     });
@@ -995,6 +995,8 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         }
         d->roomMap.insert(roomKey, room);
         d->firstTimeRooms.push_back(room);
+        connect(room, &Room::beforeDestruction,
+                this, &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)
@@ -1015,7 +1017,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         if (prevInvite)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
-            emit aboutToDeleteRoom(prevInvite);
+            emit prevInvite->beforeDestruction(prevInvite);
             prevInvite->deleteLater();
         }
     }
