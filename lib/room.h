@@ -24,7 +24,7 @@
 #include "eventitem.h"
 #include "joinstate.h"
 
-#include <QtGui/QPixmap>
+#include <QtGui/QImage>
 
 #include <memory>
 #include <deque>
