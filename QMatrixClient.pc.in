@@ -1,7 +1,7 @@
 prefix=@CMAKE_INSTALL_PREFIX@
 exec_prefix=${prefix}
-includedir=@INCLUDE_INSTALL_DIR@
-libdir=@LIB_INSTALL_DIR@
+includedir=${prefix}/include
+libdir=${prefix}/lib
 
 Name: QMatrixClient
 Description: A Qt5 library to write cross-platfrom clients for Matrix
