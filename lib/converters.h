@@ -163,6 +163,11 @@ namespace QMatrixClient
         auto operator()(const QJsonValue& jv) const { return jv.toDouble(); }
     };
 
+    template <> struct FromJson<float>
+    {
+        auto operator()(const QJsonValue& jv) const { return float(jv.toDouble()); }
+    };
+
     template <> struct FromJson<qint64>
     {
         auto operator()(const QJsonValue& jv) const { return qint64(jv.toDouble()); }

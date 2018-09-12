@@ -129,20 +129,20 @@ namespace QMatrixClient
             /**
              * Returns a square room avatar with the given size and requests it
              * from the network if needed
-             * @return a pixmap with the avatar or a placeholder if there's none
+             * \return a pixmap with the avatar or a placeholder if there's none
              * available yet
              */
             Q_INVOKABLE QImage avatar(int dimension);
             /**
              * Returns a room avatar with the given dimensions and requests it
              * from the network if needed
-             * @return a pixmap with the avatar or a placeholder if there's none
+             * \return a pixmap with the avatar or a placeholder if there's none
              * available yet
              */
             Q_INVOKABLE QImage avatar(int width, int height);
 
             /**
-             * @brief Get a user object for a given user id
+             * \brief Get a user object for a given user id
              * This is the recommended way to get a user object in a room
              * context. The actual object type may be changed in further
              * versions to provide room-specific user information (display name,
@@ -164,12 +164,12 @@ namespace QMatrixClient
             Q_INVOKABLE JoinState memberJoinState(User* user) const;
 
             /**
-             * @brief Produces a disambiguated name for a given user in
+             * Get a disambiguated name for a given user in
              * the context of the room
              */
             Q_INVOKABLE QString roomMembername(const User* u) const;
             /**
-             * @brief Produces a disambiguated name for a user with this id in
+             * Get a disambiguated name for a user with this id in
              * the context of the room
              */
             Q_INVOKABLE QString roomMembername(const QString& userId) const;
@@ -177,8 +177,8 @@ namespace QMatrixClient
             const Timeline& messageEvents() const;
             const PendingEvents& pendingEvents() const;
             /**
-             * A convenience method returning the read marker to the before-oldest
-             * message
+             * A convenience method returning the read marker to
+             * the before-oldest message
              */
             rev_iter_t timelineEdge() const;
             Q_INVOKABLE TimelineItem::index_t minTimelineIndex() const;
@@ -204,7 +204,7 @@ namespace QMatrixClient
             QString readMarkerEventId() const;
             QList<User*> usersAtEventId(const QString& eventId);
             /**
-             * @brief Mark the event with uptoEventId as read
+             * \brief Mark the event with uptoEventId as read
              *
              * Finds in the timeline and marks as read the event with
              * the specified id; also posts a read receipt to the server either
@@ -213,7 +213,7 @@ namespace QMatrixClient
              */
             void markMessagesAsRead(QString uptoEventId);
 
-            /** Check whether there are unread messages in the room */
+            /// Check whether there are unread messages in the room
             bool hasUnreadMessages() const;
 
             /** Get the number of unread messages in the room
@@ -264,7 +264,7 @@ namespace QMatrixClient
             void addTag(const QString& name, const TagRecord& record = {});
             Q_INVOKABLE void addTag(const QString& name, const QString& order);
 
-            /** Remove a tag from the room */
+            /// Remove a tag from the room
             Q_INVOKABLE void removeTag(const QString& name);
 
             /** Overwrite the room's tags
@@ -277,15 +277,15 @@ namespace QMatrixClient
              */
             void setTags(TagsMap newTags);
 
-            /** Check whether the list of tags has m.favourite */
+            /// Check whether the list of tags has m.favourite
             bool isFavourite() const;
-            /** Check whether the list of tags has m.lowpriority */
+            /// Check whether the list of tags has m.lowpriority
             bool isLowPriority() const;
 
-            /** Check whether this room is a direct chat */
+            /// Check whether this room is a direct chat
             Q_INVOKABLE bool isDirectChat() const;
 
-            /** Get the list of users this room is a direct chat with */
+            /// Get the list of users this room is a direct chat with
             QList<User*> directChatUsers() const;
 
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
@@ -301,10 +301,6 @@ namespace QMatrixClient
             QString prettyPrint(const QString& plainText) const;
 
             MemberSorter memberSorter() const;
-
-            QJsonObject toJson() const;
-            void updateData(SyncRoomData&& data );
-            void setJoinState( JoinState state );
 
         public slots:
             QString postMessage(const QString& plainText, MessageEventType type);
@@ -345,7 +341,7 @@ namespace QMatrixClient
                               const QUrl& localFilename = {});
             void cancelFileTransfer(const QString& id);
 
-            /** Mark all messages in the room as read */
+            /// Mark all messages in the room as read
             void markAllMessagesAsRead();
 
         signals:
@@ -362,12 +358,12 @@ namespace QMatrixClient
             void pendingEventChanged(int pendingEventIndex);
 
             /**
-             * @brief The room name, the canonical alias or other aliases changed
+             * \brief The room name, the canonical alias or other aliases changed
              *
              * Not triggered when displayname changes.
              */
             void namesChanged(Room* room);
-            /** @brief The room displayname changed */
+            /// The room displayname changed
             void displaynameChanged(Room* room, QString oldName);
             void topicChanged();
             void avatarChanged();
@@ -392,9 +388,10 @@ namespace QMatrixClient
             void readMarkerForUserMoved(User* user, QString fromEventId, QString toEventId);
             void unreadMessagesChanged(Room* room);
 
+            void accountDataAboutToChange(QString type);
             void accountDataChanged(QString type);
-            void tagsChanged(const TagsMap& additions,
-                             const QStringList& removals);
+            void tagsAboutToChange();
+            void tagsChanged();
 
             void replacedEvent(const RoomEvent* newEvent,
                                const RoomEvent* oldEvent);
@@ -404,6 +401,17 @@ namespace QMatrixClient
             void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
             void fileTransferFailed(QString id, QString errorMessage = {});
             void fileTransferCancelled(QString id);
+
+            /// The room is about to be deleted
+            void beforeDestruction(Room*);
+
+        public: // Used by Connection - not a part of the client API
+            QJsonObject toJson() const;
+            void updateData(SyncRoomData&& data );
+
+            // Clients should use Connection::joinRoom() and Room::leaveRoom()
+            // to change the room state
+            void setJoinState( JoinState state );
 
         protected:
             /// Returns true if any of room names/aliases has changed

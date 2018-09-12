@@ -649,14 +649,14 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
         forgetJob->start(connectionData());
     connect(forgetJob, &BaseJob::success, this, [this, id]
     {
-        // If the room is in the map (possibly in both forms), delete all forms.
+        // Delete whatever instances of the room are still in the map.
         for (auto f: {false, true})
             if (auto r = d->roomMap.take({ id, f }))
             {
-                emit aboutToDeleteRoom(r);
-                qCDebug(MAIN) << "Room" << id
-                              << "in join state" << toCString(r->joinState())
+                qCDebug(MAIN) << "Room" << r->objectName()
+                              << "in state" << toCString(r->joinState())
                               << "will be deleted";
+                emit r->beforeDestruction(r);
                 r->deleteLater();
             }
     });
@@ -995,6 +995,8 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         }
         d->roomMap.insert(roomKey, room);
         d->firstTimeRooms.push_back(room);
+        connect(room, &Room::beforeDestruction,
+                this, &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)
@@ -1015,7 +1017,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         if (prevInvite)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
-            emit aboutToDeleteRoom(prevInvite);
+            emit prevInvite->beforeDestruction(prevInvite);
             prevInvite->deleteLater();
         }
     }
