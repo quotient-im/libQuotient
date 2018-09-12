@@ -202,6 +202,7 @@ namespace QMatrixClient
             rev_iter_t readMarker(const User* user) const;
             rev_iter_t readMarker() const;
             QString readMarkerEventId() const;
+            QList<User*> usersAtEventId(const QString& eventId);
             /**
              * \brief Mark the event with uptoEventId as read
              *
@@ -384,6 +385,7 @@ namespace QMatrixClient
             void lastDisplayedEventChanged();
             void lastReadEventChanged(User* user);
             void readMarkerMoved(QString fromEventId, QString toEventId);
+            void readMarkerForUserMoved(User* user, QString fromEventId, QString toEventId);
             void unreadMessagesChanged(Room* room);
 
             void accountDataAboutToChange(QString type);
