@@ -730,7 +730,7 @@ User* Connection::user(const QString& userId)
     }
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
-    auto* user = userFactory(this, userId);
+    auto* user = userFactory()(this, userId);
     d->userMap.insert(userId, user);
     emit newUser(user);
     return user;
@@ -987,7 +987,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room = roomFactory(this, id, joinState);
+        room = roomFactory()(this, id, joinState);
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -1025,12 +1025,28 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     return room;
 }
 
-Connection::room_factory_t Connection::roomFactory =
-    [](Connection* c, const QString& id, JoinState joinState)
-    { return new Room(c, id, joinState); };
+void Connection::setRoomFactory(room_factory_t f)
+{
+    _roomFactory = std::move(f);
+}
 
-Connection::user_factory_t Connection::userFactory =
-    [](Connection* c, const QString& id) { return new User(id, c); };
+void Connection::setUserFactory(user_factory_t f)
+{
+    _userFactory = std::move(f);
+}
+
+room_factory_t Connection::roomFactory()
+{
+    return _roomFactory;
+}
+
+user_factory_t Connection::userFactory()
+{
+    return _userFactory;
+}
+
+room_factory_t Connection::_roomFactory = defaultRoomFactory<>();
+user_factory_t Connection::_userFactory = defaultUserFactory<>();
 
 QByteArray Connection::generateTxnId() const
 {

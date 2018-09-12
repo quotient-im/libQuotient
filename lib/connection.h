@@ -69,6 +69,40 @@ namespace QMatrixClient
         return connection;
     }
 
+    class Connection;
+
+    using room_factory_t = std::function<Room*(Connection*, const QString&,
+                                               JoinState)>;
+    using user_factory_t = std::function<User*(Connection*, const QString&)>;
+
+    /** The default factory to create room objects
+     *
+     * Just a wrapper around operator new.
+     * \sa Connection::setRoomFactory, Connection::setRoomType
+     */
+    template <typename T = Room>
+    static inline room_factory_t defaultRoomFactory()
+    {
+        return [](Connection* c, const QString& id, JoinState js)
+            {
+                return new T(c, id, js);
+            };
+    }
+
+    /** The default factory to create user objects
+     *
+     * Just a wrapper around operator new.
+     * \sa Connection::setUserFactory, Connection::setUserType
+     */
+    template <typename T = User>
+    static inline user_factory_t defaultUserFactory()
+    {
+        return [](Connection* c, const QString& id)
+            {
+                return new T(id, c);
+            };
+    }
+
     /** Enumeration with flags defining the network job running policy
      * So far only background/foreground flags are available.
      *
@@ -89,11 +123,6 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
         public:
-            using room_factory_t =
-                std::function<Room*(Connection*, const QString&, JoinState joinState)>;
-            using user_factory_t =
-                std::function<User*(Connection*, const QString&)>;
-
             // Room ids, rather than room pointers, are used in the direct chat
             // map types because the library keeps Invite rooms separate from
             // rooms in Join and Leave state; and direct chats in account data
@@ -308,25 +337,30 @@ namespace QMatrixClient
                                      std::forward<JobArgTs>(jobArgs)...);
             }
 
-            /** Generates a new transaction id. Transaction id's are unique within
+            /** Generate a new transaction id. Transaction id's are unique within
              * a single Connection object
              */
             Q_INVOKABLE QByteArray generateTxnId() const;
 
-            template <typename T = Room>
-            static void setRoomType()
-            {
-                roomFactory =
-                    [](Connection* c, const QString& id, JoinState joinState)
-                    { return new T(c, id, joinState); };
-            }
+            /// Set a room factory function
+            static void setRoomFactory(room_factory_t f);
 
-            template <typename T = User>
-            static void setUserType()
-            {
-                userFactory =
-                    [](Connection* c, const QString& id) { return new T(id, c); };
-            }
+            /// Set a user factory function
+            static void setUserFactory(user_factory_t f);
+
+            /// Get a room factory function
+            static room_factory_t roomFactory();
+
+            /// Get a user factory function
+            static user_factory_t userFactory();
+
+            /// Set the room factory to default with the overriden room type
+            template <typename T>
+            static void setRoomType() { setRoomFactory(defaultRoomFactory<T>()); }
+
+            /// Set the user factory to default with the overriden user type
+            template <typename T>
+            static void setUserType() { setUserFactory(defaultUserFactory<T>()); }
 
         public slots:
             /** Set the homeserver base URL */
@@ -630,7 +664,7 @@ namespace QMatrixClient
              * the server; in particular, does not automatically create rooms
              * on the server.
              * @return a pointer to a Room object with the specified id; nullptr
-             * if roomId is empty if roomFactory() failed to create a Room object.
+             * if roomId is empty or roomFactory() failed to create a Room object.
              */
             Room* provideRoom(const QString& roomId, JoinState joinState);
 
@@ -660,8 +694,8 @@ namespace QMatrixClient
                                    const QString& initialDeviceName,
                                    const QString& deviceId = {});
 
-            static room_factory_t roomFactory;
-            static user_factory_t userFactory;
+            static room_factory_t _roomFactory;
+            static user_factory_t _userFactory;
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Connection*)
