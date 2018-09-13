@@ -147,6 +147,7 @@ target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core QMatrixClient)
+configure_file(QMatrixClient.pc.in ${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient.pc @ONLY NEWLINE_STYLE UNIX)
 
 # Installation
 
@@ -189,3 +190,7 @@ if (WIN32)
 endif (WIN32)
 
 install(TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+if (UNIX AND NOT APPLE)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
