@@ -44,9 +44,7 @@ class User::Private
     public:
         static Avatar makeAvatar(QUrl url)
         {
-            static const QIcon icon
-                { QIcon::fromTheme(QStringLiteral("user-available")) };
-            return Avatar(move(url), icon);
+            return Avatar(move(url));
         }
 
         Private(QString userId, Connection* connection)

@@ -33,16 +33,14 @@ using std::move;
 class Avatar::Private
 {
     public:
-        explicit Private(QIcon di, QUrl url = {})
-            : _defaultIcon(move(di)), _url(move(url))
-        { }
+        explicit Private(QUrl url = {}) : _url(move(url)) { }
+
         QImage get(Connection* connection, QSize size,
                    get_callback_t callback) const;
         bool upload(UploadContentJob* job, upload_callback_t callback);
 
         bool checkUrl(QUrl url) const;
 
-        const QIcon _defaultIcon;
         QUrl _url;
 
         // The below are related to image caching, hence mutable
@@ -56,12 +54,12 @@ class Avatar::Private
         mutable std::vector<get_callback_t> callbacks;
 };
 
-Avatar::Avatar(QIcon defaultIcon)
-    : d(std::make_unique<Private>(std::move(defaultIcon)))
+Avatar::Avatar()
+    : d(std::make_unique<Private>())
 { }
 
-Avatar::Avatar(QUrl url, QIcon defaultIcon)
-    : d(std::make_unique<Private>(std::move(defaultIcon), std::move(url)))
+Avatar::Avatar(QUrl url)
+    : d(std::make_unique<Private>(std::move(url)))
 { }
 
 Avatar::Avatar(Avatar&&) = default;
@@ -126,14 +124,6 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         if (callback)
             callbacks.emplace_back(move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
-        if (_originalImage.isNull() && !_defaultIcon.isNull())
-        {
-            _originalImage = QImage(_defaultIcon.actualSize(size),
-                                    QImage::Format_ARGB32_Premultiplied);
-            _originalImage.fill(Qt::transparent);
-            QPainter p { &_originalImage };
-            _defaultIcon.paint(&p, { QPoint(), _defaultIcon.actualSize(size) });
-        }
         QObject::connect( _thumbnailRequest, &MediaThumbnailJob::success,
             _thumbnailRequest, [this] {
                 _fetched = true;
@@ -149,7 +139,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
     for (const auto& p: _scaledImages)
         if (p.first == size)
             return p.second;
-    auto result = _originalImage.scaled(size,
+    auto result = _originalImage.isNull() ? QImage() : _originalImage.scaled(size,
                     Qt::KeepAspectRatio, Qt::SmoothTransformation);
     _scaledImages.emplace_back(size, result);
     return result;
