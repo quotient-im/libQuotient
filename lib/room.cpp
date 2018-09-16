@@ -752,7 +752,7 @@ void Room::Private::setTags(TagsMap newTags)
 {
     emit q->tagsAboutToChange();
     tags = move(newTags);
-    qCDebug(MAIN) << "Room" << id << "is tagged with:"
+    qCDebug(MAIN) << "Room" << q->objectName() << "is tagged with"
                   << q->tagNames().join(", ");
     emit q->tagsChanged();
 }
@@ -1948,10 +1948,15 @@ QString Room::Private::calculateDisplayname() const
 
 void Room::Private::updateDisplayname()
 {
-    const QString oldName = displayname;
-    displayname = calculateDisplayname();
-    if (oldName != displayname)
-        emit q->displaynameChanged(q, oldName);
+    auto swappedName = calculateDisplayname();
+    if (swappedName != displayname)
+    {
+        emit q->displaynameAboutToChange(q);
+        swap(displayname, swappedName);
+        qDebug(MAIN) << q->objectName() << "has changed display name from"
+                     << swappedName << "to" << displayname;
+        emit q->displaynameChanged(q, swappedName);
+    }
 }
 
 void appendStateEvent(QJsonArray& events, const QString& type,

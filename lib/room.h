@@ -363,7 +363,7 @@ namespace QMatrixClient
              * Not triggered when displayname changes.
              */
             void namesChanged(Room* room);
-            /// The room displayname changed
+            void displaynameAboutToChange(Room* room);
             void displaynameChanged(Room* room, QString oldName);
             void topicChanged();
             void avatarChanged();
