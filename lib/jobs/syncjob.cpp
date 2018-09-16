@@ -130,10 +130,10 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
     switch (joinState) {
         case JoinState::Join:
             ephemeral = load<Events>(room_, "ephemeral"_ls);
-            accountData = load<Events>(room_, "account_data"_ls);
             FALLTHROUGH;
         case JoinState::Leave:
         {
+            accountData = load<Events>(room_, "account_data"_ls);
             timeline = load<RoomEvents>(room_, "timeline"_ls);
             const auto timelineJson = room_.value("timeline"_ls).toObject();
             timelineLimited = timelineJson.value("limited"_ls).toBool();

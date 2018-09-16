@@ -107,6 +107,7 @@ class Room::Private
         int notificationCount = 0;
         members_map_t membersMap;
         QList<User*> usersTyping;
+        QMultiHash<QString, User*> eventIdReadUsers;
         QList<User*> membersLeft;
         int unreadMessages = 0;
         bool displayed = false;
@@ -237,14 +238,13 @@ class Room::Private
          */
         bool processRedaction(const RedactionEvent& redaction);
 
-        std::pair<TagsMap, QStringList> setTags(TagsMap newTags);
-        void broadcastTagUpdates(const TagsMap& additions,
-                                 const QStringList& removals)
+        void setTags(TagsMap newTags);
+        void sendTagUpdates()
         {
             connection->callApi<SetAccountDataPerRoomJob>(
                     connection->userId(), id, TagEvent::matrixTypeId(),
                         TagEvent(tags).contentJson());
-            emit q->tagsChanged(additions, removals);
+            emit q->tagsChanged();
         }
 
         QJsonObject toJson() const;
@@ -380,8 +380,11 @@ void Room::Private::setLastReadEvent(User* u, QString eventId)
     auto& storedId = lastReadEventIds[u];
     if (storedId == eventId)
         return;
+    eventIdReadUsers.remove(storedId, u);
+    eventIdReadUsers.insert(eventId, u);
     swap(storedId, eventId);
     emit q->lastReadEventChanged(u);
+    emit q->readMarkerForUserMoved(u, eventId, storedId);
     if (isLocalUser(u))
     {
         if (storedId != serverReadMarker)
@@ -640,6 +643,10 @@ QString Room::readMarkerEventId() const
     return d->lastReadEventIds.value(localUser());
 }
 
+QList<User*> Room::usersAtEventId(const QString& eventId) {
+    return d->eventIdReadUsers.values(eventId);
+}
+
 int Room::notificationCount() const
 {
     return d->notificationCount;
@@ -699,7 +706,7 @@ std::pair<bool, QString> validatedTag(QString name)
         return { false, name };
 
     qWarning(MAIN) << "The tag" << name
-        << "doesn't follow the CS API conventions, check your client code";
+                   << "doesn't follow the CS API conventions";
     name.prepend("u.");
     qWarning(MAIN) << "Using " << name << "instead";
 
@@ -713,8 +720,10 @@ void Room::addTag(const QString& name, const TagRecord& record)
             (checkRes.first && d->tags.contains(checkRes.second)))
         return;
 
+    emit tagsAboutToChange();
     d->tags.insert(checkRes.second, record);
-    d->broadcastTagUpdates({{ checkRes.second, record }}, {});
+    emit tagsChanged();
+    d->sendTagUpdates();
 }
 
 void Room::addTag(const QString& name, const QString& order)
@@ -724,43 +733,32 @@ void Room::addTag(const QString& name, const QString& order)
 
 void Room::removeTag(const QString& name)
 {
-    if (!d->tags.contains(name))
-        return;
-
-    d->tags.remove(name);
-    d->broadcastTagUpdates({}, {{ name }});
+    if (d->tags.contains(name))
+    {
+        emit tagsAboutToChange();
+        d->tags.remove(name);
+        emit tagsChanged();
+        d->sendTagUpdates();
+    } else if (!name.startsWith("u."))
+        removeTag("u." + name);
+    else
+        qWarning(MAIN) << "Tag" << name << "on room" << objectName()
+                       << "not found, nothing to remove";
 }
 
 void Room::setTags(TagsMap newTags)
 {
-    const auto& changes = d->setTags(move(newTags));
-    d->broadcastTagUpdates(changes.first, changes.second);
+    d->setTags(move(newTags));
+    d->sendTagUpdates();
 }
 
-std::pair<TagsMap, QStringList> Room::Private::setTags(TagsMap newTags)
+void Room::Private::setTags(TagsMap newTags)
 {
-    if (newTags == tags)
-        return {};
-
-    TagsMap additions;
-    const auto& tagNames = newTags.keys();
-    for (const auto& t: tagNames)
-    {
-        const auto& checkRes = validatedTag(t);
-        const auto& value = checkRes.first ?
-                newTags.insert(checkRes.second, newTags.take(t)).value() :
-                newTags.value(checkRes.second);
-        if (!tags.contains(checkRes.second))
-            additions.insert(checkRes.second, value);
-    }
-
-    QStringList removals;
-    for (const auto& tag: tags.keys())
-        if (!newTags.contains(tag))
-            removals.push_back(tag);
-
-    tags = newTags;
-    return { additions, removals };
+    emit q->tagsAboutToChange();
+    tags = move(newTags);
+    qCDebug(MAIN) << "Room" << q->objectName() << "is tagged with"
+                  << q->tagNames().join(", ");
+    emit q->tagsChanged();
 }
 
 bool Room::isFavourite() const
@@ -1913,15 +1911,8 @@ void Room::processEphemeralEvent(EventPtr&& event)
 void Room::processAccountDataEvent(EventPtr&& event)
 {
     if (auto* evt = eventCast<TagEvent>(event))
-    {
-        const auto& changes = d->setTags(evt->tags());
-        if (!(changes.first.empty() && changes.second.empty()))
-        {
-            qCDebug(MAIN) << "Room" << id() << "is tagged with:"
-                          << tagNames().join(", ");
-            emit tagsChanged(changes.first, changes.second);
-        }
-    }
+        d->setTags(evt->tags());
+
     if (auto* evt = eventCast<ReadMarkerEvent>(event))
     {
         auto readEventId = evt->event_id();
@@ -1939,6 +1930,7 @@ void Room::processAccountDataEvent(EventPtr&& event)
     // efficient; maaybe do it another day
     if (!currentData || currentData->contentJson() != event->contentJson())
     {
+        emit accountDataAboutToChange(event->matrixType());
         currentData = move(event);
         qCDebug(MAIN) << "Updated account data of type"
                       << currentData->matrixType();
@@ -2026,10 +2018,15 @@ QString Room::Private::calculateDisplayname() const
 
 void Room::Private::updateDisplayname()
 {
-    const QString oldName = displayname;
-    displayname = calculateDisplayname();
-    if (oldName != displayname)
-        emit q->displaynameChanged(q, oldName);
+    auto swappedName = calculateDisplayname();
+    if (swappedName != displayname)
+    {
+        emit q->displaynameAboutToChange(q);
+        swap(displayname, swappedName);
+        qDebug(MAIN) << q->objectName() << "has changed display name from"
+                     << swappedName << "to" << displayname;
+        emit q->displaynameChanged(q, swappedName);
+    }
 }
 
 void appendStateEvent(QJsonArray& events, const QString& type,

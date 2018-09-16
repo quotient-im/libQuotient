@@ -650,14 +650,14 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
         forgetJob->start(connectionData());
     connect(forgetJob, &BaseJob::success, this, [this, id]
     {
-        // If the room is in the map (possibly in both forms), delete all forms.
+        // Delete whatever instances of the room are still in the map.
         for (auto f: {false, true})
             if (auto r = d->roomMap.take({ id, f }))
             {
-                emit aboutToDeleteRoom(r);
-                qCDebug(MAIN) << "Room" << id
-                              << "in join state" << toCString(r->joinState())
+                qCDebug(MAIN) << "Room" << r->objectName()
+                              << "in state" << toCString(r->joinState())
                               << "will be deleted";
+                emit r->beforeDestruction(r);
                 r->deleteLater();
             }
     });
@@ -731,7 +731,7 @@ User* Connection::user(const QString& userId)
     }
     if( d->userMap.contains(userId) )
         return d->userMap.value(userId);
-    auto* user = userFactory(this, userId);
+    auto* user = userFactory()(this, userId);
     d->userMap.insert(userId, user);
     emit newUser(user);
     return user;
@@ -988,7 +988,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room = roomFactory(this, id, joinState);
+        room = roomFactory()(this, id, joinState);
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -996,6 +996,8 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         }
         d->roomMap.insert(roomKey, room);
         d->firstTimeRooms.push_back(room);
+        connect(room, &Room::beforeDestruction,
+                this, &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
     if (joinState == JoinState::Invite)
@@ -1016,7 +1018,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         if (prevInvite)
         {
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
-            emit aboutToDeleteRoom(prevInvite);
+            emit prevInvite->beforeDestruction(prevInvite);
             prevInvite->deleteLater();
         }
     }
@@ -1024,12 +1026,28 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     return room;
 }
 
-Connection::room_factory_t Connection::roomFactory =
-    [](Connection* c, const QString& id, JoinState joinState)
-    { return new Room(c, id, joinState); };
+void Connection::setRoomFactory(room_factory_t f)
+{
+    _roomFactory = std::move(f);
+}
 
-Connection::user_factory_t Connection::userFactory =
-    [](Connection* c, const QString& id) { return new User(id, c); };
+void Connection::setUserFactory(user_factory_t f)
+{
+    _userFactory = std::move(f);
+}
+
+room_factory_t Connection::roomFactory()
+{
+    return _roomFactory;
+}
+
+user_factory_t Connection::userFactory()
+{
+    return _userFactory;
+}
+
+room_factory_t Connection::_roomFactory = defaultRoomFactory<>();
+user_factory_t Connection::_userFactory = defaultUserFactory<>();
 
 QByteArray Connection::generateTxnId() const
 {

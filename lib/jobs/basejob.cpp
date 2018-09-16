@@ -514,7 +514,7 @@ BaseJob::Status BaseJob::status() const
 
 QByteArray BaseJob::rawData(int bytesAtMost) const
 {
-    return bytesAtMost > 0 ?
+    return bytesAtMost > 0 && d->rawResponse.size() > bytesAtMost ?
         d->rawResponse.left(bytesAtMost) + "...(truncated)" : d->rawResponse;
 }
 
