@@ -31,8 +31,8 @@ namespace QMatrixClient
     class Avatar
     {
         public:
-            explicit Avatar(QIcon defaultIcon = {});
-            explicit Avatar(QUrl url, QIcon defaultIcon = {});
+            explicit Avatar();
+            explicit Avatar(QUrl url);
             Avatar(Avatar&&);
             ~Avatar();
             Avatar& operator=(Avatar&&);
