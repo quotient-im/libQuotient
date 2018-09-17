@@ -40,7 +40,6 @@ HEADERS += \
     $$SRCPATH/jobs/basejob.h \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
-    $$SRCPATH/jobs/turnserverjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
     $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/csapi/*.h, false) \
@@ -77,7 +76,6 @@ SOURCES += \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
-    $$SRCPATH/jobs/turnserverjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/csapi/*.cpp, false) \
     $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
