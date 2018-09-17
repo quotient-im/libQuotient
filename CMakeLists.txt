@@ -99,7 +99,6 @@ set(libqmatrixclient_SRCS
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
-    lib/jobs/turnserverjob.cpp 
 )
 
 set(CSAPI_DIR csapi)
