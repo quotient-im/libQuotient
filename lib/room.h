@@ -302,8 +302,6 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
-            bool processCall(Room* room, const RoomEvent* event);
-
             Q_INVOKABLE void inviteCall(const QString& callId,
                                         const int lifetime, const QString& sdp);
             Q_INVOKABLE void callCandidates(const QString& callId,
@@ -438,6 +436,8 @@ namespace QMatrixClient
                                      const RoomEvent& /*after*/) { }
 
         private:
+            bool processCall(Room* room, const RoomEvent* event);
+
             class Private;
             Private* d;
     };

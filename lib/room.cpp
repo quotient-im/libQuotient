@@ -1296,7 +1296,7 @@ bool Room::processCall(Room* room, const RoomEvent* event)
     if (!room->isCallSupported()) {
         qCDebug(MAIN) << "Got call event in room with more then two"
             << "members, Ignoring this event!";
-        return true;
+        return false;
     }
     emit callEvent(room, event);
     return false;
