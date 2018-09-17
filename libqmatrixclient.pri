@@ -28,6 +28,10 @@ HEADERS += \
     $$SRCPATH/events/roomavatarevent.h \
     $$SRCPATH/events/typingevent.h \
     $$SRCPATH/events/receiptevent.h \
+    $$SRCPATH/events/callanswerevent.h \
+    $$SRCPATH/events/callcandidatesevent.h \
+    $$SRCPATH/events/callhangupevent.h \
+    $$SRCPATH/events/callinviteevent.h \
     $$SRCPATH/events/accountdataevents.h \
     $$SRCPATH/events/directchatevent.h \
     $$SRCPATH/events/redactionevent.h \
@@ -62,6 +66,10 @@ SOURCES += \
     $$SRCPATH/events/roommessageevent.cpp \
     $$SRCPATH/events/roommemberevent.cpp \
     $$SRCPATH/events/typingevent.cpp \
+    $$SRCPATH/events/callanswerevent.cpp \
+    $$SRCPATH/events/callcandidatesevent.cpp \
+    $$SRCPATH/events/callhangupevent.cpp \
+    $$SRCPATH/events/callinviteevent.cpp \
     $$SRCPATH/events/receiptevent.cpp \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \

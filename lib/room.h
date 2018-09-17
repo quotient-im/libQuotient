@@ -302,6 +302,17 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
+            Q_INVOKABLE void inviteCall(const QString& callId,
+                                        const int lifetime, const QString& sdp);
+            Q_INVOKABLE void callCandidates(const QString& callId,
+                                            const QJsonArray& candidates);
+            Q_INVOKABLE void answerCall(const QString& callId, const int lifetime,
+                                        const QString& sdp);
+            Q_INVOKABLE void answerCall(const QString& callId,
+                                        const QString& sdp);
+            Q_INVOKABLE void hangupCall(const QString& callId);
+            Q_INVOKABLE bool isCallSupported() const;
+
         public slots:
             QString postMessage(const QString& plainText, MessageEventType type);
             QString postPlainText(const QString& plainText);
@@ -402,6 +413,7 @@ namespace QMatrixClient
             void fileTransferFailed(QString id, QString errorMessage = {});
             void fileTransferCancelled(QString id);
 
+            void callEvent(Room* room, const RoomEvent* event);
             /// The room is about to be deleted
             void beforeDestruction(Room*);
 
@@ -424,6 +436,8 @@ namespace QMatrixClient
                                      const RoomEvent& /*after*/) { }
 
         private:
+            bool processCall(Room* room, const RoomEvent* event);
+
             class Private;
             Private* d;
     };
