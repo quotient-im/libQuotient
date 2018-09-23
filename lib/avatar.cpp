@@ -26,6 +26,7 @@
 
 #include <QtGui/QPainter>
 #include <QtCore/QPointer>
+#include <QDir>
 #include <QStandardPaths>
 
 using namespace QMatrixClient;
@@ -34,8 +35,7 @@ using std::move;
 class Avatar::Private
 {
     public:
-        explicit Private(QUrl url = {}) : _url(move(url)) {
-            _localFile = QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + url.authority() + "_" +  url.fileName() + ".png");
+        explicit Private(QUrl url = {}) : _url(move(url)), _localFile(urlToLocalFile(_url)) {
         }
 
         QImage get(Connection* connection, QSize size,
@@ -44,8 +44,11 @@ class Avatar::Private
 
         bool checkUrl(QUrl url) const;
 
+        static QString urlToLocalFile(QUrl url);
+        static void checkCacheLocation();
+
         QUrl _url;
-        QUrl _localFile;
+        QString _localFile;
 
         // The below are related to image caching, hence mutable
         mutable QImage _originalImage;
@@ -118,16 +121,14 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
     // is a sure way to trick the below code into constantly getting another
     // image from the server because the existing one is alleged unsatisfactory.
     // This is plain abuse by the client, though; so not critical for now.
-    if (!(_fetched || _thumbnailRequest)) {
-        if (_localFile.isValid() && _originalImage.load(_localFile.toLocalFile())) {
-            if (!(_originalImage.size().isEmpty() || size.width() > _originalImage.width() || size.height() > _originalImage.height())) {
-                _fetched = true;
-                _scaledImages.clear();
-                for (const auto& n: callbacks)
-                    n();
-                callbacks.clear();
-            }
-        } else if (checkUrl(_url)) {
+    if (checkUrl(_url) && !(_fetched || _thumbnailRequest)) {
+        if (_originalImage.load(_localFile) && !_originalImage.isNull() && size.width() <= _originalImage.width() && size.height() <= _originalImage.height()) {
+            _fetched = true;
+            _scaledImages.clear();
+            for (const auto& n: callbacks)
+                n();
+            callbacks.clear();
+        } else {
             qCDebug(MAIN) << "Getting avatar from" << _url.toString();
             _requestedSize = size;
             if (isJobRunning(_thumbnailRequest))
@@ -140,7 +141,8 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
                     _fetched = true;
                     _originalImage =
                             _thumbnailRequest->scaledThumbnail(_requestedSize);
-                    _originalImage.save(_localFile.toLocalFile());
+                    checkCacheLocation();
+                    _originalImage.save(_localFile);
                     _scaledImages.clear();
                     for (const auto& n: callbacks)
                         n();
@@ -183,6 +185,17 @@ bool Avatar::Private::checkUrl(QUrl url) const
     return !_bannedUrl;
 }
 
+QString Avatar::Private::urlToLocalFile(QUrl url) {
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/avatar/" + url.authority() + "_" + url.fileName() + ".png";
+}
+
+void Avatar::Private::checkCacheLocation() {
+    const QString cachePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/avatar/";
+    QDir dir;
+    if (!dir.exists(cachePath))
+        dir.mkpath(cachePath);
+}
+
 QUrl Avatar::url() const { return d->_url; }
 
 bool Avatar::updateUrl(const QUrl& newUrl)
@@ -191,10 +204,9 @@ bool Avatar::updateUrl(const QUrl& newUrl)
         return false;
 
     d->_url = newUrl;
-    d->_localFile = QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + newUrl.authority() + "_" + newUrl.fileName() + ".png");
+    d->_localFile = d->urlToLocalFile(newUrl);
     d->_fetched = false;
     if (isJobRunning(d->_thumbnailRequest))
         d->_thumbnailRequest->abandon();
     return true;
 }
-
