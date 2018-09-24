@@ -16,24 +16,23 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetNotificationsJob::Notification>
+    template <> struct FromJsonObject<GetNotificationsJob::Notification>
     {
-        GetNotificationsJob::Notification operator()(const QJsonValue& jv)
+        GetNotificationsJob::Notification operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetNotificationsJob::Notification result;
             result.actions =
-                fromJson<QVector<QVariant>>(_json.value("actions"_ls));
+                fromJson<QVector<QVariant>>(jo.value("actions"_ls));
             result.event =
-                fromJson<EventPtr>(_json.value("event"_ls));
+                fromJson<EventPtr>(jo.value("event"_ls));
             result.profileTag =
-                fromJson<QString>(_json.value("profile_tag"_ls));
+                fromJson<QString>(jo.value("profile_tag"_ls));
             result.read =
-                fromJson<bool>(_json.value("read"_ls));
+                fromJson<bool>(jo.value("read"_ls));
             result.roomId =
-                fromJson<QString>(_json.value("room_id"_ls));
+                fromJson<QString>(jo.value("room_id"_ls));
             result.ts =
-                fromJson<qint64>(_json.value("ts"_ls));
+                fromJson<qint64>(jo.value("ts"_ls));
 
             return result;
         }

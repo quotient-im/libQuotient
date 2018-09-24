@@ -25,9 +25,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const RoomEventFilter& pod);
 
-    template <> struct FromJson<RoomEventFilter>
+    template <> struct FromJsonObject<RoomEventFilter>
     {
-        RoomEventFilter operator()(const QJsonValue& jv);
+        RoomEventFilter operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

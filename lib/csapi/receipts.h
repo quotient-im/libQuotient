@@ -13,20 +13,20 @@ namespace QMatrixClient
     // Operations
 
     /// Send a receipt for the given event ID.
-    /// 
+    ///
     /// This API updates the marker for the given receipt type to the event ID
     /// specified.
     class PostReceiptJob : public BaseJob
     {
         public:
             /*! Send a receipt for the given event ID.
-             * \param roomId 
+             * \param roomId
              *   The room in which to send the event.
-             * \param receiptType 
+             * \param receiptType
              *   The type of receipt to send.
-             * \param eventId 
+             * \param eventId
              *   The event ID to acknowledge up to.
-             * \param receipt 
+             * \param receipt
              *   Extra receipt information to attach to ``content`` if any. The
              *   server will automatically set the ``ts`` field.
              */

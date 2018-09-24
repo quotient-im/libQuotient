@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Update this user's presence state.
-    /// 
+    ///
     /// This API sets the given user's presence state. When setting the status,
     /// the activity time is updated to reflect that activity; the client does
     /// not need to specify the ``last_active_ago`` field. You cannot set the
@@ -23,24 +23,24 @@ namespace QMatrixClient
     {
         public:
             /*! Update this user's presence state.
-             * \param userId 
+             * \param userId
              *   The user whose presence state to update.
-             * \param presence 
+             * \param presence
              *   The new presence state.
-             * \param statusMsg 
+             * \param statusMsg
              *   The status message to attach to this state.
              */
             explicit SetPresenceJob(const QString& userId, const QString& presence, const QString& statusMsg = {});
     };
 
     /// Get this user's presence state.
-    /// 
+    ///
     /// Get the given user's presence state.
     class GetPresenceJob : public BaseJob
     {
         public:
             /*! Get this user's presence state.
-             * \param userId 
+             * \param userId
              *   The user whose presence state to get.
              */
             explicit GetPresenceJob(const QString& userId);
@@ -76,30 +76,30 @@ namespace QMatrixClient
     };
 
     /// Add or remove users from this presence list.
-    /// 
+    ///
     /// Adds or removes users from this presence list.
     class ModifyPresenceListJob : public BaseJob
     {
         public:
             /*! Add or remove users from this presence list.
-             * \param userId 
+             * \param userId
              *   The user whose presence list is being modified.
-             * \param invite 
+             * \param invite
              *   A list of user IDs to add to the list.
-             * \param drop 
+             * \param drop
              *   A list of user IDs to remove from the list.
              */
             explicit ModifyPresenceListJob(const QString& userId, const QStringList& invite = {}, const QStringList& drop = {});
     };
 
     /// Get presence events for this presence list.
-    /// 
+    ///
     /// Retrieve a list of presence events for every user on this list.
     class GetPresenceForListJob : public BaseJob
     {
         public:
             /*! Get presence events for this presence list.
-             * \param userId 
+             * \param userId
              *   The user whose presence list should be retrieved.
              */
             explicit GetPresenceForListJob(const QString& userId);

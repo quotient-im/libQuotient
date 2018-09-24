@@ -16,43 +16,41 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetPushersJob::PusherData>
+    template <> struct FromJsonObject<GetPushersJob::PusherData>
     {
-        GetPushersJob::PusherData operator()(const QJsonValue& jv)
+        GetPushersJob::PusherData operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetPushersJob::PusherData result;
             result.url =
-                fromJson<QString>(_json.value("url"_ls));
+                fromJson<QString>(jo.value("url"_ls));
             result.format =
-                fromJson<QString>(_json.value("format"_ls));
+                fromJson<QString>(jo.value("format"_ls));
 
             return result;
         }
     };
 
-    template <> struct FromJson<GetPushersJob::Pusher>
+    template <> struct FromJsonObject<GetPushersJob::Pusher>
     {
-        GetPushersJob::Pusher operator()(const QJsonValue& jv)
+        GetPushersJob::Pusher operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetPushersJob::Pusher result;
             result.pushkey =
-                fromJson<QString>(_json.value("pushkey"_ls));
+                fromJson<QString>(jo.value("pushkey"_ls));
             result.kind =
-                fromJson<QString>(_json.value("kind"_ls));
+                fromJson<QString>(jo.value("kind"_ls));
             result.appId =
-                fromJson<QString>(_json.value("app_id"_ls));
+                fromJson<QString>(jo.value("app_id"_ls));
             result.appDisplayName =
-                fromJson<QString>(_json.value("app_display_name"_ls));
+                fromJson<QString>(jo.value("app_display_name"_ls));
             result.deviceDisplayName =
-                fromJson<QString>(_json.value("device_display_name"_ls));
+                fromJson<QString>(jo.value("device_display_name"_ls));
             result.profileTag =
-                fromJson<QString>(_json.value("profile_tag"_ls));
+                fromJson<QString>(jo.value("profile_tag"_ls));
             result.lang =
-                fromJson<QString>(_json.value("lang"_ls));
+                fromJson<QString>(jo.value("lang"_ls));
             result.data =
-                fromJson<GetPushersJob::PusherData>(_json.value("data"_ls));
+                fromJson<GetPushersJob::PusherData>(jo.value("data"_ls));
 
             return result;
         }
@@ -100,10 +98,10 @@ namespace QMatrixClient
 
     QJsonObject toJson(const PostPusherJob::PusherData& pod)
     {
-        QJsonObject _json;
-        addParam<IfNotEmpty>(_json, QStringLiteral("url"), pod.url);
-        addParam<IfNotEmpty>(_json, QStringLiteral("format"), pod.format);
-        return _json;
+        QJsonObject jo;
+        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
+        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
+        return jo;
     }
 } // namespace QMatrixClient
 

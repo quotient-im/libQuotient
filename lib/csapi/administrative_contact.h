@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Gets a list of a user's third party identifiers.
-    /// 
+    ///
     /// Gets a list of the third party identifiers that the homeserver has
     /// associated with the user's account.
     /// 
@@ -79,7 +79,7 @@ namespace QMatrixClient
     };
 
     /// Adds contact information to the user's account.
-    /// 
+    ///
     /// Adds contact information to the user's account.
     class Post3PIDsJob : public BaseJob
     {
@@ -100,9 +100,9 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Adds contact information to the user's account.
-             * \param threePidCreds 
+             * \param threePidCreds
              *   The third party credentials to associate with the account.
-             * \param bind 
+             * \param bind
              *   Whether the homeserver should also bind this third party
              *   identifier to the account's Matrix ID with the passed identity
              *   server. Default: ``false``.
@@ -111,7 +111,7 @@ namespace QMatrixClient
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of adding an email address to an account
-    /// 
+    ///
     /// Proxies the identity server API ``validate/email/requestToken``, but
     /// first checks that the given email address is **not** already associated
     /// with an account on this Home Server. This API should be used to request
@@ -134,7 +134,7 @@ namespace QMatrixClient
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of adding a phone number to an account.
-    /// 
+    ///
     /// Proxies the identity server API ``validate/msisdn/requestToken``, but
     /// first checks that the given phone number is **not** already associated
     /// with an account on this Home Server. This API should be used to request

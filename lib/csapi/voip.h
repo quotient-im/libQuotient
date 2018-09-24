@@ -13,7 +13,7 @@ namespace QMatrixClient
     // Operations
 
     /// Obtain TURN server credentials.
-    /// 
+    ///
     /// This API provides credentials for the client to use when initiating
     /// calls.
     class GetTurnServerJob : public BaseJob

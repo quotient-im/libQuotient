@@ -16,18 +16,17 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<SearchUserDirectoryJob::User>
+    template <> struct FromJsonObject<SearchUserDirectoryJob::User>
     {
-        SearchUserDirectoryJob::User operator()(const QJsonValue& jv)
+        SearchUserDirectoryJob::User operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             SearchUserDirectoryJob::User result;
             result.userId =
-                fromJson<QString>(_json.value("user_id"_ls));
+                fromJson<QString>(jo.value("user_id"_ls));
             result.displayName =
-                fromJson<QString>(_json.value("display_name"_ls));
+                fromJson<QString>(jo.value("display_name"_ls));
             result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"_ls));
+                fromJson<QString>(jo.value("avatar_url"_ls));
 
             return result;
         }

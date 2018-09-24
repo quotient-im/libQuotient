@@ -39,9 +39,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const PublicRoomsChunk& pod);
 
-    template <> struct FromJson<PublicRoomsChunk>
+    template <> struct FromJsonObject<PublicRoomsChunk>
     {
-        PublicRoomsChunk operator()(const QJsonValue& jv);
+        PublicRoomsChunk operator()(const QJsonObject& jo) const;
     };
 
     /// A list of the rooms on the server.
@@ -64,9 +64,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const PublicRoomsResponse& pod);
 
-    template <> struct FromJson<PublicRoomsResponse>
+    template <> struct FromJsonObject<PublicRoomsResponse>
     {
-        PublicRoomsResponse operator()(const QJsonValue& jv);
+        PublicRoomsResponse operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

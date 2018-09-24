@@ -22,6 +22,7 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray> // Includes <QtCore/QJsonValue>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QDate>
 #include <QtCore/QUrlQuery>
 #include <QtCore/QSet>
@@ -80,7 +81,7 @@ namespace QMatrixClient
     // non-explicit constructors.
     QJsonValue variantToJson(const QVariant& v);
     template <typename T>
-    inline auto toJson(T&& var)
+    inline auto toJson(T&& /* const QVariant& or QVariant&& */ var)
         -> std::enable_if_t<std::is_same<std::decay_t<T>, QVariant>::value,
                             QJsonValue>
     {
@@ -137,15 +138,34 @@ namespace QMatrixClient
     }
 
     template <typename T>
-    struct FromJson
+    struct FromJsonObject
     {
-        T operator()(const QJsonValue& jv) const { return T(jv); }
+        T operator()(const QJsonObject& jo) const { return T(jo); }
     };
 
     template <typename T>
-    inline T fromJson(const QJsonValue& jv)
+    struct FromJson
+    {
+        T operator()(const QJsonValue& jv) const
+        {
+            return FromJsonObject<T>()(jv.toObject());
+        }
+        T operator()(const QJsonDocument& jd) const
+        {
+            return FromJsonObject<T>()(jd.object());
+        }
+    };
+
+    template <typename T>
+    inline auto fromJson(const QJsonValue& jv)
     {
         return FromJson<T>()(jv);
+    }
+
+    template <typename T>
+    inline auto fromJson(const QJsonDocument& jd)
+    {
+        return FromJson<T>()(jd);
     }
 
     template <> struct FromJson<bool>
@@ -194,14 +214,6 @@ namespace QMatrixClient
         }
     };
 
-    template <> struct FromJson<QJsonObject>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            return jv.toObject();
-        }
-    };
-
     template <> struct FromJson<QJsonArray>
     {
         auto operator()(const QJsonValue& jv) const
@@ -223,30 +235,34 @@ namespace QMatrixClient
         QVariant operator()(const QJsonValue& jv) const;
     };
 
-    template <typename T> struct FromJson<std::vector<T>>
+    template <typename VectorT>
+    struct ArrayFromJson
     {
+        auto operator()(const QJsonArray& ja) const
+        {
+            using size_type = typename VectorT::size_type;
+            VectorT vect; vect.resize(size_type(ja.size()));
+            std::transform(ja.begin(), ja.end(),
+                           vect.begin(), FromJson<typename VectorT::value_type>());
+            return vect;
+        }
         auto operator()(const QJsonValue& jv) const
         {
-            using size_type = typename std::vector<T>::size_type;
-            const auto jsonArray = jv.toArray();
-            std::vector<T> vect; vect.resize(size_type(jsonArray.size()));
-            std::transform(jsonArray.begin(), jsonArray.end(),
-                           vect.begin(), FromJson<T>());
-            return vect;
+            return operator()(jv.toArray());
+        }
+        auto operator()(const QJsonDocument& jd) const
+        {
+            return operator()(jd.array());
         }
     };
 
-    template <typename T> struct FromJson<QVector<T>>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            const auto jsonArray = jv.toArray();
-            QVector<T> vect; vect.resize(jsonArray.size());
-            std::transform(jsonArray.begin(), jsonArray.end(),
-                           vect.begin(), FromJson<T>());
-            return vect;
-        }
-    };
+    template <typename T>
+    struct FromJson<std::vector<T>> : ArrayFromJson<std::vector<T>>
+    { };
+
+    template <typename T>
+    struct FromJson<QVector<T>> : ArrayFromJson<QVector<T>>
+    { };
 
     template <typename T> struct FromJson<QList<T>>
     {
@@ -279,17 +295,35 @@ namespace QMatrixClient
         }
     };
 
-    template <typename T> struct FromJson<QHash<QString, T>>
+    template <typename HashMapT>
+    struct HashMapFromJson
     {
-        auto operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonObject& jo) const
         {
-            const auto json = jv.toObject();
-            QHash<QString, T> h; h.reserve(json.size());
-            for (auto it = json.begin(); it != json.end(); ++it)
-                h.insert(it.key(), fromJson<T>(it.value()));
+            HashMapT h; h.reserve(jo.size());
+            for (auto it = jo.begin(); it != jo.end(); ++it)
+                h[it.key()] =
+                    fromJson<typename HashMapT::mapped_type>(it.value());
             return h;
         }
+        auto operator()(const QJsonValue& jv) const
+        {
+            return operator()(jv.toObject());
+        }
+        auto operator()(const QJsonDocument& jd) const
+        {
+            return operator()(jd.object());
+        }
     };
+
+    template <typename T>
+    struct FromJson<std::unordered_map<QString, T>>
+        : HashMapFromJson<std::unordered_map<QString, T>>
+    { };
+
+    template <typename T>
+    struct FromJson<QHash<QString, T>> : HashMapFromJson<QHash<QString, T>>
+    { };
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
     template <> struct FromJson<QHash<QString, QVariant>>
@@ -297,18 +331,6 @@ namespace QMatrixClient
         QHash<QString, QVariant> operator()(const QJsonValue& jv) const;
     };
 #endif
-
-    template <typename T> struct FromJson<std::unordered_map<QString, T>>
-    {
-        auto operator()(const QJsonValue& jv) const
-        {
-            const auto json = jv.toObject();
-            std::unordered_map<QString, T> h; h.reserve(size_t(json.size()));
-            for (auto it = json.begin(); it != json.end(); ++it)
-                h.insert(std::make_pair(it.key(), fromJson<T>(it.value())));
-            return h;
-        }
-    };
 
     // Conditional insertion into a QJsonObject
 

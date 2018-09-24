@@ -42,11 +42,7 @@ const QHash<QString, ThirdPartyProtocol>& GetProtocolsJob::data() const
 
 BaseJob::Status GetProtocolsJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QHash<QString, ThirdPartyProtocol>>(json.value("data"_ls));
+    d->data = fromJson<QHash<QString, ThirdPartyProtocol>>(data);
     return Success;
 }
 
@@ -80,11 +76,7 @@ const ThirdPartyProtocol& GetProtocolMetadataJob::data() const
 
 BaseJob::Status GetProtocolMetadataJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<ThirdPartyProtocol>(json.value("data"_ls));
+    d->data = fromJson<ThirdPartyProtocol>(data);
     return Success;
 }
 
@@ -127,11 +119,7 @@ const QVector<ThirdPartyLocation>& QueryLocationByProtocolJob::data() const
 
 BaseJob::Status QueryLocationByProtocolJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QVector<ThirdPartyLocation>>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyLocation>>(data);
     return Success;
 }
 
@@ -174,11 +162,7 @@ const QVector<ThirdPartyUser>& QueryUserByProtocolJob::data() const
 
 BaseJob::Status QueryUserByProtocolJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QVector<ThirdPartyUser>>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyUser>>(data);
     return Success;
 }
 
@@ -221,11 +205,7 @@ const QVector<ThirdPartyLocation>& QueryLocationByAliasJob::data() const
 
 BaseJob::Status QueryLocationByAliasJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QVector<ThirdPartyLocation>>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyLocation>>(data);
     return Success;
 }
 
@@ -268,11 +248,7 @@ const QVector<ThirdPartyUser>& QueryUserByIDJob::data() const
 
 BaseJob::Status QueryUserByIDJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QVector<ThirdPartyUser>>(json.value("data"_ls));
+    d->data = fromJson<QVector<ThirdPartyUser>>(data);
     return Success;
 }
 

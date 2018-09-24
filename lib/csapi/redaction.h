@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Strips all non-integrity-critical information out of an event.
-    /// 
+    ///
     /// Strips all information out of an event which isn't critical to the
     /// integrity of the server-side representation of the room.
     /// 
@@ -25,14 +25,14 @@ namespace QMatrixClient
     {
         public:
             /*! Strips all non-integrity-critical information out of an event.
-             * \param roomId 
+             * \param roomId
              *   The room from which to redact the event.
-             * \param eventId 
+             * \param eventId
              *   The ID of the event to redact
-             * \param txnId 
+             * \param txnId
              *   The transaction ID for this event. Clients should generate a
              *   unique ID; it will be used by the server to ensure idempotency of requests.
-             * \param reason 
+             * \param reason
              *   The reason for the event being redacted.
              */
             explicit RedactEventJob(const QString& roomId, const QString& eventId, const QString& txnId, const QString& reason = {});

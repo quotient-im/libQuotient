@@ -52,27 +52,25 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<QueryKeysJob::UnsignedDeviceInfo>
+    template <> struct FromJsonObject<QueryKeysJob::UnsignedDeviceInfo>
     {
-        QueryKeysJob::UnsignedDeviceInfo operator()(const QJsonValue& jv)
+        QueryKeysJob::UnsignedDeviceInfo operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             QueryKeysJob::UnsignedDeviceInfo result;
             result.deviceDisplayName =
-                fromJson<QString>(_json.value("device_display_name"_ls));
+                fromJson<QString>(jo.value("device_display_name"_ls));
 
             return result;
         }
     };
 
-    template <> struct FromJson<QueryKeysJob::DeviceInformation>
+    template <> struct FromJsonObject<QueryKeysJob::DeviceInformation>
     {
-        QueryKeysJob::DeviceInformation operator()(const QJsonValue& jv)
+        QueryKeysJob::DeviceInformation operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             QueryKeysJob::DeviceInformation result;
             result.unsignedData =
-                fromJson<QueryKeysJob::UnsignedDeviceInfo>(_json.value("unsigned"_ls));
+                fromJson<QueryKeysJob::UnsignedDeviceInfo>(jo.value("unsigned"_ls));
 
             return result;
         }

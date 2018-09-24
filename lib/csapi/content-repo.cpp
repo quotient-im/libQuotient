@@ -109,8 +109,8 @@ QIODevice* GetContentJob::data() const
 
 BaseJob::Status GetContentJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
-    d->contentDisposition = reply->rawHeader("Content-Disposition"); 
+    d->contentType = reply->rawHeader("Content-Type");
+    d->contentDisposition = reply->rawHeader("Content-Disposition");
     d->data = reply;
     return Success;
 }
@@ -168,8 +168,8 @@ QIODevice* GetContentOverrideNameJob::data() const
 
 BaseJob::Status GetContentOverrideNameJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
-    d->contentDisposition = reply->rawHeader("Content-Disposition"); 
+    d->contentType = reply->rawHeader("Content-Type");
+    d->contentDisposition = reply->rawHeader("Content-Disposition");
     d->data = reply;
     return Success;
 }
@@ -224,7 +224,7 @@ QIODevice* GetContentThumbnailJob::data() const
 
 BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
+    d->contentType = reply->rawHeader("Content-Type");
     d->data = reply;
     return Success;
 }

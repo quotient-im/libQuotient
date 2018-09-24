@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Upload a new filter.
-    /// 
+    ///
     /// Uploads a new filter definition to the homeserver.
     /// Returns a filter ID that may be used in future requests to
     /// restrict which events are returned to the client.
@@ -22,9 +22,9 @@ namespace QMatrixClient
     {
         public:
             /*! Upload a new filter.
-             * \param userId 
+             * \param userId
              *   The id of the user uploading the filter. The access token must be authorized to make requests for this user id.
-             * \param filter 
+             * \param filter
              *   Uploads a new filter definition to the homeserver.
              *   Returns a filter ID that may be used in future requests to
              *   restrict which events are returned to the client.
@@ -50,9 +50,9 @@ namespace QMatrixClient
     {
         public:
             /*! Download a filter
-             * \param userId 
+             * \param userId
              *   The user ID to download a filter for.
-             * \param filterId 
+             * \param filterId
              *   The filter ID to download.
              */
             explicit GetFilterJob(const QString& userId, const QString& filterId);

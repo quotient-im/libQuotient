@@ -16,44 +16,41 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetWhoIsJob::ConnectionInfo>
+    template <> struct FromJsonObject<GetWhoIsJob::ConnectionInfo>
     {
-        GetWhoIsJob::ConnectionInfo operator()(const QJsonValue& jv)
+        GetWhoIsJob::ConnectionInfo operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetWhoIsJob::ConnectionInfo result;
             result.ip =
-                fromJson<QString>(_json.value("ip"_ls));
+                fromJson<QString>(jo.value("ip"_ls));
             result.lastSeen =
-                fromJson<qint64>(_json.value("last_seen"_ls));
+                fromJson<qint64>(jo.value("last_seen"_ls));
             result.userAgent =
-                fromJson<QString>(_json.value("user_agent"_ls));
+                fromJson<QString>(jo.value("user_agent"_ls));
 
             return result;
         }
     };
 
-    template <> struct FromJson<GetWhoIsJob::SessionInfo>
+    template <> struct FromJsonObject<GetWhoIsJob::SessionInfo>
     {
-        GetWhoIsJob::SessionInfo operator()(const QJsonValue& jv)
+        GetWhoIsJob::SessionInfo operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetWhoIsJob::SessionInfo result;
             result.connections =
-                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(_json.value("connections"_ls));
+                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(jo.value("connections"_ls));
 
             return result;
         }
     };
 
-    template <> struct FromJson<GetWhoIsJob::DeviceInfo>
+    template <> struct FromJsonObject<GetWhoIsJob::DeviceInfo>
     {
-        GetWhoIsJob::DeviceInfo operator()(const QJsonValue& jv)
+        GetWhoIsJob::DeviceInfo operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetWhoIsJob::DeviceInfo result;
             result.sessions =
-                fromJson<QVector<GetWhoIsJob::SessionInfo>>(_json.value("sessions"_ls));
+                fromJson<QVector<GetWhoIsJob::SessionInfo>>(jo.value("sessions"_ls));
 
             return result;
         }

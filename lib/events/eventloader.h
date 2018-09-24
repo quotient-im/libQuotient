@@ -58,11 +58,11 @@ namespace QMatrixClient {
                                             matrixType);
     }
 
-    template <typename EventT> struct FromJson<event_ptr_tt<EventT>>
+    template <typename EventT> struct FromJsonObject<event_ptr_tt<EventT>>
     {
-        auto operator()(const QJsonValue& jv) const
+        auto operator()(const QJsonObject& jo) const
         {
-            return loadEvent<EventT>(jv.toObject());
+            return loadEvent<EventT>(jo);
         }
     };
 } // namespace QMatrixClient

@@ -18,12 +18,12 @@ namespace QMatrixClient
 
     QJsonObject toJson(const JoinRoomByIdJob::ThirdPartySigned& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("sender"), pod.sender);
-        addParam<>(_json, QStringLiteral("mxid"), pod.mxid);
-        addParam<>(_json, QStringLiteral("token"), pod.token);
-        addParam<>(_json, QStringLiteral("signatures"), pod.signatures);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("sender"), pod.sender);
+        addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
+        addParam<>(jo, QStringLiteral("token"), pod.token);
+        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        return jo;
     }
 } // namespace QMatrixClient
 
@@ -68,19 +68,19 @@ namespace QMatrixClient
 
     QJsonObject toJson(const JoinRoomJob::Signed& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("sender"), pod.sender);
-        addParam<>(_json, QStringLiteral("mxid"), pod.mxid);
-        addParam<>(_json, QStringLiteral("token"), pod.token);
-        addParam<>(_json, QStringLiteral("signatures"), pod.signatures);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("sender"), pod.sender);
+        addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
+        addParam<>(jo, QStringLiteral("token"), pod.token);
+        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        return jo;
     }
 
     QJsonObject toJson(const JoinRoomJob::ThirdPartySigned& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("signed"), pod.signedData);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("signed"), pod.signedData);
+        return jo;
     }
 } // namespace QMatrixClient
 

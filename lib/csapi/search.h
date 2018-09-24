@@ -18,7 +18,7 @@ namespace QMatrixClient
     // Operations
 
     /// Perform a server-side search.
-    /// 
+    ///
     /// Performs a full text search across different categories.
     class SearchJob : public BaseJob
     {
@@ -161,7 +161,7 @@ namespace QMatrixClient
                 /// Any groups that were requested.
                 /// 
                 /// The outer ``string`` key is the group key requested (eg: ``room_id``
-                /// or ``sender``). The inner ``string`` key is the grouped value (eg: 
+                /// or ``sender``). The inner ``string`` key is the grouped value (eg:
                 /// a room's ID or a user's ID).
                 QHash<QString, QHash<QString, GroupValue>> groups;
                 /// Token that can be used to get the next batch of
@@ -181,9 +181,9 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Perform a server-side search.
-             * \param searchCategories 
+             * \param searchCategories
              *   Describes which categories to search in and their criteria.
-             * \param nextBatch 
+             * \param nextBatch
              *   The point to return events from. If given, this should be a
              *   `next_batch` result from a previous call to this endpoint.
              */

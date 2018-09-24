@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Searches the user directory.
-    /// 
+    ///
     /// This API performs a server-side search over all users registered on the server.
     /// It searches user ID and displayname case-insensitively for users that you share a room with or that are in public rooms.
     class SearchUserDirectoryJob : public BaseJob
@@ -37,9 +37,9 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Searches the user directory.
-             * \param searchTerm 
+             * \param searchTerm
              *   The term to search for
-             * \param limit 
+             * \param limit
              *   The maximum number of results to return (Defaults to 10).
              */
             explicit SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit = none);

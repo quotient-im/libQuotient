@@ -15,7 +15,7 @@ namespace QMatrixClient
     // Operations
 
     /// Get the supported login types to authenticate users
-    /// 
+    ///
     /// Gets the homeserver's supported login types to authenticate users. Clients
     /// should pick one of these and supply it as the ``type`` when logging in.
     class GetLoginFlowsJob : public BaseJob
@@ -60,7 +60,7 @@ namespace QMatrixClient
     };
 
     /// Authenticates the user.
-    /// 
+    ///
     /// Authenticates the user, and issues an access token they can
     /// use to authorize themself in subsequent requests.
     /// 
@@ -75,27 +75,27 @@ namespace QMatrixClient
     {
         public:
             /*! Authenticates the user.
-             * \param type 
+             * \param type
              *   The login type being used.
-             * \param identifier 
+             * \param identifier
              *   Identification information for the user.
-             * \param password 
+             * \param password
              *   Required when ``type`` is ``m.login.password``. The user's
              *   password.
-             * \param token 
+             * \param token
              *   Required when ``type`` is ``m.login.token``. Part of `Token-based`_ login.
-             * \param deviceId 
+             * \param deviceId
              *   ID of the client device. If this does not correspond to a
              *   known client device, a new device will be created. The server
              *   will auto-generate a device_id if this is not specified.
-             * \param initialDeviceDisplayName 
+             * \param initialDeviceDisplayName
              *   A display name to assign to the newly-created device. Ignored
              *   if ``device_id`` corresponds to a known device.
-             * \param user 
+             * \param user
              *   The fully qualified user ID or just local part of the user ID, to log in.  Deprecated in favour of ``identifier``.
-             * \param medium 
+             * \param medium
              *   When logging in using a third party identifier, the medium of the identifier. Must be 'email'.  Deprecated in favour of ``identifier``.
-             * \param address 
+             * \param address
              *   Third party identifier for the user.  Deprecated in favour of ``identifier``.
              */
             explicit LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier = none, const QString& password = {}, const QString& token = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {}, const QString& user = {}, const QString& medium = {}, const QString& address = {});

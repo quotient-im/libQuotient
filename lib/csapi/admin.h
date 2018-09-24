@@ -15,7 +15,7 @@ namespace QMatrixClient
     // Operations
 
     /// Gets information about a particular user.
-    /// 
+    ///
     /// Gets information about a particular user.
     /// 
     /// This API may be restricted to only be called by the user being looked
@@ -66,7 +66,7 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Gets information about a particular user.
-             * \param userId 
+             * \param userId
              *   The user to look up.
              */
             explicit GetWhoIsJob(const QString& userId);

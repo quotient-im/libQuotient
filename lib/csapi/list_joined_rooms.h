@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Lists the user's current rooms.
-    /// 
+    ///
     /// This API returns a list of the user's current rooms.
     class GetJoinedRoomsJob : public BaseJob
     {

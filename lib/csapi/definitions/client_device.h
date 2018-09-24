@@ -31,9 +31,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const Device& pod);
 
-    template <> struct FromJson<Device>
+    template <> struct FromJsonObject<Device>
     {
-        Device operator()(const QJsonValue& jv);
+        Device operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

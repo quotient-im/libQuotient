@@ -35,9 +35,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const RoomFilter& pod);
 
-    template <> struct FromJson<RoomFilter>
+    template <> struct FromJsonObject<RoomFilter>
     {
-        RoomFilter operator()(const QJsonValue& jv);
+        RoomFilter operator()(const QJsonObject& jo) const;
     };
 
     struct SyncFilter
@@ -56,9 +56,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const SyncFilter& pod);
 
-    template <> struct FromJson<SyncFilter>
+    template <> struct FromJsonObject<SyncFilter>
     {
-        SyncFilter operator()(const QJsonValue& jv);
+        SyncFilter operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

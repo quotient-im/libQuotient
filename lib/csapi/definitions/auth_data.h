@@ -26,9 +26,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const AuthenticationData& pod);
 
-    template <> struct FromJson<AuthenticationData>
+    template <> struct FromJsonObject<AuthenticationData>
     {
-        AuthenticationData operator()(const QJsonValue& jv);
+        AuthenticationData operator()(QJsonObject jo) const;
     };
 
 } // namespace QMatrixClient

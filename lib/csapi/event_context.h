@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Get events and state around the specified event.
-    /// 
+    ///
     /// This API returns a number of events that happened just before and
     /// after the specified event. This allows clients to get the context
     /// surrounding an event.
@@ -22,11 +22,11 @@ namespace QMatrixClient
     {
         public:
             /*! Get events and state around the specified event.
-             * \param roomId 
+             * \param roomId
              *   The room to get events from.
-             * \param eventId 
+             * \param eventId
              *   The event to get context around.
-             * \param limit 
+             * \param limit
              *   The maximum number of events to return. Default: 10.
              */
             explicit GetEventContextJob(const QString& roomId, const QString& eventId, Omittable<int> limit = none);

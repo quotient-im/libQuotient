@@ -24,9 +24,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const ThirdPartyLocation& pod);
 
-    template <> struct FromJson<ThirdPartyLocation>
+    template <> struct FromJsonObject<ThirdPartyLocation>
     {
-        ThirdPartyLocation operator()(const QJsonValue& jv);
+        ThirdPartyLocation operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

@@ -15,13 +15,13 @@ namespace QMatrixClient
     // Operations
 
     /// Gets the visibility of a room in the directory
-    /// 
+    ///
     /// Gets the visibility of a given room on the server's public room directory.
     class GetRoomVisibilityOnDirectoryJob : public BaseJob
     {
         public:
             /*! Gets the visibility of a room in the directory
-             * \param roomId 
+             * \param roomId
              *   The room ID.
              */
             explicit GetRoomVisibilityOnDirectoryJob(const QString& roomId);
@@ -50,7 +50,7 @@ namespace QMatrixClient
     };
 
     /// Sets the visibility of a room in the room directory
-    /// 
+    ///
     /// Sets the visibility of a given room in the server's public room
     /// directory.
     /// 
@@ -61,9 +61,9 @@ namespace QMatrixClient
     {
         public:
             /*! Sets the visibility of a room in the room directory
-             * \param roomId 
+             * \param roomId
              *   The room ID.
-             * \param visibility 
+             * \param visibility
              *   The new visibility setting for the room. 
              *   Defaults to 'public'.
              */
@@ -71,7 +71,7 @@ namespace QMatrixClient
     };
 
     /// Lists the public rooms on the server.
-    /// 
+    ///
     /// Lists the public rooms on the server.
     /// 
     /// This API returns paginated responses. The rooms are ordered by the number
@@ -80,14 +80,14 @@ namespace QMatrixClient
     {
         public:
             /*! Lists the public rooms on the server.
-             * \param limit 
+             * \param limit
              *   Limit the number of results returned.
-             * \param since 
+             * \param since
              *   A pagination token from a previous request, allowing clients to
              *   get the next (or previous) batch of rooms.
              *   The direction of pagination is specified solely by which token
              *   is supplied, rather than via an explicit flag.
-             * \param server 
+             * \param server
              *   The server to fetch the public room lists from. Defaults to the
              *   local server.
              */
@@ -117,7 +117,7 @@ namespace QMatrixClient
     };
 
     /// Lists the public rooms on the server with optional filter.
-    /// 
+    ///
     /// Lists the public rooms on the server, with optional filter.
     /// 
     /// This API returns paginated responses. The rooms are ordered by the number
@@ -166,17 +166,17 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Lists the public rooms on the server with optional filter.
-             * \param server 
+             * \param server
              *   The server to fetch the public room lists from. Defaults to the
              *   local server.
-             * \param limit 
+             * \param limit
              *   Limit the number of results returned.
-             * \param since 
+             * \param since
              *   A pagination token from a previous request, allowing clients
              *   to get the next (or previous) batch of rooms.  The direction
              *   of pagination is specified solely by which token is supplied,
              *   rather than via an explicit flag.
-             * \param filter 
+             * \param filter
              *   Filter to apply to the results.
              */
             explicit QueryPublicRoomsJob(const QString& server = {}, Omittable<int> limit = none, const QString& since = {}, const Omittable<Filter>& filter = none);

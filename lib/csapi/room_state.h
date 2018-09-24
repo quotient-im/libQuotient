@@ -13,7 +13,7 @@ namespace QMatrixClient
     // Operations
 
     /// Send a state event to the given room.
-    /// 
+    ///
     /// State events can be sent using this endpoint.  These events will be
     /// overwritten if ``<room id>``, ``<event type>`` and ``<state key>`` all
     /// match.
@@ -29,13 +29,13 @@ namespace QMatrixClient
     {
         public:
             /*! Send a state event to the given room.
-             * \param roomId 
+             * \param roomId
              *   The room to set the state in
-             * \param eventType 
+             * \param eventType
              *   The type of event to send.
-             * \param stateKey 
+             * \param stateKey
              *   The state_key for the state to send. Defaults to the empty string.
-             * \param body 
+             * \param body
              *   State events can be sent using this endpoint.  These events will be
              *   overwritten if ``<room id>``, ``<event type>`` and ``<state key>`` all
              *   match.
@@ -65,7 +65,7 @@ namespace QMatrixClient
     };
 
     /// Send a state event to the given room.
-    /// 
+    ///
     /// State events can be sent using this endpoint. This endpoint is
     /// equivalent to calling `/rooms/{roomId}/state/{eventType}/{stateKey}`
     /// with an empty `stateKey`. Previous state events with matching
@@ -82,11 +82,11 @@ namespace QMatrixClient
     {
         public:
             /*! Send a state event to the given room.
-             * \param roomId 
+             * \param roomId
              *   The room to set the state in
-             * \param eventType 
+             * \param eventType
              *   The type of event to send.
-             * \param body 
+             * \param body
              *   State events can be sent using this endpoint. This endpoint is
              *   equivalent to calling `/rooms/{roomId}/state/{eventType}/{stateKey}`
              *   with an empty `stateKey`. Previous state events with matching

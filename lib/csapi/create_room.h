@@ -15,7 +15,7 @@ namespace QMatrixClient
     // Operations
 
     /// Create a new room
-    /// 
+    ///
     /// Create a new room with various configuration options.
     /// 
     /// The server MUST apply the normal state resolution rules when creating
@@ -149,14 +149,14 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Create a new room
-             * \param visibility 
+             * \param visibility
              *   A ``public`` visibility indicates that the room will be shown
              *   in the published room list. A ``private`` visibility will hide
              *   the room from the published room list. Rooms default to
              *   ``private`` visibility if this key is not included. NB: This
              *   should not be confused with ``join_rules`` which also uses the
              *   word ``public``.
-             * \param roomAliasName 
+             * \param roomAliasName
              *   The desired room alias **local part**. If this is included, a
              *   room alias will be created and mapped to the newly created
              *   room. The alias will belong on the *same* homeserver which
@@ -166,31 +166,31 @@ namespace QMatrixClient
              *   
              *   The complete room alias will become the canonical alias for
              *   the room.
-             * \param name 
+             * \param name
              *   If this is included, an ``m.room.name`` event will be sent
              *   into the room to indicate the name of the room. See Room
              *   Events for more information on ``m.room.name``.
-             * \param topic 
+             * \param topic
              *   If this is included, an ``m.room.topic`` event will be sent
              *   into the room to indicate the topic for the room. See Room
              *   Events for more information on ``m.room.topic``.
-             * \param invite 
+             * \param invite
              *   A list of user IDs to invite to the room. This will tell the
              *   server to invite everyone in the list to the newly created room.
-             * \param invite3pid 
+             * \param invite3pid
              *   A list of objects representing third party IDs to invite into
              *   the room.
-             * \param roomVersion 
+             * \param roomVersion
              *   The room version to set for the room. If not provided, the homeserver is
              *   to use its configured default. If provided, the homeserver will return a
              *   400 error with the errcode ``M_UNSUPPORTED_ROOM_VERSION`` if it does not
              *   support the room version.
-             * \param creationContent 
+             * \param creationContent
              *   Extra keys, such as ``m.federate``, to be added to the content
              *   of the `m.room.create`_ event. The server will clobber the following
              *   keys: ``creator``, ``room_version``. Future versions of the specification
              *   may allow the server to clobber other keys.
-             * \param initialState 
+             * \param initialState
              *   A list of state events to set in the new room. This allows
              *   the user to override the default state events set in the new
              *   room. The expected format of the state events are an object
@@ -198,7 +198,7 @@ namespace QMatrixClient
              *   
              *   Takes precedence over events set by ``preset``, but gets
              *   overriden by ``name`` and ``topic`` keys.
-             * \param preset 
+             * \param preset
              *   Convenience parameter for setting various default state events
              *   based on a preset.
              *   
@@ -206,11 +206,11 @@ namespace QMatrixClient
              *   which preset to use. A visbility of ``public`` equates to a preset of
              *   ``public_chat`` and ``private`` visibility equates to a preset of 
              *   ``private_chat``.
-             * \param isDirect 
+             * \param isDirect
              *   This flag makes the server set the ``is_direct`` flag on the
              *   ``m.room.member`` events sent to the users in ``invite`` and
              *   ``invite_3pid``. See `Direct Messaging`_ for more information.
-             * \param powerLevelContentOverride 
+             * \param powerLevelContentOverride
              *   The power level content to override in the default power level
              *   event. This object is applied on top of the generated `m.room.power_levels`_
              *   event content prior to it being sent to the room. Defaults to

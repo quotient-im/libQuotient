@@ -31,9 +31,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const PushCondition& pod);
 
-    template <> struct FromJson<PushCondition>
+    template <> struct FromJsonObject<PushCondition>
     {
-        PushCondition operator()(const QJsonValue& jv);
+        PushCondition operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

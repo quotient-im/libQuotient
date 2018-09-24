@@ -100,11 +100,7 @@ const PublicRoomsResponse& GetPublicRoomsJob::data() const
 
 BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<PublicRoomsResponse>(json.value("data"_ls));
+    d->data = fromJson<PublicRoomsResponse>(data);
     return Success;
 }
 
@@ -114,35 +110,34 @@ namespace QMatrixClient
 
     QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
     {
-        QJsonObject _json;
-        addParam<IfNotEmpty>(_json, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
-        return _json;
+        QJsonObject jo;
+        addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
+        return jo;
     }
 
-    template <> struct FromJson<QueryPublicRoomsJob::PublicRoomsChunk>
+    template <> struct FromJsonObject<QueryPublicRoomsJob::PublicRoomsChunk>
     {
-        QueryPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
+        QueryPublicRoomsJob::PublicRoomsChunk operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             QueryPublicRoomsJob::PublicRoomsChunk result;
             result.aliases =
-                fromJson<QStringList>(_json.value("aliases"_ls));
+                fromJson<QStringList>(jo.value("aliases"_ls));
             result.canonicalAlias =
-                fromJson<QString>(_json.value("canonical_alias"_ls));
+                fromJson<QString>(jo.value("canonical_alias"_ls));
             result.name =
-                fromJson<QString>(_json.value("name"_ls));
+                fromJson<QString>(jo.value("name"_ls));
             result.numJoinedMembers =
-                fromJson<qint64>(_json.value("num_joined_members"_ls));
+                fromJson<qint64>(jo.value("num_joined_members"_ls));
             result.roomId =
-                fromJson<QString>(_json.value("room_id"_ls));
+                fromJson<QString>(jo.value("room_id"_ls));
             result.topic =
-                fromJson<QString>(_json.value("topic"_ls));
+                fromJson<QString>(jo.value("topic"_ls));
             result.worldReadable =
-                fromJson<bool>(_json.value("world_readable"_ls));
+                fromJson<bool>(jo.value("world_readable"_ls));
             result.guestCanJoin =
-                fromJson<bool>(_json.value("guest_can_join"_ls));
+                fromJson<bool>(jo.value("guest_can_join"_ls));
             result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"_ls));
+                fromJson<QString>(jo.value("avatar_url"_ls));
 
             return result;
         }

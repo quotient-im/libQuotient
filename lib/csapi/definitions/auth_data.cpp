@@ -8,22 +8,21 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const AuthenticationData& pod)
 {
-    QJsonObject _json = toJson(pod.authInfo);
-    addParam<>(_json, QStringLiteral("type"), pod.type);
-    addParam<IfNotEmpty>(_json, QStringLiteral("session"), pod.session);
-    return _json;
+    QJsonObject jo = toJson(pod.authInfo);
+    addParam<>(jo, QStringLiteral("type"), pod.type);
+    addParam<IfNotEmpty>(jo, QStringLiteral("session"), pod.session);
+    return jo;
 }
 
-AuthenticationData FromJson<AuthenticationData>::operator()(const QJsonValue& jv)
+AuthenticationData FromJsonObject<AuthenticationData>::operator()(QJsonObject jo) const
 {
-    auto _json = jv.toObject();
     AuthenticationData result;
     result.type =
-        fromJson<QString>(_json.take("type"_ls));
+        fromJson<QString>(jo.take("type"_ls));
     result.session =
-        fromJson<QString>(_json.take("session"_ls));
-    
-    result.authInfo = fromJson<QHash<QString, QJsonObject>>(_json);
+        fromJson<QString>(jo.take("session"_ls));
+
+    result.authInfo = fromJson<QHash<QString, QJsonObject>>(jo);
     return result;
 }
 

@@ -25,9 +25,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const FieldType& pod);
 
-    template <> struct FromJson<FieldType>
+    template <> struct FromJsonObject<FieldType>
     {
-        FieldType operator()(const QJsonValue& jv);
+        FieldType operator()(const QJsonObject& jo) const;
     };
 
     /// All location or user fields should have an entry here.
@@ -39,9 +39,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const FieldTypes& pod);
 
-    template <> struct FromJson<FieldTypes>
+    template <> struct FromJsonObject<FieldTypes>
     {
-        FieldTypes operator()(const QJsonValue& jv);
+        FieldTypes operator()(const QJsonObject& jo) const;
     };
 
     struct ThirdPartyProtocol
@@ -62,9 +62,9 @@ namespace QMatrixClient
 
     QJsonObject toJson(const ThirdPartyProtocol& pod);
 
-    template <> struct FromJson<ThirdPartyProtocol>
+    template <> struct FromJsonObject<ThirdPartyProtocol>
     {
-        ThirdPartyProtocol operator()(const QJsonValue& jv);
+        ThirdPartyProtocol operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

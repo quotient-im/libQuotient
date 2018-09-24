@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Get an OpenID token object to verify the requester's identity.
-    /// 
+    ///
     /// Gets an OpenID token object that the requester may supply to another
     /// service to verify their identity in Matrix. The generated token is only
     /// valid for exchanging for user information from the federation API for
@@ -27,10 +27,10 @@ namespace QMatrixClient
     {
         public:
             /*! Get an OpenID token object to verify the requester's identity.
-             * \param userId 
+             * \param userId
              *   The user to request and OpenID token for. Should be the user who
              *   is authenticated for the request.
-             * \param body 
+             * \param body
              *   An empty object. Reserved for future expansion.
              */
             explicit RequestOpenIdTokenJob(const QString& userId, const QJsonObject& body = {});

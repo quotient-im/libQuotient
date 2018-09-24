@@ -16,7 +16,7 @@ namespace QMatrixClient
     // Operations
 
     /// List registered devices for the current user
-    /// 
+    ///
     /// Gets information about all devices for the current user.
     class GetDevicesJob : public BaseJob
     {
@@ -47,13 +47,13 @@ namespace QMatrixClient
     };
 
     /// Get a single device
-    /// 
+    ///
     /// Gets information on a single device, by device id.
     class GetDeviceJob : public BaseJob
     {
         public:
             /*! Get a single device
-             * \param deviceId 
+             * \param deviceId
              *   The device to retrieve.
              */
             explicit GetDeviceJob(const QString& deviceId);
@@ -82,15 +82,15 @@ namespace QMatrixClient
     };
 
     /// Update a device
-    /// 
+    ///
     /// Updates the metadata on the given device.
     class UpdateDeviceJob : public BaseJob
     {
         public:
             /*! Update a device
-             * \param deviceId 
+             * \param deviceId
              *   The device to update.
-             * \param displayName 
+             * \param displayName
              *   The new display name for this device. If not given, the
              *   display name is unchanged.
              */
@@ -98,7 +98,7 @@ namespace QMatrixClient
     };
 
     /// Delete a device
-    /// 
+    ///
     /// This API endpoint uses the `User-Interactive Authentication API`_.
     /// 
     /// Deletes the given device, and invalidates any access token associated with it.
@@ -106,9 +106,9 @@ namespace QMatrixClient
     {
         public:
             /*! Delete a device
-             * \param deviceId 
+             * \param deviceId
              *   The device to delete.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the
              *   user-interactive authentication API.
              */
@@ -116,7 +116,7 @@ namespace QMatrixClient
     };
 
     /// Bulk deletion of devices
-    /// 
+    ///
     /// This API endpoint uses the `User-Interactive Authentication API`_.
     /// 
     /// Deletes the given devices, and invalidates any access token associated with them.
@@ -124,9 +124,9 @@ namespace QMatrixClient
     {
         public:
             /*! Bulk deletion of devices
-             * \param devices 
+             * \param devices
              *   The list of device IDs to delete.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the
              *   user-interactive authentication API.
              */

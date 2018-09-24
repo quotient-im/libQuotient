@@ -8,33 +8,32 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const PushRule& pod)
 {
-    QJsonObject _json;
-    addParam<>(_json, QStringLiteral("actions"), pod.actions);
-    addParam<>(_json, QStringLiteral("default"), pod.isDefault);
-    addParam<>(_json, QStringLiteral("enabled"), pod.enabled);
-    addParam<>(_json, QStringLiteral("rule_id"), pod.ruleId);
-    addParam<IfNotEmpty>(_json, QStringLiteral("conditions"), pod.conditions);
-    addParam<IfNotEmpty>(_json, QStringLiteral("pattern"), pod.pattern);
-    return _json;
+    QJsonObject jo;
+    addParam<>(jo, QStringLiteral("actions"), pod.actions);
+    addParam<>(jo, QStringLiteral("default"), pod.isDefault);
+    addParam<>(jo, QStringLiteral("enabled"), pod.enabled);
+    addParam<>(jo, QStringLiteral("rule_id"), pod.ruleId);
+    addParam<IfNotEmpty>(jo, QStringLiteral("conditions"), pod.conditions);
+    addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
+    return jo;
 }
 
-PushRule FromJson<PushRule>::operator()(const QJsonValue& jv)
+PushRule FromJsonObject<PushRule>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     PushRule result;
     result.actions =
-        fromJson<QVector<QVariant>>(_json.value("actions"_ls));
+        fromJson<QVector<QVariant>>(jo.value("actions"_ls));
     result.isDefault =
-        fromJson<bool>(_json.value("default"_ls));
+        fromJson<bool>(jo.value("default"_ls));
     result.enabled =
-        fromJson<bool>(_json.value("enabled"_ls));
+        fromJson<bool>(jo.value("enabled"_ls));
     result.ruleId =
-        fromJson<QString>(_json.value("rule_id"_ls));
+        fromJson<QString>(jo.value("rule_id"_ls));
     result.conditions =
-        fromJson<QVector<PushCondition>>(_json.value("conditions"_ls));
+        fromJson<QVector<PushCondition>>(jo.value("conditions"_ls));
     result.pattern =
-        fromJson<QString>(_json.value("pattern"_ls));
-    
+        fromJson<QString>(jo.value("pattern"_ls));
+
     return result;
 }
 

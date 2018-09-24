@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Register for an account on this homeserver.
-    /// 
+    ///
     /// This API endpoint uses the `User-Interactive Authentication API`_.
     /// 
     /// Register for an account on this homeserver.
@@ -49,9 +49,9 @@ namespace QMatrixClient
     {
         public:
             /*! Register for an account on this homeserver.
-             * \param kind 
+             * \param kind
              *   The kind of account to register. Defaults to `user`.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the
              *   user-interactive authentication API. Note that this
              *   information is *not* used to define how the registered user
@@ -59,19 +59,19 @@ namespace QMatrixClient
              *   authenticate the ``register`` call itself. It should be
              *   left empty, or omitted, unless an earlier call returned an
              *   response with status code 401.
-             * \param bindEmail 
+             * \param bindEmail
              *   If true, the server binds the email used for authentication to
              *   the Matrix ID with the ID Server.
-             * \param username 
+             * \param username
              *   The basis for the localpart of the desired Matrix ID. If omitted,
              *   the homeserver MUST generate a Matrix ID local part.
-             * \param password 
+             * \param password
              *   The desired password for the account.
-             * \param deviceId 
+             * \param deviceId
              *   ID of the client device. If this does not correspond to a
              *   known client device, a new device will be created. The server
              *   will auto-generate a device_id if this is not specified.
-             * \param initialDeviceDisplayName 
+             * \param initialDeviceDisplayName
              *   A display name to assign to the newly-created device. Ignored
              *   if ``device_id`` corresponds to a known device.
              */
@@ -81,7 +81,7 @@ namespace QMatrixClient
             // Result properties
 
             /// The fully-qualified Matrix user ID (MXID) that has been registered.
-            /// 
+            ///
             /// Any user ID returned by this API must conform to the grammar given in the
             /// `Matrix specification <https://matrix.org/docs/spec/appendices.html#user-identifiers>`_.
             const QString& userId() const;
@@ -108,7 +108,7 @@ namespace QMatrixClient
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of registering an account
-    /// 
+    ///
     /// Proxies the identity server API ``validate/email/requestToken``, but
     /// first checks that the given email address is not already associated
     /// with an account on this Home Server. See the Identity Server API for
@@ -117,20 +117,20 @@ namespace QMatrixClient
     {
         public:
             /*! Requests a validation token be sent to the given email address for the purpose of registering an account
-             * \param clientSecret 
+             * \param clientSecret
              *   Client-generated secret string used to protect this session
-             * \param email 
+             * \param email
              *   The email address
-             * \param sendAttempt 
+             * \param sendAttempt
              *   Used to distinguish protocol level retries from requests to re-send the email.
-             * \param idServer 
+             * \param idServer
              *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
              */
             explicit RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer = {});
     };
 
     /// Requests a validation token be sent to the given phone number for the purpose of registering an account
-    /// 
+    ///
     /// Proxies the identity server API ``validate/msisdn/requestToken``, but
     /// first checks that the given phone number is not already associated
     /// with an account on this Home Server. See the Identity Server API for
@@ -139,23 +139,23 @@ namespace QMatrixClient
     {
         public:
             /*! Requests a validation token be sent to the given phone number for the purpose of registering an account
-             * \param clientSecret 
+             * \param clientSecret
              *   Client-generated secret string used to protect this session.
-             * \param country 
+             * \param country
              *   The two-letter uppercase ISO country code that the number in
              *   ``phone_number`` should be parsed as if it were dialled from.
-             * \param phoneNumber 
+             * \param phoneNumber
              *   The phone number.
-             * \param sendAttempt 
+             * \param sendAttempt
              *   Used to distinguish protocol level retries from requests to re-send the SMS message.
-             * \param idServer 
+             * \param idServer
              *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
              */
             explicit RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, double sendAttempt, const QString& idServer = {});
     };
 
     /// Changes a user's password.
-    /// 
+    ///
     /// Changes the password for an account on this homeserver.
     /// 
     /// This API endpoint uses the `User-Interactive Authentication API`_.
@@ -169,16 +169,16 @@ namespace QMatrixClient
     {
         public:
             /*! Changes a user's password.
-             * \param newPassword 
+             * \param newPassword
              *   The new password for the account.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the user-interactive authentication API.
              */
             explicit ChangePasswordJob(const QString& newPassword, const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of resetting a user's password
-    /// 
+    ///
     /// Proxies the identity server API ``validate/email/requestToken``, but
     /// first checks that the given email address **is** associated with an account
     /// on this Home Server. This API should be used to request
@@ -209,7 +209,7 @@ namespace QMatrixClient
     };
 
     /// Requests a validation token be sent to the given phone number for the purpose of resetting a user's password.
-    /// 
+    ///
     /// Proxies the identity server API ``validate/msisdn/requestToken``, but
     /// first checks that the given phone number **is** associated with an account
     /// on this Home Server. This API should be used to request
@@ -240,7 +240,7 @@ namespace QMatrixClient
     };
 
     /// Deactivate a user's account.
-    /// 
+    ///
     /// Deactivate the user's account, removing all ability for the user to
     /// login again.
     /// 
@@ -255,14 +255,14 @@ namespace QMatrixClient
     {
         public:
             /*! Deactivate a user's account.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the user-interactive authentication API.
              */
             explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Checks to see if a username is available on the server.
-    /// 
+    ///
     /// Checks to see if a username is available, and valid, for the server.
     /// 
     /// The server should check to ensure that, at the time of the request, the
@@ -279,7 +279,7 @@ namespace QMatrixClient
     {
         public:
             /*! Checks to see if a username is available on the server.
-             * \param username 
+             * \param username
              *   The username to check the availability of.
              */
             explicit CheckUsernameAvailabilityJob(const QString& username);

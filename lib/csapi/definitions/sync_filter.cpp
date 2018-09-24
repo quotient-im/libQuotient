@@ -8,65 +8,63 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const RoomFilter& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("not_rooms"), pod.notRooms);
-    addParam<IfNotEmpty>(_json, QStringLiteral("rooms"), pod.rooms);
-    addParam<IfNotEmpty>(_json, QStringLiteral("ephemeral"), pod.ephemeral);
-    addParam<IfNotEmpty>(_json, QStringLiteral("include_leave"), pod.includeLeave);
-    addParam<IfNotEmpty>(_json, QStringLiteral("state"), pod.state);
-    addParam<IfNotEmpty>(_json, QStringLiteral("timeline"), pod.timeline);
-    addParam<IfNotEmpty>(_json, QStringLiteral("account_data"), pod.accountData);
-    return _json;
+    QJsonObject jo;
+    addParam<IfNotEmpty>(jo, QStringLiteral("not_rooms"), pod.notRooms);
+    addParam<IfNotEmpty>(jo, QStringLiteral("rooms"), pod.rooms);
+    addParam<IfNotEmpty>(jo, QStringLiteral("ephemeral"), pod.ephemeral);
+    addParam<IfNotEmpty>(jo, QStringLiteral("include_leave"), pod.includeLeave);
+    addParam<IfNotEmpty>(jo, QStringLiteral("state"), pod.state);
+    addParam<IfNotEmpty>(jo, QStringLiteral("timeline"), pod.timeline);
+    addParam<IfNotEmpty>(jo, QStringLiteral("account_data"), pod.accountData);
+    return jo;
 }
 
-RoomFilter FromJson<RoomFilter>::operator()(const QJsonValue& jv)
+RoomFilter FromJsonObject<RoomFilter>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     RoomFilter result;
     result.notRooms =
-        fromJson<QStringList>(_json.value("not_rooms"_ls));
+        fromJson<QStringList>(jo.value("not_rooms"_ls));
     result.rooms =
-        fromJson<QStringList>(_json.value("rooms"_ls));
+        fromJson<QStringList>(jo.value("rooms"_ls));
     result.ephemeral =
-        fromJson<RoomEventFilter>(_json.value("ephemeral"_ls));
+        fromJson<RoomEventFilter>(jo.value("ephemeral"_ls));
     result.includeLeave =
-        fromJson<bool>(_json.value("include_leave"_ls));
+        fromJson<bool>(jo.value("include_leave"_ls));
     result.state =
-        fromJson<RoomEventFilter>(_json.value("state"_ls));
+        fromJson<RoomEventFilter>(jo.value("state"_ls));
     result.timeline =
-        fromJson<RoomEventFilter>(_json.value("timeline"_ls));
+        fromJson<RoomEventFilter>(jo.value("timeline"_ls));
     result.accountData =
-        fromJson<RoomEventFilter>(_json.value("account_data"_ls));
-    
+        fromJson<RoomEventFilter>(jo.value("account_data"_ls));
+
     return result;
 }
 
 QJsonObject QMatrixClient::toJson(const SyncFilter& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("event_fields"), pod.eventFields);
-    addParam<IfNotEmpty>(_json, QStringLiteral("event_format"), pod.eventFormat);
-    addParam<IfNotEmpty>(_json, QStringLiteral("presence"), pod.presence);
-    addParam<IfNotEmpty>(_json, QStringLiteral("account_data"), pod.accountData);
-    addParam<IfNotEmpty>(_json, QStringLiteral("room"), pod.room);
-    return _json;
+    QJsonObject jo;
+    addParam<IfNotEmpty>(jo, QStringLiteral("event_fields"), pod.eventFields);
+    addParam<IfNotEmpty>(jo, QStringLiteral("event_format"), pod.eventFormat);
+    addParam<IfNotEmpty>(jo, QStringLiteral("presence"), pod.presence);
+    addParam<IfNotEmpty>(jo, QStringLiteral("account_data"), pod.accountData);
+    addParam<IfNotEmpty>(jo, QStringLiteral("room"), pod.room);
+    return jo;
 }
 
-SyncFilter FromJson<SyncFilter>::operator()(const QJsonValue& jv)
+SyncFilter FromJsonObject<SyncFilter>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     SyncFilter result;
     result.eventFields =
-        fromJson<QStringList>(_json.value("event_fields"_ls));
+        fromJson<QStringList>(jo.value("event_fields"_ls));
     result.eventFormat =
-        fromJson<QString>(_json.value("event_format"_ls));
+        fromJson<QString>(jo.value("event_format"_ls));
     result.presence =
-        fromJson<Filter>(_json.value("presence"_ls));
+        fromJson<Filter>(jo.value("presence"_ls));
     result.accountData =
-        fromJson<Filter>(_json.value("account_data"_ls));
+        fromJson<Filter>(jo.value("account_data"_ls));
     result.room =
-        fromJson<RoomFilter>(_json.value("room"_ls));
-    
+        fromJson<RoomFilter>(jo.value("room"_ls));
+
     return result;
 }
 
