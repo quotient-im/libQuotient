@@ -726,7 +726,7 @@ void Room::addTag(const QString& name, const TagRecord& record)
     d->sendTagUpdates();
 }
 
-void Room::addTag(const QString& name, const QString& order)
+void Room::addTag(const QString& name, TagRecord::order_type order)
 {
     addTag(name, TagRecord{order});
 }
