@@ -109,8 +109,8 @@ QIODevice* GetContentJob::data() const
 
 BaseJob::Status GetContentJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
-    d->contentDisposition = reply->rawHeader("Content-Disposition"); 
+    d->contentType = reply->rawHeader("Content-Type");
+    d->contentDisposition = reply->rawHeader("Content-Disposition");
     d->data = reply;
     return Success;
 }
@@ -168,8 +168,8 @@ QIODevice* GetContentOverrideNameJob::data() const
 
 BaseJob::Status GetContentOverrideNameJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
-    d->contentDisposition = reply->rawHeader("Content-Disposition"); 
+    d->contentType = reply->rawHeader("Content-Type");
+    d->contentDisposition = reply->rawHeader("Content-Disposition");
     d->data = reply;
     return Success;
 }
@@ -224,7 +224,7 @@ QIODevice* GetContentThumbnailJob::data() const
 
 BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 {
-    d->contentType = reply->rawHeader("Content-Type"); 
+    d->contentType = reply->rawHeader("Content-Type");
     d->data = reply;
     return Success;
 }
@@ -284,7 +284,7 @@ BaseJob::Status GetUrlPreviewJob::parseJson(const QJsonDocument& data)
 class GetConfigJob::Private
 {
     public:
-        Omittable<double> uploadSize;
+        Omittable<qint64> uploadSize;
 };
 
 QUrl GetConfigJob::makeRequestUrl(QUrl baseUrl)
@@ -304,7 +304,7 @@ GetConfigJob::GetConfigJob()
 
 GetConfigJob::~GetConfigJob() = default;
 
-Omittable<double> GetConfigJob::uploadSize() const
+Omittable<qint64> GetConfigJob::uploadSize() const
 {
     return d->uploadSize;
 }
@@ -312,7 +312,7 @@ Omittable<double> GetConfigJob::uploadSize() const
 BaseJob::Status GetConfigJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->uploadSize = fromJson<double>(json.value("m.upload.size"_ls));
+    d->uploadSize = fromJson<qint64>(json.value("m.upload.size"_ls));
     return Success;
 }
 

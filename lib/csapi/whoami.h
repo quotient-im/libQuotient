@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Gets information about the owner of an access token.
-    /// 
+    ///
     /// Gets information about the owner of a given access token. 
     /// 
     /// Note that, as with the rest of the Client-Server API, 

@@ -13,7 +13,7 @@ namespace QMatrixClient
     // Operations
 
     /// Send a message event to the given room.
-    /// 
+    ///
     /// This endpoint is used to send a message event to a room. Message events
     /// allow access to historical events and pagination, making them suited
     /// for "once-off" activity in a room.
@@ -25,15 +25,15 @@ namespace QMatrixClient
     {
         public:
             /*! Send a message event to the given room.
-             * \param roomId 
+             * \param roomId
              *   The room to send the event to.
-             * \param eventType 
+             * \param eventType
              *   The type of event to send.
-             * \param txnId 
+             * \param txnId
              *   The transaction ID for this event. Clients should generate an
              *   ID unique across requests with the same access token; it will be
              *   used by the server to ensure idempotency of requests.
-             * \param body 
+             * \param body
              *   This endpoint is used to send a message event to a room. Message events
              *   allow access to historical events and pagination, making them suited
              *   for "once-off" activity in a room.

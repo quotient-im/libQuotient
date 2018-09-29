@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include "csapi/../identity/definitions/sid.h"
 #include "converters.h"
 #include "csapi/definitions/auth_data.h"
 
@@ -14,7 +15,7 @@ namespace QMatrixClient
     // Operations
 
     /// Register for an account on this homeserver.
-    /// 
+    ///
     /// This API endpoint uses the `User-Interactive Authentication API`_.
     /// 
     /// Register for an account on this homeserver.
@@ -49,9 +50,9 @@ namespace QMatrixClient
     {
         public:
             /*! Register for an account on this homeserver.
-             * \param kind 
+             * \param kind
              *   The kind of account to register. Defaults to `user`.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the
              *   user-interactive authentication API. Note that this
              *   information is *not* used to define how the registered user
@@ -59,23 +60,27 @@ namespace QMatrixClient
              *   authenticate the ``register`` call itself. It should be
              *   left empty, or omitted, unless an earlier call returned an
              *   response with status code 401.
-             * \param bindEmail 
+             * \param bindEmail
              *   If true, the server binds the email used for authentication to
-             *   the Matrix ID with the ID Server.
-             * \param username 
+             *   the Matrix ID with the identity server.
+             * \param username
              *   The basis for the localpart of the desired Matrix ID. If omitted,
              *   the homeserver MUST generate a Matrix ID local part.
-             * \param password 
+             * \param password
              *   The desired password for the account.
-             * \param deviceId 
+             * \param deviceId
              *   ID of the client device. If this does not correspond to a
              *   known client device, a new device will be created. The server
              *   will auto-generate a device_id if this is not specified.
-             * \param initialDeviceDisplayName 
+             * \param initialDeviceDisplayName
              *   A display name to assign to the newly-created device. Ignored
              *   if ``device_id`` corresponds to a known device.
+             * \param inhibitLogin
+             *   If true, an ``access_token`` and ``device_id`` should not be
+             *   returned from this call, therefore preventing an automatic
+             *   login. Defaults to false.
              */
-            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const Omittable<AuthenticationData>& auth = none, bool bindEmail = false, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {});
+            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const Omittable<AuthenticationData>& auth = none, bool bindEmail = false, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {}, bool inhibitLogin = false);
             ~RegisterJob() override;
 
             // Result properties
@@ -87,6 +92,7 @@ namespace QMatrixClient
             const QString& userId() const;
             /// An access token for the account.
             /// This access token can then be used to authorize other requests.
+            /// Required if the ``inhibit_login`` option is false.
             const QString& accessToken() const;
             /// The server_name of the homeserver on which the account has
             /// been registered.
@@ -97,6 +103,7 @@ namespace QMatrixClient
             const QString& homeServer() const;
             /// ID of the registered device. Will be the same as the
             /// corresponding parameter in the request, if one was specified.
+            /// Required if the ``inhibit_login`` option is false.
             const QString& deviceId() const;
 
         protected:
@@ -107,55 +114,111 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 
-    /// Requests a validation token be sent to the given email address for the purpose of registering an account
-    /// 
-    /// Proxies the identity server API ``validate/email/requestToken``, but
+    /// Begins the validation process for an email to be used during registration.
+    ///
+    /// Proxies the Identity Service API ``validate/email/requestToken``, but
     /// first checks that the given email address is not already associated
-    /// with an account on this Home Server. See the Identity Server API for
+    /// with an account on this homeserver. See the Identity Service API for
     /// further information.
     class RequestTokenToRegisterEmailJob : public BaseJob
     {
         public:
-            /*! Requests a validation token be sent to the given email address for the purpose of registering an account
-             * \param clientSecret 
-             *   Client-generated secret string used to protect this session
-             * \param email 
-             *   The email address
-             * \param sendAttempt 
-             *   Used to distinguish protocol level retries from requests to re-send the email.
-             * \param idServer 
-             *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
+            /*! Begins the validation process for an email to be used during registration.
+             * \param clientSecret
+             *   A unique string generated by the client, and used to identify the
+             *   validation attempt. It must be a string consisting of the characters
+             *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
+             *   must not be empty.
+             * \param email
+             *   The email address to validate.
+             * \param sendAttempt
+             *   The server will only send an email if the ``send_attempt``
+             *   is a number greater than the most recent one which it has seen,
+             *   scoped to that ``email`` + ``client_secret`` pair. This is to
+             *   avoid repeatedly sending the same email in the case of request
+             *   retries between the POSTing user and the identity server.
+             *   The client should increment this value if they desire a new
+             *   email (e.g. a reminder) to be sent.
+             * \param idServer
+             *   The hostname of the identity server to communicate with. May
+             *   optionally include a port.
+             * \param nextLink
+             *   Optional. When the validation is completed, the identity
+             *   server will redirect the user to this URL.
              */
-            explicit RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer = {});
+            explicit RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer, const QString& nextLink = {});
+            ~RequestTokenToRegisterEmailJob() override;
+
+            // Result properties
+
+            /// An email has been sent to the specified address.
+            /// Note that this may be an email containing the validation token or it may be informing
+            /// the user of an error.
+            const Sid& data() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
     };
 
     /// Requests a validation token be sent to the given phone number for the purpose of registering an account
-    /// 
-    /// Proxies the identity server API ``validate/msisdn/requestToken``, but
+    ///
+    /// Proxies the Identity Service API ``validate/msisdn/requestToken``, but
     /// first checks that the given phone number is not already associated
-    /// with an account on this Home Server. See the Identity Server API for
+    /// with an account on this homeserver. See the Identity Service API for
     /// further information.
     class RequestTokenToRegisterMSISDNJob : public BaseJob
     {
         public:
             /*! Requests a validation token be sent to the given phone number for the purpose of registering an account
-             * \param clientSecret 
-             *   Client-generated secret string used to protect this session.
-             * \param country 
+             * \param clientSecret
+             *   A unique string generated by the client, and used to identify the
+             *   validation attempt. It must be a string consisting of the characters
+             *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
+             *   must not be empty.
+             * \param country
              *   The two-letter uppercase ISO country code that the number in
              *   ``phone_number`` should be parsed as if it were dialled from.
-             * \param phoneNumber 
-             *   The phone number.
-             * \param sendAttempt 
-             *   Used to distinguish protocol level retries from requests to re-send the SMS message.
-             * \param idServer 
-             *   The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
+             * \param phoneNumber
+             *   The phone number to validate.
+             * \param sendAttempt
+             *   The server will only send an SMS if the ``send_attempt`` is a
+             *   number greater than the most recent one which it has seen,
+             *   scoped to that ``country`` + ``phone_number`` + ``client_secret``
+             *   triple. This is to avoid repeatedly sending the same SMS in
+             *   the case of request retries between the POSTing user and the
+             *   identity server. The client should increment this value if
+             *   they desire a new SMS (e.g. a reminder) to be sent.
+             * \param idServer
+             *   The hostname of the identity server to communicate with. May
+             *   optionally include a port.
+             * \param nextLink
+             *   Optional. When the validation is completed, the identity
+             *   server will redirect the user to this URL.
              */
-            explicit RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, double sendAttempt, const QString& idServer = {});
+            explicit RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, int sendAttempt, const QString& idServer, const QString& nextLink = {});
+            ~RequestTokenToRegisterMSISDNJob() override;
+
+            // Result properties
+
+            /// An SMS message has been sent to the specified phone number.
+            /// Note that this may be an SMS message containing the validation token or it may be informing
+            /// the user of an error.
+            const Sid& data() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
     };
 
     /// Changes a user's password.
-    /// 
+    ///
     /// Changes the password for an account on this homeserver.
     /// 
     /// This API endpoint uses the `User-Interactive Authentication API`_.
@@ -169,19 +232,19 @@ namespace QMatrixClient
     {
         public:
             /*! Changes a user's password.
-             * \param newPassword 
+             * \param newPassword
              *   The new password for the account.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the user-interactive authentication API.
              */
             explicit ChangePasswordJob(const QString& newPassword, const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Requests a validation token be sent to the given email address for the purpose of resetting a user's password
-    /// 
-    /// Proxies the identity server API ``validate/email/requestToken``, but
+    ///
+    /// Proxies the Identity Service API ``validate/email/requestToken``, but
     /// first checks that the given email address **is** associated with an account
-    /// on this Home Server. This API should be used to request
+    /// on this homeserver. This API should be used to request
     /// validation tokens when authenticating for the
     /// `account/password` endpoint. This API's parameters and response are
     /// identical to that of the HS API |/register/email/requestToken|_ except that
@@ -196,28 +259,55 @@ namespace QMatrixClient
     class RequestTokenToResetPasswordEmailJob : public BaseJob
     {
         public:
-            explicit RequestTokenToResetPasswordEmailJob();
-
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * RequestTokenToResetPasswordEmailJob is necessary but the job
-             * itself isn't.
+            /*! Requests a validation token be sent to the given email address for the purpose of resetting a user's password
+             * \param clientSecret
+             *   A unique string generated by the client, and used to identify the
+             *   validation attempt. It must be a string consisting of the characters
+             *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
+             *   must not be empty.
+             * \param email
+             *   The email address to validate.
+             * \param sendAttempt
+             *   The server will only send an email if the ``send_attempt``
+             *   is a number greater than the most recent one which it has seen,
+             *   scoped to that ``email`` + ``client_secret`` pair. This is to
+             *   avoid repeatedly sending the same email in the case of request
+             *   retries between the POSTing user and the identity server.
+             *   The client should increment this value if they desire a new
+             *   email (e.g. a reminder) to be sent.
+             * \param idServer
+             *   The hostname of the identity server to communicate with. May
+             *   optionally include a port.
+             * \param nextLink
+             *   Optional. When the validation is completed, the identity
+             *   server will redirect the user to this URL.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl);
+            explicit RequestTokenToResetPasswordEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer, const QString& nextLink = {});
+            ~RequestTokenToResetPasswordEmailJob() override;
 
+            // Result properties
+
+            /// An email was sent to the given address.
+            const Sid& data() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
     };
 
     /// Requests a validation token be sent to the given phone number for the purpose of resetting a user's password.
-    /// 
-    /// Proxies the identity server API ``validate/msisdn/requestToken``, but
+    ///
+    /// Proxies the Identity Service API ``validate/msisdn/requestToken``, but
     /// first checks that the given phone number **is** associated with an account
-    /// on this Home Server. This API should be used to request
+    /// on this homeserver. This API should be used to request
     /// validation tokens when authenticating for the
     /// `account/password` endpoint. This API's parameters and response are
     /// identical to that of the HS API |/register/msisdn/requestToken|_ except that
     /// `M_THREEPID_NOT_FOUND` may be returned if no account matching the
-    /// given email address could be found. The server may instead send an
+    /// given phone number could be found. The server may instead send an
     /// SMS message to the given address prompting the user to create an account.
     /// `M_THREEPID_IN_USE` may not be returned.
     /// 
@@ -227,20 +317,50 @@ namespace QMatrixClient
     class RequestTokenToResetPasswordMSISDNJob : public BaseJob
     {
         public:
-            explicit RequestTokenToResetPasswordMSISDNJob();
-
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * RequestTokenToResetPasswordMSISDNJob is necessary but the job
-             * itself isn't.
+            /*! Requests a validation token be sent to the given phone number for the purpose of resetting a user's password.
+             * \param clientSecret
+             *   A unique string generated by the client, and used to identify the
+             *   validation attempt. It must be a string consisting of the characters
+             *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
+             *   must not be empty.
+             * \param country
+             *   The two-letter uppercase ISO country code that the number in
+             *   ``phone_number`` should be parsed as if it were dialled from.
+             * \param phoneNumber
+             *   The phone number to validate.
+             * \param sendAttempt
+             *   The server will only send an SMS if the ``send_attempt`` is a
+             *   number greater than the most recent one which it has seen,
+             *   scoped to that ``country`` + ``phone_number`` + ``client_secret``
+             *   triple. This is to avoid repeatedly sending the same SMS in
+             *   the case of request retries between the POSTing user and the
+             *   identity server. The client should increment this value if
+             *   they desire a new SMS (e.g. a reminder) to be sent.
+             * \param idServer
+             *   The hostname of the identity server to communicate with. May
+             *   optionally include a port.
+             * \param nextLink
+             *   Optional. When the validation is completed, the identity
+             *   server will redirect the user to this URL.
              */
-            static QUrl makeRequestUrl(QUrl baseUrl);
+            explicit RequestTokenToResetPasswordMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, int sendAttempt, const QString& idServer, const QString& nextLink = {});
+            ~RequestTokenToResetPasswordMSISDNJob() override;
 
+            // Result properties
+
+            /// An SMS message was sent to the given phone number.
+            const Sid& data() const;
+
+        protected:
+            Status parseJson(const QJsonDocument& data) override;
+
+        private:
+            class Private;
+            QScopedPointer<Private> d;
     };
 
     /// Deactivate a user's account.
-    /// 
+    ///
     /// Deactivate the user's account, removing all ability for the user to
     /// login again.
     /// 
@@ -255,14 +375,14 @@ namespace QMatrixClient
     {
         public:
             /*! Deactivate a user's account.
-             * \param auth 
+             * \param auth
              *   Additional authentication information for the user-interactive authentication API.
              */
             explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none);
     };
 
     /// Checks to see if a username is available on the server.
-    /// 
+    ///
     /// Checks to see if a username is available, and valid, for the server.
     /// 
     /// The server should check to ensure that, at the time of the request, the
@@ -279,7 +399,7 @@ namespace QMatrixClient
     {
         public:
             /*! Checks to see if a username is available on the server.
-             * \param username 
+             * \param username
              *   The username to check the availability of.
              */
             explicit CheckUsernameAvailabilityJob(const QString& username);

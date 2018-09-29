@@ -77,11 +77,7 @@ const Device& GetDeviceJob::data() const
 
 BaseJob::Status GetDeviceJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<Device>(json.value("data"_ls));
+    d->data = fromJson<Device>(data);
     return Success;
 }
 

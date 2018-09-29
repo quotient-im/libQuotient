@@ -21,15 +21,15 @@ namespace QMatrixClient
 {{#in?}}
     QJsonObject toJson(const {{name}}& pod);
 {{/in?}}{{#out?}}
-    template <> struct FromJson<{{name}}>
+    template <> struct FromJsonObject<{{name}}>
     {
-        {{name}} operator()(const QJsonValue& jv);
+        {{name}} operator()({{^propertyMap}}const QJsonObject&{{/propertyMap}}{{#propertyMap}}QJsonObject{{/propertyMap}} jo) const;
     };
 {{/    out?}}{{/model}}
 {{/models}}{{#operations}}    // Operations
 {{#    operation}}{{#summary}}
     /// {{summary}}{{#description?}}{{!add a linebreak between summary and description if both exist}}
-    /// {{/description?}}{{/summary}}{{#description}}
+    ///{{/description?}}{{/summary}}{{#description}}
     /// {{_}}{{/description}}
     class {{camelCaseOperationId}}Job : public BaseJob
     {
@@ -48,7 +48,7 @@ namespace QMatrixClient
             // Construction/destruction
 {{/        models}}{{#allParams?}}
             /*! {{summary}}{{#allParams}}
-             * \param {{nameCamelCase}} {{#description}}
+             * \param {{nameCamelCase}}{{#description}}
              *   {{_}}{{/description}}{{/allParams}}
              */{{/allParams?}}
             explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});{{^bodyParams}}

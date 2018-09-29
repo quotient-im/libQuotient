@@ -8,67 +8,73 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const FieldType& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("regexp"), pod.regexp);
-    addParam<IfNotEmpty>(_json, QStringLiteral("placeholder"), pod.placeholder);
-    return _json;
+    QJsonObject jo;
+    addParam<>(jo, QStringLiteral("regexp"), pod.regexp);
+    addParam<>(jo, QStringLiteral("placeholder"), pod.placeholder);
+    return jo;
 }
 
-FieldType FromJson<FieldType>::operator()(const QJsonValue& jv)
+FieldType FromJsonObject<FieldType>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     FieldType result;
     result.regexp =
-        fromJson<QString>(_json.value("regexp"_ls));
+        fromJson<QString>(jo.value("regexp"_ls));
     result.placeholder =
-        fromJson<QString>(_json.value("placeholder"_ls));
-    
+        fromJson<QString>(jo.value("placeholder"_ls));
+
     return result;
 }
 
-QJsonObject QMatrixClient::toJson(const FieldTypes& pod)
+QJsonObject QMatrixClient::toJson(const ProtocolInstance& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("fieldname"), pod.fieldname);
-    return _json;
+    QJsonObject jo;
+    addParam<>(jo, QStringLiteral("desc"), pod.desc);
+    addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
+    addParam<>(jo, QStringLiteral("fields"), pod.fields);
+    addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
+    return jo;
 }
 
-FieldTypes FromJson<FieldTypes>::operator()(const QJsonValue& jv)
+ProtocolInstance FromJsonObject<ProtocolInstance>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
-    FieldTypes result;
-    result.fieldname =
-        fromJson<FieldType>(_json.value("fieldname"_ls));
-    
+    ProtocolInstance result;
+    result.desc =
+        fromJson<QString>(jo.value("desc"_ls));
+    result.icon =
+        fromJson<QString>(jo.value("icon"_ls));
+    result.fields =
+        fromJson<QJsonObject>(jo.value("fields"_ls));
+    result.networkId =
+        fromJson<QString>(jo.value("network_id"_ls));
+
     return result;
 }
 
 QJsonObject QMatrixClient::toJson(const ThirdPartyProtocol& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("user_fields"), pod.userFields);
-    addParam<IfNotEmpty>(_json, QStringLiteral("location_fields"), pod.locationFields);
-    addParam<IfNotEmpty>(_json, QStringLiteral("icon"), pod.icon);
-    addParam<IfNotEmpty>(_json, QStringLiteral("field_types"), pod.fieldTypes);
-    addParam<IfNotEmpty>(_json, QStringLiteral("instances"), pod.instances);
-    return _json;
+    QJsonObject jo;
+    addParam<>(jo, QStringLiteral("user_fields"), pod.userFields);
+    addParam<>(jo, QStringLiteral("location_fields"), pod.locationFields);
+    addParam<>(jo, QStringLiteral("icon"), pod.icon);
+    addParam<>(jo, QStringLiteral("field_types"), pod.fieldTypes);
+    addParam<>(jo, QStringLiteral("instances"), pod.instances);
+    return jo;
 }
 
-ThirdPartyProtocol FromJson<ThirdPartyProtocol>::operator()(const QJsonValue& jv)
+ThirdPartyProtocol FromJsonObject<ThirdPartyProtocol>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     ThirdPartyProtocol result;
     result.userFields =
-        fromJson<QStringList>(_json.value("user_fields"_ls));
+        fromJson<QStringList>(jo.value("user_fields"_ls));
     result.locationFields =
-        fromJson<QStringList>(_json.value("location_fields"_ls));
+        fromJson<QStringList>(jo.value("location_fields"_ls));
     result.icon =
-        fromJson<QString>(_json.value("icon"_ls));
+        fromJson<QString>(jo.value("icon"_ls));
     result.fieldTypes =
-        fromJson<FieldTypes>(_json.value("field_types"_ls));
+        fromJson<QHash<QString, FieldType>>(jo.value("field_types"_ls));
     result.instances =
-        fromJson<QVector<QJsonObject>>(_json.value("instances"_ls));
-    
+        fromJson<QVector<ProtocolInstance>>(jo.value("instances"_ls));
+
     return result;
 }
 

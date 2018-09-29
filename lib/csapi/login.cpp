@@ -16,14 +16,13 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetLoginFlowsJob::LoginFlow>
+    template <> struct FromJsonObject<GetLoginFlowsJob::LoginFlow>
     {
-        GetLoginFlowsJob::LoginFlow operator()(const QJsonValue& jv)
+        GetLoginFlowsJob::LoginFlow operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetLoginFlowsJob::LoginFlow result;
             result.type =
-                fromJson<QString>(_json.value("type"_ls));
+                fromJson<QString>(jo.value("type"_ls));
 
             return result;
         }

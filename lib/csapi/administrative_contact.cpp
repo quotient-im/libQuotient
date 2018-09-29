@@ -16,16 +16,19 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetAccount3PIDsJob::ThirdPartyIdentifier>
+    template <> struct FromJsonObject<GetAccount3PIDsJob::ThirdPartyIdentifier>
     {
-        GetAccount3PIDsJob::ThirdPartyIdentifier operator()(const QJsonValue& jv)
+        GetAccount3PIDsJob::ThirdPartyIdentifier operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetAccount3PIDsJob::ThirdPartyIdentifier result;
             result.medium =
-                fromJson<QString>(_json.value("medium"_ls));
+                fromJson<QString>(jo.value("medium"_ls));
             result.address =
-                fromJson<QString>(_json.value("address"_ls));
+                fromJson<QString>(jo.value("address"_ls));
+            result.validatedAt =
+                fromJson<qint64>(jo.value("validated_at"_ls));
+            result.addedAt =
+                fromJson<qint64>(jo.value("added_at"_ls));
 
             return result;
         }
@@ -73,11 +76,11 @@ namespace QMatrixClient
 
     QJsonObject toJson(const Post3PIDsJob::ThreePidCredentials& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("client_secret"), pod.clientSecret);
-        addParam<>(_json, QStringLiteral("id_server"), pod.idServer);
-        addParam<>(_json, QStringLiteral("sid"), pod.sid);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
+        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
+        addParam<>(jo, QStringLiteral("sid"), pod.sid);
+        return jo;
     }
 } // namespace QMatrixClient
 
@@ -93,31 +96,86 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
     setRequestData(_data);
 }
 
-QUrl RequestTokenTo3PIDEmailJob::makeRequestUrl(QUrl baseUrl)
+static const auto Delete3pidFromAccountJobName = QStringLiteral("Delete3pidFromAccountJob");
+
+Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium, const QString& address)
+    : BaseJob(HttpVerb::Post, Delete3pidFromAccountJobName,
+        basePath % "/account/3pid/delete")
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/account/3pid/email/requestToken");
+    QJsonObject _data;
+    addParam<>(_data, QStringLiteral("medium"), medium);
+    addParam<>(_data, QStringLiteral("address"), address);
+    setRequestData(_data);
 }
+
+class RequestTokenTo3PIDEmailJob::Private
+{
+    public:
+        Sid data;
+};
 
 static const auto RequestTokenTo3PIDEmailJobName = QStringLiteral("RequestTokenTo3PIDEmailJob");
 
-RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob()
+RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenTo3PIDEmailJobName,
         basePath % "/account/3pid/email/requestToken", false)
+    , d(new Private)
 {
+    QJsonObject _data;
+    addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
+    addParam<>(_data, QStringLiteral("email"), email);
+    addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
+    setRequestData(_data);
 }
 
-QUrl RequestTokenTo3PIDMSISDNJob::makeRequestUrl(QUrl baseUrl)
+RequestTokenTo3PIDEmailJob::~RequestTokenTo3PIDEmailJob() = default;
+
+const Sid& RequestTokenTo3PIDEmailJob::data() const
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/account/3pid/msisdn/requestToken");
+    return d->data;
 }
+
+BaseJob::Status RequestTokenTo3PIDEmailJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
+}
+
+class RequestTokenTo3PIDMSISDNJob::Private
+{
+    public:
+        Sid data;
+};
 
 static const auto RequestTokenTo3PIDMSISDNJobName = QStringLiteral("RequestTokenTo3PIDMSISDNJob");
 
-RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob()
+RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenTo3PIDMSISDNJobName,
         basePath % "/account/3pid/msisdn/requestToken", false)
+    , d(new Private)
 {
+    QJsonObject _data;
+    addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
+    addParam<>(_data, QStringLiteral("country"), country);
+    addParam<>(_data, QStringLiteral("phone_number"), phoneNumber);
+    addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
+    setRequestData(_data);
+}
+
+RequestTokenTo3PIDMSISDNJob::~RequestTokenTo3PIDMSISDNJob() = default;
+
+const Sid& RequestTokenTo3PIDMSISDNJob::data() const
+{
+    return d->data;
+}
+
+BaseJob::Status RequestTokenTo3PIDMSISDNJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
 }
 

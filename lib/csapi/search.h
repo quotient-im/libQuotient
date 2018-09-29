@@ -6,19 +6,19 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QJsonObject>
+#include "csapi/definitions/room_event_filter.h"
 #include "converters.h"
 #include <QtCore/QVector>
+#include "events/eventloader.h"
 #include <unordered_map>
 #include <QtCore/QHash>
-#include "events/eventloader.h"
 
 namespace QMatrixClient
 {
     // Operations
 
     /// Perform a server-side search.
-    /// 
+    ///
     /// Performs a full text search across different categories.
     class SearchJob : public BaseJob
     {
@@ -65,7 +65,7 @@ namespace QMatrixClient
                 /// The keys to search. Defaults to all.
                 QStringList keys;
                 /// This takes a `filter`_.
-                QJsonObject filter;
+                Omittable<RoomEventFilter> filter;
                 /// The order in which to search for results.
                 /// By default, this is ``"rank"``.
                 QString orderBy;
@@ -146,7 +146,7 @@ namespace QMatrixClient
             struct ResultRoomEvents
             {
                 /// An approximate count of the total number of results found.
-                Omittable<qint64> count;
+                Omittable<int> count;
                 /// List of words which should be highlighted, useful for stemming which may change the query terms.
                 QStringList highlights;
                 /// List of results in the requested order.
@@ -181,11 +181,11 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Perform a server-side search.
-             * \param searchCategories 
+             * \param searchCategories
              *   Describes which categories to search in and their criteria.
-             * \param nextBatch 
+             * \param nextBatch
              *   The point to return events from. If given, this should be a
-             *   `next_batch` result from a previous call to this endpoint.
+             *   ``next_batch`` result from a previous call to this endpoint.
              */
             explicit SearchJob(const Categories& searchCategories, const QString& nextBatch = {});
             ~SearchJob() override;

@@ -30,7 +30,7 @@ BaseJob::Query queryToRegister(const QString& kind)
 
 static const auto RegisterJobName = QStringLiteral("RegisterJob");
 
-RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth, bool bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName)
+RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth, bool bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName, bool inhibitLogin)
     : BaseJob(HttpVerb::Post, RegisterJobName,
         basePath % "/register",
         queryToRegister(kind),
@@ -44,6 +44,7 @@ RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData
     addParam<IfNotEmpty>(_data, QStringLiteral("password"), password);
     addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
     addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"), initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_data, QStringLiteral("inhibit_login"), inhibitLogin);
     setRequestData(_data);
 }
 
@@ -72,6 +73,9 @@ const QString& RegisterJob::deviceId() const
 BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
+    if (!json.contains("user_id"_ls))
+        return { JsonParseError,
+            "The key 'user_id' not found in the response" };
     d->userId = fromJson<QString>(json.value("user_id"_ls));
     d->accessToken = fromJson<QString>(json.value("access_token"_ls));
     d->homeServer = fromJson<QString>(json.value("home_server"_ls));
@@ -79,33 +83,75 @@ BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
+class RequestTokenToRegisterEmailJob::Private
+{
+    public:
+        Sid data;
+};
+
 static const auto RequestTokenToRegisterEmailJobName = QStringLiteral("RequestTokenToRegisterEmailJob");
 
-RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer)
+RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenToRegisterEmailJobName,
         basePath % "/register/email/requestToken", false)
+    , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("id_server"), idServer);
     addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
     addParam<>(_data, QStringLiteral("email"), email);
     addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
     setRequestData(_data);
 }
 
+RequestTokenToRegisterEmailJob::~RequestTokenToRegisterEmailJob() = default;
+
+const Sid& RequestTokenToRegisterEmailJob::data() const
+{
+    return d->data;
+}
+
+BaseJob::Status RequestTokenToRegisterEmailJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
+}
+
+class RequestTokenToRegisterMSISDNJob::Private
+{
+    public:
+        Sid data;
+};
+
 static const auto RequestTokenToRegisterMSISDNJobName = QStringLiteral("RequestTokenToRegisterMSISDNJob");
 
-RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, double sendAttempt, const QString& idServer)
+RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenToRegisterMSISDNJobName,
         basePath % "/register/msisdn/requestToken", false)
+    , d(new Private)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("id_server"), idServer);
     addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
     addParam<>(_data, QStringLiteral("country"), country);
     addParam<>(_data, QStringLiteral("phone_number"), phoneNumber);
     addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
     setRequestData(_data);
+}
+
+RequestTokenToRegisterMSISDNJob::~RequestTokenToRegisterMSISDNJob() = default;
+
+const Sid& RequestTokenToRegisterMSISDNJob::data() const
+{
+    return d->data;
+}
+
+BaseJob::Status RequestTokenToRegisterMSISDNJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
 }
 
 static const auto ChangePasswordJobName = QStringLiteral("ChangePasswordJob");
@@ -120,32 +166,75 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword, const Omittable
     setRequestData(_data);
 }
 
-QUrl RequestTokenToResetPasswordEmailJob::makeRequestUrl(QUrl baseUrl)
+class RequestTokenToResetPasswordEmailJob::Private
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/account/password/email/requestToken");
-}
+    public:
+        Sid data;
+};
 
 static const auto RequestTokenToResetPasswordEmailJobName = QStringLiteral("RequestTokenToResetPasswordEmailJob");
 
-RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob()
+RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(const QString& clientSecret, const QString& email, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordEmailJobName,
         basePath % "/account/password/email/requestToken", false)
+    , d(new Private)
 {
+    QJsonObject _data;
+    addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
+    addParam<>(_data, QStringLiteral("email"), email);
+    addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
+    setRequestData(_data);
 }
 
-QUrl RequestTokenToResetPasswordMSISDNJob::makeRequestUrl(QUrl baseUrl)
+RequestTokenToResetPasswordEmailJob::~RequestTokenToResetPasswordEmailJob() = default;
+
+const Sid& RequestTokenToResetPasswordEmailJob::data() const
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/account/password/msisdn/requestToken");
+    return d->data;
 }
+
+BaseJob::Status RequestTokenToResetPasswordEmailJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
+}
+
+class RequestTokenToResetPasswordMSISDNJob::Private
+{
+    public:
+        Sid data;
+};
 
 static const auto RequestTokenToResetPasswordMSISDNJobName = QStringLiteral("RequestTokenToResetPasswordMSISDNJob");
 
-RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob()
+RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(const QString& clientSecret, const QString& country, const QString& phoneNumber, int sendAttempt, const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordMSISDNJobName,
         basePath % "/account/password/msisdn/requestToken", false)
+    , d(new Private)
 {
+    QJsonObject _data;
+    addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
+    addParam<>(_data, QStringLiteral("country"), country);
+    addParam<>(_data, QStringLiteral("phone_number"), phoneNumber);
+    addParam<>(_data, QStringLiteral("send_attempt"), sendAttempt);
+    addParam<IfNotEmpty>(_data, QStringLiteral("next_link"), nextLink);
+    addParam<>(_data, QStringLiteral("id_server"), idServer);
+    setRequestData(_data);
+}
+
+RequestTokenToResetPasswordMSISDNJob::~RequestTokenToResetPasswordMSISDNJob() = default;
+
+const Sid& RequestTokenToResetPasswordMSISDNJob::data() const
+{
+    return d->data;
+}
+
+BaseJob::Status RequestTokenToResetPasswordMSISDNJob::parseJson(const QJsonDocument& data)
+{
+    d->data = fromJson<Sid>(data);
+    return Success;
 }
 
 static const auto DeactivateAccountJobName = QStringLiteral("DeactivateAccountJob");

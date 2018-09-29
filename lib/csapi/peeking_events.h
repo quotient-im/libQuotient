@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Listen on the event stream.
-    /// 
+    ///
     /// This will listen for new events related to a particular room and return
     /// them to the caller. This will block until an event is received, or until
     /// the ``timeout`` is reached.
@@ -29,12 +29,12 @@ namespace QMatrixClient
     {
         public:
             /*! Listen on the event stream.
-             * \param from 
+             * \param from
              *   The token to stream from. This token is either from a previous
              *   request to this API or from the initial sync API.
-             * \param timeout 
+             * \param timeout
              *   The maximum time in milliseconds to wait for an event.
-             * \param roomId 
+             * \param roomId
              *   The room ID for which events should be returned.
              */
             explicit PeekEventsJob(const QString& from = {}, Omittable<int> timeout = none, const QString& roomId = {});

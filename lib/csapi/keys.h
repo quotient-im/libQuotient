@@ -17,16 +17,16 @@ namespace QMatrixClient
     // Operations
 
     /// Upload end-to-end encryption keys.
-    /// 
+    ///
     /// Publishes end-to-end encryption keys for the device.
     class UploadKeysJob : public BaseJob
     {
         public:
             /*! Upload end-to-end encryption keys.
-             * \param deviceKeys 
+             * \param deviceKeys
              *   Identity keys for the device. May be absent if no new
              *   identity keys are required.
-             * \param oneTimeKeys 
+             * \param oneTimeKeys
              *   One-time public keys for "pre-key" messages.  The names of
              *   the properties should be in the format
              *   ``<algorithm>:<key_id>``. The format of the key is determined
@@ -52,7 +52,7 @@ namespace QMatrixClient
     };
 
     /// Download device identity keys.
-    /// 
+    ///
     /// Returns the current devices and identity keys for the given users.
     class QueryKeysJob : public BaseJob
     {
@@ -80,14 +80,14 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Download device identity keys.
-             * \param deviceKeys 
+             * \param deviceKeys
              *   The keys to be downloaded. A map from user ID, to a list of
              *   device IDs, or to an empty list to indicate all devices for the
              *   corresponding user.
-             * \param timeout 
+             * \param timeout
              *   The time (in milliseconds) to wait when downloading keys from
              *   remote servers. 10 seconds is the recommended default.
-             * \param token 
+             * \param token
              *   If the client is fetching keys as a result of a device update received
              *   in a sync request, this should be the 'since' token of that sync request,
              *   or any later sync token. This allows the server to ensure its response
@@ -122,16 +122,16 @@ namespace QMatrixClient
     };
 
     /// Claim one-time encryption keys.
-    /// 
+    ///
     /// Claims one-time keys for use in pre-key messages.
     class ClaimKeysJob : public BaseJob
     {
         public:
             /*! Claim one-time encryption keys.
-             * \param oneTimeKeys 
+             * \param oneTimeKeys
              *   The keys to be claimed. A map from user ID, to a map from
              *   device ID to algorithm name.
-             * \param timeout 
+             * \param timeout
              *   The time (in milliseconds) to wait when downloading keys from
              *   remote servers. 10 seconds is the recommended default.
              */
@@ -161,7 +161,7 @@ namespace QMatrixClient
     };
 
     /// Query users with recent device key updates.
-    /// 
+    ///
     /// Gets a list of users who have updated their device identity keys since a
     /// previous sync token.
     /// 
@@ -175,13 +175,13 @@ namespace QMatrixClient
     {
         public:
             /*! Query users with recent device key updates.
-             * \param from 
+             * \param from
              *   The desired start point of the list. Should be the ``next_batch`` field
              *   from a response to an earlier call to |/sync|. Users who have not
              *   uploaded new device identity keys since this point, nor deleted
              *   existing devices with identity keys since then, will be excluded
              *   from the results.
-             * \param to 
+             * \param to
              *   The desired end point of the list. Should be the ``next_batch``
              *   field from a recent call to |/sync| - typically the most recent
              *   such call. This may be used by the server as a hint to check its

@@ -16,16 +16,16 @@ namespace QMatrixClient
     // Operations
 
     /// Get a single event by event ID.
-    /// 
+    ///
     /// Get a single event based on ``roomId/eventId``. You must have permission to
     /// retrieve this event e.g. by being a member in the room for this event.
     class GetOneRoomEventJob : public BaseJob
     {
         public:
             /*! Get a single event by event ID.
-             * \param roomId 
+             * \param roomId
              *   The ID of the room the event is in.
-             * \param eventId 
+             * \param eventId
              *   The event ID to get.
              */
             explicit GetOneRoomEventJob(const QString& roomId, const QString& eventId);
@@ -54,7 +54,7 @@ namespace QMatrixClient
     };
 
     /// Get the state identified by the type and key.
-    /// 
+    ///
     /// Looks up the contents of a state event in a room. If the user is
     /// joined to the room then the state is taken from the current
     /// state of the room. If the user has left the room then the state is
@@ -63,11 +63,11 @@ namespace QMatrixClient
     {
         public:
             /*! Get the state identified by the type and key.
-             * \param roomId 
+             * \param roomId
              *   The room to look up the state in.
-             * \param eventType 
+             * \param eventType
              *   The type of state to look up.
-             * \param stateKey 
+             * \param stateKey
              *   The key of the state to look up.
              */
             explicit GetRoomStateWithKeyJob(const QString& roomId, const QString& eventType, const QString& stateKey);
@@ -96,7 +96,7 @@ namespace QMatrixClient
     };
 
     /// Get the state identified by the type, with the empty state key.
-    /// 
+    ///
     /// Looks up the contents of a state event in a room. If the user is
     /// joined to the room then the state is taken from the current
     /// state of the room. If the user has left the room then the state is
@@ -107,9 +107,9 @@ namespace QMatrixClient
     {
         public:
             /*! Get the state identified by the type, with the empty state key.
-             * \param roomId 
+             * \param roomId
              *   The room to look up the state in.
-             * \param eventType 
+             * \param eventType
              *   The type of state to look up.
              */
             explicit GetRoomStateByTypeJob(const QString& roomId, const QString& eventType);
@@ -138,13 +138,13 @@ namespace QMatrixClient
     };
 
     /// Get all state events in the current state of a room.
-    /// 
+    ///
     /// Get the state events for the current state of a room.
     class GetRoomStateJob : public BaseJob
     {
         public:
             /*! Get all state events in the current state of a room.
-             * \param roomId 
+             * \param roomId
              *   The room to look up the state for.
              */
             explicit GetRoomStateJob(const QString& roomId);
@@ -176,13 +176,13 @@ namespace QMatrixClient
     };
 
     /// Get the m.room.member events for the room.
-    /// 
+    ///
     /// Get the list of members for this room.
     class GetMembersByRoomJob : public BaseJob
     {
         public:
             /*! Get the m.room.member events for the room.
-             * \param roomId 
+             * \param roomId
              *   The room to get the member events for.
              */
             explicit GetMembersByRoomJob(const QString& roomId);
@@ -211,7 +211,7 @@ namespace QMatrixClient
     };
 
     /// Gets the list of currently joined users and their profile data.
-    /// 
+    ///
     /// This API returns a map of MXIDs to member info objects for members of the room. The current user must be in the room for it to work, unless it is an Application Service in which case any of the AS's users must be in the room. This API is primarily for Application Services and should be faster to respond than ``/members`` as it can be implemented more efficiently on the server.
     class GetJoinedMembersByRoomJob : public BaseJob
     {
@@ -230,7 +230,7 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Gets the list of currently joined users and their profile data.
-             * \param roomId 
+             * \param roomId
              *   The room to get the members of.
              */
             explicit GetJoinedMembersByRoomJob(const QString& roomId);

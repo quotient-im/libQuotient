@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Stop the requesting user participating in a particular room.
-    /// 
+    ///
     /// This API stops a user participating in a particular room.
     /// 
     /// If the user was already in the room, they will no longer be able to see
@@ -28,7 +28,7 @@ namespace QMatrixClient
     {
         public:
             /*! Stop the requesting user participating in a particular room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier to leave.
              */
             explicit LeaveRoomJob(const QString& roomId);
@@ -44,7 +44,7 @@ namespace QMatrixClient
     };
 
     /// Stop the requesting user remembering about a particular room.
-    /// 
+    ///
     /// This API stops a user remembering about a particular room.
     /// 
     /// In general, history is a first class citizen in Matrix. After this API
@@ -58,7 +58,7 @@ namespace QMatrixClient
     {
         public:
             /*! Stop the requesting user remembering about a particular room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier to forget.
              */
             explicit ForgetRoomJob(const QString& roomId);

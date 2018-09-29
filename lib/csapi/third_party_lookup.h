@@ -18,7 +18,7 @@ namespace QMatrixClient
     // Operations
 
     /// Retrieve metadata about all protocols that a homeserver supports.
-    /// 
+    ///
     /// Fetches the overall metadata about protocols supported by the
     /// homeserver. Includes both the available protocols and all fields
     /// required for queries against each protocol.
@@ -51,13 +51,13 @@ namespace QMatrixClient
     };
 
     /// Retrieve metadata about a specific protocol that the homeserver supports.
-    /// 
+    ///
     /// Fetches the metadata from the homeserver about a particular third party protocol.
     class GetProtocolMetadataJob : public BaseJob
     {
         public:
             /*! Retrieve metadata about a specific protocol that the homeserver supports.
-             * \param protocol 
+             * \param protocol
              *   The name of the protocol.
              */
             explicit GetProtocolMetadataJob(const QString& protocol);
@@ -85,8 +85,8 @@ namespace QMatrixClient
             QScopedPointer<Private> d;
     };
 
-    /// Retreive Matrix-side portals rooms leading to a third party location.
-    /// 
+    /// Retrieve Matrix-side portals rooms leading to a third party location.
+    ///
     /// Requesting this endpoint with a valid protocol name results in a list
     /// of successful mapping results in a JSON array. Each result contains
     /// objects to represent the Matrix room or rooms that represent a portal
@@ -98,10 +98,10 @@ namespace QMatrixClient
     class QueryLocationByProtocolJob : public BaseJob
     {
         public:
-            /*! Retreive Matrix-side portals rooms leading to a third party location.
-             * \param protocol 
+            /*! Retrieve Matrix-side portals rooms leading to a third party location.
+             * \param protocol
              *   The protocol used to communicate to the third party network.
-             * \param searchFields 
+             * \param searchFields
              *   One or more custom fields to help identify the third party
              *   location.
              */
@@ -131,16 +131,16 @@ namespace QMatrixClient
     };
 
     /// Retrieve the Matrix User ID of a corresponding third party user.
-    /// 
+    ///
     /// Retrieve a Matrix User ID linked to a user on the third party service, given
     /// a set of user parameters.
     class QueryUserByProtocolJob : public BaseJob
     {
         public:
             /*! Retrieve the Matrix User ID of a corresponding third party user.
-             * \param protocol 
+             * \param protocol
              *   The name of the protocol.
-             * \param fields 
+             * \param fields
              *   One or more custom fields that are passed to the AS to help identify the user.
              */
             explicit QueryUserByProtocolJob(const QString& protocol, const QString& fields = {});
@@ -169,14 +169,14 @@ namespace QMatrixClient
     };
 
     /// Reverse-lookup third party locations given a Matrix room alias.
-    /// 
-    /// Retreive an array of third party network locations from a Matrix room
+    ///
+    /// Retrieve an array of third party network locations from a Matrix room
     /// alias.
     class QueryLocationByAliasJob : public BaseJob
     {
         public:
             /*! Reverse-lookup third party locations given a Matrix room alias.
-             * \param alias 
+             * \param alias
              *   The Matrix room alias to look up.
              */
             explicit QueryLocationByAliasJob(const QString& alias);
@@ -205,13 +205,13 @@ namespace QMatrixClient
     };
 
     /// Reverse-lookup third party users given a Matrix User ID.
-    /// 
-    /// Retreive an array of third party users from a Matrix User ID.
+    ///
+    /// Retrieve an array of third party users from a Matrix User ID.
     class QueryUserByIDJob : public BaseJob
     {
         public:
             /*! Reverse-lookup third party users given a Matrix User ID.
-             * \param userid 
+             * \param userid
              *   The Matrix User ID to look up.
              */
             explicit QueryUserByIDJob(const QString& userid);

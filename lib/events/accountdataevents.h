@@ -36,11 +36,11 @@ namespace QMatrixClient
         order_type order;
 
         TagRecord (order_type order = none) : order(order) { }
-        explicit TagRecord(const QJsonValue& jv)
+        explicit TagRecord(const QJsonObject& jo)
         {
             // Parse a float both from JSON double and JSON string because
             // libqmatrixclient previously used to use strings to store order.
-            const auto orderJv = jv.toObject().value("order"_ls);
+            const auto orderJv = jo.value("order"_ls);
             if (orderJv.isDouble())
                 order = fromJson<float>(orderJv);
             else if (orderJv.isString())

@@ -8,24 +8,23 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const ThirdPartyLocation& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("alias"), pod.alias);
-    addParam<IfNotEmpty>(_json, QStringLiteral("protocol"), pod.protocol);
-    addParam<IfNotEmpty>(_json, QStringLiteral("fields"), pod.fields);
-    return _json;
+    QJsonObject jo;
+    addParam<>(jo, QStringLiteral("alias"), pod.alias);
+    addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
+    addParam<>(jo, QStringLiteral("fields"), pod.fields);
+    return jo;
 }
 
-ThirdPartyLocation FromJson<ThirdPartyLocation>::operator()(const QJsonValue& jv)
+ThirdPartyLocation FromJsonObject<ThirdPartyLocation>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     ThirdPartyLocation result;
     result.alias =
-        fromJson<QString>(_json.value("alias"_ls));
+        fromJson<QString>(jo.value("alias"_ls));
     result.protocol =
-        fromJson<QString>(_json.value("protocol"_ls));
+        fromJson<QString>(jo.value("protocol"_ls));
     result.fields =
-        fromJson<QJsonObject>(_json.value("fields"_ls));
-    
+        fromJson<QJsonObject>(jo.value("fields"_ls));
+
     return result;
 }
 

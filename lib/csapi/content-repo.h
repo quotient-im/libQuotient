@@ -18,10 +18,10 @@ namespace QMatrixClient
     {
         public:
             /*! Upload some content to the content repository.
-             * \param content 
-             * \param filename 
+             * \param content
+             * \param filename
              *   The name of the file being uploaded
-             * \param contentType 
+             * \param contentType
              *   The content type of the file being uploaded
              */
             explicit UploadContentJob(QIODevice* content, const QString& filename = {}, const QString& contentType = {});
@@ -45,11 +45,11 @@ namespace QMatrixClient
     {
         public:
             /*! Download content from the content repository.
-             * \param serverName 
+             * \param serverName
              *   The server name from the ``mxc://`` URI (the authoritory component)
-             * \param mediaId 
+             * \param mediaId
              *   The media ID from the ``mxc://`` URI (the path component)
-             * \param allowRemote 
+             * \param allowRemote
              *   Indicates to the server that it should not attempt to fetch the media if it is deemed
              *   remote. This is to prevent routing loops where the server contacts itself. Defaults to 
              *   true if not provided.
@@ -88,13 +88,13 @@ namespace QMatrixClient
     {
         public:
             /*! Download content from the content repository as a given filename.
-             * \param serverName 
+             * \param serverName
              *   The server name from the ``mxc://`` URI (the authoritory component)
-             * \param mediaId 
+             * \param mediaId
              *   The media ID from the ``mxc://`` URI (the path component)
-             * \param fileName 
+             * \param fileName
              *   The filename to give in the Content-Disposition
-             * \param allowRemote 
+             * \param allowRemote
              *   Indicates to the server that it should not attempt to fetch the media if it is deemed
              *   remote. This is to prevent routing loops where the server contacts itself. Defaults to 
              *   true if not provided.
@@ -133,19 +133,19 @@ namespace QMatrixClient
     {
         public:
             /*! Download a thumbnail of the content from the content repository.
-             * \param serverName 
+             * \param serverName
              *   The server name from the ``mxc://`` URI (the authoritory component)
-             * \param mediaId 
+             * \param mediaId
              *   The media ID from the ``mxc://`` URI (the path component)
-             * \param width 
+             * \param width
              *   The *desired* width of the thumbnail. The actual thumbnail may not
              *   match the size specified.
-             * \param height 
+             * \param height
              *   The *desired* height of the thumbnail. The actual thumbnail may not
              *   match the size specified.
-             * \param method 
+             * \param method
              *   The desired resizing method.
-             * \param allowRemote 
+             * \param allowRemote
              *   Indicates to the server that it should not attempt to fetch the media if it is deemed
              *   remote. This is to prevent routing loops where the server contacts itself. Defaults to 
              *   true if not provided.
@@ -182,9 +182,9 @@ namespace QMatrixClient
     {
         public:
             /*! Get information about a URL for a client
-             * \param url 
+             * \param url
              *   The URL to get a preview of
-             * \param ts 
+             * \param ts
              *   The preferred point in time to return a preview for. The server may
              *   return a newer version if it does not have the requested version
              *   available.
@@ -217,7 +217,7 @@ namespace QMatrixClient
     };
 
     /// Get the configuration for the content repository.
-    /// 
+    ///
     /// This endpoint allows clients to retrieve the configuration of the content
     /// repository, such as upload limitations.
     /// Clients SHOULD use this as a guide when using content repository endpoints.
@@ -248,7 +248,7 @@ namespace QMatrixClient
             /// The maximum size an upload can be in bytes.
             /// Clients SHOULD use this as a guide when uploading content.
             /// If not listed or null, the size limit should be treated as unknown.
-            Omittable<double> uploadSize() const;
+            Omittable<qint64> uploadSize() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

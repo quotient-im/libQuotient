@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Invalidates a user access token
-    /// 
+    ///
     /// Invalidates an existing access token, so that it can no longer be used for
     /// authorization.
     class LogoutJob : public BaseJob
@@ -31,7 +31,7 @@ namespace QMatrixClient
     };
 
     /// Invalidates all access tokens for a user
-    /// 
+    ///
     /// Invalidates all access tokens for a user, so that they can no longer be used for
     /// authorization. This includes the access token that made this request. 
     /// 

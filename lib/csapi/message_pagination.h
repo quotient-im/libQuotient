@@ -14,30 +14,30 @@ namespace QMatrixClient
     // Operations
 
     /// Get a list of events for this room
-    /// 
+    ///
     /// This API returns a list of message and state events for a room. It uses
     /// pagination query parameters to paginate history in the room.
     class GetRoomEventsJob : public BaseJob
     {
         public:
             /*! Get a list of events for this room
-             * \param roomId 
+             * \param roomId
              *   The room to get events from.
-             * \param from 
+             * \param from
              *   The token to start returning events from. This token can be obtained
              *   from a ``prev_batch`` token returned for each room by the sync API,
              *   or from a ``start`` or ``end`` token returned by a previous request
              *   to this endpoint.
-             * \param dir 
+             * \param dir
              *   The direction to return events from.
-             * \param to 
+             * \param to
              *   The token to stop returning events at. This token can be obtained from
              *   a ``prev_batch`` token returned for each room by the sync endpoint,
              *   or from a ``start`` or ``end`` token returned by a previous request to
              *   this endpoint.
-             * \param limit 
+             * \param limit
              *   The maximum number of events to return. Default: 10.
-             * \param filter 
+             * \param filter
              *   A JSON RoomEventFilter to filter returned events with.
              */
             explicit GetRoomEventsJob(const QString& roomId, const QString& from, const QString& dir, const QString& to = {}, Omittable<int> limit = none, const QString& filter = {});

@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Invite a user to participate in a particular room.
-    /// 
+    ///
     /// .. _invite-by-third-party-id-endpoint:
     /// 
     /// *Note that there are two forms of this API, which are documented separately.
@@ -61,13 +61,13 @@ namespace QMatrixClient
     {
         public:
             /*! Invite a user to participate in a particular room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier (not alias) to which to invite the user.
-             * \param idServer 
+             * \param idServer
              *   The hostname+port of the identity server which should be used for third party identifier lookups.
-             * \param medium 
+             * \param medium
              *   The kind of address being passed in the address field, for example ``email``.
-             * \param address 
+             * \param address
              *   The invitee's third party identifier.
              */
             explicit InviteBy3PIDJob(const QString& roomId, const QString& idServer, const QString& medium, const QString& address);

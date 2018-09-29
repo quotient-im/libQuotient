@@ -18,20 +18,20 @@ namespace QMatrixClient
 
     QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("id_server"), pod.idServer);
-        addParam<>(_json, QStringLiteral("medium"), pod.medium);
-        addParam<>(_json, QStringLiteral("address"), pod.address);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
+        addParam<>(jo, QStringLiteral("medium"), pod.medium);
+        addParam<>(jo, QStringLiteral("address"), pod.address);
+        return jo;
     }
 
     QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
     {
-        QJsonObject _json;
-        addParam<>(_json, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(_json, QStringLiteral("state_key"), pod.stateKey);
-        addParam<>(_json, QStringLiteral("content"), pod.content);
-        return _json;
+        QJsonObject jo;
+        addParam<>(jo, QStringLiteral("type"), pod.type);
+        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
+        addParam<>(jo, QStringLiteral("content"), pod.content);
+        return jo;
     }
 } // namespace QMatrixClient
 

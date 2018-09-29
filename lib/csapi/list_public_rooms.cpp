@@ -100,11 +100,7 @@ const PublicRoomsResponse& GetPublicRoomsJob::data() const
 
 BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<PublicRoomsResponse>(json.value("data"_ls));
+    d->data = fromJson<PublicRoomsResponse>(data);
     return Success;
 }
 
@@ -114,48 +110,16 @@ namespace QMatrixClient
 
     QJsonObject toJson(const QueryPublicRoomsJob::Filter& pod)
     {
-        QJsonObject _json;
-        addParam<IfNotEmpty>(_json, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
-        return _json;
+        QJsonObject jo;
+        addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
+        return jo;
     }
-
-    template <> struct FromJson<QueryPublicRoomsJob::PublicRoomsChunk>
-    {
-        QueryPublicRoomsJob::PublicRoomsChunk operator()(const QJsonValue& jv)
-        {
-            const auto& _json = jv.toObject();
-            QueryPublicRoomsJob::PublicRoomsChunk result;
-            result.aliases =
-                fromJson<QStringList>(_json.value("aliases"_ls));
-            result.canonicalAlias =
-                fromJson<QString>(_json.value("canonical_alias"_ls));
-            result.name =
-                fromJson<QString>(_json.value("name"_ls));
-            result.numJoinedMembers =
-                fromJson<qint64>(_json.value("num_joined_members"_ls));
-            result.roomId =
-                fromJson<QString>(_json.value("room_id"_ls));
-            result.topic =
-                fromJson<QString>(_json.value("topic"_ls));
-            result.worldReadable =
-                fromJson<bool>(_json.value("world_readable"_ls));
-            result.guestCanJoin =
-                fromJson<bool>(_json.value("guest_can_join"_ls));
-            result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"_ls));
-
-            return result;
-        }
-    };
 } // namespace QMatrixClient
 
 class QueryPublicRoomsJob::Private
 {
     public:
-        QVector<PublicRoomsChunk> chunk;
-        QString nextBatch;
-        QString prevBatch;
-        Omittable<qint64> totalRoomCountEstimate;
+        PublicRoomsResponse data;
 };
 
 BaseJob::Query queryToQueryPublicRooms(const QString& server)
@@ -167,7 +131,7 @@ BaseJob::Query queryToQueryPublicRooms(const QString& server)
 
 static const auto QueryPublicRoomsJobName = QStringLiteral("QueryPublicRoomsJob");
 
-QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> limit, const QString& since, const Omittable<Filter>& filter)
+QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> limit, const QString& since, const Omittable<Filter>& filter, bool includeAllNetworks, const QString& thirdPartyInstanceId)
     : BaseJob(HttpVerb::Post, QueryPublicRoomsJobName,
         basePath % "/publicRooms",
         queryToQueryPublicRooms(server))
@@ -177,41 +141,21 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> l
     addParam<IfNotEmpty>(_data, QStringLiteral("limit"), limit);
     addParam<IfNotEmpty>(_data, QStringLiteral("since"), since);
     addParam<IfNotEmpty>(_data, QStringLiteral("filter"), filter);
+    addParam<IfNotEmpty>(_data, QStringLiteral("include_all_networks"), includeAllNetworks);
+    addParam<IfNotEmpty>(_data, QStringLiteral("third_party_instance_id"), thirdPartyInstanceId);
     setRequestData(_data);
 }
 
 QueryPublicRoomsJob::~QueryPublicRoomsJob() = default;
 
-const QVector<QueryPublicRoomsJob::PublicRoomsChunk>& QueryPublicRoomsJob::chunk() const
+const PublicRoomsResponse& QueryPublicRoomsJob::data() const
 {
-    return d->chunk;
-}
-
-const QString& QueryPublicRoomsJob::nextBatch() const
-{
-    return d->nextBatch;
-}
-
-const QString& QueryPublicRoomsJob::prevBatch() const
-{
-    return d->prevBatch;
-}
-
-Omittable<qint64> QueryPublicRoomsJob::totalRoomCountEstimate() const
-{
-    return d->totalRoomCountEstimate;
+    return d->data;
 }
 
 BaseJob::Status QueryPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("chunk"_ls))
-        return { JsonParseError,
-            "The key 'chunk' not found in the response" };
-    d->chunk = fromJson<QVector<PublicRoomsChunk>>(json.value("chunk"_ls));
-    d->nextBatch = fromJson<QString>(json.value("next_batch"_ls));
-    d->prevBatch = fromJson<QString>(json.value("prev_batch"_ls));
-    d->totalRoomCountEstimate = fromJson<qint64>(json.value("total_room_count_estimate"_ls));
+    d->data = fromJson<PublicRoomsResponse>(data);
     return Success;
 }
 

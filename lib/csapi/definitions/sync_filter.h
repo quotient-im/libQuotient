@@ -35,30 +35,30 @@ namespace QMatrixClient
 
     QJsonObject toJson(const RoomFilter& pod);
 
-    template <> struct FromJson<RoomFilter>
+    template <> struct FromJsonObject<RoomFilter>
     {
-        RoomFilter operator()(const QJsonValue& jv);
+        RoomFilter operator()(const QJsonObject& jo) const;
     };
 
-    struct SyncFilter
+    struct Filter
     {
         /// List of event fields to include. If this list is absent then all fields are included. The entries may include '.' charaters to indicate sub-fields. So ['content.body'] will include the 'body' field of the 'content' object. A literal '.' character in a field name may be escaped using a '\\'. A server may include more fields than were requested.
         QStringList eventFields;
         /// The format to use for events. 'client' will return the events in a format suitable for clients. 'federation' will return the raw event as receieved over federation. The default is 'client'.
         QString eventFormat;
         /// The presence updates to include.
-        Omittable<Filter> presence;
+        Omittable<EventFilter> presence;
         /// The user account data that isn't associated with rooms to include.
-        Omittable<Filter> accountData;
+        Omittable<EventFilter> accountData;
         /// Filters to be applied to room data.
         Omittable<RoomFilter> room;
     };
 
-    QJsonObject toJson(const SyncFilter& pod);
+    QJsonObject toJson(const Filter& pod);
 
-    template <> struct FromJson<SyncFilter>
+    template <> struct FromJsonObject<Filter>
     {
-        SyncFilter operator()(const QJsonValue& jv);
+        Filter operator()(const QJsonObject& jo) const;
     };
 
 } // namespace QMatrixClient

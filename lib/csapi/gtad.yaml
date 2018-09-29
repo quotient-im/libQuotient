@@ -9,6 +9,8 @@ analyzer:
     origin_server_ts: originServerTimestamp # Instead of originServerTs
     start: begin # Because start() is a method in BaseJob
     m.upload.size: uploadSize
+    m.homeserver: homeserver
+    m.identity_server: identityServer
     AuthenticationData/additionalProperties: authInfo
 
   # Structure inside `types`:

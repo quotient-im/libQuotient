@@ -17,7 +17,7 @@ namespace QMatrixClient
     // Operations
 
     /// Gets a list of events that the user has been notified about
-    /// 
+    ///
     /// This API is used to paginate through the list of events that the
     /// user has been, or would have been notified about.
     class GetNotificationsJob : public BaseJob
@@ -43,17 +43,17 @@ namespace QMatrixClient
                 QString roomId;
                 /// The unix timestamp at which the event notification was sent,
                 /// in milliseconds.
-                qint64 ts;
+                int ts;
             };
 
             // Construction/destruction
 
             /*! Gets a list of events that the user has been notified about
-             * \param from 
+             * \param from
              *   Pagination token given to retrieve the next set of events.
-             * \param limit 
+             * \param limit
              *   Limit on the number of events to return in this request.
-             * \param only 
+             * \param only
              *   Allows basic filtering of events returned. Supply ``highlight``
              *   to return only events where the notification had the highlight
              *   tweak set.

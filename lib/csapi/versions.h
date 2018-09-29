@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Gets the versions of the specification supported by the server.
-    /// 
+    ///
     /// Gets the versions of the specification supported by the server.
     /// 
     /// Values will take the form ``rX.Y.Z``.

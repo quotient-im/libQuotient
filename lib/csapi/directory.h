@@ -16,16 +16,16 @@ namespace QMatrixClient
     {
         public:
             /*! Create a new mapping from room alias to room ID.
-             * \param roomAlias 
+             * \param roomAlias
              *   The room alias to set.
-             * \param roomId 
+             * \param roomId
              *   The room ID to set.
              */
-            explicit SetRoomAliasJob(const QString& roomAlias, const QString& roomId = {});
+            explicit SetRoomAliasJob(const QString& roomAlias, const QString& roomId);
     };
 
     /// Get the room ID corresponding to this room alias.
-    /// 
+    ///
     /// Requests that the server resolve a room alias to a room ID.
     /// 
     /// The server will use the federation API to resolve the alias if the
@@ -35,7 +35,7 @@ namespace QMatrixClient
     {
         public:
             /*! Get the room ID corresponding to this room alias.
-             * \param roomAlias 
+             * \param roomAlias
              *   The room alias.
              */
             explicit GetRoomIdByAliasJob(const QString& roomAlias);
@@ -66,7 +66,7 @@ namespace QMatrixClient
     };
 
     /// Remove a mapping of room alias to room ID.
-    /// 
+    ///
     /// Remove a mapping of room alias to room ID.
     /// 
     /// Servers may choose to implement additional access control checks here, for instance that room aliases can only be deleted by their creator or a server administrator.
@@ -74,7 +74,7 @@ namespace QMatrixClient
     {
         public:
             /*! Remove a mapping of room alias to room ID.
-             * \param roomAlias 
+             * \param roomAlias
              *   The room alias to remove.
              */
             explicit DeleteRoomAliasJob(const QString& roomAlias);

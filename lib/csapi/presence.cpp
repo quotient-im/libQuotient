@@ -125,11 +125,7 @@ Events&& GetPresenceForListJob::data()
 
 BaseJob::Status GetPresenceForListJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<Events>(json.value("data"_ls));
+    d->data = fromJson<Events>(data);
     return Success;
 }
 

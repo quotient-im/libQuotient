@@ -42,11 +42,7 @@ const QJsonObject& GetTurnServerJob::data() const
 
 BaseJob::Status GetTurnServerJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<QJsonObject>(json.value("data"_ls));
+    d->data = fromJson<QJsonObject>(data);
     return Success;
 }
 

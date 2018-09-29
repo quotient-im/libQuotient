@@ -14,7 +14,7 @@ namespace QMatrixClient
     // Operations
 
     /// Start the requesting user participating in a particular room.
-    /// 
+    ///
     /// *Note that this API requires a room ID, not alias.* ``/join/{roomIdOrAlias}`` *exists if you have a room alias.*
     /// 
     /// This API starts a user participating in a particular room, if that user
@@ -49,9 +49,9 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Start the requesting user participating in a particular room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier (not alias) to join.
-             * \param thirdPartySigned 
+             * \param thirdPartySigned
              *   A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
              */
             explicit JoinRoomByIdJob(const QString& roomId, const Omittable<ThirdPartySigned>& thirdPartySigned = none);
@@ -71,7 +71,7 @@ namespace QMatrixClient
     };
 
     /// Start the requesting user participating in a particular room.
-    /// 
+    ///
     /// *Note that this API takes either a room ID or alias, unlike* ``/room/{roomId}/join``.
     /// 
     /// This API starts a user participating in a particular room, if that user
@@ -125,12 +125,12 @@ namespace QMatrixClient
             // Construction/destruction
 
             /*! Start the requesting user participating in a particular room.
-             * \param roomIdOrAlias 
+             * \param roomIdOrAlias
              *   The room identifier or alias to join.
-             * \param serverName 
+             * \param serverName
              *   The servers to attempt to join the room through. One of the servers
              *   must be participating in the room.
-             * \param thirdPartySigned 
+             * \param thirdPartySigned
              *   A signature of an ``m.third_party_invite`` token to prove that this user owns a third party identity which has been invited to the room.
              */
             explicit JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {}, const Omittable<ThirdPartySigned>& thirdPartySigned = none);

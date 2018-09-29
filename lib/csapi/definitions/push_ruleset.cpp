@@ -8,30 +8,29 @@ using namespace QMatrixClient;
 
 QJsonObject QMatrixClient::toJson(const PushRuleset& pod)
 {
-    QJsonObject _json;
-    addParam<IfNotEmpty>(_json, QStringLiteral("content"), pod.content);
-    addParam<IfNotEmpty>(_json, QStringLiteral("override"), pod.override);
-    addParam<IfNotEmpty>(_json, QStringLiteral("room"), pod.room);
-    addParam<IfNotEmpty>(_json, QStringLiteral("sender"), pod.sender);
-    addParam<IfNotEmpty>(_json, QStringLiteral("underride"), pod.underride);
-    return _json;
+    QJsonObject jo;
+    addParam<IfNotEmpty>(jo, QStringLiteral("content"), pod.content);
+    addParam<IfNotEmpty>(jo, QStringLiteral("override"), pod.override);
+    addParam<IfNotEmpty>(jo, QStringLiteral("room"), pod.room);
+    addParam<IfNotEmpty>(jo, QStringLiteral("sender"), pod.sender);
+    addParam<IfNotEmpty>(jo, QStringLiteral("underride"), pod.underride);
+    return jo;
 }
 
-PushRuleset FromJson<PushRuleset>::operator()(const QJsonValue& jv)
+PushRuleset FromJsonObject<PushRuleset>::operator()(const QJsonObject& jo) const
 {
-    const auto& _json = jv.toObject();
     PushRuleset result;
     result.content =
-        fromJson<QVector<PushRule>>(_json.value("content"_ls));
+        fromJson<QVector<PushRule>>(jo.value("content"_ls));
     result.override =
-        fromJson<QVector<PushRule>>(_json.value("override"_ls));
+        fromJson<QVector<PushRule>>(jo.value("override"_ls));
     result.room =
-        fromJson<QVector<PushRule>>(_json.value("room"_ls));
+        fromJson<QVector<PushRule>>(jo.value("room"_ls));
     result.sender =
-        fromJson<QVector<PushRule>>(_json.value("sender"_ls));
+        fromJson<QVector<PushRule>>(jo.value("sender"_ls));
     result.underride =
-        fromJson<QVector<PushRule>>(_json.value("underride"_ls));
-    
+        fromJson<QVector<PushRule>>(jo.value("underride"_ls));
+
     return result;
 }
 

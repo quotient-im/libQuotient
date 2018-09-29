@@ -42,11 +42,7 @@ EventPtr&& GetOneRoomEventJob::data()
 
 BaseJob::Status GetOneRoomEventJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<EventPtr>(json.value("data"_ls));
+    d->data = fromJson<EventPtr>(data);
     return Success;
 }
 
@@ -80,11 +76,7 @@ StateEventPtr&& GetRoomStateWithKeyJob::data()
 
 BaseJob::Status GetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<StateEventPtr>(json.value("data"_ls));
+    d->data = fromJson<StateEventPtr>(data);
     return Success;
 }
 
@@ -118,11 +110,7 @@ StateEventPtr&& GetRoomStateByTypeJob::data()
 
 BaseJob::Status GetRoomStateByTypeJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<StateEventPtr>(json.value("data"_ls));
+    d->data = fromJson<StateEventPtr>(data);
     return Success;
 }
 
@@ -156,11 +144,7 @@ StateEvents&& GetRoomStateJob::data()
 
 BaseJob::Status GetRoomStateJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("data"_ls))
-        return { JsonParseError,
-            "The key 'data' not found in the response" };
-    d->data = fromJson<StateEvents>(json.value("data"_ls));
+    d->data = fromJson<StateEvents>(data);
     return Success;
 }
 
@@ -203,16 +187,15 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJson<GetJoinedMembersByRoomJob::RoomMember>
+    template <> struct FromJsonObject<GetJoinedMembersByRoomJob::RoomMember>
     {
-        GetJoinedMembersByRoomJob::RoomMember operator()(const QJsonValue& jv)
+        GetJoinedMembersByRoomJob::RoomMember operator()(const QJsonObject& jo) const
         {
-            const auto& _json = jv.toObject();
             GetJoinedMembersByRoomJob::RoomMember result;
             result.displayName =
-                fromJson<QString>(_json.value("display_name"_ls));
+                fromJson<QString>(jo.value("display_name"_ls));
             result.avatarUrl =
-                fromJson<QString>(_json.value("avatar_url"_ls));
+                fromJson<QString>(jo.value("avatar_url"_ls));
 
             return result;
         }

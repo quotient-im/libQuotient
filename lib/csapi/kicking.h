@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Kick a user from the room.
-    /// 
+    ///
     /// Kick a user from the room.
     /// 
     /// The caller must have the required power level in order to perform this operation.
@@ -24,12 +24,12 @@ namespace QMatrixClient
     {
         public:
             /*! Kick a user from the room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier (not alias) from which the user should be kicked.
-             * \param userId 
+             * \param userId
              *   The fully qualified user ID of the user being kicked.
-             * \param reason 
-             *   The reason the user has been kicked. This will be supplied as the 
+             * \param reason
+             *   The reason the user has been kicked. This will be supplied as the
              *   ``reason`` on the target's updated `m.room.member`_ event.
              */
             explicit KickJob(const QString& roomId, const QString& userId, const QString& reason = {});

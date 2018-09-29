@@ -12,7 +12,7 @@ namespace QMatrixClient
     // Operations
 
     /// Invite a user to participate in a particular room.
-    /// 
+    ///
     /// .. _invite-by-user-id-endpoint:
     /// 
     /// *Note that there are two forms of this API, which are documented separately.
@@ -35,9 +35,9 @@ namespace QMatrixClient
     {
         public:
             /*! Invite a user to participate in a particular room.
-             * \param roomId 
+             * \param roomId
              *   The room identifier (not alias) to which to invite the user.
-             * \param userId 
+             * \param userId
              *   The fully qualified user ID of the invitee.
              */
             explicit InviteUserJob(const QString& roomId, const QString& userId);
