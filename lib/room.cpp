@@ -752,6 +752,18 @@ void Room::setTags(TagsMap newTags)
 void Room::Private::setTags(TagsMap newTags)
 {
     emit q->tagsAboutToChange();
+    const auto keys = newTags.keys();
+    for (const auto& k: keys)
+    {
+        const auto& checkRes = validatedTag(k);
+        if (checkRes.first)
+        {
+            if (newTags.contains(checkRes.second))
+                newTags.remove(k);
+            else
+                newTags.insert(checkRes.second, newTags.take(k));
+        }
+    }
     tags = move(newTags);
     qCDebug(MAIN) << "Room" << q->objectName() << "is tagged with"
                   << q->tagNames().join(", ");
