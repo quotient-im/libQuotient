@@ -28,6 +28,7 @@
 #include "csapi/message_pagination.h"
 #include "csapi/room_state.h"
 #include "csapi/room_send.h"
+#include "csapi/tags.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
@@ -239,13 +240,6 @@ class Room::Private
         bool processRedaction(const RedactionEvent& redaction);
 
         void setTags(TagsMap newTags);
-        void sendTagUpdates()
-        {
-            connection->callApi<SetAccountDataPerRoomJob>(
-                    connection->userId(), id, TagEvent::matrixTypeId(),
-                        TagEvent(tags).contentJson());
-            emit q->tagsChanged();
-        }
 
         QJsonObject toJson() const;
 
@@ -723,7 +717,8 @@ void Room::addTag(const QString& name, const TagRecord& record)
     emit tagsAboutToChange();
     d->tags.insert(checkRes.second, record);
     emit tagsChanged();
-    d->sendTagUpdates();
+    connection()->callApi<SetRoomTagJob>(localUser()->id(), id(),
+                                         checkRes.second, record.order);
 }
 
 void Room::addTag(const QString& name, TagRecord::order_type order)
@@ -738,7 +733,7 @@ void Room::removeTag(const QString& name)
         emit tagsAboutToChange();
         d->tags.remove(name);
         emit tagsChanged();
-        d->sendTagUpdates();
+        connection()->callApi<DeleteRoomTagJob>(localUser()->id(), id(), name);
     } else if (!name.startsWith("u."))
         removeTag("u." + name);
     else
@@ -749,7 +744,9 @@ void Room::removeTag(const QString& name)
 void Room::setTags(TagsMap newTags)
 {
     d->setTags(move(newTags));
-    d->sendTagUpdates();
+    connection()->callApi<SetAccountDataPerRoomJob>(
+            localUser()->id(), id(), TagEvent::matrixTypeId(),
+                TagEvent(d->tags).contentJson());
 }
 
 void Room::Private::setTags(TagsMap newTags)
