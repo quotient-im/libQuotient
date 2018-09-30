@@ -63,7 +63,7 @@ namespace QMatrixClient
     inline QJsonValue toJson(const TagRecord& rec)
     {
         QJsonObject o;
-        addParam(o, QStringLiteral("order"), rec.order);
+        addParam<IfNotEmpty>(o, QStringLiteral("order"), rec.order);
         return o;
     }
 
