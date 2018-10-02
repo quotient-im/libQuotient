@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "logging.h"
+#include "encryptionmanager.h"
 
 #include <QtCore/QUrl>
 
@@ -120,4 +121,18 @@ void AccountSettings::clearAccessToken()
     legacySettings.remove("access_token");
     legacySettings.remove("device_id"); // Force the server to re-issue it
     remove("access_token");
+}
+
+EncryptionManager* AccountSettings::encryptionManager()
+{
+    EncryptionManager* manager = new EncryptionManager(userId());
+    QByteArray data = value("encryption_account").toByteArray();
+    manager->load(data);
+    return manager;
+}
+
+void AccountSettings::saveEncryptionManager(EncryptionManager* manager)
+{
+    const QByteArray data = manager->save();
+    setValue("encryption_account", data);
 }

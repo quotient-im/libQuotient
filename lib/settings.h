@@ -26,6 +26,7 @@ class QVariant;
 
 namespace QMatrixClient
 {
+    class EncryptionManager;
     class Settings: public QSettings
     {
             Q_OBJECT
@@ -131,6 +132,7 @@ void classname::setter(type newValue) \
             QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
             /** \deprecated \sa setAccessToken */
             Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
+            Q_PROPERTY(EncryptionManager* encryptionManager READ encryptionManager WRITE saveEncryptionManager)
         public:
             template <typename... ArgTs>
             explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
@@ -148,5 +150,7 @@ void classname::setter(type newValue) \
              * see QMatrixClient/Quaternion#181 */
             void setAccessToken(const QString& accessToken);
             Q_INVOKABLE void clearAccessToken();
+            EncryptionManager* encryptionManager();
+            void saveEncryptionManager(EncryptionManager* manager);
     };
 }  // namespace QMatrixClient

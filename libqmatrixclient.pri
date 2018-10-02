@@ -7,6 +7,10 @@ win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 }
 
+isEmpty(BUILD_OLM) {
+    BUILD_OLM = false
+}
+
 SRCPATH = $$PWD/lib
 INCLUDEPATH += $$SRCPATH
 
@@ -51,7 +55,9 @@ HEADERS += \
     $$SRCPATH/converters.h \
     $$SRCPATH/settings.h \
     $$SRCPATH/networksettings.h \
-    $$SRCPATH/networkaccessmanager.h
+    $$SRCPATH/networkaccessmanager.h \
+    $$PWD/lib/encryptionmanager.h \
+    $$PWD/lib/events/encryptionevent.h
 
 SOURCES += \
     $$SRCPATH/connectiondata.cpp \
@@ -88,4 +94,75 @@ SOURCES += \
     $$SRCPATH/converters.cpp \
     $$SRCPATH/settings.cpp \
     $$SRCPATH/networksettings.cpp \
-    $$SRCPATH/networkaccessmanager.cpp
+    $$SRCPATH/networkaccessmanager.cpp \
+    $$PWD/lib/encryptionmanager.cpp \
+    $$PWD/lib/events/encryptionevent.cpp
+
+$$BUILD_OLM {
+    message("Build libQMatrixClient with libolm support.")
+    OLM_HEADERPATH = $$PWD/olm/include/olm
+    OLM_PATH = $$PWD/olm/src
+    CRYPTO_PATH = $$PWD/olm/lib/crypto-algorithms
+    INCLUDEPATH += $$PWD/olm/include
+    INCLUDEPATH += $$PWD/olm/lib
+    HEADERS += \
+        $$OLM_HEADERPATH/account.hh \
+        $$OLM_HEADERPATH/base64.hh \
+        $$OLM_HEADERPATH/cipher.h \
+        $$OLM_HEADERPATH/crypto.h \
+        $$OLM_HEADERPATH/error.h \
+        $$OLM_HEADERPATH/inbound_group_session.h \
+        $$OLM_HEADERPATH/list.hh \
+        $$OLM_HEADERPATH/megolm.h \
+        $$OLM_HEADERPATH/memory.hh \
+        $$OLM_HEADERPATH/message.hh \
+        $$OLM_HEADERPATH/olm.hh \
+        $$OLM_HEADERPATH/outbound_group_session.h \
+        $$OLM_HEADERPATH/pickle.hh \
+        $$OLM_HEADERPATH/pickle_encoding.h \
+        $$OLM_HEADERPATH/pk.h \
+        $$OLM_HEADERPATH/ratchet.hh \
+        $$OLM_HEADERPATH/session.hh \
+        $$OLM_HEADERPATH/utility.hh \
+        $$CRYPTO_PATH/aes.h \
+        $$CRYPTO_PATH/arcfour.h \
+        $$CRYPTO_PATH/base64.h \
+        $$CRYPTO_PATH/blowfish.h \
+        $$CRYPTO_PATH/des.h \
+        $$CRYPTO_PATH/md2.h \
+        $$CRYPTO_PATH/md5.h \
+        $$CRYPTO_PATH/rot-13.h \
+        $$CRYPTO_PATH/sha1.h \
+        $$CRYPTO_PATH/sha256.h  \
+        $$PWD/olm/lib/curve25519-donna.h
+
+    SOURCES += \
+        $$OLM_PATH/account.cpp \
+        $$OLM_PATH/base64.cpp \
+        $$OLM_PATH/cipher.cpp \
+        $$OLM_PATH/crypto.cpp \
+        $$OLM_PATH/ed25519.c \
+        $$OLM_PATH/error.c \
+        $$OLM_PATH/inbound_group_session.c \
+        $$OLM_PATH/megolm.c \
+        $$OLM_PATH/memory.cpp \
+        $$OLM_PATH/message.cpp \
+        $$OLM_PATH/outbound_group_session.c \
+        $$OLM_PATH/pickle.cpp \
+        $$OLM_PATH/pickle_encoding.c \
+        $$OLM_PATH/pk.cpp \
+        $$OLM_PATH/ratchet.cpp \
+        $$OLM_PATH/session.cpp \
+        $$OLM_PATH/utility.cpp \
+        $$CRYPTO_PATH/aes.c \
+        $$CRYPTO_PATH/arcfour.c \
+        $$CRYPTO_PATH/base64.c \
+        $$CRYPTO_PATH/blowfish.c \
+        $$CRYPTO_PATH/des.c \
+        $$CRYPTO_PATH/md2.c \
+        $$CRYPTO_PATH/md5.c \
+        $$CRYPTO_PATH/rot-13.c \
+        $$CRYPTO_PATH/sha1.c \
+        $$CRYPTO_PATH/sha256.c \
+        $$PWD/olm/lib/curve25519-donna/curve25519-donna.c
+}
