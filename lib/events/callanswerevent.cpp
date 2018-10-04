@@ -48,29 +48,25 @@ m.call.answer
 using namespace QMatrixClient;
 
 CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj)
-    , _lifetime(contentJson()["lifetime"].toInt())
-    , _sdp(contentJson()["answer"].toObject()["sdp"].toString())
-    , _callId(contentJson()["call_id"].toString())
-    , _version(contentJson()["version"].toInt())
+    : CallEventBase(typeId(), obj)
 {
     qCDebug(EVENTS) << "Call Answer event";
 }
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
-    : RoomEvent(typeId(), NULL)
-{
-    _version = 0;
-    _callId = callId;
-    _lifetime = lifetime;
-    _sdp = sdp;
-}
+    : CallEventBase(typeId(), matrixTypeId(), callId, 0,
+                    { { QStringLiteral("lifetime"), lifetime }
+                    , { QStringLiteral("answer"), QJsonObject {
+                        { QStringLiteral("type"), QStringLiteral("answer") },
+                        { QStringLiteral("sdp"), sdp } } }
+                    })
+{ }
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
-    : RoomEvent(typeId(), NULL)
-{
-    _version = 0;
-    _callId = callId;
-    _sdp = sdp;
-}
+    : CallEventBase(typeId(), matrixTypeId(), callId, 0,
+                    { { QStringLiteral("answer"), QJsonObject {
+                        { QStringLiteral("type"), QStringLiteral("answer") },
+                        { QStringLiteral("sdp"), sdp } } }
+                    })
+{ }

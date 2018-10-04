@@ -87,6 +87,20 @@ namespace QMatrixClient
     using RoomEventPtr = event_ptr_tt<RoomEvent>;
     using RoomEvents = EventsArray<RoomEvent>;
     using RoomEventsRange = Range<RoomEvents>;
+
+    class CallEventBase: public RoomEvent
+    {
+        public:
+            CallEventBase(Type type, event_mtype_t matrixType,
+                          const QString& callId, int version,
+                          const QJsonObject& contentJson = {});
+            CallEventBase(Type type, const QJsonObject& json);
+            ~CallEventBase() override = default;
+            bool isCallEvent() const override { return true; }
+
+            QString callId() const { return content<QString>("call_id"_ls); }
+            int version() const { return content<int>("version"_ls); }
+    };
 } // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::RoomEvent*)
 Q_DECLARE_METATYPE(const QMatrixClient::RoomEvent*)

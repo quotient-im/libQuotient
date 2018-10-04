@@ -18,10 +18,8 @@
 
 #pragma once
 
-#include "util.h"
+#include "converters.h"
 #include "logging.h"
-
-#include <QtCore/QJsonObject>
 
 #ifndef DISABLE_EVENTTYPE
 #define USE_EVENTTYPE 1
@@ -247,7 +245,20 @@ namespace QMatrixClient
             const QJsonObject contentJson() const;
             const QJsonObject unsignedJson() const;
 
+            template <typename T>
+            T content(const QString& key) const
+            {
+                return fromJson<T>(contentJson()[key]);
+            }
+
+            template <typename T>
+            T content(const QLatin1String& key) const
+            {
+                return fromJson<T>(contentJson()[key]);
+            }
+
             virtual bool isStateEvent() const { return false; }
+            virtual bool isCallEvent() const { return false; }
 
         protected:
             QJsonObject& editJson() { return _json; }

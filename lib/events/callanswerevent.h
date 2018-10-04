@@ -22,7 +22,7 @@
 
 namespace QMatrixClient
 {
-    class CallAnswerEvent: public RoomEvent
+    class CallAnswerEvent: public CallEventBase
     {
     public:
         DEFINE_EVENT_TYPEID("m.call.answer", CallAnswerEvent)
@@ -33,34 +33,11 @@ namespace QMatrixClient
                                  const QString& sdp);
         explicit CallAnswerEvent(const QString& callId, const QString& sdp);
 
-        bool isStateEvent() const override { return true; }
-
-        const int lifetime() const { return _lifetime; }
-        const QString& sdp() const { return _sdp; }
-        const QString& callId() const { return _callId; }
-        const int version() const { return _version; }
-
-        QJsonObject toJson() const
-        {
-            QJsonObject answer;
-            answer.insert("sdp", _sdp);
-            answer.insert("type", QStringLiteral("answer"));
-
-            QJsonObject obj;
-            obj.insert("call_id", _callId);
-            obj.insert("version", _version);
-            if (_lifetime != NULL)
-              obj.insert("lifetime", _lifetime);
-            obj.insert("answer", answer);
-            return obj;
+        int lifetime() const { return content<int>("lifetime"_ls); } // FIXME: Omittable<>?
+        QString sdp() const {
+            return contentJson()["answer"_ls].toObject()
+                    .value("sdp"_ls).toString();
         }
-
-    private:
-        int _lifetime;
-        QJsonObject _answer;
-        QString _sdp;
-        QString _callId;
-        int _version;
     };
 
     REGISTER_EVENT_TYPE(CallAnswerEvent)

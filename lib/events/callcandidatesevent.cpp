@@ -18,12 +18,6 @@
 
 #include "callcandidatesevent.h"
 
-#include "event.h"
-
-#include "logging.h"
-
-#include <QtCore/QJsonDocument>
-
 /*
 m.call.candidates
 {
@@ -46,24 +40,3 @@ m.call.candidates
     "type": "m.call.candidates"
 }
 */
-
-using namespace QMatrixClient;
-
-
-CallCandidatesEvent::CallCandidatesEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj)
-    , _candidates(contentJson()["candidates"].toArray())
-    , _callId(contentJson()["call_id"].toString())
-    , _version(contentJson()["version"].toInt())
-{
-    qCDebug(EVENTS) << "Call Candidates event";
-}
-
-CallCandidatesEvent::CallCandidatesEvent(const QString& callId,
-                                         const QJsonArray& candidates)
-    : RoomEvent(typeId(), NULL)
-{
-    _version = 0;
-    _callId = callId;
-    _candidates = candidates;
-}

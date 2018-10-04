@@ -1300,58 +1300,42 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
     return le->contentJson() == re->contentJson();
 }
 
-bool Room::processCall(Room* room, const RoomEvent* event)
-{
-    if (!room->isCallSupported()) {
-        qCDebug(MAIN) << "Got call event in room with more then two"
-            << "members, Ignoring this event!";
-        return false;
-    }
-    emit callEvent(room, event);
-    return false;
-}
-
-bool Room::isCallSupported() const
+bool Room::supportsCalls() const
 {
   return d->membersMap.size() == 2;
 }
 
 void Room::inviteCall(const QString& callId, const int lifetime,
-                const QString& sdp)
+                      const QString& sdp)
 {
-    Q_ASSERT(isCallSupported());
-    auto *evt = new CallInviteEvent(callId, lifetime, sdp);
-    postEvent(evt);
+    Q_ASSERT(supportsCalls());
+    postEvent(new CallInviteEvent(callId, lifetime, sdp));
 }
 
-void Room::callCandidates(const QString& callId,
-                    const QJsonArray& candidates)
+void Room::sendCallCandidates(const QString& callId,
+                              const QJsonArray& candidates)
 {
-    Q_ASSERT(isCallSupported());
-    auto *evt = new CallCandidatesEvent(callId, candidates);
-    postEvent(evt);
+    Q_ASSERT(supportsCalls());
+    postEvent(new CallCandidatesEvent(callId, candidates));
 }
 
 void Room::answerCall(const QString& callId, const int lifetime,
-                const QString& sdp)
+                      const QString& sdp)
 {
-    Q_ASSERT(isCallSupported());
-    auto *evt = new CallAnswerEvent(callId, lifetime, sdp);
-    postEvent(evt);
+    Q_ASSERT(supportsCalls());
+    postEvent(new CallAnswerEvent(callId, lifetime, sdp));
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
-    Q_ASSERT(isCallSupported());
-    auto *evt = new CallAnswerEvent(callId, sdp);
-    postEvent(evt);
+    Q_ASSERT(supportsCalls());
+    postEvent(new CallAnswerEvent(callId, sdp));
 }
 
 void Room::hangupCall(const QString& callId)
 {
-    Q_ASSERT(isCallSupported());
-    auto *evt = new CallHangupEvent(callId);
-    postEvent(evt);
+    Q_ASSERT(supportsCalls());
+    postEvent(new CallHangupEvent(callId));
 }
 
 void Room::getPreviousContent(int limit)
@@ -1701,6 +1685,10 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         }
         emit q->pendingEventMerged();
     }
+    if (q->supportsCalls())
+        for (const auto& evt: RoomEventsRange(events.begin(), newEnd))
+            if (evt->isCallEvent())
+                emit q->callEvent(q, weakPtrCast<CallEventBase>(evt));
 
     if (totalInserted > 0)
     {
@@ -1828,18 +1816,6 @@ bool Room::processStateEvent(const RoomEvent& e)
                 }
             }
             return false;
-        }
-        , [this] (const CallAnswerEvent& evt) {
-            return processCall(this, &evt);
-        }
-        , [this] (const CallCandidatesEvent& evt) {
-            return processCall(this, &evt);
-        }
-        , [this] (const CallHangupEvent& evt) {
-            return processCall(this, &evt);
-        }
-        , [this] (const CallInviteEvent& evt) {
-            return processCall(this, &evt);
         }
         , [this] (const EncryptionEvent& evt) {
             d->encryptionAlgorithm = evt.algorithm();

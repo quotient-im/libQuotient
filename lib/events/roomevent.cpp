@@ -101,3 +101,25 @@ void RoomEvent::addId(const QString& newId)
     qCDebug(EVENTS) << "Event txnId -> id:" << transactionId() << "->" << id();
     Q_ASSERT(id() == newId);
 }
+
+QJsonObject makeCallContentJson(const QString& callId, int version,
+                                QJsonObject content)
+{
+    content.insert(QStringLiteral("call_id"), callId);
+    content.insert(QStringLiteral("version"), version);
+    return content;
+}
+
+CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
+                             const QString& callId, int version,
+                             const QJsonObject& contentJson)
+    : RoomEvent(type, matrixType,
+                makeCallContentJson(callId, version, contentJson))
+{ }
+
+CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
+    : RoomEvent(type, json)
+{
+    if (callId().isEmpty())
+        qCWarning(EVENTS) << id() << "is a call event with an empty call id";
+}

@@ -48,21 +48,17 @@ m.call.invite
 using namespace QMatrixClient;
 
 CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj)
-    , _lifetime(contentJson()["lifetime"].toInt())
-    , _sdp(contentJson()["offer"].toObject()["sdp"].toString())
-    , _callId(contentJson()["call_id"].toString())
-    , _version(contentJson()["version"].toInt())
+    : CallEventBase(typeId(), obj)
 {
     qCDebug(EVENTS) << "Call Invite event";
 }
 
 CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
-    : RoomEvent(typeId(), NULL)
-{
-    _version = 0;
-    _callId = callId;
-    _lifetime = lifetime;
-    _sdp = sdp;
-}
+    : CallEventBase(typeId(), matrixTypeId(), callId, lifetime,
+                    { { QStringLiteral("lifetime"), lifetime }
+                    , { QStringLiteral("offer"), QJsonObject {
+                        { QStringLiteral("type"), QStringLiteral("offer") },
+                        { QStringLiteral("sdp"), sdp } }
+                    }})
+{ }

@@ -22,42 +22,21 @@
 
 namespace QMatrixClient
 {
-    class CallInviteEvent: public RoomEvent
+    class CallInviteEvent: public CallEventBase
     {
     public:
-          DEFINE_EVENT_TYPEID("m.call.invite", CallInviteEvent)
+        DEFINE_EVENT_TYPEID("m.call.invite", CallInviteEvent)
           
-          explicit CallInviteEvent(const QJsonObject& obj);
+        explicit CallInviteEvent(const QJsonObject& obj);
 
-          explicit CallInviteEvent(const QString& callId, const int lifetime,
-                                   const QString& sdp);
+        explicit CallInviteEvent(const QString& callId, const int lifetime,
+                                 const QString& sdp);
 
-          bool isStateEvent() const override { return true; }
-
-          const int lifetime() const { return _lifetime; }
-          const QString& sdp() const { return _sdp; }
-          const QString& callId() const { return _callId; }
-          const int version() const { return _version; }
-
-          QJsonObject toJson() const
-          {
-              QJsonObject offer;
-              offer.insert("sdp", _sdp);
-              offer.insert("type", QStringLiteral("offer"));
-
-              QJsonObject obj;
-              obj.insert("call_id", _callId);
-              obj.insert("version", _version);
-              obj.insert("lifetime", _lifetime);
-              obj.insert("offer", offer);
-              return obj;
-          }
-
-    private:
-          int _lifetime;
-          QString _sdp;
-          QString _callId;
-          int _version;
+        int lifetime() const { return content<int>("lifetime"_ls); } // FIXME: Omittable<>?
+        QString sdp() const {
+            return contentJson()["offer"_ls].toObject()
+                    .value("sdp"_ls).toString();
+        }
     };
 
     REGISTER_EVENT_TYPE(CallInviteEvent)

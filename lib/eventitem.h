@@ -98,6 +98,13 @@ namespace QMatrixClient
                                    : nullptr;
     }
 
+    template<>
+    inline const CallEventBase* EventItemBase::viewAs<CallEventBase>() const
+    {
+        return evt->isCallEvent() ? weakPtrCast<const CallEventBase>(evt)
+                                  : nullptr;
+    }
+
     class PendingEventItem : public EventItemBase
     {
             Q_GADGET

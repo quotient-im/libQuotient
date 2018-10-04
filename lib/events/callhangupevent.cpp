@@ -44,16 +44,11 @@ using namespace QMatrixClient;
 
 
 CallHangupEvent::CallHangupEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj)
-    , _callId(contentJson()["call_id"].toString())
-    , _version(contentJson()["version"].toInt())
+    : CallEventBase(typeId(), obj)
 {
     qCDebug(EVENTS) << "Call Hangup event";
 }
 
 CallHangupEvent::CallHangupEvent(const QString& callId)
-    : RoomEvent(typeId(), NULL)
-{
-    _version = 0;
-    _callId = callId;
-}
+    : CallEventBase(typeId(), matrixTypeId(), callId, 0)
+{ }

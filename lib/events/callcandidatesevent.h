@@ -19,39 +19,28 @@
 #pragma once
 
 #include "roomevent.h"
-#include <QtCore/QJsonArray>
 
 namespace QMatrixClient
 {
-    class CallCandidatesEvent: public RoomEvent
+    class CallCandidatesEvent: public CallEventBase
     {
         public:
             DEFINE_EVENT_TYPEID("m.call.candidates", CallCandidatesEvent)
 
-            explicit CallCandidatesEvent(const QJsonObject& obj);
+            explicit CallCandidatesEvent(const QJsonObject& obj)
+                : CallEventBase(typeId(), obj)
+            { }
 
             explicit CallCandidatesEvent(const QString& callId,
-                                         const QJsonArray& candidates);
+                                         const QJsonArray& candidates)
+                : CallEventBase(typeId(), matrixTypeId(), callId, 0,
+                                {{ QStringLiteral("candidates"), candidates }})
+            { }
 
-            bool isStateEvent() const override { return true; }
-
-            const QJsonArray& candidates() const { return _candidates; }
-            const QString& callId() const { return _callId; }
-            const int version() const { return _version; }
-
-            QJsonObject toJson() const
+            QJsonArray candidates() const
             {
-                QJsonObject obj;
-                obj.insert("call_id", _callId);
-                obj.insert("version", _version);
-                obj.insert("candidates", _candidates);
-                return obj;
+                return content<QJsonArray>("candidates"_ls);
             }
-
-        private:
-            QJsonArray _candidates;
-            QString _callId;
-            int _version;
     };
 
     REGISTER_EVENT_TYPE(CallCandidatesEvent)
