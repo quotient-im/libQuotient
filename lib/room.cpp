@@ -1685,10 +1685,13 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
         }
         emit q->pendingEventMerged();
     }
+    // Events merged and transferred from `events` to `timeline` now.
+    const auto from = timeline.cend() - totalInserted;
+
     if (q->supportsCalls())
-        for (const auto& evt: RoomEventsRange(events.begin(), newEnd))
-            if (evt->isCallEvent())
-                emit q->callEvent(q, weakPtrCast<CallEventBase>(evt));
+        for (auto it = from; it != timeline.cend(); ++it)
+            if (auto* evt = it->viewAs<CallEventBase>())
+                emit q->callEvent(q, evt);
 
     if (totalInserted > 0)
     {
@@ -1696,7 +1699,6 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
                 << "Room" << displayname << "received" << totalInserted
                 << "new events; the last event is now" << timeline.back();
 
-        const auto from = timeline.cend() - totalInserted;
         // The first event in the just-added batch (referred to by `from`)
         // defines whose read marker can possibly be promoted any further over
         // the same author's events newly arrived. Others will need explicit
