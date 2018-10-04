@@ -21,8 +21,8 @@
 #include "converters.h"
 #include "logging.h"
 
-#ifndef DISABLE_EVENTTYPE
-#define USE_EVENTTYPE 1
+#ifdef ENABLE_EVENTTYPE_ALIAS
+#define USE_EVENTTYPE_ALIAS 1
 #endif
 
 namespace QMatrixClient
@@ -292,7 +292,7 @@ namespace QMatrixClient
     } \
     // End of macro
 
-#ifdef USE_EVENTTYPE
+#ifdef USE_EVENTTYPE_ALIAS
     namespace EventType
     {
         inline event_type_t logEventType(event_type_t id, const char* idName)
