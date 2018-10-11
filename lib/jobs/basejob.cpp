@@ -204,6 +204,11 @@ void BaseJob::Private::sendRequest(bool inBackground)
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
 #endif
+    req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    // some sources claim that there are issues with QT 5.8
+    req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
+#endif
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
     switch( verb )
