@@ -262,8 +262,7 @@ namespace QMatrixClient
              * clients.
              */
             void addTag(const QString& name, const TagRecord& record = {});
-            Q_INVOKABLE void addTag(const QString& name,
-                                    TagRecord::order_type order);
+            Q_INVOKABLE void addTag(const QString& name, float order);
 
             /// Remove a tag from the room
             Q_INVOKABLE void removeTag(const QString& name);

@@ -721,7 +721,7 @@ void Room::addTag(const QString& name, const TagRecord& record)
                                          checkRes.second, record.order);
 }
 
-void Room::addTag(const QString& name, TagRecord::order_type order)
+void Room::addTag(const QString& name, float order)
 {
     addTag(name, TagRecord{order});
 }
