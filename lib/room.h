@@ -371,11 +371,11 @@ namespace QMatrixClient
             /**
              * \brief The room name, the canonical alias or other aliases changed
              *
-             * Not triggered when displayname changes.
+             * Not triggered when displayName changes.
              */
             void namesChanged(Room* room);
-            void displaynameAboutToChange(Room* room);
-            void displaynameChanged(Room* room, QString oldName);
+            void displayNameAboutToChange(Room* room);
+            void displayNameChanged(Room* room, QString oldName);
             void topicChanged();
             void avatarChanged();
             void userAdded(User* user);

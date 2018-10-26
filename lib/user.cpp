@@ -243,7 +243,7 @@ void User::updateName(const QString& newName, const QString& oldName,
     {
         emit nameAboutToChange(newName, oldName, room);
         d->setNameForRoom(room, newName, oldName);
-        setObjectName(displayname());
+        setObjectName(displayName());
         emit nameChanged(newName, oldName, room);
     }
 }
@@ -256,7 +256,7 @@ void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
     if (newUrl != oldUrl)
     {
         d->setAvatarForRoom(room, newUrl, oldUrl);
-        setObjectName(displayname());
+        setObjectName(displayName());
         emit avatarChanged(this, room);
     }
 
@@ -319,7 +319,7 @@ void User::Private::setAvatarOnServer(QString contentUri, User* q)
             [=] { q->updateAvatarUrl(contentUri, avatarUrlForRoom(nullptr)); });
 }
 
-QString User::displayname(const Room* room) const
+QString User::displayName(const Room* room) const
 {
     auto name = d->nameForRoom(room);
     return name.isEmpty() ? d->userId :

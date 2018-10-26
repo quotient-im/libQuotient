@@ -86,7 +86,7 @@ class Room::Private
 
         Room* q;
 
-        // This updates the room displayname field (which is the way a room
+        // This updates the room displayName field (which is the way a room
         // should be shown in the room list) It should be called whenever the
         // list of members or the room name (m.room.name) or canonical alias change.
         void updateDisplayname();
@@ -99,7 +99,7 @@ class Room::Private
         QStringList aliases;
         QString canonicalAlias;
         QString name;
-        QString displayname;
+        QString displayName;
         QString topic;
         QString encryptionAlgorithm;
         Avatar avatar;
@@ -303,7 +303,7 @@ QString Room::canonicalAlias() const
 
 QString Room::displayName() const
 {
-    return d->displayname;
+    return d->displayName;
 }
 
 QString Room::topic() const
@@ -418,7 +418,7 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
             unreadMessages = 0;
 
         unreadMessages += newUnreadMessages;
-        qCDebug(MAIN) << "Room" << displayname << "has gained"
+        qCDebug(MAIN) << "Room" << displayName << "has gained"
             << newUnreadMessages << "unread message(s),"
             << (q->readMarker() == timeline.crend() ?
                     "in total at least" : "in total")
@@ -461,10 +461,10 @@ void Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker, bool force)
         {
             if (unreadMessages == -1)
             {
-                qCDebug(MAIN) << "Room" << displayname
+                qCDebug(MAIN) << "Room" << displayName
                               << "has no more unread messages";
             } else
-                qCDebug(MAIN) << "Room" << displayname << "still has"
+                qCDebug(MAIN) << "Room" << displayName << "still has"
                               << unreadMessages << "unread message(s)";
             emit q->unreadMessagesChanged(q);
         }
@@ -1696,7 +1696,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (totalInserted > 0)
     {
         qCDebug(MAIN)
-                << "Room" << displayname << "received" << totalInserted
+                << "Room" << displayName << "received" << totalInserted
                 << "new events; the last event is now" << timeline.back();
 
         // The first event in the just-added batch (referred to by `from`)
@@ -1734,7 +1734,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     const auto insertedSize = moveEventsToTimeline(normalEvents, Older);
     const auto from = timeline.crend() - insertedSize;
 
-    qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
+    qCDebug(MAIN) << "Room" << displayName << "received" << insertedSize
                   << "past events; the oldest event is now" << timeline.front();
     q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages(timeline.front().index(), from->index());
@@ -1927,7 +1927,7 @@ void Room::processAccountDataEvent(EventPtr&& event)
 
 QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) const
 {
-    // This is part 3(i,ii,iii) in the room displayname algorithm described
+    // This is part 3(i,ii,iii) in the room displayName algorithm described
     // in the CS spec (see also Room::Private::updateDisplayname() ).
     // The spec requires to sort users lexicographically by state_key (user id)
     // and use disambiguated display names of two topmost users excluding
@@ -2006,13 +2006,13 @@ QString Room::Private::calculateDisplayname() const
 void Room::Private::updateDisplayname()
 {
     auto swappedName = calculateDisplayname();
-    if (swappedName != displayname)
+    if (swappedName != displayName)
     {
-        emit q->displaynameAboutToChange(q);
-        swap(displayname, swappedName);
+        emit q->displayNameAboutToChange(q);
+        swap(displayName, swappedName);
         qDebug(MAIN) << q->objectName() << "has changed display name from"
-                     << swappedName << "to" << displayname;
-        emit q->displaynameChanged(q, swappedName);
+                     << swappedName << "to" << displayName;
+        emit q->displayNameChanged(q, swappedName);
     }
 }
 
@@ -2065,7 +2065,7 @@ QJsonObject Room::Private::toJson() const
         for (const auto *m : membersMap)
             appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
                 { { QStringLiteral("membership"), QStringLiteral("join") }
-                , { QStringLiteral("displayname"), m->rawName(q) }
+                , { QStringLiteral("displayName"), m->rawName(q) }
                 , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
             }, m->id());
 
@@ -2095,7 +2095,7 @@ QJsonObject Room::Private::toJson() const
     result.insert(QStringLiteral("unread_notifications"), unreadNotifObj);
 
     if (et.elapsed() > 50)
-        qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;
+        qCDebug(PROFILER) << "Room::toJson() for" << displayName << "took" << et;
 
     return result;
 }

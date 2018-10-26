@@ -34,7 +34,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
             Q_PROPERTY(QString name READ name NOTIFY nameChanged)
-            Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
+            Q_PROPERTY(QString displayName READ displayName NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString fullName READ fullName NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString bridgeName READ bridged NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
@@ -73,7 +73,7 @@ namespace QMatrixClient
              * disambiguated room-specific name is returned).
              * \sa name, id, fullName, Room::roomMembername
              */
-            QString displayname(const Room* room = nullptr) const;
+            QString displayName(const Room* room = nullptr) const;
 
             /** Get user name and id in one string
              * The constructed string follows the format 'name (id)'
