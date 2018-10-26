@@ -1963,9 +1963,8 @@ QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) co
 
     // iii. More users.
     if (userlist.size() > 3)
-        return tr("%1 and %L2 others")
-                .arg(q->roomMembername(first_two[0]))
-                .arg(userlist.size() - 3);
+        return tr("%1 and %Ln other(s)", "", userlist.size() - 3)
+                .arg(q->roomMembername(first_two[0]));
 
     // userlist.size() < 2 - apparently, there's only current user in the room
     return QString();
