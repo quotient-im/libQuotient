@@ -461,7 +461,8 @@ namespace QMatrixClient
             CreateRoomJob* createDirectChat(const QString& userId,
                 const QString& topic = {}, const QString& name = {});
 
-            virtual JoinRoomJob* joinRoom(const QString& roomAlias);
+            virtual JoinRoomJob* joinRoom(const QString& roomAlias,
+                                          const QStringList& serverNames = {});
 
             /** Sends /forget to the server and also deletes room locally.
              * This method is in Connection, not in Room, since it's a

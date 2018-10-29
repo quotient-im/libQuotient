@@ -422,9 +422,10 @@ PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
 }
 
-JoinRoomJob* Connection::joinRoom(const QString& roomAlias)
+JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
+                                  const QStringList& serverNames)
 {
-    auto job = callApi<JoinRoomJob>(roomAlias);
+    auto job = callApi<JoinRoomJob>(roomAlias, serverNames);
     connect(job, &JoinRoomJob::success,
             this, [this, job] { provideRoom(job->roomId(), JoinState::Join); });
     return job;
