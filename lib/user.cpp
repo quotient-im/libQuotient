@@ -321,14 +321,16 @@ void User::Private::setAvatarOnServer(QString contentUri, User* q)
 
 QString User::displayname(const Room* room) const
 {
-    auto name = d->nameForRoom(room);
-    return name.isEmpty() ? d->userId :
-           room ? room->roomMembername(this) : name;
+    if (room)
+        return room->roomMembername(this);
+
+    const auto name = d->nameForRoom(nullptr);
+    return name.isEmpty() ? d->userId : name;
 }
 
 QString User::fullName(const Room* room) const
 {
-    auto name = d->nameForRoom(room);
+    const auto name = d->nameForRoom(room);
     return name.isEmpty() ? d->userId : name % " (" % d->userId % ')';
 }
 
