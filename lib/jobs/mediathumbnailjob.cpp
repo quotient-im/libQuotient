@@ -23,7 +23,8 @@ using namespace QMatrixClient;
 QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl,
                                        const QUrl& mxcUri, QSize requestedSize)
 {
-    return makeRequestUrl(baseUrl, mxcUri.authority(), mxcUri.path().mid(1),
+    return makeRequestUrl(std::move(baseUrl),
+                          mxcUri.authority(), mxcUri.path().mid(1),
                           requestedSize.width(), requestedSize.height());
 }
 
@@ -34,9 +35,8 @@ MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
 { }
 
 MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
-    : GetContentThumbnailJob(mxcUri.authority(),
-                             mxcUri.path().mid(1), // sans leading '/'
-                             requestedSize.width(), requestedSize.height())
+    : MediaThumbnailJob(mxcUri.authority(), mxcUri.path().mid(1), // sans leading '/'
+                        requestedSize)
 { }
 
 QImage MediaThumbnailJob::thumbnail() const
