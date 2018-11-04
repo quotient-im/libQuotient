@@ -92,18 +92,17 @@ class Room::Private
         void updateDisplayname();
 
         Connection* connection;
+        QString id;
+        JoinState joinState;
+        // The state of the room at timeline position before-0
+        std::unordered_map<StateEventKey, StateEventPtr> baseState;
+        // The state of the room at timeline position after-maxTimelineIndex()
+        QHash<StateEventKey, const StateEventBase*> currentState;
         Timeline timeline;
         PendingEvents unsyncedEvents;
         QHash<QString, TimelineItem::index_t> eventsIndex;
-        QString id;
-        QStringList aliases;
-        QString canonicalAlias;
-        QString name;
         QString displayname;
-        QString topic;
-        QString encryptionAlgorithm;
         Avatar avatar;
-        JoinState joinState;
         int highlightCount = 0;
         int notificationCount = 0;
         members_map_t membersMap;
@@ -170,6 +169,15 @@ class Room::Private
         void removeMemberFromMap(const QString& username, User* u);
 
         void getPreviousContent(int limit = 10);
+
+        template <typename EventT>
+        const EventT* getCurrentState(QString stateKey = {}) const
+        {
+            static const EventT emptyEvent { QJsonObject{} };
+            return static_cast<const EventT*>(
+                        currentState.value({EventT::typeId(), stateKey},
+                                           &emptyEvent));
+        }
 
         bool isEventNotable(const TimelineItem& ti) const
         {
@@ -288,17 +296,17 @@ const Room::PendingEvents& Room::pendingEvents() const
 
 QString Room::name() const
 {
-    return d->name;
+    return d->getCurrentState<RoomNameEvent>()->name();
 }
 
 QStringList Room::aliases() const
 {
-    return d->aliases;
+    return d->getCurrentState<RoomAliasesEvent>()->aliases();
 }
 
 QString Room::canonicalAlias() const
 {
-    return d->canonicalAlias;
+    return d->getCurrentState<RoomCanonicalAliasEvent>()->alias();
 }
 
 QString Room::displayName() const
@@ -308,7 +316,7 @@ QString Room::displayName() const
 
 QString Room::topic() const
 {
-    return d->topic;
+    return d->getCurrentState<RoomTopicEvent>()->topic();
 }
 
 QString Room::avatarMediaId() const
@@ -945,7 +953,7 @@ int Room::timelineSize() const
 
 bool Room::usesEncryption() const
 {
-    return !d->encryptionAlgorithm.isEmpty();
+    return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
@@ -1088,8 +1096,12 @@ void Room::updateData(SyncRoomData&& data)
     if (!data.state.empty())
     {
         et.restart();
-        for (const auto& e: data.state)
-            emitNamesChanged |= processStateEvent(*e);
+        for (auto&& eptr: data.state)
+        {
+            const auto& evt = *eptr;
+            d->baseState[{evt.type(),evt.stateKey()}] = move(eptr);
+            emitNamesChanged |= processStateEvent(evt);
+        }
 
         qCDebug(PROFILER) << "*** Room::processStateEvents():"
                           << data.state.size() << "event(s)," << et;
@@ -1747,38 +1759,32 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
 bool Room::processStateEvent(const RoomEvent& e)
 {
+    if (!e.isStateEvent())
+        return false;
+
+    d->currentState[{e.type(),e.stateKey()}] =
+            static_cast<const StateEventBase*>(&e);
+    if (!is<RoomMemberEvent>(e))
+        qCDebug(EVENTS) << "Room state event:" << e;
+
     return visit(e
-        , [this] (const RoomNameEvent& evt) {
-            d->name = evt.name();
-            qCDebug(MAIN) << "Room name updated:" << d->name;
+        , [] (const RoomNameEvent&) {
             return true;
         }
-        , [this] (const RoomAliasesEvent& evt) {
-            d->aliases = evt.aliases();
-            qCDebug(MAIN) << "Room aliases updated:" << d->aliases;
+        , [] (const RoomAliasesEvent&) {
             return true;
         }
         , [this] (const RoomCanonicalAliasEvent& evt) {
-            d->canonicalAlias = evt.alias();
-            if (!d->canonicalAlias.isEmpty())
-                setObjectName(d->canonicalAlias);
-            qCDebug(MAIN) << "Room canonical alias updated:"
-                          << d->canonicalAlias;
+            setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
             return true;
         }
-        , [this] (const RoomTopicEvent& evt) {
-            d->topic = evt.topic();
-            qCDebug(MAIN) << "Room topic updated:" << d->topic;
+        , [this] (const RoomTopicEvent&) {
             emit topicChanged();
             return false;
         }
         , [this] (const RoomAvatarEvent& evt) {
             if (d->avatar.updateUrl(evt.url()))
-            {
-                qCDebug(MAIN) << "Room avatar URL updated:"
-                              << evt.url().toString();
                 emit avatarChanged();
-            }
             return false;
         }
         , [this] (const RoomMemberEvent& evt) {
@@ -1819,10 +1825,7 @@ bool Room::processStateEvent(const RoomEvent& e)
             }
             return false;
         }
-        , [this] (const EncryptionEvent& evt) {
-            d->encryptionAlgorithm = evt.algorithm();
-            qCDebug(MAIN) << "Encryption switched on in room" << id()
-                          << "with algorithm" << d->encryptionAlgorithm;
+        , [this] (const EncryptionEvent&) {
             emit encryption();
             return false;
         }
@@ -1976,27 +1979,29 @@ QString Room::Private::calculateDisplayname() const
     // Numbers below refer to respective parts in the spec.
 
     // 1. Name (from m.room.name)
-    if (!name.isEmpty()) {
-        return name;
+    auto dispName = q->name();
+    if (!dispName.isEmpty()) {
+        return dispName;
     }
 
     // 2. Canonical alias
-    if (!canonicalAlias.isEmpty())
-        return canonicalAlias;
+    dispName = q->canonicalAlias();
+    if (!dispName.isEmpty())
+        return dispName;
 
     // Using m.room.aliases in naming is explicitly discouraged by the spec
-    //if (!aliases.empty() && !aliases.at(0).isEmpty())
-    //    return aliases.at(0);
+    //if (!q->aliases().empty() && !q->aliases().at(0).isEmpty())
+    //    return q->aliases().at(0);
 
     // 3. Room members
-    QString topMemberNames = roomNameFromMemberNames(membersMap.values());
-    if (!topMemberNames.isEmpty())
-        return topMemberNames;
+    dispName = roomNameFromMemberNames(membersMap.values());
+    if (!dispName.isEmpty())
+        return dispName;
 
     // 4. Users that previously left the room
-    topMemberNames = roomNameFromMemberNames(membersLeft);
-    if (!topMemberNames.isEmpty())
-        return tr("Empty room (was: %1)").arg(topMemberNames);
+    dispName = roomNameFromMemberNames(membersLeft);
+    if (!dispName.isEmpty())
+        return tr("Empty room (was: %1)").arg(dispName);
 
     // 5. Fail miserably
     return tr("Empty room (%1)").arg(id);
@@ -2015,34 +2020,6 @@ void Room::Private::updateDisplayname()
     }
 }
 
-void appendStateEvent(QJsonArray& events, const QString& type,
-                      const QJsonObject& content, const QString& stateKey = {})
-{
-    if (!content.isEmpty() || !stateKey.isEmpty())
-    {
-        auto json = basicEventJson(type, content);
-        json.insert(QStringLiteral("state_key"), stateKey);
-        events.append(json);
-    }
-}
-
-#define ADD_STATE_EVENT(events, type, name, content) \
-    appendStateEvent((events), QStringLiteral(type), \
-                     {{ QStringLiteral(name), content }});
-
-void appendEvent(QJsonArray& events, const QString& type,
-                 const QJsonObject& content)
-{
-    if (!content.isEmpty())
-        events.append(basicEventJson(type, content));
-}
-
-template <typename EvtT>
-void appendEvent(QJsonArray& events, const EvtT& event)
-{
-    appendEvent(events, EvtT::matrixTypeId(), event.toJson());
-}
-
 QJsonObject Room::Private::toJson() const
 {
     QElapsedTimer et; et.start();
@@ -2050,23 +2027,8 @@ QJsonObject Room::Private::toJson() const
     {
         QJsonArray stateEvents;
 
-        ADD_STATE_EVENT(stateEvents, "m.room.name", "name", name);
-        ADD_STATE_EVENT(stateEvents, "m.room.topic", "topic", topic);
-        ADD_STATE_EVENT(stateEvents, "m.room.avatar", "url",
-                        avatar.url().toString());
-        ADD_STATE_EVENT(stateEvents, "m.room.aliases", "aliases",
-                        QJsonArray::fromStringList(aliases));
-        ADD_STATE_EVENT(stateEvents, "m.room.canonical_alias", "alias",
-                        canonicalAlias);
-        ADD_STATE_EVENT(stateEvents, "m.room.encryption", "algorithm",
-                        encryptionAlgorithm);
-
-        for (const auto *m : membersMap)
-            appendStateEvent(stateEvents, QStringLiteral("m.room.member"),
-                { { QStringLiteral("membership"), QStringLiteral("join") }
-                , { QStringLiteral("displayname"), m->rawName(q) }
-                , { QStringLiteral("avatar_url"), m->avatarUrl(q).toString() }
-            }, m->id());
+        for (const auto& evt: currentState)
+            stateEvents.append(evt->fullJson());
 
         const auto stateObjName = joinState == JoinState::Invite ?
                     QStringLiteral("invite_state") : QStringLiteral("state");
@@ -2074,14 +2036,14 @@ QJsonObject Room::Private::toJson() const
             QJsonObject {{ QStringLiteral("events"), stateEvents }});
     }
 
-    QJsonArray accountDataEvents;
     if (!accountData.empty())
     {
+        QJsonArray accountDataEvents;
         for (const auto& e: accountData)
-            appendEvent(accountDataEvents, e.first, e.second->contentJson());
+            accountDataEvents.append(e.second->fullJson());
+        result.insert(QStringLiteral("account_data"),
+                      QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
     }
-    result.insert(QStringLiteral("account_data"),
-                  QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
 
     QJsonObject unreadNotifObj
         { { SyncRoomData::UnreadCountKey, unreadMessages } };
