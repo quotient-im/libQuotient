@@ -37,6 +37,13 @@ namespace QMatrixClient {
     using StateEventPtr = event_ptr_tt<StateEventBase>;
     using StateEvents = EventsArray<StateEventBase>;
 
+    /**
+     * A combination of event type and state key uniquely identifies a piece
+     * of state in Matrix.
+     * \sa https://matrix.org/docs/spec/client_server/unstable.html#types-of-room-events
+     */
+    using StateEventKey = std::pair<Event::Type, QString>;
+
     template <typename ContentT>
     struct Prev
     {
@@ -92,3 +99,13 @@ namespace QMatrixClient {
             std::unique_ptr<Prev<ContentT>> _prev;
     };
 } // namespace QMatrixClient
+
+namespace std {
+    template <> struct hash<QMatrixClient::StateEventKey>
+    {
+        size_t operator()(const QMatrixClient::StateEventKey& k) const Q_DECL_NOEXCEPT
+        {
+            return qHash(k);
+        }
+    };
+}
