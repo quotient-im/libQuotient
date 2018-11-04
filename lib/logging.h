@@ -65,6 +65,17 @@ namespace QMatrixClient
     {
         return qdm(debug_object);
     }
+
+    inline qint64 profilerMinNsecs()
+    {
+        return
+    #ifdef PROFILER_LOG_MIN_MS
+            PROFILER_LOG_MIN_MS
+    #else
+            200
+    #endif
+        * 1000;
+    }
 }
 
 inline QDebug operator<< (QDebug debug_object, const QElapsedTimer& et)
