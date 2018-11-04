@@ -28,3 +28,11 @@ bool StateEventBase::repeatsState() const
     const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
     return fullJson().value(ContentKeyL) == prevContentJson;
 }
+
+void StateEventBase::dumpTo(QDebug dbg) const
+{
+    if (unsignedJson().contains(PrevContentKeyL))
+        dbg << QJsonDocument(unsignedJson()[PrevContentKeyL].toObject())
+               .toJson(QJsonDocument::Compact) << " -> ";
+    RoomEvent::dumpTo(dbg);
+}

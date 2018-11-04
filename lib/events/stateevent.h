@@ -30,6 +30,8 @@ namespace QMatrixClient {
             ~StateEventBase() override = default;
 
             bool isStateEvent() const override { return true; }
+            void dumpTo(QDebug dbg) const override;
+
             virtual bool repeatsState() const;
     };
     using StateEventPtr = event_ptr_tt<StateEventBase>;

@@ -77,3 +77,8 @@ const QJsonObject Event::unsignedJson() const
 {
     return fullJson()[UnsignedKeyL].toObject();
 }
+
+void Event::dumpTo(QDebug dbg) const
+{
+    dbg << QJsonDocument(contentJson()).toJson(QJsonDocument::Compact);
+}

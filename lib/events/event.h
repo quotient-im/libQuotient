@@ -257,8 +257,18 @@ namespace QMatrixClient
                 return fromJson<T>(contentJson()[key]);
             }
 
+            friend QDebug operator<<(QDebug dbg, const Event& e)
+            {
+                QDebugStateSaver _dss { dbg };
+                dbg.noquote().nospace()
+                        << e.matrixType() << '(' << e.type() << "): ";
+                e.dumpTo(dbg);
+                return dbg;
+            }
+
             virtual bool isStateEvent() const { return false; }
             virtual bool isCallEvent() const { return false; }
+            virtual void dumpTo(QDebug dbg) const;
 
         protected:
             QJsonObject& editJson() { return _json; }
