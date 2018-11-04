@@ -1285,15 +1285,15 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
     if (le->type() != re->type())
         return false;
 
-    if (!le->id().isEmpty())
+    if (!re->id().isEmpty())
         return le->id() == re->id();
-    if (!le->transactionId().isEmpty())
+    if (!re->transactionId().isEmpty())
         return le->transactionId() == re->transactionId();
 
     // This one is not reliable (there can be two unsynced
     // events with the same type, sender and state key) but
     // it's the best we have for state events.
-    if (le->isStateEvent())
+    if (re->isStateEvent())
         return le->stateKey() == re->stateKey();
 
     // Empty id and no state key, hmm... (shrug)
