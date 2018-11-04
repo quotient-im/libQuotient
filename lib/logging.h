@@ -69,11 +69,11 @@ namespace QMatrixClient
     inline qint64 profilerMinNsecs()
     {
         return
-    #ifdef PROFILER_LOG_MIN_MS
-            PROFILER_LOG_MIN_MS
-    #else
+#ifdef PROFILER_LOG_USECS
+            PROFILER_LOG_USECS
+#else
             200
-    #endif
+#endif
         * 1000;
     }
 }

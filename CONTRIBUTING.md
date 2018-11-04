@@ -237,6 +237,14 @@ We want the software to have decent performance for typical users. At the same t
 
 Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
 
+Speaking of profiling logs (see README.md on how to turn them on) - in order
+to reduce small timespan logging spam, there's a default limit of at least
+200 microseconds to log most operations with the PROFILER
+(aka libqmatrixclient.profile.debug) logging category. You can override this
+limit by passing the new value (in microseconds) in PROFILER_LOG_USECS to
+the compiler. In the future, this parameter will be made changeable at runtime
+_if_ needed.
+
 ## How to check proposed changes before submitting them
 
 Checking the code on at least one configuration is essential; if you only have
