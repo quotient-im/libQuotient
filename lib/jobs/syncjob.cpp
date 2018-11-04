@@ -109,11 +109,12 @@ BaseJob::Status SyncData::parseJson(const QJsonDocument &data)
             totalEvents += r.state.size() + r.ephemeral.size() +
                            r.accountData.size() + r.timeline.size();
         }
-        totalRooms += roomData.size();
+        totalRooms += rs.size();
     }
-    qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
-                      << totalRooms << "room(s),"
-                      << totalEvents << "event(s) in" << et;
+    if (totalRooms > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+        qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
+                          << totalRooms << "room(s),"
+                          << totalEvents << "event(s) in" << et;
     return BaseJob::Success;
 }
 
