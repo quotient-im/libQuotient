@@ -31,6 +31,8 @@ bool StateEventBase::repeatsState() const
 
 void StateEventBase::dumpTo(QDebug dbg) const
 {
+    if (!stateKey().isEmpty())
+        dbg << '<' << stateKey() << "> ";
     if (unsignedJson().contains(PrevContentKeyL))
         dbg << QJsonDocument(unsignedJson()[PrevContentKeyL].toObject())
                .toJson(QJsonDocument::Compact) << " -> ";
