@@ -65,8 +65,9 @@ namespace QMatrixClient
         public: \
             using value_type = content_type::value_type; \
             DEFINE_EVENT_TYPEID(_TypeId, _Name) \
-            explicit _Name(const QJsonObject& obj) \
-                : StateEvent(typeId(), obj, QStringLiteral(#_ContentKey)) \
+            explicit _Name(QJsonObject obj) \
+                : StateEvent(typeId(), std::move(obj), \
+                             QStringLiteral(#_ContentKey)) \
             { } \
             template <typename T> \
             explicit _Name(T&& value) \
