@@ -59,11 +59,11 @@ namespace QMatrixClient
         };
     } // namespace EventContent
 
-#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ContentType, _ContentKey) \
-    class _Name : public StateEvent<EventContent::SimpleContent<_ContentType>> \
+#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey) \
+    class _Name : public StateEvent<EventContent::SimpleContent<_ValueType>> \
     { \
         public: \
-            using content_type = _ContentType; \
+            using value_type = content_type::value_type; \
             DEFINE_EVENT_TYPEID(_TypeId, _Name) \
             explicit _Name(const QJsonObject& obj) \
                 : StateEvent(typeId(), obj, QStringLiteral(#_ContentKey)) \
