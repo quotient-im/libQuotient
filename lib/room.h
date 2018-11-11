@@ -323,6 +323,7 @@ namespace QMatrixClient
              *
              * Takes ownership of the event, deleting it once the matching one
              * arrives with the sync
+             * \return transaction id associated with the event.
              */
             QString postEvent(RoomEvent* event);
             QString postJson(const QString& matrixType,

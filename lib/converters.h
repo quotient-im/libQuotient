@@ -61,7 +61,7 @@ namespace QMatrixClient
     inline auto toJson(const QJsonValue& val) { return val; }
     inline auto toJson(const QJsonObject& o) { return o; }
     inline auto toJson(const QJsonArray& arr) { return arr; }
-    // Special-case QStrings and bools to avoid ambiguity between QJsonValue
+    // Special-case QString to avoid ambiguity between QJsonValue
     // and QVariant (also, QString.isEmpty() is used in _impl::AddNode<> below)
     inline auto toJson(const QString& s) { return s; }
 

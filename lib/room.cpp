@@ -157,8 +157,8 @@ class Room::Private
             fileTransfers[tid].status = FileTransferInfo::Failed;
             emit q->fileTransferFailed(tid, errorMessage);
         }
-        // A map from event/txn ids to information about the long operation;
-        // used for both download and upload operations
+        /// A map from event/txn ids to information about the long operation;
+        /// used for both download and upload operations
         QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;

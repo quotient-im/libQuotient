@@ -209,7 +209,7 @@ namespace QMatrixClient
     inline auto registerEventType()
     {
         static const auto _ = setupFactory<EventT>();
-        return _;
+        return _; // Only to facilitate usage in static initialisation
     }
 
     // === Event ===
