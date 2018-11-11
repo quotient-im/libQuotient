@@ -177,9 +177,16 @@ namespace QMatrixClient
             const Timeline& messageEvents() const;
             const PendingEvents& pendingEvents() const;
             /**
-             * A convenience method returning the read marker to
-             * the before-oldest message
+             * A convenience method returning the read marker to the position
+             * before the "oldest" event; same as messageEvents().crend()
              */
+            rev_iter_t historyEdge() const;
+            /**
+             * A convenience method returning the iterator beyond the latest
+             * arrived event; same as messageEvents().cend()
+             */
+            Timeline::const_iterator syncEdge() const;
+            /// \deprecated Use historyEdge instead
             rev_iter_t timelineEdge() const;
             Q_INVOKABLE TimelineItem::index_t minTimelineIndex() const;
             Q_INVOKABLE TimelineItem::index_t maxTimelineIndex() const;

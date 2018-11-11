@@ -170,6 +170,9 @@ class Room::Private
         void renameMember(User* u, QString oldName);
         void removeMemberFromMap(const QString& username, User* u);
 
+        /// A point in the timeline corresponding to baseState
+        rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
+
         void getPreviousContent(int limit = 10);
 
         template <typename EventT>
@@ -525,9 +528,19 @@ int Room::unreadCount() const
     return d->unreadMessages;
 }
 
-Room::rev_iter_t Room::timelineEdge() const
+Room::rev_iter_t Room::historyEdge() const
 {
     return d->timeline.crend();
+}
+
+Room::Timeline::const_iterator Room::syncEdge() const
+{
+    return d->timeline.cend();
+}
+
+Room::rev_iter_t Room::timelineEdge() const
+{
+    return historyEdge();
 }
 
 TimelineItem::index_t Room::minTimelineIndex() const
@@ -1018,8 +1031,9 @@ Room::Timeline::difference_type Room::Private::moveEventsToTimeline(
 {
     Q_ASSERT(!events.empty());
     // Historical messages arrive in newest-to-oldest order, so the process for
-    // them is symmetric to the one for new messages.
-    auto index = timeline.empty() ? -int(placement) :
+    // them is almost symmetric to the one for new messages. New messages get
+    // appended from index 0; old messages go backwards from index -1.
+    auto index = timeline.empty() ? -((placement+1)/2) /* 1 -> -1; -1 -> 0 */ :
                  placement == Older ? timeline.front().index() :
                  timeline.back().index();
     auto baseIndex = index;
@@ -1040,7 +1054,7 @@ Room::Timeline::difference_type Room::Private::moveEventsToTimeline(
         eventsIndex.insert(eId, index);
         Q_ASSERT(q->findInTimeline(eId)->event()->id() == eId);
     }
-    const auto insertedSize = (index - baseIndex) * int(placement);
+    const auto insertedSize = (index - baseIndex) * placement;
     Q_ASSERT(insertedSize == int(events.size()));
     return insertedSize;
 }
