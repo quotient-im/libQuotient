@@ -94,9 +94,11 @@ class Room::Private
         Connection* connection;
         QString id;
         JoinState joinState;
-        // The state of the room at timeline position before-0
+        /// The state of the room at timeline position before-0
+        /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
-        // The state of the room at timeline position after-maxTimelineIndex()
+        /// The state of the room at timeline position after-maxTimelineIndex()
+        /// \sa Room::syncEdge
         QHash<StateEventKey, const StateEventBase*> currentState;
         Timeline timeline;
         PendingEvents unsyncedEvents;
@@ -156,8 +158,8 @@ class Room::Private
             fileTransfers[tid].status = FileTransferInfo::Failed;
             emit q->fileTransferFailed(tid, errorMessage);
         }
-        // A map from event/txn ids to information about the long operation;
-        // used for both download and upload operations
+        /// A map from event/txn ids to information about the long operation;
+        /// used for both download and upload operations
         QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
