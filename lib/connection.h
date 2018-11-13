@@ -122,6 +122,8 @@ namespace QMatrixClient
             Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
+            Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
+
         public:
             // Room ids, rather than room pointers, are used in the direct chat
             // map types because the library keeps Invite rooms separate from
@@ -307,6 +309,9 @@ namespace QMatrixClient
 
             bool cacheState() const;
             void setCacheState(bool newValue);
+
+            bool lazyLoading() const;
+            void setLazyLoading(bool newValue);
 
             /** Start a job of a specified type with specified arguments and policy
              *
@@ -655,6 +660,7 @@ namespace QMatrixClient
                                          IgnoredUsersList removals);
 
             void cacheStateChanged();
+            void lazyLoadingChanged();
             void turnServersChanged(const QJsonObject& servers);
 
         protected:
