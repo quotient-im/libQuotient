@@ -42,7 +42,7 @@ namespace QMatrixClient {
      * of state in Matrix.
      * \sa https://matrix.org/docs/spec/client_server/unstable.html#types-of-room-events
      */
-    using StateEventKey = std::pair<Event::Type, QString>;
+    using StateEventKey = std::pair<QString, QString>;
 
     template <typename ContentT>
     struct Prev

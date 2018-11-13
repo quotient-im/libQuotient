@@ -178,10 +178,12 @@ class Room::Private
         template <typename EventT>
         const EventT* getCurrentState(QString stateKey = {}) const
         {
-            static const EventT emptyEvent { QJsonObject{} };
-            return static_cast<const EventT*>(
-                        currentState.value({EventT::typeId(), stateKey},
-                                           &emptyEvent));
+            static const EventT empty;
+            const auto* evt =
+                currentState.value({EventT::matrixTypeId(), stateKey}, &empty);
+            Q_ASSERT(evt->type() == EventT::typeId() &&
+                     evt->matrixType() == EventT::matrixTypeId());
+            return static_cast<const EventT*>(evt);
         }
 
         bool isEventNotable(const TimelineItem& ti) const
@@ -1117,7 +1119,8 @@ void Room::updateData(SyncRoomData&& data)
         for (auto&& eptr: data.state)
         {
             const auto& evt = *eptr;
-            d->baseState[{evt.type(),evt.stateKey()}] = move(eptr);
+            Q_ASSERT(evt.isStateEvent());
+            d->baseState[{evt.matrixType(),evt.stateKey()}] = move(eptr);
             emitNamesChanged |= processStateEvent(evt);
         }
 
@@ -1628,11 +1631,26 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
         return true;
     }
 
-    // Make a new event from the redacted JSON, exchange events,
-    // notify everyone and delete the old event
+    // Make a new event from the redacted JSON and put it in the timeline
+    // instead of the redacted one. oldEvent will be deleted on return.
     auto oldEvent = ti.replaceEvent(makeRedacted(*ti, redaction));
-    q->onRedaction(*oldEvent, *ti.event());
     qCDebug(MAIN) << "Redacted" << oldEvent->id() << "with" << redaction.id();
+    if (oldEvent->isStateEvent())
+    {
+        const StateEventKey evtKey { oldEvent->matrixType(), oldEvent->stateKey() };
+        Q_ASSERT(currentState.contains(evtKey));
+        if (currentState[evtKey] == oldEvent.get())
+        {
+            Q_ASSERT(ti.index() >= 0); // Historical states can't be in currentState
+            qCDebug(MAIN).nospace() << "Reverting state "
+                << oldEvent->matrixType() << "/" << oldEvent->stateKey();
+            // Retarget the current state to the newly made event.
+            if (q->processStateEvent(*ti))
+                emit q->namesChanged(q);
+            updateDisplayname();
+        }
+    }
+    q->onRedaction(*oldEvent, *ti);
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
     return true;
 }
@@ -1791,7 +1809,7 @@ bool Room::processStateEvent(const RoomEvent& e)
     if (!e.isStateEvent())
         return false;
 
-    d->currentState[{e.type(),e.stateKey()}] =
+    d->currentState[{e.matrixType(),e.stateKey()}] =
             static_cast<const StateEventBase*>(&e);
     if (!is<RoomMemberEvent>(e))
         qCDebug(EVENTS) << "Room state event:" << e;
@@ -2060,7 +2078,10 @@ QJsonObject Room::Private::toJson() const
         QJsonArray stateEvents;
 
         for (const auto& evt: currentState)
+        {
+            Q_ASSERT(evt->isStateEvent());
             stateEvents.append(evt->fullJson());
+        }
 
         const auto stateObjName = joinState == JoinState::Invite ?
                     QStringLiteral("invite_state") : QStringLiteral("state");
