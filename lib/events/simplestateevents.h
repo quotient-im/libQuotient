@@ -65,15 +65,16 @@ namespace QMatrixClient
         public: \
             using value_type = content_type::value_type; \
             DEFINE_EVENT_TYPEID(_TypeId, _Name) \
-            explicit _Name(QJsonObject obj) \
-                : StateEvent(typeId(), std::move(obj), \
-                             QStringLiteral(#_ContentKey)) \
-            { } \
+            explicit _Name() : _Name(value_type()) { } \
             template <typename T> \
             explicit _Name(T&& value) \
                 : StateEvent(typeId(), matrixTypeId(), \
                              QStringLiteral(#_ContentKey), \
                              std::forward<T>(value)) \
+            { } \
+            explicit _Name(QJsonObject obj) \
+                : StateEvent(typeId(), std::move(obj), \
+                             QStringLiteral(#_ContentKey)) \
             { } \
             auto _ContentKey() const { return content().value; } \
     }; \
