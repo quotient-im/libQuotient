@@ -223,6 +223,8 @@ class Room::Private
 
         QString doSendEvent(const RoomEvent* pEvent);
         PendingEvents::iterator findAsPending(const RoomEvent* rawEvtPtr);
+        void onEventSendingFailure(const RoomEvent* pEvent,
+                const QString& txnId, BaseJob* call = nullptr);
 
         template <typename EvT>
         auto requestSetState(const QString& stateKey, const EvT& event)
@@ -1166,49 +1168,41 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
 {
     auto txnId = pEvent->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
-    auto call = connection->callApi<SendMessageJob>(BackgroundRequest,
-                    id, pEvent->matrixType(), txnId, pEvent->contentJson());
-    Room::connect(call, &BaseJob::started, q,
-        [this,pEvent,txnId] {
-            auto it = findAsPending(pEvent);
-            if (it == unsyncedEvents.end())
-            {
-                qWarning(EVENTS) << "Pending event for transaction" << txnId
-                                 << "not found - got synced so soon?";
-                return;
-            }
-            it->setDeparted();
-            emit q->pendingEventChanged(it - unsyncedEvents.begin());
-        });
-    Room::connect(call, &BaseJob::failure, q,
-        [this,pEvent,txnId,call] {
-            auto it = findAsPending(pEvent);
-            if (it == unsyncedEvents.end())
-            {
-                qCritical(EVENTS) << "Pending event for transaction" << txnId
-                                  << "got lost without successful sending";
-                return;
-            }
-            it->setSendingFailed(
-                        call->statusCaption() % ": " % call->errorString());
-            emit q->pendingEventChanged(it - unsyncedEvents.begin());
+    if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest,
+                        id, pEvent->matrixType(), txnId, pEvent->contentJson()))
+    {
+        Room::connect(call, &BaseJob::started, q,
+            [this,pEvent,txnId] {
+                auto it = findAsPending(pEvent);
+                if (it == unsyncedEvents.end())
+                {
+                    qWarning(EVENTS) << "Pending event for transaction" << txnId
+                                     << "not found - got synced so soon?";
+                    return;
+                }
+                it->setDeparted();
+                emit q->pendingEventChanged(it - unsyncedEvents.begin());
+            });
+        Room::connect(call, &BaseJob::failure, q,
+            std::bind(&Room::Private::onEventSendingFailure,
+                      this, pEvent, txnId, call));
+        Room::connect(call, &BaseJob::success, q,
+            [this,call,pEvent,txnId] {
+                // Find an event by the pointer saved in the lambda (the pointer
+                // may be dangling by now but we can still search by it).
+                auto it = findAsPending(pEvent);
+                if (it == unsyncedEvents.end())
+                {
+                    qDebug(EVENTS) << "Pending event for transaction" << txnId
+                                   << "already merged";
+                    return;
+                }
 
-        });
-    Room::connect(call, &BaseJob::success, q,
-        [this,call,pEvent,txnId] {
-            // Find an event by the pointer saved in the lambda (the pointer
-            // may be dangling by now but we can still search by it).
-            auto it = findAsPending(pEvent);
-            if (it == unsyncedEvents.end())
-            {
-                qDebug(EVENTS) << "Pending event for transaction" << txnId
-                               << "already merged";
-                return;
-            }
-
-            it->setReachedServer(call->eventId());
-            emit q->pendingEventChanged(it - unsyncedEvents.begin());
-        });
+                it->setReachedServer(call->eventId());
+                emit q->pendingEventChanged(it - unsyncedEvents.begin());
+            });
+    } else
+        onEventSendingFailure(pEvent, txnId);
     return txnId;
 }
 
@@ -1219,6 +1213,22 @@ Room::PendingEvents::iterator Room::Private::findAsPending(
         [rawEvtPtr] (const auto& pe) { return pe.event() == rawEvtPtr; };
 
     return std::find_if(unsyncedEvents.begin(), unsyncedEvents.end(), comp);
+}
+
+void Room::Private::onEventSendingFailure(const RoomEvent* pEvent,
+        const QString& txnId, BaseJob* call)
+{
+    auto it = findAsPending(pEvent);
+    if (it == unsyncedEvents.end())
+    {
+        qCritical(EVENTS) << "Pending event for transaction" << txnId
+                          << "could not be sent";
+        return;
+    }
+    it->setSendingFailed(call
+        ? call->statusCaption() % ": " % call->errorString()
+        : tr("The call could not be started"));
+    emit q->pendingEventChanged(it - unsyncedEvents.begin());
 }
 
 QString Room::retryMessage(const QString& txnId)
