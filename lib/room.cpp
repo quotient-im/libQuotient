@@ -1860,10 +1860,12 @@ bool Room::processStateEvent(const RoomEvent& e)
                     emit userAdded(u);
                 }
             }
-            else if( evt.membership() == MembershipType::Leave )
+            else if( evt.membership() != MembershipType::Join )
             {
                 if (memberJoinState(u) == JoinState::Join)
                 {
+                    if (evt.membership() == MembershipType::Invite)
+                        qCWarning(MAIN) << "Invalid membership change:" << evt;
                     if (!d->membersLeft.contains(u))
                         d->membersLeft.append(u);
                     d->removeMemberFromMap(u->name(this), u);
