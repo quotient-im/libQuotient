@@ -1629,45 +1629,37 @@ inline bool isRedaction(const RoomEventPtr& ep)
 void Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropDuplicateEvents(events);
+    if (events.empty())
+        return;
 
     // Pre-process redactions so that events that get redacted in the same
     // batch landed in the timeline already redacted.
-    // XXX: The code below is written (and commented) so that it could be
-    // quickly converted to not-saving redaction events in the timeline.
-    // See #220 for details.
-    auto newEnd = std::find_if(events.begin(), events.end(), isRedaction);
-    // Either process the redaction, or shift the non-redaction event
-    // overwriting redactions in a remove_if fashion.
-    for(const auto& eptr: RoomEventsRange(newEnd, events.end()))
+    // NB: We have to store redaction events to the timeline too - see #220.
+    auto redactionIt = std::find_if(events.begin(), events.end(), isRedaction);
+    for(const auto& eptr: RoomEventsRange(redactionIt, events.end()))
         if (auto* r = eventCast<RedactionEvent>(eptr))
         {
             // Try to find the target in the timeline, then in the batch.
             if (processRedaction(*r))
                 continue;
-            auto targetIt = std::find_if(events.begin(), newEnd,
+            auto targetIt = std::find_if(events.begin(), redactionIt,
                 [id=r->redactedEvent()] (const RoomEventPtr& ep) {
                     return ep->id() == id;
                 });
-            if (targetIt != newEnd)
+            if (targetIt != redactionIt)
                 *targetIt = makeRedacted(**targetIt, *r);
             else
                 qCDebug(MAIN) << "Redaction" << r->id()
                               << "ignored: target event" << r->redactedEvent()
                               << "is not found";
-            // If the target events comes later, it comes already redacted.
+            // If the target event comes later, it comes already redacted.
         }
-//        else // This should be uncommented once we stop adding redactions to the timeline
-//            *newEnd++ = std::move(eptr);
-    newEnd = events.end(); // This line should go if/when we stop adding redactions to the timeline
-
-    if (events.begin() == newEnd)
-        return;
 
     auto timelineSize = timeline.size();
     auto totalInserted = 0;
-    for (auto it = events.begin(); it != newEnd;)
+    for (auto it = events.begin(); it != events.end();)
     {
-        auto nextPendingPair = findFirstOf(it, newEnd,
+        auto nextPendingPair = findFirstOf(it, events.end(),
                     unsyncedEvents.begin(), unsyncedEvents.end(), isEchoEvent);
         auto nextPending = nextPendingPair.first;
 
@@ -1681,7 +1673,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
             q->onAddNewTimelineEvents(firstInserted);
             emit q->addedMessages(firstInserted->index(), timeline.back().index());
         }
-        if (nextPending == newEnd)
+        if (nextPending == events.end())
             break;
 
         it = nextPending + 1;
