@@ -312,6 +312,11 @@ void User::unmarkIgnore()
     connection()->removeFromIgnoredUsers(this);
 }
 
+bool User::isIgnored() const
+{
+    return connection()->isIgnored(this);
+}
+
 void User::Private::setAvatarOnServer(QString contentUri, User* q)
 {
     auto* j = connection->callApi<SetAvatarUrlJob>(userId, contentUri);

@@ -125,6 +125,8 @@ namespace QMatrixClient
             void ignore();
             /** Remove the user from the ignore list */
             void unmarkIgnore();
+            /** Check whether the user is in ignore list */
+            bool isIgnored() const;
 
         signals:
             void nameAboutToChange(QString newName, QString oldName,
