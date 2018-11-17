@@ -29,6 +29,11 @@ bool StateEventBase::repeatsState() const
     return fullJson().value(ContentKeyL) == prevContentJson;
 }
 
+QString StateEventBase::replacedState() const
+{
+    return unsignedJson().value("replaces_state"_ls).toString();
+}
+
 void StateEventBase::dumpTo(QDebug dbg) const
 {
     if (!stateKey().isEmpty())
