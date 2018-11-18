@@ -65,10 +65,6 @@ HashT erase_if(HashT& hashMap, Pred pred)
     return removals;
 }
 
-#ifndef TRIM_RAW_DATA
-#define TRIM_RAW_DATA 65535
-#endif
-
 class Connection::Private
 {
     public:
@@ -228,8 +224,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
     connect(loginJob, &BaseJob::failure, this,
         [this, loginJob] {
-            emit loginError(loginJob->errorString(),
-                            loginJob->rawData(TRIM_RAW_DATA));
+            emit loginError(loginJob->errorString(), loginJob->rawDataSample());
         });
 }
 
@@ -306,7 +301,7 @@ void Connection::sync(int timeout)
     connect( job, &SyncJob::retryScheduled, this,
         [this,job] (int retriesTaken, int nextInMilliseconds)
         {
-            emit networkError(job->errorString(), job->rawData(TRIM_RAW_DATA),
+            emit networkError(job->errorString(), job->rawDataSample(),
                               retriesTaken, nextInMilliseconds);
         });
     connect( job, &SyncJob::failure, this, [this, job] {
@@ -315,10 +310,10 @@ void Connection::sync(int timeout)
         {
             qCWarning(SYNCJOB)
                 << "Sync job failed with ContentAccessError - login expired?";
-            emit loginError(job->errorString(), job->rawData(TRIM_RAW_DATA));
+            emit loginError(job->errorString(), job->rawDataSample());
         }
         else
-            emit syncError(job->errorString(), job->rawData(TRIM_RAW_DATA));
+            emit syncError(job->errorString(), job->rawDataSample());
     });
 }
 

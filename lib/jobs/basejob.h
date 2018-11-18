@@ -138,8 +138,20 @@ namespace QMatrixClient
             Status status() const;
             /** Short human-friendly message on the job status */
             QString statusCaption() const;
-            /** Raw response body as received from the server */
+            /** Get raw response body as received from the server
+             * \param bytesAtMost return this number of leftmost bytes, or -1
+             *                    to return the entire response
+             */
             QByteArray rawData(int bytesAtMost = -1) const;
+            /** Get UI-friendly sample of raw data
+             *
+             * This is almost the same as rawData but appends the "truncated"
+             * suffix if not all data fit in bytesAtMost. This call is
+             * recommended to present a sample of raw data as "details" next to
+             * error messages. Note that the default \p bytesAtMost value is
+             * also tailored to UI cases.
+             */
+            QString rawDataSample(int bytesAtMost = 65535) const;
 
             /** Error (more generally, status) code
              * Equivalent to status().code

@@ -426,8 +426,8 @@ BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
     const auto& json = QJsonDocument::fromJson(d->rawResponse, &error);
     if( error.error == QJsonParseError::NoError )
         return parseJson(json);
-    else
-        return { IncorrectResponseError, error.errorString() };
+
+    return { IncorrectResponseError, error.errorString() };
 }
 
 BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
@@ -519,8 +519,19 @@ BaseJob::Status BaseJob::status() const
 
 QByteArray BaseJob::rawData(int bytesAtMost) const
 {
-    return bytesAtMost > 0 && d->rawResponse.size() > bytesAtMost ?
-        d->rawResponse.left(bytesAtMost) + "...(truncated)" : d->rawResponse;
+    return bytesAtMost > 0 && d->rawResponse.size() > bytesAtMost
+            ? d->rawResponse.left(bytesAtMost) : d->rawResponse;
+}
+
+QString BaseJob::rawDataSample(int bytesAtMost) const
+{
+    auto data = rawData(bytesAtMost);
+    Q_ASSERT(data.size() <= d->rawResponse.size());
+    return data.size() == d->rawResponse.size()
+            ? data : data + tr("...(truncated, %Ln bytes in total)",
+                               "Comes after trimmed raw network response",
+                               d->rawResponse.size());
+
 }
 
 QString BaseJob::statusCaption() const

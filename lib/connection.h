@@ -519,7 +519,7 @@ namespace QMatrixClient
              * a successful login and logout and are constant at other times.
              */
             void stateChanged();
-            void loginError(QString message, QByteArray details);
+            void loginError(QString message, QString details);
 
             /** A network request (job) failed
              *
@@ -537,11 +537,11 @@ namespace QMatrixClient
              * @param retriesTaken - how many retries have already been taken
              * @param nextRetryInMilliseconds - when the job will retry again
              */
-            void networkError(QString message, QByteArray details,
+            void networkError(QString message, QString details,
                               int retriesTaken, int nextRetryInMilliseconds);
 
             void syncDone();
-            void syncError(QString message, QByteArray details);
+            void syncError(QString message, QString details);
 
             void newUser(User* user);
 
