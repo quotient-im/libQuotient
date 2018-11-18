@@ -435,7 +435,7 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
             unreadMessages = 0;
 
         unreadMessages += newUnreadMessages;
-        qCDebug(MAIN) << "Room" << displayname << "has gained"
+        qCDebug(MAIN) << "Room" << q->objectName() << "has gained"
             << newUnreadMessages << "unread message(s),"
             << (q->readMarker() == timeline.crend() ?
                     "in total at least" : "in total")
@@ -1747,7 +1747,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (totalInserted > 0)
     {
         qCDebug(MAIN)
-                << "Room" << displayname << "received" << totalInserted
+                << "Room" << q->objectName() << "received" << totalInserted
                 << "new events; the last event is now" << timeline.back();
 
         // The first event in the just-added batch (referred to by `from`)
@@ -1772,6 +1772,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
+    QElapsedTimer et; et.start();
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
@@ -1794,6 +1795,9 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         updateUnreadCount(from, timeline.crend());
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
+    if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+        qCDebug(PROFILER) << "*** Room::addHistoricalMessageEvents():"
+                          << insertedSize << "event(s)," << et;
 }
 
 bool Room::processStateEvent(const RoomEvent& e)
@@ -1831,8 +1835,7 @@ bool Room::processStateEvent(const RoomEvent& e)
             u->processEvent(evt, this);
             if (u == localUser() && memberJoinState(u) == JoinState::Invite
                     && evt.isDirect())
-                connection()->addToDirectChats(this,
-                                user(evt.senderId()));
+                connection()->addToDirectChats(this, user(evt.senderId()));
 
             if( evt.membership() == MembershipType::Join )
             {
