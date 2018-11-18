@@ -25,7 +25,6 @@
 #include "csapi/receipts.h"
 #include "csapi/redaction.h"
 #include "csapi/account-data.h"
-#include "csapi/message_pagination.h"
 #include "csapi/room_state.h"
 #include "csapi/room_send.h"
 #include "csapi/tags.h"
@@ -975,6 +974,11 @@ bool Room::usesEncryption() const
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
+GetRoomEventsJob* Room::eventsHistoryJob() const
+{
+    return d->eventsHistoryJob;
+}
+
 void Room::Private::insertMemberIntoMap(User *u)
 {
     const auto userName = u->name(q);
@@ -1393,10 +1397,13 @@ void Room::Private::getPreviousContent(int limit)
     {
         eventsHistoryJob =
             connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
+        emit q->eventsHistoryJobChanged();
         connect( eventsHistoryJob, &BaseJob::success, q, [=] {
             prevBatch = eventsHistoryJob->end();
             addHistoricalMessageEvents(eventsHistoryJob->chunk());
         });
+        connect( eventsHistoryJob, &QObject::destroyed,
+                 q, &Room::eventsHistoryJobChanged);
     }
 }
 

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "jobs/syncjob.h"
+#include "csapi/message_pagination.h"
 #include "events/roommessageevent.h"
 #include "events/accountdataevents.h"
 #include "eventitem.h"
@@ -95,6 +96,8 @@ namespace QMatrixClient
             Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
             Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
 
+            Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY eventsHistoryJobChanged)
+
         public:
             using Timeline = std::deque<TimelineItem>;
             using PendingEvents = std::vector<PendingEventItem>;
@@ -125,6 +128,8 @@ namespace QMatrixClient
             int memberCount() const;
             int timelineSize() const;
             bool usesEncryption() const;
+
+            GetRoomEventsJob* eventsHistoryJob() const;
 
             /**
              * Returns a square room avatar with the given size and requests it
@@ -364,6 +369,7 @@ namespace QMatrixClient
             void markAllMessagesAsRead();
 
         signals:
+            void eventsHistoryJobChanged();
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);
             void addedMessages(int fromIndex, int toIndex);
