@@ -192,7 +192,7 @@ class Room::Private
                 is<RoomMessageEvent>(*ti);
         }
 
-        void addNewMessageEvents(RoomEvents&& events);
+        bool addNewMessageEvents(RoomEvents&& events);
         void addHistoricalMessageEvents(RoomEvents&& events);
 
         /** Move events into the timeline
@@ -1135,24 +1135,15 @@ void Room::updateData(SyncRoomData&& data)
     if (!data.timeline.empty())
     {
         et.restart();
-        // State changes can arrive in a timeline event; so check those.
-        for (const auto& e: data.timeline)
-            emitNamesChanged |= processStateEvent(*e);
+        emitNamesChanged |= d->addNewMessageEvents(move(data.timeline));
         if (data.timeline.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "*** Room::processStateEvents(timeline):"
+            qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
                               << data.timeline.size() << "event(s)," << et;
     }
     if (emitNamesChanged)
         emit namesChanged(this);
     d->updateDisplayname();
 
-    if (!data.timeline.empty())
-    {
-        et.restart();
-        d->addNewMessageEvents(move(data.timeline));
-        if (data.timeline.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "*** Room::addNewMessageEvents():" << et;
-    }
     for( auto&& ephemeralEvent: data.ephemeral )
         processEphemeralEvent(move(ephemeralEvent));
 
@@ -1679,11 +1670,11 @@ inline bool isRedaction(const RoomEventPtr& ep)
     return is<RedactionEvent>(*ep);
 }
 
-void Room::Private::addNewMessageEvents(RoomEvents&& events)
+bool Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropDuplicateEvents(events);
     if (events.empty())
-        return;
+        return false;
 
     // Pre-process redactions so that events that get redacted in the same
     // batch landed in the timeline already redacted.
@@ -1707,6 +1698,15 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
                               << "is not found";
             // If the target event comes later, it comes already redacted.
         }
+
+    // State changes arrive as a part of timeline; the current room state gets
+    // updated before merging events to the timeline because that's what
+    // clients historically expect. This may eventually change though if we
+    // postulate that the current state is only current between syncs but not
+    // within a sync.
+    bool emitNamesChanged = false;
+    for (const auto& eptr: events)
+        emitNamesChanged |= q->processStateEvent(*eptr);
 
     auto timelineSize = timeline.size();
     auto totalInserted = 0;
@@ -1775,6 +1775,7 @@ void Room::Private::addNewMessageEvents(RoomEvents&& events)
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
+    return emitNamesChanged;
 }
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
