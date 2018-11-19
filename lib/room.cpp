@@ -1784,14 +1784,25 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
-    RoomEventsRange normalEvents {
-        events.begin(), events.end() //remove_if(events.begin(), events.end(), isRedaction)
-    };
-    if (normalEvents.empty())
+    if (events.empty())
         return;
 
-    emit q->aboutToAddHistoricalMessages(normalEvents);
-    const auto insertedSize = moveEventsToTimeline(normalEvents, Older);
+    // In case of lazy-loading new members may be loaded with historical
+    // messages. Also, the cache doesn't store events with empty content;
+    // so when such events show up in the timeline they should be properly
+    // incorporated.
+    for (const auto& eptr: events)
+    {
+        const auto& e = *eptr;
+        if (e.isStateEvent() &&
+                !currentState.contains({e.matrixType(), e.stateKey()}))
+        {
+            q->processStateEvent(e);
+        }
+    }
+
+    emit q->aboutToAddHistoricalMessages(events);
+    const auto insertedSize = moveEventsToTimeline(events, Older);
     const auto from = timeline.crend() - insertedSize;
 
     qCDebug(MAIN) << "Room" << displayname << "received" << insertedSize
@@ -2085,7 +2096,15 @@ QJsonObject Room::Private::toJson() const
         for (const auto* evt: currentState)
         {
             Q_ASSERT(evt->isStateEvent());
-            stateEvents.append(evt->fullJson());
+            if ((evt->isRedacted() && !is<RoomMemberEvent>(*evt)) ||
+                    evt->contentJson().isEmpty())
+                continue;
+
+            auto json = evt->fullJson();
+            auto unsignedJson = evt->unsignedJson();
+            unsignedJson.remove(QStringLiteral("prev_content"));
+            json[UnsignedKeyL] = unsignedJson;
+            stateEvents.append(json);
         }
 
         const auto stateObjName = joinState == JoinState::Invite ?
@@ -2098,7 +2117,10 @@ QJsonObject Room::Private::toJson() const
     {
         QJsonArray accountDataEvents;
         for (const auto& e: accountData)
-            accountDataEvents.append(e.second->fullJson());
+        {
+            if (!e.second->contentJson().isEmpty())
+                accountDataEvents.append(e.second->fullJson());
+        }
         result.insert(QStringLiteral("account_data"),
                       QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
     }
