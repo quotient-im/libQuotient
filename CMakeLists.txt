@@ -76,6 +76,7 @@ set(libqmatrixclient_SRCS
     lib/room.cpp
     lib/user.cpp
     lib/avatar.cpp
+    lib/syncdata.cpp
     lib/settings.cpp
     lib/networksettings.cpp
     lib/converters.cpp

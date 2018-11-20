@@ -45,10 +45,10 @@
 #include "connection.h"
 #include "user.h"
 #include "converters.h"
+#include "syncdata.h"
 
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
-#include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
 #include <QtCore/QTemporaryFile>

@@ -39,7 +39,6 @@
 #include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
-#include <QtCore/QFileInfo>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
@@ -1059,9 +1058,6 @@ void Connection::setHomeserver(const QUrl& url)
     emit homeserverChanged(homeserver());
 }
 
-static constexpr int CACHE_VERSION_MAJOR = 8;
-static constexpr int CACHE_VERSION_MINOR = 0;
-
 void Connection::saveState(const QUrl &toFile) const
 {
     if (!d->cacheState)
@@ -1091,6 +1087,8 @@ void Connection::saveState(const QUrl &toFile) const
         QJsonObject inviteRooms;
         for (const auto* i : roomMap()) // Pass on rooms in Leave state
         {
+            // TODO: instead of adding the room JSON add a file name and save
+            // the JSON to that file.
             if (i->joinState() == JoinState::Invite)
                 inviteRooms.insert(i->id(), i->toJson());
             else
@@ -1123,8 +1121,8 @@ void Connection::saveState(const QUrl &toFile) const
     }
 
     QJsonObject versionObj;
-    versionObj.insert("major", CACHE_VERSION_MAJOR);
-    versionObj.insert("minor", CACHE_VERSION_MINOR);
+    versionObj.insert("major", SyncData::cacheVersion().first);
+    versionObj.insert("minor", SyncData::cacheVersion().second);
     rootObj.insert("cache_version", versionObj);
 
     QJsonDocument json { rootObj };
@@ -1142,42 +1140,20 @@ void Connection::loadState(const QUrl &fromFile)
         return;
 
     QElapsedTimer et; et.start();
-    QFile file {
-        fromFile.isEmpty() ? stateCachePath() : fromFile.toLocalFile()
-    };
-    if (!file.exists())
-    {
-        qCDebug(MAIN) << "No state cache file found";
-        return;
-    }
-    if(!file.open(QFile::ReadOnly))
-    {
-        qCWarning(MAIN) << "file " << file.fileName() << "failed to open for read";
-        return;
-    }
-    QByteArray data = file.readAll();
 
-    auto jsonDoc = d->cacheToBinary ? QJsonDocument::fromBinaryData(data) :
-                                      QJsonDocument::fromJson(data);
-    if (jsonDoc.isNull())
-    {
-        qCWarning(MAIN) << "Cache file broken, discarding";
+    SyncData sync {
+        fromFile.isEmpty() ? stateCachePath() : fromFile.toLocalFile() };
+    if (sync.nextBatch().isEmpty()) // No token means no cache by definition
         return;
-    }
-    auto actualCacheVersionMajor =
-            jsonDoc.object()
-            .value("cache_version").toObject()
-            .value("major").toInt();
-    if (actualCacheVersionMajor < CACHE_VERSION_MAJOR)
-    {
-        qCWarning(MAIN)
-            << "Major version of the cache file is" << actualCacheVersionMajor
-            << "but" << CACHE_VERSION_MAJOR << "required; discarding the cache";
-        return;
-    }
 
-    SyncData sync;
-    sync.parseJson(jsonDoc);
+    if (!sync.unresolvedRooms().isEmpty())
+    {
+        qCWarning(MAIN) << "State cache incomplete, discarding";
+        return;
+    }
+    // TODO: to handle load failures, instead of the above block:
+    // 1. Do initial sync on failed rooms without saving the nextBatch token
+    // 2. Do the sync across all rooms as normal
     onSyncSuccess(std::move(sync));
     qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }

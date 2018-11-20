@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "jobs/syncjob.h"
 #include "csapi/message_pagination.h"
 #include "events/roommessageevent.h"
 #include "events/accountdataevents.h"
@@ -34,6 +33,7 @@
 namespace QMatrixClient
 {
     class Event;
+    class SyncRoomData;
     class RoomMemberEvent;
     class Connection;
     class User;
