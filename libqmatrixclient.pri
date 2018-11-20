@@ -17,6 +17,7 @@ HEADERS += \
     $$SRCPATH/room.h \
     $$SRCPATH/user.h \
     $$SRCPATH/avatar.h \
+    $$SRCPATH/syncdata.h \
     $$SRCPATH/util.h \
     $$SRCPATH/events/event.h \
     $$SRCPATH/events/roomevent.h \
@@ -60,6 +61,7 @@ SOURCES += \
     $$SRCPATH/room.cpp \
     $$SRCPATH/user.cpp \
     $$SRCPATH/avatar.cpp \
+    $$SRCPATH/syncdata.cpp \
     $$SRCPATH/util.cpp \
     $$SRCPATH/events/event.cpp \
     $$SRCPATH/events/roomevent.cpp \
