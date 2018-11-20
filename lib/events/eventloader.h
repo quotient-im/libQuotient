@@ -19,7 +19,6 @@
 #pragma once
 
 #include "stateevent.h"
-#include "converters.h"
 
 namespace QMatrixClient {
     namespace _impl {
