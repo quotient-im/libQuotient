@@ -1170,7 +1170,10 @@ void Room::updateData(SyncRoomData&& data)
         emit notificationCountChanged(this);
     }
     if (roomChanges != Change::NoChange)
+    {
         emit changed(roomChanges);
+        connection()->saveRoomState(this);
+    }
 }
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)

@@ -21,6 +21,7 @@
 #include "events/eventloader.h"
 
 #include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 
 using namespace QMatrixClient;
 
@@ -69,12 +70,28 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
 
 SyncData::SyncData(const QString& cacheFileName)
 {
-    parseJson(loadJson(cacheFileName));
+    QFileInfo cacheFileInfo { cacheFileName };
+    auto json = loadJson(cacheFileName);
+    auto requiredVersion = std::get<0>(cacheVersion());
+    auto actualVersion = json.value("cache_version").toObject()
+                             .value("major").toInt();
+    if (actualVersion == requiredVersion)
+        parseJson(json, cacheFileInfo.absolutePath() + '/');
+    else
+        qCWarning(MAIN)
+            << "Major version of the cache file is" << actualVersion << "but"
+            << requiredVersion << "is required; discarding the cache";
 }
 
 SyncDataList&& SyncData::takeRoomData()
 {
     return move(roomData);
+}
+
+QString SyncData::fileNameForRoom(QString roomId)
+{
+    roomId.replace(':', '_');
+    return roomId + ".json";
 }
 
 Events&& SyncData::takePresenceData()
@@ -115,22 +132,11 @@ QJsonObject SyncData::loadJson(const QString& fileName)
     {
         qCWarning(MAIN) << "State cache in" << fileName
                         << "is broken or empty, discarding";
-        return {};
-    }
-    auto requiredVersion = std::get<0>(cacheVersion());
-    auto actualVersion = json.value("cache_version").toObject()
-                             .value("major").toInt();
-    if (actualVersion < requiredVersion)
-    {
-        qCWarning(MAIN)
-            << "Major version of the cache file is" << actualVersion << "but"
-            << requiredVersion << "is required; discarding the cache";
-        return {};
     }
     return json;
 }
 
-void SyncData::parseJson(const QJsonObject& json)
+void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
 {
     QElapsedTimer et; et.start();
 
@@ -150,8 +156,9 @@ void SyncData::parseJson(const QJsonObject& json)
         roomData.reserve(static_cast<size_t>(rs.size()));
         for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
         {
-            auto roomJson = roomIt->isString() ? loadJson(roomIt->toString())
-                                               : roomIt->toObject();
+            auto roomJson = roomIt->isString()
+                            ? loadJson(baseDir + fileNameForRoom(roomIt.key()))
+                            : roomIt->toObject();
             if (roomJson.isEmpty())
             {
                 unresolvedRoomIds.push_back(roomIt.key());

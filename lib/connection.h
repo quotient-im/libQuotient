@@ -280,7 +280,7 @@ namespace QMatrixClient
              * to be QML-friendly. Empty parameter means using a path
              * defined by stateCachePath().
              */
-            Q_INVOKABLE void loadState(const QUrl &fromFile = {});
+            Q_INVOKABLE void loadState();
             /**
              * This method saves the current state of rooms (but not messages
              * in them) to a local cache file, so that it could be loaded by
@@ -290,7 +290,10 @@ namespace QMatrixClient
              * QML-friendly. Empty parameter means using a path defined by
              * stateCachePath().
              */
-            Q_INVOKABLE void saveState(const QUrl &toFile = {}) const;
+            Q_INVOKABLE void saveState() const;
+
+            /// This method saves the current state of a single room.
+            void saveRoomState(Room* r) const;
 
             /**
              * The default path to store the cached room state, defined as

@@ -59,7 +59,7 @@ namespace QMatrixClient {
              * \return the list of rooms with missing cache files; always
              *         empty when parsing response from /sync
              */
-            void parseJson(const QJsonObject& json);
+            void parseJson(const QJsonObject& json, const QString& baseDir = {});
 
             Events&& takePresenceData();
             Events&& takeAccountData();
@@ -70,7 +70,8 @@ namespace QMatrixClient {
 
             QStringList unresolvedRooms() const { return unresolvedRoomIds; }
 
-            static std::pair<int, int> cacheVersion() { return { 8, 0 }; }
+            static std::pair<int, int> cacheVersion() { return { 9, 0 }; }
+            static QString fileNameForRoom(QString roomId);
 
         private:
             QString nextBatch_;
