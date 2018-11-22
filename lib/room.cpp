@@ -192,7 +192,7 @@ class Room::Private
                 is<RoomMessageEvent>(*ti);
         }
 
-        bool addNewMessageEvents(RoomEvents&& events);
+        Changes addNewMessageEvents(RoomEvents&& events);
         void addHistoricalMessageEvents(RoomEvents&& events);
 
         /** Move events into the timeline
@@ -1116,7 +1116,7 @@ void Room::updateData(SyncRoomData&& data)
     for (auto&& event: data.accountData)
         processAccountDataEvent(move(event));
 
-    bool emitNamesChanged = false;
+    Changes roomChanges = Change::NoChange;
     if (!data.state.empty())
     {
         et.restart();
@@ -1125,7 +1125,7 @@ void Room::updateData(SyncRoomData&& data)
             const auto& evt = *eptr;
             Q_ASSERT(evt.isStateEvent());
             d->baseState[{evt.matrixType(),evt.stateKey()}] = move(eptr);
-            emitNamesChanged |= processStateEvent(evt);
+            roomChanges |= processStateEvent(evt);
         }
 
         if (data.state.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
@@ -1135,13 +1135,17 @@ void Room::updateData(SyncRoomData&& data)
     if (!data.timeline.empty())
     {
         et.restart();
-        emitNamesChanged |= d->addNewMessageEvents(move(data.timeline));
+        roomChanges |= d->addNewMessageEvents(move(data.timeline));
         if (data.timeline.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
             qCDebug(PROFILER) << "*** Room::addNewMessageEvents():"
                               << data.timeline.size() << "event(s)," << et;
     }
-    if (emitNamesChanged)
+    if (roomChanges&TopicChange)
+        emit topicChanged();
+
+    if (roomChanges&NameChange)
         emit namesChanged(this);
+
     d->updateDisplayname();
 
     for( auto&& ephemeralEvent: data.ephemeral )
@@ -1165,6 +1169,8 @@ void Room::updateData(SyncRoomData&& data)
         d->notificationCount = data.notificationCount;
         emit notificationCountChanged(this);
     }
+    if (roomChanges != Change::NoChange)
+        emit changed(roomChanges);
 }
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
@@ -1670,11 +1676,11 @@ inline bool isRedaction(const RoomEventPtr& ep)
     return is<RedactionEvent>(*ep);
 }
 
-bool Room::Private::addNewMessageEvents(RoomEvents&& events)
+Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropDuplicateEvents(events);
     if (events.empty())
-        return false;
+        return Change::NoChange;
 
     // Pre-process redactions so that events that get redacted in the same
     // batch landed in the timeline already redacted.
@@ -1704,9 +1710,9 @@ bool Room::Private::addNewMessageEvents(RoomEvents&& events)
     // clients historically expect. This may eventually change though if we
     // postulate that the current state is only current between syncs but not
     // within a sync.
-    bool emitNamesChanged = false;
+    Changes stateChanges = Change::NoChange;
     for (const auto& eptr: events)
-        emitNamesChanged |= q->processStateEvent(*eptr);
+        stateChanges |= q->processStateEvent(*eptr);
 
     auto timelineSize = timeline.size();
     auto totalInserted = 0;
@@ -1775,7 +1781,7 @@ bool Room::Private::addNewMessageEvents(RoomEvents&& events)
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
-    return emitNamesChanged;
+    return stateChanges;
 }
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
@@ -1819,10 +1825,10 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
                           << insertedSize << "event(s)," << et;
 }
 
-bool Room::processStateEvent(const RoomEvent& e)
+Room::Changes Room::processStateEvent(const RoomEvent& e)
 {
     if (!e.isStateEvent())
-        return false;
+        return Change::NoChange;
 
     d->currentState[{e.matrixType(),e.stateKey()}] =
             static_cast<const StateEventBase*>(&e);
@@ -1831,23 +1837,22 @@ bool Room::processStateEvent(const RoomEvent& e)
 
     return visit(e
         , [] (const RoomNameEvent&) {
-            return true;
+            return NameChange;
         }
         , [] (const RoomAliasesEvent&) {
-            return true;
+            return OtherChange;
         }
         , [this] (const RoomCanonicalAliasEvent& evt) {
             setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
-            return true;
+            return CanonicalAliasChange;
         }
-        , [this] (const RoomTopicEvent&) {
-            emit topicChanged();
-            return false;
+        , [] (const RoomTopicEvent&) {
+            return TopicChange;
         }
         , [this] (const RoomAvatarEvent& evt) {
             if (d->avatar.updateUrl(evt.url()))
                 emit avatarChanged();
-            return false;
+            return AvatarChange;
         }
         , [this] (const RoomMemberEvent& evt) {
             auto* u = user(evt.userId());
@@ -1886,11 +1891,11 @@ bool Room::processStateEvent(const RoomEvent& e)
                     emit userRemoved(u);
                 }
             }
-            return false;
+            return MembersChange;
         }
         , [this] (const EncryptionEvent&) {
-            emit encryption();
-            return false;
+            emit encryption(); // It can only be done once, so emit it here.
+            return EncryptionOn;
         }
     );
 }

@@ -104,6 +104,24 @@ namespace QMatrixClient
             using rev_iter_t = Timeline::const_reverse_iterator;
             using timeline_iter_t = Timeline::const_iterator;
 
+            enum Change : uint {
+                NoChange = 0x0,
+                NameChange = 0x1,
+                CanonicalAliasChange = 0x2,
+                TopicChange = 0x4,
+                UnreadNotifsChange = 0x8,
+                AvatarChange = 0x10,
+                JoinStateChange = 0x20,
+                TagsChange = 0x40,
+                MembersChange = 0x80,
+                EncryptionOn = 0x100,
+                AccountDataChange = 0x200,
+                OtherChange = 0x1000,
+                AnyChange = 0x1FFF
+            };
+            Q_DECLARE_FLAGS(Changes, Change)
+            Q_FLAG(Changes)
+
             Room(Connection* connection, QString id, JoinState initialJoinState);
             ~Room() override;
 
@@ -382,6 +400,13 @@ namespace QMatrixClient
             void pendingEventDiscarded();
             void pendingEventChanged(int pendingEventIndex);
 
+            /** A common signal for various kinds of changes in the room
+             * Aside from all changes in the room state
+             * @param changes a set of flags describing what changes occured
+             *                upon the last sync
+             * \sa StateChange
+             */
+            void changed(Changes changes);
             /**
              * \brief The room name, the canonical alias or other aliases changed
              *
@@ -441,7 +466,7 @@ namespace QMatrixClient
 
         protected:
             /// Returns true if any of room names/aliases has changed
-            virtual bool processStateEvent(const RoomEvent& e);
+            virtual Changes processStateEvent(const RoomEvent& e);
             virtual void processEphemeralEvent(EventPtr&& event);
             virtual void processAccountDataEvent(EventPtr&& event);
             virtual void onAddNewTimelineEvents(timeline_iter_t /*from*/) { }
@@ -474,3 +499,4 @@ namespace QMatrixClient
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::FileTransferInfo)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QMatrixClient::Room::Changes)
