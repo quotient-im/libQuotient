@@ -19,6 +19,9 @@
 #include "util.h"
 
 #include <QtCore/QRegularExpression>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QDir>
+#include <QtCore/QStringBuilder>
 
 static const auto RegExpOptions =
     QRegularExpression::CaseInsensitiveOption
@@ -60,4 +63,15 @@ QString QMatrixClient::prettyPrint(const QString& plainText)
 
     linkifyUrls(pt);
     return pt;
+}
+
+QString QMatrixClient::cacheLocation(const QString& dirName)
+{
+    const auto cachePath =
+        QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+            % '/' % dirName % '/';
+    QDir dir;
+    if (!dir.exists(cachePath))
+        dir.mkpath(cachePath);
+    return cachePath;
 }

@@ -240,5 +240,11 @@ namespace QMatrixClient
      * This includes HTML escaping of <,>,",& and URLs linkification.
      */
     QString prettyPrint(const QString& plainText);
+
+    /** Return a path to cache directory after making sure that it exists
+     * The returned path has a trailing slash, clients don't need to append it.
+     * \param dir path to cache directory relative to the standard cache path
+     */
+    QString cacheLocation(const QString& dirName);
 }  // namespace QMatrixClient
 

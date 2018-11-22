@@ -190,18 +190,8 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
     return _imageSource != Banned;
 }
 
-QString cacheLocation() {
-    const auto cachePath =
-        QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-            + "/avatar/";
-    QDir dir;
-    if (!dir.exists(cachePath))
-        dir.mkpath(cachePath);
-    return cachePath;
-}
-
 QString Avatar::Private::localFile() const {
-    static const auto cachePath = cacheLocation();
+    static const auto cachePath = cacheLocation("avatars");
     return cachePath % _url.authority() % '_' % _url.fileName() % ".png";
 }
 
