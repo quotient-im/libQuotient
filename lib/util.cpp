@@ -67,7 +67,7 @@ QString QMatrixClient::prettyPrint(const QString& plainText)
 
 QString QMatrixClient::cacheLocation(const QString& dirName)
 {
-    const auto cachePath =
+    const QString cachePath =
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
             % '/' % dirName % '/';
     QDir dir;
