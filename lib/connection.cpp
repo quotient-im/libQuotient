@@ -1071,6 +1071,7 @@ void Connection::saveRoomState(Room* r) const
         auto data = d->cacheToBinary ? json.toBinaryData()
                                      : json.toJson(QJsonDocument::Compact);
         outRoomFile.write(data.data(), data.size());
+        qCDebug(MAIN) << "Room state cache saved to" << outRoomFile.fileName();
     } else {
         qCWarning(MAIN) << "Error opening" << outRoomFile.fileName()
                         << ":" << outRoomFile.errorString();
