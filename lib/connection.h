@@ -677,7 +677,7 @@ namespace QMatrixClient
             /**
              * Completes loading sync data.
              */
-            void onSyncSuccess(SyncData &&data);
+            void onSyncSuccess(SyncData &&data, bool fromCache = false);
 
         private:
             class Private;

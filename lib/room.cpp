@@ -1106,7 +1106,7 @@ QString Room::roomMembername(const QString& userId) const
     return roomMembername(user(userId));
 }
 
-void Room::updateData(SyncRoomData&& data)
+void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
     if( d->prevBatch.isEmpty() )
         d->prevBatch = data.timelinePrevBatch;
@@ -1172,7 +1172,8 @@ void Room::updateData(SyncRoomData&& data)
     if (roomChanges != Change::NoChange)
     {
         emit changed(roomChanges);
-        connection()->saveRoomState(this);
+        if (!fromCache)
+            connection()->saveRoomState(this);
     }
 }
 

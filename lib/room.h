@@ -456,14 +456,6 @@ namespace QMatrixClient
             /// The room is about to be deleted
             void beforeDestruction(Room*);
 
-        public: // Used by Connection - not a part of the client API
-            QJsonObject toJson() const;
-            void updateData(SyncRoomData&& data );
-
-            // Clients should use Connection::joinRoom() and Room::leaveRoom()
-            // to change the room state
-            void setJoinState( JoinState state );
-
         protected:
             /// Returns true if any of room names/aliases has changed
             virtual Changes processStateEvent(const RoomEvent& e);
@@ -473,10 +465,19 @@ namespace QMatrixClient
             virtual void onAddHistoricalTimelineEvents(rev_iter_t /*from*/) { }
             virtual void onRedaction(const RoomEvent& /*prevEvent*/,
                                      const RoomEvent& /*after*/) { }
+            virtual QJsonObject toJson() const;
+            virtual void updateData(SyncRoomData&& data, bool fromCache = false);
 
         private:
+            friend class Connection;
+
             class Private;
             Private* d;
+
+            // This is called from Connection, reflecting a state change that
+            // arrived from the server. Clients should use
+            // Connection::joinRoom() and Room::leaveRoom() to change the state.
+            void setJoinState(JoinState state);
     };
 
     class MemberSorter

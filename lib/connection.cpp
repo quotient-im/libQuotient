@@ -316,7 +316,7 @@ void Connection::sync(int timeout)
     });
 }
 
-void Connection::onSyncSuccess(SyncData &&data) {
+void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
     d->data->setLastEvent(data.nextBatch());
     for (auto&& roomData: data.takeRoomData())
     {
@@ -337,7 +337,7 @@ void Connection::onSyncSuccess(SyncData &&data) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
         {
-            r->updateData(std::move(roomData));
+            r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r))
                 emit loadedRoomState(r);
         }
@@ -1156,7 +1156,7 @@ void Connection::loadState()
     // TODO: to handle load failures, instead of the above block:
     // 1. Do initial sync on failed rooms without saving the nextBatch token
     // 2. Do the sync across all rooms as normal
-    onSyncSuccess(std::move(sync));
+    onSyncSuccess(std::move(sync), true);
     qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }
 
