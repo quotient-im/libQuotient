@@ -46,12 +46,6 @@ BaseJob::Status GetOneRoomEventJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class GetRoomStateWithKeyJob::Private
-{
-    public:
-        StateEventPtr data;
-};
-
 QUrl GetRoomStateWithKeyJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventType, const QString& stateKey)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
@@ -63,28 +57,8 @@ static const auto GetRoomStateWithKeyJobName = QStringLiteral("GetRoomStateWithK
 GetRoomStateWithKeyJob::GetRoomStateWithKeyJob(const QString& roomId, const QString& eventType, const QString& stateKey)
     : BaseJob(HttpVerb::Get, GetRoomStateWithKeyJobName,
         basePath % "/rooms/" % roomId % "/state/" % eventType % "/" % stateKey)
-    , d(new Private)
 {
 }
-
-GetRoomStateWithKeyJob::~GetRoomStateWithKeyJob() = default;
-
-StateEventPtr&& GetRoomStateWithKeyJob::data()
-{
-    return std::move(d->data);
-}
-
-BaseJob::Status GetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
-{
-    d->data = fromJson<StateEventPtr>(data);
-    return Success;
-}
-
-class GetRoomStateByTypeJob::Private
-{
-    public:
-        StateEventPtr data;
-};
 
 QUrl GetRoomStateByTypeJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventType)
 {
@@ -97,21 +71,7 @@ static const auto GetRoomStateByTypeJobName = QStringLiteral("GetRoomStateByType
 GetRoomStateByTypeJob::GetRoomStateByTypeJob(const QString& roomId, const QString& eventType)
     : BaseJob(HttpVerb::Get, GetRoomStateByTypeJobName,
         basePath % "/rooms/" % roomId % "/state/" % eventType)
-    , d(new Private)
 {
-}
-
-GetRoomStateByTypeJob::~GetRoomStateByTypeJob() = default;
-
-StateEventPtr&& GetRoomStateByTypeJob::data()
-{
-    return std::move(d->data);
-}
-
-BaseJob::Status GetRoomStateByTypeJob::parseJson(const QJsonDocument& data)
-{
-    d->data = fromJson<StateEventPtr>(data);
-    return Success;
 }
 
 class GetRoomStateJob::Private

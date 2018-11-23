@@ -26,7 +26,7 @@ namespace QMatrixClient
              *   event MUST belong to the room.
              * \param mRead
              *   The event ID to set the read receipt location at. This is
-             *   equivalent to calling ``/receipt/m.read/$elsewhere:domain.com``
+             *   equivalent to calling ``/receipt/m.read/$elsewhere:example.org``
              *   and is provided here to save that extra call.
              */
             explicit SetReadMarkerJob(const QString& roomId, const QString& mFullyRead, const QString& mRead = {});

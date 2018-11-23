@@ -80,19 +80,6 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventType, const QString& stateKey);
 
-            ~GetRoomStateWithKeyJob() override;
-
-            // Result properties
-
-            /// The content of the state event.
-            StateEventPtr&& data();
-
-        protected:
-            Status parseJson(const QJsonDocument& data) override;
-
-        private:
-            class Private;
-            QScopedPointer<Private> d;
     };
 
     /// Get the state identified by the type, with the empty state key.
@@ -122,19 +109,6 @@ namespace QMatrixClient
              */
             static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventType);
 
-            ~GetRoomStateByTypeJob() override;
-
-            // Result properties
-
-            /// The content of the state event.
-            StateEventPtr&& data();
-
-        protected:
-            Status parseJson(const QJsonDocument& data) override;
-
-        private:
-            class Private;
-            QScopedPointer<Private> d;
     };
 
     /// Get all state events in the current state of a room.
