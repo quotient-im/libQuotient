@@ -460,7 +460,7 @@ namespace QMatrixClient
             /// Returns true if any of room names/aliases has changed
             virtual Changes processStateEvent(const RoomEvent& e);
             virtual void processEphemeralEvent(EventPtr&& event);
-            virtual void processAccountDataEvent(EventPtr&& event);
+            virtual Changes processAccountDataEvent(EventPtr&& event);
             virtual void onAddNewTimelineEvents(timeline_iter_t /*from*/) { }
             virtual void onAddHistoricalTimelineEvents(rev_iter_t /*from*/) { }
             virtual void onRedaction(const RoomEvent& /*prevEvent*/,

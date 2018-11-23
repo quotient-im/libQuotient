@@ -382,6 +382,7 @@ void Room::setJoinState(JoinState state)
     d->joinState = state;
     qCDebug(MAIN) << "Room" << id() << "changed state: "
                   << int(oldState) << "->" << int(state);
+    emit changed(Change::JoinStateChange);
     emit joinStateChanged(oldState, state);
 }
 
@@ -1112,11 +1113,11 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
+    Changes roomChanges = Change::NoChange;
     QElapsedTimer et; et.start();
     for (auto&& event: data.accountData)
-        processAccountDataEvent(move(event));
+        roomChanges |= processAccountDataEvent(move(event));
 
-    Changes roomChanges = Change::NoChange;
     if (!data.state.empty())
     {
         et.restart();
@@ -1973,7 +1974,7 @@ void Room::processEphemeralEvent(EventPtr&& event)
     }
 }
 
-void Room::processAccountDataEvent(EventPtr&& event)
+Room::Changes Room::processAccountDataEvent(EventPtr&& event)
 {
     if (auto* evt = eventCast<TagEvent>(event))
         d->setTags(evt->tags());
@@ -2000,7 +2001,9 @@ void Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(MAIN) << "Updated account data of type"
                       << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
+        return Change::AccountDataChange;
     }
+    return Change::NoChange;
 }
 
 QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) const
