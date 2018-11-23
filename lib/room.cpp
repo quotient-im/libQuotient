@@ -401,6 +401,7 @@ void Room::Private::setLastReadEvent(User* u, QString eventId)
         if (storedId != serverReadMarker)
             connection->callApi<PostReadMarkersJob>(id, storedId);
         emit q->readMarkerMoved(eventId, storedId);
+        connection->saveRoomState(q);
     }
 }
 
