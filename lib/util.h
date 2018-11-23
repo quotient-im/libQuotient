@@ -88,17 +88,19 @@ namespace QMatrixClient
             static_assert(!std::is_reference<T>::value,
                 "You cannot make an Omittable<> with a reference type");
         public:
+            using value_type = std::decay_t<T>;
+
             explicit Omittable() : Omittable(none) { }
-            Omittable(NoneTag) : _value(std::decay_t<T>()), _omitted(true) { }
-            Omittable(const std::decay_t<T>& val) : _value(val) { }
-            Omittable(std::decay_t<T>&& val) : _value(std::move(val)) { }
-            Omittable<T>& operator=(const std::decay_t<T>& val)
+            Omittable(NoneTag) : _value(value_type()), _omitted(true) { }
+            Omittable(const value_type& val) : _value(val) { }
+            Omittable(value_type&& val) : _value(std::move(val)) { }
+            Omittable<T>& operator=(const value_type& val)
             {
                 _value = val;
                 _omitted = false;
                 return *this;
             }
-            Omittable<T>& operator=(std::decay_t<T>&& val)
+            Omittable<T>& operator=(value_type&& val)
             {
                 _value = std::move(val);
                 _omitted = false;
@@ -106,15 +108,15 @@ namespace QMatrixClient
             }
 
             bool omitted() const { return _omitted; }
-            const std::decay_t<T>& value() const { Q_ASSERT(!_omitted); return _value; }
-            std::decay_t<T>& value() { Q_ASSERT(!_omitted); return _value; }
-            std::decay_t<T>&& release() { _omitted = true; return std::move(_value); }
+            const value_type& value() const { Q_ASSERT(!_omitted); return _value; }
+            value_type& value() { Q_ASSERT(!_omitted); return _value; }
+            value_type&& release() { _omitted = true; return std::move(_value); }
 
             operator bool() const { return !omitted(); }
-            const std::decay<T>* operator->() const { return &value(); }
-            std::decay_t<T>* operator->() { return &value(); }
-            const std::decay_t<T>& operator*() const { return value(); }
-            std::decay_t<T>& operator*() { return value(); }
+            const value_type* operator->() const { return &_value; }
+            value_type* operator->() { return &_value; }
+            const value_type& operator*() const { return _value; }
+            value_type& operator*() { return _value; }
 
         private:
             T _value;
