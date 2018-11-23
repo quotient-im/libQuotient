@@ -156,9 +156,9 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         roomData.reserve(static_cast<size_t>(rs.size()));
         for(auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt)
         {
-            auto roomJson = roomIt->isString()
-                            ? loadJson(baseDir + fileNameForRoom(roomIt.key()))
-                            : roomIt->toObject();
+            auto roomJson = roomIt->isObject()
+                            ? roomIt->toObject()
+                            : loadJson(baseDir + fileNameForRoom(roomIt.key()));
             if (roomJson.isEmpty())
             {
                 unresolvedRoomIds.push_back(roomIt.key());
@@ -171,6 +171,8 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         }
         totalRooms += rs.size();
     }
+    if (!unresolvedRoomIds.empty())
+        qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(',');
     if (totalRooms > 9 || et.nsecsElapsed() >= profilerMinNsecs())
         qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
                           << totalRooms << "room(s),"

@@ -1104,15 +1104,8 @@ void Connection::saveState() const
         QJsonObject rooms;
         QJsonObject inviteRooms;
         for (const auto* i : roomMap()) // Pass on rooms in Leave state
-        {
-            auto& targetArray = i->joinState() == JoinState::Invite
-                                ? inviteRooms : rooms;
-            targetArray.insert(i->id(), QJsonObject());
-            QElapsedTimer et1; et1.start();
-            QCoreApplication::processEvents();
-            if (et1.elapsed() > 1)
-                qCDebug(PROFILER) << "processEvents() borrowed" << et1;
-        }
+            (i->joinState() == JoinState::Invite ? inviteRooms : rooms)
+            .insert(i->id(), QJsonValue::Null);
 
         QJsonObject roomObj;
         if (!rooms.isEmpty())
