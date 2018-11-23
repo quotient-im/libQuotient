@@ -42,6 +42,13 @@ SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
     setMaxRetries(std::numeric_limits<int>::max());
 }
 
+SyncJob::SyncJob(const QString& since, const Filter& filter,
+                 int timeout, const QString& presence)
+    : SyncJob(since,
+              QJsonDocument(toJson(filter)).toJson(QJsonDocument::Compact),
+              timeout, presence)
+{ }
+
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
     d.parseJson(data.object());
