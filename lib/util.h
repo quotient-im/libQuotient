@@ -108,15 +108,23 @@ namespace QMatrixClient
             }
 
             bool omitted() const { return _omitted; }
-            const value_type& value() const { Q_ASSERT(!_omitted); return _value; }
-            value_type& value() { Q_ASSERT(!_omitted); return _value; }
+            const value_type& value() const
+            {
+                Q_ASSERT(!_omitted);
+                return _value;
+            }
+            value_type& editValue()
+            {
+                _omitted = false;
+                return _value;
+            }
             value_type&& release() { _omitted = true; return std::move(_value); }
 
-            operator bool() const { return !omitted(); }
-            const value_type* operator->() const { return &_value; }
-            value_type* operator->() { return &_value; }
-            const value_type& operator*() const { return _value; }
-            value_type& operator*() { return _value; }
+            operator value_type&() & { return editValue(); }
+            const value_type* operator->() const & { return &value(); }
+            value_type* operator->() & { return &editValue(); }
+            const value_type& operator*() const & { return value(); }
+            value_type& operator*() & { return editValue(); }
 
         private:
             T _value;
