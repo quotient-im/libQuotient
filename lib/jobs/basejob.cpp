@@ -128,7 +128,7 @@ void BaseJob::setApiEndpoint(const QString& apiEndpoint)
     d->apiEndpoint = apiEndpoint;
 }
 
-const BaseJob::headers_t&BaseJob::requestHeaders() const
+const BaseJob::headers_t& BaseJob::requestHeaders() const
 {
     return d->requestHeaders;
 }
@@ -197,6 +197,10 @@ void BaseJob::Private::sendRequest(bool inBackground)
         { makeRequestUrl(connection->baseUrl(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    if (!expectedContentTypes.isEmpty() &&
+        (expectedContentTypes.size() != 1 ||
+         expectedContentTypes.front() == "application/json"))
+        req.setRawHeader("Accept", expectedContentTypes.join(';'));
     req.setRawHeader("Authorization",
                      QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
