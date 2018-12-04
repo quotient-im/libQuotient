@@ -142,7 +142,7 @@ add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
 set(API_VERSION "0.4")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
-set_property(TARGET QMatrixClient PROPERTY SOVERSION 0 )
+set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY
              INTERFACE_QMatrixClient_MAJOR_VERSION ${API_VERSION})
 set_property(TARGET QMatrixClient APPEND PROPERTY
