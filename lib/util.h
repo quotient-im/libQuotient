@@ -119,41 +119,69 @@ namespace QMatrixClient
             bool _omitted = false;
     };
 
+    namespace _impl {
+        template <typename AlwaysVoid, typename> struct fn_traits;
+    }
+
     /** Determine traits of an arbitrary function/lambda/functor
-     * This only works with arity of 1 (1-argument) for now but is extendable
-     * to other cases. Also, doesn't work with generic lambdas and function
-     * objects that have operator() overloaded
+     * Doesn't work with generic lambdas and function objects that have
+     * operator() overloaded.
      * \sa https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
      */
     template <typename T>
-    struct function_traits : public function_traits<decltype(&T::operator())>
-    { }; // A generic function object that has (non-overloaded) operator()
+    struct function_traits : public _impl::fn_traits<void, T> {};
 
     // Specialisation for a function
-    template <typename ReturnT, typename ArgT>
-    struct function_traits<ReturnT(ArgT)>
+    template <typename ReturnT, typename... ArgTs>
+    struct function_traits<ReturnT(ArgTs...)>
     {
+        static constexpr auto is_callable = true;
         using return_type = ReturnT;
-        using arg_type = ArgT;
+        using arg_types = std::tuple<ArgTs..., void>;
+        static constexpr auto arg_number = std::tuple_size<arg_types>::value - 1;
     };
 
-    // Specialisation for a member function
-    template <typename ReturnT, typename ClassT, typename ArgT>
-    struct function_traits<ReturnT(ClassT::*)(ArgT)>
-        : function_traits<ReturnT(ArgT)>
-    { };
+    namespace _impl {
+        template <typename AlwaysVoid, typename T>
+        struct fn_traits
+        {
+            static constexpr auto is_callable = false;
+        };
 
-    // Specialisation for a const member function
-    template <typename ReturnT, typename ClassT, typename ArgT>
-    struct function_traits<ReturnT(ClassT::*)(ArgT) const>
-        : function_traits<ReturnT(ArgT)>
-    { };
+        template <typename T>
+        struct fn_traits<decltype(void(T::operator())), T>
+            : public fn_traits<void, decltype(T::operator())>
+        { }; // A generic function object that has (non-overloaded) operator()
+
+        // Specialisation for a member function
+        template <typename ReturnT, typename ClassT, typename... ArgTs>
+        struct fn_traits<void, ReturnT(ClassT::*)(ArgTs...)>
+            : function_traits<ReturnT(ArgTs...)>
+        { };
+
+        // Specialisation for a const member function
+        template <typename ReturnT, typename ClassT, typename... ArgTs>
+        struct fn_traits<void, ReturnT(ClassT::*)(ArgTs...) const>
+            : function_traits<ReturnT(ArgTs...)>
+        { };
+    }  // namespace _impl
 
     template <typename FnT>
     using fn_return_t = typename function_traits<FnT>::return_type;
 
-    template <typename FnT>
-    using fn_arg_t = typename function_traits<FnT>::arg_type;
+    template <typename FnT, int ArgN = 0>
+    using fn_arg_t =
+        std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
+
+    template <typename R, typename FnT>
+    constexpr bool returns()
+    {
+        return std::is_same<fn_return_t<FnT>, R>::value;
+    }
+
+    // Poor-man's is_invokable
+    template <typename T>
+    constexpr auto is_callable_v = function_traits<T>::is_callable;
 
     inline auto operator"" _ls(const char* s, std::size_t size)
     {

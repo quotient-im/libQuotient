@@ -75,3 +75,67 @@ QString QMatrixClient::cacheLocation(const QString& dirName)
         dir.mkpath(cachePath);
     return cachePath;
 }
+
+// Tests for function_traits<>
+
+#ifdef Q_CC_CLANG
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCSimplifyInspection"
+#endif
+using namespace QMatrixClient;
+
+int f();
+static_assert(std::is_same<fn_return_t<decltype(f)>, int>::value,
+              "Test fn_return_t<>");
+
+void f1(int);
+static_assert(function_traits<decltype(f1)>::arg_number == 1,
+              "Test fn_arg_number");
+
+void f2(int, QString);
+static_assert(std::is_same<fn_arg_t<decltype(f2), 1>, QString>::value,
+              "Test fn_arg_t<>");
+
+struct S { int mf(); };
+static_assert(is_callable_v<decltype(&S::mf)>, "Test member function");
+static_assert(returns<int, decltype(&S::mf)>(), "Test returns<> with member function");
+
+struct Fo { void operator()(int); };
+static_assert(function_traits<Fo>::arg_number == 1, "Test function object 1");
+static_assert(is_callable_v<Fo>, "Test is_callable<>");
+static_assert(std::is_same<fn_arg_t<Fo>, int>(),
+              "Test fn_arg_t defaulting to first argument");
+
+static auto l = [] { return 1; };
+static_assert(is_callable_v<decltype(l)>, "Test is_callable_v<> with lambda");
+static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
+              "Test fn_return_t<> with lambda");
+
+template <typename T>
+struct fn_object
+{
+    static int smf(double) { return 0; }
+};
+template <>
+struct fn_object<QString>
+{
+    void operator()(QString);
+};
+static_assert(is_callable_v<fn_object<QString>>, "Test function object");
+static_assert(returns<void, fn_object<QString>>(),
+              "Test returns<> with function object");
+static_assert(!is_callable_v<fn_object<int>>, "Test non-function object");
+// FIXME: These two don't work
+//static_assert(is_callable_v<decltype(&fn_object<int>::smf)>,
+//              "Test static member function");
+//static_assert(returns<int, decltype(&fn_object<int>::smf)>(),
+//              "Test returns<> with static member function");
+
+template <typename T>
+QString ft(T&&);
+static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
+              "Test function templates");
+
+#ifdef Q_CC_CLANG
+#pragma clang diagnostic pop
+#endif
