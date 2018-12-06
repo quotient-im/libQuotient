@@ -825,7 +825,7 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
     for (auto it = result.begin(); it != result.end(); ++it)
         std::sort(it->begin(), it->end(),
             [t=it.key()] (Room* r1, Room* r2) {
-                return r1->tags().value(t).order < r2->tags().value(t).order;
+                return r1->tags().value(t) < r2->tags().value(t);
             });
     return result;
 }
