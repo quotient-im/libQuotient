@@ -29,13 +29,10 @@ namespace QMatrixClient
             enum MembershipType : size_t { Invite = 0, Join, Knock, Leave, Ban,
                                            Undefined };
 
-            explicit MemberEventContent(MembershipType mt = MembershipType::Join)
+            explicit MemberEventContent(MembershipType mt = Join)
                 : membership(mt)
             { }
             explicit MemberEventContent(const QJsonObject& json);
-            explicit MemberEventContent(const QJsonValue& jv)
-                : MemberEventContent(jv.toObject())
-            { }
 
             MembershipType membership;
             bool isDirect = false;
@@ -60,7 +57,7 @@ namespace QMatrixClient
                 : StateEvent(typeId(), obj)
             { }
             RoomMemberEvent(MemberEventContent&& c)
-                : StateEvent(typeId(), matrixTypeId(), c.toJson())
+                : StateEvent(typeId(), matrixTypeId(), c)
             { }
 
             // This is a special constructor enabling RoomMemberEvent to be

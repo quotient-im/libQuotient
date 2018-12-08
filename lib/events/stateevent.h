@@ -95,7 +95,7 @@ namespace QMatrixClient {
             QString prevSenderId() const
                 { return _prev ? _prev->senderId : QString(); }
 
-        protected:
+        private:
             ContentT _content;
             std::unique_ptr<Prev<ContentT>> _prev;
     };

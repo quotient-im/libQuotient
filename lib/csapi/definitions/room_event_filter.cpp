@@ -12,6 +12,8 @@ QJsonObject QMatrixClient::toJson(const RoomEventFilter& pod)
     addParam<IfNotEmpty>(jo, QStringLiteral("not_rooms"), pod.notRooms);
     addParam<IfNotEmpty>(jo, QStringLiteral("rooms"), pod.rooms);
     addParam<IfNotEmpty>(jo, QStringLiteral("contains_url"), pod.containsUrl);
+    addParam<IfNotEmpty>(jo, QStringLiteral("lazy_load_members"), pod.lazyLoadMembers);
+    addParam<IfNotEmpty>(jo, QStringLiteral("include_redundant_members"), pod.includeRedundantMembers);
     return jo;
 }
 
@@ -24,6 +26,10 @@ RoomEventFilter FromJsonObject<RoomEventFilter>::operator()(const QJsonObject& j
         fromJson<QStringList>(jo.value("rooms"_ls));
     result.containsUrl =
         fromJson<bool>(jo.value("contains_url"_ls));
+    result.lazyLoadMembers =
+        fromJson<bool>(jo.value("lazy_load_members"_ls));
+    result.includeRedundantMembers =
+        fromJson<bool>(jo.value("include_redundant_members"_ls));
 
     return result;
 }
