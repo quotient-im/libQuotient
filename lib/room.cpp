@@ -263,8 +263,11 @@ class Room::Private
         QJsonObject toJson() const;
 
     private:
+        using users_shortlist_t = std::array<User*, 3>;
+        template<typename ContT>
+        users_shortlist_t buildShortlist(const ContT& users) const;
+        users_shortlist_t buildShortlist(const QStringList& userIds) const;
         QString calculateDisplayname() const;
-        QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 
         bool isLocalUser(const User* u) const
         {
@@ -985,9 +988,9 @@ bool Room::usesEncryption() const
 
 int Room::joinedCount() const
 {
-    return d->summary.joinedMemberCount > 0
-            ? d->summary.joinedMemberCount
-            : d->membersMap.size();
+    return d->summary.joinedMemberCount.omitted()
+            ? d->membersMap.size()
+            : d->summary.joinedMemberCount.value();
 }
 
 int Room::invitedCount() const
@@ -1008,13 +1011,14 @@ GetRoomEventsJob* Room::eventsHistoryJob() const
 
 Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
-    if (summary == newSummary)
+    if (!summary.merge(newSummary))
         return Change::NoChange;
     summary = move(newSummary);
     qCDebug(MAIN).nospace()
-        << "Updated room summary: joined " << summary.joinedMemberCount
+        << "Updated room summary for" << q->objectName()
+        << ": joined " << summary.joinedMemberCount
         << ", invited " << summary.invitedMemberCount
-        << ", heroes: " << summary.heroes.join(',');
+        << ", heroes: " << summary.heroes.value().join(',');
     return Change::SummaryChange;
 }
 
@@ -1391,7 +1395,7 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 
 bool Room::supportsCalls() const
 {
-  return d->membersMap.size() == 2;
+  return joinedCount() == 2;
 }
 
 void Room::inviteCall(const QString& callId, const int lifetime,
@@ -2045,49 +2049,35 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     return Change::NoChange;
 }
 
-QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) const
+template <typename ContT>
+Room::Private::users_shortlist_t
+Room::Private::buildShortlist(const ContT& users) const
 {
-    // This is part 3(i,ii,iii) in the room displayname algorithm described
-    // in the CS spec (see also Room::Private::updateDisplayname() ).
-    // The spec requires to sort users lexicographically by state_key (user id)
-    // and use disambiguated display names of two topmost users excluding
-    // the current one to render the name of the room.
-
-    // std::array is the leanest C++ container
-    std::array<User*, 2> first_two = { {nullptr, nullptr} };
+    // To calculate room display name the spec requires to sort users
+    // lexicographically by state_key (user id) and use disambiguated
+    // display names of two topmost users excluding the current one to render
+    // the name of the room. The below code selects 3 topmost users,
+    // slightly extending the spec.
+    users_shortlist_t shortlist { }; // Prefill with nullptrs
     std::partial_sort_copy(
-        userlist.begin(), userlist.end(),
-        first_two.begin(), first_two.end(),
-        [this](const User* u1, const User* u2) {
-            // Filter out the "me" user so that it never hits the room name
+        users.begin(), users.end(),
+        shortlist.begin(), shortlist.end(),
+        [this] (const User* u1, const User* u2) {
+            // localUser(), if it's in the list, is sorted below all others
             return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
         }
     );
+    return shortlist;
+}
 
-    // Spec extension. A single person in the chat but not the local user
-    // (the local user is invited).
-    if (userlist.size() == 1 && !isLocalUser(first_two.front()) &&
-            joinState == JoinState::Invite)
-        return tr("Invitation from %1")
-                .arg(q->roomMembername(first_two.front()));
-
-    // i. One-on-one chat. first_two[1] == localUser() in this case.
-    if (userlist.size() == 2)
-        return q->roomMembername(first_two[0]);
-
-    // ii. Two users besides the current one.
-    if (userlist.size() == 3)
-        return tr("%1 and %2")
-                .arg(q->roomMembername(first_two[0]),
-                     q->roomMembername(first_two[1]));
-
-    // iii. More users.
-    if (userlist.size() > 3)
-        return tr("%1 and %Ln other(s)", "", userlist.size() - 3)
-                .arg(q->roomMembername(first_two[0]));
-
-    // userlist.size() < 2 - apparently, there's only current user in the room
-    return QString();
+Room::Private::users_shortlist_t
+Room::Private::buildShortlist(const QStringList& userIds) const
+{
+    QList<User*> users;
+    users.reserve(userIds.size());
+    for (const auto& h: userIds)
+        users.push_back(q->user(h));
+    return buildShortlist(users);
 }
 
 QString Room::Private::calculateDisplayname() const
@@ -2110,22 +2100,42 @@ QString Room::Private::calculateDisplayname() const
     //if (!q->aliases().empty() && !q->aliases().at(0).isEmpty())
     //    return q->aliases().at(0);
 
-    // 3. Room members
-    if (!summary.heroes.empty())
+    // Supplementary code for 3 and 4: build the shortlist of users whose names
+    // will be used to construct the room name. Takes into account MSC688's
+    // "heroes" if available.
+
+    const bool emptyRoom = membersMap.isEmpty() ||
+             (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
+    const auto shortlist =
+            !summary.heroes.omitted() ? buildShortlist(summary.heroes.value()) :
+            !emptyRoom ? buildShortlist(membersMap) :
+                         buildShortlist(membersLeft);
+
+    QStringList names;
+    for (auto u: shortlist)
     {
-        QList<User*> users; users.reserve(summary.heroes.size());
-        for (const auto& h: summary.heroes)
-            users.push_back(q->user(h));
-        dispName = roomNameFromMemberNames(users);
-    } else
-        dispName = roomNameFromMemberNames(membersMap.values());
-    if (!dispName.isEmpty())
-        return dispName;
+        if (u == nullptr || isLocalUser(u))
+            break;
+        names.push_back(q->roomMembername(u));
+    }
+
+    auto usersCountExceptLocal = emptyRoom
+            ? membersLeft.size() - int(joinState == JoinState::Leave)
+            : q->joinedCount() - int(joinState == JoinState::Join);
+    if (usersCountExceptLocal > int(shortlist.size()))
+        names <<
+            tr("%Ln other(s)",
+               "Used to make a room name from user names: A, B and _N others_",
+               usersCountExceptLocal);
+    auto namesList = QLocale().createSeparatedList(names);
+
+    // 3. Room members
+    if (!emptyRoom)
+        return namesList;
 
     // 4. Users that previously left the room
-    dispName = roomNameFromMemberNames(membersLeft);
-    if (!dispName.isEmpty())
-        return tr("Empty room (was: %1)").arg(dispName);
+    if (membersLeft.size() > 0)
+        return tr("Empty room (was: %1)").arg(namesList);
 
     // 5. Fail miserably
     return tr("Empty room (%1)").arg(id);
