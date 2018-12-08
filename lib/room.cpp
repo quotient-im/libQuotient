@@ -93,6 +93,7 @@ class Room::Private
         Connection* connection;
         QString id;
         JoinState joinState;
+        RoomSummary summary;
         /// The state of the room at timeline position before-0
         /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
@@ -163,6 +164,8 @@ class Room::Private
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
         QString fileNameToDownload(const RoomMessageEvent* event) const;
+
+        Changes setSummary(RoomSummary&& newSummary);
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
@@ -596,6 +599,10 @@ void Room::setDisplayed(bool displayed)
     {
         resetHighlightCount();
         resetNotificationCount();
+//        if (d->lazyLoaded)
+//        {
+//            // TODO: Get all members
+//        }
     }
 }
 
@@ -976,9 +983,39 @@ bool Room::usesEncryption() const
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
+int Room::joinedCount() const
+{
+    return d->summary.joinedMemberCount > 0
+            ? d->summary.joinedMemberCount
+            : d->membersMap.size();
+}
+
+int Room::invitedCount() const
+{
+    // TODO: Store invited users in Room too
+    return d->summary.invitedMemberCount;
+}
+
+int Room::totalMemberCount() const
+{
+    return joinedCount() + invitedCount();
+}
+
 GetRoomEventsJob* Room::eventsHistoryJob() const
 {
     return d->eventsHistoryJob;
+}
+
+Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
+{
+    if (summary == newSummary)
+        return Change::NoChange;
+    summary = move(newSummary);
+    qCDebug(MAIN).nospace()
+        << "Updated room summary: joined " << summary.joinedMemberCount
+        << ", invited " << summary.invitedMemberCount
+        << ", heroes: " << summary.heroes.join(',');
+    return Change::SummaryChange;
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
@@ -1148,6 +1185,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges&NameChange)
         emit namesChanged(this);
 
+    d->setSummary(move(data.summary));
     d->updateDisplayname();
 
     for( auto&& ephemeralEvent: data.ephemeral )
@@ -2073,7 +2111,14 @@ QString Room::Private::calculateDisplayname() const
     //    return q->aliases().at(0);
 
     // 3. Room members
-    dispName = roomNameFromMemberNames(membersMap.values());
+    if (!summary.heroes.empty())
+    {
+        QList<User*> users; users.reserve(summary.heroes.size());
+        for (const auto& h: summary.heroes)
+            users.push_back(q->user(h));
+        dispName = roomNameFromMemberNames(users);
+    } else
+        dispName = roomNameFromMemberNames(membersMap.values());
     if (!dispName.isEmpty())
         return dispName;
 
@@ -2103,6 +2148,7 @@ QJsonObject Room::Private::toJson() const
 {
     QElapsedTimer et; et.start();
     QJsonObject result;
+    addParam<IfNotEmpty>(result, QStringLiteral("summary"), summary);
     {
         QJsonArray stateEvents;
 

@@ -22,11 +22,30 @@
 #include "events/stateevent.h"
 
 namespace QMatrixClient {
+    struct RoomSummary
+    {
+        int joinedMemberCount = 0;
+        int invitedMemberCount = 0;
+        QStringList heroes; //< mxids of users to take part in the room name
+
+        bool operator==(const RoomSummary& other) const;
+        bool operator!=(const RoomSummary& other) const
+        { return !(*this == other); }
+    };
+
+    template <>
+    struct JsonObjectConverter<RoomSummary>
+    {
+        static void dumpTo(QJsonObject& jo, const RoomSummary& rs);
+        static void fillFrom(const QJsonObject& jo, RoomSummary& rs);
+    };
+
     class SyncRoomData
     {
         public:
             QString roomId;
             JoinState joinState;
+            RoomSummary summary;
             StateEvents state;
             RoomEvents timeline;
             Events ephemeral;

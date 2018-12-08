@@ -34,10 +34,39 @@ inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
     return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
 
+void JsonObjectConverter<RoomSummary>::dumpTo(QJsonObject& jo,
+                                              const RoomSummary& rs)
+{
+    if (rs.joinedMemberCount != 0)
+        jo.insert(QStringLiteral("m.joined_member_count"),
+                  rs.joinedMemberCount);
+    if (rs.invitedMemberCount != 0)
+        jo.insert(QStringLiteral("m.invited_member_count"),
+                  rs.invitedMemberCount);
+    if (!rs.heroes.empty())
+        jo.insert(QStringLiteral("m.heroes"), toJson(rs.heroes));
+}
+
+void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
+                                                RoomSummary& rs)
+{
+    rs.joinedMemberCount = fromJson<int>(jo["m.joined_member_count"_ls]);
+    rs.joinedMemberCount = fromJson<int>(jo["m.invited_member_count"_ls]);
+    rs.heroes = fromJson<QStringList>(jo["m.heroes"]);
+}
+
+bool RoomSummary::operator==(const RoomSummary& other) const
+{
+    return joinedMemberCount == other.joinedMemberCount &&
+            invitedMemberCount == other.invitedMemberCount &&
+            heroes == other.heroes;
+}
+
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
+    , summary(fromJson<RoomSummary>(room_["summary"].toObject()))
     , state(load<StateEvents>(room_, joinState == JoinState::Invite
                                      ? "invite_state"_ls : "state"_ls))
 {

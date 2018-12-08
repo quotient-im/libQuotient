@@ -84,6 +84,9 @@ namespace QMatrixClient
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
             Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
+            Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
+            Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
+            Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
 
             Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY displayedChanged)
             Q_PROPERTY(QString firstDisplayedEventId READ firstDisplayedEventId WRITE setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
@@ -116,6 +119,7 @@ namespace QMatrixClient
                 MembersChange = 0x80,
                 EncryptionOn = 0x100,
                 AccountDataChange = 0x200,
+                SummaryChange = 0x400,
                 OtherChange = 0x1000,
                 AnyChange = 0x1FFF
             };
@@ -143,9 +147,13 @@ namespace QMatrixClient
 
             Q_INVOKABLE QList<User*> users() const;
             QStringList memberNames() const;
+            [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
             int memberCount() const;
             int timelineSize() const;
             bool usesEncryption() const;
+            int joinedCount() const;
+            int invitedCount() const;
+            int totalMemberCount() const;
 
             GetRoomEventsJob* eventsHistoryJob() const;
 
