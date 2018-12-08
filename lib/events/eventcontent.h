@@ -43,9 +43,10 @@ namespace QMatrixClient
         class Base
         {
             public:
-                explicit Base (const QJsonObject& o = {}) : originalJson(o) { }
+                explicit Base (QJsonObject o = {}) : originalJson(std::move(o)) { }
                 virtual ~Base() = default;
 
+                // FIXME: make toJson() from converters.* work on base classes
                 QJsonObject toJson() const;
 
             public:
