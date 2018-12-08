@@ -149,8 +149,8 @@ namespace QMatrixClient
     {
         static constexpr auto is_callable = true;
         using return_type = ReturnT;
-        using arg_types = std::tuple<ArgTs..., void>;
-        static constexpr auto arg_number = std::tuple_size<arg_types>::value - 1;
+        using arg_types = std::tuple<ArgTs...>;
+        static constexpr auto arg_number = std::tuple_size<arg_types>::value;
     };
 
     namespace _impl {
@@ -161,8 +161,8 @@ namespace QMatrixClient
         };
 
         template <typename T>
-        struct fn_traits<decltype(void(T::operator())), T>
-            : public fn_traits<void, decltype(T::operator())>
+        struct fn_traits<decltype(void(&T::operator())), T>
+            : public fn_traits<void, decltype(&T::operator())>
         { }; // A generic function object that has (non-overloaded) operator()
 
         // Specialisation for a member function
