@@ -16,146 +16,113 @@ namespace QMatrixClient
 {
     // Converters
 
-    QJsonObject toJson(const SearchJob::IncludeEventContext& pod)
+    template <> struct JsonObjectConverter<SearchJob::IncludeEventContext>
     {
-        QJsonObject jo;
-        addParam<IfNotEmpty>(jo, QStringLiteral("before_limit"), pod.beforeLimit);
-        addParam<IfNotEmpty>(jo, QStringLiteral("after_limit"), pod.afterLimit);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_profile"), pod.includeProfile);
-        return jo;
-    }
-
-    QJsonObject toJson(const SearchJob::Group& pod)
-    {
-        QJsonObject jo;
-        addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
-        return jo;
-    }
-
-    QJsonObject toJson(const SearchJob::Groupings& pod)
-    {
-        QJsonObject jo;
-        addParam<IfNotEmpty>(jo, QStringLiteral("group_by"), pod.groupBy);
-        return jo;
-    }
-
-    QJsonObject toJson(const SearchJob::RoomEventsCriteria& pod)
-    {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("search_term"), pod.searchTerm);
-        addParam<IfNotEmpty>(jo, QStringLiteral("keys"), pod.keys);
-        addParam<IfNotEmpty>(jo, QStringLiteral("filter"), pod.filter);
-        addParam<IfNotEmpty>(jo, QStringLiteral("order_by"), pod.orderBy);
-        addParam<IfNotEmpty>(jo, QStringLiteral("event_context"), pod.eventContext);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_state"), pod.includeState);
-        addParam<IfNotEmpty>(jo, QStringLiteral("groupings"), pod.groupings);
-        return jo;
-    }
-
-    QJsonObject toJson(const SearchJob::Categories& pod)
-    {
-        QJsonObject jo;
-        addParam<IfNotEmpty>(jo, QStringLiteral("room_events"), pod.roomEvents);
-        return jo;
-    }
-
-    template <> struct FromJsonObject<SearchJob::UserProfile>
-    {
-        SearchJob::UserProfile operator()(const QJsonObject& jo) const
+        static void dumpTo(QJsonObject& jo, const SearchJob::IncludeEventContext& pod)
         {
-            SearchJob::UserProfile result;
-            result.displayname =
-                fromJson<QString>(jo.value("displayname"_ls));
-            result.avatarUrl =
-                fromJson<QString>(jo.value("avatar_url"_ls));
-
-            return result;
+            addParam<IfNotEmpty>(jo, QStringLiteral("before_limit"), pod.beforeLimit);
+            addParam<IfNotEmpty>(jo, QStringLiteral("after_limit"), pod.afterLimit);
+            addParam<IfNotEmpty>(jo, QStringLiteral("include_profile"), pod.includeProfile);
         }
     };
 
-    template <> struct FromJsonObject<SearchJob::EventContext>
+    template <> struct JsonObjectConverter<SearchJob::Group>
     {
-        SearchJob::EventContext operator()(const QJsonObject& jo) const
+        static void dumpTo(QJsonObject& jo, const SearchJob::Group& pod)
         {
-            SearchJob::EventContext result;
-            result.begin =
-                fromJson<QString>(jo.value("start"_ls));
-            result.end =
-                fromJson<QString>(jo.value("end"_ls));
-            result.profileInfo =
-                fromJson<QHash<QString, SearchJob::UserProfile>>(jo.value("profile_info"_ls));
-            result.eventsBefore =
-                fromJson<RoomEvents>(jo.value("events_before"_ls));
-            result.eventsAfter =
-                fromJson<RoomEvents>(jo.value("events_after"_ls));
-
-            return result;
+            addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
         }
     };
 
-    template <> struct FromJsonObject<SearchJob::Result>
+    template <> struct JsonObjectConverter<SearchJob::Groupings>
     {
-        SearchJob::Result operator()(const QJsonObject& jo) const
+        static void dumpTo(QJsonObject& jo, const SearchJob::Groupings& pod)
         {
-            SearchJob::Result result;
-            result.rank =
-                fromJson<double>(jo.value("rank"_ls));
-            result.result =
-                fromJson<RoomEventPtr>(jo.value("result"_ls));
-            result.context =
-                fromJson<SearchJob::EventContext>(jo.value("context"_ls));
-
-            return result;
+            addParam<IfNotEmpty>(jo, QStringLiteral("group_by"), pod.groupBy);
         }
     };
 
-    template <> struct FromJsonObject<SearchJob::GroupValue>
+    template <> struct JsonObjectConverter<SearchJob::RoomEventsCriteria>
     {
-        SearchJob::GroupValue operator()(const QJsonObject& jo) const
+        static void dumpTo(QJsonObject& jo, const SearchJob::RoomEventsCriteria& pod)
         {
-            SearchJob::GroupValue result;
-            result.nextBatch =
-                fromJson<QString>(jo.value("next_batch"_ls));
-            result.order =
-                fromJson<int>(jo.value("order"_ls));
-            result.results =
-                fromJson<QStringList>(jo.value("results"_ls));
-
-            return result;
+            addParam<>(jo, QStringLiteral("search_term"), pod.searchTerm);
+            addParam<IfNotEmpty>(jo, QStringLiteral("keys"), pod.keys);
+            addParam<IfNotEmpty>(jo, QStringLiteral("filter"), pod.filter);
+            addParam<IfNotEmpty>(jo, QStringLiteral("order_by"), pod.orderBy);
+            addParam<IfNotEmpty>(jo, QStringLiteral("event_context"), pod.eventContext);
+            addParam<IfNotEmpty>(jo, QStringLiteral("include_state"), pod.includeState);
+            addParam<IfNotEmpty>(jo, QStringLiteral("groupings"), pod.groupings);
         }
     };
 
-    template <> struct FromJsonObject<SearchJob::ResultRoomEvents>
+    template <> struct JsonObjectConverter<SearchJob::Categories>
     {
-        SearchJob::ResultRoomEvents operator()(const QJsonObject& jo) const
+        static void dumpTo(QJsonObject& jo, const SearchJob::Categories& pod)
         {
-            SearchJob::ResultRoomEvents result;
-            result.count =
-                fromJson<int>(jo.value("count"_ls));
-            result.highlights =
-                fromJson<QStringList>(jo.value("highlights"_ls));
-            result.results =
-                fromJson<std::vector<SearchJob::Result>>(jo.value("results"_ls));
-            result.state =
-                fromJson<std::unordered_map<QString, StateEvents>>(jo.value("state"_ls));
-            result.groups =
-                fromJson<QHash<QString, QHash<QString, SearchJob::GroupValue>>>(jo.value("groups"_ls));
-            result.nextBatch =
-                fromJson<QString>(jo.value("next_batch"_ls));
-
-            return result;
+            addParam<IfNotEmpty>(jo, QStringLiteral("room_events"), pod.roomEvents);
         }
     };
 
-    template <> struct FromJsonObject<SearchJob::ResultCategories>
+    template <> struct JsonObjectConverter<SearchJob::UserProfile>
     {
-        SearchJob::ResultCategories operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, SearchJob::UserProfile& result)
         {
-            SearchJob::ResultCategories result;
-            result.roomEvents =
-                fromJson<SearchJob::ResultRoomEvents>(jo.value("room_events"_ls));
+            fromJson(jo.value("displayname"_ls), result.displayname);
+            fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        }
+    };
 
-            return result;
+    template <> struct JsonObjectConverter<SearchJob::EventContext>
+    {
+        static void fillFrom(const QJsonObject& jo, SearchJob::EventContext& result)
+        {
+            fromJson(jo.value("start"_ls), result.begin);
+            fromJson(jo.value("end"_ls), result.end);
+            fromJson(jo.value("profile_info"_ls), result.profileInfo);
+            fromJson(jo.value("events_before"_ls), result.eventsBefore);
+            fromJson(jo.value("events_after"_ls), result.eventsAfter);
+        }
+    };
+
+    template <> struct JsonObjectConverter<SearchJob::Result>
+    {
+        static void fillFrom(const QJsonObject& jo, SearchJob::Result& result)
+        {
+            fromJson(jo.value("rank"_ls), result.rank);
+            fromJson(jo.value("result"_ls), result.result);
+            fromJson(jo.value("context"_ls), result.context);
+        }
+    };
+
+    template <> struct JsonObjectConverter<SearchJob::GroupValue>
+    {
+        static void fillFrom(const QJsonObject& jo, SearchJob::GroupValue& result)
+        {
+            fromJson(jo.value("next_batch"_ls), result.nextBatch);
+            fromJson(jo.value("order"_ls), result.order);
+            fromJson(jo.value("results"_ls), result.results);
+        }
+    };
+
+    template <> struct JsonObjectConverter<SearchJob::ResultRoomEvents>
+    {
+        static void fillFrom(const QJsonObject& jo, SearchJob::ResultRoomEvents& result)
+        {
+            fromJson(jo.value("count"_ls), result.count);
+            fromJson(jo.value("highlights"_ls), result.highlights);
+            fromJson(jo.value("results"_ls), result.results);
+            fromJson(jo.value("state"_ls), result.state);
+            fromJson(jo.value("groups"_ls), result.groups);
+            fromJson(jo.value("next_batch"_ls), result.nextBatch);
+        }
+    };
+
+    template <> struct JsonObjectConverter<SearchJob::ResultCategories>
+    {
+        static void fillFrom(const QJsonObject& jo, SearchJob::ResultCategories& result)
+        {
+            fromJson(jo.value("room_events"_ls), result.roomEvents);
         }
     };
 } // namespace QMatrixClient
@@ -199,7 +166,7 @@ BaseJob::Status SearchJob::parseJson(const QJsonDocument& data)
     if (!json.contains("search_categories"_ls))
         return { JsonParseError,
             "The key 'search_categories' not found in the response" };
-    d->searchCategories = fromJson<ResultCategories>(json.value("search_categories"_ls));
+    fromJson(json.value("search_categories"_ls), d->searchCategories);
     return Success;
 }
 

@@ -14,6 +14,37 @@ namespace QMatrixClient
 {
     // Data structures
 
+    /// The state events to include for rooms.
+    struct StateFilter : RoomEventFilter
+    {
+        /// If ``true``, the only ``m.room.member`` events returned in
+        /// the ``state`` section of the ``/sync`` response are those
+        /// which are definitely necessary for a client to display
+        /// the ``sender`` of the timeline events in that response.
+        /// If ``false``, ``m.room.member`` events are not filtered.
+        /// By default, servers should suppress duplicate redundant
+        /// lazy-loaded ``m.room.member`` events from being sent to a given
+        /// client across multiple calls to ``/sync``, given that most clients
+        /// cache membership events (see ``include_redundant_members``
+        /// to change this behaviour).
+        bool lazyLoadMembers;
+        /// If ``true``, the ``state`` section of the ``/sync`` response will
+        /// always contain the ``m.room.member`` events required to display
+        /// the ``sender`` of the timeline events in that response, assuming
+        /// ``lazy_load_members`` is enabled. This means that redundant
+        /// duplicate member events may be returned across multiple calls to
+        /// ``/sync``. This is useful for naive clients who never track
+        /// membership data. If ``false``, duplicate ``m.room.member`` events
+        /// may be suppressed by the server across multiple calls to ``/sync``.
+        /// If ``lazy_load_members`` is ``false`` this field is ignored.
+        bool includeRedundantMembers;
+    };
+    template <> struct JsonObjectConverter<StateFilter>
+    {
+        static void dumpTo(QJsonObject& jo, const StateFilter& pod);
+        static void fillFrom(const QJsonObject& jo, StateFilter& pod);
+    };
+
     /// Filters to be applied to room data.
     struct RoomFilter
     {
@@ -26,18 +57,16 @@ namespace QMatrixClient
         /// Include rooms that the user has left in the sync, default false
         bool includeLeave;
         /// The state events to include for rooms.
-        Omittable<RoomEventFilter> state;
+        Omittable<StateFilter> state;
         /// The message and state update events to include for rooms.
         Omittable<RoomEventFilter> timeline;
         /// The per user account data to include for rooms.
         Omittable<RoomEventFilter> accountData;
     };
-
-    QJsonObject toJson(const RoomFilter& pod);
-
-    template <> struct FromJsonObject<RoomFilter>
+    template <> struct JsonObjectConverter<RoomFilter>
     {
-        RoomFilter operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const RoomFilter& pod);
+        static void fillFrom(const QJsonObject& jo, RoomFilter& pod);
     };
 
     struct Filter
@@ -53,12 +82,10 @@ namespace QMatrixClient
         /// Filters to be applied to room data.
         Omittable<RoomFilter> room;
     };
-
-    QJsonObject toJson(const Filter& pod);
-
-    template <> struct FromJsonObject<Filter>
+    template <> struct JsonObjectConverter<Filter>
     {
-        Filter operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const Filter& pod);
+        static void fillFrom(const QJsonObject& jo, Filter& pod);
     };
 
 } // namespace QMatrixClient

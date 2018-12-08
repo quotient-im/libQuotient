@@ -16,19 +16,13 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<SearchUserDirectoryJob::User>
+    template <> struct JsonObjectConverter<SearchUserDirectoryJob::User>
     {
-        SearchUserDirectoryJob::User operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, SearchUserDirectoryJob::User& result)
         {
-            SearchUserDirectoryJob::User result;
-            result.userId =
-                fromJson<QString>(jo.value("user_id"_ls));
-            result.displayName =
-                fromJson<QString>(jo.value("display_name"_ls));
-            result.avatarUrl =
-                fromJson<QString>(jo.value("avatar_url"_ls));
-
-            return result;
+            fromJson(jo.value("user_id"_ls), result.userId);
+            fromJson(jo.value("display_name"_ls), result.displayName);
+            fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
         }
     };
 } // namespace QMatrixClient
@@ -71,11 +65,11 @@ BaseJob::Status SearchUserDirectoryJob::parseJson(const QJsonDocument& data)
     if (!json.contains("results"_ls))
         return { JsonParseError,
             "The key 'results' not found in the response" };
-    d->results = fromJson<QVector<User>>(json.value("results"_ls));
+    fromJson(json.value("results"_ls), d->results);
     if (!json.contains("limited"_ls))
         return { JsonParseError,
             "The key 'limited' not found in the response" };
-    d->limited = fromJson<bool>(json.value("limited"_ls));
+    fromJson(json.value("limited"_ls), d->limited);
     return Success;
 }
 

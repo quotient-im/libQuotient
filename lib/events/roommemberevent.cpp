@@ -23,20 +23,17 @@
 
 #include <array>
 
-using namespace QMatrixClient;
-
 static const std::array<QString, 5> membershipStrings = { {
     QStringLiteral("invite"), QStringLiteral("join"),
     QStringLiteral("knock"), QStringLiteral("leave"),
     QStringLiteral("ban")
 } };
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     template <>
-    struct FromJson<MembershipType>
+    struct JsonConverter<MembershipType>
     {
-        MembershipType operator()(const QJsonValue& jv) const
+        static MembershipType load(const QJsonValue& jv)
         {
             const auto& membershipString = jv.toString();
             for (auto it = membershipStrings.begin();
@@ -48,8 +45,9 @@ namespace QMatrixClient
             return MembershipType::Undefined;
         }
     };
-
 }
+
+using namespace QMatrixClient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"_ls]))

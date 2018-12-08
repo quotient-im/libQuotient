@@ -46,7 +46,7 @@ BaseJob::Status GetJoinedRoomsJob::parseJson(const QJsonDocument& data)
     if (!json.contains("joined_rooms"_ls))
         return { JsonParseError,
             "The key 'joined_rooms' not found in the response" };
-    d->joinedRooms = fromJson<QStringList>(json.value("joined_rooms"_ls));
+    fromJson(json.value("joined_rooms"_ls), d->joinedRooms);
     return Success;
 }
 

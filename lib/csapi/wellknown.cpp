@@ -52,8 +52,8 @@ BaseJob::Status GetWellknownJob::parseJson(const QJsonDocument& data)
     if (!json.contains("m.homeserver"_ls))
         return { JsonParseError,
             "The key 'm.homeserver' not found in the response" };
-    d->homeserver = fromJson<HomeserverInformation>(json.value("m.homeserver"_ls));
-    d->identityServer = fromJson<IdentityServerInformation>(json.value("m.identity_server"_ls));
+    fromJson(json.value("m.homeserver"_ls), d->homeserver);
+    fromJson(json.value("m.identity_server"_ls), d->identityServer);
     return Success;
 }
 

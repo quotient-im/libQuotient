@@ -25,12 +25,10 @@ namespace QMatrixClient
         /// An placeholder serving as a valid example of the field value.
         QString placeholder;
     };
-
-    QJsonObject toJson(const FieldType& pod);
-
-    template <> struct FromJsonObject<FieldType>
+    template <> struct JsonObjectConverter<FieldType>
     {
-        FieldType operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const FieldType& pod);
+        static void fillFrom(const QJsonObject& jo, FieldType& pod);
     };
 
     struct ProtocolInstance
@@ -45,12 +43,10 @@ namespace QMatrixClient
         /// A unique identifier across all instances.
         QString networkId;
     };
-
-    QJsonObject toJson(const ProtocolInstance& pod);
-
-    template <> struct FromJsonObject<ProtocolInstance>
+    template <> struct JsonObjectConverter<ProtocolInstance>
     {
-        ProtocolInstance operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const ProtocolInstance& pod);
+        static void fillFrom(const QJsonObject& jo, ProtocolInstance& pod);
     };
 
     struct ThirdPartyProtocol
@@ -78,12 +74,10 @@ namespace QMatrixClient
         /// same application service.
         QVector<ProtocolInstance> instances;
     };
-
-    QJsonObject toJson(const ThirdPartyProtocol& pod);
-
-    template <> struct FromJsonObject<ThirdPartyProtocol>
+    template <> struct JsonObjectConverter<ThirdPartyProtocol>
     {
-        ThirdPartyProtocol operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const ThirdPartyProtocol& pod);
+        static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod);
     };
 
 } // namespace QMatrixClient

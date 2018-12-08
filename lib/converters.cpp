@@ -22,38 +22,34 @@
 
 using namespace QMatrixClient;
 
-QJsonValue QMatrixClient::variantToJson(const QVariant& v)
+QJsonValue JsonConverter<QVariant>::dump(const QVariant& v)
 {
     return QJsonValue::fromVariant(v);
 }
 
-QJsonObject QMatrixClient::toJson(const QVariantMap& map)
-{
-    return QJsonObject::fromVariantMap(map);
-}
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-QJsonObject QMatrixClient::toJson(const QVariantHash& hMap)
-{
-    return QJsonObject::fromVariantHash(hMap);
-}
-#endif
-
-QVariant FromJson<QVariant>::operator()(const QJsonValue& jv) const
+QVariant JsonConverter<QVariant>::load(const QJsonValue& jv)
 {
     return jv.toVariant();
 }
 
-QMap<QString, QVariant>
-FromJson<QMap<QString, QVariant>>::operator()(const QJsonValue& jv) const
+QJsonObject JsonConverter<variant_map_t>::dump(const variant_map_t& map)
 {
-    return jv.toObject().toVariantMap();
+    return
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+        QJsonObject::fromVariantHash
+#else
+        QJsonObject::fromVariantMap
+#endif
+        (map);
 }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-QHash<QString, QVariant>
-FromJson<QHash<QString, QVariant>>::operator()(const QJsonValue& jv) const
+variant_map_t JsonConverter<QVariantHash>::load(const QJsonValue& jv)
 {
-    return jv.toObject().toVariantHash();
-}
+    return jv.toObject().
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
+        toVariantHash
+#else
+        toVariantMap
 #endif
+        ();
+}

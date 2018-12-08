@@ -43,7 +43,7 @@ const QStringList& GetVersionsJob::versions() const
 BaseJob::Status GetVersionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->versions = fromJson<QStringList>(json.value("versions"_ls));
+    fromJson(json.value("versions"_ls), d->versions);
     return Success;
 }
 

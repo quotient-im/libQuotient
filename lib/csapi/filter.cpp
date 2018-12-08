@@ -41,7 +41,7 @@ BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
     if (!json.contains("filter_id"_ls))
         return { JsonParseError,
             "The key 'filter_id' not found in the response" };
-    d->filterId = fromJson<QString>(json.value("filter_id"_ls));
+    fromJson(json.value("filter_id"_ls), d->filterId);
     return Success;
 }
 
@@ -75,7 +75,7 @@ const Filter& GetFilterJob::data() const
 
 BaseJob::Status GetFilterJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Filter>(data);
+    fromJson(data, d->data);
     return Success;
 }
 

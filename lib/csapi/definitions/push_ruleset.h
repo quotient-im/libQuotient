@@ -22,12 +22,10 @@ namespace QMatrixClient
         QVector<PushRule> sender;
         QVector<PushRule> underride;
     };
-
-    QJsonObject toJson(const PushRuleset& pod);
-
-    template <> struct FromJsonObject<PushRuleset>
+    template <> struct JsonObjectConverter<PushRuleset>
     {
-        PushRuleset operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const PushRuleset& pod);
+        static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
     };
 
 } // namespace QMatrixClient

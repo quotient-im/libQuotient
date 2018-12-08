@@ -6,28 +6,21 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const PushCondition& pod)
+void JsonObjectConverter<PushCondition>::dumpTo(
+        QJsonObject& jo, const PushCondition& pod)
 {
-    QJsonObject jo;
     addParam<>(jo, QStringLiteral("kind"), pod.kind);
     addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
     addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
     addParam<IfNotEmpty>(jo, QStringLiteral("is"), pod.is);
-    return jo;
 }
 
-PushCondition FromJsonObject<PushCondition>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<PushCondition>::fillFrom(
+    const QJsonObject& jo, PushCondition& result)
 {
-    PushCondition result;
-    result.kind =
-        fromJson<QString>(jo.value("kind"_ls));
-    result.key =
-        fromJson<QString>(jo.value("key"_ls));
-    result.pattern =
-        fromJson<QString>(jo.value("pattern"_ls));
-    result.is =
-        fromJson<QString>(jo.value("is"_ls));
-
-    return result;
+    fromJson(jo.value("kind"_ls), result.kind);
+    fromJson(jo.value("key"_ls), result.key);
+    fromJson(jo.value("pattern"_ls), result.pattern);
+    fromJson(jo.value("is"_ls), result.is);
 }
 

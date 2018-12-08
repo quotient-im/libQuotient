@@ -52,7 +52,7 @@ BaseJob::Status UploadContentJob::parseJson(const QJsonDocument& data)
     if (!json.contains("content_uri"_ls))
         return { JsonParseError,
             "The key 'content_uri' not found in the response" };
-    d->contentUri = fromJson<QString>(json.value("content_uri"_ls));
+    fromJson(json.value("content_uri"_ls), d->contentUri);
     return Success;
 }
 
@@ -276,8 +276,8 @@ const QString& GetUrlPreviewJob::ogImage() const
 BaseJob::Status GetUrlPreviewJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->matrixImageSize = fromJson<qint64>(json.value("matrix:image:size"_ls));
-    d->ogImage = fromJson<QString>(json.value("og:image"_ls));
+    fromJson(json.value("matrix:image:size"_ls), d->matrixImageSize);
+    fromJson(json.value("og:image"_ls), d->ogImage);
     return Success;
 }
 
@@ -312,7 +312,7 @@ Omittable<qint64> GetConfigJob::uploadSize() const
 BaseJob::Status GetConfigJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->uploadSize = fromJson<qint64>(json.value("m.upload.size"_ls));
+    fromJson(json.value("m.upload.size"_ls), d->uploadSize);
     return Success;
 }
 

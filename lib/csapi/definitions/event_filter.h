@@ -25,12 +25,10 @@ namespace QMatrixClient
         /// A list of event types to include. If this list is absent then all event types are included. A ``'*'`` can be used as a wildcard to match any sequence of characters.
         QStringList types;
     };
-
-    QJsonObject toJson(const EventFilter& pod);
-
-    template <> struct FromJsonObject<EventFilter>
+    template <> struct JsonObjectConverter<EventFilter>
     {
-        EventFilter operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const EventFilter& pod);
+        static void fillFrom(const QJsonObject& jo, EventFilter& pod);
     };
 
 } // namespace QMatrixClient

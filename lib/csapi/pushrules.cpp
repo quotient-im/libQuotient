@@ -46,7 +46,7 @@ BaseJob::Status GetPushRulesJob::parseJson(const QJsonDocument& data)
     if (!json.contains("global"_ls))
         return { JsonParseError,
             "The key 'global' not found in the response" };
-    d->global = fromJson<PushRuleset>(json.value("global"_ls));
+    fromJson(json.value("global"_ls), d->global);
     return Success;
 }
 
@@ -80,7 +80,7 @@ const PushRule& GetPushRuleJob::data() const
 
 BaseJob::Status GetPushRuleJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<PushRule>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -154,7 +154,7 @@ BaseJob::Status IsPushRuleEnabledJob::parseJson(const QJsonDocument& data)
     if (!json.contains("enabled"_ls))
         return { JsonParseError,
             "The key 'enabled' not found in the response" };
-    d->enabled = fromJson<bool>(json.value("enabled"_ls));
+    fromJson(json.value("enabled"_ls), d->enabled);
     return Success;
 }
 
@@ -203,7 +203,7 @@ BaseJob::Status GetPushRuleActionsJob::parseJson(const QJsonDocument& data)
     if (!json.contains("actions"_ls))
         return { JsonParseError,
             "The key 'actions' not found in the response" };
-    d->actions = fromJson<QStringList>(json.value("actions"_ls));
+    fromJson(json.value("actions"_ls), d->actions);
     return Success;
 }
 

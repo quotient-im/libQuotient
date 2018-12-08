@@ -16,43 +16,29 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetWhoIsJob::ConnectionInfo>
+    template <> struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo>
     {
-        GetWhoIsJob::ConnectionInfo operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetWhoIsJob::ConnectionInfo& result)
         {
-            GetWhoIsJob::ConnectionInfo result;
-            result.ip =
-                fromJson<QString>(jo.value("ip"_ls));
-            result.lastSeen =
-                fromJson<qint64>(jo.value("last_seen"_ls));
-            result.userAgent =
-                fromJson<QString>(jo.value("user_agent"_ls));
-
-            return result;
+            fromJson(jo.value("ip"_ls), result.ip);
+            fromJson(jo.value("last_seen"_ls), result.lastSeen);
+            fromJson(jo.value("user_agent"_ls), result.userAgent);
         }
     };
 
-    template <> struct FromJsonObject<GetWhoIsJob::SessionInfo>
+    template <> struct JsonObjectConverter<GetWhoIsJob::SessionInfo>
     {
-        GetWhoIsJob::SessionInfo operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
         {
-            GetWhoIsJob::SessionInfo result;
-            result.connections =
-                fromJson<QVector<GetWhoIsJob::ConnectionInfo>>(jo.value("connections"_ls));
-
-            return result;
+            fromJson(jo.value("connections"_ls), result.connections);
         }
     };
 
-    template <> struct FromJsonObject<GetWhoIsJob::DeviceInfo>
+    template <> struct JsonObjectConverter<GetWhoIsJob::DeviceInfo>
     {
-        GetWhoIsJob::DeviceInfo operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
         {
-            GetWhoIsJob::DeviceInfo result;
-            result.sessions =
-                fromJson<QVector<GetWhoIsJob::SessionInfo>>(jo.value("sessions"_ls));
-
-            return result;
+            fromJson(jo.value("sessions"_ls), result.sessions);
         }
     };
 } // namespace QMatrixClient
@@ -94,8 +80,8 @@ const QHash<QString, GetWhoIsJob::DeviceInfo>& GetWhoIsJob::devices() const
 BaseJob::Status GetWhoIsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->userId = fromJson<QString>(json.value("user_id"_ls));
-    d->devices = fromJson<QHash<QString, DeviceInfo>>(json.value("devices"_ls));
+    fromJson(json.value("user_id"_ls), d->userId);
+    fromJson(json.value("devices"_ls), d->devices);
     return Success;
 }
 

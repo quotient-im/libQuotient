@@ -6,20 +6,18 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const UserIdentifier& pod)
+void JsonObjectConverter<UserIdentifier>::dumpTo(
+        QJsonObject& jo, const UserIdentifier& pod)
 {
-    QJsonObject jo = toJson(pod.additionalProperties);
+    fillJson(jo, pod.additionalProperties);
     addParam<>(jo, QStringLiteral("type"), pod.type);
-    return jo;
 }
 
-UserIdentifier FromJsonObject<UserIdentifier>::operator()(QJsonObject jo) const
+void JsonObjectConverter<UserIdentifier>::fillFrom(
+    QJsonObject jo, UserIdentifier& result)
 {
-    UserIdentifier result;
-    result.type =
-        fromJson<QString>(jo.take("type"_ls));
+    fromJson(jo.take("type"_ls), result.type);
 
-    result.additionalProperties = fromJson<QVariantHash>(jo);
-    return result;
+    fromJson(jo, result.additionalProperties);
 }
 

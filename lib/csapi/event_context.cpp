@@ -82,12 +82,12 @@ StateEvents&& GetEventContextJob::state()
 BaseJob::Status GetEventContextJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->begin = fromJson<QString>(json.value("start"_ls));
-    d->end = fromJson<QString>(json.value("end"_ls));
-    d->eventsBefore = fromJson<RoomEvents>(json.value("events_before"_ls));
-    d->event = fromJson<RoomEventPtr>(json.value("event"_ls));
-    d->eventsAfter = fromJson<RoomEvents>(json.value("events_after"_ls));
-    d->state = fromJson<StateEvents>(json.value("state"_ls));
+    fromJson(json.value("start"_ls), d->begin);
+    fromJson(json.value("end"_ls), d->end);
+    fromJson(json.value("events_before"_ls), d->eventsBefore);
+    fromJson(json.value("event"_ls), d->event);
+    fromJson(json.value("events_after"_ls), d->eventsAfter);
+    fromJson(json.value("state"_ls), d->state);
     return Success;
 }
 

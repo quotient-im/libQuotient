@@ -16,15 +16,11 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetLoginFlowsJob::LoginFlow>
+    template <> struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
     {
-        GetLoginFlowsJob::LoginFlow operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
         {
-            GetLoginFlowsJob::LoginFlow result;
-            result.type =
-                fromJson<QString>(jo.value("type"_ls));
-
-            return result;
+            fromJson(jo.value("type"_ls), result.type);
         }
     };
 } // namespace QMatrixClient
@@ -60,7 +56,7 @@ const QVector<GetLoginFlowsJob::LoginFlow>& GetLoginFlowsJob::flows() const
 BaseJob::Status GetLoginFlowsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->flows = fromJson<QVector<LoginFlow>>(json.value("flows"_ls));
+    fromJson(json.value("flows"_ls), d->flows);
     return Success;
 }
 
@@ -118,10 +114,10 @@ const QString& LoginJob::deviceId() const
 BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->userId = fromJson<QString>(json.value("user_id"_ls));
-    d->accessToken = fromJson<QString>(json.value("access_token"_ls));
-    d->homeServer = fromJson<QString>(json.value("home_server"_ls));
-    d->deviceId = fromJson<QString>(json.value("device_id"_ls));
+    fromJson(json.value("user_id"_ls), d->userId);
+    fromJson(json.value("access_token"_ls), d->accessToken);
+    fromJson(json.value("home_server"_ls), d->homeServer);
+    fromJson(json.value("device_id"_ls), d->deviceId);
     return Success;
 }
 

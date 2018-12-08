@@ -76,10 +76,10 @@ BaseJob::Status GetPresenceJob::parseJson(const QJsonDocument& data)
     if (!json.contains("presence"_ls))
         return { JsonParseError,
             "The key 'presence' not found in the response" };
-    d->presence = fromJson<QString>(json.value("presence"_ls));
-    d->lastActiveAgo = fromJson<int>(json.value("last_active_ago"_ls));
-    d->statusMsg = fromJson<QString>(json.value("status_msg"_ls));
-    d->currentlyActive = fromJson<bool>(json.value("currently_active"_ls));
+    fromJson(json.value("presence"_ls), d->presence);
+    fromJson(json.value("last_active_ago"_ls), d->lastActiveAgo);
+    fromJson(json.value("status_msg"_ls), d->statusMsg);
+    fromJson(json.value("currently_active"_ls), d->currentlyActive);
     return Success;
 }
 
@@ -125,7 +125,7 @@ Events&& GetPresenceForListJob::data()
 
 BaseJob::Status GetPresenceForListJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Events>(data);
+    fromJson(data, d->data);
     return Success;
 }
 

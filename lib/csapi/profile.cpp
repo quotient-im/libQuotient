@@ -54,7 +54,7 @@ const QString& GetDisplayNameJob::displayname() const
 BaseJob::Status GetDisplayNameJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->displayname = fromJson<QString>(json.value("displayname"_ls));
+    fromJson(json.value("displayname"_ls), d->displayname);
     return Success;
 }
 
@@ -100,7 +100,7 @@ const QString& GetAvatarUrlJob::avatarUrl() const
 BaseJob::Status GetAvatarUrlJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->avatarUrl = fromJson<QString>(json.value("avatar_url"_ls));
+    fromJson(json.value("avatar_url"_ls), d->avatarUrl);
     return Success;
 }
 
@@ -141,8 +141,8 @@ const QString& GetUserProfileJob::displayname() const
 BaseJob::Status GetUserProfileJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->avatarUrl = fromJson<QString>(json.value("avatar_url"_ls));
-    d->displayname = fromJson<QString>(json.value("displayname"_ls));
+    fromJson(json.value("avatar_url"_ls), d->avatarUrl);
+    fromJson(json.value("displayname"_ls), d->displayname);
     return Success;
 }
 

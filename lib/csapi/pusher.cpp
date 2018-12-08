@@ -16,43 +16,27 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetPushersJob::PusherData>
+    template <> struct JsonObjectConverter<GetPushersJob::PusherData>
     {
-        GetPushersJob::PusherData operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetPushersJob::PusherData& result)
         {
-            GetPushersJob::PusherData result;
-            result.url =
-                fromJson<QString>(jo.value("url"_ls));
-            result.format =
-                fromJson<QString>(jo.value("format"_ls));
-
-            return result;
+            fromJson(jo.value("url"_ls), result.url);
+            fromJson(jo.value("format"_ls), result.format);
         }
     };
 
-    template <> struct FromJsonObject<GetPushersJob::Pusher>
+    template <> struct JsonObjectConverter<GetPushersJob::Pusher>
     {
-        GetPushersJob::Pusher operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
         {
-            GetPushersJob::Pusher result;
-            result.pushkey =
-                fromJson<QString>(jo.value("pushkey"_ls));
-            result.kind =
-                fromJson<QString>(jo.value("kind"_ls));
-            result.appId =
-                fromJson<QString>(jo.value("app_id"_ls));
-            result.appDisplayName =
-                fromJson<QString>(jo.value("app_display_name"_ls));
-            result.deviceDisplayName =
-                fromJson<QString>(jo.value("device_display_name"_ls));
-            result.profileTag =
-                fromJson<QString>(jo.value("profile_tag"_ls));
-            result.lang =
-                fromJson<QString>(jo.value("lang"_ls));
-            result.data =
-                fromJson<GetPushersJob::PusherData>(jo.value("data"_ls));
-
-            return result;
+            fromJson(jo.value("pushkey"_ls), result.pushkey);
+            fromJson(jo.value("kind"_ls), result.kind);
+            fromJson(jo.value("app_id"_ls), result.appId);
+            fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
+            fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+            fromJson(jo.value("profile_tag"_ls), result.profileTag);
+            fromJson(jo.value("lang"_ls), result.lang);
+            fromJson(jo.value("data"_ls), result.data);
         }
     };
 } // namespace QMatrixClient
@@ -88,7 +72,7 @@ const QVector<GetPushersJob::Pusher>& GetPushersJob::pushers() const
 BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->pushers = fromJson<QVector<Pusher>>(json.value("pushers"_ls));
+    fromJson(json.value("pushers"_ls), d->pushers);
     return Success;
 }
 
@@ -96,13 +80,14 @@ namespace QMatrixClient
 {
     // Converters
 
-    QJsonObject toJson(const PostPusherJob::PusherData& pod)
+    template <> struct JsonObjectConverter<PostPusherJob::PusherData>
     {
-        QJsonObject jo;
-        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
-        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
+        {
+            addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
+            addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
+        }
+    };
 } // namespace QMatrixClient
 
 static const auto PostPusherJobName = QStringLiteral("PostPusherJob");

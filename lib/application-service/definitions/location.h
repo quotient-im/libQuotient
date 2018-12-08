@@ -21,12 +21,10 @@ namespace QMatrixClient
         /// Information used to identify this third party location.
         QJsonObject fields;
     };
-
-    QJsonObject toJson(const ThirdPartyLocation& pod);
-
-    template <> struct FromJsonObject<ThirdPartyLocation>
+    template <> struct JsonObjectConverter<ThirdPartyLocation>
     {
-        ThirdPartyLocation operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const ThirdPartyLocation& pod);
+        static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod);
     };
 
 } // namespace QMatrixClient

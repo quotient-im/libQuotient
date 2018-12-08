@@ -36,21 +36,6 @@ namespace QMatrixClient
         order_type order;
 
         TagRecord (order_type order = none) : order(order) { }
-        explicit TagRecord(const QJsonObject& jo)
-        {
-            // Parse a float both from JSON double and JSON string because
-            // libqmatrixclient previously used to use strings to store order.
-            const auto orderJv = jo.value("order"_ls);
-            if (orderJv.isDouble())
-                order = fromJson<float>(orderJv);
-            else if (orderJv.isString())
-            {
-                bool ok;
-                order = orderJv.toString().toFloat(&ok);
-                if (!ok)
-                    order = none;
-            }
-        }
 
         bool operator<(const TagRecord& other) const
         {
@@ -60,12 +45,28 @@ namespace QMatrixClient
         }
     };
 
-    inline QJsonValue toJson(const TagRecord& rec)
+    template <> struct JsonObjectConverter<TagRecord>
     {
-        QJsonObject o;
-        addParam<IfNotEmpty>(o, QStringLiteral("order"), rec.order);
-        return o;
-    }
+        static void fillFrom(const QJsonObject& jo, TagRecord& rec)
+        {
+            // Parse a float both from JSON double and JSON string because
+            // libqmatrixclient previously used to use strings to store order.
+            const auto orderJv = jo.value("order"_ls);
+            if (orderJv.isDouble())
+                rec.order = fromJson<float>(orderJv);
+            if (orderJv.isString())
+            {
+                bool ok;
+                rec.order = orderJv.toString().toFloat(&ok);
+                if (!ok)
+                    rec.order = none;
+            }
+        }
+        static void dumpTo(QJsonObject& jo, const TagRecord& rec)
+        {
+            addParam<IfNotEmpty>(jo, QStringLiteral("order"), rec.order);
+        }
+    };
 
     using TagsMap = QHash<QString, TagRecord>;
 

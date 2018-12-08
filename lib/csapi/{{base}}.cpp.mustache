@@ -8,49 +8,52 @@
 {{/operations}}
 using namespace QMatrixClient;
 {{#models.model}}{{#in?}}
-QJsonObject QMatrixClient::toJson(const {{qualifiedName}}& pod)
+void JsonObjectConverter<{{qualifiedName}}>::dumpTo(
+        QJsonObject& jo, const {{qualifiedName}}& pod)
 {
-    QJsonObject jo{{#propertyMap}} = toJson(pod.{{nameCamelCase}}){{/propertyMap}};{{#vars}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});{{/vars}}
-    return jo;
-}
+{{#propertyMap}}    fillJson(jo, pod.{{nameCamelCase}});
+{{/propertyMap}}{{#parents}}    fillJson<{{name}}>(jo, pod);
+{{/parents}}{{#vars}}    addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+{{/vars}}}{{!<- dumpTo() ends here}}
 {{/in?}}{{#out?}}
-{{qualifiedName}} FromJsonObject<{{qualifiedName}}>::operator()({{^propertyMap}}const QJsonObject&{{/propertyMap}}{{#propertyMap}}QJsonObject{{/propertyMap}} jo) const
+void JsonObjectConverter<{{qualifiedName}}>::fillFrom(
+    {{^propertyMap}}const QJsonObject&{{/propertyMap
+  }}{{#propertyMap}}QJsonObject{{/propertyMap}} jo, {{qualifiedName}}& result)
 {
-    {{qualifiedName}} result;
-{{#vars}}    result.{{nameCamelCase}} =
-        fromJson<{{dataType.qualifiedName}}>(jo.{{#propertyMap}}take{{/propertyMap}}{{^propertyMap}}value{{/propertyMap}}("{{baseName}}"_ls));
+{{#parents}}    fillFromJson<{{qualifiedName}}>(jo, result);
+{{/parents}}{{#vars}}    fromJson(jo.{{#propertyMap}}take{{/propertyMap
+                                   }}{{^propertyMap}}value{{/propertyMap}}("{{baseName}}"_ls), result.{{nameCamelCase}});
 {{/vars}}{{#propertyMap}}
-    result.{{nameCamelCase}} = fromJson<{{dataType.qualifiedName}}>(jo);{{/propertyMap}}
-    return result;
-}
+    fromJson(jo, result.{{nameCamelCase}});
+{{/propertyMap}}}
 {{/out?}}{{/models.model}}{{#operations}}
 static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
 {{#    operation}}{{#models}}
 namespace QMatrixClient
 {
     // Converters
-{{#model}}{{#in?}}
-    QJsonObject toJson(const {{qualifiedName}}& pod)
+{{#model}}
+    template <> struct JsonObjectConverter<{{qualifiedName}}>
     {
-        QJsonObject jo{{#propertyMap}} = toJson(pod.{{nameCamelCase}}){{/propertyMap}};{{#vars}}
-        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});{{/vars}}
-        return jo;
-    }
-{{/in?}}{{#out?}}
-    template <> struct FromJsonObject<{{qualifiedName}}>
-    {
-        {{qualifiedName}} operator()({{^propertyMap}}const QJsonObject&{{/propertyMap}}{{#propertyMap}}QJsonObject{{/propertyMap}} jo) const
+{{#in?}}        static void dumpTo(QJsonObject& jo, const {{qualifiedName}}& pod)
         {
-            {{qualifiedName}} result;
-{{#vars}}            result.{{nameCamelCase}} =
-                fromJson<{{dataType.qualifiedName}}>(jo.{{#propertyMap}}take{{/propertyMap}}{{^propertyMap}}value{{/propertyMap}}("{{baseName}}"_ls));
-{{/vars}}{{#propertyMap}}
-            result.{{nameCamelCase}} = fromJson<{{dataType.qualifiedName}}>(jo);{{/propertyMap}}
-            return result;
-        }
-    };
-{{/out?}}{{/model}}} // namespace QMatrixClient
+{{#propertyMap}}            fillJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}{{#parents}}fillJson<{{name}}>(jo, pod);
+            {{/parents}}{{#vars
+}}            addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+{{/vars}}        }
+{{/in?}}{{#out?
+}}        static void fillFrom({{^propertyMap}}const QJsonObject&{{/propertyMap
+                             }}{{#propertyMap}}QJsonObject{{/propertyMap}} jo, {{qualifiedName}}& result)
+        {
+{{#parents}}            fillFromJson<{{qualifiedName}}{{!of the parent!}}>(jo, result);
+        {{/parents}}{{#vars
+}}            fromJson(jo.{{#propertyMap}}take{{/propertyMap
+                    }}{{^propertyMap}}value{{/propertyMap}}("{{baseName}}"_ls), result.{{nameCamelCase}});
+{{/vars}}{{#propertyMap}}            fromJson(jo, result.{{nameCamelCase}});
+{{/propertyMap}}        }
+{{/out?}}    };
+{{/model}}} // namespace QMatrixClient
 {{/    models}}{{#responses}}{{#normalResponse?}}{{#allProperties?}}
 class {{camelCaseOperationId}}Job::Private
 {
@@ -109,12 +112,12 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseReply(QNetworkReply* reply)
 }{{/       producesNonJson?}}{{^producesNonJson?}}
 BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data)
 {
-{{#inlineResponse}}    d->{{paramName}} = fromJson<{{dataType.name}}>(data);
+{{#inlineResponse}}    fromJson(data, d->{{paramName}});
 {{/inlineResponse}}{{^inlineResponse}}    auto json = data.object();
 {{#properties}}{{#required?}}    if (!json.contains("{{baseName}}"_ls))
         return { JsonParseError,
             "The key '{{baseName}}' not found in the response" };
-{{/required?}}    d->{{paramName}} = fromJson<{{dataType.name}}>(json.value("{{baseName}}"_ls));
+{{/required?}}    fromJson(json.value("{{baseName}}"_ls), d->{{paramName}});
 {{/properties}}{{/inlineResponse}}    return Success;
 }{{/       producesNonJson?}}
 {{/allProperties?}}{{/normalResponse?}}{{/responses}}{{/operation}}{{/operations}}

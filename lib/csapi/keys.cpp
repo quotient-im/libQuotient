@@ -44,7 +44,7 @@ BaseJob::Status UploadKeysJob::parseJson(const QJsonDocument& data)
     if (!json.contains("one_time_key_counts"_ls))
         return { JsonParseError,
             "The key 'one_time_key_counts' not found in the response" };
-    d->oneTimeKeyCounts = fromJson<QHash<QString, int>>(json.value("one_time_key_counts"_ls));
+    fromJson(json.value("one_time_key_counts"_ls), d->oneTimeKeyCounts);
     return Success;
 }
 
@@ -52,27 +52,20 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<QueryKeysJob::UnsignedDeviceInfo>
+    template <> struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo>
     {
-        QueryKeysJob::UnsignedDeviceInfo operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, QueryKeysJob::UnsignedDeviceInfo& result)
         {
-            QueryKeysJob::UnsignedDeviceInfo result;
-            result.deviceDisplayName =
-                fromJson<QString>(jo.value("device_display_name"_ls));
-
-            return result;
+            fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
         }
     };
 
-    template <> struct FromJsonObject<QueryKeysJob::DeviceInformation>
+    template <> struct JsonObjectConverter<QueryKeysJob::DeviceInformation>
     {
-        QueryKeysJob::DeviceInformation operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceInformation& result)
         {
-            QueryKeysJob::DeviceInformation result;
-            result.unsignedData =
-                fromJson<QueryKeysJob::UnsignedDeviceInfo>(jo.value("unsigned"_ls));
-
-            return result;
+            fillFromJson<DeviceKeys>(jo, result);
+                    fromJson(jo.value("unsigned"_ls), result.unsignedData);
         }
     };
 } // namespace QMatrixClient
@@ -113,8 +106,8 @@ const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& QueryKeys
 BaseJob::Status QueryKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"_ls));
-    d->deviceKeys = fromJson<QHash<QString, QHash<QString, DeviceInformation>>>(json.value("device_keys"_ls));
+    fromJson(json.value("failures"_ls), d->failures);
+    fromJson(json.value("device_keys"_ls), d->deviceKeys);
     return Success;
 }
 
@@ -153,8 +146,8 @@ const QHash<QString, QHash<QString, QVariant>>& ClaimKeysJob::oneTimeKeys() cons
 BaseJob::Status ClaimKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->failures = fromJson<QHash<QString, QJsonObject>>(json.value("failures"_ls));
-    d->oneTimeKeys = fromJson<QHash<QString, QHash<QString, QVariant>>>(json.value("one_time_keys"_ls));
+    fromJson(json.value("failures"_ls), d->failures);
+    fromJson(json.value("one_time_keys"_ls), d->oneTimeKeys);
     return Success;
 }
 
@@ -205,8 +198,8 @@ const QStringList& GetKeysChangesJob::left() const
 BaseJob::Status GetKeysChangesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->changed = fromJson<QStringList>(json.value("changed"_ls));
-    d->left = fromJson<QStringList>(json.value("left"_ls));
+    fromJson(json.value("changed"_ls), d->changed);
+    fromJson(json.value("left"_ls), d->left);
     return Success;
 }
 

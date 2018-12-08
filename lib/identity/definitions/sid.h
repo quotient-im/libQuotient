@@ -19,12 +19,10 @@ namespace QMatrixClient
         /// must not be empty.
         QString sid;
     };
-
-    QJsonObject toJson(const Sid& pod);
-
-    template <> struct FromJsonObject<Sid>
+    template <> struct JsonObjectConverter<Sid>
     {
-        Sid operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const Sid& pod);
+        static void fillFrom(const QJsonObject& jo, Sid& pod);
     };
 
 } // namespace QMatrixClient

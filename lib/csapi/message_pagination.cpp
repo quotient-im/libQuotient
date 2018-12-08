@@ -68,9 +68,9 @@ RoomEvents&& GetRoomEventsJob::chunk()
 BaseJob::Status GetRoomEventsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->begin = fromJson<QString>(json.value("start"_ls));
-    d->end = fromJson<QString>(json.value("end"_ls));
-    d->chunk = fromJson<RoomEvents>(json.value("chunk"_ls));
+    fromJson(json.value("start"_ls), d->begin);
+    fromJson(json.value("end"_ls), d->end);
+    fromJson(json.value("chunk"_ls), d->chunk);
     return Success;
 }
 

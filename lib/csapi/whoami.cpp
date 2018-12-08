@@ -46,7 +46,7 @@ BaseJob::Status GetTokenOwnerJob::parseJson(const QJsonDocument& data)
     if (!json.contains("user_id"_ls))
         return { JsonParseError,
             "The key 'user_id' not found in the response" };
-    d->userId = fromJson<QString>(json.value("user_id"_ls));
+    fromJson(json.value("user_id"_ls), d->userId);
     return Success;
 }
 

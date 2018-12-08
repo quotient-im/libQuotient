@@ -17,12 +17,10 @@ namespace QMatrixClient
         /// The base URL for the homeserver for client-server connections.
         QString baseUrl;
     };
-
-    QJsonObject toJson(const HomeserverInformation& pod);
-
-    template <> struct FromJsonObject<HomeserverInformation>
+    template <> struct JsonObjectConverter<HomeserverInformation>
     {
-        HomeserverInformation operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod);
+        static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod);
     };
 
 } // namespace QMatrixClient

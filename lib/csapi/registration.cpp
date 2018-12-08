@@ -76,10 +76,10 @@ BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
     if (!json.contains("user_id"_ls))
         return { JsonParseError,
             "The key 'user_id' not found in the response" };
-    d->userId = fromJson<QString>(json.value("user_id"_ls));
-    d->accessToken = fromJson<QString>(json.value("access_token"_ls));
-    d->homeServer = fromJson<QString>(json.value("home_server"_ls));
-    d->deviceId = fromJson<QString>(json.value("device_id"_ls));
+    fromJson(json.value("user_id"_ls), d->userId);
+    fromJson(json.value("access_token"_ls), d->accessToken);
+    fromJson(json.value("home_server"_ls), d->homeServer);
+    fromJson(json.value("device_id"_ls), d->deviceId);
     return Success;
 }
 
@@ -114,7 +114,7 @@ const Sid& RequestTokenToRegisterEmailJob::data() const
 
 BaseJob::Status RequestTokenToRegisterEmailJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Sid>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -150,7 +150,7 @@ const Sid& RequestTokenToRegisterMSISDNJob::data() const
 
 BaseJob::Status RequestTokenToRegisterMSISDNJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Sid>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -197,7 +197,7 @@ const Sid& RequestTokenToResetPasswordEmailJob::data() const
 
 BaseJob::Status RequestTokenToResetPasswordEmailJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Sid>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -233,7 +233,7 @@ const Sid& RequestTokenToResetPasswordMSISDNJob::data() const
 
 BaseJob::Status RequestTokenToResetPasswordMSISDNJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Sid>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -289,7 +289,7 @@ bool CheckUsernameAvailabilityJob::available() const
 BaseJob::Status CheckUsernameAvailabilityJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->available = fromJson<bool>(json.value("available"_ls));
+    fromJson(json.value("available"_ls), d->available);
     return Success;
 }
 

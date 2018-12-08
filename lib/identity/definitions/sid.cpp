@@ -6,19 +6,15 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const Sid& pod)
+void JsonObjectConverter<Sid>::dumpTo(
+        QJsonObject& jo, const Sid& pod)
 {
-    QJsonObject jo;
     addParam<>(jo, QStringLiteral("sid"), pod.sid);
-    return jo;
 }
 
-Sid FromJsonObject<Sid>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<Sid>::fillFrom(
+    const QJsonObject& jo, Sid& result)
 {
-    Sid result;
-    result.sid =
-        fromJson<QString>(jo.value("sid"_ls));
-
-    return result;
+    fromJson(jo.value("sid"_ls), result.sid);
 }
 
