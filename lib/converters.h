@@ -110,7 +110,8 @@ namespace QMatrixClient
     template <typename T>
     inline void fromJson(const QJsonValue& jv, T& pod)
     {
-        pod = fromJson<T>(jv);
+        if (!jv.isUndefined())
+            pod = fromJson<T>(jv);
     }
 
     template <typename T>
@@ -123,13 +124,17 @@ namespace QMatrixClient
     template <typename T>
     inline void fromJson(const QJsonValue& jv, Omittable<T>& pod)
     {
-        pod = fromJson<T>(jv);
+        if (jv.isUndefined())
+            pod = none;
+        else
+            pod = fromJson<T>(jv);
     }
 
     template <typename T>
     inline void fillFromJson(const QJsonValue& jv, T& pod)
     {
-        JsonObjectConverter<T>::fillFrom(jv.toObject(), pod);
+        if (jv.isObject())
+            JsonObjectConverter<T>::fillFrom(jv.toObject(), pod);
     }
 
     // JsonConverter<> specialisations
