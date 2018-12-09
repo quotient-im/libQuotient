@@ -120,8 +120,9 @@ namespace QMatrixClient
                 EncryptionOn = 0x100,
                 AccountDataChange = 0x200,
                 SummaryChange = 0x400,
-                OtherChange = 0x1000,
-                AnyChange = 0x1FFF
+                ReadMarkerChange = 0x800,
+                OtherChange = 0x8000,
+                AnyChange = 0xFFFF
             };
             Q_DECLARE_FLAGS(Changes, Change)
             Q_FLAG(Changes)
@@ -467,7 +468,7 @@ namespace QMatrixClient
         protected:
             /// Returns true if any of room names/aliases has changed
             virtual Changes processStateEvent(const RoomEvent& e);
-            virtual void processEphemeralEvent(EventPtr&& event);
+            virtual Changes processEphemeralEvent(EventPtr&& event);
             virtual Changes processAccountDataEvent(EventPtr&& event);
             virtual void onAddNewTimelineEvents(timeline_iter_t /*from*/) { }
             virtual void onAddHistoricalTimelineEvents(rev_iter_t /*from*/) { }
