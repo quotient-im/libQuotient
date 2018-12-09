@@ -282,9 +282,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
-    connect(this, &Room::userAdded, this, &Room::memberListChanged);
-    connect(this, &Room::userRemoved, this, &Room::memberListChanged);
-    connect(this, &Room::memberRenamed, this, &Room::memberListChanged);
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -1018,12 +1015,9 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
     if (!summary.merge(newSummary))
         return Change::NoChange;
-    summary = move(newSummary);
-    qCDebug(MAIN).nospace()
-        << "Updated room summary for" << q->objectName()
-        << ": joined " << summary.joinedMemberCount
-        << ", invited " << summary.invitedMemberCount
-        << ", heroes: " << summary.heroes.value().join(',');
+    qCDebug(MAIN).nospace().noquote()
+        << "Updated room summary for " << q->objectName() << ": " << summary;
+    emit q->memberListChanged();
     return Change::SummaryChange;
 }
 
@@ -1194,7 +1188,10 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges&NameChange)
         emit namesChanged(this);
 
-    d->setSummary(move(data.summary));
+    if (roomChanges&MembersChange)
+        emit memberListChanged();
+
+    roomChanges |= d->setSummary(move(data.summary));
     d->updateDisplayname();
 
     for( auto&& ephemeralEvent: data.ephemeral )
