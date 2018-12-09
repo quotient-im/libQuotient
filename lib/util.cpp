@@ -112,10 +112,12 @@ static_assert(is_callable_v<Fo1>, "Test is_callable<> with function object 1");
 static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
               "Test fn_arg_t defaulting to first argument");
 
+#if (!defined(_MSC_VER) || _MSC_VER >= 1910)
 static auto l = [] { return 1; };
 static_assert(is_callable_v<decltype(l)>, "Test is_callable_v<> with lambda");
 static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
               "Test fn_return_t<> with lambda");
+#endif
 
 template <typename T>
 struct fn_object
