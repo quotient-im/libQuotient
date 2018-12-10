@@ -1440,18 +1440,18 @@ void Room::getPreviousContent(int limit)
 
 void Room::Private::getPreviousContent(int limit)
 {
-    if( !isJobRunning(eventsHistoryJob) )
-    {
-        eventsHistoryJob =
-            connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
-        emit q->eventsHistoryJobChanged();
-        connect( eventsHistoryJob, &BaseJob::success, q, [=] {
-            prevBatch = eventsHistoryJob->end();
-            addHistoricalMessageEvents(eventsHistoryJob->chunk());
-        });
-        connect( eventsHistoryJob, &QObject::destroyed,
-                 q, &Room::eventsHistoryJobChanged);
-    }
+    if (isJobRunning(eventsHistoryJob))
+        return;
+
+    eventsHistoryJob =
+        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
+    emit q->eventsHistoryJobChanged();
+    connect( eventsHistoryJob, &BaseJob::success, q, [=] {
+        prevBatch = eventsHistoryJob->end();
+        addHistoricalMessageEvents(eventsHistoryJob->chunk());
+    });
+    connect( eventsHistoryJob, &QObject::destroyed,
+             q, &Room::eventsHistoryJobChanged);
 }
 
 void Room::inviteToRoom(const QString& memberId)
