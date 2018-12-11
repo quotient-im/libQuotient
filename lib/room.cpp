@@ -27,6 +27,7 @@
 #include "csapi/account-data.h"
 #include "csapi/room_state.h"
 #include "csapi/room_send.h"
+#include "csapi/rooms.h"
 #include "csapi/tags.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -121,6 +122,7 @@ class Room::Private
         std::unordered_map<QString, EventPtr> accountData;
         QString prevBatch;
         QPointer<GetRoomEventsJob> eventsHistoryJob;
+        QPointer<GetMembersByRoomJob> allMembersJob;
 
         struct FileTransferPrivateInfo
         {
@@ -221,6 +223,8 @@ class Room::Private
                                   bool force = false);
 
         Changes markMessagesAsRead(rev_iter_t upToMarker);
+
+        void getAllMembers();
 
         QString sendEvent(RoomEventPtr&& event);
 
@@ -588,6 +592,36 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     return timelineEdge();
 }
 
+void Room::Private::getAllMembers()
+{
+    // If already loaded or already loading, there's nothing to do here.
+    if (q->joinedCount() <= membersMap.size() || isJobRunning(allMembersJob))
+        return;
+
+    allMembersJob = connection->callApi<GetMembersByRoomJob>(
+                                    id, connection->nextBatchToken(), "join");
+    auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
+    connect( allMembersJob, &BaseJob::success, q, [=] {
+        Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
+        Changes roomChanges = NoChange;
+        for (auto&& e: allMembersJob->chunk())
+        {
+            const auto& evt = *e;
+            baseState[{evt.matrixType(),evt.stateKey()}] = move(e);
+            roomChanges |= q->processStateEvent(evt);
+        }
+        // Replay member events that arrived after the point for which
+        // the full members list was requested.
+        if (!timeline.empty() )
+            for (auto it = q->findInTimeline(nextIndex).base();
+                 it != timeline.cend(); ++it)
+                if (is<RoomMemberEvent>(**it))
+                    roomChanges |= q->processStateEvent(**it);
+        if (roomChanges&MembersChange)
+            emit q->memberListChanged();
+    });
+}
+
 bool Room::displayed() const
 {
     return d->displayed;
@@ -604,10 +638,7 @@ void Room::setDisplayed(bool displayed)
     {
         resetHighlightCount();
         resetNotificationCount();
-//        if (d->lazyLoaded)
-//        {
-//            // TODO: Get all members
-//        }
+        d->getAllMembers();
     }
 }
 
