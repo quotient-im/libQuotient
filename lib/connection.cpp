@@ -412,6 +412,11 @@ void Connection::stopSync()
     }
 }
 
+QString Connection::nextBatchToken() const
+{
+    return d->data->lastEvent();
+}
+
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());

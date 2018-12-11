@@ -390,6 +390,7 @@ namespace QMatrixClient
 
             void sync(int timeout = -1);
             void stopSync();
+            QString nextBatchToken() const;
 
             virtual MediaThumbnailJob* getThumbnail(const QString& mediaId,
                 QSize requestedSize, RunningPolicy policy = BackgroundRequest) const;
