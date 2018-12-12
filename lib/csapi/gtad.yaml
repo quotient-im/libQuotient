@@ -38,7 +38,7 @@ analyzer:
     - number:
       - float: float
       - //: double
-  - boolean: { type: bool, omittedValue: 'false' }
+    - boolean: bool
   - string:
     - byte: &ByteStream
         type: QIODevice*
