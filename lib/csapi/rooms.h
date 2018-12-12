@@ -160,9 +160,9 @@ namespace QMatrixClient
              *   The room to get the member events for.
              * \param at
              *   The token defining the timeline position as-of which to return
-             *   the list of members. This token can be obtained from
-             *   a ``prev_batch`` token returned for each room by the sync API, or
-             *   from a ``start`` or ``end`` token returned by a /messages request.
+             *   the list of members. This token can be obtained from a batch token
+             *   returned for each room by the sync API, or from
+             *   a ``start``/``end`` token returned by a ``/messages`` request.
              * \param membership
              *   Only return users with the specified membership
              * \param notMembership
