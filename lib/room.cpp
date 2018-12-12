@@ -619,6 +619,7 @@ void Room::Private::getAllMembers()
                     roomChanges |= q->processStateEvent(**it);
         if (roomChanges&MembersChange)
             emit q->memberListChanged();
+        emit q->allMembersLoaded();
     });
 }
 

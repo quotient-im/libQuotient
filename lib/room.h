@@ -228,6 +228,13 @@ namespace QMatrixClient
             rev_iter_t findInTimeline(const QString& evtId) const;
 
             bool displayed() const;
+            /// Mark the room as currently displayed to the user
+            /**
+             * Marking the room displayed causes the room to obtain the full
+             * list of members if it's been lazy-loaded before; in the future
+             * it may do more things bound to "screen time" of the room, e.g.
+             * measure that "screen time".
+             */
             void setDisplayed(bool displayed = true);
             QString firstDisplayedEventId() const;
             rev_iter_t firstDisplayedMarker() const;
@@ -431,6 +438,9 @@ namespace QMatrixClient
             void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
             void memberListChanged();
+            /// The previously lazy-loaded members list is now loaded entirely
+            /// \sa setDisplayed
+            void allMembersLoaded();
             void encryption();
 
             void joinStateChanged(JoinState oldState, JoinState newState);
