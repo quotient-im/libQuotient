@@ -156,7 +156,7 @@ namespace QMatrixClient
              *   The specific third party network/protocol to request from the
              *   homeserver. Can only be used if ``include_all_networks`` is false.
              */
-            explicit QueryPublicRoomsJob(const QString& server = {}, Omittable<int> limit = none, const QString& since = {}, const Omittable<Filter>& filter = none, bool includeAllNetworks = false, const QString& thirdPartyInstanceId = {});
+            explicit QueryPublicRoomsJob(const QString& server = {}, Omittable<int> limit = none, const QString& since = {}, const Omittable<Filter>& filter = none, Omittable<bool> includeAllNetworks = none, const QString& thirdPartyInstanceId = {});
             ~QueryPublicRoomsJob() override;
 
             // Result properties

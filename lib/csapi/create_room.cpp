@@ -45,7 +45,7 @@ class CreateRoomJob::Private
 
 static const auto CreateRoomJobName = QStringLiteral("CreateRoomJob");
 
-CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QString& roomVersion, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect, const QJsonObject& powerLevelContentOverride)
+CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QString& roomVersion, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, Omittable<bool> isDirect, const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, CreateRoomJobName,
         basePath % "/createRoom")
     , d(new Private)

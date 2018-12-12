@@ -30,7 +30,7 @@ class GetPresenceJob::Private
         QString presence;
         Omittable<int> lastActiveAgo;
         QString statusMsg;
-        bool currentlyActive;
+        Omittable<bool> currentlyActive;
 };
 
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
@@ -65,7 +65,7 @@ const QString& GetPresenceJob::statusMsg() const
     return d->statusMsg;
 }
 
-bool GetPresenceJob::currentlyActive() const
+Omittable<bool> GetPresenceJob::currentlyActive() const
 {
     return d->currentlyActive;
 }

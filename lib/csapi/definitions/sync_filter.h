@@ -27,7 +27,7 @@ namespace QMatrixClient
         /// client across multiple calls to ``/sync``, given that most clients
         /// cache membership events (see ``include_redundant_members``
         /// to change this behaviour).
-        bool lazyLoadMembers;
+        Omittable<bool> lazyLoadMembers;
         /// If ``true``, the ``state`` section of the ``/sync`` response will
         /// always contain the ``m.room.member`` events required to display
         /// the ``sender`` of the timeline events in that response, assuming
@@ -37,7 +37,7 @@ namespace QMatrixClient
         /// membership data. If ``false``, duplicate ``m.room.member`` events
         /// may be suppressed by the server across multiple calls to ``/sync``.
         /// If ``lazy_load_members`` is ``false`` this field is ignored.
-        bool includeRedundantMembers;
+        Omittable<bool> includeRedundantMembers;
     };
     template <> struct JsonObjectConverter<StateFilter>
     {
@@ -55,7 +55,7 @@ namespace QMatrixClient
         /// The events that aren't recorded in the room history, e.g. typing and receipts, to include for rooms.
         Omittable<RoomEventFilter> ephemeral;
         /// Include rooms that the user has left in the sync, default false
-        bool includeLeave;
+        Omittable<bool> includeLeave;
         /// The state events to include for rooms.
         Omittable<StateFilter> state;
         /// The message and state update events to include for rooms.

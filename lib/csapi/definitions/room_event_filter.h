@@ -19,8 +19,8 @@ namespace QMatrixClient
         QStringList notRooms;
         /// A list of room IDs to include. If this list is absent then all rooms are included.
         QStringList rooms;
-        /// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. Defaults to ``false``.
-        bool containsUrl;
+        /// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. If omitted, ``url`` key is not considered for filtering.
+        Omittable<bool> containsUrl;
     };
     template <> struct JsonObjectConverter<RoomEventFilter>
     {
