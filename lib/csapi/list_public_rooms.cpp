@@ -131,7 +131,7 @@ BaseJob::Query queryToQueryPublicRooms(const QString& server)
 
 static const auto QueryPublicRoomsJobName = QStringLiteral("QueryPublicRoomsJob");
 
-QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> limit, const QString& since, const Omittable<Filter>& filter, bool includeAllNetworks, const QString& thirdPartyInstanceId)
+QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> limit, const QString& since, const Omittable<Filter>& filter, Omittable<bool> includeAllNetworks, const QString& thirdPartyInstanceId)
     : BaseJob(HttpVerb::Post, QueryPublicRoomsJobName,
         basePath % "/publicRooms",
         queryToQueryPublicRooms(server))

@@ -30,7 +30,7 @@ BaseJob::Query queryToRegister(const QString& kind)
 
 static const auto RegisterJobName = QStringLiteral("RegisterJob");
 
-RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth, bool bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName, bool inhibitLogin)
+RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth, Omittable<bool> bindEmail, const QString& username, const QString& password, const QString& deviceId, const QString& initialDeviceDisplayName, Omittable<bool> inhibitLogin)
     : BaseJob(HttpVerb::Post, RegisterJobName,
         basePath % "/register",
         queryToRegister(kind),
@@ -251,7 +251,7 @@ DeactivateAccountJob::DeactivateAccountJob(const Omittable<AuthenticationData>& 
 class CheckUsernameAvailabilityJob::Private
 {
     public:
-        bool available;
+        Omittable<bool> available;
 };
 
 BaseJob::Query queryToCheckUsernameAvailability(const QString& username)
@@ -281,7 +281,7 @@ CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(const QString& userna
 
 CheckUsernameAvailabilityJob::~CheckUsernameAvailabilityJob() = default;
 
-bool CheckUsernameAvailabilityJob::available() const
+Omittable<bool> CheckUsernameAvailabilityJob::available() const
 {
     return d->available;
 }

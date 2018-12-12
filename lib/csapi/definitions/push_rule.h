@@ -7,10 +7,10 @@
 #include "converters.h"
 
 #include "csapi/definitions/push_condition.h"
-#include "converters.h"
+#include <QtCore/QJsonObject>
 #include <QtCore/QVector>
 #include <QtCore/QVariant>
-#include <QtCore/QJsonObject>
+#include "converters.h"
 
 namespace QMatrixClient
 {

@@ -24,7 +24,7 @@ namespace QMatrixClient
         /// The events that aren't recorded in the room history, e.g. typing and receipts, to include for rooms.
         Omittable<RoomEventFilter> ephemeral;
         /// Include rooms that the user has left in the sync, default false
-        bool includeLeave;
+        Omittable<bool> includeLeave;
         /// The state events to include for rooms.
         Omittable<RoomEventFilter> state;
         /// The message and state update events to include for rooms.

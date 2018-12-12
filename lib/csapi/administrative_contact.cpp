@@ -86,7 +86,7 @@ namespace QMatrixClient
 
 static const auto Post3PIDsJobName = QStringLiteral("Post3PIDsJob");
 
-Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind)
+Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds, Omittable<bool> bind)
     : BaseJob(HttpVerb::Post, Post3PIDsJobName,
         basePath % "/account/3pid")
 {

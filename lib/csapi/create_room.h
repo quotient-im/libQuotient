@@ -216,7 +216,7 @@ namespace QMatrixClient
              *   event content prior to it being sent to the room. Defaults to
              *   overriding nothing.
              */
-            explicit CreateRoomJob(const QString& visibility = {}, const QString& roomAliasName = {}, const QString& name = {}, const QString& topic = {}, const QStringList& invite = {}, const QVector<Invite3pid>& invite3pid = {}, const QString& roomVersion = {}, const QJsonObject& creationContent = {}, const QVector<StateEvent>& initialState = {}, const QString& preset = {}, bool isDirect = false, const QJsonObject& powerLevelContentOverride = {});
+            explicit CreateRoomJob(const QString& visibility = {}, const QString& roomAliasName = {}, const QString& name = {}, const QString& topic = {}, const QStringList& invite = {}, const QVector<Invite3pid>& invite3pid = {}, const QString& roomVersion = {}, const QJsonObject& creationContent = {}, const QVector<StateEvent>& initialState = {}, const QString& preset = {}, Omittable<bool> isDirect = none, const QJsonObject& powerLevelContentOverride = {});
             ~CreateRoomJob() override;
 
             // Result properties

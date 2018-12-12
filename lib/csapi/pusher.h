@@ -164,6 +164,6 @@ namespace QMatrixClient
              *   other pushers with the same App ID and pushkey for different
              *   users. The default is ``false``.
              */
-            explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag = {}, bool append = false);
+            explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId, const QString& appDisplayName, const QString& deviceDisplayName, const QString& lang, const PusherData& data, const QString& profileTag = {}, Omittable<bool> append = none);
     };
 } // namespace QMatrixClient

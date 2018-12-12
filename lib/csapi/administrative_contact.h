@@ -113,7 +113,7 @@ namespace QMatrixClient
              *   identifier to the account's Matrix ID with the passed identity
              *   server. Default: ``false``.
              */
-            explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds, bool bind = false);
+            explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds, Omittable<bool> bind = none);
     };
 
     /// Deletes a third party identifier from the user's account
