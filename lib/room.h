@@ -437,6 +437,13 @@ namespace QMatrixClient
             void userRemoved(User* user);
             void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
+            /// The list of members has changed
+            /** Emitted no more than once per sync, this is a good signal to
+             * for cases when some action should be done upon any change in
+             * the member list. If you need per-item granularity you should use
+             * userAdded, userRemoved and memberAboutToRename / memberRenamed
+             * instead.
+             */
             void memberListChanged();
             /// The previously lazy-loaded members list is now loaded entirely
             /// \sa setDisplayed
