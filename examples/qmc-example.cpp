@@ -26,6 +26,7 @@ class QMCTest : public QObject
         void setup(const QString& testRoomName);
         void onNewRoom(Room* r);
         void startTests();
+            void loadMembers();
             void sendMessage();
             void addAndRemoveTag();
             void sendAndRedact();
@@ -80,6 +81,7 @@ void QMCTest::setup(const QString& testRoomName)
     cout << "Access token: " << c->accessToken().toStdString() << endl;
 
     // Setting up sync loop
+    c->setLazyLoading(true);
     c->sync();
     connect(c.data(), &Connection::syncDone, c.data(), [this,testRoomName] {
         cout << "Sync complete, "
@@ -142,10 +144,39 @@ void QMCTest::onNewRoom(Room* r)
 void QMCTest::startTests()
 {
     cout << "Starting tests" << endl;
+    loadMembers();
     sendMessage();
     addAndRemoveTag();
     sendAndRedact();
     markDirectChat();
+}
+
+void QMCTest::loadMembers()
+{
+    running.push_back("Loading members");
+    // The dedicated qmc-test room is too small to test
+    // lazy-loading-then-full-loading; use #test:matrix.org instead.
+    // TODO: #264
+    auto* r = c->room(QStringLiteral("!vfFxDRtZSSdspfTSEr:matrix.org"));
+    if (!r)
+    {
+        cout << "#test:matrix.org is not found in the test user's rooms" << endl;
+        QMC_CHECK("Loading members", false);
+        return;
+    }
+    // It's not exactly correct because an arbitrary server might not support
+    // lazy loading; but in the absence of capabilities framework we assume
+    // it does.
+    if (r->memberNames().size() < r->joinedCount())
+    {
+        cout << "Lazy loading doesn't seem to be enabled" << endl;
+        QMC_CHECK("Loading members", false);
+        return;
+    }
+    r->setDisplayed();
+    connect(r, &Room::allMembersLoaded, [this] {
+        QMC_CHECK("Loading members", true);
+    });
 }
 
 void QMCTest::sendMessage()
