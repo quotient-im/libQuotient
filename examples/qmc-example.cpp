@@ -83,6 +83,8 @@ void QMCTest::setup(const QString& testRoomName)
     // Setting up sync loop
     c->setLazyLoading(true);
     c->sync();
+    connectSingleShot(c.data(), &Connection::syncDone,
+                      this, &QMCTest::startTests);
     connect(c.data(), &Connection::syncDone, c.data(), [this,testRoomName] {
         cout << "Sync complete, "
              << running.size() << " tests in the air" << endl;
@@ -116,7 +118,6 @@ void QMCTest::setup(const QString& testRoomName)
 
                 targetRoom = room;
                 QMC_CHECK("Join room", true);
-                startTests();
             });
     }
 }
@@ -167,15 +168,16 @@ void QMCTest::loadMembers()
     // It's not exactly correct because an arbitrary server might not support
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
-    if (r->memberNames().size() < r->joinedCount())
+    if (r->memberNames().size() >= r->joinedCount())
     {
         cout << "Lazy loading doesn't seem to be enabled" << endl;
         QMC_CHECK("Loading members", false);
         return;
     }
     r->setDisplayed();
-    connect(r, &Room::allMembersLoaded, [this] {
-        QMC_CHECK("Loading members", true);
+    connect(r, &Room::allMembersLoaded, [this,r] {
+        QMC_CHECK("Loading members",
+                  r->memberNames().size() + 1 >= r->joinedCount());
     });
 }
 
