@@ -94,7 +94,7 @@ class Connection::Private
         bool cacheState = true;
         bool cacheToBinary = SettingsGroup("libqmatrixclient")
                              .value("cache_type").toString() != "json";
-        bool lazyLoading;
+        bool lazyLoading = false;
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
