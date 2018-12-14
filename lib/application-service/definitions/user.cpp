@@ -6,25 +6,19 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const ThirdPartyUser& pod)
+void JsonObjectConverter<ThirdPartyUser>::dumpTo(
+        QJsonObject& jo, const ThirdPartyUser& pod)
 {
-    QJsonObject jo;
     addParam<>(jo, QStringLiteral("userid"), pod.userid);
     addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
     addParam<>(jo, QStringLiteral("fields"), pod.fields);
-    return jo;
 }
 
-ThirdPartyUser FromJsonObject<ThirdPartyUser>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<ThirdPartyUser>::fillFrom(
+    const QJsonObject& jo, ThirdPartyUser& result)
 {
-    ThirdPartyUser result;
-    result.userid =
-        fromJson<QString>(jo.value("userid"_ls));
-    result.protocol =
-        fromJson<QString>(jo.value("protocol"_ls));
-    result.fields =
-        fromJson<QJsonObject>(jo.value("fields"_ls));
-
-    return result;
+    fromJson(jo.value("userid"_ls), result.userid);
+    fromJson(jo.value("protocol"_ls), result.protocol);
+    fromJson(jo.value("fields"_ls), result.fields);
 }
 

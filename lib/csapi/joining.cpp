@@ -16,15 +16,16 @@ namespace QMatrixClient
 {
     // Converters
 
-    QJsonObject toJson(const JoinRoomByIdJob::ThirdPartySigned& pod)
+    template <> struct JsonObjectConverter<JoinRoomByIdJob::ThirdPartySigned>
     {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("sender"), pod.sender);
-        addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
-        addParam<>(jo, QStringLiteral("token"), pod.token);
-        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const JoinRoomByIdJob::ThirdPartySigned& pod)
+        {
+            addParam<>(jo, QStringLiteral("sender"), pod.sender);
+            addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
+            addParam<>(jo, QStringLiteral("token"), pod.token);
+            addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        }
+    };
 } // namespace QMatrixClient
 
 class JoinRoomByIdJob::Private
@@ -58,7 +59,7 @@ BaseJob::Status JoinRoomByIdJob::parseJson(const QJsonDocument& data)
     if (!json.contains("room_id"_ls))
         return { JsonParseError,
             "The key 'room_id' not found in the response" };
-    d->roomId = fromJson<QString>(json.value("room_id"_ls));
+    fromJson(json.value("room_id"_ls), d->roomId);
     return Success;
 }
 
@@ -66,22 +67,24 @@ namespace QMatrixClient
 {
     // Converters
 
-    QJsonObject toJson(const JoinRoomJob::Signed& pod)
+    template <> struct JsonObjectConverter<JoinRoomJob::Signed>
     {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("sender"), pod.sender);
-        addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
-        addParam<>(jo, QStringLiteral("token"), pod.token);
-        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const JoinRoomJob::Signed& pod)
+        {
+            addParam<>(jo, QStringLiteral("sender"), pod.sender);
+            addParam<>(jo, QStringLiteral("mxid"), pod.mxid);
+            addParam<>(jo, QStringLiteral("token"), pod.token);
+            addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        }
+    };
 
-    QJsonObject toJson(const JoinRoomJob::ThirdPartySigned& pod)
+    template <> struct JsonObjectConverter<JoinRoomJob::ThirdPartySigned>
     {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("signed"), pod.signedData);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const JoinRoomJob::ThirdPartySigned& pod)
+        {
+            addParam<>(jo, QStringLiteral("signed"), pod.signedData);
+        }
+    };
 } // namespace QMatrixClient
 
 class JoinRoomJob::Private
@@ -123,7 +126,7 @@ BaseJob::Status JoinRoomJob::parseJson(const QJsonDocument& data)
     if (!json.contains("room_id"_ls))
         return { JsonParseError,
             "The key 'room_id' not found in the response" };
-    d->roomId = fromJson<QString>(json.value("room_id"_ls));
+    fromJson(json.value("room_id"_ls), d->roomId);
     return Success;
 }
 

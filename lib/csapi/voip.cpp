@@ -42,7 +42,7 @@ const QJsonObject& GetTurnServerJob::data() const
 
 BaseJob::Status GetTurnServerJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<QJsonObject>(data);
+    fromJson(data, d->data);
     return Success;
 }
 

@@ -16,23 +16,25 @@ namespace QMatrixClient
 {
     // Converters
 
-    QJsonObject toJson(const CreateRoomJob::Invite3pid& pod)
+    template <> struct JsonObjectConverter<CreateRoomJob::Invite3pid>
     {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<>(jo, QStringLiteral("medium"), pod.medium);
-        addParam<>(jo, QStringLiteral("address"), pod.address);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)
+        {
+            addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
+            addParam<>(jo, QStringLiteral("medium"), pod.medium);
+            addParam<>(jo, QStringLiteral("address"), pod.address);
+        }
+    };
 
-    QJsonObject toJson(const CreateRoomJob::StateEvent& pod)
+    template <> struct JsonObjectConverter<CreateRoomJob::StateEvent>
     {
-        QJsonObject jo;
-        addParam<>(jo, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
-        addParam<>(jo, QStringLiteral("content"), pod.content);
-        return jo;
-    }
+        static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
+        {
+            addParam<>(jo, QStringLiteral("type"), pod.type);
+            addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
+            addParam<>(jo, QStringLiteral("content"), pod.content);
+        }
+    };
 } // namespace QMatrixClient
 
 class CreateRoomJob::Private
@@ -43,7 +45,7 @@ class CreateRoomJob::Private
 
 static const auto CreateRoomJobName = QStringLiteral("CreateRoomJob");
 
-CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QString& roomVersion, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, bool isDirect, const QJsonObject& powerLevelContentOverride)
+CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAliasName, const QString& name, const QString& topic, const QStringList& invite, const QVector<Invite3pid>& invite3pid, const QString& roomVersion, const QJsonObject& creationContent, const QVector<StateEvent>& initialState, const QString& preset, Omittable<bool> isDirect, const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, CreateRoomJobName,
         basePath % "/createRoom")
     , d(new Private)
@@ -77,7 +79,7 @@ BaseJob::Status CreateRoomJob::parseJson(const QJsonDocument& data)
     if (!json.contains("room_id"_ls))
         return { JsonParseError,
             "The key 'room_id' not found in the response" };
-    d->roomId = fromJson<QString>(json.value("room_id"_ls));
+    fromJson(json.value("room_id"_ls), d->roomId);
     return Success;
 }
 

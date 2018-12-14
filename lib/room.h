@@ -84,6 +84,9 @@ namespace QMatrixClient
             Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
             Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
             Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
+            Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
+            Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
+            Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
 
             Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY displayedChanged)
             Q_PROPERTY(QString firstDisplayedEventId READ firstDisplayedEventId WRITE setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
@@ -116,6 +119,7 @@ namespace QMatrixClient
                 MembersChange = 0x80,
                 EncryptionOn = 0x100,
                 AccountDataChange = 0x200,
+                SummaryChange = 0x400,
                 ReadMarkerChange = 0x800,
                 OtherChange = 0x8000,
                 AnyChange = 0xFFFF
@@ -144,9 +148,13 @@ namespace QMatrixClient
 
             Q_INVOKABLE QList<User*> users() const;
             QStringList memberNames() const;
+            [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
             int memberCount() const;
             int timelineSize() const;
             bool usesEncryption() const;
+            int joinedCount() const;
+            int invitedCount() const;
+            int totalMemberCount() const;
 
             GetRoomEventsJob* eventsHistoryJob() const;
 
@@ -220,6 +228,13 @@ namespace QMatrixClient
             rev_iter_t findInTimeline(const QString& evtId) const;
 
             bool displayed() const;
+            /// Mark the room as currently displayed to the user
+            /**
+             * Marking the room displayed causes the room to obtain the full
+             * list of members if it's been lazy-loaded before; in the future
+             * it may do more things bound to "screen time" of the room, e.g.
+             * measure that "screen time".
+             */
             void setDisplayed(bool displayed = true);
             QString firstDisplayedEventId() const;
             rev_iter_t firstDisplayedMarker() const;
@@ -422,7 +437,17 @@ namespace QMatrixClient
             void userRemoved(User* user);
             void memberAboutToRename(User* user, QString newName);
             void memberRenamed(User* user);
+            /// The list of members has changed
+            /** Emitted no more than once per sync, this is a good signal to
+             * for cases when some action should be done upon any change in
+             * the member list. If you need per-item granularity you should use
+             * userAdded, userRemoved and memberAboutToRename / memberRenamed
+             * instead.
+             */
             void memberListChanged();
+            /// The previously lazy-loaded members list is now loaded entirely
+            /// \sa setDisplayed
+            void allMembersLoaded();
             void encryption();
 
             void joinStateChanged(JoinState oldState, JoinState newState);

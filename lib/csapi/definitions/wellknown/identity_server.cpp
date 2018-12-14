@@ -6,19 +6,15 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const IdentityServerInformation& pod)
+void JsonObjectConverter<IdentityServerInformation>::dumpTo(
+        QJsonObject& jo, const IdentityServerInformation& pod)
 {
-    QJsonObject jo;
     addParam<>(jo, QStringLiteral("base_url"), pod.baseUrl);
-    return jo;
 }
 
-IdentityServerInformation FromJsonObject<IdentityServerInformation>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<IdentityServerInformation>::fillFrom(
+    const QJsonObject& jo, IdentityServerInformation& result)
 {
-    IdentityServerInformation result;
-    result.baseUrl =
-        fromJson<QString>(jo.value("base_url"_ls));
-
-    return result;
+    fromJson(jo.value("base_url"_ls), result.baseUrl);
 }
 

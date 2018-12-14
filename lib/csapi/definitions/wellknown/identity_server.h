@@ -17,12 +17,10 @@ namespace QMatrixClient
         /// The base URL for the identity server for client-server connections.
         QString baseUrl;
     };
-
-    QJsonObject toJson(const IdentityServerInformation& pod);
-
-    template <> struct FromJsonObject<IdentityServerInformation>
+    template <> struct JsonObjectConverter<IdentityServerInformation>
     {
-        IdentityServerInformation operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const IdentityServerInformation& pod);
+        static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod);
     };
 
 } // namespace QMatrixClient

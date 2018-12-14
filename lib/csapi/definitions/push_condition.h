@@ -28,12 +28,10 @@ namespace QMatrixClient
         /// so forth. If no prefix is present, this parameter defaults to ==.
         QString is;
     };
-
-    QJsonObject toJson(const PushCondition& pod);
-
-    template <> struct FromJsonObject<PushCondition>
+    template <> struct JsonObjectConverter<PushCondition>
     {
-        PushCondition operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const PushCondition& pod);
+        static void fillFrom(const QJsonObject& jo, PushCondition& pod);
     };
 
 } // namespace QMatrixClient

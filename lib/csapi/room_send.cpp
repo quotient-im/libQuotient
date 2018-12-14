@@ -38,7 +38,7 @@ const QString& SendMessageJob::eventId() const
 BaseJob::Status SendMessageJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"_ls));
+    fromJson(json.value("event_id"_ls), d->eventId);
     return Success;
 }
 

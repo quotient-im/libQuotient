@@ -43,7 +43,7 @@ const QVector<Device>& GetDevicesJob::devices() const
 BaseJob::Status GetDevicesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->devices = fromJson<QVector<Device>>(json.value("devices"_ls));
+    fromJson(json.value("devices"_ls), d->devices);
     return Success;
 }
 
@@ -77,7 +77,7 @@ const Device& GetDeviceJob::data() const
 
 BaseJob::Status GetDeviceJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<Device>(data);
+    fromJson(data, d->data);
     return Success;
 }
 

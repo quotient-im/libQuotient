@@ -23,12 +23,10 @@ namespace QMatrixClient
         /// Keys dependent on the login type
         QHash<QString, QJsonObject> authInfo;
     };
-
-    QJsonObject toJson(const AuthenticationData& pod);
-
-    template <> struct FromJsonObject<AuthenticationData>
+    template <> struct JsonObjectConverter<AuthenticationData>
     {
-        AuthenticationData operator()(QJsonObject jo) const;
+        static void dumpTo(QJsonObject& jo, const AuthenticationData& pod);
+        static void fillFrom(QJsonObject jo, AuthenticationData& pod);
     };
 
 } // namespace QMatrixClient

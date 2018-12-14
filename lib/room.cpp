@@ -27,6 +27,7 @@
 #include "csapi/account-data.h"
 #include "csapi/room_state.h"
 #include "csapi/room_send.h"
+#include "csapi/rooms.h"
 #include "csapi/tags.h"
 #include "events/simplestateevents.h"
 #include "events/roomavatarevent.h"
@@ -93,6 +94,7 @@ class Room::Private
         Connection* connection;
         QString id;
         JoinState joinState;
+        RoomSummary summary;
         /// The state of the room at timeline position before-0
         /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
@@ -120,6 +122,7 @@ class Room::Private
         std::unordered_map<QString, EventPtr> accountData;
         QString prevBatch;
         QPointer<GetRoomEventsJob> eventsHistoryJob;
+        QPointer<GetMembersByRoomJob> allMembersJob;
 
         struct FileTransferPrivateInfo
         {
@@ -163,6 +166,8 @@ class Room::Private
 
         const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
         QString fileNameToDownload(const RoomMessageEvent* event) const;
+
+        Changes setSummary(RoomSummary&& newSummary);
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
@@ -219,6 +224,8 @@ class Room::Private
 
         Changes markMessagesAsRead(rev_iter_t upToMarker);
 
+        void getAllMembers();
+
         QString sendEvent(RoomEventPtr&& event);
 
         template <typename EventT, typename... ArgTs>
@@ -260,8 +267,11 @@ class Room::Private
         QJsonObject toJson() const;
 
     private:
+        using users_shortlist_t = std::array<User*, 3>;
+        template<typename ContT>
+        users_shortlist_t buildShortlist(const ContT& users) const;
+        users_shortlist_t buildShortlist(const QStringList& userIds) const;
         QString calculateDisplayname() const;
-        QString roomNameFromMemberNames(const QList<User*>& userlist) const;
 
         bool isLocalUser(const User* u) const
         {
@@ -276,9 +286,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
-    connect(this, &Room::userAdded, this, &Room::memberListChanged);
-    connect(this, &Room::userRemoved, this, &Room::memberListChanged);
-    connect(this, &Room::memberRenamed, this, &Room::memberListChanged);
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -585,6 +592,37 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     return timelineEdge();
 }
 
+void Room::Private::getAllMembers()
+{
+    // If already loaded or already loading, there's nothing to do here.
+    if (q->joinedCount() - 1 <= membersMap.size() || isJobRunning(allMembersJob))
+        return;
+
+    allMembersJob = connection->callApi<GetMembersByRoomJob>(
+                                    id, connection->nextBatchToken(), "join");
+    auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
+    connect( allMembersJob, &BaseJob::success, q, [=] {
+        Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
+        Changes roomChanges = NoChange;
+        for (auto&& e: allMembersJob->chunk())
+        {
+            const auto& evt = *e;
+            baseState[{evt.matrixType(),evt.stateKey()}] = move(e);
+            roomChanges |= q->processStateEvent(evt);
+        }
+        // Replay member events that arrived after the point for which
+        // the full members list was requested.
+        if (!timeline.empty() )
+            for (auto it = q->findInTimeline(nextIndex).base();
+                 it != timeline.cend(); ++it)
+                if (is<RoomMemberEvent>(**it))
+                    roomChanges |= q->processStateEvent(**it);
+        if (roomChanges&MembersChange)
+            emit q->memberListChanged();
+        emit q->allMembersLoaded();
+    });
+}
+
 bool Room::displayed() const
 {
     return d->displayed;
@@ -601,6 +639,7 @@ void Room::setDisplayed(bool displayed)
     {
         resetHighlightCount();
         resetNotificationCount();
+        d->getAllMembers();
     }
 }
 
@@ -981,9 +1020,37 @@ bool Room::usesEncryption() const
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
+int Room::joinedCount() const
+{
+    return d->summary.joinedMemberCount.omitted()
+            ? d->membersMap.size()
+            : d->summary.joinedMemberCount.value();
+}
+
+int Room::invitedCount() const
+{
+    // TODO: Store invited users in Room too
+    return d->summary.invitedMemberCount;
+}
+
+int Room::totalMemberCount() const
+{
+    return joinedCount() + invitedCount();
+}
+
 GetRoomEventsJob* Room::eventsHistoryJob() const
 {
     return d->eventsHistoryJob;
+}
+
+Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
+{
+    if (!summary.merge(newSummary))
+        return Change::NoChange;
+    qCDebug(MAIN).nospace().noquote()
+        << "Updated room summary for " << q->objectName() << ": " << summary;
+    emit q->memberListChanged();
+    return Change::SummaryChange;
 }
 
 void Room::Private::insertMemberIntoMap(User *u)
@@ -1153,6 +1220,10 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges&NameChange)
         emit namesChanged(this);
 
+    if (roomChanges&MembersChange)
+        emit memberListChanged();
+
+    roomChanges |= d->setSummary(move(data.summary));
     d->updateDisplayname();
 
     for( auto&& ephemeralEvent: data.ephemeral )
@@ -1358,7 +1429,7 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 
 bool Room::supportsCalls() const
 {
-  return d->membersMap.size() == 2;
+  return joinedCount() == 2;
 }
 
 void Room::inviteCall(const QString& callId, const int lifetime,
@@ -1401,18 +1472,18 @@ void Room::getPreviousContent(int limit)
 
 void Room::Private::getPreviousContent(int limit)
 {
-    if( !isJobRunning(eventsHistoryJob) )
-    {
-        eventsHistoryJob =
-            connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
-        emit q->eventsHistoryJobChanged();
-        connect( eventsHistoryJob, &BaseJob::success, q, [=] {
-            prevBatch = eventsHistoryJob->end();
-            addHistoricalMessageEvents(eventsHistoryJob->chunk());
-        });
-        connect( eventsHistoryJob, &QObject::destroyed,
-                 q, &Room::eventsHistoryJobChanged);
-    }
+    if (isJobRunning(eventsHistoryJob))
+        return;
+
+    eventsHistoryJob =
+        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
+    emit q->eventsHistoryJobChanged();
+    connect( eventsHistoryJob, &BaseJob::success, q, [=] {
+        prevBatch = eventsHistoryJob->end();
+        addHistoricalMessageEvents(eventsHistoryJob->chunk());
+    });
+    connect( eventsHistoryJob, &QObject::destroyed,
+             q, &Room::eventsHistoryJobChanged);
 }
 
 void Room::inviteToRoom(const QString& memberId)
@@ -2018,49 +2089,35 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     return Change::NoChange;
 }
 
-QString Room::Private::roomNameFromMemberNames(const QList<User *> &userlist) const
+template <typename ContT>
+Room::Private::users_shortlist_t
+Room::Private::buildShortlist(const ContT& users) const
 {
-    // This is part 3(i,ii,iii) in the room displayname algorithm described
-    // in the CS spec (see also Room::Private::updateDisplayname() ).
-    // The spec requires to sort users lexicographically by state_key (user id)
-    // and use disambiguated display names of two topmost users excluding
-    // the current one to render the name of the room.
-
-    // std::array is the leanest C++ container
-    std::array<User*, 2> first_two = { {nullptr, nullptr} };
+    // To calculate room display name the spec requires to sort users
+    // lexicographically by state_key (user id) and use disambiguated
+    // display names of two topmost users excluding the current one to render
+    // the name of the room. The below code selects 3 topmost users,
+    // slightly extending the spec.
+    users_shortlist_t shortlist { }; // Prefill with nullptrs
     std::partial_sort_copy(
-        userlist.begin(), userlist.end(),
-        first_two.begin(), first_two.end(),
-        [this](const User* u1, const User* u2) {
-            // Filter out the "me" user so that it never hits the room name
+        users.begin(), users.end(),
+        shortlist.begin(), shortlist.end(),
+        [this] (const User* u1, const User* u2) {
+            // localUser(), if it's in the list, is sorted below all others
             return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
         }
     );
+    return shortlist;
+}
 
-    // Spec extension. A single person in the chat but not the local user
-    // (the local user is invited).
-    if (userlist.size() == 1 && !isLocalUser(first_two.front()) &&
-            joinState == JoinState::Invite)
-        return tr("Invitation from %1")
-                .arg(q->roomMembername(first_two.front()));
-
-    // i. One-on-one chat. first_two[1] == localUser() in this case.
-    if (userlist.size() == 2)
-        return q->roomMembername(first_two[0]);
-
-    // ii. Two users besides the current one.
-    if (userlist.size() == 3)
-        return tr("%1 and %2")
-                .arg(q->roomMembername(first_two[0]),
-                     q->roomMembername(first_two[1]));
-
-    // iii. More users.
-    if (userlist.size() > 3)
-        return tr("%1 and %Ln other(s)", "", userlist.size() - 3)
-                .arg(q->roomMembername(first_two[0]));
-
-    // userlist.size() < 2 - apparently, there's only current user in the room
-    return QString();
+Room::Private::users_shortlist_t
+Room::Private::buildShortlist(const QStringList& userIds) const
+{
+    QList<User*> users;
+    users.reserve(userIds.size());
+    for (const auto& h: userIds)
+        users.push_back(q->user(h));
+    return buildShortlist(users);
 }
 
 QString Room::Private::calculateDisplayname() const
@@ -2083,15 +2140,42 @@ QString Room::Private::calculateDisplayname() const
     //if (!q->aliases().empty() && !q->aliases().at(0).isEmpty())
     //    return q->aliases().at(0);
 
+    // Supplementary code for 3 and 4: build the shortlist of users whose names
+    // will be used to construct the room name. Takes into account MSC688's
+    // "heroes" if available.
+
+    const bool emptyRoom = membersMap.isEmpty() ||
+             (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
+    const auto shortlist =
+            !summary.heroes.omitted() ? buildShortlist(summary.heroes.value()) :
+            !emptyRoom ? buildShortlist(membersMap) :
+                         buildShortlist(membersLeft);
+
+    QStringList names;
+    for (auto u: shortlist)
+    {
+        if (u == nullptr || isLocalUser(u))
+            break;
+        names.push_back(q->roomMembername(u));
+    }
+
+    auto usersCountExceptLocal = emptyRoom
+            ? membersLeft.size() - int(joinState == JoinState::Leave)
+            : q->joinedCount() - int(joinState == JoinState::Join);
+    if (usersCountExceptLocal > int(shortlist.size()))
+        names <<
+            tr("%Ln other(s)",
+               "Used to make a room name from user names: A, B and _N others_",
+               usersCountExceptLocal);
+    auto namesList = QLocale().createSeparatedList(names);
+
     // 3. Room members
-    dispName = roomNameFromMemberNames(membersMap.values());
-    if (!dispName.isEmpty())
-        return dispName;
+    if (!emptyRoom)
+        return namesList;
 
     // 4. Users that previously left the room
-    dispName = roomNameFromMemberNames(membersLeft);
-    if (!dispName.isEmpty())
-        return tr("Empty room (was: %1)").arg(dispName);
+    if (membersLeft.size() > 0)
+        return tr("Empty room (was: %1)").arg(namesList);
 
     // 5. Fail miserably
     return tr("Empty room (%1)").arg(id);
@@ -2114,6 +2198,7 @@ QJsonObject Room::Private::toJson() const
 {
     QElapsedTimer et; et.start();
     QJsonObject result;
+    addParam<IfNotEmpty>(result, QStringLiteral("summary"), summary);
     {
         QJsonArray stateEvents;
 

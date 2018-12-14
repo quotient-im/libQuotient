@@ -94,6 +94,7 @@ class Connection::Private
         bool cacheState = true;
         bool cacheToBinary = SettingsGroup("libqmatrixclient")
                              .value("cache_type").toString() != "json";
+        bool lazyLoading = false;
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
@@ -287,11 +288,11 @@ void Connection::sync(int timeout)
     if (d->syncJob)
         return;
 
-    // Raw string: http://en.cppreference.com/w/cpp/language/string_literal
-    const auto filter =
-        QStringLiteral(R"({"room": { "timeline": { "limit": 100 } } })");
+    Filter filter;
+    filter.room->timeline->limit = 100;
+    filter.room->state->lazyLoadMembers = d->lazyLoading;
     auto job = d->syncJob = callApi<SyncJob>(BackgroundRequest,
-                                         d->data->lastEvent(), filter, timeout);
+                                d->data->lastEvent(), filter, timeout);
     connect( job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
@@ -409,6 +410,11 @@ void Connection::stopSync()
         d->syncJob->abandon();
         d->syncJob = nullptr;
     }
+}
+
+QString Connection::nextBatchToken() const
+{
+    return d->data->lastEvent();
 }
 
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
@@ -561,7 +567,7 @@ void Connection::doInDirectChat(User* u,
         {
             Q_ASSERT(r->id() == roomId);
             // A direct chat with yourself should only involve yourself :)
-            if (userId == d->userId && r->memberCount() > 1)
+            if (userId == d->userId && r->totalMemberCount() > 1)
                 continue;
             qCDebug(MAIN) << "Requested direct chat with" << userId
                           << "is already available as" << r->id();
@@ -1178,6 +1184,20 @@ void Connection::setCacheState(bool newValue)
     {
         d->cacheState = newValue;
         emit cacheStateChanged();
+    }
+}
+
+bool QMatrixClient::Connection::lazyLoading() const
+{
+    return d->lazyLoading;
+}
+
+void QMatrixClient::Connection::setLazyLoading(bool newValue)
+{
+    if (d->lazyLoading != newValue)
+    {
+        d->lazyLoading = newValue;
+        emit lazyLoadingChanged();
     }
 }
 

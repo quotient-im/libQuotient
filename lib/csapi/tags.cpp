@@ -16,16 +16,12 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetRoomTagsJob::Tag>
+    template <> struct JsonObjectConverter<GetRoomTagsJob::Tag>
     {
-        GetRoomTagsJob::Tag operator()(QJsonObject jo) const
+        static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
         {
-            GetRoomTagsJob::Tag result;
-            result.order =
-                fromJson<float>(jo.take("order"_ls));
-
-            result.additionalProperties = fromJson<QVariantHash>(jo);
-            return result;
+            fromJson(jo.take("order"_ls), result.order);
+            fromJson(jo, result.additionalProperties);
         }
     };
 } // namespace QMatrixClient
@@ -61,7 +57,7 @@ const QHash<QString, GetRoomTagsJob::Tag>& GetRoomTagsJob::tags() const
 BaseJob::Status GetRoomTagsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->tags = fromJson<QHash<QString, Tag>>(json.value("tags"_ls));
+    fromJson(json.value("tags"_ls), d->tags);
     return Success;
 }
 

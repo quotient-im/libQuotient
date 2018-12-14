@@ -80,7 +80,7 @@ namespace QMatrixClient
              *   returned from this call, therefore preventing an automatic
              *   login. Defaults to false.
              */
-            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const Omittable<AuthenticationData>& auth = none, bool bindEmail = false, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {}, bool inhibitLogin = false);
+            explicit RegisterJob(const QString& kind = QStringLiteral("user"), const Omittable<AuthenticationData>& auth = none, Omittable<bool> bindEmail = none, const QString& username = {}, const QString& password = {}, const QString& deviceId = {}, const QString& initialDeviceDisplayName = {}, Omittable<bool> inhibitLogin = none);
             ~RegisterJob() override;
 
             // Result properties
@@ -418,7 +418,7 @@ namespace QMatrixClient
 
             /// A flag to indicate that the username is available. This should always
             /// be ``true`` when the server replies with 200 OK.
-            bool available() const;
+            Omittable<bool> available() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

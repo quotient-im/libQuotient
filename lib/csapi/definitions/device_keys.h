@@ -34,12 +34,10 @@ namespace QMatrixClient
         /// JSON`_.
         QHash<QString, QHash<QString, QString>> signatures;
     };
-
-    QJsonObject toJson(const DeviceKeys& pod);
-
-    template <> struct FromJsonObject<DeviceKeys>
+    template <> struct JsonObjectConverter<DeviceKeys>
     {
-        DeviceKeys operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const DeviceKeys& pod);
+        static void fillFrom(const QJsonObject& jo, DeviceKeys& pod);
     };
 
 } // namespace QMatrixClient

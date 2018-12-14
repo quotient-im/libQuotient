@@ -21,6 +21,7 @@
 #include "basejob.h"
 
 #include "../syncdata.h"
+#include "../csapi/definitions/sync_filter.h"
 
 namespace QMatrixClient
 {
@@ -29,6 +30,8 @@ namespace QMatrixClient
         public:
             explicit SyncJob(const QString& since = {},
                              const QString& filter = {},
+                             int timeout = -1, const QString& presence = {});
+            explicit SyncJob(const QString& since, const Filter& filter,
                              int timeout = -1, const QString& presence = {});
 
             SyncData &&takeData() { return std::move(d); }

@@ -16,25 +16,16 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetNotificationsJob::Notification>
+    template <> struct JsonObjectConverter<GetNotificationsJob::Notification>
     {
-        GetNotificationsJob::Notification operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetNotificationsJob::Notification& result)
         {
-            GetNotificationsJob::Notification result;
-            result.actions =
-                fromJson<QVector<QVariant>>(jo.value("actions"_ls));
-            result.event =
-                fromJson<EventPtr>(jo.value("event"_ls));
-            result.profileTag =
-                fromJson<QString>(jo.value("profile_tag"_ls));
-            result.read =
-                fromJson<bool>(jo.value("read"_ls));
-            result.roomId =
-                fromJson<QString>(jo.value("room_id"_ls));
-            result.ts =
-                fromJson<int>(jo.value("ts"_ls));
-
-            return result;
+            fromJson(jo.value("actions"_ls), result.actions);
+            fromJson(jo.value("event"_ls), result.event);
+            fromJson(jo.value("profile_tag"_ls), result.profileTag);
+            fromJson(jo.value("read"_ls), result.read);
+            fromJson(jo.value("room_id"_ls), result.roomId);
+            fromJson(jo.value("ts"_ls), result.ts);
         }
     };
 } // namespace QMatrixClient
@@ -87,11 +78,11 @@ std::vector<GetNotificationsJob::Notification>&& GetNotificationsJob::notificati
 BaseJob::Status GetNotificationsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->nextToken = fromJson<QString>(json.value("next_token"_ls));
+    fromJson(json.value("next_token"_ls), d->nextToken);
     if (!json.contains("notifications"_ls))
         return { JsonParseError,
             "The key 'notifications' not found in the response" };
-    d->notifications = fromJson<std::vector<Notification>>(json.value("notifications"_ls));
+    fromJson(json.value("notifications"_ls), d->notifications);
     return Success;
 }
 

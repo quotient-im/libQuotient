@@ -6,31 +6,23 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const DeviceKeys& pod)
+void JsonObjectConverter<DeviceKeys>::dumpTo(
+        QJsonObject& jo, const DeviceKeys& pod)
 {
-    QJsonObject jo;
     addParam<>(jo, QStringLiteral("user_id"), pod.userId);
     addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
     addParam<>(jo, QStringLiteral("algorithms"), pod.algorithms);
     addParam<>(jo, QStringLiteral("keys"), pod.keys);
     addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
-    return jo;
 }
 
-DeviceKeys FromJsonObject<DeviceKeys>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<DeviceKeys>::fillFrom(
+    const QJsonObject& jo, DeviceKeys& result)
 {
-    DeviceKeys result;
-    result.userId =
-        fromJson<QString>(jo.value("user_id"_ls));
-    result.deviceId =
-        fromJson<QString>(jo.value("device_id"_ls));
-    result.algorithms =
-        fromJson<QStringList>(jo.value("algorithms"_ls));
-    result.keys =
-        fromJson<QHash<QString, QString>>(jo.value("keys"_ls));
-    result.signatures =
-        fromJson<QHash<QString, QHash<QString, QString>>>(jo.value("signatures"_ls));
-
-    return result;
+    fromJson(jo.value("user_id"_ls), result.userId);
+    fromJson(jo.value("device_id"_ls), result.deviceId);
+    fromJson(jo.value("algorithms"_ls), result.algorithms);
+    fromJson(jo.value("keys"_ls), result.keys);
+    fromJson(jo.value("signatures"_ls), result.signatures);
 }
 

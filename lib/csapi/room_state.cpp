@@ -38,7 +38,7 @@ const QString& SetRoomStateWithKeyJob::eventId() const
 BaseJob::Status SetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"_ls));
+    fromJson(json.value("event_id"_ls), d->eventId);
     return Success;
 }
 
@@ -68,7 +68,7 @@ const QString& SetRoomStateJob::eventId() const
 BaseJob::Status SetRoomStateJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"_ls));
+    fromJson(json.value("event_id"_ls), d->eventId);
     return Success;
 }
 

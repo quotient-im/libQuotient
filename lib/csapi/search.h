@@ -39,7 +39,7 @@ namespace QMatrixClient
                 /// historic profile information for the users
                 /// that sent the events that were returned.
                 /// By default, this is ``false``.
-                bool includeProfile;
+                Omittable<bool> includeProfile;
             };
 
             /// Configuration for group.
@@ -74,7 +74,7 @@ namespace QMatrixClient
                 Omittable<IncludeEventContext> eventContext;
                 /// Requests the server return the current state for
                 /// each room returned.
-                bool includeState;
+                Omittable<bool> includeState;
                 /// Requests that the server partitions the result set
                 /// based on the provided list of keys.
                 Omittable<Groupings> groupings;

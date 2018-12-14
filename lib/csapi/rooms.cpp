@@ -42,7 +42,7 @@ EventPtr&& GetOneRoomEventJob::data()
 
 BaseJob::Status GetOneRoomEventJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<EventPtr>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -104,7 +104,7 @@ StateEvents&& GetRoomStateJob::data()
 
 BaseJob::Status GetRoomStateJob::parseJson(const QJsonDocument& data)
 {
-    d->data = fromJson<StateEvents>(data);
+    fromJson(data, d->data);
     return Success;
 }
 
@@ -114,17 +114,28 @@ class GetMembersByRoomJob::Private
         EventsArray<RoomMemberEvent> chunk;
 };
 
-QUrl GetMembersByRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+BaseJob::Query queryToGetMembersByRoom(const QString& at, const QString& membership, const QString& notMembership)
+{
+    BaseJob::Query _q;
+    addParam<IfNotEmpty>(_q, QStringLiteral("at"), at);
+    addParam<IfNotEmpty>(_q, QStringLiteral("membership"), membership);
+    addParam<IfNotEmpty>(_q, QStringLiteral("not_membership"), notMembership);
+    return _q;
+}
+
+QUrl GetMembersByRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& at, const QString& membership, const QString& notMembership)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/rooms/" % roomId % "/members");
+            basePath % "/rooms/" % roomId % "/members",
+            queryToGetMembersByRoom(at, membership, notMembership));
 }
 
 static const auto GetMembersByRoomJobName = QStringLiteral("GetMembersByRoomJob");
 
-GetMembersByRoomJob::GetMembersByRoomJob(const QString& roomId)
+GetMembersByRoomJob::GetMembersByRoomJob(const QString& roomId, const QString& at, const QString& membership, const QString& notMembership)
     : BaseJob(HttpVerb::Get, GetMembersByRoomJobName,
-        basePath % "/rooms/" % roomId % "/members")
+        basePath % "/rooms/" % roomId % "/members",
+        queryToGetMembersByRoom(at, membership, notMembership))
     , d(new Private)
 {
 }
@@ -139,7 +150,7 @@ EventsArray<RoomMemberEvent>&& GetMembersByRoomJob::chunk()
 BaseJob::Status GetMembersByRoomJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->chunk = fromJson<EventsArray<RoomMemberEvent>>(json.value("chunk"_ls));
+    fromJson(json.value("chunk"_ls), d->chunk);
     return Success;
 }
 
@@ -147,17 +158,12 @@ namespace QMatrixClient
 {
     // Converters
 
-    template <> struct FromJsonObject<GetJoinedMembersByRoomJob::RoomMember>
+    template <> struct JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember>
     {
-        GetJoinedMembersByRoomJob::RoomMember operator()(const QJsonObject& jo) const
+        static void fillFrom(const QJsonObject& jo, GetJoinedMembersByRoomJob::RoomMember& result)
         {
-            GetJoinedMembersByRoomJob::RoomMember result;
-            result.displayName =
-                fromJson<QString>(jo.value("display_name"_ls));
-            result.avatarUrl =
-                fromJson<QString>(jo.value("avatar_url"_ls));
-
-            return result;
+            fromJson(jo.value("display_name"_ls), result.displayName);
+            fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
         }
     };
 } // namespace QMatrixClient
@@ -193,7 +199,7 @@ const QHash<QString, GetJoinedMembersByRoomJob::RoomMember>& GetJoinedMembersByR
 BaseJob::Status GetJoinedMembersByRoomJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->joined = fromJson<QHash<QString, RoomMember>>(json.value("joined"_ls));
+    fromJson(json.value("joined"_ls), d->joined);
     return Success;
 }
 

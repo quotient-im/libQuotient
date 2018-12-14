@@ -59,19 +59,19 @@ BaseJob::Status RequestOpenIdTokenJob::parseJson(const QJsonDocument& data)
     if (!json.contains("access_token"_ls))
         return { JsonParseError,
             "The key 'access_token' not found in the response" };
-    d->accessToken = fromJson<QString>(json.value("access_token"_ls));
+    fromJson(json.value("access_token"_ls), d->accessToken);
     if (!json.contains("token_type"_ls))
         return { JsonParseError,
             "The key 'token_type' not found in the response" };
-    d->tokenType = fromJson<QString>(json.value("token_type"_ls));
+    fromJson(json.value("token_type"_ls), d->tokenType);
     if (!json.contains("matrix_server_name"_ls))
         return { JsonParseError,
             "The key 'matrix_server_name' not found in the response" };
-    d->matrixServerName = fromJson<QString>(json.value("matrix_server_name"_ls));
+    fromJson(json.value("matrix_server_name"_ls), d->matrixServerName);
     if (!json.contains("expires_in"_ls))
         return { JsonParseError,
             "The key 'expires_in' not found in the response" };
-    d->expiresIn = fromJson<int>(json.value("expires_in"_ls));
+    fromJson(json.value("expires_in"_ls), d->expiresIn);
     return Success;
 }
 

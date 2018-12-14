@@ -36,12 +36,10 @@ namespace QMatrixClient
         /// The URL for the room's avatar, if one is set.
         QString avatarUrl;
     };
-
-    QJsonObject toJson(const PublicRoomsChunk& pod);
-
-    template <> struct FromJsonObject<PublicRoomsChunk>
+    template <> struct JsonObjectConverter<PublicRoomsChunk>
     {
-        PublicRoomsChunk operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const PublicRoomsChunk& pod);
+        static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod);
     };
 
     /// A list of the rooms on the server.
@@ -61,12 +59,10 @@ namespace QMatrixClient
         /// server has an estimate.
         Omittable<int> totalRoomCountEstimate;
     };
-
-    QJsonObject toJson(const PublicRoomsResponse& pod);
-
-    template <> struct FromJsonObject<PublicRoomsResponse>
+    template <> struct JsonObjectConverter<PublicRoomsResponse>
     {
-        PublicRoomsResponse operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const PublicRoomsResponse& pod);
+        static void fillFrom(const QJsonObject& jo, PublicRoomsResponse& pod);
     };
 
 } // namespace QMatrixClient

@@ -28,12 +28,10 @@ namespace QMatrixClient
         /// reasons).
         Omittable<qint64> lastSeenTs;
     };
-
-    QJsonObject toJson(const Device& pod);
-
-    template <> struct FromJsonObject<Device>
+    template <> struct JsonObjectConverter<Device>
     {
-        Device operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const Device& pod);
+        static void fillFrom(const QJsonObject& jo, Device& pod);
     };
 
 } // namespace QMatrixClient

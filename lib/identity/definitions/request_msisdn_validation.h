@@ -36,12 +36,10 @@ namespace QMatrixClient
         /// server will redirect the user to this URL.
         QString nextLink;
     };
-
-    QJsonObject toJson(const RequestMsisdnValidation& pod);
-
-    template <> struct FromJsonObject<RequestMsisdnValidation>
+    template <> struct JsonObjectConverter<RequestMsisdnValidation>
     {
-        RequestMsisdnValidation operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const RequestMsisdnValidation& pod);
+        static void fillFrom(const QJsonObject& jo, RequestMsisdnValidation& pod);
     };
 
 } // namespace QMatrixClient

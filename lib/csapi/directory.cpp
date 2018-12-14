@@ -60,8 +60,8 @@ const QStringList& GetRoomIdByAliasJob::servers() const
 BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->roomId = fromJson<QString>(json.value("room_id"_ls));
-    d->servers = fromJson<QStringList>(json.value("servers"_ls));
+    fromJson(json.value("room_id"_ls), d->roomId);
+    fromJson(json.value("servers"_ls), d->servers);
     return Success;
 }
 

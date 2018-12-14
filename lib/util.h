@@ -118,6 +118,22 @@ namespace QMatrixClient
                 _omitted = false;
                 return _value;
             }
+            /// Merge the value from another Omittable
+            /// \return true if \p other is not omitted and the value of
+            ///         the current Omittable was different (or omitted);
+            ///         in other words, if the current Omittable has changed;
+            ///         false otherwise
+            template <typename T1>
+            auto merge(const Omittable<T1>& other)
+                -> std::enable_if_t<std::is_convertible<T1, T>::value, bool>
+            {
+                if (other.omitted() ||
+                        (!_omitted && _value == other.value()))
+                    return false;
+                _omitted = false;
+                _value = other.value();
+                return true;
+            }
             value_type&& release() { _omitted = true; return std::move(_value); }
 
             operator value_type&() & { return editValue(); }

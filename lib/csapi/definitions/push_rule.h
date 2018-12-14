@@ -7,10 +7,10 @@
 #include "converters.h"
 
 #include "csapi/definitions/push_condition.h"
-#include "converters.h"
+#include <QtCore/QJsonObject>
 #include <QtCore/QVector>
 #include <QtCore/QVariant>
-#include <QtCore/QJsonObject>
+#include "converters.h"
 
 namespace QMatrixClient
 {
@@ -34,12 +34,10 @@ namespace QMatrixClient
         /// rules.
         QString pattern;
     };
-
-    QJsonObject toJson(const PushRule& pod);
-
-    template <> struct FromJsonObject<PushRule>
+    template <> struct JsonObjectConverter<PushRule>
     {
-        PushRule operator()(const QJsonObject& jo) const;
+        static void dumpTo(QJsonObject& jo, const PushRule& pod);
+        static void fillFrom(const QJsonObject& jo, PushRule& pod);
     };
 
 } // namespace QMatrixClient

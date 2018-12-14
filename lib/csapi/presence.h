@@ -65,7 +65,7 @@ namespace QMatrixClient
             /// The state message for this user if one was set.
             const QString& statusMsg() const;
             /// Whether the user is currently active
-            bool currentlyActive() const;
+            Omittable<bool> currentlyActive() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

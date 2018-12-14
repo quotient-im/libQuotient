@@ -18,14 +18,13 @@ namespace QMatrixClient
 {{/vars}}{{#propertyMap}}{{#description}}        /// {{_}}
 {{/description}}        {{>maybeOmittableType}} {{nameCamelCase}};
 {{/propertyMap}}    };
-{{#in?}}
-    QJsonObject toJson(const {{name}}& pod);
-{{/in?}}{{#out?}}
-    template <> struct FromJsonObject<{{name}}>
+    template <> struct JsonObjectConverter<{{name}}>
     {
-        {{name}} operator()({{^propertyMap}}const QJsonObject&{{/propertyMap}}{{#propertyMap}}QJsonObject{{/propertyMap}} jo) const;
-    };
-{{/    out?}}{{/model}}
+        {{#in?}}static void dumpTo(QJsonObject& jo, const {{name}}& pod);
+        {{/in?}}{{#out?}}static void fillFrom({{^propertyMap}}const QJsonObject&{{/propertyMap
+                           }}{{#propertyMap}}QJsonObject{{/propertyMap}} jo, {{name}}& pod);
+{{/out?}}    };
+{{/model}}
 {{/models}}{{#operations}}    // Operations
 {{#    operation}}{{#summary}}
     /// {{summary}}{{#description?}}{{!add a linebreak between summary and description if both exist}}

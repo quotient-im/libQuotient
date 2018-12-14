@@ -6,31 +6,23 @@
 
 using namespace QMatrixClient;
 
-QJsonObject QMatrixClient::toJson(const EventFilter& pod)
+void JsonObjectConverter<EventFilter>::dumpTo(
+        QJsonObject& jo, const EventFilter& pod)
 {
-    QJsonObject jo;
     addParam<IfNotEmpty>(jo, QStringLiteral("limit"), pod.limit);
     addParam<IfNotEmpty>(jo, QStringLiteral("not_senders"), pod.notSenders);
     addParam<IfNotEmpty>(jo, QStringLiteral("not_types"), pod.notTypes);
     addParam<IfNotEmpty>(jo, QStringLiteral("senders"), pod.senders);
     addParam<IfNotEmpty>(jo, QStringLiteral("types"), pod.types);
-    return jo;
 }
 
-EventFilter FromJsonObject<EventFilter>::operator()(const QJsonObject& jo) const
+void JsonObjectConverter<EventFilter>::fillFrom(
+    const QJsonObject& jo, EventFilter& result)
 {
-    EventFilter result;
-    result.limit =
-        fromJson<int>(jo.value("limit"_ls));
-    result.notSenders =
-        fromJson<QStringList>(jo.value("not_senders"_ls));
-    result.notTypes =
-        fromJson<QStringList>(jo.value("not_types"_ls));
-    result.senders =
-        fromJson<QStringList>(jo.value("senders"_ls));
-    result.types =
-        fromJson<QStringList>(jo.value("types"_ls));
-
-    return result;
+    fromJson(jo.value("limit"_ls), result.limit);
+    fromJson(jo.value("not_senders"_ls), result.notSenders);
+    fromJson(jo.value("not_types"_ls), result.notTypes);
+    fromJson(jo.value("senders"_ls), result.senders);
+    fromJson(jo.value("types"_ls), result.types);
 }
 

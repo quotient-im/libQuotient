@@ -59,7 +59,7 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// The joined room id
+            /// The joined room ID.
             const QString& roomId() const;
 
         protected:
@@ -138,7 +138,7 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// The joined room id
+            /// The joined room ID.
             const QString& roomId() const;
 
         protected:

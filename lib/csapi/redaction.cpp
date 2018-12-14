@@ -40,7 +40,7 @@ const QString& RedactEventJob::eventId() const
 BaseJob::Status RedactEventJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    d->eventId = fromJson<QString>(json.value("event_id"_ls));
+    fromJson(json.value("event_id"_ls), d->eventId);
     return Success;
 }
 

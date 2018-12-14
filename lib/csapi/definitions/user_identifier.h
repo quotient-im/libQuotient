@@ -20,12 +20,10 @@ namespace QMatrixClient
         /// Identification information for a user
         QVariantHash additionalProperties;
     };
-
-    QJsonObject toJson(const UserIdentifier& pod);
-
-    template <> struct FromJsonObject<UserIdentifier>
+    template <> struct JsonObjectConverter<UserIdentifier>
     {
-        UserIdentifier operator()(QJsonObject jo) const;
+        static void dumpTo(QJsonObject& jo, const UserIdentifier& pod);
+        static void fillFrom(QJsonObject jo, UserIdentifier& pod);
     };
 
 } // namespace QMatrixClient
