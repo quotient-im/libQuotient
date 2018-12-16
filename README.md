@@ -21,7 +21,7 @@ The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrix
 Tags starting with `v` represent released versions; `rc` mark release candidates.
 
 ### Pre-requisites
-- a Linux, OSX or Windows system (desktop versions tried; Ubuntu Touch is known to work; mobile Windows and iOS might work too but never tried)
+- a Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch is known to work; mobile Windows and iOS might work too but never tried)
   - For Ubuntu flavours - zesty or later (or a derivative) is good enough out of the box; older ones will need PPAs at least for a newer Qt; in particular, if you have xenial you're advised to add Kubuntu Backports PPA for it
 - a Git client to check out this repo
 - Qt 5 (either Open Source or Commercial), version 5.6 or higher
@@ -29,18 +29,18 @@ Tags starting with `v` represent released versions; `rc` mark release candidates
   - CMake (from your package management system or [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
 - a C++ toolchain supported by your version of Qt (see a link for your platform at [the Qt's platform requirements page](http://doc.qt.io/qt-5/gettingstarted.html#platform-requirements))
-  - GCC 5 (Windows, Linux, OSX), Clang 5 (Linux), Apple Clang 8.1 (OSX) and Visual C++ 2015 (Windows) are the oldest officially supported; Clang 3.8 and GCC 4.9.2 are known to still work, maintenance patches for them are accepted
+  - GCC 5 (Windows, Linux, macOS), Clang 5 (Linux), Apple Clang 8.1 (macOS) and Visual C++ 2015 (Windows) are the oldest officially supported; Clang 3.8 and GCC 4.9.2 are known to still work, maintenance patches for them are accepted
   - any build system that works with CMake and/or qmake should be fine: GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
 
 #### Linux
 Just install things from the list above using your preferred package manager. If your Qt package base is fine-grained you might want to run cmake/qmake and look at error messages. The library is entirely offscreen (QtCore and QtNetwork are essential) but it also depends on QtGui in order to handle avatar thumbnails.
 
-#### OS X
-`brew install qt5` should get you a recent Qt5. If you plan to use CMake, you may need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=<where-Qt-installed>`
+#### macOS
+`brew install qt5` should get you a recent Qt5. If you plan to use CMake, you will need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=$(brew --prefix qt5)`
 
 #### Windows
 1. Install Qt5, using their official installer.
-1. If you plan to build with CMake, install CMake; if you're ok with qmake, you don't need to install anything on top of Qt. The commands in further sections imply that cmake/qmake is in your PATH - otherwise you have to prepend those commands with actual paths. As an option, it's a good idea to run a `qtenv2.bat` script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`); the only thing it does is adding necessary paths to PATH. You might not want to run that script on system startup but it's very handy to setup the environment before building. For CMake, setting `CMAKE_PREFIX_PATH` in the same way as for OS X (see above), also helps.
+1. If you plan to build with CMake, install CMake; if you're ok with qmake, you don't need to install anything on top of Qt. The commands in further sections imply that cmake/qmake is in your PATH - otherwise you have to prepend those commands with actual paths. As an option, it's a good idea to run a `qtenv2.bat` script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`); the only thing it does is adding necessary paths to PATH. You might not want to run that script on system startup but it's very handy to setup the environment before building. For CMake, setting `CMAKE_PREFIX_PATH` in the same way as for macOS (see above), also helps.
 
 There are no official MinGW-based 64-bit packages for Qt. If you're determined to build a 64-bit library, either use a Visual Studio toolchain or build Qt5 yourself as described in Qt documentation.
 
@@ -53,7 +53,7 @@ cd build_dir
 cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
 cmake --build . --target all
 ```
-This will get you the compiled library in `build_dir` inside your project sources. Static builds are tested on all supported platforms. Dynamic builds of libqmatrixclient are only tested on Linux at the moment; experiments with dynamic builds on Windows/OSX are welcome. Taking a look at [qmc-example](https://github.com/QMatrixClient/libqmatrixclient/tree/master/examples) (used to test the library) should give you a basic idea of using libQMatrixClient; for more extensive usage check out the source code of [Quaternion](https://github.com/QMatrixClient/Quaternion) (the reference client built on QMatrixClient).
+This will get you the compiled library in `build_dir` inside your project sources. Static builds are tested on all supported platforms. Dynamic builds of libqmatrixclient are only tested on Linux at the moment; experiments with dynamic builds on Windows/macOS are welcome. Taking a look at [qmc-example](https://github.com/QMatrixClient/libqmatrixclient/tree/master/examples) (used to test the library) should give you a basic idea of using libQMatrixClient; for more extensive usage check out the source code of [Quaternion](https://github.com/QMatrixClient/Quaternion) (the reference client built on QMatrixClient).
 
 You can install the library with CMake:
 ```
