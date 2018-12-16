@@ -595,7 +595,7 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() - 1 <= membersMap.size() || isJobRunning(allMembersJob))
+    if (q->joinedCount() <= membersMap.size() || isJobRunning(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
