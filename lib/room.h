@@ -407,14 +407,35 @@ namespace QMatrixClient
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);
             void addedMessages(int fromIndex, int toIndex);
-            void pendingEventAboutToAdd();
+            /// The event is about to be appended to the list of pending events
+            void pendingEventAboutToAdd(RoomEvent* event);
+            /// An event has been appended to the list of pending events
             void pendingEventAdded();
+            /// The remote echo has arrived with the sync and will be merged
+            /// with its local counterpart
+            /** NB: Requires a sync loop to be emitted */
             void pendingEventAboutToMerge(RoomEvent* serverEvent,
                                           int pendingEventIndex);
+            /// The remote and local copies of the event have been merged
+            /** NB: Requires a sync loop to be emitted */
             void pendingEventMerged();
+            /// An event will be removed from the list of pending events
             void pendingEventAboutToDiscard(int pendingEventIndex);
+            /// An event has just been removed from the list of pending events
             void pendingEventDiscarded();
+            /// The status of a pending event has changed
+            /** \sa PendingEventItem::deliveryStatus */
             void pendingEventChanged(int pendingEventIndex);
+            /// The server accepted the message
+            /** This is emitted when an event sending request has successfully
+             * completed. This does not mean that the event is already in the
+             * local timeline, only that the server has accepted it.
+             * \param txnId transaction id assigned by the client during sending
+             * \param eventId event id assigned by the server upon acceptance
+             * \sa postEvent, postPlainText, postMessage, postHtmlMessage
+             * \sa pendingEventMerged, aboutToAddNewMessages
+             */
+            void messageSent(QString txnId, QString eventId);
 
             /** A common signal for various kinds of changes in the room
              * Aside from all changes in the room state

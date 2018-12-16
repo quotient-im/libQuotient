@@ -1260,7 +1260,7 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
     auto* pEvent = rawPtr(event);
-    emit q->pendingEventAboutToAdd();
+    emit q->pendingEventAboutToAdd(pEvent);
     unsyncedEvents.emplace_back(move(event));
     emit q->pendingEventAdded();
     return doSendEvent(pEvent);
@@ -1290,6 +1290,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                       this, pEvent, txnId, call));
         Room::connect(call, &BaseJob::success, q,
             [this,call,pEvent,txnId] {
+                emit q->messageSent(txnId, call->eventId());
                 // Find an event by the pointer saved in the lambda (the pointer
                 // may be dangling by now but we can still search by it).
                 auto it = findAsPending(pEvent);
