@@ -20,12 +20,13 @@ using namespace std::placeholders;
 class QMCTest : public QObject
 {
     public:
-        QMCTest(Connection* conn, QString testRoomName, QString source);
+        QMCTest(Connection* conn, QString targetRoomName, QString source);
 
     private slots:
-        void setup();
+        void setupAndRun();
         void onNewRoom(Room* r);
-        void startTests();
+        void run();
+        void doTests();
             void loadMembers();
             void sendMessage();
             void addAndRemoveTag();
@@ -44,7 +45,7 @@ class QMCTest : public QObject
         QStringList succeeded;
         QStringList failed;
         QString origin;
-        QString testRoomName;
+        QString targetRoomName;
         Room* targetRoom = nullptr;
 };
 
@@ -69,43 +70,42 @@ class QMCTest : public QObject
 }
 
 QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
-    : c(conn), origin(std::move(source)), testRoomName(std::move(testRoomName))
+    : c(conn), origin(std::move(source)), targetRoomName(std::move(testRoomName))
 {
     if (!origin.isEmpty())
         cout << "Origin for the test message: " << origin.toStdString() << endl;
-    if (!testRoomName.isEmpty())
-        cout << "Test room name: " << testRoomName.toStdString() << endl;
+    if (!targetRoomName.isEmpty())
+        cout << "Test room name: " << targetRoomName.toStdString() << endl;
 
-    connect(c.data(), &Connection::connected, this, &QMCTest::setup);
+    connect(c.data(), &Connection::connected, this, &QMCTest::setupAndRun);
     connect(c.data(), &Connection::loadedRoomState, this, &QMCTest::onNewRoom);
     // Big countdown watchdog
     QTimer::singleShot(180000, this, &QMCTest::leave);
 }
 
-void QMCTest::setup()
+void QMCTest::setupAndRun()
 {
     cout << "Connected, server: "
          << c->homeserver().toDisplayString().toStdString() << endl;
     cout << "Access token: " << c->accessToken().toStdString() << endl;
 
-    // Setting up sync loop
-    c->setLazyLoading(true);
-    c->sync();
-    connectSingleShot(c.data(), &Connection::syncDone,
-                      this, &QMCTest::startTests);
-    connect(c.data(), &Connection::syncDone, c.data(), [this] {
-        cout << "Sync complete, "
-             << running.size() << " tests in the air" << endl;
-        if (!running.isEmpty())
-            c->sync(10000);
-        else if (targetRoom)
-        {
-            targetRoom->postPlainText(origin % ": All tests finished");
-            connect(targetRoom, &Room::pendingEventMerged, this, &QMCTest::leave);
-        }
-        else
-            finalize();
-    });
+    if (!targetRoomName.isEmpty())
+    {
+        cout << "Joining " << targetRoomName.toStdString() << endl;
+        running.push_back("Join room");
+        auto joinJob = c->joinRoom(targetRoomName);
+        connect(joinJob, &BaseJob::failure, this,
+            [this] { QMC_CHECK("Join room", false); finalize(); });
+        // Connection::joinRoom() creates a Room object upon JoinRoomJob::success
+        // but this object is empty until the first sync is done.
+        connect(joinJob, &BaseJob::success, this, [this,joinJob] {
+            targetRoom = c->room(joinJob->roomId(), JoinState::Join);
+            QMC_CHECK("Join room", targetRoom != nullptr);
+
+            run();
+        });
+    } else
+        run();
 }
 
 void QMCTest::onNewRoom(Room* r)
@@ -128,35 +128,40 @@ void QMCTest::onNewRoom(Room* r)
     });
 }
 
-void QMCTest::startTests()
+void QMCTest::run()
 {
-    if (testRoomName.isEmpty())
+    c->setLazyLoading(true);
+    c->sync();
+    connectSingleShot(c.data(), &Connection::syncDone, this, &QMCTest::doTests);
+    connect(c.data(), &Connection::syncDone, c.data(), [this] {
+        cout << "Sync complete, "
+             << running.size() << " tests in the air" << endl;
+        if (!running.isEmpty())
+            c->sync(10000);
+        else if (targetRoom)
+        {
+            targetRoom->postPlainText(origin % ": All tests finished");
+            connect(targetRoom, &Room::messageSent, this, &QMCTest::leave);
+        }
+        else
+            finalize();
+    });
+}
+
+void QMCTest::doTests()
+{
+    cout << "Starting tests" << endl;
+
+    loadMembers();
+    // Add here tests not requiring the test room
+    if (targetRoomName.isEmpty())
         return;
 
-    cout << "Joining " << testRoomName.toStdString() << endl;
-    running.push_back("Join room");
-    auto joinJob = c->joinRoom(testRoomName);
-    connect(joinJob, &BaseJob::failure, this,
-        [this] { QMC_CHECK("Join room", false); finalize(); });
-    // As of BaseJob::success, a Room object is not guaranteed to even
-    // exist; it's a mere confirmation that the server processed
-    // the request.
-    connect(c.data(), &Connection::loadedRoomState, this,
-        [this] (Room* room) {
-            Q_ASSERT(room); // It's a grave failure if room is nullptr here
-            if (room->canonicalAlias() != testRoomName)
-                return; // Not our room
-
-            targetRoom = room;
-            QMC_CHECK("Join room", true);
-            cout << "Starting tests" << endl;
-
-            loadMembers();
-            sendMessage();
-            addAndRemoveTag();
-            sendAndRedact();
-            markDirectChat();
-        });
+    sendMessage();
+    addAndRemoveTag();
+    sendAndRedact();
+    markDirectChat();
+    // Add here tests with the test room
 }
 
 void QMCTest::loadMembers()
