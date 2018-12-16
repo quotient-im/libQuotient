@@ -140,8 +140,16 @@ void QMCTest::run()
             c->sync(10000);
         else if (targetRoom)
         {
-            targetRoom->postPlainText(origin % ": All tests finished");
-            connect(targetRoom, &Room::messageSent, this, &QMCTest::leave);
+            // TODO: Waiting for proper futures to come so that it could be:
+//            targetRoom->postPlainText(origin % ": All tests finished")
+//            .then(this, &QMCTest::leave);
+            auto txnId =
+                    targetRoom->postPlainText(origin % ": All tests finished");
+            connect(targetRoom, &Room::messageSent, this,
+                    [this,txnId] (QString serverTxnId) {
+                if (txnId == serverTxnId)
+                    leave();
+            });
         }
         else
             finalize();
