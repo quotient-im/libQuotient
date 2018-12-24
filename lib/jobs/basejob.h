@@ -215,9 +215,9 @@ namespace QMatrixClient
              *
              * In general, to be notified of a job's completion, client code
              * should connect to result(), success(), or failure()
-             * rather than finished(). However if you store a list of jobs
-             * and need to track their lifecycle, then you should connect to this
-             * instead of result(), to avoid dangling pointers in your list.
+             * rather than finished(). However if you need to track the job's
+             * lifecycle you should connect to this instead of result();
+             * in particular, only this signal will be emitted on abandoning.
              *
              * @param job the job that emitted this signal
              *
