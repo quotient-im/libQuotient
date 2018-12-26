@@ -167,6 +167,7 @@ namespace QMatrixClient
                 explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
                 virtual QMimeType type() const = 0;
                 virtual const FileInfo* fileInfo() const { return nullptr; }
+                virtual FileInfo* fileInfo() { return nullptr; }
                 virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
         };
 
@@ -196,6 +197,7 @@ namespace QMatrixClient
 
                 QMimeType type() const override { return InfoT::mimeType; }
                 const FileInfo* fileInfo() const override { return this; }
+                FileInfo* fileInfo() override { return this; }
 
             protected:
                 void fillJson(QJsonObject* json) const override

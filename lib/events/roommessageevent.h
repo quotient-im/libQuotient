@@ -56,6 +56,13 @@ namespace QMatrixClient
             QString plainBody() const;
             EventContent::TypedBase* content() const
                                              { return _content.data(); }
+            template <typename VisitorT>
+            void editContent(VisitorT visitor)
+            {
+                visitor(*_content);
+                editJson()[ContentKeyL] =
+                    assembleContentJson(plainBody(), rawMsgtype(), content());
+            }
             QMimeType mimeType() const;
             bool hasTextContent() const;
             bool hasFileContent() const;
@@ -63,6 +70,9 @@ namespace QMatrixClient
 
         private:
             QScopedPointer<EventContent::TypedBase> _content;
+
+            static QJsonObject assembleContentJson(const QString& plainBody,
+                const QString& jsonMsgType, EventContent::TypedBase* content);
 
             REGISTER_ENUM(MsgType)
     };

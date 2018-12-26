@@ -88,6 +88,12 @@ namespace QMatrixClient {
             }
 
             const ContentT& content() const { return _content; }
+            template <typename VisitorT>
+            void editContent(VisitorT&& visitor)
+            {
+                visitor(_content);
+                editJson()[ContentKeyL] = _content.toJson();
+            }
             [[deprecated("Use prevContent instead")]]
             const ContentT* prev_content() const { return prevContent(); }
             const ContentT* prevContent() const

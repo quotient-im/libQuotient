@@ -71,8 +71,8 @@ MsgType jsonToMsgType(const QString& matrixType)
     return MsgType::Unknown;
 }
 
-inline QJsonObject toMsgJson(const QString& plainBody, const QString& jsonMsgType,
-                      TypedBase* content)
+QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
+                const QString& jsonMsgType, TypedBase* content)
 {
     auto json = content ? content->toJson() : QJsonObject();
     json.insert(QStringLiteral("msgtype"), jsonMsgType);
@@ -86,7 +86,7 @@ static const auto BodyKey = "body"_ls;
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
         const QString& jsonMsgType, TypedBase* content)
     : RoomEvent(typeId(), matrixTypeId(),
-                toMsgJson(plainBody, jsonMsgType, content))
+                assembleContentJson(plainBody, jsonMsgType, content))
     , _content(content)
 { }
 
