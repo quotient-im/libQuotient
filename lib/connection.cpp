@@ -43,6 +43,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QMimeDatabase>
 #include <QtCore/QCoreApplication>
 
 using namespace QMatrixClient;
@@ -466,13 +467,21 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url,
 }
 
 UploadContentJob* Connection::uploadContent(QIODevice* contentSource,
-        const QString& filename, const QString& contentType) const
+        const QString& filename, const QString& overrideContentType) const
 {
+    auto contentType = overrideContentType;
+    if (contentType.isEmpty())
+    {
+        contentType =
+            QMimeDatabase().mimeTypeForFileNameAndData(filename, contentSource)
+            .name();
+        contentSource->open(QIODevice::ReadOnly);
+    }
     return callApi<UploadContentJob>(contentSource, filename, contentType);
 }
 
 UploadContentJob* Connection::uploadFile(const QString& fileName,
-                                         const QString& contentType)
+                                         const QString& overrideContentType)
 {
     auto sourceFile = new QFile(fileName);
     if (!sourceFile->open(QIODevice::ReadOnly))
@@ -482,7 +491,7 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
         return nullptr;
     }
     return uploadContent(sourceFile, QFileInfo(*sourceFile).fileName(),
-                         contentType);
+                         overrideContentType);
 }
 
 GetContentJob* Connection::getContent(const QString& mediaId) const
