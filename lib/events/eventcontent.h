@@ -149,10 +149,10 @@ namespace QMatrixClient
         class Thumbnail : public ImageInfo
         {
             public:
+                Thumbnail() : ImageInfo(QUrl()) { } // To allow empty thumbnails
                 Thumbnail(const QJsonObject& infoJson);
-                Thumbnail(const ImageInfo& info)
-                    : ImageInfo(info)
-                { }
+                Thumbnail(const ImageInfo& info) : ImageInfo(info) { }
+                using ImageInfo::ImageInfo;
 
                 /**
                  * Writes thumbnail information to "thumbnail_info" subobject
@@ -184,9 +184,7 @@ namespace QMatrixClient
         class UrlBasedContent : public TypedBase, public InfoT
         {
             public:
-                UrlBasedContent(QUrl url, InfoT&& info, QString filename = {})
-                    : InfoT(url, std::forward<InfoT>(info), filename)
-                { }
+                using InfoT::InfoT;
                 explicit UrlBasedContent(const QJsonObject& json)
                     : TypedBase(json)
                     , InfoT(json["url"].toString(), json["info"].toObject(),
@@ -214,7 +212,7 @@ namespace QMatrixClient
         class UrlWithThumbnailContent : public UrlBasedContent<InfoT>
         {
             public:
-                // TODO: POD constructor
+                using UrlBasedContent<InfoT>::UrlBasedContent;
                 explicit UrlWithThumbnailContent(const QJsonObject& json)
                     : UrlBasedContent<InfoT>(json)
                     , thumbnail(InfoT::originalInfoJson)
