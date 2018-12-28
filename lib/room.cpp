@@ -126,15 +126,17 @@ class Room::Private
 
         struct FileTransferPrivateInfo
         {
-#ifdef WORKAROUND_EXTENDED_INITIALIZER_LIST
             FileTransferPrivateInfo() = default;
-            FileTransferPrivateInfo(BaseJob* j, QString fileName)
-                : job(j), localFileInfo(fileName)
+            FileTransferPrivateInfo(BaseJob* j, const QString& fileName,
+                                    bool isUploading = false)
+                : status(FileTransferInfo::Started), job(j)
+                , localFileInfo(fileName), isUpload(isUploading)
             { }
-#endif
+
+            FileTransferInfo::Status status = FileTransferInfo::None;
             QPointer<BaseJob> job = nullptr;
             QFileInfo localFileInfo { };
-            FileTransferInfo::Status status = FileTransferInfo::Started;
+            bool isUpload = false;
             qint64 progress = 0;
             qint64 total = -1;
 
@@ -969,7 +971,7 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
     fti.localPath = QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
     return fti;
 #else
-    return { infoIt->status, int(progress), int(total),
+    return { infoIt->status, infoIt->isUpload, int(progress), int(total),
         QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
         QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
     };
@@ -1532,7 +1534,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     auto job = connection()->uploadFile(fileName, overrideContentType);
     if (isJobRunning(job))
     {
-        d->fileTransfers.insert(id, { job, fileName });
+        d->fileTransfers.insert(id, { job, fileName, true });
         connect(job, &BaseJob::uploadProgress, this,
                 [this,id] (qint64 sent, qint64 total) {
                     d->fileTransfers[id].update(sent, total);

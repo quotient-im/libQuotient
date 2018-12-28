@@ -42,10 +42,17 @@ namespace QMatrixClient
     class SetRoomStateWithKeyJob;
     class RedactEventJob;
 
+    /** The data structure used to expose file transfer information to views
+     *
+     * This is specifically tuned to work with QML exposing all traits as
+     * Q_PROPERTY values.
+     */
     class FileTransferInfo
     {
             Q_GADGET
+            Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
             Q_PROPERTY(bool active READ active CONSTANT)
+            Q_PROPERTY(bool started READ started CONSTANT)
             Q_PROPERTY(bool completed READ completed CONSTANT)
             Q_PROPERTY(bool failed READ failed CONSTANT)
             Q_PROPERTY(int progress MEMBER progress CONSTANT)
@@ -55,14 +62,15 @@ namespace QMatrixClient
         public:
             enum Status { None, Started, Completed, Failed };
             Status status = None;
+            bool isUpload = false;
             int progress = 0;
             int total = -1;
             QUrl localDir { };
             QUrl localPath { };
 
-            bool active() const
-            { return status == Started || status == Completed; }
+            bool started() const { return status == Started; }
             bool completed() const { return status == Completed; }
+            bool active() const { return started() || completed(); }
             bool failed() const { return status == Failed; }
     };
 
