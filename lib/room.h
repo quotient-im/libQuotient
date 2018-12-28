@@ -374,6 +374,7 @@ namespace QMatrixClient
             QString postHtmlMessage(const QString& plainText,
                                     const QString& html, MessageEventType type);
             QString postHtmlText(const QString& plainText, const QString& html);
+            QString postFile(const QString& plainText, const QUrl& localPath);
             /** Post a pre-created room message event
              *
              * Takes ownership of the event, deleting it once the matching one

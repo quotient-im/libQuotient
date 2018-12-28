@@ -53,6 +53,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
 #include <QtCore/QTemporaryFile>
+#include <QtCore/QMimeDatabase>
 
 #include <array>
 #include <functional>
@@ -67,9 +68,11 @@ using std::llround;
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
-// A workaround for MSVC 2015 that fails with "error C2440: 'return':
-// cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'"
-#if (defined(_MSC_VER) && _MSC_VER < 1910) || (defined(__GNUC__) && __GNUC__ <= 4)
+// A workaround for MSVC 2015 and older GCC's that don't handle initializer
+// lists right (MSVC 2015, notably, fails with "error C2440: 'return':
+// cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'")
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || \
+    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 4)
 #  define WORKAROUND_EXTENDED_INITIALIZER_LIST
 #endif
 
@@ -235,6 +238,8 @@ class Room::Private
         {
             return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
         }
+
+        RoomEvent* addAsPending(RoomEventPtr&& event);
 
         QString doSendEvent(const RoomEvent* pEvent);
         PendingEvents::iterator findAsPending(const RoomEvent* rawEvtPtr);
@@ -1272,7 +1277,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     }
 }
 
-QString Room::Private::sendEvent(RoomEventPtr&& event)
+RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
@@ -1280,7 +1285,12 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
     emit q->pendingEventAboutToAdd(pEvent);
     unsyncedEvents.emplace_back(move(event));
     emit q->pendingEventAdded();
-    return doSendEvent(pEvent);
+    return pEvent;
+}
+
+QString Room::Private::sendEvent(RoomEventPtr&& event)
+{
+    return doSendEvent(addAsPending(std::move(event)));
 }
 
 QString Room::Private::doSendEvent(const RoomEvent* pEvent)
@@ -1357,6 +1367,7 @@ QString Room::retryMessage(const QString& txnId)
             [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
     Q_ASSERT(it != d->unsyncedEvents.end());
     qDebug(EVENTS) << "Retrying transaction" << txnId;
+    // TODO: Support retrying uploads
     it->resetStatus();
     return d->doSendEvent(it->event());
 }
@@ -1367,6 +1378,7 @@ void Room::discardMessage(const QString& txnId)
             [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
     Q_ASSERT(it != d->unsyncedEvents.end());
     qDebug(EVENTS) << "Discarding transaction" << txnId;
+    // TODO: Discard an ongoing upload if there is any
     emit pendingEventAboutToDiscard(it - d->unsyncedEvents.begin());
     d->unsyncedEvents.erase(it);
     emit pendingEventDiscarded();
@@ -1392,6 +1404,42 @@ QString Room::postHtmlMessage(const QString& plainText, const QString& html,
 QString Room::postHtmlText(const QString& plainText, const QString& html)
 {
     return postHtmlMessage(plainText, html, MessageEventType::Text);
+}
+
+QString Room::postFile(const QString& plainText, const QUrl& localPath)
+{
+    QFileInfo localFile { localPath.toLocalFile() };
+    Q_ASSERT(localFile.isFile());
+    // Remote URL will only be known after upload, see below.
+    auto* content = new EventContent::FileContent(QUrl(), localFile.size(),
+                            QMimeDatabase().mimeTypeForUrl(localPath));
+    // TODO: Set the msgtype based on MIME type
+    auto* pEvent = d->addAsPending(
+                    makeEvent<RoomMessageEvent>(plainText, "m.file", content));
+    const auto txnId = pEvent->transactionId();
+    uploadFile(txnId, localPath);
+    QMetaObject::Connection c;
+    c = connect(this, &Room::fileTransferCompleted, this,
+            [c,this,pEvent,txnId] (const QString& id, QUrl, const QUrl& mxcUri) {
+                if (id == txnId)
+                {
+                    auto it = d->findAsPending(pEvent);
+                    if (it != d->unsyncedEvents.end())
+                    {
+                        it->setFileUploaded(mxcUri);
+                        emit pendingEventChanged(it - d->unsyncedEvents.begin());
+                        d->doSendEvent(pEvent);
+                    } else {
+                        // Normally in this situation we should instruct
+                        // the media server to delete the file; alas, there's no
+                        // API specced for that.
+                        qCWarning(MAIN) << "File uploaded to" << mxcUri
+                            << "but the event referring to it was cancelled";
+                    }
+                    disconnect(c);
+                }
+            });
+    return txnId;
 }
 
 QString Room::postEvent(RoomEvent* event)
