@@ -911,7 +911,7 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
     return fileName;
 }
 
-QUrl Room::urlToThumbnail(const QString& eventId)
+QUrl Room::urlToThumbnail(const QString& eventId) const
 {
     if (auto* event = d->getEventWithFile(eventId))
         if (event->hasThumbnail())
@@ -925,7 +925,7 @@ QUrl Room::urlToThumbnail(const QString& eventId)
     return {};
 }
 
-QUrl Room::urlToDownload(const QString& eventId)
+QUrl Room::urlToDownload(const QString& eventId) const
 {
     if (auto* event = d->getEventWithFile(eventId))
     {
@@ -937,7 +937,7 @@ QUrl Room::urlToDownload(const QString& eventId)
     return {};
 }
 
-QString Room::fileNameToDownload(const QString& eventId)
+QString Room::fileNameToDownload(const QString& eventId) const
 {
     if (auto* event = d->getEventWithFile(eventId))
         return d->fileNameToDownload(event);
@@ -976,6 +976,21 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath())
     };
 #endif
+}
+
+QUrl Room::fileSource(const QString& id) const
+{
+    auto url = urlToDownload(id);
+    if (url.isValid())
+        return url;
+
+    // No urlToDownload means it's a pending or completed upload.
+    auto infoIt = d->fileTransfers.find(id);
+    if (infoIt != d->fileTransfers.end())
+        return QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
+
+    qCWarning(MAIN) << "File source for identifier" << id << "not found";
+    return {};
 }
 
 QString Room::prettyPrint(const QString& plainText) const

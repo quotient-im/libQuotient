@@ -342,10 +342,11 @@ namespace QMatrixClient
             /// Get the list of users this room is a direct chat with
             QList<User*> directChatUsers() const;
 
-            Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
-            Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
-            Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
+            Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
+            Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
+            Q_INVOKABLE QString fileNameToDownload(const QString& eventId) const;
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+            Q_INVOKABLE QUrl fileSource(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
              * As of now, it's exactly the same as QMatrixClient::prettyPrint();
