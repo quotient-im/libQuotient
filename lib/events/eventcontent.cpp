@@ -17,6 +17,8 @@
  */
 
 #include "eventcontent.h"
+
+#include "converters.h"
 #include "util.h"
 
 #include <QtCore/QMimeDatabase>
@@ -30,7 +32,7 @@ QJsonObject Base::toJson() const
     return o;
 }
 
-FileInfo::FileInfo(const QUrl& u, int payloadSize, const QMimeType& mimeType,
+FileInfo::FileInfo(const QUrl& u, qint64 payloadSize, const QMimeType& mimeType,
                    const QString& originalFilename)
     : mimeType(mimeType), url(u), payloadSize(payloadSize)
     , originalName(originalFilename)
@@ -41,7 +43,7 @@ FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
     : originalInfoJson(infoJson)
     , mimeType(QMimeDatabase().mimeTypeForName(infoJson["mimetype"_ls].toString()))
     , url(u)
-    , payloadSize(infoJson["size"_ls].toInt())
+    , payloadSize(fromJson<qint64>(infoJson["size"_ls]))
     , originalName(originalFilename)
 {
     if (!mimeType.isValid())
@@ -55,7 +57,7 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
     infoJson->insert(QStringLiteral("mimetype"), mimeType.name());
 }
 
-ImageInfo::ImageInfo(const QUrl& u, int fileSize, QMimeType mimeType,
+ImageInfo::ImageInfo(const QUrl& u, qint64 fileSize, QMimeType mimeType,
                      const QSize& imageSize)
     : FileInfo(u, fileSize, mimeType), imageSize(imageSize)
 { }

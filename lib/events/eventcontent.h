@@ -88,7 +88,7 @@ namespace QMatrixClient
         class FileInfo
         {
             public:
-                explicit FileInfo(const QUrl& u, int payloadSize = -1,
+                explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
                                   const QMimeType& mimeType = {},
                                   const QString& originalFilename = {});
                 FileInfo(const QUrl& u, const QJsonObject& infoJson,
@@ -109,7 +109,7 @@ namespace QMatrixClient
                 QJsonObject originalInfoJson;
                 QMimeType mimeType;
                 QUrl url;
-                int payloadSize;
+                qint64 payloadSize;
                 QString originalName;
         };
 
@@ -127,7 +127,7 @@ namespace QMatrixClient
         class ImageInfo : public FileInfo
         {
             public:
-                explicit ImageInfo(const QUrl& u, int fileSize = -1,
+                explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
                                    QMimeType mimeType = {},
                                    const QSize& imageSize = {});
                 ImageInfo(const QUrl& u, const QJsonObject& infoJson,
