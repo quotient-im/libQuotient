@@ -60,7 +60,7 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl localDir MEMBER localDir CONSTANT)
             Q_PROPERTY(QUrl localPath MEMBER localPath CONSTANT)
         public:
-            enum Status { None, Started, Completed, Failed };
+            enum Status { None, Started, Completed, Failed, Cancelled };
             Status status = None;
             bool isUpload = false;
             int progress = 0;

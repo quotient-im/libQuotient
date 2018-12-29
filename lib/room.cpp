@@ -1367,7 +1367,32 @@ QString Room::retryMessage(const QString& txnId)
             [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
     Q_ASSERT(it != d->unsyncedEvents.end());
     qDebug(EVENTS) << "Retrying transaction" << txnId;
-    // TODO: Support retrying uploads
+    const auto& transferIt = d->fileTransfers.find(txnId);
+    if (transferIt != d->fileTransfers.end())
+    {
+        Q_ASSERT(transferIt->isUpload);
+        if (transferIt->status == FileTransferInfo::Completed)
+        {
+            qCDebug(MAIN) << "File for transaction" << txnId
+                          << "has already been uploaded, bypassing re-upload";
+        } else {
+            if (isJobRunning(transferIt->job))
+            {
+                qCDebug(MAIN) << "Abandoning the upload job for transaction"
+                              << txnId << "and starting again";
+                transferIt->job->abandon();
+                emit fileTransferFailed(txnId, tr("File upload will be retried"));
+            }
+            uploadFile(txnId,
+                QUrl::fromLocalFile(transferIt->localFileInfo.absoluteFilePath()));
+            // FIXME: Content type is no more passed here but it should
+        }
+    }
+    if (it->deliveryStatus() == EventStatus::ReachedServer)
+    {
+        qCWarning(MAIN) << "The previous attempt has reached the server; two"
+                           " events are likely to be in the timeline after retry";
+    }
     it->resetStatus();
     return d->doSendEvent(it->event());
 }
@@ -1378,7 +1403,21 @@ void Room::discardMessage(const QString& txnId)
             [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
     Q_ASSERT(it != d->unsyncedEvents.end());
     qDebug(EVENTS) << "Discarding transaction" << txnId;
-    // TODO: Discard an ongoing upload if there is any
+    const auto& transferIt = d->fileTransfers.find(txnId);
+    if (transferIt != d->fileTransfers.end())
+    {
+        Q_ASSERT(transferIt->isUpload);
+        if (isJobRunning(transferIt->job))
+        {
+            transferIt->status = FileTransferInfo::Cancelled;
+            transferIt->job->abandon();
+            emit fileTransferFailed(txnId, tr("File upload cancelled"));
+        } else if (transferIt->status == FileTransferInfo::Completed)
+        {
+            qCWarning(MAIN) << "File for transaction" << txnId
+                            << "has been uploaded but the message was discarded";
+        }
+    }
     emit pendingEventAboutToDiscard(it - d->unsyncedEvents.begin());
     d->unsyncedEvents.erase(it);
     emit pendingEventDiscarded();
