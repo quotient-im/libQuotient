@@ -234,6 +234,8 @@ namespace QMatrixClient
 
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
             rev_iter_t findInTimeline(const QString& evtId) const;
+            PendingEvents::iterator findPendingEvent(const QString & txnId);
+            PendingEvents::const_iterator findPendingEvent(const QString & txnId) const;
 
             bool displayed() const;
             /// Mark the room as currently displayed to the user
@@ -374,7 +376,8 @@ namespace QMatrixClient
             QString postHtmlMessage(const QString& plainText,
                                     const QString& html, MessageEventType type);
             QString postHtmlText(const QString& plainText, const QString& html);
-            QString postFile(const QString& plainText, const QUrl& localPath);
+            QString postFile(const QString& plainText, const QUrl& localPath,
+                             bool asGenericFile = false);
             /** Post a pre-created room message event
              *
              * Takes ownership of the event, deleting it once the matching one

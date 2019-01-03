@@ -599,6 +599,19 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     return timelineEdge();
 }
 
+Room::PendingEvents::iterator Room::findPendingEvent(const QString& txnId)
+{
+    return std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
+            [txnId] (const auto& item) { return item->transactionId() == txnId; });
+}
+
+Room::PendingEvents::const_iterator
+Room::findPendingEvent(const QString& txnId) const
+{
+    return std::find_if(d->unsyncedEvents.cbegin(), d->unsyncedEvents.cend(),
+            [txnId] (const auto& item) { return item->transactionId() == txnId; });
+}
+
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
@@ -1363,8 +1376,7 @@ void Room::Private::onEventSendingFailure(const RoomEvent* pEvent,
 
 QString Room::retryMessage(const QString& txnId)
 {
-    auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
-            [txnId] (const auto& evt) { return evt->transactionId() == txnId; });
+    const auto it = findPendingEvent(txnId);
     Q_ASSERT(it != d->unsyncedEvents.end());
     qDebug(EVENTS) << "Retrying transaction" << txnId;
     const auto& transferIt = d->fileTransfers.find(txnId);
@@ -1418,7 +1430,7 @@ void Room::discardMessage(const QString& txnId)
                             << "has been uploaded but the message was discarded";
         }
     }
-    emit pendingEventAboutToDiscard(it - d->unsyncedEvents.begin());
+    emit pendingEventAboutToDiscard(int(it - d->unsyncedEvents.begin()));
     d->unsyncedEvents.erase(it);
     emit pendingEventDiscarded();
 }
@@ -1445,28 +1457,29 @@ QString Room::postHtmlText(const QString& plainText, const QString& html)
     return postHtmlMessage(plainText, html, MessageEventType::Text);
 }
 
-QString Room::postFile(const QString& plainText, const QUrl& localPath)
+QString Room::postFile(const QString& plainText, const QUrl& localPath,
+                       bool asGenericFile)
 {
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
-    // Remote URL will only be known after upload, see below.
-    auto* content = new EventContent::FileContent(QUrl(), localFile.size(),
-                            QMimeDatabase().mimeTypeForUrl(localPath));
-    // TODO: Set the msgtype based on MIME type
+    // Remote URL will only be known after upload; fill in the local path
+    // to enable the preview while the event is pending.
     auto* pEvent = d->addAsPending(
-                    makeEvent<RoomMessageEvent>(plainText, "m.file", content));
+            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile));
     const auto txnId = pEvent->transactionId();
     uploadFile(txnId, localPath);
-    QMetaObject::Connection c;
-    c = connect(this, &Room::fileTransferCompleted, this,
-            [c,this,pEvent,txnId] (const QString& id, QUrl, const QUrl& mxcUri) {
+    QMetaObject::Connection cCompleted, cCancelled;
+    cCompleted = connect(this, &Room::fileTransferCompleted, this,
+            [cCompleted,cCancelled,this,pEvent,txnId]
+            (const QString& id, QUrl, const QUrl& mxcUri) {
                 if (id == txnId)
                 {
                     auto it = d->findAsPending(pEvent);
                     if (it != d->unsyncedEvents.end())
                     {
                         it->setFileUploaded(mxcUri);
-                        emit pendingEventChanged(it - d->unsyncedEvents.begin());
+                        emit pendingEventChanged(
+                                    int(it - d->unsyncedEvents.begin()));
                         d->doSendEvent(pEvent);
                     } else {
                         // Normally in this situation we should instruct
@@ -1475,9 +1488,27 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath)
                         qCWarning(MAIN) << "File uploaded to" << mxcUri
                             << "but the event referring to it was cancelled";
                     }
-                    disconnect(c);
+                    disconnect(cCompleted);
+                    disconnect(cCancelled);
                 }
             });
+    cCancelled = connect(this, &Room::fileTransferCancelled, this,
+            [cCompleted,cCancelled,this,pEvent,txnId] (const QString& id) {
+                if (id == txnId)
+                {
+                    auto it = d->findAsPending(pEvent);
+                    if (it != d->unsyncedEvents.end())
+                    {
+                        emit pendingEventAboutToDiscard(
+                                    int(it - d->unsyncedEvents.begin()));
+                        d->unsyncedEvents.erase(it);
+                        emit pendingEventDiscarded();
+                    }
+                    disconnect(cCompleted);
+                    disconnect(cCancelled);
+                }
+            });
+
     return txnId;
 }
 
@@ -1659,8 +1690,8 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     if (ongoingTransfer != d->fileTransfers.end() &&
             ongoingTransfer->status == FileTransferInfo::Started)
     {
-        qCWarning(MAIN) << "Download for" << eventId
-                        << "already started; to restart, cancel it first";
+        qCWarning(MAIN) << "Transfer for" << eventId
+                        << "is ongoing; download won't start";
         return;
     }
 
@@ -1923,11 +1954,15 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             break;
 
         it = nextPending + 1;
-        emit q->pendingEventAboutToMerge(nextPending->get(),
-                    nextPendingPair.second - unsyncedEvents.begin());
+        auto* nextPendingEvt = nextPending->get();
+        emit q->pendingEventAboutToMerge(nextPendingEvt,
+                    int(nextPendingPair.second - unsyncedEvents.begin()));
         qDebug(EVENTS) << "Merging pending event from transaction"
-                       << (*nextPending)->transactionId() << "into"
-                       << (*nextPending)->id();
+                       << nextPendingEvt->transactionId() << "into"
+                       << nextPendingEvt->id();
+        auto transfer = fileTransfers.take(nextPendingEvt->transactionId());
+        if (transfer.status != FileTransferInfo::None)
+            fileTransfers.insert(nextPendingEvt->id(), transfer);
         unsyncedEvents.erase(nextPendingPair.second);
         if (auto insertedSize = moveEventsToTimeline({nextPending, it}, Newer))
         {
