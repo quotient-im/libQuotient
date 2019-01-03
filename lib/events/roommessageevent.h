@@ -122,7 +122,7 @@ namespace QMatrixClient
         {
             public:
                 LocationContent(const QString& geoUri,
-                                const ImageInfo& thumbnail);
+                                const Thumbnail& thumbnail = {});
                 explicit LocationContent(const QJsonObject& json);
 
                 QMimeType type() const override;
@@ -142,6 +142,7 @@ namespace QMatrixClient
         class PlayableContent : public ContentT
         {
             public:
+                using ContentT::ContentT;
                 PlayableContent(const QJsonObject& json)
                     : ContentT(json)
                     , duration(ContentT::originalInfoJson["duration"_ls].toInt())

@@ -200,7 +200,8 @@ void TextContent::fillJson(QJsonObject* json) const
     }
 }
 
-LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
+LocationContent::LocationContent(const QString& geoUri,
+                                 const Thumbnail& thumbnail)
     : geoUri(geoUri), thumbnail(thumbnail)
 { }
 
