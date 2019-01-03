@@ -21,6 +21,8 @@
 #include "roomevent.h"
 #include "eventcontent.h"
 
+class QFileInfo;
+
 namespace QMatrixClient
 {
     namespace MessageEventContent = EventContent; // Back-compatibility
@@ -49,6 +51,9 @@ namespace QMatrixClient
             explicit RoomMessageEvent(const QString& plainBody,
                                       MsgType msgType = MsgType::Text,
                                       EventContent::TypedBase* content = nullptr);
+            explicit RoomMessageEvent(const QString& plainBody,
+                                      const QFileInfo& file,
+                                      bool asGenericFile = false);
             explicit RoomMessageEvent(const QJsonObject& obj);
 
             MsgType msgtype() const;
@@ -67,6 +72,9 @@ namespace QMatrixClient
             bool hasTextContent() const;
             bool hasFileContent() const;
             bool hasThumbnail() const;
+
+            static QString rawMsgTypeForUrl(const QUrl& url);
+            static QString rawMsgTypeForFile(const QFileInfo& fi);
 
         private:
             QScopedPointer<EventContent::TypedBase> _content;

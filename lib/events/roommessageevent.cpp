@@ -21,6 +21,8 @@
 #include "logging.h"
 
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QFileInfo>
+#include <QtGui/QImageReader>
 
 using namespace QMatrixClient;
 using namespace EventContent;
@@ -95,6 +97,38 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
 { }
 
+TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
+{
+    auto filePath = file.absoluteFilePath();
+    auto localUrl = QUrl::fromLocalFile(filePath);
+    auto mimeType = QMimeDatabase().mimeTypeForFile(file);
+    auto payloadSize = file.size();
+    if (!asGenericFile)
+    {
+        auto mimeTypeName = mimeType.name();
+        if (mimeTypeName.startsWith("image/"))
+            return new ImageContent(localUrl, payloadSize, mimeType,
+                                    QImageReader(filePath).size());
+
+        // duration can only be obtained asynchronously and can only be reliably
+        // done by starting to play the file. Left for a future implementation.
+        if (mimeTypeName.startsWith("video/"))
+            return new VideoContent(localUrl, payloadSize, mimeType);
+
+        if (mimeTypeName.startsWith("audio/"))
+            return new AudioContent(localUrl, payloadSize, mimeType);
+
+    }
+    return new FileContent(localUrl, payloadSize, mimeType);
+}
+
+RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
+        const QFileInfo& file, bool asGenericFile)
+    : RoomMessageEvent(plainBody,
+        asGenericFile ? QStringLiteral("m.file") : rawMsgTypeForFile(file),
+        contentFromFile(file, asGenericFile))
+{ }
+
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj), _content(nullptr)
 {
@@ -160,6 +194,25 @@ bool RoomMessageEvent::hasFileContent() const
 bool RoomMessageEvent::hasThumbnail() const
 {
     return content() && content()->thumbnailInfo();
+}
+
+QString rawMsgTypeForMimeType(const QMimeType& mimeType)
+{
+    auto name = mimeType.name();
+    return name.startsWith("image/") ? QStringLiteral("m.image") :
+            name.startsWith("video/") ? QStringLiteral("m.video") :
+            name.startsWith("audio/") ? QStringLiteral("m.audio") :
+            QStringLiteral("m.file");
+}
+
+QString RoomMessageEvent::rawMsgTypeForUrl(const QUrl& url)
+{
+    return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForUrl(url));
+}
+
+QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
+{
+    return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForFile(fi));
 }
 
 TextContent::TextContent(const QString& text, const QString& contentType)
