@@ -150,7 +150,7 @@ set_property(TARGET QMatrixClient APPEND PROPERTY
 
 target_include_directories(QMatrixClient PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/QMatrixClient>
 )
 target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui)
 
@@ -163,9 +163,9 @@ configure_file(QMatrixClient.pc.in ${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient.pc 
 install(TARGETS QMatrixClient EXPORT QMatrixClientTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QMatrixClient
 )
-install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QMatrixClient
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
