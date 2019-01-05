@@ -60,8 +60,8 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
 }
 
 ImageInfo::ImageInfo(const QUrl& u, qint64 fileSize, QMimeType mimeType,
-                     const QSize& imageSize)
-    : FileInfo(u, fileSize, mimeType), imageSize(imageSize)
+                     const QSize& imageSize, const QString& originalFilename)
+    : FileInfo(u, fileSize, mimeType, originalFilename), imageSize(imageSize)
 { }
 
 ImageInfo::ImageInfo(const QUrl& u, const QJsonObject& infoJson,

@@ -129,7 +129,8 @@ namespace QMatrixClient
             public:
                 explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
                                    QMimeType mimeType = {},
-                                   const QSize& imageSize = {});
+                                   const QSize& imageSize = {},
+                                   const QString& originalFilename = {});
                 ImageInfo(const QUrl& u, const QJsonObject& infoJson,
                           const QString& originalFilename = {});
 
