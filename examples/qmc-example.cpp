@@ -32,7 +32,7 @@ class QMCTest : public QObject
             void addAndRemoveTag();
             void sendAndRedact();
                 void checkRedactionOutcome(const QString& evtIdToRedact,
-                                   RoomEventsRange events);
+                                           const QMetaObject::Connection& sc);
             void markDirectChat();
                 void checkDirectChatOutcome(
                         const Connection::DirectChatsMap& added);
@@ -250,70 +250,54 @@ void QMCTest::sendAndRedact()
 {
     running.push_back("Redaction");
     cout << "Sending a message to redact" << endl;
-    if (auto* job = targetRoom->connection()->sendMessage(targetRoom->id(),
-            RoomMessageEvent(origin % ": message to redact")))
+    auto txnId = targetRoom->postPlainText(origin % ": message to redact");
+    if (txnId.isEmpty())
     {
-        connect(job, &BaseJob::success, targetRoom, [job,this] {
-            cout << "Redacting the message" << endl;
-            targetRoom->redactEvent(job->eventId(), origin);
-            // Make sure to save the event id because the job is about to end.
-            connect(targetRoom, &Room::aboutToAddNewMessages, this,
-                    std::bind(&QMCTest::checkRedactionOutcome,
-                              this, job->eventId(), _1));
-        });
-    } else
         QMC_CHECK("Redaction", false);
+        return;
+    }
+    connect(targetRoom, &Room::messageSent, this,
+        [this,txnId] (const QString& tId, const QString& evtId) {
+            if (tId != txnId)
+                return;
+
+            cout << "Redacting the message" << endl;
+            targetRoom->redactEvent(evtId, origin);
+            QMetaObject::Connection sc;
+            sc = connect(targetRoom, &Room::addedMessages, this,
+                         [this,sc,evtId] { checkRedactionOutcome(evtId, sc); });
+        });
 }
 
 void QMCTest::checkRedactionOutcome(const QString& evtIdToRedact,
-                                    RoomEventsRange events)
+                                    const QMetaObject::Connection& sc)
 {
-    static bool checkSucceeded = false;
     // There are two possible (correct) outcomes: either the event comes already
     // redacted at the next sync, or the nearest sync completes with
     // the unredacted event but the next one brings redaction.
-    auto it = std::find_if(events.begin(), events.end(),
-                [=] (const RoomEventPtr& e) {
-                    return e->id() == evtIdToRedact;
-                });
-    if (it == events.end())
+    auto it = targetRoom->findInTimeline(evtIdToRedact);
+    if (it == targetRoom->timelineEdge())
         return; // Waiting for the next sync
 
     if ((*it)->isRedacted())
     {
-        if (checkSucceeded)
-        {
-            const auto msg =
-                    "The redacted event came in with the sync again, ignoring";
-            cout << msg << endl;
-            targetRoom->postPlainText(msg);
-            return;
-        }
         cout << "The sync brought already redacted message" << endl;
         QMC_CHECK("Redaction", true);
-        // Not disconnecting because there are other connections from this class
-        // to aboutToAddNewMessages
-        checkSucceeded = true;
+        disconnect(sc);
         return;
     }
-    // The event is not redacted
-    if (checkSucceeded)
-    {
-        const auto msg =
-                "Warning: the redacted event came non-redacted with the sync!";
-        cout << msg << endl;
-        targetRoom->postPlainText(msg);
-    }
-    cout << "Message came non-redacted with the sync, waiting for redaction" << endl;
-    connect(targetRoom, &Room::replacedEvent, targetRoom,
-        [=] (const RoomEvent* newEvent, const RoomEvent* oldEvent) {
-            QMC_CHECK("Redaction", oldEvent->id() == evtIdToRedact &&
-                      newEvent->isRedacted() &&
-                      newEvent->redactionReason() == origin);
-            checkSucceeded = true;
-            disconnect(targetRoom, &Room::replacedEvent, nullptr, nullptr);
+    cout << "Message came non-redacted with the sync, waiting for redaction"
+         << endl;
+    connect(targetRoom, &Room::replacedEvent, this,
+        [this,evtIdToRedact]
+        (const RoomEvent* newEvent, const RoomEvent* oldEvent) {
+            if (oldEvent->id() == evtIdToRedact)
+            {
+                QMC_CHECK("Redaction", newEvent->isRedacted() &&
+                                       newEvent->redactionReason() == origin);
+                disconnect(targetRoom, &Room::replacedEvent, nullptr, nullptr);
+            }
         });
-
 }
 
 void QMCTest::markDirectChat()
