@@ -21,6 +21,9 @@
 #include "logging.h"
 
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QFileInfo>
+#include <QtGui/QImageReader>
+#include <QtMultimedia/QMediaResource>
 
 using namespace QMatrixClient;
 using namespace EventContent;
@@ -71,8 +74,8 @@ MsgType jsonToMsgType(const QString& matrixType)
     return MsgType::Unknown;
 }
 
-inline QJsonObject toMsgJson(const QString& plainBody, const QString& jsonMsgType,
-                      TypedBase* content)
+QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
+                const QString& jsonMsgType, TypedBase* content)
 {
     auto json = content ? content->toJson() : QJsonObject();
     json.insert(QStringLiteral("msgtype"), jsonMsgType);
@@ -86,13 +89,47 @@ static const auto BodyKey = "body"_ls;
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
         const QString& jsonMsgType, TypedBase* content)
     : RoomEvent(typeId(), matrixTypeId(),
-                toMsgJson(plainBody, jsonMsgType, content))
+                assembleContentJson(plainBody, jsonMsgType, content))
     , _content(content)
 { }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                    MsgType msgType, TypedBase* content)
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
+{ }
+
+TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
+{
+    auto filePath = file.absoluteFilePath();
+    auto localUrl = QUrl::fromLocalFile(filePath);
+    auto mimeType = QMimeDatabase().mimeTypeForFile(file);
+    if (!asGenericFile)
+    {
+        auto mimeTypeName = mimeType.name();
+        if (mimeTypeName.startsWith("image/"))
+            return new ImageContent(localUrl, file.size(), mimeType,
+                                    QImageReader(filePath).size(),
+                                    file.fileName());
+
+        // duration can only be obtained asynchronously and can only be reliably
+        // done by starting to play the file. Left for a future implementation.
+        if (mimeTypeName.startsWith("video/"))
+            return new VideoContent(localUrl, file.size(), mimeType,
+                                    QMediaResource(localUrl).resolution(),
+                                    file.fileName());
+
+        if (mimeTypeName.startsWith("audio/"))
+            return new AudioContent(localUrl, file.size(), mimeType,
+                                    file.fileName());
+    }
+    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
+}
+
+RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
+        const QFileInfo& file, bool asGenericFile)
+    : RoomMessageEvent(plainBody,
+        asGenericFile ? QStringLiteral("m.file") : rawMsgTypeForFile(file),
+        contentFromFile(file, asGenericFile))
 { }
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
@@ -162,6 +199,25 @@ bool RoomMessageEvent::hasThumbnail() const
     return content() && content()->thumbnailInfo();
 }
 
+QString rawMsgTypeForMimeType(const QMimeType& mimeType)
+{
+    auto name = mimeType.name();
+    return name.startsWith("image/") ? QStringLiteral("m.image") :
+            name.startsWith("video/") ? QStringLiteral("m.video") :
+            name.startsWith("audio/") ? QStringLiteral("m.audio") :
+            QStringLiteral("m.file");
+}
+
+QString RoomMessageEvent::rawMsgTypeForUrl(const QUrl& url)
+{
+    return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForUrl(url));
+}
+
+QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
+{
+    return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForFile(fi));
+}
+
 TextContent::TextContent(const QString& text, const QString& contentType)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(text)
 {
@@ -200,7 +256,8 @@ void TextContent::fillJson(QJsonObject* json) const
     }
 }
 
-LocationContent::LocationContent(const QString& geoUri, const ImageInfo& thumbnail)
+LocationContent::LocationContent(const QString& geoUri,
+                                 const Thumbnail& thumbnail)
     : geoUri(geoUri), thumbnail(thumbnail)
 { }
 

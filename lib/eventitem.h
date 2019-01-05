@@ -33,16 +33,17 @@ namespace QMatrixClient
             /** Special marks an event can assume
              *
              * This is used to hint at a special status of some events in UI.
-             * Most status values are mutually exclusive.
+             * All values except Redacted and Hidden are mutually exclusive.
              */
             enum Code {
                 Normal = 0x0,         //< No special designation
                 Submitted = 0x01,     //< The event has just been submitted for sending
-                Departed = 0x02,      //< The event has left the client
-                ReachedServer = 0x03, //< The server has received the event
-                SendingFailed = 0x04, //< The server could not receive the event
+                FileUploaded = 0x02,  //< The file attached to the event has been uploaded to the server
+                Departed = 0x03,      //< The event has left the client
+                ReachedServer = 0x04, //< The server has received the event
+                SendingFailed = 0x05, //< The server could not receive the event
                 Redacted = 0x08,      //< The event has been redacted
-                Hidden = 0x10,        //< The event should be hidden
+                Hidden = 0x10,        //< The event should not be shown in the timeline
             };
             Q_DECLARE_FLAGS(Status, Code)
             Q_FLAG(Status)
@@ -70,6 +71,9 @@ namespace QMatrixClient
                 return std::exchange(evt, move(other));
             }
 
+        protected:
+            template <typename EventT>
+            EventT* getAs() { return eventCast<EventT>(evt); }
         private:
             RoomEventPtr evt;
     };
@@ -116,6 +120,7 @@ namespace QMatrixClient
             QString annotation() const { return _annotation; }
 
             void setDeparted() { setStatus(EventStatus::Departed); }
+            void setFileUploaded(const QUrl& remoteUrl);
             void setReachedServer(const QString& eventId)
             {
                 setStatus(EventStatus::ReachedServer);

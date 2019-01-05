@@ -402,10 +402,10 @@ namespace QMatrixClient
 
             // QIODevice* should already be open
             UploadContentJob* uploadContent(QIODevice* contentSource,
-                            const QString& filename = {},
-                            const QString& contentType = {}) const;
+                                const QString& filename = {},
+                                const QString& overrideContentType = {}) const;
             UploadContentJob* uploadFile(const QString& fileName,
-                                         const QString& contentType = {});
+                                const QString& overrideContentType = {});
             GetContentJob* getContent(const QString& mediaId) const;
             GetContentJob* getContent(const QUrl& url) const;
             // If localFilename is empty, a temporary file will be created

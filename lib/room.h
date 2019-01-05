@@ -42,10 +42,17 @@ namespace QMatrixClient
     class SetRoomStateWithKeyJob;
     class RedactEventJob;
 
+    /** The data structure used to expose file transfer information to views
+     *
+     * This is specifically tuned to work with QML exposing all traits as
+     * Q_PROPERTY values.
+     */
     class FileTransferInfo
     {
             Q_GADGET
+            Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
             Q_PROPERTY(bool active READ active CONSTANT)
+            Q_PROPERTY(bool started READ started CONSTANT)
             Q_PROPERTY(bool completed READ completed CONSTANT)
             Q_PROPERTY(bool failed READ failed CONSTANT)
             Q_PROPERTY(int progress MEMBER progress CONSTANT)
@@ -53,16 +60,17 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl localDir MEMBER localDir CONSTANT)
             Q_PROPERTY(QUrl localPath MEMBER localPath CONSTANT)
         public:
-            enum Status { None, Started, Completed, Failed };
+            enum Status { None, Started, Completed, Failed, Cancelled };
             Status status = None;
+            bool isUpload = false;
             int progress = 0;
             int total = -1;
             QUrl localDir { };
             QUrl localPath { };
 
-            bool active() const
-            { return status == Started || status == Completed; }
+            bool started() const { return status == Started; }
             bool completed() const { return status == Completed; }
+            bool active() const { return started() || completed(); }
             bool failed() const { return status == Failed; }
     };
 
@@ -226,6 +234,8 @@ namespace QMatrixClient
 
             rev_iter_t findInTimeline(TimelineItem::index_t index) const;
             rev_iter_t findInTimeline(const QString& evtId) const;
+            PendingEvents::iterator findPendingEvent(const QString & txnId);
+            PendingEvents::const_iterator findPendingEvent(const QString & txnId) const;
 
             bool displayed() const;
             /// Mark the room as currently displayed to the user
@@ -334,10 +344,11 @@ namespace QMatrixClient
             /// Get the list of users this room is a direct chat with
             QList<User*> directChatUsers() const;
 
-            Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId);
-            Q_INVOKABLE QUrl urlToDownload(const QString& eventId);
-            Q_INVOKABLE QString fileNameToDownload(const QString& eventId);
+            Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
+            Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
+            Q_INVOKABLE QString fileNameToDownload(const QString& eventId) const;
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+            Q_INVOKABLE QUrl fileSource(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
              * As of now, it's exactly the same as QMatrixClient::prettyPrint();
@@ -365,6 +376,8 @@ namespace QMatrixClient
             QString postHtmlMessage(const QString& plainText,
                                     const QString& html, MessageEventType type);
             QString postHtmlText(const QString& plainText, const QString& html);
+            QString postFile(const QString& plainText, const QUrl& localPath,
+                             bool asGenericFile = false);
             /** Post a pre-created room message event
              *
              * Takes ownership of the event, deleting it once the matching one

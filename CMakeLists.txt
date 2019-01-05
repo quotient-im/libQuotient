@@ -40,7 +40,9 @@ foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu
     endif ()
 endforeach ()
 
-find_package(Qt5 5.4.1 REQUIRED Network Gui)
+# Qt 5.6+ is the formal requirement but for the sake of supporting UBPorts
+# upstream Qt 5.4 is required.
+find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if (GTAD_PATH)
@@ -140,7 +142,7 @@ add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_job_SRCS} ${libqmatrixclient_csdef_SRCS}
             ${libqmatrixclient_cswellknown_SRCS}
             ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
-set(API_VERSION "0.4")
+set(API_VERSION "0.5")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY
@@ -152,7 +154,7 @@ target_include_directories(QMatrixClient PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui)
+target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core QMatrixClient)

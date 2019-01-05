@@ -9,6 +9,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
+#include <QtCore/QTemporaryFile>
+#include <QtCore/QFileInfo>
 #include <iostream>
 #include <functional>
 
@@ -20,7 +22,7 @@ using namespace std::placeholders;
 class QMCTest : public QObject
 {
     public:
-        QMCTest(Connection* conn, QString targetRoomName, QString source);
+        QMCTest(Connection* conn, QString testRoomName, QString source);
 
     private slots:
         void setupAndRun();
@@ -29,6 +31,9 @@ class QMCTest : public QObject
         void doTests();
             void loadMembers();
             void sendMessage();
+            void sendFile();
+                void checkFileSendingOutcome(const QString& txnId,
+                                             const QString& fileName);
             void addAndRemoveTag();
             void sendAndRedact();
                 void checkRedactionOutcome(const QString& evtIdToRedact,
@@ -47,6 +52,8 @@ class QMCTest : public QObject
         QString origin;
         QString targetRoomName;
         Room* targetRoom = nullptr;
+
+        bool validatePendingEvent(const QString& txnId);
 };
 
 #define QMC_CHECK(description, condition) \
@@ -67,6 +74,14 @@ class QMCTest : public QObject
             targetRoom->postPlainText( \
                 origin % ": " % (description) % " FAILED"); \
     } \
+}
+
+bool QMCTest::validatePendingEvent(const QString& txnId)
+{
+    auto it = targetRoom->findPendingEvent(txnId);
+    return it != targetRoom->pendingEvents().end() &&
+            it->deliveryStatus() == EventStatus::Submitted &&
+            (*it)->transactionId() == txnId;
 }
 
 QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
@@ -142,7 +157,8 @@ void QMCTest::run()
         {
             // TODO: Waiting for proper futures to come so that it could be:
 //            targetRoom->postPlainText(origin % ": All tests finished")
-//            .then(this, &QMCTest::leave);
+//            .then(this, &QMCTest::leave); // Qt-style
+//            .then([this] { leave(); }); // STL-style
             auto txnId =
                     targetRoom->postPlainText(origin % ": All tests finished");
             connect(targetRoom, &Room::messageSent, this,
@@ -166,6 +182,7 @@ void QMCTest::doTests()
         return;
 
     sendMessage();
+    sendFile();
     addAndRemoveTag();
     sendAndRedact();
     markDirectChat();
@@ -206,19 +223,133 @@ void QMCTest::sendMessage()
     running.push_back("Message sending");
     cout << "Sending a message" << endl;
     auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
-    auto& pending = targetRoom->pendingEvents();
-    if (pending.empty())
+    if (!validatePendingEvent(txnId))
     {
+        cout << "Invalid pending event right after submitting" << endl;
         QMC_CHECK("Message sending", false);
         return;
     }
-    auto it = std::find_if(pending.begin(), pending.end(),
-                [&txnId] (const auto& e) {
-                    return e->transactionId() == txnId;
+
+    QMetaObject::Connection sc;
+    sc = connect(targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this,sc,txnId] (const RoomEvent* evt, int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
+
+            if (evt->transactionId() != txnId)
+                return;
+
+            disconnect(sc);
+
+            QMC_CHECK("Message sending",
+                is<RoomMessageEvent>(*evt) && !evt->id().isEmpty() &&
+                pendingEvents[size_t(pendingIdx)]->transactionId()
+                    == evt->transactionId());
+        });
+}
+
+void QMCTest::sendFile()
+{
+    running.push_back("File sending");
+    cout << "Sending a file" << endl;
+    auto* tf = new QTemporaryFile;
+    if (!tf->open())
+    {
+        cout << "Failed to create a temporary file" << endl;
+        QMC_CHECK("File sending", false);
+        return;
+    }
+    tf->write("Test");
+    tf->close();
+    // QFileInfo::fileName brings only the file name; QFile::fileName brings
+    // the full path
+    const auto tfName = QFileInfo(*tf).fileName();
+    cout << "Sending file" << tfName.toStdString() << endl;
+    const auto txnId = targetRoom->postFile("Test file",
+                                            QUrl::fromLocalFile(tf->fileName()));
+    if (!validatePendingEvent(txnId))
+    {
+        cout << "Invalid pending event right after submitting" << endl;
+        QMC_CHECK("File sending", false);
+        delete tf;
+        return;
+    }
+
+    QMetaObject::Connection scCompleted, scFailed;
+    scCompleted = connect(targetRoom, &Room::fileTransferCompleted, this,
+        [this,txnId,tf,tfName,scCompleted,scFailed] (const QString& id) {
+            auto fti = targetRoom->fileTransferInfo(id);
+            Q_ASSERT(fti.status == FileTransferInfo::Completed);
+
+            if (id != txnId)
+                return;
+
+            disconnect(scCompleted);
+            disconnect(scFailed);
+            delete tf;
+
+            checkFileSendingOutcome(txnId, tfName);
+        });
+    scFailed = connect(targetRoom, &Room::fileTransferFailed, this,
+        [this,txnId,tf,scCompleted,scFailed]
+        (const QString& id, const QString& error) {
+            if (id != txnId)
+                return;
+
+            targetRoom->postPlainText(origin % ": File upload failed: " % error);
+            disconnect(scCompleted);
+            disconnect(scFailed);
+            delete tf;
+
+            QMC_CHECK("File sending", false);
+        });
+}
+
+void QMCTest::checkFileSendingOutcome(const QString& txnId,
+                                      const QString& fileName)
+{
+    auto it = targetRoom->findPendingEvent(txnId);
+    if (it == targetRoom->pendingEvents().end())
+    {
+        cout << "Pending file event dropped before upload completion"
+             << endl;
+        QMC_CHECK("File sending", false);
+        return;
+    }
+    if (it->deliveryStatus() != EventStatus::FileUploaded)
+    {
+        cout << "Pending file event status upon upload completion is "
+             << it->deliveryStatus() << " != FileUploaded("
+             << EventStatus::FileUploaded << ')' << endl;
+        QMC_CHECK("File sending", false);
+        return;
+    }
+
+    QMetaObject::Connection sc;
+    sc = connect(targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this,sc,txnId,fileName] (const RoomEvent* evt, int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
+
+            if (evt->transactionId() != txnId)
+                return;
+
+            cout << "Event " << txnId.toStdString()
+                 << " arrived in the timeline" << endl;
+            disconnect(sc);
+            visit(*evt,
+                [&] (const RoomMessageEvent& e) {
+                    QMC_CHECK("File sending",
+                        !e.id().isEmpty() &&
+                        pendingEvents[size_t(pendingIdx)]
+                            ->transactionId() == txnId &&
+                        e.hasFileContent() &&
+                        e.content()->fileInfo()->originalName == fileName);
+                },
+                [this] (const RoomEvent&) {
+                    QMC_CHECK("File sending", false);
                 });
-    QMC_CHECK("Message sending", it != pending.end());
-    // TODO: Wait when it actually gets sent; check that it obtained an id
-    // Independently, check when it shows up in the timeline.
+        });
 }
 
 void QMCTest::addAndRemoveTag()

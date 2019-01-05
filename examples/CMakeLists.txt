@@ -45,7 +45,7 @@ foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu
     endif ()
 endforeach ()
 
-find_package(Qt5 5.6 REQUIRED Network Gui)
+find_package(Qt5 5.6 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 find_package(QMatrixClient REQUIRED)

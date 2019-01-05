@@ -1,4 +1,4 @@
-QT += network
+QT += network multimedia
 CONFIG += c++14 warn_on rtti_off create_prl object_parallel_to_source
 
 win32-msvc* {

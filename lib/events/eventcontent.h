@@ -88,7 +88,7 @@ namespace QMatrixClient
         class FileInfo
         {
             public:
-                explicit FileInfo(const QUrl& u, int payloadSize = -1,
+                explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
                                   const QMimeType& mimeType = {},
                                   const QString& originalFilename = {});
                 FileInfo(const QUrl& u, const QJsonObject& infoJson,
@@ -109,7 +109,7 @@ namespace QMatrixClient
                 QJsonObject originalInfoJson;
                 QMimeType mimeType;
                 QUrl url;
-                int payloadSize;
+                qint64 payloadSize;
                 QString originalName;
         };
 
@@ -127,9 +127,10 @@ namespace QMatrixClient
         class ImageInfo : public FileInfo
         {
             public:
-                explicit ImageInfo(const QUrl& u, int fileSize = -1,
+                explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
                                    QMimeType mimeType = {},
-                                   const QSize& imageSize = {});
+                                   const QSize& imageSize = {},
+                                   const QString& originalFilename = {});
                 ImageInfo(const QUrl& u, const QJsonObject& infoJson,
                           const QString& originalFilename = {});
 
@@ -167,6 +168,7 @@ namespace QMatrixClient
                 explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
                 virtual QMimeType type() const = 0;
                 virtual const FileInfo* fileInfo() const { return nullptr; }
+                virtual FileInfo* fileInfo() { return nullptr; }
                 virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
         };
 
@@ -196,6 +198,7 @@ namespace QMatrixClient
 
                 QMimeType type() const override { return InfoT::mimeType; }
                 const FileInfo* fileInfo() const override { return this; }
+                FileInfo* fileInfo() override { return this; }
 
             protected:
                 void fillJson(QJsonObject* json) const override

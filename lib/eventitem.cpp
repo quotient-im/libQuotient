@@ -17,3 +17,29 @@
  */
 
 #include "eventitem.h"
+
+#include "events/roommessageevent.h"
+#include "events/roomavatarevent.h"
+
+using namespace QMatrixClient;
+
+void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
+{
+    // TODO: eventually we might introduce hasFileContent to RoomEvent,
+    // and unify the code below.
+    if (auto* rme = getAs<RoomMessageEvent>())
+    {
+        Q_ASSERT(rme->hasFileContent());
+        rme->editContent([remoteUrl] (EventContent::TypedBase& ec) {
+            ec.fileInfo()->url = remoteUrl;
+        });
+    }
+    if (auto* rae = getAs<RoomAvatarEvent>())
+    {
+        Q_ASSERT(rae->content().fileInfo());
+        rae->editContent([remoteUrl] (EventContent::FileInfo& fi) {
+            fi.url = remoteUrl;
+        });
+    }
+    setStatus(EventStatus::FileUploaded);
+}

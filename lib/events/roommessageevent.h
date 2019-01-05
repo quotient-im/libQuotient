@@ -21,6 +21,8 @@
 #include "roomevent.h"
 #include "eventcontent.h"
 
+class QFileInfo;
+
 namespace QMatrixClient
 {
     namespace MessageEventContent = EventContent; // Back-compatibility
@@ -49,6 +51,9 @@ namespace QMatrixClient
             explicit RoomMessageEvent(const QString& plainBody,
                                       MsgType msgType = MsgType::Text,
                                       EventContent::TypedBase* content = nullptr);
+            explicit RoomMessageEvent(const QString& plainBody,
+                                      const QFileInfo& file,
+                                      bool asGenericFile = false);
             explicit RoomMessageEvent(const QJsonObject& obj);
 
             MsgType msgtype() const;
@@ -56,13 +61,26 @@ namespace QMatrixClient
             QString plainBody() const;
             EventContent::TypedBase* content() const
                                              { return _content.data(); }
+            template <typename VisitorT>
+            void editContent(VisitorT visitor)
+            {
+                visitor(*_content);
+                editJson()[ContentKeyL] =
+                    assembleContentJson(plainBody(), rawMsgtype(), content());
+            }
             QMimeType mimeType() const;
             bool hasTextContent() const;
             bool hasFileContent() const;
             bool hasThumbnail() const;
 
+            static QString rawMsgTypeForUrl(const QUrl& url);
+            static QString rawMsgTypeForFile(const QFileInfo& fi);
+
         private:
             QScopedPointer<EventContent::TypedBase> _content;
+
+            static QJsonObject assembleContentJson(const QString& plainBody,
+                const QString& jsonMsgType, EventContent::TypedBase* content);
 
             REGISTER_ENUM(MsgType)
     };
@@ -112,7 +130,7 @@ namespace QMatrixClient
         {
             public:
                 LocationContent(const QString& geoUri,
-                                const ImageInfo& thumbnail);
+                                const Thumbnail& thumbnail = {});
                 explicit LocationContent(const QJsonObject& json);
 
                 QMimeType type() const override;
@@ -132,6 +150,7 @@ namespace QMatrixClient
         class PlayableContent : public ContentT
         {
             public:
+                using ContentT::ContentT;
                 PlayableContent(const QJsonObject& json)
                     : ContentT(json)
                     , duration(ContentT::originalInfoJson["duration"_ls].toInt())
