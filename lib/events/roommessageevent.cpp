@@ -23,6 +23,7 @@
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QFileInfo>
 #include <QtGui/QImageReader>
+#include <QtMultimedia/QMediaResource>
 
 using namespace QMatrixClient;
 using namespace EventContent;
@@ -102,24 +103,26 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
     auto filePath = file.absoluteFilePath();
     auto localUrl = QUrl::fromLocalFile(filePath);
     auto mimeType = QMimeDatabase().mimeTypeForFile(file);
-    auto payloadSize = file.size();
     if (!asGenericFile)
     {
         auto mimeTypeName = mimeType.name();
         if (mimeTypeName.startsWith("image/"))
-            return new ImageContent(localUrl, payloadSize, mimeType,
-                                    QImageReader(filePath).size());
+            return new ImageContent(localUrl, file.size(), mimeType,
+                                    QImageReader(filePath).size(),
+                                    file.fileName());
 
         // duration can only be obtained asynchronously and can only be reliably
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
-            return new VideoContent(localUrl, payloadSize, mimeType);
+            return new VideoContent(localUrl, file.size(), mimeType,
+                                    QMediaResource(localUrl).resolution(),
+                                    file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
-            return new AudioContent(localUrl, payloadSize, mimeType);
-
+            return new AudioContent(localUrl, file.size(), mimeType,
+                                    file.fileName());
     }
-    return new FileContent(localUrl, payloadSize, mimeType);
+    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
