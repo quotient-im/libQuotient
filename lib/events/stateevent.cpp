@@ -20,8 +20,19 @@
 
 using namespace QMatrixClient;
 
+// Aside from the normal factory to instantiate StateEventBase inheritors
+// StateEventBase itself can be instantiated if there's a state_key JSON key
+// but the event type is unknown.
 [[gnu::unused]] static auto stateEventTypeInitialised =
-        RoomEvent::factory_t::chainFactory<StateEventBase>();
+    RoomEvent::factory_t::addMethod(
+        [] (const QJsonObject& json, const QString& matrixType)
+        {
+            if (auto e = StateEventBase::factory_t::make(json, matrixType))
+                return e;
+            return json.contains("state_key")
+                   ? makeEvent<StateEventBase>(unknownEventTypeId(), json)
+                   : nullptr;
+        });
 
 bool StateEventBase::repeatsState() const
 {

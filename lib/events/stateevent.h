@@ -38,6 +38,9 @@ namespace QMatrixClient {
     using StateEventPtr = event_ptr_tt<StateEventBase>;
     using StateEvents = EventsArray<StateEventBase>;
 
+    template <>
+    inline bool is<StateEventBase>(const Event& e) { return e.isStateEvent(); }
+
     /**
      * A combination of event type and state key uniquely identifies a piece
      * of state in Matrix.
