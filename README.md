@@ -1,12 +1,15 @@
 # libQMatrixClient
 
+<a href='https://matrix.org'><img src='https://matrix.org/docs/projects/images/made-for-matrix.png' alt='Made for Matrix' height=64 target=_blank /></a>
+
 [![license](https://img.shields.io/github/license/QMatrixClient/libqmatrixclient.svg)](https://github.com/QMatrixClient/libqmatrixclient/blob/master/COPYING)
 ![status](https://img.shields.io/badge/status-beta-yellow.svg)
 [![release](https://img.shields.io/github/release/QMatrixClient/libqmatrixclient/all.svg)](https://github.com/QMatrixClient/libqmatrixclient/releases/latest)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1023/badge)](https://bestpractices.coreinfrastructure.org/projects/1023)
+[![](https://img.shields.io/cii/percentage/1023.svg)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
+![](https://img.shields.io/github/commit-activity/y/QMatrixClient/libQMatrixClient.svg)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-libQMatrixClient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Tensor](https://matrix.org/docs/projects/client/tensor.html) and some other projects.
+libQMatrixClient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Spectral](https://matrix.org/docs/projects/client/spectral.html) and some other projects.
 
 ## Contacts
 You can find authors of libQMatrixClient in the Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
