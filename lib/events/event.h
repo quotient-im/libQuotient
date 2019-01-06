@@ -208,6 +208,9 @@ namespace QMatrixClient
     template <typename EventT>
     inline auto registerEventType()
     {
+        // Initialise exactly once, even if this function is called twice for
+        // the same type (for whatever reason - you never know the ways of
+        // static initialisation is done).
         static const auto _ = setupFactory<EventT>();
         return _; // Only to facilitate usage in static initialisation
     }
@@ -337,7 +340,8 @@ namespace QMatrixClient
         -> decltype(static_cast<EventT*>(&*eptr))
     {
         Q_ASSERT(eptr);
-        return is<EventT>(*eptr) ? static_cast<EventT*>(&*eptr) : nullptr;
+        return is<std::decay_t<EventT>>(*eptr)
+               ? static_cast<EventT*>(&*eptr) : nullptr;
     }
 
     // A single generic catch-all visitor
@@ -369,7 +373,7 @@ namespace QMatrixClient
     visit(const BaseEventT& event, FnT&& visitor)
     {
         using event_type = fn_arg_t<FnT>;
-        if (is<event_type>(event))
+        if (is<std::decay_t<event_type>>(event))
             visitor(static_cast<event_type>(event));
     }
 
@@ -383,7 +387,7 @@ namespace QMatrixClient
           fn_return_t<FnT>&& defaultValue = {})
     {
         using event_type = fn_arg_t<FnT>;
-        if (is<event_type>(event))
+        if (is<std::decay_t<event_type>>(event))
             return visitor(static_cast<event_type>(event));
         return std::forward<fn_return_t<FnT>>(defaultValue);
     }
@@ -396,7 +400,7 @@ namespace QMatrixClient
           FnTs&&... visitors)
     {
         using event_type1 = fn_arg_t<FnT1>;
-        if (is<event_type1>(event))
+        if (is<std::decay_t<event_type1>>(event))
             return visitor1(static_cast<event_type1&>(event));
         return visit(event, std::forward<FnT2>(visitor2),
                      std::forward<FnTs>(visitors)...);
