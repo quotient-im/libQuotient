@@ -21,7 +21,17 @@
 using namespace QMatrixClient;
 
 [[gnu::unused]] static auto stateEventTypeInitialised =
-        RoomEvent::factory_t::chainFactory<StateEventBase>();
+    RoomEvent::factory_t::addMethod(
+        [] (const QJsonObject& json, const QString& matrixType) -> StateEventPtr
+        {
+            if (!json.contains("state_key"))
+                return nullptr;
+
+            if (auto e = StateEventBase::factory_t::make(json, matrixType))
+                return e;
+
+            return nullptr;
+        });
 
 bool StateEventBase::repeatsState() const
 {
