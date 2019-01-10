@@ -36,8 +36,7 @@ class QMCTest : public QObject
                                              const QString& fileName);
             void addAndRemoveTag();
             void sendAndRedact();
-                void checkRedactionOutcome(const QString& evtIdToRedact,
-                                           const QMetaObject::Connection& sc);
+                bool checkRedactionOutcome(const QString& evtIdToRedact);
             void markDirectChat();
                 void checkDirectChatOutcome(
                         const Connection::DirectChatsMap& added);
@@ -216,21 +215,19 @@ void QMCTest::sendMessage()
         return;
     }
 
-    QMetaObject::Connection sc;
-    sc = connect(targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this,sc,txnId] (const RoomEvent* evt, int pendingIdx) {
+    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this,txnId] (const RoomEvent* evt, int pendingIdx) {
             const auto& pendingEvents = targetRoom->pendingEvents();
             Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
             if (evt->transactionId() != txnId)
-                return;
-
-            disconnect(sc);
+                return false;
 
             QMC_CHECK("Message sending",
                 is<RoomMessageEvent>(*evt) && !evt->id().isEmpty() &&
                 pendingEvents[size_t(pendingIdx)]->transactionId()
                     == evt->transactionId());
+            return true;
         });
 }
 
@@ -261,30 +258,26 @@ void QMCTest::sendFile()
         return;
     }
 
-    QMetaObject::Connection scCompleted, scFailed;
-    scCompleted = connect(targetRoom, &Room::fileTransferCompleted, this,
-        [this,txnId,tf,tfName,scCompleted,scFailed] (const QString& id) {
+    // FIXME: Clean away connections (connectUntil doesn't help here).
+    connect(targetRoom, &Room::fileTransferCompleted, this,
+        [this,txnId,tf,tfName] (const QString& id) {
             auto fti = targetRoom->fileTransferInfo(id);
             Q_ASSERT(fti.status == FileTransferInfo::Completed);
 
             if (id != txnId)
                 return;
 
-            disconnect(scCompleted);
-            disconnect(scFailed);
             delete tf;
 
             checkFileSendingOutcome(txnId, tfName);
         });
-    scFailed = connect(targetRoom, &Room::fileTransferFailed, this,
-        [this,txnId,tf,scCompleted,scFailed]
+    connect(targetRoom, &Room::fileTransferFailed, this,
+        [this,txnId,tf]
         (const QString& id, const QString& error) {
             if (id != txnId)
                 return;
 
             targetRoom->postPlainText(origin % ": File upload failed: " % error);
-            disconnect(scCompleted);
-            disconnect(scFailed);
             delete tf;
 
             QMC_CHECK("File sending", false);
@@ -311,18 +304,16 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
         return;
     }
 
-    QMetaObject::Connection sc;
-    sc = connect(targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this,sc,txnId,fileName] (const RoomEvent* evt, int pendingIdx) {
+    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this,txnId,fileName] (const RoomEvent* evt, int pendingIdx) {
             const auto& pendingEvents = targetRoom->pendingEvents();
             Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
             if (evt->transactionId() != txnId)
-                return;
+                return false;
 
-            cout << "Event " << txnId.toStdString()
+            cout << "File event " << txnId.toStdString()
                  << " arrived in the timeline" << endl;
-            disconnect(sc);
             visit(*evt,
                 [&] (const RoomMessageEvent& e) {
                     QMC_CHECK("File sending",
@@ -335,6 +326,7 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
                 [this] (const RoomEvent&) {
                     QMC_CHECK("File sending", false);
                 });
+            return true;
         });
 }
 
@@ -356,7 +348,7 @@ void QMCTest::addAndRemoveTag()
             cout << "Test tag set, removing it now" << endl;
             targetRoom->removeTag(TestTag);
             QMC_CHECK("Tagging test", !targetRoom->tags().contains(TestTag));
-            QObject::disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
+            disconnect(targetRoom, &Room::tagsChanged, nullptr, nullptr);
         }
     });
     cout << "Adding a tag" << endl;
@@ -380,41 +372,40 @@ void QMCTest::sendAndRedact()
 
             cout << "Redacting the message" << endl;
             targetRoom->redactEvent(evtId, origin);
-            QMetaObject::Connection sc;
-            sc = connect(targetRoom, &Room::addedMessages, this,
-                         [this,sc,evtId] { checkRedactionOutcome(evtId, sc); });
+
+            connectUntil(targetRoom, &Room::addedMessages, this,
+                [this,evtId] { return checkRedactionOutcome(evtId); });
         });
 }
 
-void QMCTest::checkRedactionOutcome(const QString& evtIdToRedact,
-                                    const QMetaObject::Connection& sc)
+bool QMCTest::checkRedactionOutcome(const QString& evtIdToRedact)
 {
     // There are two possible (correct) outcomes: either the event comes already
     // redacted at the next sync, or the nearest sync completes with
     // the unredacted event but the next one brings redaction.
     auto it = targetRoom->findInTimeline(evtIdToRedact);
     if (it == targetRoom->timelineEdge())
-        return; // Waiting for the next sync
+        return false; // Waiting for the next sync
 
     if ((*it)->isRedacted())
     {
         cout << "The sync brought already redacted message" << endl;
         QMC_CHECK("Redaction", true);
-        disconnect(sc);
-        return;
-    }
-    cout << "Message came non-redacted with the sync, waiting for redaction"
-         << endl;
-    connect(targetRoom, &Room::replacedEvent, this,
-        [this,evtIdToRedact]
-        (const RoomEvent* newEvent, const RoomEvent* oldEvent) {
-            if (oldEvent->id() == evtIdToRedact)
-            {
+    } else {
+        cout << "Message came non-redacted with the sync, waiting for redaction"
+             << endl;
+        connectUntil(targetRoom, &Room::replacedEvent, this,
+            [this,evtIdToRedact]
+            (const RoomEvent* newEvent, const RoomEvent* oldEvent) {
+                if (oldEvent->id() != evtIdToRedact)
+                    return false;
+
                 QMC_CHECK("Redaction", newEvent->isRedacted() &&
                                        newEvent->redactionReason() == origin);
-                disconnect(targetRoom, &Room::replacedEvent, nullptr, nullptr);
-            }
-        });
+                return true;
+            });
+    }
+    return true;
 }
 
 void QMCTest::markDirectChat()
