@@ -63,6 +63,7 @@ You can install the library with CMake:
 cmake --build . --target install
 ```
 This will also install cmake package config files; once this is done, you can use `examples/CMakeLists.txt` to compile the example with the _installed_ library. This file is a good starting point for your own CMake-based project using libQMatrixClient.
+Installation of `qmc-example` application can be skipped by setting `QMATRIXCLIENT_INSTALL_EXAMPLE` to `OFF`.
 
 #### qmake-based
 The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `qmc-example.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:

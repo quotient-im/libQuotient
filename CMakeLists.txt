@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 
 project(qmatrixclient CXX)
 
+option(QMATRIXCLIENT_INSTALL_EXAMPLE "install qmc-example application" ON)
+
 include(CheckCXXCompilerFlag)
 if (NOT WIN32)
     include(GNUInstallDirs)
@@ -200,7 +202,9 @@ if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
 
-install(TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if (QMATRIXCLIENT_INSTALL_EXAMPLE)
+    install(TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif (QMATRIXCLIENT_INSTALL_EXAMPLE)
 
 if (UNIX AND NOT APPLE)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
