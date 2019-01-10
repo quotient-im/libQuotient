@@ -5,6 +5,7 @@
 #include "csapi/room_send.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
+#include "events/simplestateevents.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
@@ -27,6 +28,7 @@ class QMCTest : public QObject
         void onNewRoom(Room* r);
         void startTests();
             void sendMessage();
+            void setTopic();
             void addAndRemoveTag();
             void sendAndRedact();
                 void checkRedactionOutcome(const QString& evtIdToRedact,
@@ -143,6 +145,7 @@ void QMCTest::startTests()
 {
     cout << "Starting tests" << endl;
     sendMessage();
+    setTopic();
     addAndRemoveTag();
     sendAndRedact();
     markDirectChat();
@@ -166,6 +169,49 @@ void QMCTest::sendMessage()
     QMC_CHECK("Message sending", it != pending.end());
     // TODO: Wait when it actually gets sent; check that it obtained an id
     // Independently, check when it shows up in the timeline.
+}
+
+void QMCTest::setTopic()
+{
+    running.push_back("State setting test");
+    running.push_back("Fake state event immunity test");
+    auto initialTopic = targetRoom->topic();
+
+    const auto newTopic = c->generateTxnId();
+    targetRoom->setTopic(newTopic); // Sets the state by proper means
+    const auto fakeTopic = c->generateTxnId();
+    targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
+                         RoomTopicEvent(fakeTopic).contentJson());
+
+    {
+        auto* context = new QObject;
+        connect(targetRoom, &Room::topicChanged, context,
+            [this,newTopic,fakeTopic,initialTopic,context] {
+                if (targetRoom->topic() == newTopic)
+                {
+                    QMC_CHECK("State setting test", true);
+                    // Don't reset the topic yet if the negative test still runs
+                    if (!running.contains("Fake state event immunity test"))
+                        targetRoom->setTopic(initialTopic);
+
+                    context->deleteLater();
+                }
+            });
+    }
+
+    {
+        auto* context = new QObject;
+        connect(targetRoom, &Room::pendingEventAboutToMerge, context,
+            [this,fakeTopic,initialTopic,context] (const RoomEvent* e, int) {
+                if (e->contentJson().value("topic").toString() != fakeTopic)
+                    return; // Wait on for the right event
+
+                QMC_CHECK("Fake state event immunity test", !e->isStateEvent());
+                if (!running.contains("State setting test"))
+                    targetRoom->setTopic(initialTopic);
+                context->deleteLater();
+            });
+    }
 }
 
 void QMCTest::addAndRemoveTag()
