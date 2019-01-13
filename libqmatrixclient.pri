@@ -19,6 +19,7 @@ HEADERS += \
     $$SRCPATH/avatar.h \
     $$SRCPATH/syncdata.h \
     $$SRCPATH/util.h \
+    $$SRCPATH/qt_connection_util.h \
     $$SRCPATH/events/event.h \
     $$SRCPATH/events/roomevent.h \
     $$SRCPATH/events/stateevent.h \

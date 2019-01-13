@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <QtCore/QPointer>
-#if (QT_VERSION < QT_VERSION_CHECK(5, 5, 0))
+#include <QtCore/QLatin1String>
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
 #include <QtCore/QMetaEnum>
 #include <QtCore/QDebug>
 #endif
@@ -166,6 +167,7 @@ namespace QMatrixClient
         static constexpr auto is_callable = true;
         using return_type = ReturnT;
         using arg_types = std::tuple<ArgTs...>;
+        using function_type = std::function<ReturnT(ArgTs...)>;
         static constexpr auto arg_number = std::tuple_size<arg_types>::value;
     };
 
@@ -264,33 +266,6 @@ namespace QMatrixClient
 
         return std::make_pair(last, sLast);
     }
-
-    /** A guard pointer that disconnects an interested object upon destruction
-     * It's almost QPointer<> except that you have to initialise it with one
-     * more additional parameter - a pointer to a QObject that will be
-     * disconnected from signals of the underlying pointer upon the guard's
-     * destruction.
-     */
-    template <typename T>
-    class ConnectionsGuard : public QPointer<T>
-    {
-        public:
-            ConnectionsGuard(T* publisher, QObject* subscriber)
-                : QPointer<T>(publisher), subscriber(subscriber)
-            { }
-            ~ConnectionsGuard()
-            {
-                if (*this)
-                    (*this)->disconnect(subscriber);
-            }
-            ConnectionsGuard(ConnectionsGuard&&) = default;
-            ConnectionsGuard& operator=(ConnectionsGuard&&) = default;
-            Q_DISABLE_COPY(ConnectionsGuard)
-            using QPointer<T>::operator=;
-
-        private:
-            QObject* subscriber;
-    };
 
     /** Pretty-prints plain text into HTML
      * This includes HTML escaping of <,>,",& and URLs linkification.
