@@ -981,11 +981,12 @@ const ConnectionData* Connection::connectionData() const
     return d->data.get();
 }
 
-Room* Connection::provideRoom(const QString& id, JoinState joinState)
+Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
 {
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
+    // If joinState.omitted(), all joinState == comparisons below are false.
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
@@ -995,10 +996,19 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)
             return room;
-    }
-    else
+    } else if (joinState.omitted())
     {
-        room = roomFactory()(this, id, joinState);
+        // No Join and Leave, maybe Invite?
+        room = d->roomMap.value({id, true}, nullptr);
+        if (room)
+            return room;
+        // No Invite either, setup a new room object below
+    }
+
+    if (!room)
+    {
+        room = roomFactory()(this, id,
+                joinState.omitted() ? JoinState::Join : joinState.value());
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -1010,6 +1020,9 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
                 this, &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
+    if (joinState.omitted())
+        return room;
+
     if (joinState == JoinState::Invite)
     {
         // prev is either Leave or nullptr
@@ -1018,7 +1031,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room->setJoinState(joinState);
+        room->setJoinState(joinState.value());
         // Preempt the Invite room (if any) with a room in Join/Leave state.
         auto* prevInvite = d->roomMap.take({id, true});
         if (joinState == JoinState::Join)
