@@ -27,7 +27,7 @@
 #include <functional>
 #include <memory>
 
-#if __cplusplus >= 201703L
+#if __has_cpp_attribute(fallthrough)
 #define FALLTHROUGH [[fallthrough]]
 #elif __has_cpp_attribute(clang::fallthrough)
 #define FALLTHROUGH [[clang::fallthrough]]
