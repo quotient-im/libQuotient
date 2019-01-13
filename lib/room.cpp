@@ -97,7 +97,7 @@ class Room::Private
         Connection* connection;
         QString id;
         JoinState joinState;
-        RoomSummary summary;
+        RoomSummary summary = { none, 0, none };
         /// The state of the room at timeline position before-0
         /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
@@ -1065,7 +1065,8 @@ int Room::joinedCount() const
 int Room::invitedCount() const
 {
     // TODO: Store invited users in Room too
-    return d->summary.invitedMemberCount;
+    Q_ASSERT(!d->summary.invitedMemberCount.omitted());
+    return d->summary.invitedMemberCount.value();
 }
 
 int Room::totalMemberCount() const
