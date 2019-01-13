@@ -25,13 +25,15 @@ using namespace QMatrixClient;
 // but the event type is unknown.
 [[gnu::unused]] static auto stateEventTypeInitialised =
     RoomEvent::factory_t::addMethod(
-        [] (const QJsonObject& json, const QString& matrixType)
+        [] (const QJsonObject& json, const QString& matrixType) -> StateEventPtr
         {
+            if (!json.contains("state_key"))
+                return nullptr;
+
             if (auto e = StateEventBase::factory_t::make(json, matrixType))
                 return e;
-            return json.contains("state_key")
-                   ? makeEvent<StateEventBase>(unknownEventTypeId(), json)
-                   : nullptr;
+
+            return makeEvent<StateEventBase>(unknownEventTypeId(), json);
         });
 
 bool StateEventBase::repeatsState() const

@@ -5,6 +5,7 @@
 #include "csapi/room_send.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
+#include "events/simplestateevents.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
@@ -34,6 +35,7 @@ class QMCTest : public QObject
             void sendFile();
                 void checkFileSendingOutcome(const QString& txnId,
                                              const QString& fileName);
+            void setTopic();
             void addAndRemoveTag();
             void sendAndRedact();
                 bool checkRedactionOutcome(const QString& evtIdToRedact);
@@ -168,6 +170,7 @@ void QMCTest::doTests()
 
     sendMessage();
     sendFile();
+    setTopic();
     addAndRemoveTag();
     sendAndRedact();
     markDirectChat();
@@ -326,6 +329,46 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
                 [this] (const RoomEvent&) {
                     QMC_CHECK("File sending", false);
                 });
+            return true;
+    });
+}
+
+void QMCTest::setTopic()
+{
+    static const char* const stateTestName = "State setting test";
+    static const char* const fakeStateTestName = "Fake state event immunity test";
+    running.push_back(stateTestName);
+    running.push_back(fakeStateTestName);
+    auto initialTopic = targetRoom->topic();
+
+    const auto newTopic = c->generateTxnId();
+    targetRoom->setTopic(newTopic); // Sets the state by proper means
+    const auto fakeTopic = c->generateTxnId();
+    targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
+                         RoomTopicEvent(fakeTopic).contentJson());
+
+    connectUntil(targetRoom, &Room::topicChanged, this,
+        [this,newTopic,fakeTopic,initialTopic] {
+            if (targetRoom->topic() == newTopic)
+            {
+                QMC_CHECK(stateTestName, true);
+                // Don't reset the topic yet if the negative test still runs
+                if (!running.contains(fakeStateTestName))
+                    targetRoom->setTopic(initialTopic);
+
+                return true;
+            }
+            return false;
+        });
+
+    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this,fakeTopic,initialTopic] (const RoomEvent* e, int) {
+            if (e->contentJson().value("topic").toString() != fakeTopic)
+                return false; // Wait on for the right event
+
+            QMC_CHECK(fakeStateTestName, !e->isStateEvent());
+            if (!running.contains(fakeStateTestName))
+                targetRoom->setTopic(initialTopic);
             return true;
         });
 }
