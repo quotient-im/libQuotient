@@ -30,11 +30,16 @@ namespace QMatrixClient {
                 SenderT* sender, SignalT signal, ContextT* context,
                 std::function<bool(ArgTs...)> slot, Qt::ConnectionType connType)
         {
+            // See https://bugreports.qt.io/browse/QTBUG-60339
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+            auto pc = std::make_shared<QMetaObject::Connection>();
+#else
             auto pc = std::make_unique<QMetaObject::Connection>();
+#endif
             auto& c = *pc; // Resolve a reference before pc is moved to lambda
             c = QObject::connect(sender, signal, context,
                 [pc=std::move(pc),slot] (ArgTs... args) {
-                    Q_ASSERT(*pc);
+                    Q_ASSERT(*pc); // If it's been triggered, it should exist
                     if (slot(std::forward<ArgTs>(args)...))
                         QObject::disconnect(*pc);
             }, connType);
