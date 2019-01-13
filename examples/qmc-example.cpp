@@ -41,7 +41,7 @@ class QMCTest : public QObject
             void markDirectChat();
                 void checkDirectChatOutcome(
                         const Connection::DirectChatsMap& added);
-        void leave();
+        void conclude();
         void finalize();
 
     private:
@@ -95,7 +95,7 @@ QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
     connect(c.data(), &Connection::connected, this, &QMCTest::setupAndRun);
     connect(c.data(), &Connection::loadedRoomState, this, &QMCTest::onNewRoom);
     // Big countdown watchdog
-    QTimer::singleShot(180000, this, &QMCTest::leave);
+    QTimer::singleShot(180000, this, &QMCTest::conclude);
 }
 
 void QMCTest::setupAndRun()
@@ -110,7 +110,7 @@ void QMCTest::setupAndRun()
         running.push_back("Join room");
         auto joinJob = c->joinRoom(targetRoomName);
         connect(joinJob, &BaseJob::failure, this,
-            [this] { QMC_CHECK("Join room", false); finalize(); });
+            [this] { QMC_CHECK("Join room", false); conclude(); });
         // Connection::joinRoom() creates a Room object upon JoinRoomJob::success
         // but this object is empty until the first sync is done.
         connect(joinJob, &BaseJob::success, this, [this,joinJob] {
@@ -149,26 +149,12 @@ void QMCTest::run()
     c->sync();
     connectSingleShot(c.data(), &Connection::syncDone, this, &QMCTest::doTests);
     connect(c.data(), &Connection::syncDone, c.data(), [this] {
-        cout << "Sync complete, "
-             << running.size() << " tests in the air" << endl;
+        cout << "Sync complete, " << running.size() << " test(s) in the air: "
+             << running.join(", ").toStdString() << endl;
         if (!running.isEmpty())
             c->sync(10000);
-        else if (targetRoom)
-        {
-            // TODO: Waiting for proper futures to come so that it could be:
-//            targetRoom->postPlainText(origin % ": All tests finished")
-//            .then(this, &QMCTest::leave); // Qt-style
-//            .then([this] { leave(); }); // STL-style
-            auto txnId =
-                    targetRoom->postPlainText(origin % ": All tests finished");
-            connect(targetRoom, &Room::messageSent, this,
-                    [this,txnId] (QString serverTxnId) {
-                if (txnId == serverTxnId)
-                    leave();
-            });
-        }
         else
-            finalize();
+            conclude();
     });
 }
 
@@ -469,13 +455,47 @@ void QMCTest::checkDirectChatOutcome(const Connection::DirectChatsMap& added)
     QMC_CHECK("Direct chat test", !c->isDirectChat(targetRoom->id()));
 }
 
-void QMCTest::leave()
+void QMCTest::conclude()
 {
+    auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
+    if (!failed.isEmpty() || !running.isEmpty())
+        succeededRec += " of " %
+            QString::number(succeeded.size() + failed.size() + running.size()) %
+            " total";
+    QString plainReport = origin % ": Testing complete, " % succeededRec;
+    QString color = failed.isEmpty() && running.isEmpty() ? "00AA00" : "AA0000";
+    QString htmlReport = origin % ": <strong><font data-mx-color='#" % color %
+            "' color='#" % color % "'>Testing complete</font></strong>, " %
+            succeededRec;
+    if (!failed.isEmpty())
+    {
+        plainReport += "\nFAILED: " % failed.join(", ");
+        htmlReport += "<br><strong>Failed:</strong> " % failed.join(", ");
+    }
+    if (!running.isEmpty())
+    {
+        plainReport += "\nDID NOT FINISH: " % running.join(", ");
+        htmlReport +=
+            "<br><strong>Did not finish:</strong> " % running.join(", ");
+    }
+    cout << plainReport.toStdString() << endl;
+
     if (targetRoom)
     {
-        cout << "Leaving the room" << endl;
-        connect(targetRoom->leaveRoom(), &BaseJob::finished,
-                this, &QMCTest::finalize);
+            // TODO: Waiting for proper futures to come so that it could be:
+//            targetRoom->postHtmlText(...)
+//            .then(this, &QMCTest::finalize); // Qt-style or
+//            .then([this] { finalize(); }); // STL-style
+        auto txnId = targetRoom->postHtmlText(plainReport, htmlReport);
+        connect(targetRoom, &Room::messageSent, this,
+            [this,txnId] (QString serverTxnId) {
+                if (txnId != serverTxnId)
+                    return;
+
+                cout << "Leaving the room" << endl;
+                connect(targetRoom->leaveRoom(), &BaseJob::finished,
+                        this, &QMCTest::finalize);
+            });
     }
     else
         finalize();
@@ -487,11 +507,6 @@ void QMCTest::finalize()
     c->logout();
     connect(c.data(), &Connection::loggedOut, qApp,
         [this] {
-            if (!failed.isEmpty())
-                cout << "FAILED: " << failed.join(", ").toStdString() << endl;
-            if (!running.isEmpty())
-                cout << "DID NOT FINISH: "
-                     << running.join(", ").toStdString() << endl;
             QCoreApplication::processEvents();
             QCoreApplication::exit(failed.size() + running.size());
         });
