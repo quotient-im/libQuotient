@@ -108,6 +108,25 @@ namespace QMatrixClient
                 return *this;
             }
 
+            bool operator==(const value_type& rhs) const
+            {
+                return !omitted() && value() == rhs;
+            }
+            friend bool operator==(const value_type& lhs,
+                                   const Omittable<value_type>& rhs)
+            {
+                return rhs == lhs;
+            }
+            bool operator!=(const value_type& rhs) const
+            {
+                return !operator==(rhs);
+            }
+            friend bool operator!=(const value_type& lhs,
+                                   const Omittable<value_type>& rhs)
+            {
+                return !(rhs == lhs);
+            }
+
             bool omitted() const { return _omitted; }
             const value_type& value() const
             {
@@ -137,7 +156,7 @@ namespace QMatrixClient
             }
             value_type&& release() { _omitted = true; return std::move(_value); }
 
-            operator value_type&() & { return editValue(); }
+            operator const value_type&() const & { return value(); }
             const value_type* operator->() const & { return &value(); }
             value_type* operator->() & { return &editValue(); }
             const value_type& operator*() const & { return value(); }

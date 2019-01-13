@@ -49,6 +49,7 @@ namespace QMatrixClient
     class DownloadFileJob;
     class SendToDeviceJob;
     class SendMessageJob;
+    class LeaveRoomJob;
 
     class Connection;
 
@@ -475,14 +476,14 @@ namespace QMatrixClient
             SendMessageJob* sendMessage(const QString& roomId,
                                         const RoomEvent& event) const;
 
+            /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
+            virtual LeaveRoomJob* leaveRoom( Room* room );
+
             // Old API that will be abolished any time soon. DO NOT USE.
 
             /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead */
             virtual PostReceiptJob* postReceipt(Room* room,
                                                 RoomEvent* event) const;
-            /** @deprecated Use callApi<LeaveRoomJob>() or Room::leaveRoom() instead */
-            virtual void leaveRoom( Room* room );
-
         signals:
             /**
              * @deprecated
@@ -651,16 +652,27 @@ namespace QMatrixClient
              */
             const ConnectionData* connectionData() const;
 
-            /**
-             * @brief Find a (possibly new) Room object for the specified id
-             * Use this method whenever you need to find a Room object in
-             * the local list of rooms. Note that this does not interact with
-             * the server; in particular, does not automatically create rooms
-             * on the server.
-             * @return a pointer to a Room object with the specified id; nullptr
-             * if roomId is empty or roomFactory() failed to create a Room object.
+            /** Get a Room object for the given id in the given state
+             *
+             * Use this method when you need a Room object in the local list
+             * of rooms, with the given state. Note that this does not interact
+             * with the server; in particular, does not automatically create
+             * rooms on the server. This call performs necessary join state
+             * transitions; e.g., if it finds a room in Invite but
+             * `joinState == JoinState::Join` then the Invite room object
+             * will be deleted and a new room object with Join state created.
+             * In contrast, switching between Join and Leave happens within
+             * the same object.
+             * \param roomId room id (not alias!)
+             * \param joinState desired (target) join state of the room; if
+             * omitted, any state will be found and return unchanged, or a
+             * new Join room created.
+             * @return a pointer to a Room object with the specified id and the
+             * specified state; nullptr if roomId is empty or if roomFactory()
+             * failed to create a Room object.
              */
-            Room* provideRoom(const QString& roomId, JoinState joinState);
+            Room* provideRoom(const QString& roomId,
+                              Omittable<JoinState> joinState = none);
 
             /**
              * Completes loading sync data.

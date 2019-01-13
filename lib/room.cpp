@@ -89,15 +89,10 @@ class Room::Private
 
         Room* q;
 
-        // This updates the room displayname field (which is the way a room
-        // should be shown in the room list) It should be called whenever the
-        // list of members or the room name (m.room.name) or canonical alias change.
-        void updateDisplayname();
-
         Connection* connection;
         QString id;
         JoinState joinState;
-        RoomSummary summary;
+        RoomSummary summary = { none, 0, none };
         /// The state of the room at timeline position before-0
         /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
@@ -178,6 +173,14 @@ class Room::Private
         void insertMemberIntoMap(User* u);
         void renameMember(User* u, QString oldName);
         void removeMemberFromMap(const QString& username, User* u);
+
+        // This updates the room displayname field (which is the way a room
+        // should be shown in the room list); called whenever the list of
+        // members, the room name (m.room.name) or canonical alias change.
+        void updateDisplayname();
+        // This is used by updateDisplayname() but only calculates the new name
+        // without any updates.
+        QString calculateDisplayname() const;
 
         /// A point in the timeline corresponding to baseState
         rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
@@ -278,7 +281,6 @@ class Room::Private
         template<typename ContT>
         users_shortlist_t buildShortlist(const ContT& users) const;
         users_shortlist_t buildShortlist(const QStringList& userIds) const;
-        QString calculateDisplayname() const;
 
         bool isLocalUser(const User* u) const
         {
@@ -293,6 +295,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // See "Accessing the Public Class" section in
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
+    d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -1065,7 +1068,8 @@ int Room::joinedCount() const
 int Room::invitedCount() const
 {
     // TODO: Store invited users in Room too
-    return d->summary.invitedMemberCount;
+    Q_ASSERT(!d->summary.invitedMemberCount.omitted());
+    return d->summary.invitedMemberCount.value();
 }
 
 int Room::totalMemberCount() const
@@ -1629,7 +1633,8 @@ void Room::inviteToRoom(const QString& memberId)
 
 LeaveRoomJob* Room::leaveRoom()
 {
-    return connection()->callApi<LeaveRoomJob>(id());
+    // FIXME, #63: It should be RoomManager, not Connection
+    return connection()->leaveRoom(this);
 }
 
 SetRoomStateWithKeyJob*Room::setMemberState(const QString& memberId, const RoomMemberEvent& event) const

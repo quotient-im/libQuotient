@@ -84,6 +84,7 @@ class Connection::Private
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
         QVector<Room*> firstTimeRooms;
+        QVector<QString> pendingStateRoomIds;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
         DirectChatUsersMap directChatUsers;
@@ -339,6 +340,7 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
         {
+            d->pendingStateRoomIds.removeOne(roomData.roomId);
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r))
                 emit loadedRoomState(r);
@@ -427,14 +429,32 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
     auto job = callApi<JoinRoomJob>(roomAlias, serverNames);
+    // Upon completion, ensure a room object in Join state is created but only
+    // if it's not already there due to a sync completing earlier.
     connect(job, &JoinRoomJob::success,
-            this, [this, job] { provideRoom(job->roomId(), JoinState::Join); });
+            this, [this, job] { provideRoom(job->roomId()); });
     return job;
 }
 
-void Connection::leaveRoom(Room* room)
+LeaveRoomJob* Connection::leaveRoom(Room* room)
 {
-    callApi<LeaveRoomJob>(room->id());
+    const auto& roomId = room->id();
+    const auto job = callApi<LeaveRoomJob>(roomId);
+    if (room->joinState() == JoinState::Invite)
+    {
+        // Workaround matrix-org/synapse#2181 - if the room is in invite state
+        // the invite may have been cancelled but Synapse didn't send it in
+        // `/sync`. See also #273 for the discussion in the library context.
+        d->pendingStateRoomIds.push_back(roomId);
+        connect(job, &LeaveRoomJob::success, this, [this,roomId] {
+            if (d->pendingStateRoomIds.removeOne(roomId))
+            {
+                qCDebug(MAIN) << "Forcing the room to Leave status";
+                provideRoom(roomId, JoinState::Leave);
+            }
+        });
+    }
+    return job;
 }
 
 inline auto splitMediaId(const QString& mediaId)
@@ -981,11 +1001,12 @@ const ConnectionData* Connection::connectionData() const
     return d->data.get();
 }
 
-Room* Connection::provideRoom(const QString& id, JoinState joinState)
+Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
 {
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
+    // If joinState.omitted(), all joinState == comparisons below are false.
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room)
@@ -995,10 +1016,19 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)
             return room;
-    }
-    else
+    } else if (joinState.omitted())
     {
-        room = roomFactory()(this, id, joinState);
+        // No Join and Leave, maybe Invite?
+        room = d->roomMap.value({id, true}, nullptr);
+        if (room)
+            return room;
+        // No Invite either, setup a new room object below
+    }
+
+    if (!room)
+    {
+        room = roomFactory()(this, id,
+                joinState.omitted() ? JoinState::Join : joinState.value());
         if (!room)
         {
             qCCritical(MAIN) << "Failed to create a room" << id;
@@ -1010,6 +1040,9 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
                 this, &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
+    if (joinState.omitted())
+        return room;
+
     if (joinState == JoinState::Invite)
     {
         // prev is either Leave or nullptr
@@ -1018,7 +1051,7 @@ Room* Connection::provideRoom(const QString& id, JoinState joinState)
     }
     else
     {
-        room->setJoinState(joinState);
+        room->setJoinState(joinState.value());
         // Preempt the Invite room (if any) with a room in Join/Leave state.
         auto* prevInvite = d->roomMap.take({id, true});
         if (joinState == JoinState::Join)
