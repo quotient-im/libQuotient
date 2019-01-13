@@ -1633,7 +1633,8 @@ void Room::inviteToRoom(const QString& memberId)
 
 LeaveRoomJob* Room::leaveRoom()
 {
-    return connection()->callApi<LeaveRoomJob>(id());
+    // FIXME, #63: It should be RoomManager, not Connection
+    return connection()->leaveRoom(this);
 }
 
 SetRoomStateWithKeyJob*Room::setMemberState(const QString& memberId, const RoomMemberEvent& event) const

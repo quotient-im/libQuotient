@@ -84,6 +84,7 @@ class Connection::Private
         QHash<QPair<QString, bool>, Room*> roomMap;
         QVector<QString> roomIdsToForget;
         QVector<Room*> firstTimeRooms;
+        QVector<QString> pendingStateRoomIds;
         QMap<QString, User*> userMap;
         DirectChatsMap directChats;
         DirectChatUsersMap directChatUsers;
@@ -339,6 +340,7 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
         }
         if ( auto* r = provideRoom(roomData.roomId, roomData.joinState) )
         {
+            d->pendingStateRoomIds.removeOne(roomData.roomId);
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r))
                 emit loadedRoomState(r);
@@ -427,14 +429,32 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
     auto job = callApi<JoinRoomJob>(roomAlias, serverNames);
+    // Upon completion, ensure a room object in Join state is created but only
+    // if it's not already there due to a sync completing earlier.
     connect(job, &JoinRoomJob::success,
-            this, [this, job] { provideRoom(job->roomId(), JoinState::Join); });
+            this, [this, job] { provideRoom(job->roomId()); });
     return job;
 }
 
-void Connection::leaveRoom(Room* room)
+LeaveRoomJob* Connection::leaveRoom(Room* room)
 {
-    callApi<LeaveRoomJob>(room->id());
+    const auto& roomId = room->id();
+    const auto job = callApi<LeaveRoomJob>(roomId);
+    if (room->joinState() == JoinState::Invite)
+    {
+        // Workaround matrix-org/synapse#2181 - if the room is in invite state
+        // the invite may have been cancelled but Synapse didn't send it in
+        // `/sync`. See also #273 for the discussion in the library context.
+        d->pendingStateRoomIds.push_back(roomId);
+        connect(job, &LeaveRoomJob::success, this, [this,roomId] {
+            if (d->pendingStateRoomIds.removeOne(roomId))
+            {
+                qCDebug(MAIN) << "Forcing the room to Leave status";
+                provideRoom(roomId, JoinState::Leave);
+            }
+        });
+    }
+    return job;
 }
 
 inline auto splitMediaId(const QString& mediaId)
