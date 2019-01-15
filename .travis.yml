@@ -6,6 +6,7 @@ addons:
     - ubuntu-toolchain-r-test
     - sourceline: 'ppa:beineri/opt-qt571-trusty'
     packages:
+    - ninja-build
     - g++-5
     - qt57base
     - qt57multimedia
@@ -27,19 +28,19 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
 
 install:
 - git clone https://github.com/QMatrixClient/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad
-- cmake -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
+- cmake $USE_NINJA -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
 - cmake --build .
 - popd
 
 before_script:
 - mkdir build && pushd build
-- cmake -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install ..
+- cmake $USE_NINJA -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install ..
 - cmake --build . --target update-api
 - popd
 
