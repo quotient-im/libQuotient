@@ -678,6 +678,7 @@ namespace QMatrixClient
              * Completes loading sync data.
              */
             void onSyncSuccess(SyncData &&data, bool fromCache = false);
+            void getNewEvents();
 
         private:
             class Private;
@@ -702,6 +703,8 @@ namespace QMatrixClient
 
             static room_factory_t _roomFactory;
             static user_factory_t _userFactory;
+
+            int _saveStateCounter = 0;
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Connection*)

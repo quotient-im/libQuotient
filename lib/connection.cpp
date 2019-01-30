@@ -133,6 +133,8 @@ Connection::Connection(const QUrl& server, QObject* parent)
     , d(std::make_unique<Private>(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
+    // sync loop:
+    connect(this, &Connection::syncDone, this, &Connection::getNewEvents);
 }
 
 Connection::Connection(QObject* parent)
@@ -250,7 +252,7 @@ void Connection::Private::connectWithToken(const QString& user,
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();
     emit q->connected();
-
+    q->sync(); // initial sync after connection
 }
 
 void Connection::checkAndConnect(const QString& userId,
@@ -404,6 +406,15 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
             emit accountDataChanged(currentData->matrixType());
         }
     }
+}
+
+void Connection::getNewEvents()
+{
+    // Borrowed the logic from Quiark's code in Tensor
+    // to cache not too aggressively and not on the first sync.
+    if (++_saveStateCounter % 17 == 2)
+        saveState();
+    sync(30*1000);
 }
 
 void Connection::stopSync()
