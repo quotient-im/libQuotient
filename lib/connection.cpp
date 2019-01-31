@@ -83,6 +83,8 @@ class Connection::Private
         // separately so we should, e.g., keep objects for Invite and
         // Leave state of the same room.
         QHash<QPair<QString, bool>, Room*> roomMap;
+        // Mapping from aliases to room ids, as per the last sync
+        QHash<QString, QString> roomAliasMap;
         QVector<QString> roomIdsToForget;
         QVector<Room*> firstTimeRooms;
         QVector<QString> pendingStateRoomIds;
@@ -800,6 +802,41 @@ Room* Connection::room(const QString& roomId, JoinStates states) const
         return room;
 
     return nullptr;
+}
+
+Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
+{
+    const auto id = d->roomAliasMap.value(roomAlias);
+    if (!id.isEmpty())
+        return room(id, states);
+    qCWarning(MAIN) << "Room for alias" << roomAlias
+                    << "is not found under account" << userId();
+    return nullptr;
+}
+
+void Connection::updateRoomAliases(const QString& roomId,
+                                   const QStringList& previousRoomAliases,
+                                   const QStringList& roomAliases)
+{
+    for (const auto& a: previousRoomAliases)
+        if (d->roomAliasMap.remove(a) == 0)
+            qCWarning(MAIN) << "Alias" << a << "is not found (already deleted?)";
+
+    for (const auto& a: roomAliases)
+    {
+        auto& mappedId = d->roomAliasMap[a];
+        if (!mappedId.isEmpty())
+        {
+            if (mappedId == roomId)
+                qCDebug(MAIN) << "Alias" << a << "is already mapped to room"
+                              << roomId;
+            else
+                qCWarning(MAIN) << "Alias" << a
+                                << "will be force-remapped from room"
+                                << mappedId << "to" << roomId;
+        }
+        mappedId = roomId;
+    }
 }
 
 Room* Connection::invitation(const QString& roomId) const
