@@ -45,6 +45,7 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QCoreApplication>
+#include <QTimer>
 
 using namespace QMatrixClient;
 
@@ -133,8 +134,6 @@ Connection::Connection(const QUrl& server, QObject* parent)
     , d(std::make_unique<Private>(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
-    // sync loop:
-    connect(this, &Connection::syncDone, this, &Connection::getNewEvents);
 }
 
 Connection::Connection(QObject* parent)
@@ -232,6 +231,11 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
 }
 
+void Connection::syncLoopIteration()
+{
+    sync(_syncLoopTimeout);
+}
+
 void Connection::connectWithToken(const QString& userId,
                                   const QString& accessToken,
                                   const QString& deviceId)
@@ -252,7 +256,6 @@ void Connection::Private::connectWithToken(const QString& user,
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();
     emit q->connected();
-    q->sync(); // initial sync after connection
 }
 
 void Connection::checkAndConnect(const QString& userId,
@@ -319,6 +322,15 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString(), job->rawDataSample());
     });
+}
+
+void Connection::syncLoop(int timeout)
+{
+    _syncLoopTimeout = timeout;
+    connect(this, &Connection::syncDone, this, &Connection::getNewEventsOnSyncDone);
+    connect(this, &Connection::syncError, this, &Connection::getNewEventsOnSyncError);
+    _syncLoopElapsedTimer.start();
+    sync(_syncLoopTimeout); // initial sync to start the loop
 }
 
 void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
@@ -410,11 +422,33 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
 
 void Connection::getNewEvents()
 {
-    // Borrowed the logic from Quiark's code in Tensor
-    // to cache not too aggressively and not on the first sync.
-    if (++_saveStateCounter % 17 == 2)
-        saveState();
-    sync(30*1000);
+    int delay = minSyncLoopDelayMs() - _syncLoopElapsedTimer.restart();
+    if (delay<0) {
+        delay = 0;
+    }
+    QTimer::singleShot(delay, this, &Connection::syncLoopIteration);
+}
+
+void Connection::getNewEventsOnSyncDone()
+{
+    if (_prevSyncLoopIterationDone) {
+        _syncLoopAttemptNumber++;
+    } else {
+        _syncLoopAttemptNumber = 0;
+    }
+    emit syncAttemptNumberChanged(_syncLoopAttemptNumber);
+    getNewEvents();
+}
+
+void Connection::getNewEventsOnSyncError()
+{
+    if (_prevSyncLoopIterationDone) {
+        _syncLoopAttemptNumber = 0;
+    } else {
+        _syncLoopAttemptNumber++;
+    }
+    emit syncAttemptNumberChanged(_syncLoopAttemptNumber);
+    getNewEvents();
 }
 
 void Connection::stopSync()
@@ -434,6 +468,15 @@ QString Connection::nextBatchToken() const
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
+}
+
+void Connection::setMinSyncDelayMs(qint64 minSyncDelayMs)
+{
+    if (_minSyncLoopDelayMs == minSyncDelayMs)
+        return;
+
+    _minSyncLoopDelayMs = minSyncDelayMs;
+    emit minSyncDelayMsChanged(_minSyncLoopDelayMs);
 }
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
@@ -1098,6 +1141,16 @@ room_factory_t Connection::roomFactory()
 user_factory_t Connection::userFactory()
 {
     return _userFactory;
+}
+
+qint64 Connection::minSyncLoopDelayMs() const
+{
+    return _minSyncLoopDelayMs;
+}
+
+uint Connection::syncLoopAttemptNumber() const
+{
+    return _syncLoopAttemptNumber;
 }
 
 room_factory_t Connection::_roomFactory = defaultRoomFactory<>();

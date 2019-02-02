@@ -26,6 +26,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
+#include <QElapsedTimer>
 
 #include <functional>
 #include <memory>
@@ -105,6 +106,8 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
             Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
+            Q_PROPERTY(qint64 minSyncLoopDelayMs READ minSyncLoopDelayMs WRITE setMinSyncDelayMs NOTIFY minSyncDelayMsChanged)
+            Q_PROPERTY(uint syncLoopAttemptNumber READ syncLoopAttemptNumber NOTIFY syncAttemptNumberChanged)
 
         public:
             // Room ids, rather than room pointers, are used in the direct chat
@@ -353,6 +356,11 @@ namespace QMatrixClient
             template <typename T>
             static void setUserType() { setUserFactory(defaultUserFactory<T>()); }
 
+            qint64 minSyncLoopDelayMs() const;
+            void setMinSyncDelayMs(qint64 minSyncLoopDelayMs);
+
+            uint syncLoopAttemptNumber() const;
+
         public slots:
             /** Set the homeserver base URL */
             void setHomeserver(const QUrl& baseUrl);
@@ -371,6 +379,15 @@ namespace QMatrixClient
             void logout();
 
             void sync(int timeout = -1);
+
+            /** Start sync loop with the minSyncLoopDelayMs value
+                where minSyncLoopDelayMs could be changed on the client
+                according to syncDone/syncError signals and
+                the syncLoopAttemptNumber counter.
+                The syncLoopAttemptNumber counter is resetting
+                after non-repeating syncDone/syncError events*/
+            void syncLoop(int timeout = -1);
+
             void stopSync();
             QString nextBatchToken() const;
 
@@ -645,6 +662,8 @@ namespace QMatrixClient
             void cacheStateChanged();
             void lazyLoadingChanged();
             void turnServersChanged(const QJsonObject& servers);
+            void minSyncDelayMsChanged(qint64 minSyncLoopDelayMs);
+            void syncAttemptNumberChanged(uint syncLoopAttemptNumber);
 
         protected:
             /**
@@ -678,7 +697,11 @@ namespace QMatrixClient
              * Completes loading sync data.
              */
             void onSyncSuccess(SyncData &&data, bool fromCache = false);
+
+        protected slots:
             void getNewEvents();
+            void getNewEventsOnSyncDone();
+            void getNewEventsOnSyncError();
 
         private:
             class Private;
@@ -704,7 +727,12 @@ namespace QMatrixClient
             static room_factory_t _roomFactory;
             static user_factory_t _userFactory;
 
-            int _saveStateCounter = 0;
+            QElapsedTimer _syncLoopElapsedTimer;
+            int _syncLoopTimeout = -1;
+            qint64 _minSyncLoopDelayMs = 0;
+            void syncLoopIteration();
+            uint _syncLoopAttemptNumber = 0;
+            bool _prevSyncLoopIterationDone = false;
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Connection*)
