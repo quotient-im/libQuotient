@@ -45,7 +45,6 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QCoreApplication>
-#include <QTimer>
 
 using namespace QMatrixClient;
 
@@ -256,6 +255,7 @@ void Connection::Private::connectWithToken(const QString& user,
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();
     emit q->connected();
+
 }
 
 void Connection::checkAndConnect(const QString& userId,
@@ -327,10 +327,8 @@ void Connection::sync(int timeout)
 void Connection::syncLoop(int timeout)
 {
     _syncLoopTimeout = timeout;
-    connect(this, &Connection::syncDone, this, &Connection::getNewEventsOnSyncDone);
-    connect(this, &Connection::syncError, this, &Connection::getNewEventsOnSyncError);
-    _syncLoopElapsedTimer.start();
-    sync(_syncLoopTimeout); // initial sync to start the loop
+    connect(this, &Connection::syncDone, this, &Connection::syncLoopIteration);
+    syncLoopIteration(); // initial sync to start the loop
 }
 
 void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
@@ -420,37 +418,6 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
     }
 }
 
-void Connection::getNewEvents()
-{
-    int delay = minSyncLoopDelayMs() - _syncLoopElapsedTimer.restart();
-    if (delay<0) {
-        delay = 0;
-    }
-    QTimer::singleShot(delay, this, &Connection::syncLoopIteration);
-}
-
-void Connection::getNewEventsOnSyncDone()
-{
-    if (_prevSyncLoopIterationDone) {
-        _syncLoopAttemptNumber++;
-    } else {
-        _syncLoopAttemptNumber = 0;
-    }
-    emit syncAttemptNumberChanged(_syncLoopAttemptNumber);
-    getNewEvents();
-}
-
-void Connection::getNewEventsOnSyncError()
-{
-    if (_prevSyncLoopIterationDone) {
-        _syncLoopAttemptNumber = 0;
-    } else {
-        _syncLoopAttemptNumber++;
-    }
-    emit syncAttemptNumberChanged(_syncLoopAttemptNumber);
-    getNewEvents();
-}
-
 void Connection::stopSync()
 {
     if (d->syncJob)
@@ -468,15 +435,6 @@ QString Connection::nextBatchToken() const
 PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
-}
-
-void Connection::setMinSyncDelayMs(qint64 minSyncDelayMs)
-{
-    if (_minSyncLoopDelayMs == minSyncDelayMs)
-        return;
-
-    _minSyncLoopDelayMs = minSyncDelayMs;
-    emit minSyncDelayMsChanged(_minSyncLoopDelayMs);
 }
 
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
@@ -1141,16 +1099,6 @@ room_factory_t Connection::roomFactory()
 user_factory_t Connection::userFactory()
 {
     return _userFactory;
-}
-
-qint64 Connection::minSyncLoopDelayMs() const
-{
-    return _minSyncLoopDelayMs;
-}
-
-uint Connection::syncLoopAttemptNumber() const
-{
-    return _syncLoopAttemptNumber;
 }
 
 room_factory_t Connection::_roomFactory = defaultRoomFactory<>();
