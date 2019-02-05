@@ -402,7 +402,7 @@ namespace QMatrixClient
             CreateRoomJob* createRoom(RoomVisibility visibility,
                 const QString& alias, const QString& name, const QString& topic,
                 QStringList invites, const QString& presetName = {},
-                bool isDirect = false,
+                const QString& roomVersion = {}, bool isDirect = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
                 const QJsonObject& creationContent = {});

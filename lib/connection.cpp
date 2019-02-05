@@ -537,7 +537,8 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QString& alias, const QString& name, const QString& topic,
-    QStringList invites, const QString& presetName, bool isDirect,
+    QStringList invites, const QString& presetName,
+    const QString& roomVersion, bool isDirect,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
     const QJsonObject& creationContent)
@@ -546,7 +547,7 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? QStringLiteral("public")
                                       : QStringLiteral("private"),
-            alias, name, topic, invites, invite3pids, QString(/*TODO: #233*/),
+            alias, name, topic, invites, invite3pids, roomVersion,
             creationContent, initialState, presetName, isDirect);
     connect(job, &BaseJob::success, this, [this,job] {
         emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
@@ -648,7 +649,7 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
     const QString& topic, const QString& name)
 {
     return createRoom(UnpublishRoom, "", name, topic, {userId},
-                      "trusted_private_chat", true);
+                      "trusted_private_chat", {}, true);
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
