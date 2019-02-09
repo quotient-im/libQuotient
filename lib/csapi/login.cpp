@@ -67,6 +67,7 @@ class LoginJob::Private
         QString accessToken;
         QString homeServer;
         QString deviceId;
+        Omittable<DiscoveryInformation> wellKnown;
 };
 
 static const auto LoginJobName = QStringLiteral("LoginJob");
@@ -111,6 +112,11 @@ const QString& LoginJob::deviceId() const
     return d->deviceId;
 }
 
+const Omittable<DiscoveryInformation>& LoginJob::wellKnown() const
+{
+    return d->wellKnown;
+}
+
 BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
@@ -118,6 +124,7 @@ BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("access_token"_ls), d->accessToken);
     fromJson(json.value("home_server"_ls), d->homeServer);
     fromJson(json.value("device_id"_ls), d->deviceId);
+    fromJson(json.value("well_known"_ls), d->wellKnown);
     return Success;
 }
 

@@ -6,9 +6,8 @@
 
 #include "jobs/basejob.h"
 
+#include "csapi/definitions/wellknown/full.h"
 #include "converters.h"
-#include "csapi/definitions/wellknown/identity_server.h"
-#include "csapi/definitions/wellknown/homeserver.h"
 
 namespace QMatrixClient
 {
@@ -41,10 +40,8 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// Information about the homeserver to connect to.
-            const HomeserverInformation& homeserver() const;
-            /// Optional. Information about the identity server to connect to.
-            const Omittable<IdentityServerInformation>& identityServer() const;
+            /// Server discovery information.
+            const DiscoveryInformation& data() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
