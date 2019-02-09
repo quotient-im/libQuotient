@@ -11,6 +11,8 @@ analyzer:
     m.upload.size: uploadSize
     m.homeserver: homeserver
     m.identity_server: identityServer
+    m.change_password: changePassword
+    m.room_versions: roomVersions
     AuthenticationData/additionalProperties: authInfo
 
   # Structure inside `types`:

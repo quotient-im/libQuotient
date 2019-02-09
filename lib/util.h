@@ -103,6 +103,9 @@ namespace QMatrixClient
             }
             Omittable<T>& operator=(value_type&& val)
             {
+                // For some reason GCC complains about -Wmaybe-uninitialized
+                // in the context of using Omittable<bool> with converters.h;
+                // though the logic looks very much benign (GCC bug???)
                 _value = std::move(val);
                 _omitted = false;
                 return *this;
