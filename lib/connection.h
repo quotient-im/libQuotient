@@ -707,8 +707,6 @@ namespace QMatrixClient
 
             static room_factory_t _roomFactory;
             static user_factory_t _userFactory;
-
-            int _syncLoopTimeout = -1;
     };
 }  // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Connection*)
