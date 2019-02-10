@@ -19,7 +19,6 @@
 #pragma once
 
 #include "stateevent.h"
-#include "eventcontent.h"
 
 #include "converters.h"
 
@@ -28,7 +27,7 @@ namespace QMatrixClient
     namespace EventContent
     {
         template <typename T>
-        class SimpleContent: public Base
+        class SimpleContent
         {
             public:
                 using value_type = T;
@@ -39,23 +38,19 @@ namespace QMatrixClient
                     : value(std::forward<TT>(value)), key(std::move(keyName))
                 { }
                 SimpleContent(const QJsonObject& json, QString keyName)
-                    : Base(json)
-                    , value(QMatrixClient::fromJson<T>(json[keyName]))
+                    : value(fromJson<T>(json[keyName]))
                     , key(std::move(keyName))
                 { }
+                QJsonObject toJson() const
+                {
+                    return { { key, QMatrixClient::toJson(value) } };
+                }
 
             public:
                 T value;
 
             protected:
                 QString key;
-
-            private:
-                void fillJson(QJsonObject* json) const override
-                {
-                    Q_ASSERT(json);
-                    json->insert(key, QMatrixClient::toJson(value));
-                }
         };
     } // namespace EventContent
 
