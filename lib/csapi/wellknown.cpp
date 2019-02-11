@@ -15,8 +15,7 @@ static const auto basePath = QStringLiteral("/.well-known");
 class GetWellknownJob::Private
 {
     public:
-        HomeserverInformation homeserver;
-        Omittable<IdentityServerInformation> identityServer;
+        DiscoveryInformation data;
 };
 
 QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
@@ -36,24 +35,14 @@ GetWellknownJob::GetWellknownJob()
 
 GetWellknownJob::~GetWellknownJob() = default;
 
-const HomeserverInformation& GetWellknownJob::homeserver() const
+const DiscoveryInformation& GetWellknownJob::data() const
 {
-    return d->homeserver;
-}
-
-const Omittable<IdentityServerInformation>& GetWellknownJob::identityServer() const
-{
-    return d->identityServer;
+    return d->data;
 }
 
 BaseJob::Status GetWellknownJob::parseJson(const QJsonDocument& data)
 {
-    auto json = data.object();
-    if (!json.contains("m.homeserver"_ls))
-        return { JsonParseError,
-            "The key 'm.homeserver' not found in the response" };
-    fromJson(json.value("m.homeserver"_ls), d->homeserver);
-    fromJson(json.value("m.identity_server"_ls), d->identityServer);
+    fromJson(data, d->data);
     return Success;
 }
 

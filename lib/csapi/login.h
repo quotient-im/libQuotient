@@ -7,6 +7,7 @@
 #include "jobs/basejob.h"
 
 #include <QtCore/QVector>
+#include "csapi/definitions/wellknown/full.h"
 #include "csapi/definitions/user_identifier.h"
 #include "converters.h"
 
@@ -118,6 +119,11 @@ namespace QMatrixClient
             /// ID of the logged-in device. Will be the same as the
             /// corresponding parameter in the request, if one was specified.
             const QString& deviceId() const;
+            /// Optional client configuration provided by the server. If present,
+            /// clients SHOULD use the provided object to reconfigure themselves,
+            /// optionally validating the URLs within. This object takes the same
+            /// form as the one returned from .well-known autodiscovery.
+            const Omittable<DiscoveryInformation>& wellKnown() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;
