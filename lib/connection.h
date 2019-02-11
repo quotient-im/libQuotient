@@ -371,6 +371,8 @@ namespace QMatrixClient
             void logout();
 
             void sync(int timeout = -1);
+            void syncLoop(int timeout = -1);
+
             void stopSync();
             QString nextBatchToken() const;
 
@@ -678,6 +680,9 @@ namespace QMatrixClient
              * Completes loading sync data.
              */
             void onSyncSuccess(SyncData &&data, bool fromCache = false);
+
+        protected slots:
+            void syncLoopIteration();
 
         private:
             class Private;
