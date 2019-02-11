@@ -28,7 +28,7 @@ namespace QMatrixClient
     {
         static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::RoomVersionsCapability& result)
         {
-            fromJson(jo.value("default"_ls), result.isDefault);
+            fromJson(jo.value("default"_ls), result.defaultVersion);
             fromJson(jo.value("available"_ls), result.available);
         }
     };

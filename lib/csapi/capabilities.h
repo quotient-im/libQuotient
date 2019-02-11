@@ -33,7 +33,7 @@ namespace QMatrixClient
             struct RoomVersionsCapability
             {
                 /// The default room version the server is using for new rooms.
-                QString isDefault;
+                QString defaultVersion;
                 /// A detailed description of the room versions the server supports.
                 QHash<QString, QString> available;
             };

@@ -5,7 +5,8 @@ analyzer:
   identifiers:
     signed: signedData
     unsigned: unsignedData
-    default: isDefault
+    PushRule/default: isDefault
+    default: defaultVersion # getCapabilities/RoomVersionsCapability
     origin_server_ts: originServerTimestamp # Instead of originServerTs
     start: begin # Because start() is a method in BaseJob
     m.upload.size: uploadSize
