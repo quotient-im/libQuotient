@@ -102,6 +102,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString localUserId READ userId NOTIFY stateChanged)
             Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
             Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
+            Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
             Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
@@ -257,6 +258,10 @@ namespace QMatrixClient
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE void getTurnServers();
 
+            QString defaultRoomVersion() const;
+            QStringList stableRoomVersions() const;
+            const QHash<QString, QString>& availableRoomVersions() const;
+
             /**
              * Call this before first sync to load from previously saved file.
              *
@@ -365,6 +370,8 @@ namespace QMatrixClient
                                  const QString& deviceId = {});
             void connectWithToken(const QString& userId, const QString& accessToken,
                                   const QString& deviceId);
+            /** Explicitly request capabilities from the server */
+            void reloadCapabilities();
 
             /** @deprecated Use stopSync() instead */
             void disconnectFromServer() { stopSync(); }
@@ -501,6 +508,7 @@ namespace QMatrixClient
             void resolveError(QString error);
 
             void homeserverChanged(QUrl baseUrl);
+            void capabilitiesLoaded();
 
             void connected();
             void reconnected(); //< \deprecated Use connected() instead

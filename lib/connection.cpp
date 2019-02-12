@@ -24,6 +24,7 @@
 #include "room.h"
 #include "settings.h"
 #include "csapi/login.h"
+#include "csapi/capabilities.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
 #include "csapi/leaving.h"
@@ -91,6 +92,9 @@ class Connection::Private
         std::unordered_map<QString, EventPtr> accountData;
         QString userId;
         int syncLoopTimeout = -1;
+
+        GetCapabilitiesJob* capabilitiesJob = nullptr;
+        GetCapabilitiesJob::Capabilities capabilities;
 
         SyncJob* syncJob = nullptr;
 
@@ -244,6 +248,29 @@ void Connection::connectWithToken(const QString& userId,
         [=] { d->connectWithToken(userId, accessToken, deviceId); });
 }
 
+void Connection::reloadCapabilities()
+{
+    d->capabilitiesJob = callApi<GetCapabilitiesJob>(BackgroundRequest);
+    connect(d->capabilitiesJob, &BaseJob::finished, this, [this] {
+        if (d->capabilitiesJob->error() == BaseJob::Success)
+            d->capabilities = d->capabilitiesJob->capabilities();
+        else if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
+            qCDebug(MAIN) << "Server doesn't support /capabilities";
+
+        if (d->capabilities.roomVersions.omitted())
+        {
+            qCWarning(MAIN) << "Pinning supported room version to 1";
+            d->capabilities.roomVersions = { "1", {{ "1", "stable" }} };
+        } else {
+            qCDebug(MAIN) << "Room versions:"
+                << defaultRoomVersion() << "is default, full list:"
+                << availableRoomVersions();
+        }
+        Q_ASSERT(!d->capabilities.roomVersions.omitted());
+        emit capabilitiesLoaded();
+    });
+}
+
 void Connection::Private::connectWithToken(const QString& user,
                                            const QString& accessToken,
                                            const QString& deviceId)
@@ -256,7 +283,7 @@ void Connection::Private::connectWithToken(const QString& user,
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();
     emit q->connected();
-
+    q->reloadCapabilities();
 }
 
 void Connection::checkAndConnect(const QString& userId,
@@ -1259,9 +1286,30 @@ void QMatrixClient::Connection::setLazyLoading(bool newValue)
 
 void Connection::getTurnServers()
 {
-  auto job = callApi<GetTurnServerJob>();
-  connect( job, &GetTurnServerJob::success, [=] {
-      emit turnServersChanged(job->data());
-  });
+    auto job = callApi<GetTurnServerJob>();
+    connect(job, &GetTurnServerJob::success,
+            this, [=] { emit turnServersChanged(job->data()); });
+}
 
+QString Connection::defaultRoomVersion() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    return d->capabilities.roomVersions->defaultVersion;
+}
+
+QStringList Connection::stableRoomVersions() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    QStringList l;
+    const auto& allVersions = d->capabilities.roomVersions->available;
+    for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
+        if (it.value() == "stable")
+            l.push_back(it.key());
+    return l;
+}
+
+const QHash<QString, QString>& Connection::availableRoomVersions() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    return d->capabilities.roomVersions->available;
 }
