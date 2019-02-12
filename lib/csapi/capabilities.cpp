@@ -32,13 +32,22 @@ namespace QMatrixClient
             fromJson(jo.value("available"_ls), result.available);
         }
     };
+
+    template <> struct JsonObjectConverter<GetCapabilitiesJob::Capabilities>
+    {
+        static void fillFrom(QJsonObject jo, GetCapabilitiesJob::Capabilities& result)
+        {
+            fromJson(jo.take("m.change_password"_ls), result.changePassword);
+            fromJson(jo.take("m.room_versions"_ls), result.roomVersions);
+            fromJson(jo, result.additionalProperties);
+        }
+    };
 } // namespace QMatrixClient
 
 class GetCapabilitiesJob::Private
 {
     public:
-        Omittable<ChangePasswordCapability> changePassword;
-        Omittable<RoomVersionsCapability> roomVersions;
+        Capabilities capabilities;
 };
 
 QUrl GetCapabilitiesJob::makeRequestUrl(QUrl baseUrl)
@@ -58,21 +67,18 @@ GetCapabilitiesJob::GetCapabilitiesJob()
 
 GetCapabilitiesJob::~GetCapabilitiesJob() = default;
 
-const Omittable<GetCapabilitiesJob::ChangePasswordCapability>& GetCapabilitiesJob::changePassword() const
+const GetCapabilitiesJob::Capabilities& GetCapabilitiesJob::capabilities() const
 {
-    return d->changePassword;
-}
-
-const Omittable<GetCapabilitiesJob::RoomVersionsCapability>& GetCapabilitiesJob::roomVersions() const
-{
-    return d->roomVersions;
+    return d->capabilities;
 }
 
 BaseJob::Status GetCapabilitiesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
-    fromJson(json.value("m.change_password"_ls), d->changePassword);
-    fromJson(json.value("m.room_versions"_ls), d->roomVersions);
+    if (!json.contains("capabilities"_ls))
+        return { JsonParseError,
+            "The key 'capabilities' not found in the response" };
+    fromJson(json.value("capabilities"_ls), d->capabilities);
     return Success;
 }
 
