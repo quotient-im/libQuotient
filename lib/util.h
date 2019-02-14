@@ -159,7 +159,6 @@ namespace QMatrixClient
             }
             value_type&& release() { _omitted = true; return std::move(_value); }
 
-            operator const value_type&() const & { return value(); }
             const value_type* operator->() const & { return &value(); }
             value_type* operator->() & { return &editValue(); }
             const value_type& operator*() const & { return value(); }
