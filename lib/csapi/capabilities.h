@@ -6,6 +6,7 @@
 
 #include "jobs/basejob.h"
 
+#include <QtCore/QJsonObject>
 #include "converters.h"
 #include <QtCore/QHash>
 
@@ -33,9 +34,22 @@ namespace QMatrixClient
             struct RoomVersionsCapability
             {
                 /// The default room version the server is using for new rooms.
-                QString isDefault;
+                QString defaultVersion;
                 /// A detailed description of the room versions the server supports.
                 QHash<QString, QString> available;
+            };
+
+            /// Gets information about the server's supported feature set
+            /// and other relevant capabilities.
+            struct Capabilities
+            {
+                /// Capability to indicate if the user can change their password.
+                Omittable<ChangePasswordCapability> changePassword;
+                /// The room versions the server supports.
+                Omittable<RoomVersionsCapability> roomVersions;
+                /// The custom capabilities the server supports, using the
+                /// Java package naming convention.
+                QHash<QString, QJsonObject> additionalProperties;
             };
 
             // Construction/destruction
@@ -54,10 +68,9 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// Capability to indicate if the user can change their password.
-            const Omittable<ChangePasswordCapability>& changePassword() const;
-            /// The room versions the server supports.
-            const Omittable<RoomVersionsCapability>& roomVersions() const;
+            /// Gets information about the server's supported feature set
+            /// and other relevant capabilities.
+            const Capabilities& capabilities() const;
 
         protected:
             Status parseJson(const QJsonDocument& data) override;

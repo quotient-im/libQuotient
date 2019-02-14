@@ -90,6 +90,7 @@ class Connection::Private
         DirectChatUsersMap directChatUsers;
         std::unordered_map<QString, EventPtr> accountData;
         QString userId;
+        int syncLoopTimeout = -1;
 
         SyncJob* syncJob = nullptr;
 
@@ -230,6 +231,11 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         });
 }
 
+void Connection::syncLoopIteration()
+{
+    sync(d->syncLoopTimeout);
+}
+
 void Connection::connectWithToken(const QString& userId,
                                   const QString& accessToken,
                                   const QString& deviceId)
@@ -317,6 +323,13 @@ void Connection::sync(int timeout)
         else
             emit syncError(job->errorString(), job->rawDataSample());
     });
+}
+
+void Connection::syncLoop(int timeout)
+{
+    d->syncLoopTimeout = timeout;
+    connect(this, &Connection::syncDone, this, &Connection::syncLoopIteration);
+    syncLoopIteration(); // initial sync to start the loop
 }
 
 void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
