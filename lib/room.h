@@ -377,6 +377,9 @@ namespace QMatrixClient
             Q_INVOKABLE bool supportsCalls() const;
 
         public slots:
+            /** Check whether the room should be upgraded */
+            void checkVersion();
+
             QString postMessage(const QString& plainText, MessageEventType type);
             QString postPlainText(const QString& plainText);
             QString postHtmlMessage(const QString& plainText,
@@ -529,6 +532,9 @@ namespace QMatrixClient
 
             void callEvent(Room* room, const RoomEvent* event);
 
+            /// The room's version is considered unstable; upgrade recommended
+            void unstableVersion(QString recommendedDefault,
+                                 QStringList stableVersions);
             /// This room has been upgraded and won't receive updates anymore
             void upgraded(QString serverMessage, QString successorId);
 

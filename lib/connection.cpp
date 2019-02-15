@@ -268,6 +268,9 @@ void Connection::reloadCapabilities()
         }
         Q_ASSERT(!d->capabilities.roomVersions.omitted());
         emit capabilitiesLoaded();
+        for (auto* r: d->roomMap)
+            if (r->joinState() == JoinState::Join && r->successorId().isEmpty())
+                r->checkVersion();
     });
 }
 
@@ -383,8 +386,14 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
             d->pendingStateRoomIds.removeOne(roomData.roomId);
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r))
+            {
                 emit loadedRoomState(r);
+                if (!d->capabilities.roomVersions.omitted())
+                    r->checkVersion();
+                // Otherwise, the version will be checked in reloadCapabilities()
+            }
         }
+        // Let UI update itself after updating each room
         QCoreApplication::processEvents();
     }
     for (auto&& accountEvent: data.takeAccountData())

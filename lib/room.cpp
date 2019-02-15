@@ -1604,7 +1604,22 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 
 bool Room::supportsCalls() const
 {
-  return joinedCount() == 2;
+    return joinedCount() == 2;
+}
+
+void Room::checkVersion()
+{
+    const auto defaultVersion = connection()->defaultRoomVersion();
+    const auto stableVersions = connection()->stableRoomVersions();
+    Q_ASSERT(!defaultVersion.isEmpty() && successorId().isEmpty());
+    if (!stableVersions.contains(version()))
+    {
+        qCDebug(MAIN) << this << "version is" << version()
+                      << "which the server doesn't count as stable";
+        // TODO: m.room.power_levels
+        qCDebug(MAIN) << "The current user has enough privileges to fix it";
+        emit unstableVersion(defaultVersion, stableVersions);
+    }
 }
 
 void Room::inviteCall(const QString& callId, const int lifetime,
