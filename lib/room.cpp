@@ -2160,6 +2160,9 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             emit encryption(); // It can only be done once, so emit it here.
             return EncryptionOn;
         }
+        , [this] (const RoomTombstoneEvent& evt) {
+            emit upgraded(evt.serverMessage(), evt.successorRoomId());
+        }
     );
 }
 

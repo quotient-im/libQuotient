@@ -528,6 +528,10 @@ namespace QMatrixClient
             void fileTransferCancelled(QString id);
 
             void callEvent(Room* room, const RoomEvent* event);
+
+            /// This room has been upgraded and won't receive updates anymore
+            void upgraded(QString serverMessage, QString successorId);
+
             /// The room is about to be deleted
             void beforeDestruction(Room*);
 
