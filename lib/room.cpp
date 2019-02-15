@@ -252,11 +252,17 @@ class Room::Private
                 const QString& txnId, BaseJob* call = nullptr);
 
         template <typename EvT>
-        auto requestSetState(const QString& stateKey, const EvT& event)
+        SetRoomStateWithKeyJob* requestSetState(const QString& stateKey,
+                                                const EvT& event)
         {
-            // TODO: Queue up state events sending (see #133).
-            return connection->callApi<SetRoomStateWithKeyJob>(
+            if (q->successorId().isEmpty())
+            {
+                // TODO: Queue up state events sending (see #133).
+                return connection->callApi<SetRoomStateWithKeyJob>(
                         id, EvT::matrixTypeId(), stateKey, event.contentJson());
+            }
+            qCWarning(MAIN) << q << "has been upgraded, state won't be set";
+            return nullptr;
         }
 
         template <typename EvT>
@@ -1332,7 +1338,11 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
 {
-    return doSendEvent(addAsPending(std::move(event)));
+    if (q->successorId().isEmpty())
+        return doSendEvent(addAsPending(std::move(event)));
+
+    qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
+    return {};
 }
 
 QString Room::Private::doSendEvent(const RoomEvent* pEvent)
