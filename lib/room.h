@@ -80,6 +80,9 @@ namespace QMatrixClient
             Q_PROPERTY(Connection* connection READ connection CONSTANT)
             Q_PROPERTY(User* localUser READ localUser CONSTANT)
             Q_PROPERTY(QString id READ id CONSTANT)
+            Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
+            Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
+            Q_PROPERTY(QString successorId READ successorId NOTIFY upgraded)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
@@ -143,6 +146,9 @@ namespace QMatrixClient
             Connection* connection() const;
             User* localUser() const;
             const QString& id() const;
+            QString version() const;
+            QString predecessorId() const;
+            QString successorId() const;
             QString name() const;
             QStringList aliases() const;
             QString canonicalAlias() const;

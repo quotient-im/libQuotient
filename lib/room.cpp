@@ -30,6 +30,8 @@
 #include "csapi/rooms.h"
 #include "csapi/tags.h"
 #include "events/simplestateevents.h"
+#include "events/roomcreateevent.h"
+#include "events/roomtombstoneevent.h"
 #include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
@@ -313,6 +315,21 @@ Room::~Room()
 const QString& Room::id() const
 {
     return d->id;
+}
+
+QString Room::version() const
+{
+    return d->getCurrentState<RoomCreateEvent>()->version();
+}
+
+QString Room::predecessorId() const
+{
+    return d->getCurrentState<RoomCreateEvent>()->predecessor().roomId;
+}
+
+QString Room::successorId() const
+{
+    return d->getCurrentState<RoomTombstoneEvent>()->successorRoomId();
 }
 
 const Room::Timeline& Room::messageEvents() const
@@ -1807,7 +1824,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
 
         std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap
         { { RoomMemberEvent::typeId(), { QStringLiteral("membership") } }
-//        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
+        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
 //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
 //        , { RoomPowerLevels::typeId(),
 //            { QStringLiteral("ban"), QStringLiteral("events"),
