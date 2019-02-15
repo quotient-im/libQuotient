@@ -22,30 +22,28 @@
 
 namespace QMatrixClient
 {
-    class RoomCreateDetails
-    {
-        public:
-            explicit RoomCreateDetails(const QJsonObject& json);
-
-            bool federated;
-            QString version;
-            QString predRoomId;
-            QString predEventId;
-    };
-
-    class RoomCreateEvent : public StateEvent<const RoomCreateDetails>
+    class RoomCreateEvent : public StateEventBase
     {
         public:
             DEFINE_EVENT_TYPEID("m.room.create", RoomCreateEvent)
 
+            explicit RoomCreateEvent()
+                : StateEventBase(typeId(), matrixTypeId())
+            { }
             explicit RoomCreateEvent(const QJsonObject& obj)
-                : StateEvent(typeId(), obj)
+                : StateEventBase(typeId(), obj)
             { }
 
-            bool isFederated() const { return content().federated; }
-            QString version() const { return content().version; }
-            std::pair<QString, QString> predecessor() const;
-            bool isUpgrade() const { return !content().predRoomId.isEmpty(); }
+            struct Predecessor
+            {
+                QString roomId;
+                QString eventId;
+            };
+
+            bool isFederated() const;
+            QString version() const;
+            Predecessor predecessor() const;
+            bool isUpgrade() const;
     };
     REGISTER_EVENT_TYPE(RoomCreateEvent)
 }

@@ -20,19 +20,26 @@
 
 using namespace QMatrixClient;
 
-RoomCreateDetails::RoomCreateDetails(const QJsonObject& json)
-    : federated(fromJson<bool>(json["m.federate"_ls]))
-    , version(fromJson<QString>(json["room_version"_ls]))
+bool RoomCreateEvent::isFederated() const
 {
-    const auto predecessorJson = json["predecessor"_ls].toObject();
-    if (!predecessorJson.isEmpty())
-    {
-        fromJson(predecessorJson["room_id"_ls], predRoomId);
-        fromJson(predecessorJson["event_id"_ls], predEventId);
-    }
+    return fromJson<bool>(contentJson()["m.federate"_ls]);
 }
 
-std::pair<QString, QString> RoomCreateEvent::predecessor() const
+QString RoomCreateEvent::version() const
 {
-    return { content().predRoomId, content().predEventId };
+    return fromJson<QString>(contentJson()["room_version"_ls]);
+}
+
+RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
+{
+    const auto predJson = contentJson()["predecessor"_ls].toObject();
+    return {
+        fromJson<QString>(predJson["room_id"_ls]),
+        fromJson<QString>(predJson["event_id"_ls])
+    };
+}
+
+bool RoomCreateEvent::isUpgrade() const
+{
+    return contentJson().contains("predecessor"_ls);
 }
