@@ -416,6 +416,15 @@ namespace QMatrixClient
             void markAllMessagesAsRead();
 
         signals:
+            /// Initial set of state events has been loaded
+            /**
+             * The initial set is what comes from the initial sync for the room.
+             * This includes all basic things like RoomCreateEvent,
+             * RoomNameEvent, a (lazy-loaded, not full) set of RoomMemberEvents
+             * etc. This is a per-room reflection of Connection::loadedRoomState
+             * \sa Connection::loadedRoomState
+             */
+            void baseStateLoaded();
             void eventsHistoryJobChanged();
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);

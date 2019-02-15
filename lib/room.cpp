@@ -296,6 +296,12 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
+    connectUntil(connection, &Connection::loadedRoomState, this,
+        [this] (Room* r) {
+            if (this == r)
+                emit baseStateLoaded();
+            return this == r; // loadedRoomState fires only once per room
+        });
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
