@@ -128,7 +128,7 @@ namespace QMatrixClient
                 JoinStateChange = 0x20,
                 TagsChange = 0x40,
                 MembersChange = 0x80,
-                /*blank*/ = 0x100,
+                /* = 0x100, */
                 AccountDataChange = 0x200,
                 SummaryChange = 0x400,
                 ReadMarkerChange = 0x800,
