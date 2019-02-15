@@ -1306,6 +1306,8 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setTransactionId(connection->generateTxnId());
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd(pEvent);
+    // FIXME: This sometimes causes a bad read:
+    // https://travis-ci.org/QMatrixClient/libqmatrixclient/jobs/492156899#L2596
     unsyncedEvents.emplace_back(move(event));
     emit q->pendingEventAdded();
     return pEvent;
