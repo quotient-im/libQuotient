@@ -91,6 +91,7 @@ set(libqmatrixclient_SRCS
     lib/events/stateevent.cpp
     lib/events/eventcontent.cpp
     lib/events/roomcreateevent.cpp
+    lib/events/roomtombstoneevent.cpp
     lib/events/roommessageevent.cpp
     lib/events/roommemberevent.cpp
     lib/events/typingevent.cpp

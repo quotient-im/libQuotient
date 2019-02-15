@@ -27,6 +27,7 @@ HEADERS += \
     $$SRCPATH/events/roommessageevent.h \
     $$SRCPATH/events/simplestateevents.h \
     $$SRCPATH/events/roomcreateevent.h \
+    $$SRCPATH/events/roomtombstoneevent.h \
     $$SRCPATH/events/roommemberevent.h \
     $$SRCPATH/events/roomavatarevent.h \
     $$SRCPATH/events/typingevent.h \
@@ -70,6 +71,7 @@ SOURCES += \
     $$SRCPATH/events/stateevent.cpp \
     $$SRCPATH/events/eventcontent.cpp \
     $$SRCPATH/events/roomcreateevent.cpp \
+    $$SRCPATH/events/roomtombstoneevent.cpp \
     $$SRCPATH/events/roommessageevent.cpp \
     $$SRCPATH/events/roommemberevent.cpp \
     $$SRCPATH/events/typingevent.cpp \
