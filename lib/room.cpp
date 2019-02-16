@@ -573,6 +573,26 @@ void Room::markAllMessagesAsRead()
         d->markMessagesAsRead(d->timeline.crbegin());
 }
 
+bool Room::canSwitchVersions() const
+{
+    // TODO, #276: m.room.power_levels
+    const auto* plEvt =
+            d->currentState.value({"m.room.power_levels", ""});
+    if (!plEvt)
+        return true;
+
+    const auto plJson = plEvt->contentJson();
+    const auto currentUserLevel =
+        plJson.value("users"_ls).toObject()
+        .value(localUser()->id()).toInt(
+            plJson.value("users_default"_ls).toInt());
+    const auto tombstonePowerLevel =
+        plJson.value("events").toObject()
+        .value("m.room.tombstone"_ls).toInt(
+            plJson.value("state_default"_ls).toInt());
+    return currentUserLevel >= tombstonePowerLevel;
+}
+
 bool Room::hasUnreadMessages() const
 {
     return unreadCount() >= 0;
@@ -1622,24 +1642,10 @@ void Room::checkVersion()
     {
         qCDebug(MAIN) << this << "version is" << version()
                       << "which the server doesn't count as stable";
-        // TODO, #276: m.room.power_levels
-        if (const auto* plEvt =
-                d->currentState.value({"m.room.power_levels", ""}))
+        if (canSwitchVersions())
         {
-            const auto plJson = plEvt->contentJson();
-            const auto currentUserLevel =
-                plJson.value("users"_ls).toObject()
-                .value(localUser()->id()).toInt(
-                    plJson.value("users_default"_ls).toInt());
-            const auto tombstonePowerLevel =
-                plJson.value("events").toObject()
-                .value("m.room.tombstone"_ls).toInt(
-                    plJson.value("state_default"_ls).toInt());
-            if (currentUserLevel >= tombstonePowerLevel)
-            {
-                qCDebug(MAIN) << "The current user has enough privileges to fix it";
-                emit unstableVersion(defaultVersion, stableVersions);
-            }
+            qCDebug(MAIN) << "The current user has enough privileges to fix it";
+            emit unstableVersion(defaultVersion, stableVersions);
         }
     }
 }

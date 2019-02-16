@@ -424,6 +424,9 @@ namespace QMatrixClient
             /// Mark all messages in the room as read
             void markAllMessagesAsRead();
 
+            /// Whether the current user is allowed to upgrade the room
+            bool canSwitchVersions() const;
+
             /// Switch the room's version (aka upgrade)
             void switchVersion(QString newVersion);
 
