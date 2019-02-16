@@ -326,7 +326,8 @@ const QString& Room::id() const
 
 QString Room::version() const
 {
-    return d->getCurrentState<RoomCreateEvent>()->version();
+    const auto v = d->getCurrentState<RoomCreateEvent>()->version();
+    return v.isEmpty() ? "1" : v;
 }
 
 QString Room::predecessorId() const
