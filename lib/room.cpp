@@ -29,6 +29,7 @@
 #include "csapi/room_send.h"
 #include "csapi/rooms.h"
 #include "csapi/tags.h"
+#include "csapi/room_upgrades.h"
 #include "events/simplestateevents.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
@@ -789,6 +790,11 @@ void Room::resetHighlightCount()
         return;
     d->highlightCount = 0;
     emit highlightCountChanged(this);
+}
+
+void Room::switchVersion(QString newVersion)
+{
+    connection()->callApi<UpgradeRoomJob>(id(), newVersion);
 }
 
 bool Room::hasAccountData(const QString& type) const

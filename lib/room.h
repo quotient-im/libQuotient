@@ -424,6 +424,9 @@ namespace QMatrixClient
             /// Mark all messages in the room as read
             void markAllMessagesAsRead();
 
+            /// Switch the room's version (aka upgrade)
+            void switchVersion(QString newVersion);
+
         signals:
             /// Initial set of state events has been loaded
             /**
