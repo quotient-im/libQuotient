@@ -1622,9 +1622,25 @@ void Room::checkVersion()
     {
         qCDebug(MAIN) << this << "version is" << version()
                       << "which the server doesn't count as stable";
-        // TODO: m.room.power_levels
-        qCDebug(MAIN) << "The current user has enough privileges to fix it";
-        emit unstableVersion(defaultVersion, stableVersions);
+        // TODO, #276: m.room.power_levels
+        if (const auto* plEvt =
+                d->currentState.value({"m.room.power_levels", ""}))
+        {
+            const auto plJson = plEvt->contentJson();
+            const auto currentUserLevel =
+                plJson.value("users"_ls).toObject()
+                .value(localUser()->id()).toInt(
+                    plJson.value("users_default"_ls).toInt());
+            const auto tombstonePowerLevel =
+                plJson.value("events").toObject()
+                .value("m.room.tombstone"_ls).toInt(
+                    plJson.value("state_default"_ls).toInt());
+            if (currentUserLevel >= tombstonePowerLevel)
+            {
+                qCDebug(MAIN) << "The current user has enough privileges to fix it";
+                emit unstableVersion(defaultVersion, stableVersions);
+            }
+        }
     }
 }
 
