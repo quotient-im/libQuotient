@@ -2214,14 +2214,14 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return OtherChange;
         }
         , [this] (const RoomTombstoneEvent& evt) {
-            const auto newRoomId = evt.successorRoomId();
-            if (auto* newRoom = connection()->room(newRoomId))
-                emit upgraded(evt.serverMessage(), newRoom);
+            const auto successorId = evt.successorRoomId();
+            if (auto* successor = connection()->room(successorId))
+                emit upgraded(evt.serverMessage(), successor);
             else
                 connectUntil(connection(), &Connection::loadedRoomState, this,
-                    [this,newRoomId,serverMsg=evt.serverMessage()]
+                    [this,successorId,serverMsg=evt.serverMessage()]
                     (Room* newRoom) {
-                        if (newRoom->id() != newRoomId)
+                        if (newRoom->id() != successorId)
                             return false;
                         emit upgraded(serverMsg, newRoom);
                         return true;
