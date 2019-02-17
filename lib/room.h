@@ -81,6 +81,7 @@ namespace QMatrixClient
             Q_PROPERTY(User* localUser READ localUser CONSTANT)
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
+            Q_PROPERTY(bool isUnstable READ isUnstable NOTIFY stabilityUpdated)
             Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
             Q_PROPERTY(QString successorId READ successorId NOTIFY upgraded)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
@@ -147,6 +148,7 @@ namespace QMatrixClient
             User* localUser() const;
             const QString& id() const;
             QString version() const;
+            bool isUnstable() const;
             QString predecessorId() const;
             QString successorId() const;
             QString name() const;
@@ -538,9 +540,9 @@ namespace QMatrixClient
 
             void callEvent(Room* room, const RoomEvent* event);
 
-            /// The room's version is considered unstable; upgrade recommended
-            void unstableVersion(QString recommendedDefault,
-                                 QStringList stableVersions);
+            /// The room's version stability may have changed
+            void stabilityUpdated(QString recommendedDefault,
+                                  QStringList stableVersions);
             /// This room has been upgraded and won't receive updates anymore
             void upgraded(QString serverMessage, Room* successor);
             /// An attempted room upgrade has failed

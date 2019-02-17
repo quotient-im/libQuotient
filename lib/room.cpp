@@ -330,6 +330,12 @@ QString Room::version() const
     return v.isEmpty() ? "1" : v;
 }
 
+bool Room::isUnstable() const
+{
+    return !connection()->loadingCapabilities() &&
+            !connection()->stableRoomVersions().contains(version());
+}
+
 QString Room::predecessorId() const
 {
     return d->getCurrentState<RoomCreateEvent>()->predecessor().roomId;
@@ -1642,15 +1648,15 @@ void Room::checkVersion()
     const auto defaultVersion = connection()->defaultRoomVersion();
     const auto stableVersions = connection()->stableRoomVersions();
     Q_ASSERT(!defaultVersion.isEmpty() && successorId().isEmpty());
+    // This method is only called after the base state has been loaded
+    // or the server capabilities have been loaded.
+    emit stabilityUpdated(defaultVersion, stableVersions);
     if (!stableVersions.contains(version()))
     {
         qCDebug(MAIN) << this << "version is" << version()
                       << "which the server doesn't count as stable";
         if (canSwitchVersions())
-        {
             qCDebug(MAIN) << "The current user has enough privileges to fix it";
-            emit unstableVersion(defaultVersion, stableVersions);
-        }
     }
 }
 
