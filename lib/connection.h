@@ -258,9 +258,43 @@ namespace QMatrixClient
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE void getTurnServers();
 
+            struct SupportedRoomVersion
+            {
+                QString id;
+                QString status;
+
+                static const QString StableTag; // "stable", as of CS API 0.5
+                bool isStable() const { return status == StableTag; }
+
+                // Pretty-printing
+
+                friend QDebug operator<<(QDebug dbg,
+                                         const SupportedRoomVersion& v)
+                {
+                    QDebugStateSaver _(dbg);
+                    return dbg.nospace() << v.id << '/' << v.status;
+                }
+
+                friend QDebug operator<<(QDebug dbg,
+                                         const QVector<SupportedRoomVersion>& vs)
+                {
+                    return QtPrivate::printSequentialContainer(
+                                dbg, "", vs);
+                }
+            };
+
+            /// Get the room version recommended by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
             QString defaultRoomVersion() const;
+            /// Get the room version considered stable by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
             QStringList stableRoomVersions() const;
-            const QHash<QString, QString>& availableRoomVersions() const;
+            /// Get all room versions supported by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
+            QVector<SupportedRoomVersion> availableRoomVersions() const;
 
             /**
              * Call this before first sync to load from previously saved file.
@@ -370,8 +404,11 @@ namespace QMatrixClient
                                  const QString& deviceId = {});
             void connectWithToken(const QString& userId, const QString& accessToken,
                                   const QString& deviceId);
-            /** Explicitly request capabilities from the server */
+            /// Explicitly request capabilities from the server
             void reloadCapabilities();
+
+            /// Find out if capabilites are still loading from the server
+            bool loadingCapabilities() const;
 
             /** @deprecated Use stopSync() instead */
             void disconnectFromServer() { stopSync(); }

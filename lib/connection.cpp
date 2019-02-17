@@ -274,6 +274,13 @@ void Connection::reloadCapabilities()
     });
 }
 
+bool Connection::loadingCapabilities() const
+{
+    // (Ab)use the fact that room versions cannot be omitted after
+    // the capabilities have been loaded (see reloadCapabilities() above).
+    return d->capabilities.roomVersions.omitted();
+}
+
 void Connection::Private::connectWithToken(const QString& user,
                                            const QString& accessToken,
                                            const QString& deviceId)
@@ -1300,6 +1307,9 @@ void Connection::getTurnServers()
             this, [=] { emit turnServersChanged(job->data()); });
 }
 
+const QString Connection::SupportedRoomVersion::StableTag =
+        QStringLiteral("stable");
+
 QString Connection::defaultRoomVersion() const
 {
     Q_ASSERT(!d->capabilities.roomVersions.omitted());
@@ -1312,13 +1322,34 @@ QStringList Connection::stableRoomVersions() const
     QStringList l;
     const auto& allVersions = d->capabilities.roomVersions->available;
     for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
-        if (it.value() == "stable")
+        if (it.value() == SupportedRoomVersion::StableTag)
             l.push_back(it.key());
     return l;
 }
 
-const QHash<QString, QString>& Connection::availableRoomVersions() const
+inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
+                            const Connection::SupportedRoomVersion& v2)
+{
+    bool ok1 = false, ok2 = false;
+    const auto vNum1 = v1.id.toFloat(&ok1);
+    const auto vNum2 = v2.id.toFloat(&ok2);
+    return ok1 && ok2 ? vNum1 < vNum2 : v1.id < v2.id;
+}
+
+QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() const
 {
     Q_ASSERT(!d->capabilities.roomVersions.omitted());
-    return d->capabilities.roomVersions->available;
+    QVector<SupportedRoomVersion> result;
+    result.reserve(d->capabilities.roomVersions->available.size());
+    for (auto it = d->capabilities.roomVersions->available.begin();
+         it != d->capabilities.roomVersions->available.end(); ++it)
+        result.push_back({ it.key(), it.value() });
+    // Put stable versions over unstable; within each group,
+    // sort numeric versions as numbers, the rest as strings.
+    const auto mid = std::partition(result.begin(), result.end(),
+                                    std::mem_fn(&SupportedRoomVersion::isStable));
+    std::sort(result.begin(), mid, roomVersionLess);
+    std::sort(mid, result.end(), roomVersionLess);
+
+    return result;
 }
