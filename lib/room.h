@@ -80,6 +80,10 @@ namespace QMatrixClient
             Q_PROPERTY(Connection* connection READ connection CONSTANT)
             Q_PROPERTY(User* localUser READ localUser CONSTANT)
             Q_PROPERTY(QString id READ id CONSTANT)
+            Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
+            Q_PROPERTY(bool isUnstable READ isUnstable NOTIFY stabilityUpdated)
+            Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
+            Q_PROPERTY(QString successorId READ successorId NOTIFY upgraded)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
@@ -125,7 +129,7 @@ namespace QMatrixClient
                 JoinStateChange = 0x20,
                 TagsChange = 0x40,
                 MembersChange = 0x80,
-                EncryptionOn = 0x100,
+                /* = 0x100, */
                 AccountDataChange = 0x200,
                 SummaryChange = 0x400,
                 ReadMarkerChange = 0x800,
@@ -143,6 +147,10 @@ namespace QMatrixClient
             Connection* connection() const;
             User* localUser() const;
             const QString& id() const;
+            QString version() const;
+            bool isUnstable() const;
+            QString predecessorId() const;
+            QString successorId() const;
             QString name() const;
             QStringList aliases() const;
             QString canonicalAlias() const;
@@ -371,6 +379,9 @@ namespace QMatrixClient
             Q_INVOKABLE bool supportsCalls() const;
 
         public slots:
+            /** Check whether the room should be upgraded */
+            void checkVersion();
+
             QString postMessage(const QString& plainText, MessageEventType type);
             QString postPlainText(const QString& plainText);
             QString postHtmlMessage(const QString& plainText,
@@ -415,7 +426,22 @@ namespace QMatrixClient
             /// Mark all messages in the room as read
             void markAllMessagesAsRead();
 
+            /// Whether the current user is allowed to upgrade the room
+            bool canSwitchVersions() const;
+
+            /// Switch the room's version (aka upgrade)
+            void switchVersion(QString newVersion);
+
         signals:
+            /// Initial set of state events has been loaded
+            /**
+             * The initial set is what comes from the initial sync for the room.
+             * This includes all basic things like RoomCreateEvent,
+             * RoomNameEvent, a (lazy-loaded, not full) set of RoomMemberEvents
+             * etc. This is a per-room reflection of Connection::loadedRoomState
+             * \sa Connection::loadedRoomState
+             */
+            void baseStateLoaded();
             void eventsHistoryJobChanged();
             void aboutToAddHistoricalMessages(RoomEventsRange events);
             void aboutToAddNewMessages(RoomEventsRange events);
@@ -513,6 +539,15 @@ namespace QMatrixClient
             void fileTransferCancelled(QString id);
 
             void callEvent(Room* room, const RoomEvent* event);
+
+            /// The room's version stability may have changed
+            void stabilityUpdated(QString recommendedDefault,
+                                  QStringList stableVersions);
+            /// This room has been upgraded and won't receive updates anymore
+            void upgraded(QString serverMessage, Room* successor);
+            /// An attempted room upgrade has failed
+            void upgradeFailed(QString errorMessage);
+
             /// The room is about to be deleted
             void beforeDestruction(Room*);
 

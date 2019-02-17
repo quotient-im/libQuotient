@@ -102,6 +102,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString localUserId READ userId NOTIFY stateChanged)
             Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
             Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
+            Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
             Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
@@ -257,6 +258,44 @@ namespace QMatrixClient
             Q_INVOKABLE QString token() const;
             Q_INVOKABLE void getTurnServers();
 
+            struct SupportedRoomVersion
+            {
+                QString id;
+                QString status;
+
+                static const QString StableTag; // "stable", as of CS API 0.5
+                bool isStable() const { return status == StableTag; }
+
+                // Pretty-printing
+
+                friend QDebug operator<<(QDebug dbg,
+                                         const SupportedRoomVersion& v)
+                {
+                    QDebugStateSaver _(dbg);
+                    return dbg.nospace() << v.id << '/' << v.status;
+                }
+
+                friend QDebug operator<<(QDebug dbg,
+                                         const QVector<SupportedRoomVersion>& vs)
+                {
+                    return QtPrivate::printSequentialContainer(
+                                dbg, "", vs);
+                }
+            };
+
+            /// Get the room version recommended by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
+            QString defaultRoomVersion() const;
+            /// Get the room version considered stable by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
+            QStringList stableRoomVersions() const;
+            /// Get all room versions supported by the server
+            /** Only works after server capabilities have been loaded.
+             * \sa loadingCapabilities */
+            QVector<SupportedRoomVersion> availableRoomVersions() const;
+
             /**
              * Call this before first sync to load from previously saved file.
              *
@@ -365,6 +404,11 @@ namespace QMatrixClient
                                  const QString& deviceId = {});
             void connectWithToken(const QString& userId, const QString& accessToken,
                                   const QString& deviceId);
+            /// Explicitly request capabilities from the server
+            void reloadCapabilities();
+
+            /// Find out if capabilites are still loading from the server
+            bool loadingCapabilities() const;
 
             /** @deprecated Use stopSync() instead */
             void disconnectFromServer() { stopSync(); }
@@ -404,7 +448,7 @@ namespace QMatrixClient
             CreateRoomJob* createRoom(RoomVisibility visibility,
                 const QString& alias, const QString& name, const QString& topic,
                 QStringList invites, const QString& presetName = {},
-                bool isDirect = false,
+                const QString& roomVersion = {}, bool isDirect = false,
                 const QVector<CreateRoomJob::StateEvent>& initialState = {},
                 const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
                 const QJsonObject& creationContent = {});
@@ -501,6 +545,7 @@ namespace QMatrixClient
             void resolveError(QString error);
 
             void homeserverChanged(QUrl baseUrl);
+            void capabilitiesLoaded();
 
             void connected();
             void reconnected(); //< \deprecated Use connected() instead

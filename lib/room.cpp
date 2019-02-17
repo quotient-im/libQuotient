@@ -29,7 +29,10 @@
 #include "csapi/room_send.h"
 #include "csapi/rooms.h"
 #include "csapi/tags.h"
+#include "csapi/room_upgrades.h"
 #include "events/simplestateevents.h"
+#include "events/roomcreateevent.h"
+#include "events/roomtombstoneevent.h"
 #include "events/roomavatarevent.h"
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
@@ -250,11 +253,17 @@ class Room::Private
                 const QString& txnId, BaseJob* call = nullptr);
 
         template <typename EvT>
-        auto requestSetState(const QString& stateKey, const EvT& event)
+        SetRoomStateWithKeyJob* requestSetState(const QString& stateKey,
+                                                const EvT& event)
         {
-            // TODO: Queue up state events sending (see #133).
-            return connection->callApi<SetRoomStateWithKeyJob>(
+            if (q->successorId().isEmpty())
+            {
+                // TODO: Queue up state events sending (see #133).
+                return connection->callApi<SetRoomStateWithKeyJob>(
                         id, EvT::matrixTypeId(), stateKey, event.contentJson());
+            }
+            qCWarning(MAIN) << q << "has been upgraded, state won't be set";
+            return nullptr;
         }
 
         template <typename EvT>
@@ -296,6 +305,12 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
+    connectUntil(connection, &Connection::loadedRoomState, this,
+        [this] (Room* r) {
+            if (this == r)
+                emit baseStateLoaded();
+            return this == r; // loadedRoomState fires only once per room
+        });
     qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
@@ -307,6 +322,28 @@ Room::~Room()
 const QString& Room::id() const
 {
     return d->id;
+}
+
+QString Room::version() const
+{
+    const auto v = d->getCurrentState<RoomCreateEvent>()->version();
+    return v.isEmpty() ? "1" : v;
+}
+
+bool Room::isUnstable() const
+{
+    return !connection()->loadingCapabilities() &&
+            !connection()->stableRoomVersions().contains(version());
+}
+
+QString Room::predecessorId() const
+{
+    return d->getCurrentState<RoomCreateEvent>()->predecessor().roomId;
+}
+
+QString Room::successorId() const
+{
+    return d->getCurrentState<RoomTombstoneEvent>()->successorRoomId();
 }
 
 const Room::Timeline& Room::messageEvents() const
@@ -543,6 +580,26 @@ void Room::markAllMessagesAsRead()
         d->markMessagesAsRead(d->timeline.crbegin());
 }
 
+bool Room::canSwitchVersions() const
+{
+    // TODO, #276: m.room.power_levels
+    const auto* plEvt =
+            d->currentState.value({"m.room.power_levels", ""});
+    if (!plEvt)
+        return true;
+
+    const auto plJson = plEvt->contentJson();
+    const auto currentUserLevel =
+        plJson.value("users"_ls).toObject()
+        .value(localUser()->id()).toInt(
+            plJson.value("users_default"_ls).toInt());
+    const auto tombstonePowerLevel =
+        plJson.value("events").toObject()
+        .value("m.room.tombstone"_ls).toInt(
+            plJson.value("state_default"_ls).toInt());
+    return currentUserLevel >= tombstonePowerLevel;
+}
+
 bool Room::hasUnreadMessages() const
 {
     return unreadCount() >= 0;
@@ -760,6 +817,14 @@ void Room::resetHighlightCount()
         return;
     d->highlightCount = 0;
     emit highlightCountChanged(this);
+}
+
+void Room::switchVersion(QString newVersion)
+{
+    auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion);
+    connect(job, &BaseJob::failure, this, [this,job] {
+        emit upgradeFailed(job->errorString());
+    });
 }
 
 bool Room::hasAccountData(const QString& type) const
@@ -1300,6 +1365,8 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setTransactionId(connection->generateTxnId());
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd(pEvent);
+    // FIXME: This sometimes causes a bad read:
+    // https://travis-ci.org/QMatrixClient/libqmatrixclient/jobs/492156899#L2596
     unsyncedEvents.emplace_back(move(event));
     emit q->pendingEventAdded();
     return pEvent;
@@ -1307,7 +1374,11 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
 {
-    return doSendEvent(addAsPending(std::move(event)));
+    if (q->successorId().isEmpty())
+        return doSendEvent(addAsPending(std::move(event)));
+
+    qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
+    return {};
 }
 
 QString Room::Private::doSendEvent(const RoomEvent* pEvent)
@@ -1569,7 +1640,24 @@ bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 
 bool Room::supportsCalls() const
 {
-  return joinedCount() == 2;
+    return joinedCount() == 2;
+}
+
+void Room::checkVersion()
+{
+    const auto defaultVersion = connection()->defaultRoomVersion();
+    const auto stableVersions = connection()->stableRoomVersions();
+    Q_ASSERT(!defaultVersion.isEmpty() && successorId().isEmpty());
+    // This method is only called after the base state has been loaded
+    // or the server capabilities have been loaded.
+    emit stabilityUpdated(defaultVersion, stableVersions);
+    if (!stableVersions.contains(version()))
+    {
+        qCDebug(MAIN) << this << "version is" << version()
+                      << "which the server doesn't count as stable";
+        if (canSwitchVersions())
+            qCDebug(MAIN) << "The current user has enough privileges to fix it";
+    }
 }
 
 void Room::inviteCall(const QString& callId, const int lifetime,
@@ -1799,7 +1887,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
 
         std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap
         { { RoomMemberEvent::typeId(), { QStringLiteral("membership") } }
-//        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
+        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
 //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
 //        , { RoomPowerLevels::typeId(),
 //            { QStringLiteral("ban"), QStringLiteral("events"),
@@ -2123,7 +2211,23 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         }
         , [this] (const EncryptionEvent&) {
             emit encryption(); // It can only be done once, so emit it here.
-            return EncryptionOn;
+            return OtherChange;
+        }
+        , [this] (const RoomTombstoneEvent& evt) {
+            const auto successorId = evt.successorRoomId();
+            if (auto* successor = connection()->room(successorId))
+                emit upgraded(evt.serverMessage(), successor);
+            else
+                connectUntil(connection(), &Connection::loadedRoomState, this,
+                    [this,successorId,serverMsg=evt.serverMessage()]
+                    (Room* newRoom) {
+                        if (newRoom->id() != successorId)
+                            return false;
+                        emit upgraded(serverMsg, newRoom);
+                        return true;
+                    });
+
+            return OtherChange;
         }
     );
 }

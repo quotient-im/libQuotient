@@ -24,6 +24,7 @@
 #include "room.h"
 #include "settings.h"
 #include "csapi/login.h"
+#include "csapi/capabilities.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
 #include "csapi/leaving.h"
@@ -91,6 +92,9 @@ class Connection::Private
         std::unordered_map<QString, EventPtr> accountData;
         QString userId;
         int syncLoopTimeout = -1;
+
+        GetCapabilitiesJob* capabilitiesJob = nullptr;
+        GetCapabilitiesJob::Capabilities capabilities;
 
         SyncJob* syncJob = nullptr;
 
@@ -244,6 +248,39 @@ void Connection::connectWithToken(const QString& userId,
         [=] { d->connectWithToken(userId, accessToken, deviceId); });
 }
 
+void Connection::reloadCapabilities()
+{
+    d->capabilitiesJob = callApi<GetCapabilitiesJob>(BackgroundRequest);
+    connect(d->capabilitiesJob, &BaseJob::finished, this, [this] {
+        if (d->capabilitiesJob->error() == BaseJob::Success)
+            d->capabilities = d->capabilitiesJob->capabilities();
+        else if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
+            qCDebug(MAIN) << "Server doesn't support /capabilities";
+
+        if (d->capabilities.roomVersions.omitted())
+        {
+            qCWarning(MAIN) << "Pinning supported room version to 1";
+            d->capabilities.roomVersions = { "1", {{ "1", "stable" }} };
+        } else {
+            qCDebug(MAIN) << "Room versions:"
+                << defaultRoomVersion() << "is default, full list:"
+                << availableRoomVersions();
+        }
+        Q_ASSERT(!d->capabilities.roomVersions.omitted());
+        emit capabilitiesLoaded();
+        for (auto* r: d->roomMap)
+            if (r->joinState() == JoinState::Join && r->successorId().isEmpty())
+                r->checkVersion();
+    });
+}
+
+bool Connection::loadingCapabilities() const
+{
+    // (Ab)use the fact that room versions cannot be omitted after
+    // the capabilities have been loaded (see reloadCapabilities() above).
+    return d->capabilities.roomVersions.omitted();
+}
+
 void Connection::Private::connectWithToken(const QString& user,
                                            const QString& accessToken,
                                            const QString& deviceId)
@@ -256,7 +293,7 @@ void Connection::Private::connectWithToken(const QString& user,
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();
     emit q->connected();
-
+    q->reloadCapabilities();
 }
 
 void Connection::checkAndConnect(const QString& userId,
@@ -356,8 +393,14 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
             d->pendingStateRoomIds.removeOne(roomData.roomId);
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r))
+            {
                 emit loadedRoomState(r);
+                if (!d->capabilities.roomVersions.omitted())
+                    r->checkVersion();
+                // Otherwise, the version will be checked in reloadCapabilities()
+            }
         }
+        // Let UI update itself after updating each room
         QCoreApplication::processEvents();
     }
     for (auto&& accountEvent: data.takeAccountData())
@@ -550,7 +593,8 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     const QString& alias, const QString& name, const QString& topic,
-    QStringList invites, const QString& presetName, bool isDirect,
+    QStringList invites, const QString& presetName,
+    const QString& roomVersion, bool isDirect,
     const QVector<CreateRoomJob::StateEvent>& initialState,
     const QVector<CreateRoomJob::Invite3pid>& invite3pids,
     const QJsonObject& creationContent)
@@ -559,7 +603,7 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
     auto job = callApi<CreateRoomJob>(
             visibility == PublishRoom ? QStringLiteral("public")
                                       : QStringLiteral("private"),
-            alias, name, topic, invites, invite3pids, QString(/*TODO: #233*/),
+            alias, name, topic, invites, invite3pids, roomVersion,
             creationContent, initialState, presetName, isDirect);
     connect(job, &BaseJob::success, this, [this,job] {
         emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
@@ -661,7 +705,7 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
     const QString& topic, const QString& name)
 {
     return createRoom(UnpublishRoom, "", name, topic, {userId},
-                      "trusted_private_chat", true);
+                      "trusted_private_chat", {}, true);
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
@@ -1258,9 +1302,54 @@ void QMatrixClient::Connection::setLazyLoading(bool newValue)
 
 void Connection::getTurnServers()
 {
-  auto job = callApi<GetTurnServerJob>();
-  connect( job, &GetTurnServerJob::success, [=] {
-      emit turnServersChanged(job->data());
-  });
+    auto job = callApi<GetTurnServerJob>();
+    connect(job, &GetTurnServerJob::success,
+            this, [=] { emit turnServersChanged(job->data()); });
+}
 
+const QString Connection::SupportedRoomVersion::StableTag =
+        QStringLiteral("stable");
+
+QString Connection::defaultRoomVersion() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    return d->capabilities.roomVersions->defaultVersion;
+}
+
+QStringList Connection::stableRoomVersions() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    QStringList l;
+    const auto& allVersions = d->capabilities.roomVersions->available;
+    for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
+        if (it.value() == SupportedRoomVersion::StableTag)
+            l.push_back(it.key());
+    return l;
+}
+
+inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
+                            const Connection::SupportedRoomVersion& v2)
+{
+    bool ok1 = false, ok2 = false;
+    const auto vNum1 = v1.id.toFloat(&ok1);
+    const auto vNum2 = v2.id.toFloat(&ok2);
+    return ok1 && ok2 ? vNum1 < vNum2 : v1.id < v2.id;
+}
+
+QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() const
+{
+    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    QVector<SupportedRoomVersion> result;
+    result.reserve(d->capabilities.roomVersions->available.size());
+    for (auto it = d->capabilities.roomVersions->available.begin();
+         it != d->capabilities.roomVersions->available.end(); ++it)
+        result.push_back({ it.key(), it.value() });
+    // Put stable versions over unstable; within each group,
+    // sort numeric versions as numbers, the rest as strings.
+    const auto mid = std::partition(result.begin(), result.end(),
+                                    std::mem_fn(&SupportedRoomVersion::isStable));
+    std::sort(result.begin(), mid, roomVersionLess);
+    std::sort(mid, result.end(), roomVersionLess);
+
+    return result;
 }
