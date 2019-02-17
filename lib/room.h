@@ -542,7 +542,9 @@ namespace QMatrixClient
             void unstableVersion(QString recommendedDefault,
                                  QStringList stableVersions);
             /// This room has been upgraded and won't receive updates anymore
-            void upgraded(QString serverMessage, QString successorId);
+            void upgraded(QString serverMessage, Room* successor);
+            /// An attempted room upgrade has failed
+            void upgradeFailed(QString errorMessage);
 
             /// The room is about to be deleted
             void beforeDestruction(Room*);

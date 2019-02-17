@@ -815,7 +815,10 @@ void Room::resetHighlightCount()
 
 void Room::switchVersion(QString newVersion)
 {
-    connection()->callApi<UpgradeRoomJob>(id(), newVersion);
+    auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion);
+    connect(job, &BaseJob::failure, this, [this,job] {
+        emit upgradeFailed(job->errorString());
+    });
 }
 
 bool Room::hasAccountData(const QString& type) const
@@ -2205,7 +2208,19 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return OtherChange;
         }
         , [this] (const RoomTombstoneEvent& evt) {
-            emit upgraded(evt.serverMessage(), evt.successorRoomId());
+            const auto newRoomId = evt.successorRoomId();
+            if (auto* newRoom = connection()->room(newRoomId))
+                emit upgraded(evt.serverMessage(), newRoom);
+            else
+                connectUntil(connection(), &Connection::loadedRoomState, this,
+                    [this,newRoomId,serverMsg=evt.serverMessage()]
+                    (Room* newRoom) {
+                        if (newRoom->id() != newRoomId)
+                            return false;
+                        emit upgraded(serverMsg, newRoom);
+                        return true;
+                    });
+
             return OtherChange;
         }
     );
