@@ -56,6 +56,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QDir>
 #include <QtCore/QTemporaryFile>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QMimeDatabase>
 
 #include <array>
@@ -1804,7 +1805,8 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     {
         // Build our own file path, starting with temp directory and eventId.
         filePath = eventId;
-        filePath = QDir::tempPath() % '/' % filePath.replace(':', '_') %
+        filePath = QDir::tempPath() % '/' %
+            filePath.replace(QRegularExpression("[/\\<>|\"*?:]"), "_") %
                 '#' % d->fileNameToDownload(event);
     }
     auto job = connection()->downloadFile(fileUrl, filePath);
