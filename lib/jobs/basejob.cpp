@@ -325,7 +325,15 @@ void BaseJob::gotReply()
                 d->status.code = UserConsentRequiredError;
                 d->errorUrl = json.value("consent_uri"_ls).toString();
             }
-            else if (!json.isEmpty()) // Not localisable on the client side
+            else if (errCode == "M_UNSUPPORTED_ROOM_VERSION" ||
+                     errCode == "M_INCOMPATIBLE_ROOM_VERSION")
+            {
+                d->status.code = UnsupportedRoomVersionError;
+                if (json.contains("room_version"))
+                    d->status.message =
+                        tr("Requested room version: %1")
+                        .arg(json.value("room_version").toString());
+            } else if (!json.isEmpty()) // Not localisable on the client side
                 setStatus(IncorrectRequestError,
                           json.value("error"_ls).toString());
         }
@@ -568,6 +576,8 @@ QString BaseJob::statusCaption() const
             return tr("Network authentication required");
         case UserConsentRequiredError:
             return tr("User consent required");
+        case UnsupportedRoomVersionError:
+            return tr("The server does not support the needed room version");
         default:
             return tr("Request failed");
     }

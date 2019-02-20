@@ -64,6 +64,7 @@ namespace QMatrixClient
                 , IncorrectResponseError
                 , TooManyRequestsError
                 , RequestNotImplementedError
+                , UnsupportedRoomVersionError
                 , NetworkAuthRequiredError
                 , UserConsentRequiredError
                 , UserDefinedError = 200
