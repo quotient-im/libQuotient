@@ -11,9 +11,6 @@ addons:
     - qt57base
     - qt57multimedia
     - valgrind
-  homebrew:
-    packages:
-    - qt5
 
 matrix:
   include:
@@ -24,7 +21,11 @@ matrix:
     compiler: clang
   - os: osx
     osx_image: xcode10
-    env: [ 'ENV_EVAL="PATH=/usr/local/opt/qt/bin:$PATH"' ]
+    env: [ 'PATH=/usr/local/opt/qt/bin:$PATH' ]
+    addons:
+      homebrew:
+        packages:
+        - qt5
 
 before_install:
 - eval "${ENV_EVAL}"
