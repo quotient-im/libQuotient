@@ -266,20 +266,11 @@ namespace QMatrixClient
                 static const QString StableTag; // "stable", as of CS API 0.5
                 bool isStable() const { return status == StableTag; }
 
-                // Pretty-printing
-
                 friend QDebug operator<<(QDebug dbg,
                                          const SupportedRoomVersion& v)
                 {
                     QDebugStateSaver _(dbg);
                     return dbg.nospace() << v.id << '/' << v.status;
-                }
-
-                friend QDebug operator<<(QDebug dbg,
-                                         const QVector<SupportedRoomVersion>& vs)
-                {
-                    return QtPrivate::printSequentialContainer(
-                                dbg, "", vs);
                 }
             };
 
