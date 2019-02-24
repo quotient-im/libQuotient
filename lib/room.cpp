@@ -209,6 +209,28 @@ class Room::Private
                 is<RoomMessageEvent>(*ti);
         }
 
+        template <typename EventArrayT>
+        Changes updateStateFrom(EventArrayT&& events)
+        {
+            Changes changes = NoChange;
+            if (!events.empty())
+            {
+                QElapsedTimer et; et.start();
+                for (auto&& eptr: events)
+                {
+                    const auto& evt = *eptr;
+                    Q_ASSERT(evt.isStateEvent());
+                    // Update baseState afterwards to make sure that the old state
+                    // is valid and usable inside processStateEvent
+                    changes |= q->processStateEvent(evt);
+                    baseState[{evt.matrixType(),evt.stateKey()}] = move(eptr);
+                }
+                if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+                    qCDebug(PROFILER) << "*** Room::Private::updateStateFrom():"
+                                      << events.size() << "event(s)," << et;
+            }
+            return changes;
+        }
         Changes addNewMessageEvents(RoomEvents&& events);
         void addHistoricalMessageEvents(RoomEvents&& events);
 
@@ -684,13 +706,7 @@ void Room::Private::getAllMembers()
     auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
     connect( allMembersJob, &BaseJob::success, q, [=] {
         Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
-        Changes roomChanges = NoChange;
-        for (auto&& e: allMembersJob->chunk())
-        {
-            const auto& evt = *e;
-            baseState[{evt.matrixType(),evt.stateKey()}] = move(e);
-            roomChanges |= q->processStateEvent(evt);
-        }
+        auto roomChanges = updateStateFrom(allMembersJob->chunk());
         // Replay member events that arrived after the point for which
         // the full members list was requested.
         if (!timeline.empty() )
@@ -1296,21 +1312,8 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     for (auto&& event: data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
 
-    if (!data.state.empty())
-    {
-        et.restart();
-        for (auto&& eptr: data.state)
-        {
-            const auto& evt = *eptr;
-            Q_ASSERT(evt.isStateEvent());
-            d->baseState[{evt.matrixType(),evt.stateKey()}] = move(eptr);
-            roomChanges |= processStateEvent(evt);
-        }
+    roomChanges |= d->updateStateFrom(data.state);
 
-        if (data.state.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "*** Room::processStateEvents():"
-                              << data.state.size() << "event(s)," << et;
-    }
     if (!data.timeline.empty())
     {
         et.restart();
@@ -1612,6 +1615,11 @@ void Room::setName(const QString& newName)
 void Room::setCanonicalAlias(const QString& newAlias)
 {
     d->requestSetState(RoomCanonicalAliasEvent(newAlias));
+}
+
+void Room::setAliases(const QStringList& aliases)
+{
+    d->requestSetState(RoomAliasesEvent(aliases));
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -2148,8 +2156,12 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!e.isStateEvent())
         return Change::NoChange;
 
-    d->currentState[{e.matrixType(),e.stateKey()}] =
-            static_cast<const StateEventBase*>(&e);
+    const auto* oldStateEvent = std::exchange(
+        d->currentState[{e.matrixType(),e.stateKey()}],
+        static_cast<const StateEventBase*>(&e));
+    Q_ASSERT(!oldStateEvent ||
+             (oldStateEvent->matrixType() == e.matrixType() &&
+              oldStateEvent->stateKey() == e.stateKey()));
     if (!is<RoomMemberEvent>(e))
         qCDebug(EVENTS) << "Room state event:" << e;
 
@@ -2157,7 +2169,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [] (const RoomNameEvent&) {
             return NameChange;
         }
-        , [] (const RoomAliasesEvent&) {
+        , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
+            const auto previousAliases = oldStateEvent
+                ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
+                : QStringList();
+            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
             return OtherChange;
         }
         , [this] (const RoomCanonicalAliasEvent& evt) {

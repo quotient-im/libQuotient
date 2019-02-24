@@ -231,8 +231,8 @@ namespace QMatrixClient
              */
             void addToIgnoredUsers(const User* user);
 
-            /** Remove the user from the ignore list
-             * Similar to adding, the change signal is emitted synchronously.
+            /** Remove the user from the ignore list */
+            /** Similar to adding, the change signal is emitted synchronously.
              *
              * \sa ignoredUsersListChanged
              */
@@ -242,8 +242,18 @@ namespace QMatrixClient
             QMap<QString, User*> users() const;
 
             QUrl homeserver() const;
+            /** Find a room by its id and a mask of applicable states */
             Q_INVOKABLE Room* room(const QString& roomId,
-                 JoinStates states = JoinState::Invite|JoinState::Join) const;
+                JoinStates states = JoinState::Invite|JoinState::Join) const;
+            /** Find a room by its alias and a mask of applicable states */
+            Q_INVOKABLE Room* roomByAlias(const QString& roomAlias,
+                JoinStates states = JoinState::Invite|JoinState::Join) const;
+            /** Update the internal map of room aliases to IDs */
+            /// This is used for internal bookkeeping of rooms. Do NOT use
+            /// it to try change aliases, use Room::setAliases instead
+            void updateRoomAliases(const QString& roomId,
+                const QStringList& previousRoomAliases,
+                const QStringList& roomAliases);
             Q_INVOKABLE Room* invitation(const QString& roomId) const;
             Q_INVOKABLE User* user(const QString& userId);
             const User* user() const;

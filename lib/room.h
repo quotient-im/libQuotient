@@ -402,6 +402,7 @@ namespace QMatrixClient
             void discardMessage(const QString& txnId);
             void setName(const QString& newName);
             void setCanonicalAlias(const QString& newAlias);
+            void setAliases(const QStringList& aliases);
             void setTopic(const QString& newTopic);
 
             void getPreviousContent(int limit = 10);
