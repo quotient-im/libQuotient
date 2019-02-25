@@ -52,6 +52,14 @@ template <typename T>
 static void qAsConst(const T &&) Q_DECL_EQ_DELETE;
 #endif
 
+// MSVC 2015 and older GCC's don't handle initialisation from initializer lists
+// right in the absense of a constructor; MSVC 2015, notably, fails with
+// "error C2440: 'return': cannot convert from 'initializer list' to '<type>'"
+#if (defined(_MSC_VER) && _MSC_VER < 1910) || \
+    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 4)
+#  define BROKEN_INITIALIZER_LISTS
+#endif
+
 namespace QMatrixClient
 {
     // The below enables pretty-printing of enums in logs

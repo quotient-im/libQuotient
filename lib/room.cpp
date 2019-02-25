@@ -72,14 +72,6 @@ using std::llround;
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
-// A workaround for MSVC 2015 and older GCC's that don't handle initializer
-// lists right (MSVC 2015, notably, fails with "error C2440: 'return':
-// cannot convert from 'initializer list' to 'QMatrixClient::FileTransferInfo'")
-#if (defined(_MSC_VER) && _MSC_VER < 1910) || \
-    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 4)
-#  define WORKAROUND_EXTENDED_INITIALIZER_LIST
-#endif
-
 class Room::Private
 {
     public:
@@ -1065,7 +1057,7 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
-#ifdef WORKAROUND_EXTENDED_INITIALIZER_LIST
+#ifdef BROKEN_INITIALIZER_LISTS
     FileTransferInfo fti;
     fti.status = infoIt->status;
     fti.progress = int(progress);
