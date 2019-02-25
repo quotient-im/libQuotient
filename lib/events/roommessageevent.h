@@ -92,6 +92,17 @@ namespace QMatrixClient
     {
         // Additional event content types
 
+        struct RelatesTo
+        {
+            static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
+            QString type; // The only supported relation so far
+            QString eventId;
+        };
+        inline RelatesTo replyTo(QString eventId)
+        {
+            return { RelatesTo::ReplyTypeId(), std::move(eventId) };
+        }
+
         /**
          * Rich text content for m.text, m.emote, m.notice
          *
@@ -101,13 +112,15 @@ namespace QMatrixClient
         class TextContent: public TypedBase
         {
             public:
-                TextContent(const QString& text, const QString& contentType);
+                TextContent(const QString& text, const QString& contentType,
+                            Omittable<RelatesTo> relatesTo = none);
                 explicit TextContent(const QJsonObject& json);
 
                 QMimeType type() const override { return mimeType; }
 
                 QMimeType mimeType;
                 QString body;
+                Omittable<RelatesTo> relatesTo;
 
             protected:
                 void fillJson(QJsonObject* json) const override;
