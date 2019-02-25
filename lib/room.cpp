@@ -1889,22 +1889,29 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
     auto originalJson = target.originalJsonObject();
-    static const QStringList keepKeys =
-        { EventIdKey, TypeKey, QStringLiteral("room_id"),
-          QStringLiteral("sender"), QStringLiteral("state_key"),
-          QStringLiteral("prev_content"), ContentKey,
-          QStringLiteral("origin_server_ts") };
+    static const QStringList keepKeys {
+        EventIdKey, TypeKey, QStringLiteral("room_id"),
+        QStringLiteral("sender"), QStringLiteral("state_key"),
+        QStringLiteral("prev_content"), ContentKey,
+        QStringLiteral("hashes"), QStringLiteral("signatures"),
+        QStringLiteral("depth"), QStringLiteral("prev_events"),
+        QStringLiteral("prev_state"), QStringLiteral("auth_events"),
+        QStringLiteral("origin"), QStringLiteral("origin_server_ts"),
+        QStringLiteral("membership")
+    };
 
         std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap
         { { RoomMemberEvent::typeId(), { QStringLiteral("membership") } }
-        , { RoomCreateEvent::typeId(),    { QStringLiteral("creator") } }
+        , { RoomCreateEvent::typeId(), { QStringLiteral("creator") } }
 //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
 //        , { RoomPowerLevels::typeId(),
 //            { QStringLiteral("ban"), QStringLiteral("events"),
 //              QStringLiteral("events_default"), QStringLiteral("kick"),
 //              QStringLiteral("redact"), QStringLiteral("state_default"),
 //              QStringLiteral("users"), QStringLiteral("users_default") } }
-        , { RoomAliasesEvent::typeId(),   { QStringLiteral("alias") } }
+        , { RoomAliasesEvent::typeId(), { QStringLiteral("aliases") } }
+//        , { RoomHistoryVisibility::typeId(),
+//                { QStringLiteral("history_visibility") } }
         };
     for (auto it = originalJson.begin(); it != originalJson.end();)
     {
