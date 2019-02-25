@@ -1361,8 +1361,6 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setTransactionId(connection->generateTxnId());
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd(pEvent);
-    // FIXME: This sometimes causes a bad read:
-    // https://travis-ci.org/QMatrixClient/libqmatrixclient/jobs/492156899#L2596
     unsyncedEvents.emplace_back(move(event));
     emit q->pendingEventAdded();
     return pEvent;
@@ -2057,15 +2055,21 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
         it = nextPending + 1;
         auto* nextPendingEvt = nextPending->get();
-        emit q->pendingEventAboutToMerge(nextPendingEvt,
-                    int(nextPendingPair.second - unsyncedEvents.begin()));
+        const auto pendingEvtIdx =
+                int(nextPendingPair.second - unsyncedEvents.begin());
+        emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
         qDebug(EVENTS) << "Merging pending event from transaction"
                        << nextPendingEvt->transactionId() << "into"
                        << nextPendingEvt->id();
         auto transfer = fileTransfers.take(nextPendingEvt->transactionId());
         if (transfer.status != FileTransferInfo::None)
             fileTransfers.insert(nextPendingEvt->id(), transfer);
-        unsyncedEvents.erase(nextPendingPair.second);
+        // After emitting pendingEventAboutToMerge() above we cannot rely
+        // on the previously obtained nextPendingPair.second staying valid
+        // because a signal handler may send another message, thereby altering
+        // unsyncedEvents (see #286). Fortunately, unsyncedEvents only grows at
+        // its back so we can rely on the index staying valid at least.
+        unsyncedEvents.erase(unsyncedEvents.begin() + pendingEvtIdx);
         if (auto insertedSize = moveEventsToTimeline({nextPending, it}, Newer))
         {
             totalInserted += insertedSize;
