@@ -1525,7 +1525,7 @@ QString Room::postPlainText(const QString& plainText)
 }
 
 QString Room::postHtmlMessage(const QString& plainText, const QString& html,
-                           MessageEventType type)
+                              MessageEventType type)
 {
     return d->sendEvent<RoomMessageEvent>(plainText, type,
           new EventContent::TextContent(html, QStringLiteral("text/html")));
@@ -1533,7 +1533,7 @@ QString Room::postHtmlMessage(const QString& plainText, const QString& html,
 
 QString Room::postHtmlText(const QString& plainText, const QString& html)
 {
-    return postHtmlMessage(plainText, html, MessageEventType::Text);
+    return postHtmlMessage(plainText, html);
 }
 
 QString Room::postFile(const QString& plainText, const QUrl& localPath,

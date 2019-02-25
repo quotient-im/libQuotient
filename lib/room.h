@@ -385,7 +385,8 @@ namespace QMatrixClient
             QString postMessage(const QString& plainText, MessageEventType type);
             QString postPlainText(const QString& plainText);
             QString postHtmlMessage(const QString& plainText,
-                                    const QString& html, MessageEventType type);
+                        const QString& html,
+                        MessageEventType type = MessageEventType::Text);
             QString postHtmlText(const QString& plainText, const QString& html);
             QString postFile(const QString& plainText, const QUrl& localPath,
                              bool asGenericFile = false);
