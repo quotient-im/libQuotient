@@ -33,6 +33,7 @@
 namespace QMatrixClient
 {
     class Event;
+    class Avatar;
     class SyncRoomData;
     class RoomMemberEvent;
     class Connection;
@@ -158,6 +159,7 @@ namespace QMatrixClient
             QString topic() const;
             QString avatarMediaId() const;
             QUrl avatarUrl() const;
+            const Avatar& avatarObject() const;
             Q_INVOKABLE JoinState joinState() const;
             Q_INVOKABLE QList<User*> usersTyping() const;
             QList<User*> membersLeft() const;

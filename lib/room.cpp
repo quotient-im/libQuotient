@@ -404,6 +404,11 @@ QUrl Room::avatarUrl() const
     return d->avatar.url();
 }
 
+const Avatar& Room::avatarObject() const
+{
+    return d->avatar;
+}
+
 QImage Room::avatar(int dimension)
 {
     return avatar(dimension, dimension);
