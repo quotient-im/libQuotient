@@ -263,9 +263,7 @@ class Room::Private
         RoomEvent* addAsPending(RoomEventPtr&& event);
 
         QString doSendEvent(const RoomEvent* pEvent);
-        PendingEvents::iterator findAsPending(const RoomEvent* rawEvtPtr);
-        void onEventSendingFailure(const RoomEvent* pEvent,
-                const QString& txnId, BaseJob* call = nullptr);
+        void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
         template <typename EvT>
         SetRoomStateWithKeyJob* requestSetState(const QString& stateKey,
@@ -1377,14 +1375,14 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
 
 QString Room::Private::doSendEvent(const RoomEvent* pEvent)
 {
-    auto txnId = pEvent->transactionId();
+    const auto txnId = pEvent->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
     if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest,
                         id, pEvent->matrixType(), txnId, pEvent->contentJson()))
     {
         Room::connect(call, &BaseJob::started, q,
-            [this,pEvent,txnId] {
-                auto it = findAsPending(pEvent);
+            [this,txnId] {
+                auto it = q->findPendingEvent(txnId);
                 if (it == unsyncedEvents.end())
                 {
                     qWarning(EVENTS) << "Pending event for transaction" << txnId
@@ -1395,14 +1393,11 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 emit q->pendingEventChanged(it - unsyncedEvents.begin());
             });
         Room::connect(call, &BaseJob::failure, q,
-            std::bind(&Room::Private::onEventSendingFailure,
-                      this, pEvent, txnId, call));
+            std::bind(&Room::Private::onEventSendingFailure, this, txnId, call));
         Room::connect(call, &BaseJob::success, q,
-            [this,call,pEvent,txnId] {
+            [this,call,txnId] {
                 emit q->messageSent(txnId, call->eventId());
-                // Find an event by the pointer saved in the lambda (the pointer
-                // may be dangling by now but we can still search by it).
-                auto it = findAsPending(pEvent);
+                auto it = q->findPendingEvent(txnId);
                 if (it == unsyncedEvents.end())
                 {
                     qDebug(EVENTS) << "Pending event for transaction" << txnId
@@ -1414,23 +1409,13 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 emit q->pendingEventChanged(it - unsyncedEvents.begin());
             });
     } else
-        onEventSendingFailure(pEvent, txnId);
+        onEventSendingFailure(txnId);
     return txnId;
 }
 
-Room::PendingEvents::iterator Room::Private::findAsPending(
-        const RoomEvent* rawEvtPtr)
+void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
 {
-    const auto comp =
-        [rawEvtPtr] (const auto& pe) { return pe.event() == rawEvtPtr; };
-
-    return std::find_if(unsyncedEvents.begin(), unsyncedEvents.end(), comp);
-}
-
-void Room::Private::onEventSendingFailure(const RoomEvent* pEvent,
-        const QString& txnId, BaseJob* call)
-{
-    auto it = findAsPending(pEvent);
+    auto it = q->findPendingEvent(txnId);
     if (it == unsyncedEvents.end())
     {
         qCritical(EVENTS) << "Pending event for transaction" << txnId
@@ -1533,50 +1518,48 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     Q_ASSERT(localFile.isFile());
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
-    auto* pEvent = d->addAsPending(
-            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile));
-    const auto txnId = pEvent->transactionId();
+    const auto txnId = d->addAsPending(makeEvent<RoomMessageEvent>(
+                                           plainText, localFile, asGenericFile)
+                                       )->transactionId();
     uploadFile(txnId, localPath);
-    QMetaObject::Connection cCompleted, cCancelled;
-    cCompleted = connect(this, &Room::fileTransferCompleted, this,
-            [cCompleted,cCancelled,this,pEvent,txnId]
-            (const QString& id, QUrl, const QUrl& mxcUri) {
-                if (id == txnId)
+    auto* context = new QObject(this);
+    connect(this, &Room::fileTransferCompleted, context,
+        [context,this,txnId] (const QString& id, QUrl, const QUrl& mxcUri) {
+            if (id == txnId)
+            {
+                auto it = findPendingEvent(txnId);
+                if (it != d->unsyncedEvents.end())
                 {
-                    auto it = d->findAsPending(pEvent);
-                    if (it != d->unsyncedEvents.end())
-                    {
-                        it->setFileUploaded(mxcUri);
-                        emit pendingEventChanged(
-                                    int(it - d->unsyncedEvents.begin()));
-                        d->doSendEvent(pEvent);
-                    } else {
-                        // Normally in this situation we should instruct
-                        // the media server to delete the file; alas, there's no
-                        // API specced for that.
-                        qCWarning(MAIN) << "File uploaded to" << mxcUri
-                            << "but the event referring to it was cancelled";
-                    }
-                    disconnect(cCompleted);
-                    disconnect(cCancelled);
+                    it->setFileUploaded(mxcUri);
+                    emit pendingEventChanged(
+                                int(it - d->unsyncedEvents.begin()));
+                    d->doSendEvent(it->get());
+                } else {
+                    // Normally in this situation we should instruct
+                    // the media server to delete the file; alas, there's no
+                    // API specced for that.
+                    qCWarning(MAIN) << "File uploaded to" << mxcUri
+                        << "but the event referring to it was cancelled";
                 }
-            });
-    cCancelled = connect(this, &Room::fileTransferCancelled, this,
-            [cCompleted,cCancelled,this,pEvent,txnId] (const QString& id) {
-                if (id == txnId)
+                context->deleteLater();
+            }
+        });
+    connect(this, &Room::fileTransferCancelled, this,
+        [context,this,txnId] (const QString& id) {
+            if (id == txnId)
+            {
+                auto it = findPendingEvent(txnId);
+                if (it != d->unsyncedEvents.end())
                 {
-                    auto it = d->findAsPending(pEvent);
-                    if (it != d->unsyncedEvents.end())
-                    {
-                        emit pendingEventAboutToDiscard(
-                                    int(it - d->unsyncedEvents.begin()));
-                        d->unsyncedEvents.erase(it);
-                        emit pendingEventDiscarded();
-                    }
-                    disconnect(cCompleted);
-                    disconnect(cCancelled);
+                    const auto idx = int(it - d->unsyncedEvents.begin());
+                    emit pendingEventAboutToDiscard(idx);
+                    // See #286 on why iterator may not be valid here.
+                    d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
+                    emit pendingEventDiscarded();
                 }
-            });
+                context->deleteLater();
+            }
+        });
 
     return txnId;
 }
