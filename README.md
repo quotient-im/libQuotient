@@ -21,7 +21,7 @@ So far the library is typically used as a git submodule of another project (such
 
 The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrixclient - checking out a certain commit or tag from GitHub (rather than downloading the archive) is the recommended way for one-off building. If you want to hack on the library as a part of another project (e.g. you are working on Quaternion but need to do some changes to the library code), you're advised to make a recursive check out of that project (in this case, Quaternion) and update the library submodule to its master branch.
 
-Tags consisting of digits and periods represent released versions; tags ending with `~betaN` or `~rcN` mark pre-releases.
+Tags consisting of digits and periods represent released versions; tags ending with `-betaN` or `-rcN` mark pre-releases. If/when packaging pre-releases, it is advised to replace a dash with a tilde.
 
 ### Pre-requisites
 - a Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch is known to work; mobile Windows and iOS might work too but never tried)
