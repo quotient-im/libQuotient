@@ -38,6 +38,7 @@ static void linkifyUrls(QString& htmlEscapedText)
     // comma or dot
     // Note: outer parentheses are a part of C++ raw string delimiters, not of
     // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
+    // Note2: yet another pair of outer parentheses are \1 in the replacement.
     static const QRegularExpression FullUrlRegExp(QStringLiteral(
             R"(((www\.(?!\.)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
         ), RegExpOptions);
@@ -46,6 +47,11 @@ static void linkifyUrls(QString& htmlEscapedText)
     static const QRegularExpression EmailAddressRegExp(QStringLiteral(
             R"((mailto:)?(\b(\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
         ), RegExpOptions);
+    // An interim liberal implementation of
+    // https://matrix.org/docs/spec/appendices.html#identifier-grammar
+    static const QRegularExpression MxIdRegExp(QStringLiteral(
+            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:[-.a-z0-9]+))"
+        ), RegExpOptions);
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&
 
@@ -53,6 +59,8 @@ static void linkifyUrls(QString& htmlEscapedText)
                  QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
     htmlEscapedText.replace(FullUrlRegExp,
                  QStringLiteral(R"(<a href="\1">\1</a>)"));
+    htmlEscapedText.replace(MxIdRegExp,
+                 QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
 }
 
 QString QMatrixClient::prettyPrint(const QString& plainText)
