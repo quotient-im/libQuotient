@@ -24,7 +24,7 @@ For general discussion, feel free to use our Matrix room:
 [#quaternion:matrix.org](https://matrix.to/#/#quaternion:matrix.org).
 
 If you're new to the project (or FLOSS in general),
-[issues tagged as simple](https://github.com/QMatrixClient/libQMatrixClient/labels/simple)
+[issues tagged as easy](https://github.com/QMatrixClient/libQMatrixClient/labels/easy)
 are smaller tasks that may typically take 1-3 days.
 You are welcome aboard!
 
@@ -108,11 +108,12 @@ use either of the following contacts:
 In any of these two options, _indicate that you have such information_
 (do not share the information yet), and we'll tell you the next steps.
 
-By default, we will give credit to anyone who reports a vulnerability so that
-we can fix it. If you want to remain anonymous or pseudonymous instead, please
-let us know that; we will gladly respect your wishes. If you provide a fix as
-a PR, you have no way to remain anonymous but we still accept contributors with
-pseudonyms.
+By default, we will give credit to anyone who reports a vulnerability in
+a responsible way so that we can fix it before public disclosure. If you want
+to remain anonymous or pseudonymous instead, please let us know that; we will
+gladly respect your wishes. If you provide a fix as a PR, you have no way
+to remain anonymous (and you also disclose the vulnerability thereby) so this
+is not the right way, unless the vulnerability is already made public.
 
 ## Documentation changes
 
@@ -154,22 +155,40 @@ If you don't plan/have substantial contributions, you can end reading here. Furt
 The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
 
 ### Generated C++ code for CS API
-The code in lib/csapi, although it resides in Git, is actually generated from the official Matrix Swagger/OpenAPI definition files. If you're unhappy with something in that directory and want to improve the code, you have to understand the way these files are produced and setup some additional tooling. The shortest possible procedure resembling the below text can be found in .travis.yml (our Travis CI configuration actually regenerates those files upon every build). The generating sequence only works with CMake atm; patches to enable it with qmake are (you guessed it) very welcome.
+The code in lib/csapi, lib/identity and lib/application-service, although
+it resides in Git, is actually generated from the official Matrix
+Swagger/OpenAPI definition files. If you're unhappy with something in these
+directories and want to improve the code, you have to understand the way these
+files are produced and setup some additional tooling. The shortest possible
+procedure resembling the below text can be found in .travis.yml (our Travis CI
+configuration actually regenerates those files upon every build).
+The generating sequence only works with CMake atm;
+patches to enable it with qmake are (you guessed it) very welcome.
 
 #### Why generate the code at all?
-Because before both original authors of libQMatrixClient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
+Because before both original authors of libQMatrixClient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
 
 #### Prerequisites for CS API code generation
 1. Get the source code of GTAD and its dependencies, e.g. using the command: `git clone --recursive https://github.com/KitsuneRal/gtad.git`
 2. Build GTAD: in the source code directory, do `cmake . && cmake --build .` (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`, similar to libQMatrixClient itself).
 3. Get the Matrix CS API definitions that are included in the matrix-doc repo: `git clone https://github.com/QMatrixClient/matrix-doc.git` (QMatrixClient/matrix-doc is a fork that's known to produce working code; you may want to use your own fork if you wish to alter something in the API).
 
-#### Generating lib/csapi contents
-1. Pass additional configuration to CMake when configuring libQMatrixClient, namely: `-DMATRIX_DOC_PATH=<path you your matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`. If everything's right, these two CMake variables will be mentioned in CMake output and will trigger configuration of an additional build target, see the next step.
-2. Generate the code: `cmake --build <your build dir> --target update-api`; if you use CMake with GNU Make, you can just do `make update-api` instead. Building this target will create (overwriting without warning) .h and .cpp files in lib/csapi directory for all YAML files it can find in `matrix-doc/api/client-server`.
-3. Once you've done that, you can build the library as usual; rerunning CMake is recommended if the list of generated files has changed.
+#### Generating CS API contents
+1. Pass additional configuration to CMake when configuring libQMatrixClient:
+   `-DMATRIX_DOC_PATH=<path you your matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`.
+   If everything's right, these two CMake variables will be mentioned in
+   CMake output and will trigger configuration of an additional build target,
+   see the next step.
+2. Generate the code: `cmake --build <your build dir> --target update-api`;
+   if you use CMake with GNU Make, you can just do `make update-api` instead.
+   Building this target will create (overwriting without warning) `.h` and `.cpp`
+   files in `lib/csapi`, `lib/identity`, `lib/application-service` for all
+   YAML files it can find in `matrix-doc/api/client-server` and other files
+   in `matrix-doc/api` these depend on.
+3. Once you've done that, you can build the library as usual; rerunning CMake
+   is recommended if the list of generated files has changed.
 
-#### Changing things in lib/csapi
+#### Changing generated code
 See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQMatrixClient are described here.
 
 GTAD uses the following three kinds of sources:
@@ -179,18 +198,18 @@ GTAD uses the following three kinds of sources:
 
 The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the libQMatrixClient room - I (Kitsune) will be very glad to help you out.
 
-The types map in gtad.yaml is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
+The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
 * `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
 * `moveOnly` - some types are not copyable at all and must be moved instead (an obvious example is anything "tainted" with a member of type `std::unique_ptr<>`). The template will use `T&&` instead of `T` or `const T&` to pass such types around.
 * `useOmittable` - wrap types that have no value with "null" semantics (i.e. number types and custom-defined data structures) into a special `Omittable<>` template defined in `converters.h` - a substitute for `std::optional` from C++17 (we're still at C++14 yet).
 * `omittedValue` - an alternative for `useOmittable`, just provide a value used for an omitted parameter. This is used for bool parameters which normally are considered false if omitted (or they have an explicit default value, passed in the "official" GTAD's `defaultValue` variable).
 * `initializer` - this is a _partial_ (see GTAD and Mustache documentation for explanations but basically it's a variable that is a Mustache template itself) that specifies how exactly a default value should be passed to the parameter. E.g., the default value for a `QString` parameter is enclosed into `QStringLiteral`.
 
-Instead of relying on the event structure definition in the OpenAPI files, gtad.yaml uses pointers to libQMatrixClient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
+Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQMatrixClient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
 
 ### Library API and doc-comments
 
-Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you. Some parts are not even documented; add doc-comments to them is highly encouraged.
+Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes and if that bothers you. Some parts are not even documented; adding doc-comments to them is highly encouraged.
 
 Calls, data structures and other symbols not intended for use by clients should _not_ be exposed in (public) .h files, unless they are necessary to declare other public symbols. In particular, this involves private members (functions, typedefs, or variables) in public classes; use pimpl idiom to hide implementation details as much as possible.
 
@@ -198,18 +217,46 @@ Note: As of now, all header files of libQMatrixClient are considered public; thi
 
 ### Qt-flavoured C++
 
-This is our primary language. We don't have a particular code style _as of yet_ but some rules-of-thumb are below:
-* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you spot the code abusing these - we'll thank you for fixing it.
+This is our primary language. We don't have a particular code style _as of yet_
+but some rules-of-thumb are below:
+* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
+  spot the code abusing these - we'll thank you for fixing it.
 * Prefer keeping lines within 80 characters.
-* Braces after if's, while's, do's, function signatures etc. take a separate line. Keeping the opening brace on the same line is still ok.
-* A historical deviation from the usual Qt code format conventions is an extra indent inside _classes_ (access specifiers go at +4 spaces to the base, members at +8 spaces) but not _structs_ (members at +4 spaces). This may change in the future for something more conventional.
-* Please don't make "hypocritical structs" with protected or private members. Just make them classes instead.
-* For newly created classes, keep to [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) - make sure to read about the rule of zero if you haven't before, it's not what you might think it is.
-* Qt containers are generally preferred to STL containers; however, there are notable exceptions, and libQMatrixClient already uses them:
+* Braces after if's, while's, do's, function signatures etc. take
+  a separate line. Keeping the opening brace on the same line is still ok.
+* A historical deviation from the usual Qt code format conventions is an extra
+  indent inside _classes_ (access specifiers go at +4 spaces to the base,
+  members at +8 spaces) but not _structs_ (members at +4 spaces). This may
+  change in the future for something more conventional.
+* Please don't make "hypocritical structs" with protected or private members.
+  In general, `struct` is used to denote a plain-old-data structure, rather
+  than data+behaviour. If you need access control or are adding yet another
+  non-trivial (construction, assignment) member function to a `struct`,
+  just make it a `class` instead.
+* For newly created classes, keep to
+  [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) -
+  make sure to read about the rule of zero if you haven't before, it's not
+  what you might think it is.
+* Qt containers are generally preferred to STL containers; however, there are
+  notable exceptions, and libQMatrixClient already uses them:
   * `std::array` and `std::deque` have no direct counterparts in Qt.
-  * Because of COW semantics, Qt containers cannot hold uncopyable classes. Classes without a default constructor are a problem too. Examples of that are `SyncRoomData` and `EventsArray<>`. Use STL containers for those but see the next point and also consider if you can supply a reasonable copy/default constructor.
-  * STL containers can be freely used in code internal to a translation unit (i.e., in a certain .cpp file) _as long as that is not exposed in the API_. It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up code where you don't need COW, or when dealing with uncopyable data structures (see the previous point). However, exposing STL containers in the API is not encouraged (except where absolutely necessary, e.g. we use `std::deque` for a timeline). Exposing STL containers or iterators in API intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work and therefore unlikely to be accepted into `master`.
-* Use `QVector` instead of `QList` where possible - see a [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/) for details.
+  * Because of COW semantics, Qt containers cannot hold uncopyable classes.
+    Classes without a default constructor are a problem too. Examples of that
+    are `SyncRoomData` and `EventsArray<>`. Use STL containers for those but
+    see the next point and also consider if you can supply a reasonable
+    copy/default constructor.
+  * STL containers can be freely used in code internal to a translation unit
+    (i.e., in a certain .cpp file) _as long as that is not exposed in the API_.
+    It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up
+    code where you don't need COW, or when dealing with uncopyable
+    data structures (see the previous point). However, exposing STL containers
+    in the API is not encouraged (except where absolutely necessary, e.g. we use
+    `std::deque` for a timeline). Exposing STL containers or iterators in API
+    intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
+    and therefore unlikely to be accepted into `master`.
+* Use `QVector` instead of `QList` where possible - see the
+  [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
+  for details.
 
 ### Automated tests
 
@@ -253,7 +300,13 @@ your commit into it (with an explanation what it is about and why).
 
 ### Standard checks
 
-The following warnings configuration is applied with GCC and Clang when using CMake: `-W -Wall -Wextra -pedantic -Werror=return-type -Wno-unused-parameter -Wno-gnu-zero-variadic-macro-arguments` (the last one is to mute a warning triggered by Qt code for debug logging). We don't turn most of the warnings to errors but please treat them as such. In Qt Creator, the following line can be used with the Clang code model (before Qt Creator 4.7 you should explicitly enable the Clang code model plugin): `-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables`
+The following warnings configuration is applied with GCC and Clang when using CMake:
+`-W -Wall -Wextra -pedantic -Werror=return-type -Wno-unused-parameter -Wno-gnu-zero-variadic-macro-arguments`
+(the last one is to mute a warning triggered by Qt code for debug logging).
+We don't turn most of the warnings to errors but please treat them as such.
+In Qt Creator, the following line can be used with the Clang code model
+(before Qt Creator 4.7 you should explicitly enable the Clang code model plugin):
+`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma`.
 
 ### Continuous Integration
 
@@ -261,7 +314,16 @@ We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) a
 
 ### Other tools
 
-If you know how to use clang-tidy, here's a list of checks we do and do not use (a leading hyphen means a disabled check, an asterisk is a wildcard): `*,cert-env33-c,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-const-cast,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-special-member-functions,-google-build-using-namespace,-google-readability-braces-around-statements,-hicpp-*,-llvm-*,-misc-unused-parameters,-misc-noexcept-moveconstructor,-modernize-use-using,-readability-braces-around-statements,readability-identifier-naming,-readability-implicit-bool-cast,-clang-diagnostic-*,-clang-analyzer-*`. If you're on CLion, you can simply copy-paste the above list into the Clang-Tidy inspection configuration. In Qt Creator 4.6 and newer, one can enable clang-tidy and clazy (clazy level 1 eats away CPU but produces some very relevant and unobvious notices, such as possible unintended copying of a Qt container, or unguarded null pointers).
+Recent versions of Qt Creator and CLion can automatically run your code through
+clang-tidy. The following list of clang-tidy checks slows Qt Creator analysis
+quite considerably but gives a good insight without too many false positives:
+`-*,bugprone-argument-comment,bugprone-assert-side-effect,bugprone-bool-pointer-implicit-conversion,bugprone-copy-constructor-init,bugprone-dangling-handle,bugprone-fold-init-type,bugprone-forward-declaration-namespace,bugprone-inaccurate-erase,bugprone-integer-division,bugprone-move-forwarding-reference,bugprone-string-constructor,bugprone-undefined-memory-manipulation,bugprone-use-after-move,bugprone-virtual-near-miss,cert-dcl03-c,cert-dcl21-cpp,cert-dcl50-cpp,cert-dcl54-cpp,cert-dcl58-cpp,cert-env33-c,cert-err09-cpp,cert-err34-c,cert-err52-cpp,cert-err60-cpp,cert-err61-cpp,cert-fio38-c,cert-flp30-c,cert-msc30-c,cert-msc50-cpp,cert-oop11-cpp,cppcoreguidelines-c-copy-assignment-signature,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-slicing,hicpp-deprecated-headers,hicpp-invalid-access-moved,hicpp-member-init,hicpp-move-const-arg,hicpp-named-parameter,hicpp-new-delete-operators,hicpp-static-assert,hicpp-undelegated-constructor,hicpp-use-*,misc-misplaced-const,misc-new-delete-overloads,misc-non-copyable-objects,misc-redundant-expression,misc-static-assert,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,misc-uniqueptr-reset-release,misc-unused-*,modernize-loop-convert,modernize-pass-by-value,modernize-return-braced-init-list,modernize-shrink-to-fit,modernize-unary-static-assert,modernize-use-*,performance-faster-string-find,performance-for-range-copy,performance-implicit-conversion-in-loop,performance-inefficient-*,performance-move-*,performance-type-promotion-in-math-fn,performance-unnecessary-*,readability-delete-null-pointer,readability-else-after-return,readability-inconsistent-declaration-parameter-name,readability-misleading-indentation,readability-redundant-*,readability-simplify-boolean-expr,readability-static-definition-in-anonymous-namespace,readability-uniqueptr-delete-release`.
+
+Qt Creator, in addition, knows about clazy, an even deeper Qt-aware static
+analysis tool. Even level 1 clazy eats away CPU but produces some very relevant
+and unobvious notices, such as possible unintended copying of a Qt container,
+or unguarded null pointers. You can use this time to time (see Analyze menu in
+Qt Creator) instead of loading your machine with deep runtime analysis.
 
 ## Git commit messages
 
@@ -284,9 +346,24 @@ C++ is unfortunately not very coherent about SDK/package management, and we try 
 Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for automated testing, so PRs onboarding a test framework will be considered with much gratitude.
 
 Some cases need additional explanation:
-* Before rolling out your own super-optimised container or algorithm written from scratch, take a good long look through documentation on Qt and C++ standard library. Please try to reuse the existing facilities as much as possible.
-* You should have a good reason (or better several ones) to add a component from KDE Frameworks. We don't rule this out and there's no prejudice against KDE; it just so happened that KDE Frameworks is one of most obvious reuse candidates but so far none of these components survived as libQMatrixClient deps. So we are cautious.
-* Never forget that libQMatrixClient is aimed to be a non-visual library; QtGui in dependencies is only driven by (entirely offscreen) dealing with QPixmaps. While there's a bunch of visual code (in C++ and QML) shared between libQMatrixClient-enabled _applications_, this is likely to end up in a separate (libQMatrixClient-enabled) library, rather than libQMatrixClient itself.
+* Before rolling out your own super-optimised container or algorithm written
+  from scratch, take a good long look through documentation on Qt and
+  C++ standard library. Please try to reuse the existing facilities
+  as much as possible.
+* You should have a good reason (or better several ones) to add a component
+  from KDE Frameworks. We don't rule this out and there's no prejudice against
+  KDE; it just so happened that KDE Frameworks is one of most obvious
+  reuse candidates but so far none of these components survived
+  as libQMatrixClient deps. So we are cautious. Extra notice to KDE folks:
+  I'll be happy if an addon library on top of libQMatrixClient is made using
+  KDE facilities, and I'm willing to take part in its evolution; but please
+  also respect LXDE people who normally don't have KDE frameworks installed.
+* Never forget that libQMatrixClient is aimed to be a non-visual library;
+  QtGui in dependencies is only driven by (entirely offscreen) dealing with
+  QImages. While there's a bunch of visual code (in C++ and QML) shared
+  between libQMatrixClient-enabled _applications_, this is likely to end up
+  in a separate (libQMatrixClient-enabled) library, rather than
+  libQMatrixClient itself.
 
 ## Attribution
 
