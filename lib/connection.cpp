@@ -466,7 +466,10 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
 
 void Connection::stopSync()
 {
-    if (d->syncJob)
+    // If there's a sync loop, break it
+    disconnect(this, &Connection::syncDone,
+               this, &Connection::syncLoopIteration);
+    if (d->syncJob) // If there's an ongoing sync job, stop it too
     {
         d->syncJob->abandon();
         d->syncJob = nullptr;
