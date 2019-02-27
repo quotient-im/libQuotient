@@ -603,7 +603,7 @@ void BaseJob::setStatus(Status s)
     if (d->status == s)
         return;
 
-    if (!d->connection->accessToken().isEmpty())
+    if (d->connection && !d->connection->accessToken().isEmpty())
         s.message.replace(d->connection->accessToken(), "(REDACTED)");
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
@@ -618,9 +618,8 @@ void BaseJob::setStatus(int code, QString message)
 
 void BaseJob::abandon()
 {
-    beforeAbandon(d->reply.data());
+    beforeAbandon(d->reply ? d->reply.data() : nullptr);
     setStatus(Abandoned);
-    this->disconnect();
     if (d->reply)
         d->reply->disconnect(this);
     emit finished(this);
