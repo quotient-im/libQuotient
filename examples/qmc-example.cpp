@@ -147,14 +147,12 @@ void QMCTest::onNewRoom(Room* r)
 void QMCTest::run()
 {
     c->setLazyLoading(true);
-    c->sync();
+    c->syncLoop();
     connectSingleShot(c.data(), &Connection::syncDone, this, &QMCTest::doTests);
     connect(c.data(), &Connection::syncDone, c.data(), [this] {
         cout << "Sync complete, " << running.size() << " test(s) in the air: "
              << running.join(", ").toStdString() << endl;
-        if (!running.isEmpty())
-            c->sync(10000);
-        else
+        if (running.isEmpty())
             conclude();
     });
 }
@@ -491,6 +489,7 @@ void QMCTest::checkDirectChatOutcome(const Connection::DirectChatsMap& added)
 
 void QMCTest::conclude()
 {
+    c->stopSync();
     auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
     if (!failed.isEmpty() || !running.isEmpty())
         succeededRec += " of " %
