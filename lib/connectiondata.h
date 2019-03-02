@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -24,32 +24,31 @@
 
 class QNetworkAccessManager;
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     class ConnectionData
     {
         public:
-            explicit ConnectionData(QUrl baseUrl);
-            virtual ~ConnectionData();
+        explicit ConnectionData(QUrl baseUrl);
+        virtual ~ConnectionData();
 
-            QByteArray accessToken() const;
-            QUrl baseUrl() const;
-            const QString& deviceId() const;
+        QByteArray accessToken() const;
+        QUrl baseUrl() const;
+        const QString& deviceId() const;
 
-            QNetworkAccessManager* nam() const;
-            void setBaseUrl(QUrl baseUrl);
-            void setToken(QByteArray accessToken);
-            void setHost( QString host );
-            void setPort( int port );
-            void setDeviceId(const QString& deviceId);
+        QNetworkAccessManager* nam() const;
+        void setBaseUrl(QUrl baseUrl);
+        void setToken(QByteArray accessToken);
+        void setHost(QString host);
+        void setPort(int port);
+        void setDeviceId(const QString& deviceId);
 
-            QString lastEvent() const;
-            void setLastEvent( QString identifier );
+        QString lastEvent() const;
+        void setLastEvent(QString identifier);
 
-            QByteArray generateTxnId() const;
+        QByteArray generateTxnId() const;
 
         private:
-            struct Private;
-            std::unique_ptr<Private> d;
+        struct Private;
+        std::unique_ptr<Private> d;
     };
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

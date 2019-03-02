@@ -13,94 +13,100 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
-#include "stateevent.h"
 #include "eventcontent.h"
+#include "stateevent.h"
 
-namespace QMatrixClient
-{
-    class MemberEventContent: public EventContent::Base
+namespace QMatrixClient {
+    class MemberEventContent : public EventContent::Base
     {
         public:
-            enum MembershipType : size_t { Invite = 0, Join, Knock, Leave, Ban,
-                                           Undefined };
+        enum MembershipType : size_t {
+            Invite = 0,
+            Join,
+            Knock,
+            Leave,
+            Ban,
+            Undefined
+        };
 
-            explicit MemberEventContent(MembershipType mt = Join)
-                : membership(mt)
-            { }
-            explicit MemberEventContent(const QJsonObject& json);
+        explicit MemberEventContent(MembershipType mt = Join) : membership(mt)
+        {
+        }
+        explicit MemberEventContent(const QJsonObject& json);
 
-            MembershipType membership;
-            bool isDirect = false;
-            QString displayName;
-            QUrl avatarUrl;
+        MembershipType membership;
+        bool isDirect = false;
+        QString displayName;
+        QUrl avatarUrl;
 
         protected:
-            void fillJson(QJsonObject* o) const override;
+        void fillJson(QJsonObject* o) const override;
     };
 
     using MembershipType = MemberEventContent::MembershipType;
 
-    class RoomMemberEvent: public StateEvent<MemberEventContent>
+    class RoomMemberEvent : public StateEvent<MemberEventContent>
     {
-            Q_GADGET
+        Q_GADGET
         public:
-            DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
+        DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
-            using MembershipType = MemberEventContent::MembershipType;
+        using MembershipType = MemberEventContent::MembershipType;
 
-            explicit RoomMemberEvent(const QJsonObject& obj)
-                : StateEvent(typeId(), obj)
-            { }
-            RoomMemberEvent(MemberEventContent&& c)
-                : StateEvent(typeId(), matrixTypeId(), c)
-            { }
+        explicit RoomMemberEvent(const QJsonObject& obj)
+            : StateEvent(typeId(), obj)
+        {
+        }
+        RoomMemberEvent(MemberEventContent&& c)
+            : StateEvent(typeId(), matrixTypeId(), c)
+        {
+        }
 
-            /// A special constructor to create unknown RoomMemberEvents
-            /**
-             * This is needed in order to use RoomMemberEvent as a "base event
-             * class" in cases like GetMembersByRoomJob when RoomMemberEvents
-             * (rather than RoomEvents or StateEvents) are resolved from JSON.
-             * For such cases loadEvent<> requires an underlying class to be
-             * constructible with unknownTypeId() instead of its genuine id.
-             * Don't use it directly.
-             * \sa GetMembersByRoomJob, loadEvent, unknownTypeId
-             */
-            RoomMemberEvent(Type type, const QJsonObject& fullJson)
-                : StateEvent(type, fullJson)
-            { }
+        /// A special constructor to create unknown RoomMemberEvents
+        /**
+         * This is needed in order to use RoomMemberEvent as a "base event
+         * class" in cases like GetMembersByRoomJob when RoomMemberEvents
+         * (rather than RoomEvents or StateEvents) are resolved from JSON.
+         * For such cases loadEvent<> requires an underlying class to be
+         * constructible with unknownTypeId() instead of its genuine id.
+         * Don't use it directly.
+         * \sa GetMembersByRoomJob, loadEvent, unknownTypeId
+         */
+        RoomMemberEvent(Type type, const QJsonObject& fullJson)
+            : StateEvent(type, fullJson)
+        {
+        }
 
-            MembershipType membership() const  { return content().membership; }
-            QString userId() const
-                { return fullJson()["state_key"_ls].toString(); }
-            bool isDirect() const { return content().isDirect; }
-            QString displayName() const { return content().displayName; }
-            QUrl avatarUrl() const      { return content().avatarUrl; }
-            bool isInvite() const;
-            bool isJoin() const;
-            bool isLeave() const;
-            bool isRename() const;
-            bool isAvatarUpdate() const;
+        MembershipType membership() const { return content().membership; }
+        QString userId() const { return fullJson()["state_key"_ls].toString(); }
+        bool isDirect() const { return content().isDirect; }
+        QString displayName() const { return content().displayName; }
+        QUrl avatarUrl() const { return content().avatarUrl; }
+        bool isInvite() const;
+        bool isJoin() const;
+        bool isLeave() const;
+        bool isRename() const;
+        bool isAvatarUpdate() const;
 
         private:
-            REGISTER_ENUM(MembershipType)
+        REGISTER_ENUM(MembershipType)
     };
 
-    template <>
-    class EventFactory<RoomMemberEvent>
+    template <> class EventFactory<RoomMemberEvent>
     {
         public:
-            static event_ptr_tt<RoomMemberEvent> make(const QJsonObject& json,
-                                                      const QString&)
-            {
-                return makeEvent<RoomMemberEvent>(json);
-            }
+        static event_ptr_tt<RoomMemberEvent> make(const QJsonObject& json,
+                                                  const QString&)
+        {
+            return makeEvent<RoomMemberEvent>(json);
+        }
     };
 
     REGISTER_EVENT_TYPE(RoomMemberEvent)
     DEFINE_EVENTTYPE_ALIAS(RoomMember, RoomMemberEvent)
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

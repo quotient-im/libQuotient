@@ -12,13 +12,12 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Converters
 
-    template <> struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
-    {
-        static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
+    template <> struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
+        static void fillFrom(const QJsonObject& jo,
+                             GetLoginFlowsJob::LoginFlow& result)
         {
             fromJson(jo.value("type"_ls), result.type);
         }
@@ -28,21 +27,19 @@ namespace QMatrixClient
 class GetLoginFlowsJob::Private
 {
     public:
-        QVector<LoginFlow> flows;
+    QVector<LoginFlow> flows;
 };
 
 QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/login");
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/login");
 }
 
 static const auto GetLoginFlowsJobName = QStringLiteral("GetLoginFlowsJob");
 
 GetLoginFlowsJob::GetLoginFlowsJob()
-    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName,
-        basePath % "/login", false)
-    , d(new Private)
+    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName, basePath % "/login", false),
+      d(new Private)
 {
 }
 
@@ -63,19 +60,23 @@ BaseJob::Status GetLoginFlowsJob::parseJson(const QJsonDocument& data)
 class LoginJob::Private
 {
     public:
-        QString userId;
-        QString accessToken;
-        QString homeServer;
-        QString deviceId;
-        Omittable<DiscoveryInformation> wellKnown;
+    QString userId;
+    QString accessToken;
+    QString homeServer;
+    QString deviceId;
+    Omittable<DiscoveryInformation> wellKnown;
 };
 
 static const auto LoginJobName = QStringLiteral("LoginJob");
 
-LoginJob::LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier, const QString& password, const QString& token, const QString& deviceId, const QString& initialDeviceDisplayName, const QString& user, const QString& medium, const QString& address)
-    : BaseJob(HttpVerb::Post, LoginJobName,
-        basePath % "/login", false)
-    , d(new Private)
+LoginJob::LoginJob(const QString& type,
+                   const Omittable<UserIdentifier>& identifier,
+                   const QString& password, const QString& token,
+                   const QString& deviceId,
+                   const QString& initialDeviceDisplayName, const QString& user,
+                   const QString& medium, const QString& address)
+    : BaseJob(HttpVerb::Post, LoginJobName, basePath % "/login", false),
+      d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("type"), type);
@@ -83,7 +84,8 @@ LoginJob::LoginJob(const QString& type, const Omittable<UserIdentifier>& identif
     addParam<IfNotEmpty>(_data, QStringLiteral("password"), password);
     addParam<IfNotEmpty>(_data, QStringLiteral("token"), token);
     addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
-    addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"), initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"),
+                         initialDeviceDisplayName);
     addParam<IfNotEmpty>(_data, QStringLiteral("user"), user);
     addParam<IfNotEmpty>(_data, QStringLiteral("medium"), medium);
     addParam<IfNotEmpty>(_data, QStringLiteral("address"), address);
@@ -92,25 +94,13 @@ LoginJob::LoginJob(const QString& type, const Omittable<UserIdentifier>& identif
 
 LoginJob::~LoginJob() = default;
 
-const QString& LoginJob::userId() const
-{
-    return d->userId;
-}
+const QString& LoginJob::userId() const { return d->userId; }
 
-const QString& LoginJob::accessToken() const
-{
-    return d->accessToken;
-}
+const QString& LoginJob::accessToken() const { return d->accessToken; }
 
-const QString& LoginJob::homeServer() const
-{
-    return d->homeServer;
-}
+const QString& LoginJob::homeServer() const { return d->homeServer; }
 
-const QString& LoginJob::deviceId() const
-{
-    return d->deviceId;
-}
+const QString& LoginJob::deviceId() const { return d->deviceId; }
 
 const Omittable<DiscoveryInformation>& LoginJob::wellKnown() const
 {
@@ -127,4 +117,3 @@ BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("well_known"_ls), d->wellKnown);
     return Success;
 }
-

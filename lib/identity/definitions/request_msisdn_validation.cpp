@@ -17,7 +17,7 @@ void JsonObjectConverter<RequestMsisdnValidation>::dumpTo(
 }
 
 void JsonObjectConverter<RequestMsisdnValidation>::fillFrom(
-    const QJsonObject& jo, RequestMsisdnValidation& result)
+        const QJsonObject& jo, RequestMsisdnValidation& result)
 {
     fromJson(jo.value("client_secret"_ls), result.clientSecret);
     fromJson(jo.value("country"_ls), result.country);
@@ -25,4 +25,3 @@ void JsonObjectConverter<RequestMsisdnValidation>::fillFrom(
     fromJson(jo.value("send_attempt"_ls), result.sendAttempt);
     fromJson(jo.value("next_link"_ls), result.nextLink);
 }
-

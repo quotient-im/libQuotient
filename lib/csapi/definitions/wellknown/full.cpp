@@ -11,15 +11,15 @@ void JsonObjectConverter<DiscoveryInformation>::dumpTo(
 {
     fillJson(jo, pod.additionalProperties);
     addParam<>(jo, QStringLiteral("m.homeserver"), pod.homeserver);
-    addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"), pod.identityServer);
+    addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"),
+                         pod.identityServer);
 }
 
 void JsonObjectConverter<DiscoveryInformation>::fillFrom(
-    QJsonObject jo, DiscoveryInformation& result)
+        QJsonObject jo, DiscoveryInformation& result)
 {
     fromJson(jo.take("m.homeserver"_ls), result.homeserver);
     fromJson(jo.take("m.identity_server"_ls), result.identityServer);
 
     fromJson(jo, result.additionalProperties);
 }
-

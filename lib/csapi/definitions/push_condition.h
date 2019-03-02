@@ -6,16 +6,13 @@
 
 #include "converters.h"
 
-
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Data structures
 
-    struct PushCondition
-    {
+    struct PushCondition {
         QString kind;
-        /// Required for ``event_match`` conditions. The dot-separated field of the
-        /// event to match.
+        /// Required for ``event_match`` conditions. The dot-separated field of
+        /// the event to match.
         QString key;
         /// Required for ``event_match`` conditions. The glob-style pattern to
         /// match against. Patterns with no special glob characters should be
@@ -23,13 +20,13 @@ namespace QMatrixClient
         /// condition.
         QString pattern;
         /// Required for ``room_member_count`` conditions. A decimal integer
-        /// optionally prefixed by one of, ==, <, >, >= or <=. A prefix of < matches
-        /// rooms where the member count is strictly less than the given number and
-        /// so forth. If no prefix is present, this parameter defaults to ==.
+        /// optionally prefixed by one of, ==, <, >, >= or <=. A prefix of <
+        /// matches rooms where the member count is strictly less than the given
+        /// number and so forth. If no prefix is present, this parameter
+        /// defaults to ==.
         QString is;
     };
-    template <> struct JsonObjectConverter<PushCondition>
-    {
+    template <> struct JsonObjectConverter<PushCondition> {
         static void dumpTo(QJsonObject& jo, const PushCondition& pod);
         static void fillFrom(const QJsonObject& jo, PushCondition& pod);
     };

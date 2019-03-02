@@ -15,25 +15,27 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class SetRoomStateWithKeyJob::Private
 {
     public:
-        QString eventId;
+    QString eventId;
 };
 
-static const auto SetRoomStateWithKeyJobName = QStringLiteral("SetRoomStateWithKeyJob");
+static const auto SetRoomStateWithKeyJobName =
+        QStringLiteral("SetRoomStateWithKeyJob");
 
-SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId, const QString& eventType, const QString& stateKey, const QJsonObject& body)
+SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
+                                               const QString& eventType,
+                                               const QString& stateKey,
+                                               const QJsonObject& body)
     : BaseJob(HttpVerb::Put, SetRoomStateWithKeyJobName,
-        basePath % "/rooms/" % roomId % "/state/" % eventType % "/" % stateKey)
-    , d(new Private)
+              basePath % "/rooms/" % roomId % "/state/" % eventType % "/"
+                      % stateKey),
+      d(new Private)
 {
     setRequestData(Data(toJson(body)));
 }
 
 SetRoomStateWithKeyJob::~SetRoomStateWithKeyJob() = default;
 
-const QString& SetRoomStateWithKeyJob::eventId() const
-{
-    return d->eventId;
-}
+const QString& SetRoomStateWithKeyJob::eventId() const { return d->eventId; }
 
 BaseJob::Status SetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
 {
@@ -45,25 +47,24 @@ BaseJob::Status SetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
 class SetRoomStateJob::Private
 {
     public:
-        QString eventId;
+    QString eventId;
 };
 
 static const auto SetRoomStateJobName = QStringLiteral("SetRoomStateJob");
 
-SetRoomStateJob::SetRoomStateJob(const QString& roomId, const QString& eventType, const QJsonObject& body)
+SetRoomStateJob::SetRoomStateJob(const QString& roomId,
+                                 const QString& eventType,
+                                 const QJsonObject& body)
     : BaseJob(HttpVerb::Put, SetRoomStateJobName,
-        basePath % "/rooms/" % roomId % "/state/" % eventType)
-    , d(new Private)
+              basePath % "/rooms/" % roomId % "/state/" % eventType),
+      d(new Private)
 {
     setRequestData(Data(toJson(body)));
 }
 
 SetRoomStateJob::~SetRoomStateJob() = default;
 
-const QString& SetRoomStateJob::eventId() const
-{
-    return d->eventId;
-}
+const QString& SetRoomStateJob::eventId() const { return d->eventId; }
 
 BaseJob::Status SetRoomStateJob::parseJson(const QJsonDocument& data)
 {
@@ -71,4 +72,3 @@ BaseJob::Status SetRoomStateJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("event_id"_ls), d->eventId);
     return Success;
 }
-

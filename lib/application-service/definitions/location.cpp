@@ -15,10 +15,9 @@ void JsonObjectConverter<ThirdPartyLocation>::dumpTo(
 }
 
 void JsonObjectConverter<ThirdPartyLocation>::fillFrom(
-    const QJsonObject& jo, ThirdPartyLocation& result)
+        const QJsonObject& jo, ThirdPartyLocation& result)
 {
     fromJson(jo.value("alias"_ls), result.alias);
     fromJson(jo.value("protocol"_ls), result.protocol);
     fromJson(jo.value("fields"_ls), result.fields);
 }
-

@@ -13,18 +13,17 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-    class CallAnswerEvent: public CallEventBase
+namespace QMatrixClient {
+    class CallAnswerEvent : public CallEventBase
     {
-    public:
+        public:
         DEFINE_EVENT_TYPEID("m.call.answer", CallAnswerEvent)
 
         explicit CallAnswerEvent(const QJsonObject& obj);
@@ -33,10 +32,16 @@ namespace QMatrixClient
                                  const QString& sdp);
         explicit CallAnswerEvent(const QString& callId, const QString& sdp);
 
-        int lifetime() const { return content<int>("lifetime"_ls); } // FIXME: Omittable<>?
-        QString sdp() const {
-            return contentJson()["answer"_ls].toObject()
-                    .value("sdp"_ls).toString();
+        int lifetime() const
+        {
+            return content<int>("lifetime"_ls);
+        } // FIXME: Omittable<>?
+        QString sdp() const
+        {
+            return contentJson()["answer"_ls]
+                    .toObject()
+                    .value("sdp"_ls)
+                    .toString();
         }
     };
 

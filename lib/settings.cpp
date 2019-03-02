@@ -18,7 +18,7 @@ void Settings::setLegacyNames(const QString& organizationName,
 
 void Settings::setValue(const QString& key, const QVariant& value)
 {
-//    qCDebug() << "Setting" << key << "to" << value;
+    //    qCDebug() << "Setting" << key << "to" << value;
     QSettings::setValue(key, value);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
@@ -32,7 +32,8 @@ QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
     // (QVariant("false") == true in JavaScript). Since we have a mixed
     // environment where both QSettings and Qt.labs.Settings may potentially
     // work with same settings, better ensure compatibility.
-    return value.toString() == QStringLiteral("false") ? QVariant(false) : value;
+    return value.toString() == QStringLiteral("false") ? QVariant(false)
+                                                       : value;
 }
 
 bool Settings::contains(const QString& key) const
@@ -56,15 +57,13 @@ bool SettingsGroup::contains(const QString& key) const
     return Settings::contains(groupPath + '/' + key);
 }
 
-QVariant SettingsGroup::value(const QString& key, const QVariant& defaultValue) const
+QVariant SettingsGroup::value(const QString& key,
+                              const QVariant& defaultValue) const
 {
     return Settings::value(groupPath + '/' + key, defaultValue);
 }
 
-QString SettingsGroup::group() const
-{
-    return groupPath;
-}
+QString SettingsGroup::group() const { return groupPath; }
 
 QStringList SettingsGroup::childGroups() const
 {
@@ -84,9 +83,12 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", "", setDeviceId)
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", "", setDeviceName)
-QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false, setKeepLoggedIn)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", "",
+                   setDeviceId)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", "",
+                   setDeviceName)
+QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
+                   setKeepLoggedIn)
 
 QUrl AccountSettings::homeserver() const
 {
@@ -98,10 +100,7 @@ void AccountSettings::setHomeserver(const QUrl& url)
     setValue("homeserver", url.toString());
 }
 
-QString AccountSettings::userId() const
-{
-    return group().section('/', -1);
-}
+QString AccountSettings::userId() const { return group().section('/', -1); }
 
 QString AccountSettings::accessToken() const
 {

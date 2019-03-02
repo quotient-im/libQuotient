@@ -13,42 +13,41 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "event.h"
 
-#include <QtCore/QVector>
 #include <QtCore/QDateTime>
+#include <QtCore/QVector>
 
-namespace QMatrixClient
-{
-    struct Receipt
-    {
+namespace QMatrixClient {
+    struct Receipt {
         QString userId;
         QDateTime timestamp;
     };
-    struct ReceiptsForEvent
-    {
+    struct ReceiptsForEvent {
         QString evtId;
         QVector<Receipt> receipts;
     };
     using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
-    class ReceiptEvent: public Event
+    class ReceiptEvent : public Event
     {
         public:
-            DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
-            explicit ReceiptEvent(const QJsonObject& obj);
+        DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
+        explicit ReceiptEvent(const QJsonObject& obj);
 
-            const EventsWithReceipts& eventsWithReceipts() const
-            { return _eventsWithReceipts; }
+        const EventsWithReceipts& eventsWithReceipts() const
+        {
+            return _eventsWithReceipts;
+        }
 
         private:
-            EventsWithReceipts _eventsWithReceipts;
+        EventsWithReceipts _eventsWithReceipts;
     };
     REGISTER_EVENT_TYPE(ReceiptEvent)
     DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

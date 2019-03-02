@@ -15,15 +15,15 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class UpgradeRoomJob::Private
 {
     public:
-        QString replacementRoom;
+    QString replacementRoom;
 };
 
 static const auto UpgradeRoomJobName = QStringLiteral("UpgradeRoomJob");
 
 UpgradeRoomJob::UpgradeRoomJob(const QString& roomId, const QString& newVersion)
     : BaseJob(HttpVerb::Post, UpgradeRoomJobName,
-        basePath % "/rooms/" % roomId % "/upgrade")
-    , d(new Private)
+              basePath % "/rooms/" % roomId % "/upgrade"),
+      d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("new_version"), newVersion);
@@ -42,8 +42,7 @@ BaseJob::Status UpgradeRoomJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     if (!json.contains("replacement_room"_ls))
         return { JsonParseError,
-            "The key 'replacement_room' not found in the response" };
+                 "The key 'replacement_room' not found in the response" };
     fromJson(json.value("replacement_room"_ls), d->replacementRoom);
     return Success;
 }
-

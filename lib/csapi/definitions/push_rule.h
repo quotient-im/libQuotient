@@ -6,18 +6,16 @@
 
 #include "converters.h"
 
+#include "converters.h"
 #include "csapi/definitions/push_condition.h"
 #include <QtCore/QJsonObject>
-#include <QtCore/QVector>
 #include <QtCore/QVariant>
-#include "converters.h"
+#include <QtCore/QVector>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Data structures
 
-    struct PushRule
-    {
+    struct PushRule {
         /// The actions to perform when this rule is matched.
         QVector<QVariant> actions;
         /// Whether this is a default rule, or has been set explicitly.
@@ -26,16 +24,15 @@ namespace QMatrixClient
         bool enabled;
         /// The ID of this rule.
         QString ruleId;
-        /// The conditions that must hold true for an event in order for a rule to be
-        /// applied to an event. A rule with no conditions always matches. Only
-        /// applicable to ``underride`` and ``override`` rules.
+        /// The conditions that must hold true for an event in order for a rule
+        /// to be applied to an event. A rule with no conditions always matches.
+        /// Only applicable to ``underride`` and ``override`` rules.
         QVector<PushCondition> conditions;
-        /// The glob-style pattern to match against.  Only applicable to ``content``
-        /// rules.
+        /// The glob-style pattern to match against.  Only applicable to
+        /// ``content`` rules.
         QString pattern;
     };
-    template <> struct JsonObjectConverter<PushRule>
-    {
+    template <> struct JsonObjectConverter<PushRule> {
         static void dumpTo(QJsonObject& jo, const PushRule& pod);
         static void fillFrom(const QJsonObject& jo, PushRule& pod);
     };

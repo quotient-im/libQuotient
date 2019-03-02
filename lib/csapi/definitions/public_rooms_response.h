@@ -6,15 +6,13 @@
 
 #include "converters.h"
 
-#include <QtCore/QVector>
 #include "converters.h"
+#include <QtCore/QVector>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Data structures
 
-    struct PublicRoomsChunk
-    {
+    struct PublicRoomsChunk {
         /// Aliases of the room. May be empty.
         QStringList aliases;
         /// The canonical alias of the room, if any.
@@ -36,15 +34,13 @@ namespace QMatrixClient
         /// The URL for the room's avatar, if one is set.
         QString avatarUrl;
     };
-    template <> struct JsonObjectConverter<PublicRoomsChunk>
-    {
+    template <> struct JsonObjectConverter<PublicRoomsChunk> {
         static void dumpTo(QJsonObject& jo, const PublicRoomsChunk& pod);
         static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod);
     };
 
     /// A list of the rooms on the server.
-    struct PublicRoomsResponse
-    {
+    struct PublicRoomsResponse {
         /// A paginated chunk of public rooms.
         QVector<PublicRoomsChunk> chunk;
         /// A pagination token for the response. The absence of this token
@@ -59,8 +55,7 @@ namespace QMatrixClient
         /// server has an estimate.
         Omittable<int> totalRoomCountEstimate;
     };
-    template <> struct JsonObjectConverter<PublicRoomsResponse>
-    {
+    template <> struct JsonObjectConverter<PublicRoomsResponse> {
         static void dumpTo(QJsonObject& jo, const PublicRoomsResponse& pod);
         static void fillFrom(const QJsonObject& jo, PublicRoomsResponse& pod);
     };

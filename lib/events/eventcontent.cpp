@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "eventcontent.h"
@@ -34,17 +34,21 @@ QJsonObject Base::toJson() const
 
 FileInfo::FileInfo(const QUrl& u, qint64 payloadSize, const QMimeType& mimeType,
                    const QString& originalFilename)
-    : mimeType(mimeType), url(u), payloadSize(payloadSize)
-    , originalName(originalFilename)
-{ }
+    : mimeType(mimeType),
+      url(u),
+      payloadSize(payloadSize),
+      originalName(originalFilename)
+{
+}
 
 FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
                    const QString& originalFilename)
-    : originalInfoJson(infoJson)
-    , mimeType(QMimeDatabase().mimeTypeForName(infoJson["mimetype"_ls].toString()))
-    , url(u)
-    , payloadSize(fromJson<qint64>(infoJson["size"_ls]))
-    , originalName(originalFilename)
+    : originalInfoJson(infoJson),
+      mimeType(QMimeDatabase().mimeTypeForName(
+              infoJson["mimetype"_ls].toString())),
+      url(u),
+      payloadSize(fromJson<qint64>(infoJson["size"_ls])),
+      originalName(originalFilename)
 {
     if (!mimeType.isValid())
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
@@ -62,13 +66,15 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
 ImageInfo::ImageInfo(const QUrl& u, qint64 fileSize, QMimeType mimeType,
                      const QSize& imageSize, const QString& originalFilename)
     : FileInfo(u, fileSize, mimeType, originalFilename), imageSize(imageSize)
-{ }
+{
+}
 
 ImageInfo::ImageInfo(const QUrl& u, const QJsonObject& infoJson,
                      const QString& originalFilename)
-    : FileInfo(u, infoJson, originalFilename)
-    , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
-{ }
+    : FileInfo(u, infoJson, originalFilename),
+      imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
+{
+}
 
 void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
 {
@@ -82,7 +88,8 @@ void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
 Thumbnail::Thumbnail(const QJsonObject& infoJson)
     : ImageInfo(infoJson["thumbnail_url"_ls].toString(),
                 infoJson["thumbnail_info"_ls].toObject())
-{ }
+{
+}
 
 void Thumbnail::fillInfoJson(QJsonObject* infoJson) const
 {

@@ -13,8 +13,7 @@ void JsonObjectConverter<HomeserverInformation>::dumpTo(
 }
 
 void JsonObjectConverter<HomeserverInformation>::fillFrom(
-    const QJsonObject& jo, HomeserverInformation& result)
+        const QJsonObject& jo, HomeserverInformation& result)
 {
     fromJson(jo.value("base_url"_ls), result.baseUrl);
 }
-

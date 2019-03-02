@@ -13,8 +13,7 @@ void JsonObjectConverter<IdentityServerInformation>::dumpTo(
 }
 
 void JsonObjectConverter<IdentityServerInformation>::fillFrom(
-    const QJsonObject& jo, IdentityServerInformation& result)
+        const QJsonObject& jo, IdentityServerInformation& result)
 {
     fromJson(jo.value("base_url"_ls), result.baseUrl);
 }
-

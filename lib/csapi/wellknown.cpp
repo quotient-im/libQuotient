@@ -15,34 +15,30 @@ static const auto basePath = QStringLiteral("/.well-known");
 class GetWellknownJob::Private
 {
     public:
-        DiscoveryInformation data;
+    DiscoveryInformation data;
 };
 
 QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/matrix/client");
+                                   basePath % "/matrix/client");
 }
 
 static const auto GetWellknownJobName = QStringLiteral("GetWellknownJob");
 
 GetWellknownJob::GetWellknownJob()
-    : BaseJob(HttpVerb::Get, GetWellknownJobName,
-        basePath % "/matrix/client", false)
-    , d(new Private)
+    : BaseJob(HttpVerb::Get, GetWellknownJobName, basePath % "/matrix/client",
+              false),
+      d(new Private)
 {
 }
 
 GetWellknownJob::~GetWellknownJob() = default;
 
-const DiscoveryInformation& GetWellknownJob::data() const
-{
-    return d->data;
-}
+const DiscoveryInformation& GetWellknownJob::data() const { return d->data; }
 
 BaseJob::Status GetWellknownJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
     return Success;
 }
-

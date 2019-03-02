@@ -8,8 +8,7 @@
 
 #include "converters.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Update this user's presence state.
@@ -21,15 +20,16 @@ namespace QMatrixClient
     class SetPresenceJob : public BaseJob
     {
         public:
-            /*! Update this user's presence state.
-             * \param userId
-             *   The user whose presence state to update.
-             * \param presence
-             *   The new presence state.
-             * \param statusMsg
-             *   The status message to attach to this state.
-             */
-            explicit SetPresenceJob(const QString& userId, const QString& presence, const QString& statusMsg = {});
+        /*! Update this user's presence state.
+         * \param userId
+         *   The user whose presence state to update.
+         * \param presence
+         *   The new presence state.
+         * \param statusMsg
+         *   The status message to attach to this state.
+         */
+        explicit SetPresenceJob(const QString& userId, const QString& presence,
+                                const QString& statusMsg = {});
     };
 
     /// Get this user's presence state.
@@ -38,39 +38,39 @@ namespace QMatrixClient
     class GetPresenceJob : public BaseJob
     {
         public:
-            /*! Get this user's presence state.
-             * \param userId
-             *   The user whose presence state to get.
-             */
-            explicit GetPresenceJob(const QString& userId);
+        /*! Get this user's presence state.
+         * \param userId
+         *   The user whose presence state to get.
+         */
+        explicit GetPresenceJob(const QString& userId);
 
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * GetPresenceJob is necessary but the job
-             * itself isn't.
-             */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
+        /*! Construct a URL without creating a full-fledged job object
+         *
+         * This function can be used when a URL for
+         * GetPresenceJob is necessary but the job
+         * itself isn't.
+         */
+        static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
 
-            ~GetPresenceJob() override;
+        ~GetPresenceJob() override;
 
-            // Result properties
+        // Result properties
 
-            /// This user's presence.
-            const QString& presence() const;
-            /// The length of time in milliseconds since an action was performed
-            /// by this user.
-            Omittable<int> lastActiveAgo() const;
-            /// The state message for this user if one was set.
-            const QString& statusMsg() const;
-            /// Whether the user is currently active
-            Omittable<bool> currentlyActive() const;
+        /// This user's presence.
+        const QString& presence() const;
+        /// The length of time in milliseconds since an action was performed
+        /// by this user.
+        Omittable<int> lastActiveAgo() const;
+        /// The state message for this user if one was set.
+        const QString& statusMsg() const;
+        /// Whether the user is currently active
+        Omittable<bool> currentlyActive() const;
 
         protected:
-            Status parseJson(const QJsonDocument& data) override;
+        Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            QScopedPointer<Private> d;
+        class Private;
+        QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

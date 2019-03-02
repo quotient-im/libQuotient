@@ -6,22 +6,22 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
 #include "converters.h"
+#include <QtCore/QHash>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Gets the versions of the specification supported by the server.
     ///
     /// Gets the versions of the specification supported by the server.
-    /// 
+    ///
     /// Values will take the form ``rX.Y.Z``.
-    /// 
-    /// Only the latest ``Z`` value will be reported for each supported ``X.Y`` value.
-    /// i.e. if the server implements ``r0.0.0``, ``r0.0.1``, and ``r1.2.0``, it will report ``r0.0.1`` and ``r1.2.0``.
-    /// 
+    ///
+    /// Only the latest ``Z`` value will be reported for each supported ``X.Y``
+    /// value. i.e. if the server implements ``r0.0.0``, ``r0.0.1``, and
+    /// ``r1.2.0``, it will report ``r0.0.1`` and ``r1.2.0``.
+    ///
     /// The server may additionally advertise experimental features it supports
     /// through ``unstable_features``. These features should be namespaced and
     /// may optionally include version information within their name if desired.
@@ -37,32 +37,32 @@ namespace QMatrixClient
     class GetVersionsJob : public BaseJob
     {
         public:
-            explicit GetVersionsJob();
+        explicit GetVersionsJob();
 
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * GetVersionsJob is necessary but the job
-             * itself isn't.
-             */
-            static QUrl makeRequestUrl(QUrl baseUrl);
+        /*! Construct a URL without creating a full-fledged job object
+         *
+         * This function can be used when a URL for
+         * GetVersionsJob is necessary but the job
+         * itself isn't.
+         */
+        static QUrl makeRequestUrl(QUrl baseUrl);
 
-            ~GetVersionsJob() override;
+        ~GetVersionsJob() override;
 
-            // Result properties
+        // Result properties
 
-            /// The supported versions.
-            const QStringList& versions() const;
-            /// Experimental features the server supports. Features not listed here,
-            /// or the lack of this property all together, indicate that a feature is
-            /// not supported.
-            const QHash<QString, bool>& unstableFeatures() const;
+        /// The supported versions.
+        const QStringList& versions() const;
+        /// Experimental features the server supports. Features not listed here,
+        /// or the lack of this property all together, indicate that a feature
+        /// is not supported.
+        const QHash<QString, bool>& unstableFeatures() const;
 
         protected:
-            Status parseJson(const QJsonDocument& data) override;
+        Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            QScopedPointer<Private> d;
+        class Private;
+        QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

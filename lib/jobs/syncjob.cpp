@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "syncjob.h"
@@ -29,25 +29,26 @@ SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
-    if( !filter.isEmpty() )
+    if (!filter.isEmpty())
         query.addQueryItem(QStringLiteral("filter"), filter);
-    if( !presence.isEmpty() )
+    if (!presence.isEmpty())
         query.addQueryItem(QStringLiteral("set_presence"), presence);
-    if( timeout >= 0 )
+    if (timeout >= 0)
         query.addQueryItem(QStringLiteral("timeout"), QString::number(timeout));
-    if( !since.isEmpty() )
+    if (!since.isEmpty())
         query.addQueryItem(QStringLiteral("since"), since);
     setRequestQuery(query);
 
     setMaxRetries(std::numeric_limits<int>::max());
 }
 
-SyncJob::SyncJob(const QString& since, const Filter& filter,
-                 int timeout, const QString& presence)
+SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
+                 const QString& presence)
     : SyncJob(since,
               QJsonDocument(toJson(filter)).toJson(QJsonDocument::Compact),
               timeout, presence)
-{ }
+{
+}
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {
@@ -59,4 +60,3 @@ BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
                                << d.unresolvedRooms().join(',');
     return BaseJob::IncorrectResponseError;
 }
-

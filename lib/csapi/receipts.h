@@ -8,8 +8,7 @@
 
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Send a receipt for the given event ID.
@@ -19,17 +18,20 @@ namespace QMatrixClient
     class PostReceiptJob : public BaseJob
     {
         public:
-            /*! Send a receipt for the given event ID.
-             * \param roomId
-             *   The room in which to send the event.
-             * \param receiptType
-             *   The type of receipt to send.
-             * \param eventId
-             *   The event ID to acknowledge up to.
-             * \param receipt
-             *   Extra receipt information to attach to ``content`` if any. The
-             *   server will automatically set the ``ts`` field.
-             */
-            explicit PostReceiptJob(const QString& roomId, const QString& receiptType, const QString& eventId, const QJsonObject& receipt = {});
+        /*! Send a receipt for the given event ID.
+         * \param roomId
+         *   The room in which to send the event.
+         * \param receiptType
+         *   The type of receipt to send.
+         * \param eventId
+         *   The event ID to acknowledge up to.
+         * \param receipt
+         *   Extra receipt information to attach to ``content`` if any. The
+         *   server will automatically set the ``ts`` field.
+         */
+        explicit PostReceiptJob(const QString& roomId,
+                                const QString& receiptType,
+                                const QString& eventId,
+                                const QJsonObject& receipt = {});
     };
 } // namespace QMatrixClient

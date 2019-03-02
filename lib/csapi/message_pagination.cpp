@@ -15,12 +15,14 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class GetRoomEventsJob::Private
 {
     public:
-        QString begin;
-        QString end;
-        RoomEvents chunk;
+    QString begin;
+    QString end;
+    RoomEvents chunk;
 };
 
-BaseJob::Query queryToGetRoomEvents(const QString& from, const QString& to, const QString& dir, Omittable<int> limit, const QString& filter)
+BaseJob::Query queryToGetRoomEvents(const QString& from, const QString& to,
+                                    const QString& dir, Omittable<int> limit,
+                                    const QString& filter)
 {
     BaseJob::Query _q;
     addParam<>(_q, QStringLiteral("from"), from);
@@ -31,39 +33,35 @@ BaseJob::Query queryToGetRoomEvents(const QString& from, const QString& to, cons
     return _q;
 }
 
-QUrl GetRoomEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& from, const QString& dir, const QString& to, Omittable<int> limit, const QString& filter)
+QUrl GetRoomEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+                                      const QString& from, const QString& dir,
+                                      const QString& to, Omittable<int> limit,
+                                      const QString& filter)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/rooms/" % roomId % "/messages",
+    return BaseJob::makeRequestUrl(
+            std::move(baseUrl), basePath % "/rooms/" % roomId % "/messages",
             queryToGetRoomEvents(from, to, dir, limit, filter));
 }
 
 static const auto GetRoomEventsJobName = QStringLiteral("GetRoomEventsJob");
 
-GetRoomEventsJob::GetRoomEventsJob(const QString& roomId, const QString& from, const QString& dir, const QString& to, Omittable<int> limit, const QString& filter)
+GetRoomEventsJob::GetRoomEventsJob(const QString& roomId, const QString& from,
+                                   const QString& dir, const QString& to,
+                                   Omittable<int> limit, const QString& filter)
     : BaseJob(HttpVerb::Get, GetRoomEventsJobName,
-        basePath % "/rooms/" % roomId % "/messages",
-        queryToGetRoomEvents(from, to, dir, limit, filter))
-    , d(new Private)
+              basePath % "/rooms/" % roomId % "/messages",
+              queryToGetRoomEvents(from, to, dir, limit, filter)),
+      d(new Private)
 {
 }
 
 GetRoomEventsJob::~GetRoomEventsJob() = default;
 
-const QString& GetRoomEventsJob::begin() const
-{
-    return d->begin;
-}
+const QString& GetRoomEventsJob::begin() const { return d->begin; }
 
-const QString& GetRoomEventsJob::end() const
-{
-    return d->end;
-}
+const QString& GetRoomEventsJob::end() const { return d->end; }
 
-RoomEvents&& GetRoomEventsJob::chunk()
-{
-    return std::move(d->chunk);
-}
+RoomEvents&& GetRoomEventsJob::chunk() { return std::move(d->chunk); }
 
 BaseJob::Status GetRoomEventsJob::parseJson(const QJsonDocument& data)
 {
@@ -73,4 +71,3 @@ BaseJob::Status GetRoomEventsJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("chunk"_ls), d->chunk);
     return Success;
 }
-

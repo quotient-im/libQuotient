@@ -16,11 +16,10 @@ void JsonObjectConverter<RequestEmailValidation>::dumpTo(
 }
 
 void JsonObjectConverter<RequestEmailValidation>::fillFrom(
-    const QJsonObject& jo, RequestEmailValidation& result)
+        const QJsonObject& jo, RequestEmailValidation& result)
 {
     fromJson(jo.value("client_secret"_ls), result.clientSecret);
     fromJson(jo.value("email"_ls), result.email);
     fromJson(jo.value("send_attempt"_ls), result.sendAttempt);
     fromJson(jo.value("next_link"_ls), result.nextLink);
 }
-

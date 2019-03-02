@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -25,12 +25,10 @@
 #define USE_EVENTTYPE_ALIAS 1
 #endif
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // === event_ptr_tt<> and type casting facilities ===
 
-    template <typename EventT>
-    using event_ptr_tt = std::unique_ptr<EventT>;
+    template <typename EventT> using event_ptr_tt = std::unique_ptr<EventT>;
 
     template <typename EventT>
     inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr) // unwrap
@@ -80,50 +78,46 @@ namespace QMatrixClient
     class EventTypeRegistry
     {
         public:
-            ~EventTypeRegistry() = default;
+        ~EventTypeRegistry() = default;
 
-            static event_type_t initializeTypeId(event_mtype_t matrixTypeId);
+        static event_type_t initializeTypeId(event_mtype_t matrixTypeId);
 
-            template <typename EventT>
-            static inline event_type_t initializeTypeId()
-            {
-                return initializeTypeId(EventT::matrixTypeId());
-            }
+        template <typename EventT> static inline event_type_t initializeTypeId()
+        {
+            return initializeTypeId(EventT::matrixTypeId());
+        }
 
-            static QString getMatrixType(event_type_t typeId);
+        static QString getMatrixType(event_type_t typeId);
 
         private:
-            EventTypeRegistry() = default;
-            Q_DISABLE_COPY(EventTypeRegistry)
-            DISABLE_MOVE(EventTypeRegistry)
+        EventTypeRegistry() = default;
+        Q_DISABLE_COPY(EventTypeRegistry)
+        DISABLE_MOVE(EventTypeRegistry)
 
-            static EventTypeRegistry& get()
-            {
-                static EventTypeRegistry etr;
-                return etr;
-            }
+        static EventTypeRegistry& get()
+        {
+            static EventTypeRegistry etr;
+            return etr;
+        }
 
-            std::vector<event_mtype_t> eventTypes;
+        std::vector<event_mtype_t> eventTypes;
     };
 
-    template <>
-    inline event_type_t EventTypeRegistry::initializeTypeId<void>()
+    template <> inline event_type_t EventTypeRegistry::initializeTypeId<void>()
     {
         return initializeTypeId("");
     }
 
-    template <typename EventT>
-    struct EventTypeTraits
-    {
+    template <typename EventT> struct EventTypeTraits {
         static event_type_t id()
         {
-            static const auto id = EventTypeRegistry::initializeTypeId<EventT>();
+            static const auto id =
+                    EventTypeRegistry::initializeTypeId<EventT>();
             return id;
         }
     };
 
-    template <typename EventT>
-    inline event_type_t typeId()
+    template <typename EventT> inline event_type_t typeId()
     {
         return EventTypeTraits<std::decay_t<EventT>>::id();
     }
@@ -139,49 +133,45 @@ namespace QMatrixClient
         return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
     }
 
-    template <typename BaseEventT>
-    class EventFactory
+    template <typename BaseEventT> class EventFactory
     {
         public:
-            template <typename FnT>
-            static auto addMethod(FnT&& method)
-            {
-                factories().emplace_back(std::forward<FnT>(method));
-                return 0;
-            }
+        template <typename FnT> static auto addMethod(FnT&& method)
+        {
+            factories().emplace_back(std::forward<FnT>(method));
+            return 0;
+        }
 
-            /** Chain two type factories
-             * Adds the factory class of EventT2 (EventT2::factory_t) to
-             * the list in factory class of EventT1 (EventT1::factory_t) so
-             * that when EventT1::factory_t::make() is invoked, types of
-             * EventT2 factory are looked through as well. This is used
-             * to include RoomEvent types into the more general Event factory,
-             * and state event types into the RoomEvent factory.
-             */
-            template <typename EventT>
-            static auto chainFactory()
-            {
-                return addMethod(&EventT::factory_t::make);
-            }
+        /** Chain two type factories
+         * Adds the factory class of EventT2 (EventT2::factory_t) to
+         * the list in factory class of EventT1 (EventT1::factory_t) so
+         * that when EventT1::factory_t::make() is invoked, types of
+         * EventT2 factory are looked through as well. This is used
+         * to include RoomEvent types into the more general Event factory,
+         * and state event types into the RoomEvent factory.
+         */
+        template <typename EventT> static auto chainFactory()
+        {
+            return addMethod(&EventT::factory_t::make);
+        }
 
-            static event_ptr_tt<BaseEventT> make(const QJsonObject& json,
-                                                 const QString& matrixType)
-            {
-                for (const auto& f: factories())
-                    if (auto e = f(json, matrixType))
-                        return e;
-                return nullptr;
-            }
+        static event_ptr_tt<BaseEventT> make(const QJsonObject& json,
+                                             const QString& matrixType)
+        {
+            for (const auto& f : factories())
+                if (auto e = f(json, matrixType))
+                    return e;
+            return nullptr;
+        }
 
         private:
-            static auto& factories()
-            {
-                using inner_factory_tt =
-                    std::function<event_ptr_tt<BaseEventT>(const QJsonObject&,
-                                                           const QString&)>;
-                static std::vector<inner_factory_tt> _factories {};
-                return _factories;
-            }
+        static auto& factories()
+        {
+            using inner_factory_tt = std::function<event_ptr_tt<BaseEventT>(
+                    const QJsonObject&, const QString&)>;
+            static std::vector<inner_factory_tt> _factories {};
+            return _factories;
+        }
     };
 
     /** Add a type to its default factory
@@ -193,20 +183,18 @@ namespace QMatrixClient
      * \return the registered type id
      * \sa loadEvent, Event::type
      */
-    template <typename EventT>
-    inline auto setupFactory()
+    template <typename EventT> inline auto setupFactory()
     {
         qDebug(EVENTS) << "Adding factory method for" << EventT::matrixTypeId();
         return EventT::factory_t::addMethod(
-            [] (const QJsonObject& json, const QString& jsonMatrixType)
-            {
-                return EventT::matrixTypeId() == jsonMatrixType
-                        ? makeEvent<EventT>(json) : nullptr;
-            });
+                [](const QJsonObject& json, const QString& jsonMatrixType) {
+                    return EventT::matrixTypeId() == jsonMatrixType
+                            ? makeEvent<EventT>(json)
+                            : nullptr;
+                });
     }
 
-    template <typename EventT>
-    inline auto registerEventType()
+    template <typename EventT> inline auto registerEventType()
     {
         // Initialise exactly once, even if this function is called twice for
         // the same type (for whatever reason - you never know the ways of
@@ -219,66 +207,64 @@ namespace QMatrixClient
 
     class Event
     {
-            Q_GADGET
-            Q_PROPERTY(Type type READ type CONSTANT)
-            Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
+        Q_GADGET
+        Q_PROPERTY(Type type READ type CONSTANT)
+        Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
         public:
-            using Type = event_type_t;
-            using factory_t = EventFactory<Event>;
+        using Type = event_type_t;
+        using factory_t = EventFactory<Event>;
 
-            explicit Event(Type type, const QJsonObject& json);
-            explicit Event(Type type, event_mtype_t matrixType,
-                           const QJsonObject& contentJson = {});
-            Q_DISABLE_COPY(Event)
-            Event(Event&&) = default;
-            Event& operator=(Event&&) = delete;
-            virtual ~Event();
+        explicit Event(Type type, const QJsonObject& json);
+        explicit Event(Type type, event_mtype_t matrixType,
+                       const QJsonObject& contentJson = {});
+        Q_DISABLE_COPY(Event)
+        Event(Event&&) = default;
+        Event& operator=(Event&&) = delete;
+        virtual ~Event();
 
-            Type type() const { return _type; }
-            QString matrixType() const;
-            QByteArray originalJson() const;
-            QJsonObject originalJsonObject() const { return fullJson(); }
+        Type type() const { return _type; }
+        QString matrixType() const;
+        QByteArray originalJson() const;
+        QJsonObject originalJsonObject() const { return fullJson(); }
 
-            const QJsonObject& fullJson() const { return _json; }
+        const QJsonObject& fullJson() const { return _json; }
 
-            // According to the CS API spec, every event also has
-            // a "content" object; but since its structure is different for
-            // different types, we're implementing it per-event type.
+        // According to the CS API spec, every event also has
+        // a "content" object; but since its structure is different for
+        // different types, we're implementing it per-event type.
 
-            const QJsonObject contentJson() const;
-            const QJsonObject unsignedJson() const;
+        const QJsonObject contentJson() const;
+        const QJsonObject unsignedJson() const;
 
-            template <typename T>
-            T content(const QString& key) const
-            {
-                return fromJson<T>(contentJson()[key]);
-            }
+        template <typename T> T content(const QString& key) const
+        {
+            return fromJson<T>(contentJson()[key]);
+        }
 
-            template <typename T>
-            T content(const QLatin1String& key) const
-            {
-                return fromJson<T>(contentJson()[key]);
-            }
+        template <typename T> T content(const QLatin1String& key) const
+        {
+            return fromJson<T>(contentJson()[key]);
+        }
 
-            friend QDebug operator<<(QDebug dbg, const Event& e)
-            {
-                QDebugStateSaver _dss { dbg };
-                dbg.noquote().nospace()
-                        << e.matrixType() << '(' << e.type() << "): ";
-                e.dumpTo(dbg);
-                return dbg;
-            }
+        friend QDebug operator<<(QDebug dbg, const Event& e)
+        {
+            QDebugStateSaver _dss { dbg };
+            dbg.noquote().nospace()
+                    << e.matrixType() << '(' << e.type() << "): ";
+            e.dumpTo(dbg);
+            return dbg;
+        }
 
-            virtual bool isStateEvent() const { return false; }
-            virtual bool isCallEvent() const { return false; }
-            virtual void dumpTo(QDebug dbg) const;
+        virtual bool isStateEvent() const { return false; }
+        virtual bool isCallEvent() const { return false; }
+        virtual void dumpTo(QDebug dbg) const;
 
         protected:
-            QJsonObject& editJson() { return _json; }
+        QJsonObject& editJson() { return _json; }
 
         private:
-            Type _type;
-            QJsonObject _json;
+        Type _type;
+        QJsonObject _json;
     };
     using EventPtr = event_ptr_tt<Event>;
 
@@ -290,24 +276,23 @@ namespace QMatrixClient
 
     // This macro should be used in a public section of an event class to
     // provide matrixTypeId() and typeId().
-#define DEFINE_EVENT_TYPEID(_Id, _Type) \
-    static constexpr event_mtype_t matrixTypeId() { return _Id; } \
-    static auto typeId() { return QMatrixClient::typeId<_Type>(); } \
+#define DEFINE_EVENT_TYPEID(_Id, _Type)                                        \
+    static constexpr event_mtype_t matrixTypeId() { return _Id; }              \
+    static auto typeId() { return QMatrixClient::typeId<_Type>(); }            \
     // End of macro
 
     // This macro should be put after an event class definition (in .h or .cpp)
     // to enable its deserialisation from a /sync and other
     // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(_Type) \
-    namespace { \
-        [[gnu::unused]] \
-        static const auto _factoryAdded##_Type = registerEventType<_Type>(); \
-    } \
+#define REGISTER_EVENT_TYPE(_Type)                                             \
+    namespace {                                                                \
+        [[gnu::unused]] static const auto _factoryAdded##_Type =               \
+                registerEventType<_Type>();                                    \
+    }                                                                          \
     // End of macro
 
 #ifdef USE_EVENTTYPE_ALIAS
-    namespace EventType
-    {
+    namespace EventType {
         inline event_type_t logEventType(event_type_t id, const char* idName)
         {
             qDebug(EVENTS) << "Using id" << id << "for" << idName;
@@ -317,12 +302,12 @@ namespace QMatrixClient
 
     // This macro provides constants in EventType:: namespace for
     // back-compatibility with libQMatrixClient 0.3 event type system.
-#define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) \
-    namespace EventType \
-    { \
-        [[deprecated("Use is<>(), eventCast<>() or visit<>()")]] \
-        static const auto _Id = logEventType(typeId<_Type>(), #_Id); \
-    } \
+#define DEFINE_EVENTTYPE_ALIAS(_Id, _Type)                                     \
+    namespace EventType {                                                      \
+        [[deprecated(                                                          \
+                "Use is<>(), eventCast<>() or visit<>()")]] static const auto  \
+                _Id = logEventType(typeId<_Type>(), #_Id);                     \
+    }                                                                          \
     // End of macro
 #else
 #define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) // Nothing
@@ -330,46 +315,48 @@ namespace QMatrixClient
 
     // === is<>(), eventCast<>() and visit<>() ===
 
-    template <typename EventT>
-    inline bool is(const Event& e) { return e.type() == typeId<EventT>(); }
+    template <typename EventT> inline bool is(const Event& e)
+    {
+        return e.type() == typeId<EventT>();
+    }
 
-    inline bool isUnknown(const Event& e) { return e.type() == unknownEventTypeId(); }
+    inline bool isUnknown(const Event& e)
+    {
+        return e.type() == unknownEventTypeId();
+    }
 
     template <typename EventT, typename BasePtrT>
     inline auto eventCast(const BasePtrT& eptr)
-        -> decltype(static_cast<EventT*>(&*eptr))
+            -> decltype(static_cast<EventT*>(&*eptr))
     {
         Q_ASSERT(eptr);
-        return is<std::decay_t<EventT>>(*eptr)
-               ? static_cast<EventT*>(&*eptr) : nullptr;
+        return is<std::decay_t<EventT>>(*eptr) ? static_cast<EventT*>(&*eptr)
+                                               : nullptr;
     }
 
     // A single generic catch-all visitor
     template <typename BaseEventT, typename FnT>
     inline auto visit(const BaseEventT& event, FnT&& visitor)
-        -> decltype(visitor(event))
+            -> decltype(visitor(event))
     {
         return visitor(event);
     }
 
-    template <typename T>
-    constexpr auto is_event()
+    template <typename T> constexpr auto is_event()
     {
         return std::is_base_of<Event, std::decay_t<T>>::value;
     }
 
-    template <typename T, typename FnT>
-    constexpr auto needs_cast()
+    template <typename T, typename FnT> constexpr auto needs_cast()
     {
         return !std::is_convertible<T, fn_arg_t<FnT>>::value;
     }
 
     // A single type-specific void visitor
     template <typename BaseEventT, typename FnT>
-    inline
-    std::enable_if_t<
-        is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>() &&
-        std::is_void<fn_return_t<FnT>>::value>
+    inline std::enable_if_t<is_event<BaseEventT>()
+                            && needs_cast<BaseEventT, FnT>()
+                            && std::is_void<fn_return_t<FnT>>::value>
     visit(const BaseEventT& event, FnT&& visitor)
     {
         using event_type = fn_arg_t<FnT>;
@@ -379,10 +366,9 @@ namespace QMatrixClient
 
     // A single type-specific non-void visitor with an optional default value
     template <typename BaseEventT, typename FnT>
-    inline
-    std::enable_if_t<
-        is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>(),
-        fn_return_t<FnT>> // non-voidness is guarded by defaultValue type
+    inline std::enable_if_t<
+            is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>(),
+            fn_return_t<FnT>> // non-voidness is guarded by defaultValue type
     visit(const BaseEventT& event, FnT&& visitor,
           fn_return_t<FnT>&& defaultValue = {})
     {
@@ -393,9 +379,9 @@ namespace QMatrixClient
     }
 
     // A chain of 2 or more visitors
-    template <typename BaseEventT, typename FnT1, typename FnT2, typename... FnTs>
-    inline
-    std::enable_if_t<is_event<BaseEventT>(), fn_return_t<FnT1>>
+    template <typename BaseEventT, typename FnT1, typename FnT2,
+              typename... FnTs>
+    inline std::enable_if_t<is_event<BaseEventT>(), fn_return_t<FnT1>>
     visit(const BaseEventT& event, FnT1&& visitor1, FnT2&& visitor2,
           FnTs&&... visitors)
     {
@@ -405,6 +391,6 @@ namespace QMatrixClient
         return visit(event, std::forward<FnT2>(visitor2),
                      std::forward<FnTs>(visitors)...);
     }
-}  // namespace QMatrixClient
+} // namespace QMatrixClient
 Q_DECLARE_METATYPE(QMatrixClient::Event*)
 Q_DECLARE_METATYPE(const QMatrixClient::Event*)

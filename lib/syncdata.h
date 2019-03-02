@@ -13,13 +13,13 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
-#include "joinstate.h"
 #include "events/stateevent.h"
+#include "joinstate.h"
 
 namespace QMatrixClient {
     /// Room summary, as defined in MSC688
@@ -30,11 +30,11 @@ namespace QMatrixClient {
      * means that nothing has come from the server; heroes.value().isEmpty()
      * means a peculiar case of a room with the only member - the current user.
      */
-    struct RoomSummary
-    {
+    struct RoomSummary {
         Omittable<int> joinedMemberCount;
         Omittable<int> invitedMemberCount;
-        Omittable<QStringList> heroes; //< mxids of users to take part in the room name
+        Omittable<QStringList>
+                heroes; //< mxids of users to take part in the room name
 
         bool isEmpty() const;
         /// Merge the contents of another RoomSummary object into this one
@@ -44,9 +44,7 @@ namespace QMatrixClient {
         friend QDebug operator<<(QDebug dbg, const RoomSummary& rs);
     };
 
-    template <>
-    struct JsonObjectConverter<RoomSummary>
-    {
+    template <> struct JsonObjectConverter<RoomSummary> {
         static void dumpTo(QJsonObject& jo, const RoomSummary& rs);
         static void fillFrom(const QJsonObject& jo, RoomSummary& rs);
     };
@@ -54,26 +52,26 @@ namespace QMatrixClient {
     class SyncRoomData
     {
         public:
-            QString roomId;
-            JoinState joinState;
-            RoomSummary summary;
-            StateEvents state;
-            RoomEvents timeline;
-            Events ephemeral;
-            Events accountData;
+        QString roomId;
+        JoinState joinState;
+        RoomSummary summary;
+        StateEvents state;
+        RoomEvents timeline;
+        Events ephemeral;
+        Events accountData;
 
-            bool timelineLimited;
-            QString timelinePrevBatch;
-            int unreadCount;
-            int highlightCount;
-            int notificationCount;
+        bool timelineLimited;
+        QString timelinePrevBatch;
+        int unreadCount;
+        int highlightCount;
+        int notificationCount;
 
-            SyncRoomData(const QString& roomId, JoinState joinState_,
-                         const QJsonObject& room_);
-            SyncRoomData(SyncRoomData&&) = default;
-            SyncRoomData& operator=(SyncRoomData&&) = default;
+        SyncRoomData(const QString& roomId, JoinState joinState_,
+                     const QJsonObject& room_);
+        SyncRoomData(SyncRoomData&&) = default;
+        SyncRoomData& operator=(SyncRoomData&&) = default;
 
-            static const QString UnreadCountKey;
+        static const QString UnreadCountKey;
     };
 
     // QVector cannot work with non-copiable objects, std::vector can.
@@ -82,35 +80,35 @@ namespace QMatrixClient {
     class SyncData
     {
         public:
-            SyncData() = default;
-            explicit SyncData(const QString& cacheFileName);
-            /** Parse sync response into room events
-             * \param json response from /sync or a room state cache
-             * \return the list of rooms with missing cache files; always
-             *         empty when parsing response from /sync
-             */
-            void parseJson(const QJsonObject& json, const QString& baseDir = {});
+        SyncData() = default;
+        explicit SyncData(const QString& cacheFileName);
+        /** Parse sync response into room events
+         * \param json response from /sync or a room state cache
+         * \return the list of rooms with missing cache files; always
+         *         empty when parsing response from /sync
+         */
+        void parseJson(const QJsonObject& json, const QString& baseDir = {});
 
-            Events&& takePresenceData();
-            Events&& takeAccountData();
-            Events&& takeToDeviceEvents();
-            SyncDataList&& takeRoomData();
+        Events&& takePresenceData();
+        Events&& takeAccountData();
+        Events&& takeToDeviceEvents();
+        SyncDataList&& takeRoomData();
 
-            QString nextBatch() const { return nextBatch_; }
+        QString nextBatch() const { return nextBatch_; }
 
-            QStringList unresolvedRooms() const { return unresolvedRoomIds; }
+        QStringList unresolvedRooms() const { return unresolvedRoomIds; }
 
-            static std::pair<int, int> cacheVersion() { return { 10, 0 }; }
-            static QString fileNameForRoom(QString roomId);
+        static std::pair<int, int> cacheVersion() { return { 10, 0 }; }
+        static QString fileNameForRoom(QString roomId);
 
         private:
-            QString nextBatch_;
-            Events presenceData;
-            Events accountData;
-            Events toDeviceEvents;
-            SyncDataList roomData;
-            QStringList unresolvedRoomIds;
+        QString nextBatch_;
+        Events presenceData;
+        Events accountData;
+        Events toDeviceEvents;
+        SyncDataList roomData;
+        QStringList unresolvedRoomIds;
 
-            static QJsonObject loadJson(const QString& fileName);
+        static QJsonObject loadJson(const QString& fileName);
     };
-}  // namespace QMatrixClient
+} // namespace QMatrixClient

@@ -16,10 +16,9 @@ static const auto InviteUserJobName = QStringLiteral("InviteUserJob");
 
 InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
     : BaseJob(HttpVerb::Post, InviteUserJobName,
-        basePath % "/rooms/" % roomId % "/invite")
+              basePath % "/rooms/" % roomId % "/invite")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);
     setRequestData(_data);
 }
-

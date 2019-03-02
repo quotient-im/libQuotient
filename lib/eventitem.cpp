@@ -13,13 +13,13 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "eventitem.h"
 
-#include "events/roommessageevent.h"
 #include "events/roomavatarevent.h"
+#include "events/roommessageevent.h"
 
 using namespace QMatrixClient;
 
@@ -27,17 +27,15 @@ void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
 {
     // TODO: eventually we might introduce hasFileContent to RoomEvent,
     // and unify the code below.
-    if (auto* rme = getAs<RoomMessageEvent>())
-    {
+    if (auto* rme = getAs<RoomMessageEvent>()) {
         Q_ASSERT(rme->hasFileContent());
-        rme->editContent([remoteUrl] (EventContent::TypedBase& ec) {
+        rme->editContent([remoteUrl](EventContent::TypedBase& ec) {
             ec.fileInfo()->url = remoteUrl;
         });
     }
-    if (auto* rae = getAs<RoomAvatarEvent>())
-    {
+    if (auto* rae = getAs<RoomAvatarEvent>()) {
         Q_ASSERT(rae->content().fileInfo());
-        rae->editContent([remoteUrl] (EventContent::FileInfo& fi) {
+        rae->editContent([remoteUrl](EventContent::FileInfo& fi) {
             fi.url = remoteUrl;
         });
     }

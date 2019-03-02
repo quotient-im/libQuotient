@@ -13,88 +13,94 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
-#include "roomevent.h"
 #include "eventcontent.h"
+#include "roomevent.h"
 
 class QFileInfo;
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     namespace MessageEventContent = EventContent; // Back-compatibility
 
     /**
      * The event class corresponding to m.room.message events
      */
-    class RoomMessageEvent: public RoomEvent
+    class RoomMessageEvent : public RoomEvent
     {
-            Q_GADGET
-            Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
-            Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
-            Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
-            Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
+        Q_GADGET
+        Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
+        Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
+        Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
+        Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
         public:
-            DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
+        DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
 
-            enum class MsgType
-            {
-                Text, Emote, Notice, Image, File, Location, Video, Audio, Unknown
-            };
+        enum class MsgType {
+            Text,
+            Emote,
+            Notice,
+            Image,
+            File,
+            Location,
+            Video,
+            Audio,
+            Unknown
+        };
 
-            RoomMessageEvent(const QString& plainBody,
-                             const QString& jsonMsgType,
-                             EventContent::TypedBase* content = nullptr);
-            explicit RoomMessageEvent(const QString& plainBody,
-                                      MsgType msgType = MsgType::Text,
-                                      EventContent::TypedBase* content = nullptr);
-            explicit RoomMessageEvent(const QString& plainBody,
-                                      const QFileInfo& file,
-                                      bool asGenericFile = false);
-            explicit RoomMessageEvent(const QJsonObject& obj);
+        RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
+                         EventContent::TypedBase* content = nullptr);
+        explicit RoomMessageEvent(const QString& plainBody,
+                                  MsgType msgType = MsgType::Text,
+                                  EventContent::TypedBase* content = nullptr);
+        explicit RoomMessageEvent(const QString& plainBody,
+                                  const QFileInfo& file,
+                                  bool asGenericFile = false);
+        explicit RoomMessageEvent(const QJsonObject& obj);
 
-            MsgType msgtype() const;
-            QString rawMsgtype() const;
-            QString plainBody() const;
-            EventContent::TypedBase* content() const
-                                             { return _content.data(); }
-            template <typename VisitorT>
-            void editContent(VisitorT visitor)
-            {
-                visitor(*_content);
-                editJson()[ContentKeyL] =
+        MsgType msgtype() const;
+        QString rawMsgtype() const;
+        QString plainBody() const;
+        EventContent::TypedBase* content() const { return _content.data(); }
+        template <typename VisitorT> void editContent(VisitorT visitor)
+        {
+            visitor(*_content);
+            editJson()[ContentKeyL] =
                     assembleContentJson(plainBody(), rawMsgtype(), content());
-            }
-            QMimeType mimeType() const;
-            bool hasTextContent() const;
-            bool hasFileContent() const;
-            bool hasThumbnail() const;
+        }
+        QMimeType mimeType() const;
+        bool hasTextContent() const;
+        bool hasFileContent() const;
+        bool hasThumbnail() const;
 
-            static QString rawMsgTypeForUrl(const QUrl& url);
-            static QString rawMsgTypeForFile(const QFileInfo& fi);
+        static QString rawMsgTypeForUrl(const QUrl& url);
+        static QString rawMsgTypeForFile(const QFileInfo& fi);
 
         private:
-            QScopedPointer<EventContent::TypedBase> _content;
+        QScopedPointer<EventContent::TypedBase> _content;
 
-            static QJsonObject assembleContentJson(const QString& plainBody,
-                const QString& jsonMsgType, EventContent::TypedBase* content);
+        static QJsonObject
+        assembleContentJson(const QString& plainBody,
+                            const QString& jsonMsgType,
+                            EventContent::TypedBase* content);
 
-            REGISTER_ENUM(MsgType)
+        REGISTER_ENUM(MsgType)
     };
     REGISTER_EVENT_TYPE(RoomMessageEvent)
     DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
     using MessageEventType = RoomMessageEvent::MsgType;
 
-    namespace EventContent
-    {
+    namespace EventContent {
         // Additional event content types
 
-        struct RelatesTo
-        {
-            static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
+        struct RelatesTo {
+            static constexpr const char* ReplyTypeId()
+            {
+                return "m.in_reply_to";
+            }
             QString type; // The only supported relation so far
             QString eventId;
         };
@@ -109,21 +115,21 @@ namespace QMatrixClient
          * Available fields: mimeType, body. The body can be either rich text
          * or plain text, depending on what mimeType specifies.
          */
-        class TextContent: public TypedBase
+        class TextContent : public TypedBase
         {
             public:
-                TextContent(const QString& text, const QString& contentType,
-                            Omittable<RelatesTo> relatesTo = none);
-                explicit TextContent(const QJsonObject& json);
+            TextContent(const QString& text, const QString& contentType,
+                        Omittable<RelatesTo> relatesTo = none);
+            explicit TextContent(const QJsonObject& json);
 
-                QMimeType type() const override { return mimeType; }
+            QMimeType type() const override { return mimeType; }
 
-                QMimeType mimeType;
-                QString body;
-                Omittable<RelatesTo> relatesTo;
+            QMimeType mimeType;
+            QString body;
+            Omittable<RelatesTo> relatesTo;
 
             protected:
-                void fillJson(QJsonObject* json) const override;
+            void fillJson(QJsonObject* json) const override;
         };
 
         /**
@@ -139,47 +145,47 @@ namespace QMatrixClient
          *   - thumbnail.mimeType
          *   - thumbnail.imageSize
          */
-        class LocationContent: public TypedBase
+        class LocationContent : public TypedBase
         {
             public:
-                LocationContent(const QString& geoUri,
-                                const Thumbnail& thumbnail = {});
-                explicit LocationContent(const QJsonObject& json);
+            LocationContent(const QString& geoUri,
+                            const Thumbnail& thumbnail = {});
+            explicit LocationContent(const QJsonObject& json);
 
-                QMimeType type() const override;
+            QMimeType type() const override;
 
             public:
-                QString geoUri;
-                Thumbnail thumbnail;
+            QString geoUri;
+            Thumbnail thumbnail;
 
             protected:
-                void fillJson(QJsonObject* o) const override;
+            void fillJson(QJsonObject* o) const override;
         };
 
         /**
          * A base class for info types that include duration: audio and video
          */
-        template <typename ContentT>
-        class PlayableContent : public ContentT
+        template <typename ContentT> class PlayableContent : public ContentT
         {
             public:
-                using ContentT::ContentT;
-                PlayableContent(const QJsonObject& json)
-                    : ContentT(json)
-                    , duration(ContentT::originalInfoJson["duration"_ls].toInt())
-                { }
+            using ContentT::ContentT;
+            PlayableContent(const QJsonObject& json)
+                : ContentT(json),
+                  duration(ContentT::originalInfoJson["duration"_ls].toInt())
+            {
+            }
 
             protected:
-                void fillJson(QJsonObject* json) const override
-                {
-                    ContentT::fillJson(json);
-                    auto infoJson = json->take("info"_ls).toObject();
-                    infoJson.insert(QStringLiteral("duration"), duration);
-                    json->insert(QStringLiteral("info"), infoJson);
-                }
+            void fillJson(QJsonObject* json) const override
+            {
+                ContentT::fillJson(json);
+                auto infoJson = json->take("info"_ls).toObject();
+                infoJson.insert(QStringLiteral("duration"), duration);
+                json->insert(QStringLiteral("info"), infoJson);
+            }
 
             public:
-                int duration;
+            int duration;
         };
 
         /**
@@ -201,7 +207,8 @@ namespace QMatrixClient
          *   - mimeType
          *   - imageSize
          */
-        using VideoContent = PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
+        using VideoContent =
+                PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
 
         /**
          * Content class for m.audio
@@ -216,5 +223,5 @@ namespace QMatrixClient
          *   - duration
          */
         using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
-    }  // namespace EventContent
-}  // namespace QMatrixClient
+    } // namespace EventContent
+} // namespace QMatrixClient

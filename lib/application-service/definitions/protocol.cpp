@@ -6,22 +6,22 @@
 
 using namespace QMatrixClient;
 
-void JsonObjectConverter<FieldType>::dumpTo(
-        QJsonObject& jo, const FieldType& pod)
+void JsonObjectConverter<FieldType>::dumpTo(QJsonObject& jo,
+                                            const FieldType& pod)
 {
     addParam<>(jo, QStringLiteral("regexp"), pod.regexp);
     addParam<>(jo, QStringLiteral("placeholder"), pod.placeholder);
 }
 
-void JsonObjectConverter<FieldType>::fillFrom(
-    const QJsonObject& jo, FieldType& result)
+void JsonObjectConverter<FieldType>::fillFrom(const QJsonObject& jo,
+                                              FieldType& result)
 {
     fromJson(jo.value("regexp"_ls), result.regexp);
     fromJson(jo.value("placeholder"_ls), result.placeholder);
 }
 
-void JsonObjectConverter<ProtocolInstance>::dumpTo(
-        QJsonObject& jo, const ProtocolInstance& pod)
+void JsonObjectConverter<ProtocolInstance>::dumpTo(QJsonObject& jo,
+                                                   const ProtocolInstance& pod)
 {
     addParam<>(jo, QStringLiteral("desc"), pod.desc);
     addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
@@ -29,8 +29,8 @@ void JsonObjectConverter<ProtocolInstance>::dumpTo(
     addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
 }
 
-void JsonObjectConverter<ProtocolInstance>::fillFrom(
-    const QJsonObject& jo, ProtocolInstance& result)
+void JsonObjectConverter<ProtocolInstance>::fillFrom(const QJsonObject& jo,
+                                                     ProtocolInstance& result)
 {
     fromJson(jo.value("desc"_ls), result.desc);
     fromJson(jo.value("icon"_ls), result.icon);
@@ -49,7 +49,7 @@ void JsonObjectConverter<ThirdPartyProtocol>::dumpTo(
 }
 
 void JsonObjectConverter<ThirdPartyProtocol>::fillFrom(
-    const QJsonObject& jo, ThirdPartyProtocol& result)
+        const QJsonObject& jo, ThirdPartyProtocol& result)
 {
     fromJson(jo.value("user_fields"_ls), result.userFields);
     fromJson(jo.value("location_fields"_ls), result.locationFields);
@@ -57,4 +57,3 @@ void JsonObjectConverter<ThirdPartyProtocol>::fillFrom(
     fromJson(jo.value("field_types"_ls), result.fieldTypes);
     fromJson(jo.value("instances"_ls), result.instances);
 }
-

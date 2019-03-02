@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -24,11 +24,12 @@
 
 namespace QMatrixClient {
     namespace _impl {
-        template <typename SenderT, typename SignalT,
-                  typename ContextT, typename... ArgTs>
-        inline QMetaObject::Connection connectUntil(
-                SenderT* sender, SignalT signal, ContextT* context,
-                std::function<bool(ArgTs...)> slot, Qt::ConnectionType connType)
+        template <typename SenderT, typename SignalT, typename ContextT,
+                  typename... ArgTs>
+        inline QMetaObject::Connection
+        connectUntil(SenderT* sender, SignalT signal, ContextT* context,
+                     std::function<bool(ArgTs...)> slot,
+                     Qt::ConnectionType connType)
         {
             // See https://bugreports.qt.io/browse/QTBUG-60339
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
@@ -37,23 +38,27 @@ namespace QMatrixClient {
             auto pc = std::make_unique<QMetaObject::Connection>();
 #endif
             auto& c = *pc; // Resolve a reference before pc is moved to lambda
-            c = QObject::connect(sender, signal, context,
-                [pc=std::move(pc),slot] (ArgTs... args) {
-                    Q_ASSERT(*pc); // If it's been triggered, it should exist
-                    if (slot(std::forward<ArgTs>(args)...))
-                        QObject::disconnect(*pc);
-            }, connType);
+            c = QObject::connect(
+                    sender, signal, context,
+                    [pc = std::move(pc), slot](ArgTs... args) {
+                        Q_ASSERT(
+                                *pc); // If it's been triggered, it should exist
+                        if (slot(std::forward<ArgTs>(args)...))
+                            QObject::disconnect(*pc);
+                    },
+                    connType);
             return c;
         }
     }
 
-    template <typename SenderT, typename SignalT,
-              typename ContextT, typename FunctorT>
+    template <typename SenderT, typename SignalT, typename ContextT,
+              typename FunctorT>
     inline auto connectUntil(SenderT* sender, SignalT signal, ContextT* context,
                              const FunctorT& slot,
                              Qt::ConnectionType connType = Qt::AutoConnection)
     {
-        return _impl::connectUntil(sender, signal, context,
+        return _impl::connectUntil(
+                sender, signal, context,
                 typename function_traits<FunctorT>::function_type(slot),
                 connType);
     }
@@ -63,8 +68,8 @@ namespace QMatrixClient {
      *
      * Only supports DirectConnection type.
      */
-    template <typename SenderT, typename SignalT,
-              typename ReceiverT, typename SlotT>
+    template <typename SenderT, typename SignalT, typename ReceiverT,
+              typename SlotT>
     inline auto connectSingleShot(SenderT* sender, SignalT signal,
                                   ReceiverT* receiver, SlotT slot)
     {
@@ -84,24 +89,24 @@ namespace QMatrixClient {
      * disconnected from signals of the underlying pointer upon the guard's
      * destruction.
      */
-    template <typename T>
-    class ConnectionsGuard : public QPointer<T>
+    template <typename T> class ConnectionsGuard : public QPointer<T>
     {
         public:
-            ConnectionsGuard(T* publisher, QObject* subscriber)
-                : QPointer<T>(publisher), subscriber(subscriber)
-            { }
-            ~ConnectionsGuard()
-            {
-                if (*this)
-                    (*this)->disconnect(subscriber);
-            }
-            ConnectionsGuard(ConnectionsGuard&&) = default;
-            ConnectionsGuard& operator=(ConnectionsGuard&&) = default;
-            Q_DISABLE_COPY(ConnectionsGuard)
-            using QPointer<T>::operator=;
+        ConnectionsGuard(T* publisher, QObject* subscriber)
+            : QPointer<T>(publisher), subscriber(subscriber)
+        {
+        }
+        ~ConnectionsGuard()
+        {
+            if (*this)
+                (*this)->disconnect(subscriber);
+        }
+        ConnectionsGuard(ConnectionsGuard&&) = default;
+        ConnectionsGuard& operator=(ConnectionsGuard&&) = default;
+        Q_DISABLE_COPY(ConnectionsGuard)
+        using QPointer<T>::operator=;
 
         private:
-            QObject* subscriber;
+        QObject* subscriber;
     };
 }

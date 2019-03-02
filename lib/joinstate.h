@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -22,10 +22,8 @@
 
 #include <array>
 
-namespace QMatrixClient
-{
-    enum class JoinState : unsigned int
-    {
+namespace QMatrixClient {
+    enum class JoinState : unsigned int {
         Join = 0x1,
         Invite = 0x2,
         Leave = 0x4,
@@ -35,14 +33,16 @@ namespace QMatrixClient
 
     // We cannot use REGISTER_ENUM outside of a Q_OBJECT and besides, we want
     // to use strings that match respective JSON keys.
-    static const std::array<const char*, 3> JoinStateStrings
-        { { "join", "invite", "leave" } };
+    static const std::array<const char*, 3> JoinStateStrings {
+        { "join", "invite", "leave" }
+    };
 
     inline const char* toCString(JoinState js)
     {
         size_t state = size_t(js), index = 0;
-        while (state >>= 1) ++index;
+        while (state >>= 1)
+            ++index;
         return JoinStateStrings[index];
     }
-}  // namespace QMatrixClient
+} // namespace QMatrixClient
 Q_DECLARE_OPERATORS_FOR_FLAGS(QMatrixClient::JoinStates)

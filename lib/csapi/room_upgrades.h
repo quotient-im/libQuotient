@@ -6,38 +6,37 @@
 
 #include "jobs/basejob.h"
 
-
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Upgrades a room to a new room version.
     ///
     /// Upgrades the given room to a particular room version, migrating as much
-    /// data as possible over to the new room. See the `room_upgrades <#room-upgrades>`_
-    /// module for more information on what this entails.
+    /// data as possible over to the new room. See the `room_upgrades
+    /// <#room-upgrades>`_ module for more information on what this entails.
     class UpgradeRoomJob : public BaseJob
     {
         public:
-            /*! Upgrades a room to a new room version.
-             * \param roomId
-             *   The ID of the room to upgrade.
-             * \param newVersion
-             *   The new version for the room.
-             */
-            explicit UpgradeRoomJob(const QString& roomId, const QString& newVersion);
-            ~UpgradeRoomJob() override;
+        /*! Upgrades a room to a new room version.
+         * \param roomId
+         *   The ID of the room to upgrade.
+         * \param newVersion
+         *   The new version for the room.
+         */
+        explicit UpgradeRoomJob(const QString& roomId,
+                                const QString& newVersion);
+        ~UpgradeRoomJob() override;
 
-            // Result properties
+        // Result properties
 
-            /// The ID of the new room.
-            const QString& replacementRoom() const;
+        /// The ID of the new room.
+        const QString& replacementRoom() const;
 
         protected:
-            Status parseJson(const QJsonDocument& data) override;
+        Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            QScopedPointer<Private> d;
+        class Private;
+        QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

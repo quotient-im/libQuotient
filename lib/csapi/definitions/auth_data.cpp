@@ -15,11 +15,10 @@ void JsonObjectConverter<AuthenticationData>::dumpTo(
 }
 
 void JsonObjectConverter<AuthenticationData>::fillFrom(
-    QJsonObject jo, AuthenticationData& result)
+        QJsonObject jo, AuthenticationData& result)
 {
     fromJson(jo.take("type"_ls), result.type);
     fromJson(jo.take("session"_ls), result.session);
 
     fromJson(jo, result.authInfo);
 }
-

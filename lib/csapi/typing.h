@@ -8,8 +8,7 @@
 
 #include "converters.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Informs the server that the user has started or stopped typing.
@@ -21,17 +20,18 @@ namespace QMatrixClient
     class SetTypingJob : public BaseJob
     {
         public:
-            /*! Informs the server that the user has started or stopped typing.
-             * \param userId
-             *   The user who has started to type.
-             * \param roomId
-             *   The room in which the user is typing.
-             * \param typing
-             *   Whether the user is typing or not. If ``false``, the ``timeout``
-             *   key can be omitted.
-             * \param timeout
-             *   The length of time in milliseconds to mark this user as typing.
-             */
-            explicit SetTypingJob(const QString& userId, const QString& roomId, bool typing, Omittable<int> timeout = none);
+        /*! Informs the server that the user has started or stopped typing.
+         * \param userId
+         *   The user who has started to type.
+         * \param roomId
+         *   The room in which the user is typing.
+         * \param typing
+         *   Whether the user is typing or not. If ``false``, the ``timeout``
+         *   key can be omitted.
+         * \param timeout
+         *   The length of time in milliseconds to mark this user as typing.
+         */
+        explicit SetTypingJob(const QString& userId, const QString& roomId,
+                              bool typing, Omittable<int> timeout = none);
     };
 } // namespace QMatrixClient

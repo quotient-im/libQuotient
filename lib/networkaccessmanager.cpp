@@ -13,24 +13,26 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "networkaccessmanager.h"
 
-#include <QtNetwork/QNetworkReply>
 #include <QtCore/QCoreApplication>
+#include <QtNetwork/QNetworkReply>
 
 using namespace QMatrixClient;
 
 class NetworkAccessManager::Private
 {
     public:
-        QList<QSslError> ignoredSslErrors;
+    QList<QSslError> ignoredSslErrors;
 };
 
-NetworkAccessManager::NetworkAccessManager(QObject* parent) : d(std::make_unique<Private>())
-{ }
+NetworkAccessManager::NetworkAccessManager(QObject* parent)
+    : d(std::make_unique<Private>())
+{
+}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 {
@@ -52,8 +54,9 @@ static NetworkAccessManager* createNam()
     auto nam = new NetworkAccessManager(QCoreApplication::instance());
     // See #109. Once Qt bearer management gets better, this workaround
     // should become unnecessary.
-    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged,
-        [nam] { nam->setNetworkAccessible(QNetworkAccessManager::Accessible); });
+    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged, [nam] {
+        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
+    });
     return nam;
 }
 
@@ -65,8 +68,8 @@ NetworkAccessManager* NetworkAccessManager::instance()
 
 NetworkAccessManager::~NetworkAccessManager() = default;
 
-QNetworkReply* NetworkAccessManager::createRequest(Operation op,
-    const QNetworkRequest& request, QIODevice* outgoingData)
+QNetworkReply* NetworkAccessManager::createRequest(
+        Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
     auto reply =
             QNetworkAccessManager::createRequest(op, request, outgoingData);

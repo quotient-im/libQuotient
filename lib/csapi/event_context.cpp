@@ -15,12 +15,12 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 class GetEventContextJob::Private
 {
     public:
-        QString begin;
-        QString end;
-        RoomEvents eventsBefore;
-        RoomEventPtr event;
-        RoomEvents eventsAfter;
-        StateEvents state;
+    QString begin;
+    QString end;
+    RoomEvents eventsBefore;
+    RoomEventPtr event;
+    RoomEvents eventsAfter;
+    StateEvents state;
 };
 
 BaseJob::Query queryToGetEventContext(Omittable<int> limit)
@@ -30,54 +30,47 @@ BaseJob::Query queryToGetEventContext(Omittable<int> limit)
     return _q;
 }
 
-QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId, Omittable<int> limit)
+QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+                                        const QString& eventId,
+                                        Omittable<int> limit)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/rooms/" % roomId % "/context/" % eventId,
-            queryToGetEventContext(limit));
+                                   basePath % "/rooms/" % roomId % "/context/"
+                                           % eventId,
+                                   queryToGetEventContext(limit));
 }
 
 static const auto GetEventContextJobName = QStringLiteral("GetEventContextJob");
 
-GetEventContextJob::GetEventContextJob(const QString& roomId, const QString& eventId, Omittable<int> limit)
+GetEventContextJob::GetEventContextJob(const QString& roomId,
+                                       const QString& eventId,
+                                       Omittable<int> limit)
     : BaseJob(HttpVerb::Get, GetEventContextJobName,
-        basePath % "/rooms/" % roomId % "/context/" % eventId,
-        queryToGetEventContext(limit))
-    , d(new Private)
+              basePath % "/rooms/" % roomId % "/context/" % eventId,
+              queryToGetEventContext(limit)),
+      d(new Private)
 {
 }
 
 GetEventContextJob::~GetEventContextJob() = default;
 
-const QString& GetEventContextJob::begin() const
-{
-    return d->begin;
-}
+const QString& GetEventContextJob::begin() const { return d->begin; }
 
-const QString& GetEventContextJob::end() const
-{
-    return d->end;
-}
+const QString& GetEventContextJob::end() const { return d->end; }
 
 RoomEvents&& GetEventContextJob::eventsBefore()
 {
     return std::move(d->eventsBefore);
 }
 
-RoomEventPtr&& GetEventContextJob::event()
-{
-    return std::move(d->event);
-}
+RoomEventPtr&& GetEventContextJob::event() { return std::move(d->event); }
 
 RoomEvents&& GetEventContextJob::eventsAfter()
 {
     return std::move(d->eventsAfter);
 }
 
-StateEvents&& GetEventContextJob::state()
-{
-    return std::move(d->state);
-}
+StateEvents&& GetEventContextJob::state() { return std::move(d->state); }
 
 BaseJob::Status GetEventContextJob::parseJson(const QJsonDocument& data)
 {
@@ -90,4 +83,3 @@ BaseJob::Status GetEventContextJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("state"_ls), d->state);
     return Success;
 }
-

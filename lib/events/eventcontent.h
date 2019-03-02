@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -23,13 +23,11 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QMimeType>
-#include <QtCore/QUrl>
 #include <QtCore/QSize>
+#include <QtCore/QUrl>
 
-namespace QMatrixClient
-{
-    namespace EventContent
-    {
+namespace QMatrixClient {
+    namespace EventContent {
         /**
          * A base class for all content types that can be stored
          * in a RoomMessageEvent
@@ -43,17 +41,17 @@ namespace QMatrixClient
         class Base
         {
             public:
-                explicit Base (QJsonObject o = {}) : originalJson(std::move(o)) { }
-                virtual ~Base() = default;
+            explicit Base(QJsonObject o = {}) : originalJson(std::move(o)) {}
+            virtual ~Base() = default;
 
-                // FIXME: make toJson() from converters.* work on base classes
-                QJsonObject toJson() const;
+            // FIXME: make toJson() from converters.* work on base classes
+            QJsonObject toJson() const;
 
             public:
-                QJsonObject originalJson;
+            QJsonObject originalJson;
 
             protected:
-                virtual void fillJson(QJsonObject* o) const = 0;
+            virtual void fillJson(QJsonObject* o) const = 0;
         };
 
         // The below structures fairly follow CS spec 11.2.1.6. The overall
@@ -81,40 +79,40 @@ namespace QMatrixClient
          * JSON content, as well as contents of "url" (or a similar key) and
          * optionally "filename" node from the main JSON content. Assuming you
          * don't do unusual things, you should use \p UrlBasedContent<> instead
-         * of doing multiple inheritance and overriding Base::fillJson() by hand.
+         * of doing multiple inheritance and overriding Base::fillJson() by
+         * hand.
          *
          * This class is not polymorphic.
          */
         class FileInfo
         {
             public:
-                explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
-                                  const QMimeType& mimeType = {},
-                                  const QString& originalFilename = {});
-                FileInfo(const QUrl& u, const QJsonObject& infoJson,
-                         const QString& originalFilename = {});
+            explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
+                              const QMimeType& mimeType = {},
+                              const QString& originalFilename = {});
+            FileInfo(const QUrl& u, const QJsonObject& infoJson,
+                     const QString& originalFilename = {});
 
-                void fillInfoJson(QJsonObject* infoJson) const;
+            void fillInfoJson(QJsonObject* infoJson) const;
 
-                /**
-                 * \brief Extract media id from the URL
-                 *
-                 * This can be used, e.g., to construct a QML-facing image://
-                 * URI as follows:
-                 * \code "image://provider/" + info.mediaId() \endcode
-                 */
-                QString mediaId() const { return url.authority() + url.path(); }
+            /**
+             * \brief Extract media id from the URL
+             *
+             * This can be used, e.g., to construct a QML-facing image://
+             * URI as follows:
+             * \code "image://provider/" + info.mediaId() \endcode
+             */
+            QString mediaId() const { return url.authority() + url.path(); }
 
             public:
-                QJsonObject originalInfoJson;
-                QMimeType mimeType;
-                QUrl url;
-                qint64 payloadSize;
-                QString originalName;
+            QJsonObject originalInfoJson;
+            QMimeType mimeType;
+            QUrl url;
+            qint64 payloadSize;
+            QString originalName;
         };
 
-        template <typename InfoT>
-        QJsonObject toInfoJson(const InfoT& info)
+        template <typename InfoT> QJsonObject toInfoJson(const InfoT& info)
         {
             QJsonObject infoJson;
             info.fillInfoJson(&infoJson);
@@ -127,17 +125,17 @@ namespace QMatrixClient
         class ImageInfo : public FileInfo
         {
             public:
-                explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
-                                   QMimeType mimeType = {},
-                                   const QSize& imageSize = {},
-                                   const QString& originalFilename = {});
-                ImageInfo(const QUrl& u, const QJsonObject& infoJson,
-                          const QString& originalFilename = {});
+            explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
+                               QMimeType mimeType = {},
+                               const QSize& imageSize = {},
+                               const QString& originalFilename = {});
+            ImageInfo(const QUrl& u, const QJsonObject& infoJson,
+                      const QString& originalFilename = {});
 
-                void fillInfoJson(QJsonObject* infoJson) const;
+            void fillInfoJson(QJsonObject* infoJson) const;
 
             public:
-                QSize imageSize;
+            QSize imageSize;
         };
 
         /**
@@ -150,26 +148,26 @@ namespace QMatrixClient
         class Thumbnail : public ImageInfo
         {
             public:
-                Thumbnail() : ImageInfo(QUrl()) { } // To allow empty thumbnails
-                Thumbnail(const QJsonObject& infoJson);
-                Thumbnail(const ImageInfo& info) : ImageInfo(info) { }
-                using ImageInfo::ImageInfo;
+            Thumbnail() : ImageInfo(QUrl()) {} // To allow empty thumbnails
+            Thumbnail(const QJsonObject& infoJson);
+            Thumbnail(const ImageInfo& info) : ImageInfo(info) {}
+            using ImageInfo::ImageInfo;
 
-                /**
-                 * Writes thumbnail information to "thumbnail_info" subobject
-                 * and thumbnail URL to "thumbnail_url" node inside "info".
-                 */
-                void fillInfoJson(QJsonObject* infoJson) const;
+            /**
+             * Writes thumbnail information to "thumbnail_info" subobject
+             * and thumbnail URL to "thumbnail_url" node inside "info".
+             */
+            void fillInfoJson(QJsonObject* infoJson) const;
         };
 
-        class TypedBase: public Base
+        class TypedBase : public Base
         {
             public:
-                explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
-                virtual QMimeType type() const = 0;
-                virtual const FileInfo* fileInfo() const { return nullptr; }
-                virtual FileInfo* fileInfo() { return nullptr; }
-                virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
+            explicit TypedBase(const QJsonObject& o = {}) : Base(o) {}
+            virtual QMimeType type() const = 0;
+            virtual const FileInfo* fileInfo() const { return nullptr; }
+            virtual FileInfo* fileInfo() { return nullptr; }
+            virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
         };
 
         /**
@@ -186,59 +184,61 @@ namespace QMatrixClient
         class UrlBasedContent : public TypedBase, public InfoT
         {
             public:
-                using InfoT::InfoT;
-                explicit UrlBasedContent(const QJsonObject& json)
-                    : TypedBase(json)
-                    , InfoT(json["url"].toString(), json["info"].toObject(),
-                            json["filename"].toString())
-                {
-                    // A small hack to facilitate links creation in QML.
-                    originalJson.insert("mediaId", InfoT::mediaId());
-                }
+            using InfoT::InfoT;
+            explicit UrlBasedContent(const QJsonObject& json)
+                : TypedBase(json),
+                  InfoT(json["url"].toString(), json["info"].toObject(),
+                        json["filename"].toString())
+            {
+                // A small hack to facilitate links creation in QML.
+                originalJson.insert("mediaId", InfoT::mediaId());
+            }
 
-                QMimeType type() const override { return InfoT::mimeType; }
-                const FileInfo* fileInfo() const override { return this; }
-                FileInfo* fileInfo() override { return this; }
+            QMimeType type() const override { return InfoT::mimeType; }
+            const FileInfo* fileInfo() const override { return this; }
+            FileInfo* fileInfo() override { return this; }
 
             protected:
-                void fillJson(QJsonObject* json) const override
-                {
-                    Q_ASSERT(json);
-                    json->insert("url", InfoT::url.toString());
-                    if (!InfoT::originalName.isEmpty())
-                        json->insert("filename", InfoT::originalName);
-                    json->insert("info", toInfoJson<InfoT>(*this));
-                }
+            void fillJson(QJsonObject* json) const override
+            {
+                Q_ASSERT(json);
+                json->insert("url", InfoT::url.toString());
+                if (!InfoT::originalName.isEmpty())
+                    json->insert("filename", InfoT::originalName);
+                json->insert("info", toInfoJson<InfoT>(*this));
+            }
         };
 
         template <typename InfoT>
         class UrlWithThumbnailContent : public UrlBasedContent<InfoT>
         {
             public:
-                using UrlBasedContent<InfoT>::UrlBasedContent;
-                explicit UrlWithThumbnailContent(const QJsonObject& json)
-                    : UrlBasedContent<InfoT>(json)
-                    , thumbnail(InfoT::originalInfoJson)
-                {
-                    // Another small hack, to simplify making a thumbnail link
-                    UrlBasedContent<InfoT>::originalJson.insert(
-                                "thumbnailMediaId", thumbnail.mediaId());
-                }
+            using UrlBasedContent<InfoT>::UrlBasedContent;
+            explicit UrlWithThumbnailContent(const QJsonObject& json)
+                : UrlBasedContent<InfoT>(json),
+                  thumbnail(InfoT::originalInfoJson)
+            {
+                // Another small hack, to simplify making a thumbnail link
+                UrlBasedContent<InfoT>::originalJson.insert(
+                        "thumbnailMediaId", thumbnail.mediaId());
+            }
 
-                const Thumbnail* thumbnailInfo() const override
-                { return &thumbnail; }
+            const Thumbnail* thumbnailInfo() const override
+            {
+                return &thumbnail;
+            }
 
             public:
-                Thumbnail thumbnail;
+            Thumbnail thumbnail;
 
             protected:
-                void fillJson(QJsonObject* json) const override
-                {
-                    UrlBasedContent<InfoT>::fillJson(json);
-                    auto infoJson = json->take("info").toObject();
-                    thumbnail.fillInfoJson(&infoJson);
-                    json->insert("info", infoJson);
-                }
+            void fillJson(QJsonObject* json) const override
+            {
+                UrlBasedContent<InfoT>::fillJson(json);
+                auto infoJson = json->take("info").toObject();
+                thumbnail.fillInfoJson(&infoJson);
+                json->insert("info", infoJson);
+            }
         };
 
         /**
@@ -278,5 +278,5 @@ namespace QMatrixClient
          *   - thumbnail.imageSize (QSize for "h" and "w" in JSON)
          */
         using FileContent = UrlWithThumbnailContent<FileInfo>;
-    }  // namespace EventContent
-}  // namespace QMatrixClient
+    } // namespace EventContent
+} // namespace QMatrixClient

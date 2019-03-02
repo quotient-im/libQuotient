@@ -6,9 +6,7 @@
 
 #include "jobs/basejob.h"
 
-
-namespace QMatrixClient
-{
+namespace QMatrixClient {
     // Operations
 
     /// Lists the user's current rooms.
@@ -17,28 +15,28 @@ namespace QMatrixClient
     class GetJoinedRoomsJob : public BaseJob
     {
         public:
-            explicit GetJoinedRoomsJob();
+        explicit GetJoinedRoomsJob();
 
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * GetJoinedRoomsJob is necessary but the job
-             * itself isn't.
-             */
-            static QUrl makeRequestUrl(QUrl baseUrl);
+        /*! Construct a URL without creating a full-fledged job object
+         *
+         * This function can be used when a URL for
+         * GetJoinedRoomsJob is necessary but the job
+         * itself isn't.
+         */
+        static QUrl makeRequestUrl(QUrl baseUrl);
 
-            ~GetJoinedRoomsJob() override;
+        ~GetJoinedRoomsJob() override;
 
-            // Result properties
+        // Result properties
 
-            /// The ID of each room in which the user has ``joined`` membership.
-            const QStringList& joinedRooms() const;
+        /// The ID of each room in which the user has ``joined`` membership.
+        const QStringList& joinedRooms() const;
 
         protected:
-            Status parseJson(const QJsonDocument& data) override;
+        Status parseJson(const QJsonDocument& data) override;
 
         private:
-            class Private;
-            QScopedPointer<Private> d;
+        class Private;
+        QScopedPointer<Private> d;
     };
 } // namespace QMatrixClient

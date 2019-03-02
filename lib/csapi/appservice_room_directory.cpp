@@ -12,14 +12,18 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto UpdateAppserviceRoomDirectoryVsibilityJobName = QStringLiteral("UpdateAppserviceRoomDirectoryVsibilityJob");
+static const auto UpdateAppserviceRoomDirectoryVsibilityJobName =
+        QStringLiteral("UpdateAppserviceRoomDirectoryVsibilityJob");
 
-UpdateAppserviceRoomDirectoryVsibilityJob::UpdateAppserviceRoomDirectoryVsibilityJob(const QString& networkId, const QString& roomId, const QString& visibility)
+UpdateAppserviceRoomDirectoryVsibilityJob::
+        UpdateAppserviceRoomDirectoryVsibilityJob(const QString& networkId,
+                                                  const QString& roomId,
+                                                  const QString& visibility)
     : BaseJob(HttpVerb::Put, UpdateAppserviceRoomDirectoryVsibilityJobName,
-        basePath % "/directory/list/appservice/" % networkId % "/" % roomId)
+              basePath % "/directory/list/appservice/" % networkId % "/"
+                      % roomId)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("visibility"), visibility);
     setRequestData(_data);
 }
-
