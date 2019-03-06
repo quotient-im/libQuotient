@@ -33,6 +33,9 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
 
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QtEndian>
+
 #include <functional>
 
 using namespace QMatrixClient;
@@ -47,8 +50,21 @@ class User::Private
             return Avatar(move(url));
         }
 
+        qreal makeHueF(QString userId)
+        {
+            QByteArray hash = QCryptographicHash::hash(userId.toUtf8(),
+                                                       QCryptographicHash::Sha1);
+            QDataStream dataStream(qToLittleEndian(hash).left(2));
+            dataStream.setByteOrder(QDataStream::LittleEndian);
+            quint16 hashValue;
+            dataStream >> hashValue;
+            qreal hueF = static_cast<qreal>(hashValue)/std::numeric_limits<quint16>::max();
+            Q_ASSERT((0 <= hueF) && (hueF <= 1));
+            return hueF;
+        }
+
         Private(QString userId, Connection* connection)
-            : userId(move(userId)), connection(connection)
+            : userId(move(userId)), connection(connection), hueF(makeHueF(userId))
         { }
 
         QString userId;
@@ -57,6 +73,7 @@ class User::Private
         QString bridged;
         QString mostUsedName;
         QMultiHash<QString, const Room*> otherNames;
+        qreal hueF;
         Avatar mostUsedAvatar { makeAvatar({}) };
         std::vector<Avatar> otherAvatars;
         auto otherAvatar(QUrl url)
@@ -217,6 +234,11 @@ bool User::isGuest() const
                                [] (QChar c) { return c.isDigit(); });
     Q_ASSERT(it != d->userId.end());
     return *it == ':';
+}
+
+int User::hue() const
+{
+    return int(hueF()*359);
 }
 
 QString User::name(const Room* room) const
@@ -423,4 +445,8 @@ void User::processEvent(const RoomMemberEvent& event, const Room* room)
         updateName(newName, room);
         updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
     }
+}
+
+qreal User::hueF() const {
+    return d->hueF;
 }
