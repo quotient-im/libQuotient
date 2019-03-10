@@ -1634,7 +1634,7 @@ void Room::checkVersion()
 {
     const auto defaultVersion = connection()->defaultRoomVersion();
     const auto stableVersions = connection()->stableRoomVersions();
-    Q_ASSERT(!defaultVersion.isEmpty() && successorId().isEmpty());
+    Q_ASSERT(!defaultVersion.isEmpty());
     // This method is only called after the base state has been loaded
     // or the server capabilities have been loaded.
     emit stabilityUpdated(defaultVersion, stableVersions);

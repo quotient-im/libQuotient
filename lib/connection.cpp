@@ -271,8 +271,7 @@ void Connection::reloadCapabilities()
         Q_ASSERT(!d->capabilities.roomVersions.omitted());
         emit capabilitiesLoaded();
         for (auto* r: d->roomMap)
-            if (r->joinState() == JoinState::Join && r->successorId().isEmpty())
-                r->checkVersion();
+            r->checkVersion();
     });
 }
 
