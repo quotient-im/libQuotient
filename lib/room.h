@@ -365,7 +365,7 @@ namespace QMatrixClient
              * in the future, it will also linkify room aliases, mxids etc.
              * using the room context.
              */
-            QString prettyPrint(const QString& plainText) const;
+            Q_INVOKABLE QString prettyPrint(const QString& plainText) const;
 
             MemberSorter memberSorter() const;
 
