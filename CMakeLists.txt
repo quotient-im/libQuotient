@@ -145,7 +145,7 @@ add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_job_SRCS} ${libqmatrixclient_csdef_SRCS}
             ${libqmatrixclient_cswellknown_SRCS}
             ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
-set(API_VERSION "0.5")
+set(API_VERSION "0.6")
 set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY
