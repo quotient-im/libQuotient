@@ -815,7 +815,7 @@ void Room::resetNotificationCount()
     if( d->notificationCount == 0 )
         return;
     d->notificationCount = 0;
-    emit notificationCountChanged(this);
+    emit notificationCountChanged();
 }
 
 int Room::highlightCount() const
@@ -828,7 +828,7 @@ void Room::resetHighlightCount()
     if( d->highlightCount == 0 )
         return;
     d->highlightCount = 0;
-    emit highlightCountChanged(this);
+    emit highlightCountChanged();
 }
 
 void Room::switchVersion(QString newVersion)
@@ -1343,12 +1343,12 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if( data.highlightCount != d->highlightCount )
     {
         d->highlightCount = data.highlightCount;
-        emit highlightCountChanged(this);
+        emit highlightCountChanged();
     }
     if( data.notificationCount != d->notificationCount )
     {
         d->notificationCount = data.notificationCount;
-        emit notificationCountChanged(this);
+        emit notificationCountChanged();
     }
     if (roomChanges != Change::NoChange)
     {

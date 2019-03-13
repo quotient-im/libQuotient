@@ -108,6 +108,8 @@ namespace QMatrixClient
             Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE markMessagesAsRead NOTIFY readMarkerMoved)
             Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY unreadMessagesChanged)
             Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
+            Q_PROPERTY(int highlightCount READ highlightCount NOTIFY highlightCountChanged RESET resetHighlightCount)
+            Q_PROPERTY(int notificationCount READ notificationCount NOTIFY notificationCountChanged RESET resetNotificationCount)
             Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
             Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
             Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
@@ -517,8 +519,8 @@ namespace QMatrixClient
             void joinStateChanged(JoinState oldState, JoinState newState);
             void typingChanged();
 
-            void highlightCountChanged(Room* room);
-            void notificationCountChanged(Room* room);
+            void highlightCountChanged();
+            void notificationCountChanged();
 
             void displayedChanged(bool displayed);
             void firstDisplayedEventChanged();
