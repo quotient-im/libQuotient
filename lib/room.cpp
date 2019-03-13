@@ -579,8 +579,8 @@ Room::Changes Room::Private::markMessagesAsRead(rev_iter_t upToMarker)
     {
         if ((*upToMarker)->senderId() != q->localUser()->id())
         {
-            connection->callApi<PostReceiptJob>(id, "m.read",
-                                                (*upToMarker)->id());
+            connection->callApi<PostReceiptJob>(id, QStringLiteral("m.read"),
+                QUrl::toPercentEncoding((*upToMarker)->id()));
             break;
         }
     }
@@ -1734,8 +1734,8 @@ void Room::unban(const QString& userId)
 
 void Room::redactEvent(const QString& eventId, const QString& reason)
 {
-    connection()->callApi<RedactEventJob>(
-        id(), eventId, connection()->generateTxnId(), reason);
+    connection()->callApi<RedactEventJob>(id(),
+        QUrl::toPercentEncoding(eventId), connection()->generateTxnId(), reason);
 }
 
 void Room::uploadFile(const QString& id, const QUrl& localFilename,

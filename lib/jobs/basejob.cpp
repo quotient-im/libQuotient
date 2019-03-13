@@ -186,7 +186,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl,
     if (!pathBase.endsWith('/') && !path.startsWith('/'))
         pathBase.push_back('/');
 
-    baseUrl.setPath( pathBase + path );
+    baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
     baseUrl.setQuery(query);
     return baseUrl;
 }
