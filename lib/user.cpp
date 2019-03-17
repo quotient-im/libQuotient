@@ -264,8 +264,9 @@ void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
 
 void User::rename(const QString& newName)
 {
-    auto job = connection()->callApi<SetDisplayNameJob>(id(), newName);
-    connect(job, &BaseJob::success, this, [=] { updateName(newName); });
+    const auto actualNewName = sanitized(newName);
+    connect(connection()->callApi<SetDisplayNameJob>(id(), actualNewName),
+            &BaseJob::success, this, [=] { updateName(actualNewName); });
 }
 
 void User::rename(const QString& newName, const Room* r)
@@ -279,10 +280,11 @@ void User::rename(const QString& newName, const Room* r)
     }
     Q_ASSERT_X(r->memberJoinState(this) == JoinState::Join, __FUNCTION__,
                "Attempt to rename a user that's not a room member");
+    const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
-    evtC.displayName = newName;
-    auto job = r->setMemberState(id(), RoomMemberEvent(move(evtC)));
-    connect(job, &BaseJob::success, this, [=] { updateName(newName, r); });
+    evtC.displayName = actualNewName;
+    connect(r->setMemberState(id(), RoomMemberEvent(move(evtC))),
+            &BaseJob::success, this, [=] { updateName(actualNewName, r); });
 }
 
 bool User::setAvatar(const QString& fileName)
