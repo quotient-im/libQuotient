@@ -63,10 +63,18 @@ static void linkifyUrls(QString& htmlEscapedText)
                  QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
 }
 
+QString QMatrixClient::sanitized(const QString& plainText)
+{
+    auto text = plainText;
+    text.remove(QChar(0x202e));
+    text.remove(QChar(0x202d));
+    return text.toHtmlEscaped();
+}
+
 QString QMatrixClient::prettyPrint(const QString& plainText)
 {
     auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
-            plainText.toHtmlEscaped() + QStringLiteral("</span>");
+            sanitized(plainText).toHtmlEscaped() + QStringLiteral("</span>");
     pt.replace('\n', QStringLiteral("<br/>"));
 
     linkifyUrls(pt);

@@ -296,7 +296,12 @@ namespace QMatrixClient
         return std::make_pair(last, sLast);
     }
 
-    /** Pretty-prints plain text into HTML
+    /** Sanitize the text before showing in HTML
+     * This does toHtmlEscaped() and removes Unicode BiDi marks.
+     */
+    QString sanitized(const QString& plainText);
+
+    /** Pretty-print plain text into HTML
      * This includes HTML escaping of <,>,",& and URLs linkification.
      */
     QString prettyPrint(const QString& plainText);
