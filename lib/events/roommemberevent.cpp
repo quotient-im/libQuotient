@@ -52,7 +52,7 @@ using namespace QMatrixClient;
 MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"_ls]))
     , isDirect(json["is_direct"_ls].toBool())
-    , displayName(json["displayname"_ls].toString())
+    , displayName(sanitized(json["displayname"_ls].toString()))
     , avatarUrl(json["avatar_url"_ls].toString())
 { }
 
