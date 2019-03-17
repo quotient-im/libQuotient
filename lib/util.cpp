@@ -74,7 +74,7 @@ QString QMatrixClient::sanitized(const QString& plainText)
 QString QMatrixClient::prettyPrint(const QString& plainText)
 {
     auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
-            sanitized(plainText).toHtmlEscaped() + QStringLiteral("</span>");
+                plainText.toHtmlEscaped() + QStringLiteral("</span>");
     pt.replace('\n', QStringLiteral("<br/>"));
 
     linkifyUrls(pt);
