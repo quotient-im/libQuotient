@@ -88,7 +88,7 @@ namespace QMatrixClient
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
             Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
-            Q_PROPERTY(QString displayName READ displayName NOTIFY namesChanged)
+            Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
             Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged STORED false)
             Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
