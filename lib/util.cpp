@@ -68,7 +68,7 @@ QString QMatrixClient::sanitized(const QString& plainText)
     auto text = plainText;
     text.remove(QChar(0x202e));
     text.remove(QChar(0x202d));
-    return text.toHtmlEscaped();
+    return text;
 }
 
 QString QMatrixClient::prettyPrint(const QString& plainText)
