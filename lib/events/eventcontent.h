@@ -94,6 +94,8 @@ namespace QMatrixClient
                 FileInfo(const QUrl& u, const QJsonObject& infoJson,
                          const QString& originalFilename = {});
 
+                bool isValid() const;
+
                 void fillInfoJson(QJsonObject* infoJson) const;
 
                 /**
