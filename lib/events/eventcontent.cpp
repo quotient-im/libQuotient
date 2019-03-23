@@ -50,6 +50,12 @@ FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
 }
 
+bool FileInfo::isValid() const
+{
+    return url.scheme() == "mxc"
+            && (url.authority() + url.path()).count('/') == 1;
+}
+
 void FileInfo::fillInfoJson(QJsonObject* infoJson) const
 {
     Q_ASSERT(infoJson);

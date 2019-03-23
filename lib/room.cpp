@@ -1785,7 +1785,14 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         Q_ASSERT(false);
         return;
     }
-    const auto fileUrl = event->content()->fileInfo()->url;
+    const auto* const fileInfo = event->content()->fileInfo();
+    if (!fileInfo->isValid())
+    {
+        qCWarning(MAIN) << "Event" << eventId
+                        << "has an empty or malformed mxc URL; won't download";
+        return;
+    }
+    const auto fileUrl = fileInfo->url;
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty())
     {
