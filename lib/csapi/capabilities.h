@@ -39,8 +39,8 @@ namespace QMatrixClient
                 QHash<QString, QString> available;
             };
 
-            /// Gets information about the server's supported feature set
-            /// and other relevant capabilities.
+            /// The custom capabilities the server supports, using the
+            /// Java package naming convention.
             struct Capabilities
             {
                 /// Capability to indicate if the user can change their password.
@@ -68,8 +68,8 @@ namespace QMatrixClient
 
             // Result properties
 
-            /// Gets information about the server's supported feature set
-            /// and other relevant capabilities.
+            /// The custom capabilities the server supports, using the
+            /// Java package naming convention.
             const Capabilities& capabilities() const;
 
         protected:
