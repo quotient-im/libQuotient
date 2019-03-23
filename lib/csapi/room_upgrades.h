@@ -13,9 +13,7 @@ namespace QMatrixClient
 
     /// Upgrades a room to a new room version.
     ///
-    /// Upgrades the given room to a particular room version, migrating as much
-    /// data as possible over to the new room. See the `room_upgrades <#room-upgrades>`_
-    /// module for more information on what this entails.
+    /// Upgrades the given room to a particular room version.
     class UpgradeRoomJob : public BaseJob
     {
         public:
