@@ -296,13 +296,16 @@ namespace QMatrixClient
         return std::make_pair(last, sLast);
     }
 
+    /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
+    void linkifyUrls(QString& htmlEscapedText);
+
     /** Sanitize the text before showing in HTML
      * This does toHtmlEscaped() and removes Unicode BiDi marks.
      */
     QString sanitized(const QString& plainText);
 
     /** Pretty-print plain text into HTML
-     * This includes HTML escaping of <,>,",& and URLs linkification.
+     * This includes HTML escaping of <,>,",& and calling linkifyUrls()
      */
     QString prettyPrint(const QString& plainText);
 

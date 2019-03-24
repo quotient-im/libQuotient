@@ -29,16 +29,17 @@ static const auto RegExpOptions =
     | QRegularExpression::UseUnicodePropertiesOption;
 
 // Converts all that looks like a URL into HTML links
-static void linkifyUrls(QString& htmlEscapedText)
+void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
 {
-    // regexp is originally taken from Konsole (https://github.com/KDE/konsole)
-    // full url:
-    // protocolname:// or www. followed by anything other than whitespaces,
-    // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
-    // comma or dot
     // Note: outer parentheses are a part of C++ raw string delimiters, not of
     // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
     // Note2: the next-outer parentheses are \N in the replacement.
+
+    // generic url:
+    // regexp is originally taken from Konsole (https://github.com/KDE/konsole)
+    // protocolname:// or www. followed by anything other than whitespaces,
+    // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
+    // comma or dot
     static const QRegularExpression FullUrlRegExp(QStringLiteral(
             R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
         ), RegExpOptions);
