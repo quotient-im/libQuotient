@@ -38,14 +38,14 @@ static void linkifyUrls(QString& htmlEscapedText)
     // comma or dot
     // Note: outer parentheses are a part of C++ raw string delimiters, not of
     // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
-    // Note2: yet another pair of outer parentheses are \1 in the replacement.
+    // Note2: the next-outer parentheses are \N in the replacement.
     static const QRegularExpression FullUrlRegExp(QStringLiteral(
-            R"(((www\.(?!\.)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
         ), RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
     static const QRegularExpression EmailAddressRegExp(QStringLiteral(
-            R"((mailto:)?(\b(\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
+            R"(\b(mailto:)?((\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
         ), RegExpOptions);
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
@@ -53,7 +53,7 @@ static void linkifyUrls(QString& htmlEscapedText)
             R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:[-.a-z0-9]+))"
         ), RegExpOptions);
 
-    // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&
+    // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
                  QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
