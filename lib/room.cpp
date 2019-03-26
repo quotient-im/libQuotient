@@ -836,10 +836,17 @@ void Room::resetHighlightCount()
 
 void Room::switchVersion(QString newVersion)
 {
-    auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion);
-    connect(job, &BaseJob::failure, this, [this,job] {
-        emit upgradeFailed(job->errorString());
-    });
+    if (!successorId().isEmpty())
+    {
+        Q_ASSERT(!successorId().isEmpty());
+        emit upgradeFailed(tr("The room is already upgraded"));
+    }
+    if (auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion))
+        connect(job, &BaseJob::failure, this, [this,job] {
+            emit upgradeFailed(job->errorString());
+        });
+    else
+        emit upgradeFailed(tr("Couldn't initiate upgrade"));
 }
 
 bool Room::hasAccountData(const QString& type) const
