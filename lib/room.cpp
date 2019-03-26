@@ -600,6 +600,9 @@ void Room::markAllMessagesAsRead()
 
 bool Room::canSwitchVersions() const
 {
+    if (!successorId().isEmpty())
+        return false; // Noone can upgrade a room that's already upgraded
+
     // TODO, #276: m.room.power_levels
     const auto* plEvt =
             d->currentState.value({"m.room.power_levels", ""});
