@@ -104,6 +104,7 @@ namespace QMatrixClient
             Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
             Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
             Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
+            Q_PROPERTY(QString domain READ domain NOTIFY homeserverChanged)
             Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
             Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
 
@@ -241,7 +242,10 @@ namespace QMatrixClient
             /** Get the full list of users known to this account */
             QMap<QString, User*> users() const;
 
+            /** Get the base URL of the homeserver to connect to */
             QUrl homeserver() const;
+            /** Get the domain name used for ids/aliases on the server */
+            QString domain() const;
             /** Find a room by its id and a mask of applicable states */
             Q_INVOKABLE Room* room(const QString& roomId,
                 JoinStates states = JoinState::Invite|JoinState::Join) const;

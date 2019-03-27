@@ -788,6 +788,11 @@ QUrl Connection::homeserver() const
     return d->data->baseUrl();
 }
 
+QString Connection::domain() const
+{
+    return d->userId.section(':', 1);
+}
+
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
     Room* room = d->roomMap.value({roomId, false}, nullptr);
