@@ -609,8 +609,17 @@ CreateRoomJob* Connection::createRoom(RoomVisibility visibility,
                                       : QStringLiteral("private"),
             alias, name, topic, invites, invite3pids, roomVersion,
             creationContent, initialState, presetName, isDirect);
-    connect(job, &BaseJob::success, this, [this,job] {
-        emit createdRoom(provideRoom(job->roomId(), JoinState::Join));
+    connect(job, &BaseJob::success, this, [this,job,invites,isDirect] {
+        auto* room = provideRoom(job->roomId(), JoinState::Join);
+        if (!room)
+        {
+            Q_ASSERT_X(room, "Connection::createRoom", "Failed to create a room");
+            return;
+        }
+        emit createdRoom(room);
+        if (isDirect)
+            for (const auto& i: invites)
+                addToDirectChats(room, user(i));
     });
     return job;
 }
@@ -1161,6 +1170,9 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
             emit leftRoom(room, prevInvite);
         if (prevInvite)
         {
+            const auto dcUsers = prevInvite->directChatUsers();
+            for (auto* u: dcUsers)
+                addToDirectChats(room, u);
             qCDebug(MAIN) << "Deleting Invite state for room" << prevInvite->id();
             emit prevInvite->beforeDestruction(prevInvite);
             prevInvite->deleteLater();
