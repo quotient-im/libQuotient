@@ -1966,10 +1966,10 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
     {
         const StateEventKey evtKey { oldEvent->matrixType(), oldEvent->stateKey() };
         Q_ASSERT(currentState.contains(evtKey));
-        if (currentState[evtKey] == oldEvent.get())
+        if (currentState.value(evtKey) == oldEvent.get())
         {
             Q_ASSERT(ti.index() >= 0); // Historical states can't be in currentState
-            qCDebug(MAIN).nospace() << "Reverting state "
+            qCDebug(MAIN).nospace() << "Redacting state "
                 << oldEvent->matrixType() << "/" << oldEvent->stateKey();
             // Retarget the current state to the newly made event.
             if (q->processStateEvent(*ti))
@@ -2170,7 +2170,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     Q_ASSERT(!oldStateEvent ||
              (oldStateEvent->matrixType() == e.matrixType() &&
               oldStateEvent->stateKey() == e.stateKey()));
-    if (!is<RoomMemberEvent>(e))
+    if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
         qCDebug(EVENTS) << "Room state event:" << e;
 
     return visit(e
