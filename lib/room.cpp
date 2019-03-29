@@ -1184,7 +1184,11 @@ void Room::Private::insertMemberIntoMap(User *u)
     const auto userName = u->name(q);
     // If there is exactly one namesake of the added user, signal member renaming
     // for that other one because the two should be disambiguated now.
-    auto namesakes = membersMap.values(userName);
+    const auto namesakes = membersMap.values(userName);
+
+    // Callers should check they are not adding an existing user once more.
+    Q_ASSERT(!namesakes.contains(u));
+
     if (namesakes.size() == 1)
         emit q->memberAboutToRename(namesakes.front(),
                                     namesakes.front()->fullName(q));
@@ -2196,16 +2200,20 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 emit avatarChanged();
             return AvatarChange;
         }
-        , [this] (const RoomMemberEvent& evt) {
+        , [this,oldStateEvent] (const RoomMemberEvent& evt) {
             auto* u = user(evt.userId());
-            u->processEvent(evt, this);
-            if (u == localUser() && memberJoinState(u) == JoinState::Invite
+            const auto* oldMemberEvent =
+                    static_cast<const RoomMemberEvent*>(oldStateEvent);
+            u->processEvent(evt, this, oldMemberEvent == nullptr);
+            const auto prevMembership = oldMemberEvent
+                    ? oldMemberEvent->membership() : MembershipType::Leave;
+            if (u == localUser() && evt.membership() == MembershipType::Invite
                     && evt.isDirect())
                 connection()->addToDirectChats(this, user(evt.senderId()));
 
-            if( evt.membership() == MembershipType::Join )
+            if (evt.membership() == MembershipType::Join)
             {
-                if (memberJoinState(u) != JoinState::Join)
+                if (prevMembership != MembershipType::Join)
                 {
                     d->insertMemberIntoMap(u);
                     connect(u, &User::nameAboutToChange, this,
@@ -2221,9 +2229,9 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     emit userAdded(u);
                 }
             }
-            else if( evt.membership() != MembershipType::Join )
+            else if (evt.membership() != MembershipType::Join)
             {
-                if (memberJoinState(u) == JoinState::Join)
+                if (prevMembership == MembershipType::Join)
                 {
                     if (evt.membership() == MembershipType::Invite)
                         qCWarning(MAIN) << "Invalid membership change:" << evt;
