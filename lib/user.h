@@ -105,7 +105,11 @@ namespace QMatrixClient
             QString avatarMediaId(const Room* room = nullptr) const;
             QUrl avatarUrl(const Room* room = nullptr) const;
 
-            void processEvent(const RoomMemberEvent& event, const Room* r);
+            /// This method is for internal use and should not be called
+            /// from client code
+            // FIXME: Move it away to private in lib 0.6
+            void processEvent(const RoomMemberEvent& event, const Room* r,
+                              bool firstMention);
 
         public slots:
             /** Set a new name in the global user profile */

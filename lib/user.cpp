@@ -379,18 +379,17 @@ QUrl User::avatarUrl(const Room* room) const
     return avatarObject(room).url();
 }
 
-void User::processEvent(const RoomMemberEvent& event, const Room* room)
+void User::processEvent(const RoomMemberEvent& event, const Room* room,
+                        bool firstMention)
 {
     Q_ASSERT(room);
+
+    if (firstMention)
+        ++d->totalRooms;
+
     if (event.membership() != MembershipType::Invite &&
             event.membership() != MembershipType::Join)
         return;
-
-    auto aboutToEnter = room->memberJoinState(this) == JoinState::Leave &&
-            (event.membership() == MembershipType::Join ||
-             event.membership() == MembershipType::Invite);
-    if (aboutToEnter)
-        ++d->totalRooms;
 
     auto newName = event.displayName();
     // `bridged` value uses the same notification signal as the name;
