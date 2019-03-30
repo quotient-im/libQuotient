@@ -82,7 +82,8 @@ class User::Private
 QString User::Private::nameForRoom(const Room* r, const QString& hint) const
 {
     // If the hint is accurate, this function is O(1) instead of O(n)
-    if (hint == mostUsedName || otherNames.contains(hint, r))
+    if (!hint.isNull()
+            && (hint == mostUsedName || otherNames.contains(hint, r)))
         return hint;
     return otherNames.key(r, mostUsedName);
 }
