@@ -1346,7 +1346,6 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         emit memberListChanged();
 
     roomChanges |= d->setSummary(move(data.summary));
-    d->updateDisplayname();
 
     for( auto&& ephemeralEvent: data.ephemeral )
         roomChanges |= processEphemeralEvent(move(ephemeralEvent));
@@ -1371,6 +1370,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     }
     if (roomChanges != Change::NoChange)
     {
+        d->updateDisplayname();
         emit changed(roomChanges);
         if (!fromCache)
             connection()->saveRoomState(this);
