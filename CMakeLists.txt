@@ -146,7 +146,8 @@ add_library(QMatrixClient ${libqmatrixclient_SRCS}
             ${libqmatrixclient_cswellknown_SRCS}
             ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
 set(API_VERSION "0.6")
-set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
+set(FULL_VERSION "${API_VERSION}.0")
+set_property(TARGET QMatrixClient PROPERTY VERSION "${FULL_VERSION}")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY
              INTERFACE_QMatrixClient_MAJOR_VERSION ${API_VERSION})
@@ -174,10 +175,12 @@ install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
+# NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
+# Maybe consider jumping the gun and releasing 1.0, as semver advises?
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfigVersion.cmake"
-    VERSION ${API_VERSION}
-    COMPATIBILITY AnyNewerVersion
+    VERSION ${FULL_VERSION}
+    COMPATIBILITY SameMajorVersion
 )
 
 export(PACKAGE QMatrixClient)
