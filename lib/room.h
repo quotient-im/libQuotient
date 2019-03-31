@@ -410,6 +410,9 @@ namespace QMatrixClient
             void setAliases(const QStringList& aliases);
             void setTopic(const QString& newTopic);
 
+            /// You shouldn't normally call this method; it's here for debugging
+            void refreshDisplayName();
+
             void getPreviousContent(int limit = 10);
 
             void inviteToRoom(const QString& memberId);

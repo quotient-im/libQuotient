@@ -389,6 +389,11 @@ QString Room::displayName() const
     return d->displayname;
 }
 
+void Room::refreshDisplayName()
+{
+    d->updateDisplayname();
+}
+
 QString Room::topic() const
 {
     return d->getCurrentState<RoomTopicEvent>()->topic();
