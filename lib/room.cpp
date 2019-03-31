@@ -105,6 +105,7 @@ class Room::Private
         members_map_t membersMap;
         QList<User*> usersTyping;
         QMultiHash<QString, User*> eventIdReadUsers;
+        QList<User*> usersInvited;
         QList<User*> membersLeft;
         int unreadMessages = 0;
         bool displayed = false;
@@ -1231,7 +1232,6 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
     membersMap.remove(username, u);
     // If there was one namesake besides the removed user, signal member renaming
     // for it because it doesn't need to be disambiguated anymore.
-    // TODO: Think about left users.
     if (namesake)
         emit q->memberRenamed(namesake);
 }
@@ -2216,8 +2216,38 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     && evt.isDirect())
                 connection()->addToDirectChats(this, user(evt.senderId()));
 
-            if (evt.membership() == MembershipType::Join)
+            switch (prevMembership)
             {
+            case MembershipType::Invite:
+                if (evt.membership() != prevMembership)
+                {
+                    d->usersInvited.removeOne(u);
+                    Q_ASSERT(!d->usersInvited.contains(u));
+                }
+                break;
+            case MembershipType::Join:
+                if (evt.membership() == MembershipType::Invite)
+                    qCWarning(MAIN)
+                        << "Invalid membership change from Join to Invite:"
+                        << evt;
+                if (evt.membership() != prevMembership)
+                {
+                    d->removeMemberFromMap(u->name(this), u);
+                    emit userRemoved(u);
+                }
+                break;
+            default:
+                if (evt.membership() == MembershipType::Invite
+                        || evt.membership() == MembershipType::Join)
+                {
+                    d->membersLeft.removeOne(u);
+                    Q_ASSERT(!d->membersLeft.contains(u));
+                }
+            }
+
+            switch(evt.membership())
+            {
+            case MembershipType::Join:
                 if (prevMembership != MembershipType::Join)
                 {
                     d->insertMemberIntoMap(u);
@@ -2233,18 +2263,14 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                         });
                     emit userAdded(u);
                 }
-            }
-            else if (evt.membership() != MembershipType::Join)
-            {
-                if (prevMembership == MembershipType::Join)
-                {
-                    if (evt.membership() == MembershipType::Invite)
-                        qCWarning(MAIN) << "Invalid membership change:" << evt;
-                    if (!d->membersLeft.contains(u))
-                        d->membersLeft.append(u);
-                    d->removeMemberFromMap(u->name(this), u);
-                    emit userRemoved(u);
-                }
+                break;
+            case MembershipType::Invite:
+                if (!d->usersInvited.contains(u))
+                    d->usersInvited.push_back(u);
+                break;
+            default:
+                if (!d->membersLeft.contains(u))
+                    d->membersLeft.append(u);
             }
             return MembersChange;
         }
@@ -2425,41 +2451,58 @@ QString Room::Private::calculateDisplayname() const
         return dispName;
 
     // Using m.room.aliases in naming is explicitly discouraged by the spec
-    //if (!q->aliases().empty() && !q->aliases().at(0).isEmpty())
-    //    return q->aliases().at(0);
 
     // Supplementary code for 3 and 4: build the shortlist of users whose names
     // will be used to construct the room name. Takes into account MSC688's
     // "heroes" if available.
 
+    const bool localUserIsIn = joinState == JoinState::Join;
     const bool emptyRoom = membersMap.isEmpty() ||
              (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
-    const auto shortlist =
-            !summary.heroes.omitted() ? buildShortlist(summary.heroes.value()) :
-            !emptyRoom ? buildShortlist(membersMap) :
-                         buildShortlist(membersLeft);
+    const bool nonEmptySummary =
+            !summary.heroes.omitted() && !summary.heroes->empty();
+    auto shortlist = nonEmptySummary ? buildShortlist(summary.heroes.value()) :
+                     !emptyRoom ? buildShortlist(membersMap) :
+                        users_shortlist_t { };
+
+    // When lazy-loading is on, we can rely on the heroes list.
+    // If it's off, the below code gathers invited and left members.
+    // NB: including invitations, if any, into naming is a spec extension.
+    // This kicks in when there's no lazy loading and it's a room with
+    // the local user as the only member, with more users invited.
+    if (!shortlist.front() && localUserIsIn)
+        shortlist = buildShortlist(usersInvited);
+
+    if (!shortlist.front()) // Still empty shortlist; use left members
+        shortlist = buildShortlist(membersLeft);
 
     QStringList names;
     for (auto u: shortlist)
     {
         if (u == nullptr || isLocalUser(u))
             break;
-        names.push_back(q->roomMembername(u));
+        // Only disambiguate if the room is not empty
+        names.push_back(u->displayname(emptyRoom ? nullptr : q));
     }
 
-    auto usersCountExceptLocal = emptyRoom
-            ? membersLeft.size() - int(joinState == JoinState::Leave)
-            : q->joinedCount() - int(joinState == JoinState::Join);
+    const auto usersCountExceptLocal =
+        !emptyRoom ? q->joinedCount() - int(joinState == JoinState::Join) :
+        !usersInvited.empty() ? usersInvited.count() :
+            membersLeft.size() - int(joinState == JoinState::Leave);
     if (usersCountExceptLocal > int(shortlist.size()))
         names <<
             tr("%Ln other(s)",
                "Used to make a room name from user names: A, B and _N others_",
-               usersCountExceptLocal);
-    auto namesList = QLocale().createSeparatedList(names);
+               usersCountExceptLocal - int(shortlist.size()));
+    const auto namesList = QLocale().createSeparatedList(names);
 
     // 3. Room members
     if (!emptyRoom)
         return namesList;
+
+    // (Spec extension) Invited users
+    if (!usersInvited.empty())
+        return tr("Empty room (invited: %1)").arg(namesList);
 
     // 4. Users that previously left the room
     if (membersLeft.size() > 0)
