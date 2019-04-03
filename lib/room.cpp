@@ -1533,12 +1533,17 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
 {
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
+
+    const auto txnId = connection()->generateTxnId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
-    const auto txnId = d->addAsPending(makeEvent<RoomMessageEvent>(
-                                           plainText, localFile, asGenericFile)
-                                       )->transactionId();
     uploadFile(txnId, localPath);
+    {
+        auto&& event =
+            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile);
+        event->setTransactionId(txnId);
+        d->addAsPending(std::move(event));
+    }
     auto* context = new QObject(this);
     connect(this, &Room::fileTransferCompleted, context,
         [context,this,txnId] (const QString& id, QUrl, const QUrl& mxcUri) {
