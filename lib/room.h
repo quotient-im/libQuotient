@@ -356,8 +356,28 @@ namespace QMatrixClient
 
             Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
             Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
+
+            /// Get a file name for downloading for a given event id
+            /*!
+             * The event MUST be RoomMessageEvent and have content
+             * for downloading. \sa RoomMessageEvent::hasContent
+             */
             Q_INVOKABLE QString fileNameToDownload(const QString& eventId) const;
+
+            /// Get information on file upload/download
+            /*!
+             * \param id uploads are identified by the corresponding event's
+             *           transactionId (because uploads are done before
+             *           the event is even sent), while downloads are using
+             *           the normal event id for identifier.
+             */
             Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+
+            /// Get the URL to the actual file source in a unified way
+            /*!
+             * For uploads it will return a URL to a local file; for downloads
+             * the URL will be taken from the corresponding room event.
+             */
             Q_INVOKABLE QUrl fileSource(const QString& id) const;
 
             /** Pretty-prints plain text into HTML
