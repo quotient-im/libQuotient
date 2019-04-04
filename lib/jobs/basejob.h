@@ -67,6 +67,7 @@ namespace QMatrixClient
                 , UnsupportedRoomVersionError
                 , NetworkAuthRequiredError
                 , UserConsentRequiredError
+                , UnknownError // Unknown room or other item (M_UNKNOWN)
                 , UserDefinedError = 200
             };
 
