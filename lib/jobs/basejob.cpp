@@ -325,6 +325,9 @@ void BaseJob::gotReply()
                 d->status.code = UserConsentRequiredError;
                 d->errorUrl = json.value("consent_uri"_ls).toString();
             }
+            else if (errCode == "M_UNKNOWN") {
+                d->status.code = UnknownObjectError;
+            }
             else if (errCode == "M_UNSUPPORTED_ROOM_VERSION" ||
                      errCode == "M_INCOMPATIBLE_ROOM_VERSION")
             {
