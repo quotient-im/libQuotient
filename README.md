@@ -17,9 +17,19 @@ You can find authors of libQMatrixClient in the Matrix room: [#qmatrixclient:mat
 You can also file issues at [the project's issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues). If you have what looks like a security issue, please see respective instructions in CONTRIBUTING.md.
 
 ## Building and usage
-So far the library is typically used as a git submodule of another project (such as Quaternion); however it can be built separately (either as a static or as a dynamic library). As of version 0.2, the library can be installed and CMake package config files are provided; projects can use `find_package(QMatrixClient)` to setup their code with the installed library files. PRs to enable the same for qmake are most welcome.
+So far the library is typically used as a git submodule of another project
+(such as Quaternion); however it can be built separately (either as a static or
+as a dynamic library). After installing the library the CMake package becomes
+available for `find_package(QMatrixClient)` to setup the client code with
+the installed library files. PRs to enable the same for qmake are most welcome.
 
-The source code is hosted at GitHub: https://github.com/QMatrixClient/libqmatrixclient - checking out a certain commit or tag from GitHub (rather than downloading the archive) is the recommended way for one-off building. If you want to hack on the library as a part of another project (e.g. you are working on Quaternion but need to do some changes to the library code), you're advised to make a recursive check out of that project (in this case, Quaternion) and update the library submodule to its master branch.
+[The source code is hosted at GitHub](https://github.com/QMatrixClient/libqmatrixclient) -
+checking out a certain commit or tag (rather than downloading the archive) is
+the recommended way for one-off building. If you want to hack on the library
+as a part of another project (e.g. you are working on Quaternion but need
+to do some changes to the library code), you're advised to make a recursive
+check out of that project (in this case, Quaternion) and update
+the library submodule to its master branch.
 
 Tags consisting of digits and periods represent released versions; tags ending with `-betaN` or `-rcN` mark pre-releases. If/when packaging pre-releases, it is advised to replace a dash with a tilde.
 
@@ -28,6 +38,7 @@ Tags consisting of digits and periods represent released versions; tags ending w
   - For Ubuntu flavours - zesty or later (or a derivative) is good enough out of the box; older ones will need PPAs at least for a newer Qt; in particular, if you have xenial you're advised to add Kubuntu Backports PPA for it
 - a Git client to check out this repo
 - Qt 5 (either Open Source or Commercial), version 5.6 or higher
+  (5.9 or higher is strongly recommended)
 - a build configuration tool:
   - CMake (from your package management system or [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
