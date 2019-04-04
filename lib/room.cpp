@@ -168,7 +168,7 @@ class Room::Private
 
         //void inviteUser(User* u); // We might get it at some point in time.
         void insertMemberIntoMap(User* u);
-        void renameMember(User* u, QString oldName);
+        void renameMember(User* u, const QString& oldName);
         void removeMemberFromMap(const QString& username, User* u);
 
         // This updates the room displayname field (which is the way a room
@@ -185,7 +185,7 @@ class Room::Private
         void getPreviousContent(int limit = 10);
 
         template <typename EventT>
-        const EventT* getCurrentState(QString stateKey = {}) const
+        const EventT* getCurrentState(const QString& stateKey = {}) const
         {
             static const EventT empty;
             const auto* evt =
@@ -236,8 +236,8 @@ class Room::Private
          * @param placement - position and direction of insertion: Older for
          *                    historical messages, Newer for new ones
          */
-        Timeline::difference_type moveEventsToTimeline(RoomEventsRange events,
-                                                       EventsPlacement placement);
+        Timeline::size_type moveEventsToTimeline(RoomEventsRange events,
+                                                 EventsPlacement placement);
 
         /**
          * Remove events from the passed container that are already in the timeline
@@ -341,7 +341,7 @@ const QString& Room::id() const
 QString Room::version() const
 {
     const auto v = d->getCurrentState<RoomCreateEvent>()->version();
-    return v.isEmpty() ? "1" : v;
+    return v.isEmpty() ? QStringLiteral("1") : v;
 }
 
 bool Room::isUnstable() const
@@ -546,8 +546,8 @@ Room::Changes Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker,
     {
         const auto oldUnreadCount = unreadMessages;
         QElapsedTimer et; et.start();
-        unreadMessages = count_if(eagerMarker, timeline.cend(),
-                    std::bind(&Room::Private::isEventNotable, this, _1));
+        unreadMessages = int(count_if(eagerMarker, timeline.cend(),
+                    std::bind(&Room::Private::isEventNotable, this, _1)));
         if (et.nsecsElapsed() > profilerMinNsecs() / 10)
             qCDebug(PROFILER) << "Recounting unread messages took" << et;
 
@@ -611,7 +611,7 @@ bool Room::canSwitchVersions() const
 
     // TODO, #276: m.room.power_levels
     const auto* plEvt =
-            d->currentState.value({"m.room.power_levels", ""});
+            d->currentState.value({QStringLiteral("m.room.power_levels"), {}});
     if (!plEvt)
         return true;
 
@@ -621,7 +621,7 @@ bool Room::canSwitchVersions() const
         .value(localUser()->id()).toInt(
             plJson.value("users_default"_ls).toInt());
     const auto tombstonePowerLevel =
-        plJson.value("events").toObject()
+        plJson.value("events"_ls).toObject()
         .value("m.room.tombstone"_ls).toInt(
             plJson.value("state_default"_ls).toInt());
     return currentUserLevel >= tombstonePowerLevel;
@@ -947,7 +947,7 @@ void Room::Private::setTags(TagsMap newTags)
     }
     tags = move(newTags);
     qCDebug(MAIN) << "Room" << q->objectName() << "is tagged with"
-                  << q->tagNames().join(", ");
+                  << q->tagNames().join(QStringLiteral(", "));
     emit q->tagsChanged();
 }
 
@@ -1196,7 +1196,7 @@ void Room::Private::insertMemberIntoMap(User *u)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::renameMember(User* u, QString oldName)
+void Room::Private::renameMember(User* u, const QString& oldName)
 {
     if (u->name(q) == oldName)
     {
@@ -1234,7 +1234,7 @@ inline auto makeErrorStr(const Event& e, QByteArray msg)
     return msg.append("; event dump follows:\n").append(e.originalJson());
 }
 
-Room::Timeline::difference_type Room::Private::moveEventsToTimeline(
+Room::Timeline::size_type Room::Private::moveEventsToTimeline(
     RoomEventsRange events, EventsPlacement placement)
 {
     Q_ASSERT(!events.empty());
@@ -1407,7 +1407,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                     return;
                 }
                 it->setDeparted();
-                emit q->pendingEventChanged(it - unsyncedEvents.begin());
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
             });
         Room::connect(call, &BaseJob::failure, q,
             std::bind(&Room::Private::onEventSendingFailure, this, txnId, call));
@@ -1423,7 +1423,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 }
 
                 it->setReachedServer(call->eventId());
-                emit q->pendingEventChanged(it - unsyncedEvents.begin());
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
             });
     } else
         onEventSendingFailure(txnId);
@@ -1442,7 +1442,7 @@ void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
     it->setSendingFailed(call
         ? call->statusCaption() % ": " % call->errorString()
         : tr("The call could not be started"));
-    emit q->pendingEventChanged(it - unsyncedEvents.begin());
+    emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
 }
 
 QString Room::retryMessage(const QString& txnId)
@@ -2045,7 +2045,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         roomChanges |= q->processStateEvent(*eptr);
 
     auto timelineSize = timeline.size();
-    auto totalInserted = 0;
+    size_t totalInserted = 0;
     for (auto it = events.begin(); it != events.end();)
     {
         auto nextPendingPair = findFirstOf(it, events.end(),

@@ -72,7 +72,7 @@ void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
 {
     fromJson(jo["m.joined_member_count"_ls], rs.joinedMemberCount);
     fromJson(jo["m.invited_member_count"_ls], rs.invitedMemberCount);
-    fromJson(jo["m.heroes"], rs.heroes);
+    fromJson(jo["m.heroes"_ls], rs.heroes);
 }
 
 template <typename EventsArrayT, typename StrT>
@@ -85,7 +85,7 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
     , joinState(joinState_)
-    , summary(fromJson<RoomSummary>(room_["summary"]))
+    , summary(fromJson<RoomSummary>(room_["summary"_ls]))
     , state(load<StateEvents>(room_, joinState == JoinState::Invite
                                      ? "invite_state"_ls : "state"_ls))
 {
@@ -121,8 +121,8 @@ SyncData::SyncData(const QString& cacheFileName)
     QFileInfo cacheFileInfo { cacheFileName };
     auto json = loadJson(cacheFileName);
     auto requiredVersion = std::get<0>(cacheVersion());
-    auto actualVersion = json.value("cache_version").toObject()
-                             .value("major").toInt();
+    auto actualVersion = json.value("cache_version"_ls).toObject()
+                             .value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
         parseJson(json, cacheFileInfo.absolutePath() + '/');
     else
