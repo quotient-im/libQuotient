@@ -59,5 +59,5 @@ BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
     if( _thumbnail.loadFromData(data()->readAll()) )
         return Success;
 
-    return { IncorrectResponseError, "Could not read image data" };
+    return { IncorrectResponseError, QStringLiteral("Could not read image data") };
 }

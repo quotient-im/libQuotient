@@ -430,7 +430,7 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 {
     d->rawResponse = reply->readAll();
-    QJsonParseError error;
+    QJsonParseError error { 0, QJsonParseError::MissingObject };
     const auto& json = QJsonDocument::fromJson(d->rawResponse, &error);
     if( error.error == QJsonParseError::NoError )
         return parseJson(json);

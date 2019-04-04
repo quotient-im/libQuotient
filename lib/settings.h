@@ -119,7 +119,7 @@ type classname::propname() const \
 \
 void classname::setter(type newValue) \
 { \
-    setValue(QStringLiteral(qsettingname), newValue); \
+    setValue(QStringLiteral(qsettingname), std::move(newValue)); \
 } \
 
     class AccountSettings: public SettingsGroup

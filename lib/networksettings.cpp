@@ -27,5 +27,5 @@ void NetworkSettings::setupApplicationProxy() const
 }
 
 QMC_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType, "proxy_type", QNetworkProxy::DefaultProxy, setProxyType)
-QMC_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname", "", setProxyHostName)
+QMC_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname", {}, setProxyHostName)
 QMC_DEFINE_SETTING(NetworkSettings, quint16, proxyPort, "proxy_port", -1, setProxyPort)

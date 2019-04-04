@@ -22,7 +22,8 @@ class DownloadFileJob::Private
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
 {
-    return makeRequestUrl(baseUrl, mxcUri.authority(), mxcUri.path().mid(1));
+    return makeRequestUrl(
+                std::move(baseUrl), mxcUri.authority(), mxcUri.path().mid(1));
 }
 
 DownloadFileJob::DownloadFileJob(const QString& serverName,
@@ -31,7 +32,7 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     : GetContentJob(serverName, mediaId)
     , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
 {
-    setObjectName("DownloadFileJob");
+    setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
 QString DownloadFileJob::targetFileName() const

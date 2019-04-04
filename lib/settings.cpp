@@ -84,18 +84,21 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", "", setDeviceId)
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", "", setDeviceName)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {}, setDeviceId)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {}, setDeviceName)
 QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false, setKeepLoggedIn)
+
+static const auto HomeserverKey = QStringLiteral("homeserver");
+static const auto AccessTokenKey = QStringLiteral("access_token");
 
 QUrl AccountSettings::homeserver() const
 {
-    return QUrl::fromUserInput(value("homeserver").toString());
+    return QUrl::fromUserInput(value(HomeserverKey).toString());
 }
 
 void AccountSettings::setHomeserver(const QUrl& url)
 {
-    setValue("homeserver", url.toString());
+    setValue(HomeserverKey, url.toString());
 }
 
 QString AccountSettings::userId() const
@@ -105,19 +108,19 @@ QString AccountSettings::userId() const
 
 QString AccountSettings::accessToken() const
 {
-    return value("access_token").toString();
+    return value(AccessTokenKey).toString();
 }
 
 void AccountSettings::setAccessToken(const QString& accessToken)
 {
     qCWarning(MAIN) << "Saving access_token to QSettings is insecure."
                        " Developers, please save access_token separately.";
-    setValue("access_token", accessToken);
+    setValue(AccessTokenKey, accessToken);
 }
 
 void AccountSettings::clearAccessToken()
 {
-    legacySettings.remove("access_token");
-    legacySettings.remove("device_id"); // Force the server to re-issue it
-    remove("access_token");
+    legacySettings.remove(AccessTokenKey);
+    legacySettings.remove(QStringLiteral("device_id")); // Force the server to re-issue it
+    remove(AccessTokenKey);
 }

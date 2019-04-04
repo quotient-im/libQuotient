@@ -157,7 +157,7 @@ static_assert(!is_callable_v<fn_object<int>>, "Test non-function object");
 //              "Test returns<> with static member function");
 
 template <typename T>
-QString ft(T&&);
+QString ft(T&&) { return {}; }
 static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
               "Test function templates");
 

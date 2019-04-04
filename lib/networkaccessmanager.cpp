@@ -29,7 +29,8 @@ class NetworkAccessManager::Private
         QList<QSslError> ignoredSslErrors;
 };
 
-NetworkAccessManager::NetworkAccessManager(QObject* parent) : d(std::make_unique<Private>())
+NetworkAccessManager::NetworkAccessManager(QObject* parent)
+    : QNetworkAccessManager(parent), d(std::make_unique<Private>())
 { }
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const

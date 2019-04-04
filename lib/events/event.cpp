@@ -38,7 +38,8 @@ event_type_t EventTypeRegistry::initializeTypeId(event_mtype_t matrixTypeId)
 
 QString EventTypeRegistry::getMatrixType(event_type_t typeId)
 {
-    return typeId < get().eventTypes.size() ? get().eventTypes[typeId] : "";
+    return typeId < get().eventTypes.size()
+            ? get().eventTypes[typeId] : QString();
 }
 
 Event::Event(Type type, const QJsonObject& json)

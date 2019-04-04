@@ -717,8 +717,8 @@ void Connection::doInDirectChat(User* u,
 CreateRoomJob* Connection::createDirectChat(const QString& userId,
     const QString& topic, const QString& name)
 {
-    return createRoom(UnpublishRoom, "", name, topic, {userId},
-                      "trusted_private_chat", {}, true);
+    return createRoom(UnpublishRoom, {}, name, topic, {userId},
+                      QStringLiteral("trusted_private_chat"), {}, true);
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
@@ -964,7 +964,8 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
     QHash<QString, QVector<Room*>> result;
     for (auto* r: qAsConst(d->roomMap))
     {
-        for (const auto& tagName: r->tagNames())
+        const auto& tagNames = r->tagNames();
+        for (const auto& tagName: tagNames)
             result[tagName].push_back(r);
     }
     for (auto it = result.begin(); it != result.end(); ++it)
@@ -979,9 +980,12 @@ QStringList Connection::tagNames() const
 {
     QStringList tags ({FavouriteTag});
     for (auto* r: qAsConst(d->roomMap))
-        for (const auto& tag: r->tagNames())
+    {
+        const auto& tagNames = r->tagNames();
+        for (const auto& tag: tagNames)
             if (tag != LowPriorityTag && !tags.contains(tag))
                 tags.push_back(tag);
+    }
     tags.push_back(LowPriorityTag);
     return tags;
 }
@@ -1264,18 +1268,19 @@ void Connection::saveState() const
     {
         QJsonObject rooms;
         QJsonObject inviteRooms;
-        for (const auto* i : roomMap()) // Pass on rooms in Leave state
+        const auto& rs = roomMap(); // Pass on rooms in Leave state
+        for (const auto* i : rs)
             (i->joinState() == JoinState::Invite ? inviteRooms : rooms)
             .insert(i->id(), QJsonValue::Null);
 
         QJsonObject roomObj;
         if (!rooms.isEmpty())
-            roomObj.insert("join", rooms);
+            roomObj.insert(QStringLiteral("join"), rooms);
         if (!inviteRooms.isEmpty())
-            roomObj.insert("invite", inviteRooms);
+            roomObj.insert(QStringLiteral("invite"), inviteRooms);
 
-        rootObj.insert("next_batch", d->data->lastEvent());
-        rootObj.insert("rooms", roomObj);
+        rootObj.insert(QStringLiteral("next_batch"), d->data->lastEvent());
+        rootObj.insert(QStringLiteral("rooms"), roomObj);
     }
     {
         QJsonArray accountDataEvents {
@@ -1285,7 +1290,7 @@ void Connection::saveState() const
             accountDataEvents.append(
                 basicEventJson(e.first, e.second->contentJson()));
 
-        rootObj.insert("account_data",
+        rootObj.insert(QStringLiteral("account_data"),
             QJsonObject {{ QStringLiteral("events"), accountDataEvents }});
     }
 

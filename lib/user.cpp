@@ -59,7 +59,7 @@ class User::Private
         QMultiHash<QString, const Room*> otherNames;
         Avatar mostUsedAvatar { makeAvatar({}) };
         std::vector<Avatar> otherAvatars;
-        auto otherAvatar(QUrl url)
+        auto otherAvatar(const QUrl& url)
         {
             return std::find_if(otherAvatars.begin(), otherAvatars.end(),
                     [&url] (const auto& av) { return av.url() == url; });
@@ -69,7 +69,7 @@ class User::Private
         mutable int totalRooms = 0;
 
         QString nameForRoom(const Room* r, const QString& hint = {}) const;
-        void setNameForRoom(const Room* r, QString newName, QString oldName);
+        void setNameForRoom(const Room* r, QString newName, const QString& oldName);
         QUrl avatarUrlForRoom(const Room* r, const QUrl& hint = {}) const;
         void setAvatarForRoom(const Room* r, const QUrl& newUrl,
                               const QUrl& oldUrl);
@@ -91,7 +91,7 @@ QString User::Private::nameForRoom(const Room* r, const QString& hint) const
 static constexpr int MIN_JOINED_ROOMS_TO_LOG = 20;
 
 void User::Private::setNameForRoom(const Room* r, QString newName,
-                                   QString oldName)
+                                   const QString& oldName)
 {
     Q_ASSERT(oldName != newName);
     Q_ASSERT(oldName == mostUsedName || otherNames.contains(oldName, r));
@@ -118,7 +118,8 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
                 et.start();
             }
 
-            for (auto* r1: connection->roomMap())
+            const auto& roomMap = connection->roomMap();
+            for (auto* r1: roomMap)
                 if (nameForRoom(r1) == mostUsedName)
                     otherNames.insert(mostUsedName, r1);
 
@@ -178,7 +179,8 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
             auto nextMostUsedIt = otherAvatar(newUrl);
             Q_ASSERT(nextMostUsedIt != otherAvatars.end());
             std::swap(mostUsedAvatar, *nextMostUsedIt);
-            for (const auto* r1: connection->roomMap())
+            const auto& roomMap = connection->roomMap();
+            for (const auto* r1: roomMap)
                 if (avatarUrlForRoom(r1) == nextMostUsedIt->url())
                     avatarsToRooms.insert(nextMostUsedIt->url(), r1);
 
@@ -399,7 +401,7 @@ void User::processEvent(const RoomMemberEvent& event, const Room* room,
     // exceptionally rare (the only reasonable case being that the bridge
     // changes the naming convention). For the same reason room-specific
     // bridge tags are not supported at all.
-    QRegularExpression reSuffix(" \\((IRC|Gitter|Telegram)\\)$");
+    QRegularExpression reSuffix(QStringLiteral(" \\((IRC|Gitter|Telegram)\\)$"));
     auto match = reSuffix.match(newName);
     if (match.hasMatch())
     {
