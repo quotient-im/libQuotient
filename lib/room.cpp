@@ -1216,7 +1216,6 @@ void Room::Private::renameMember(User* u, const QString& oldName)
         removeMemberFromMap(oldName, u);
         insertMemberIntoMap(u);
     }
-    emit q->memberRenamed(u);
 }
 
 void Room::Private::removeMemberFromMap(const QString& username, User* u)
@@ -2237,6 +2236,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                         << evt;
                 if (evt.membership() != prevMembership)
                 {
+                    disconnect(u, &User::nameAboutToChange, this, nullptr);
+                    disconnect(u, &User::nameChanged, this, nullptr);
                     d->removeMemberFromMap(u->name(this), u);
                     emit userRemoved(u);
                 }
@@ -2264,7 +2265,10 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     connect(u, &User::nameChanged, this,
                         [=] (QString, QString oldName, const Room* context) {
                             if (context == this)
+                            {
                                 d->renameMember(u, oldName);
+                                emit memberRenamed(u);
+                            }
                         });
                     emit userAdded(u);
                 }
