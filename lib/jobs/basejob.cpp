@@ -600,10 +600,25 @@ QUrl BaseJob::errorUrl() const
 
 void BaseJob::setStatus(Status s)
 {
+    // The crash that led to this code has been reported in
+    // https://github.com/QMatrixClient/Quaternion/issues/566 - basically,
+    // when cleaning up childrent of a deleted Connection, there's a chance
+    // of pending jobs being abandoned, calling setStatus(Abandoned).
+    // There's nothing wrong with this; however, the safety check for
+    // cleartext access tokens below uses d->connection - which is a dangling
+    // pointer.
+    // To alleviate that, a stricter condition is applied, that for Abandoned
+    // and to-be-Abandoned jobs the status message will be disregarded entirely.
+    // For 0.6 we might rectify the situation by making d->connection
+    // a QPointer<> (and derive ConnectionData from QObject, respectively).
+    if (d->status.code == Abandoned || s.code == Abandoned)
+        s.message.clear();
+
     if (d->status == s)
         return;
 
-    if (d->connection && !d->connection->accessToken().isEmpty())
+    if (!s.message.isEmpty()
+            && d->connection && !d->connection->accessToken().isEmpty())
         s.message.replace(d->connection->accessToken(), "(REDACTED)");
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
