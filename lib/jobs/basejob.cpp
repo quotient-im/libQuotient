@@ -334,8 +334,7 @@ void BaseJob::gotReply()
                         tr("Requested room version: %1")
                         .arg(json.value("room_version").toString());
             } else if (!json.isEmpty()) // Not localisable on the client side
-                setStatus(IncorrectRequestError,
-                          json.value("error"_ls).toString());
+                setStatus(d->status.code, json.value("error"_ls).toString());
         }
     }
 
