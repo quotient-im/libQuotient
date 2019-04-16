@@ -321,11 +321,14 @@ void Connection::checkAndConnect(const QString& userId,
 void Connection::logout()
 {
     auto job = callApi<LogoutJob>();
-    connect( job, &LogoutJob::success, this, [this] {
-        stopSync();
-        d->data->setToken({});
-        emit stateChanged();
-        emit loggedOut();
+    connect( job, &LogoutJob::finished, this, [job,this] {
+        if (job->status().good() || job->error() == BaseJob::ContentAccessError)
+        {
+            stopSync();
+            d->data->setToken({});
+            emit stateChanged();
+            emit loggedOut();
+        }
     });
 }
 
