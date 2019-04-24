@@ -219,10 +219,10 @@ namespace QMatrixClient
             QList<User*> directChatUsers(const Room* room) const;
 
             /** Check whether a particular user is in the ignore list */
-            bool isIgnored(const User* user) const;
+            Q_INVOKABLE bool isIgnored(const User* user) const;
 
             /** Get the whole list of ignored users */
-            IgnoredUsersList ignoredUsers() const;
+            Q_INVOKABLE IgnoredUsersList ignoredUsers() const;
 
             /** Add the user to the ignore list
              * The change signal is emitted synchronously, without waiting
@@ -230,14 +230,14 @@ namespace QMatrixClient
              *
              * \sa ignoredUsersListChanged
              */
-            void addToIgnoredUsers(const User* user);
+            Q_INVOKABLE void addToIgnoredUsers(const User* user);
 
             /** Remove the user from the ignore list */
             /** Similar to adding, the change signal is emitted synchronously.
              *
              * \sa ignoredUsersListChanged
              */
-            void removeFromIgnoredUsers(const User* user);
+            Q_INVOKABLE void removeFromIgnoredUsers(const User* user);
 
             /** Get the full list of users known to this account */
             QMap<QString, User*> users() const;
