@@ -26,6 +26,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
+#include <QtCore/QDir>
 
 #include <functional>
 #include <memory>
@@ -305,8 +306,8 @@ namespace QMatrixClient
              * Call this before first sync to load from previously saved file.
              *
              * \param fromFile A local path to read the state from. Uses QUrl
-             * to be QML-friendly. Empty parameter means using a path
-             * defined by stateCachePath().
+             * to be QML-friendly. Empty parameter means saving to the directory
+             * defined by stateCachePath() / stateCacheDir().
              */
             Q_INVOKABLE void loadState();
             /**
@@ -315,23 +316,30 @@ namespace QMatrixClient
              * loadState() on a next run of the client.
              *
              * \param toFile A local path to save the state to. Uses QUrl to be
-             * QML-friendly. Empty parameter means using a path defined by
-             * stateCachePath().
+             * QML-friendly. Empty parameter means saving to the directory
+             * defined by stateCachePath() / stateCacheDir().
              */
             Q_INVOKABLE void saveState() const;
 
             /// This method saves the current state of a single room.
             void saveRoomState(Room* r) const;
 
-            /**
-             * The default path to store the cached room state, defined as
-             * follows:
-             *     QStandardPaths::writeableLocation(QStandardPaths::CacheLocation) + _safeUserId + "_state.json"
-             * where `_safeUserId` is userId() with `:` (colon) replaced with
-             * `_` (underscore)
-             * /see loadState(), saveState()
-             */
+            /// Get the default directory path to save the room state to
+            /** \sa stateCacheDir */
             Q_INVOKABLE QString stateCachePath() const;
+
+            /// Get the default directory to save the room state to
+            /**
+             * This function returns the default directory to store the cached
+             * room state, defined as follows:
+             * \code
+             *     QStandardPaths::writeableLocation(QStandardPaths::CacheLocation) + _safeUserId + "_state.json"
+             * \endcode
+             * where `_safeUserId` is userId() with `:` (colon) replaced by
+             * `_` (underscore), as colons are reserved characters on Windows.
+             * \sa loadState, saveState, stateCachePath
+             */
+            QDir stateCacheDir() const;
 
             bool cacheState() const;
             void setCacheState(bool newValue);
