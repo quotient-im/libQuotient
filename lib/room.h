@@ -110,6 +110,7 @@ namespace QMatrixClient
             Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
             Q_PROPERTY(int highlightCount READ highlightCount NOTIFY highlightCountChanged RESET resetHighlightCount)
             Q_PROPERTY(int notificationCount READ notificationCount NOTIFY notificationCountChanged RESET resetNotificationCount)
+            Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages STORED false)
             Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
             Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
             Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
@@ -228,6 +229,14 @@ namespace QMatrixClient
 
             const Timeline& messageEvents() const;
             const PendingEvents& pendingEvents() const;
+
+            /// Check whether all historical messages are already loaded
+            /**
+             * \return true if the "oldest" event in the timeline is
+             *         a room creation event and there's no further history
+             *         to load; false otherwise
+             */
+            bool allHistoryLoaded() const;
             /**
              * A convenience method returning the read marker to the position
              * before the "oldest" event; same as messageEvents().crend()

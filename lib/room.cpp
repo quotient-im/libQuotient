@@ -370,6 +370,11 @@ const Room::PendingEvents& Room::pendingEvents() const
     return d->unsyncedEvents;
 }
 
+bool Room::allHistoryLoaded() const
+{
+    return !d->timeline.empty() && is<RoomCreateEvent>(*d->timeline.front());
+}
+
 QString Room::name() const
 {
     return d->getCurrentState<RoomNameEvent>()->name();
