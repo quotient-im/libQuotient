@@ -33,6 +33,8 @@ namespace QMatrixClient
             Q_OBJECT
             Q_PROPERTY(QString id READ id CONSTANT)
             Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
+            Q_PROPERTY(int hue READ hue CONSTANT)
+            Q_PROPERTY(qreal hueF READ hueF CONSTANT)
             Q_PROPERTY(QString name READ name NOTIFY nameChanged)
             Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
             Q_PROPERTY(QString fullName READ fullName NOTIFY nameChanged STORED false)
@@ -94,6 +96,15 @@ namespace QMatrixClient
              * may not work with non-Synapse servers.
              */
             bool isGuest() const;
+
+            /** Hue color component of this user based on id.
+             * The implementation is based on XEP-0392:
+             * https://xmpp.org/extensions/xep-0392.html
+             * Naming and ranges are the same as QColor's hue methods:
+             * https://doc.qt.io/qt-5/qcolor.html#integer-vs-floating-point-precision
+             */
+            int hue() const;
+            qreal hueF() const;
 
             const Avatar& avatarObject(const Room* room = nullptr) const;
             Q_INVOKABLE QImage avatar(int dimension, const Room* room = nullptr);
