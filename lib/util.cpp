@@ -57,18 +57,19 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
-                 QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
+                QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
     htmlEscapedText.replace(FullUrlRegExp,
-                 QStringLiteral(R"(<a href="\1">\1</a>)"));
+                QStringLiteral(R"(<a href="\1">\1</a>)"));
     htmlEscapedText.replace(MxIdRegExp,
-                 QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+                QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
 }
 
 QString QMatrixClient::sanitized(const QString& plainText)
 {
     auto text = plainText;
-    text.remove(QChar(0x202e));
-    text.remove(QChar(0x202d));
+    text.remove(QChar(0x202e)); // RLO
+    text.remove(QChar(0x202d)); // LRO
+    text.remove(QChar(0xfffc)); // Object replacement character
     return text;
 }
 
