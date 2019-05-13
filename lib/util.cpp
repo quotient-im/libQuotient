@@ -74,12 +74,11 @@ QString QMatrixClient::sanitized(const QString& plainText)
 
 QString QMatrixClient::prettyPrint(const QString& plainText)
 {
-    auto pt = QStringLiteral("<span style='white-space:pre-wrap'>") +
-                plainText.toHtmlEscaped() + QStringLiteral("</span>");
-    pt.replace('\n', QStringLiteral("<br/>"));
-
+    auto pt = plainText.toHtmlEscaped();
     linkifyUrls(pt);
-    return pt;
+    pt.replace('\n', QStringLiteral("<br/>"));
+    return QStringLiteral("<span style='white-space:pre-wrap'>") + pt
+            + QStringLiteral("</span>");
 }
 
 QString QMatrixClient::cacheLocation(const QString& dirName)
