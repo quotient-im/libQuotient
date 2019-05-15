@@ -88,7 +88,10 @@ public:
     QUrl avatarUrl() const { return content().avatarUrl; }
     QString reason() const { return content().reason; }
     bool changesMembership() const;
+    bool isBan() const;
+    bool isUnban() const;
     bool isInvite() const;
+    bool isRejectedInvite() const;
     bool isJoin() const;
     bool isLeave() const;
     bool isRename() const;
