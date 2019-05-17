@@ -85,7 +85,7 @@ namespace QMatrixClient
                                         toJson(std::move(content)) } }) \
             { } \
             auto _ContentKey() const \
-            { return fromJson<content_type>(contentJson()[#_ContentKey##_ls]); } \
+            { return content<content_type>(#_ContentKey##_ls); } \
     }; \
     REGISTER_EVENT_TYPE(_Name) \
     // End of macro
