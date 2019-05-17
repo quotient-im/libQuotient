@@ -1,5 +1,3 @@
-#include <utility>
-
 /******************************************************************************
  * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
