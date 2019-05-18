@@ -32,19 +32,23 @@ namespace QMatrixClient
     template <typename EventT>
     using event_ptr_tt = std::unique_ptr<EventT>;
 
+    /// Unwrap a plain pointer from a smart pointer
     template <typename EventT>
-    inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr) // unwrap
+    inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
     {
         return ptr.get();
     }
 
+    /// Unwrap a plain pointer and downcast it to the specified type
     template <typename TargetEventT, typename EventT>
     inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
     {
         return static_cast<TargetEventT*>(rawPtr(ptr));
     }
 
+    /// Re-wrap a smart pointer to base into a smart pointer to derived
     template <typename TargetT, typename SourceT>
+    [[deprecated("Consider using eventCast() or visit() instead")]]
     inline event_ptr_tt<TargetT> ptrCast(event_ptr_tt<SourceT>&& ptr)
     {
         return unique_ptr_cast<TargetT>(ptr);
