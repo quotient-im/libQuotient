@@ -51,7 +51,7 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
     static const QRegularExpression MxIdRegExp(QStringLiteral(
-            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"
+            R"((?<![<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"
         ), RegExpOptions);
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
@@ -61,7 +61,7 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     htmlEscapedText.replace(FullUrlRegExp,
                 QStringLiteral(R"(<a href="\1">\1</a>)"));
     htmlEscapedText.replace(MxIdRegExp,
-                QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+                QStringLiteral(R"(<a href="https://matrix.to/#/\1">\1</a>)"));
 }
 
 QString QMatrixClient::sanitized(const QString& plainText)
