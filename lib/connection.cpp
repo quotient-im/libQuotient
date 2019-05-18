@@ -141,7 +141,7 @@ class Connection::Private
 
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
-    , d(std::make_unique<Private>(std::make_unique<ConnectionData>(server)))
+    , d(new Private(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
 }
@@ -294,6 +294,7 @@ void Connection::Private::connectWithToken(const QString& user,
     q->user(); // Creates a User object for the local user
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);
+    q->setObjectName(userId % '/' % deviceId);
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << userId << "from device" << deviceId;
     emit q->stateChanged();

@@ -29,7 +29,6 @@
 #include <QtCore/QDir>
 
 #include <functional>
-#include <memory>
 
 namespace QMatrixClient
 {
@@ -744,7 +743,7 @@ namespace QMatrixClient
 
         private:
             class Private;
-            std::unique_ptr<Private> d;
+            QScopedPointer<Private> d;
 
             /**
              * A single entry for functions that need to check whether the
