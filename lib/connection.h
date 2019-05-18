@@ -96,9 +96,6 @@ namespace QMatrixClient
     class Connection: public QObject {
             Q_OBJECT
 
-            /** Whether or not the rooms state should be cached locally
-             * \sa loadState(), saveState()
-             */
             Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)
             Q_PROPERTY(QString localUserId READ userId NOTIFY stateChanged)
             Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
@@ -341,6 +338,9 @@ namespace QMatrixClient
              */
             QDir stateCacheDir() const;
 
+            /** Whether or not the rooms state should be cached locally
+             * \sa loadState(), saveState()
+             */
             bool cacheState() const;
             void setCacheState(bool newValue);
 
