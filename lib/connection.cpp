@@ -407,63 +407,67 @@ void Connection::onSyncSuccess(SyncData &&data, bool fromCache) {
         // Let UI update itself after updating each room
         QCoreApplication::processEvents();
     }
-    for (auto&& accountEvent: data.takeAccountData())
-    {
-        if (is<DirectChatEvent>(*accountEvent))
-        {
-            const auto usersToDCs = ptrCast<DirectChatEvent>(move(accountEvent))
-                                        ->usersToDirectChats();
-            DirectChatsMap removals =
-                erase_if(d->directChats, [&usersToDCs] (auto it) {
-                    return !usersToDCs.contains(it.key()->id(), it.value());
-                });
-            erase_if(d->directChatUsers, [&usersToDCs] (auto it) {
-                return !usersToDCs.contains(it.value()->id(), it.key());
-            });
-            if (MAIN().isDebugEnabled())
-                for (auto it = removals.begin(); it != removals.end(); ++it)
-                    qCDebug(MAIN) << it.value()
-                        << "is no more a direct chat with" << it.key()->id();
+    // After running this loop, the account data events not saved in
+    // d->accountData (see the end of the loop body) are auto-cleaned away
+    for (auto& eventPtr: data.takeAccountData())
+        visit(*eventPtr,
+              [this](const DirectChatEvent& dce) {
+                  const auto& usersToDCs = dce.usersToDirectChats();
+                  DirectChatsMap removals =
+                          erase_if(d->directChats, [&usersToDCs](auto it) {
+                              return !usersToDCs.contains(it.key()->id(),
+                                                          it.value());
+                          });
+                  erase_if(d->directChatUsers, [&usersToDCs](auto it) {
+                      return !usersToDCs.contains(it.value()->id(), it.key());
+                  });
+                  if (MAIN().isDebugEnabled())
+                      for (auto it = removals.begin(); it != removals.end();
+                               ++it)
+                          qCDebug(MAIN) << it.value()
+                                        << "is no more a direct chat with"
+                                        << it.key()->id();
 
-            DirectChatsMap additions;
-            for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it)
-            {
-                if (auto* u = user(it.key()))
-                {
-                    if (!d->directChats.contains(u, it.value()))
-                    {
-                        Q_ASSERT(!d->directChatUsers.contains(it.value(), u));
-                        additions.insert(u, it.value());
-                        d->directChats.insert(u, it.value());
-                        d->directChatUsers.insert(it.value(), u);
-                        qCDebug(MAIN) << "Marked room" << it.value()
+                  DirectChatsMap additions;
+                  for (auto it = usersToDCs.begin(); it != usersToDCs.end();
+                           ++it) {
+                      if (auto* u = user(it.key())) {
+                          if (!d->directChats.contains(u, it.value())) {
+                              Q_ASSERT(!d->directChatUsers.contains(it.value(),
+                                                                    u));
+                              additions.insert(u, it.value());
+                              d->directChats.insert(u, it.value());
+                              d->directChatUsers.insert(it.value(), u);
+                              qCDebug(MAIN)
+                                      << "Marked room" << it.value()
                                       << "as a direct chat with" << u->id();
-                    }
-                } else
-                    qCWarning(MAIN)
-                            << "Couldn't get a user object for" << it.key();
-            }
-            if (!additions.isEmpty() || !removals.isEmpty())
-                emit directChatsListChanged(additions, removals);
+                          }
+                      } else
+                          qCWarning(MAIN) << "Couldn't get a user object for"
+                                          << it.key();
+                  }
+                  if (!additions.isEmpty() || !removals.isEmpty())
+                      emit directChatsListChanged(additions, removals);
+              },
+              // catch-all, passing eventPtr for a possible take-over
+              [this, &eventPtr](const Event& accountEvent) {
+                  if (is<IgnoredUsersEvent>(accountEvent))
+                      qCDebug(MAIN)
+                              << "Users ignored by" << d->userId << "updated:"
+                              << QStringList::fromSet(ignoredUsers()).join(',');
 
-            continue;
-        }
-        if (is<IgnoredUsersEvent>(*accountEvent))
-            qCDebug(MAIN) << "Users ignored by" << d->userId << "updated:"
-                << QStringList::fromSet(ignoredUsers()).join(',');
-
-        auto& currentData = d->accountData[accountEvent->matrixType()];
-        // A polymorphic event-specific comparison might be a bit more
-        // efficient; maaybe do it another day
-        if (!currentData ||
-                currentData->contentJson() != accountEvent->contentJson())
-        {
-            currentData = std::move(accountEvent);
-            qCDebug(MAIN) << "Updated account data of type"
-                          << currentData->matrixType();
-            emit accountDataChanged(currentData->matrixType());
-        }
-    }
+                  auto& currentData = d->accountData[accountEvent.matrixType()];
+                  // A polymorphic event-specific comparison might be a bit more
+                  // efficient; maaybe do it another day
+                  if (!currentData
+                      || currentData->contentJson()
+                              != accountEvent.contentJson()) {
+                      currentData = std::move(eventPtr);
+                      qCDebug(MAIN) << "Updated account data of type"
+                                    << currentData->matrixType();
+                      emit accountDataChanged(currentData->matrixType());
+                  }
+              });
 }
 
 void Connection::stopSync()
