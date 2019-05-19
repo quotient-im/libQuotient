@@ -80,8 +80,8 @@ class Connection::Private
         std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
-        // separately so we should, e.g., keep objects for Invite and
-        // Leave state of the same room.
+        // separately; specifically, we should keep objects for Invite and
+        // Leave state of the same room if the two happen to co-exist.
         QHash<QPair<QString, bool>, Room*> roomMap;
         // Mapping from aliases to room ids, as per the last sync
         QHash<QString, QString> roomAliasMap;
