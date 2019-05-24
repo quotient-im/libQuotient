@@ -11,7 +11,6 @@ if (NOT WIN32)
 endif(NOT WIN32)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(cmake/FindOlm.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -53,8 +52,24 @@ endforeach ()
 # upstream Qt 5.4 is required.
 find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
-find_package(Olm REQUIRED)
-get_filename_component(Olm_Prefix "${Olm_INCLUDE_DIRS}/.." ABSOLUTE)
+
+if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
+        AND EXISTS ${PROJECT_SOURCE_DIR}/lib/libQtOlm/lib/utils.h)
+    add_subdirectory(lib/libQtOlm EXCLUDE_FROM_ALL)
+    include_directories(lib/libQtOlm)
+    if (NOT DEFINED USE_INTREE_LIBQOLM)
+        set (USE_INTREE_LIBQOLM 1)
+    endif ()
+endif ()
+if (NOT USE_INTREE_LIBQOLM)
+    find_package(QtOlm 0.1.0 REQUIRED)
+    if (NOT QtOlm_FOUND)
+        message( WARNING "libQtOlm not found; configuration will most likely fail.")
+        message( WARNING "Make sure you have installed libQtOlm development files")
+        message( WARNING "as a package or checked out the library sources in lib/.")
+        message( WARNING "See also BUILDING.md")
+    endif ()
+endif ()
 
 if (GTAD_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
@@ -78,7 +93,20 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
     message( STATUS "Generating API stubs enabled" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
     message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
-    message( STATUS "Using libolm at ${Olm_Prefix}" )
+endif ()
+find_package(Git)
+if (USE_INTREE_LIBQOLM)
+    message( STATUS "Using in-tree libQtOlm")
+    if (GIT_FOUND)
+        execute_process(COMMAND
+            "${GIT_EXECUTABLE}" rev-parse -q HEAD
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/libQtOlm/lib
+            OUTPUT_VARIABLE LIB_GIT_SHA1
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message( STATUS "  Library git SHA1: ${LIB_GIT_SHA1}")
+    endif (GIT_FOUND)
+else ()
+    message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -168,9 +196,8 @@ set_property(TARGET QMatrixClient APPEND PROPERTY
 target_include_directories(QMatrixClient PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    "${Olm_INCLUDE_DIRS}"
 )
-target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia ${Olm_LIBRARIES})
+target_link_libraries(QMatrixClient QtOlm Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core QMatrixClient)
