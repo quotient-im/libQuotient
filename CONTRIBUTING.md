@@ -99,22 +99,7 @@ Any components proposed for reuse should have a license that permits releasing
 a derivative work under *LGPL v2.1 or later* or LGPL v3. Moreover, the license of
 a proposed component should be approved by OSI, no exceptions.
 
-## Vulnerability reporting (security issues)
-
-If you find a significant vulnerability, or evidence of one,
-use either of the following contacts:
-* send an email to Kitsune Ral [Kitsune-Ral@users.sf.net](mailto:Kitsune-Ral@users.sf.net)
-* reach out in Matrix to #kitsune:matrix.org (if you can, switch encryption **on**)
-
-In any of these two options, _indicate that you have such information_
-(do not share the information yet), and we'll tell you the next steps.
-
-By default, we will give credit to anyone who reports a vulnerability in
-a responsible way so that we can fix it before public disclosure. If you want
-to remain anonymous or pseudonymous instead, please let us know; we will
-gladly respect your wishes. If you provide a fix as a PR, you have no way
-to remain anonymous (and you also disclose the vulnerability thereby) so this
-is not the right way, unless the vulnerability is already made public.
+## Vulnerability reporting (security issues) - see [SECURITY.md](./SECURITY.md)
 
 ## Documentation changes
 
