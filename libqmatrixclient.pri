@@ -38,6 +38,7 @@ HEADERS += \
     $$SRCPATH/events/callinviteevent.h \
     $$SRCPATH/events/accountdataevents.h \
     $$SRCPATH/events/directchatevent.h \
+    $$SRCPATH/events/encryptionevent.h \
     $$SRCPATH/events/redactionevent.h \
     $$SRCPATH/events/eventloader.h \
     $$SRCPATH/jobs/requestdata.h \
@@ -81,6 +82,7 @@ SOURCES += \
     $$SRCPATH/events/callinviteevent.cpp \
     $$SRCPATH/events/receiptevent.cpp \
     $$SRCPATH/events/directchatevent.cpp \
+    $$SRCPATH/events/encryptionevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \

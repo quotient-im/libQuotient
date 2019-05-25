@@ -31,6 +31,7 @@
 #include "csapi/tags.h"
 #include "csapi/room_upgrades.h"
 #include "events/simplestateevents.h"
+#include "events/encryptionevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
 #include "events/roomavatarevent.h"

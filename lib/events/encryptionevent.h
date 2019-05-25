@@ -18,25 +18,58 @@
 
 #pragma once
 
-#include "roomevent.h"
+#include "stateevent.h"
+#include "eventcontent.h"
 
 namespace QMatrixClient
 {
-    class EncryptionEvent : public RoomEvent
+    class EncryptionEventContent: public EventContent::Base
     {
+        public:
+            enum EncryptionType : size_t { MegolmV1AesSha2 = 0,
+                                           Undefined };
+
+            explicit EncryptionEventContent(EncryptionType et = Undefined)
+                : encryption(et)
+            { }
+            explicit EncryptionEventContent(const QJsonObject& json);
+
+            EncryptionType encryption;
+            QString algorithm;
+            int rotationPeriodMs;
+            int rotationPeriodMsgs;
+
+        protected:
+            void fillJson(QJsonObject* o) const override;
+    };
+
+    using EncryptionType = EncryptionEventContent::EncryptionType;
+
+    class EncryptionEvent : public StateEvent<EncryptionEventContent>
+    {
+            Q_GADGET
         public:
             DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
 
-            explicit EncryptionEvent(const QJsonObject& obj)
-                : RoomEvent(typeId(), obj)
-                , _algorithm(contentJson()["algorithm"].toString())
+            using EncryptionType = EncryptionEventContent::EncryptionType;
+
+            explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate default value
+                : StateEvent(typeId(), obj)
+            { }
+            EncryptionEvent(EncryptionEventContent&& c)
+                : StateEvent(typeId(), matrixTypeId(), c)
             { }
 
-            QString algorithm() const { return _algorithm; }
+            EncryptionType encryption() const  { return content().encryption; }
+
+            QString algorithm() const { return content().algorithm; }
+            int rotationPeriodMs() const { return content().rotationPeriodMs; }
+            int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
 
         private:
-            QString _algorithm;
+            REGISTER_ENUM(EncryptionType)
     };
+
     REGISTER_EVENT_TYPE(EncryptionEvent)
     DEFINE_EVENTTYPE_ALIAS(Encryption, EncryptionEvent)
 }  // namespace QMatrixClient
