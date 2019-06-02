@@ -75,7 +75,8 @@ enum EventsPlacement : int { Older = -1, Newer = 1 };
 class Room::Private
 {
     public:
-        /** Map of user names to users. User names potentially duplicate, hence a multi-hashmap. */
+        /// Map of user names to users
+        /** User names potentially duplicate, hence QMultiHash. */
         using members_map_t = QMultiHash<QString, User*>;
 
         Private(Connection* c, QString id_, JoinState initialJoinState)
@@ -515,7 +516,7 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
 
     if(newUnreadMessages > 0)
     {
-        // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+        // See https://github.com/quotient-im/libQuotient/wiki/unread_count
         if (unreadMessages < 0)
             unreadMessages = 0;
 
@@ -556,7 +557,7 @@ Room::Changes Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker,
         if (et.nsecsElapsed() > profilerMinNsecs() / 10)
             qCDebug(PROFILER) << "Recounting unread messages took" << et;
 
-        // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+        // See https://github.com/quotient-im/libQuotient/wiki/unread_count
         if (unreadMessages == 0)
             unreadMessages = -1;
 
@@ -612,7 +613,7 @@ void Room::markAllMessagesAsRead()
 bool Room::canSwitchVersions() const
 {
     if (!successorId().isEmpty())
-        return false; // Noone can upgrade a room that's already upgraded
+        return false; // No one can upgrade a room that's already upgraded
 
     // TODO, #276: m.room.power_levels
     const auto* plEvt =
@@ -1235,7 +1236,7 @@ void Room::Private::removeMemberFromMap(const QString& username, User* u)
     }
     membersMap.remove(username, u);
     // If there was one namesake besides the removed user, signal member renaming
-    // for it because it doesn't need to be disambiguated anymore.
+    // for it because it doesn't need to be disambiguated any more.
     if (namesake)
         emit q->memberRenamed(namesake);
 }
@@ -1354,7 +1355,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     for( auto&& ephemeralEvent: data.ephemeral )
         roomChanges |= processEphemeralEvent(move(ephemeralEvent));
 
-    // See https://github.com/QMatrixClient/libqmatrixclient/wiki/unread_count
+    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
     if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages)
     {
         qCDebug(MAIN) << "Setting unread_count to" << data.unreadCount;

@@ -322,7 +322,7 @@ namespace QMatrixClient
             bool hasAccountData(const QString& type) const;
 
             /** Get a generic account data event of the given type
-             * This returns a generic hashmap for any room account data event
+             * This returns a generic hash map for any room account data event
              * stored on the server. Tags and read markers cannot be retrieved
              * using this method _yet_.
              */
@@ -516,7 +516,7 @@ namespace QMatrixClient
 
             /** A common signal for various kinds of changes in the room
              * Aside from all changes in the room state
-             * @param changes a set of flags describing what changes occured
+             * @param changes a set of flags describing what changes occurred
              *                upon the last sync
              * \sa StateChange
              */
@@ -524,7 +524,7 @@ namespace QMatrixClient
             /**
              * \brief The room name, the canonical alias or other aliases changed
              *
-             * Not triggered when displayname changes.
+             * Not triggered when display name changes.
              */
             void namesChanged(Room* room);
             void displaynameAboutToChange(Room* room);
@@ -581,7 +581,7 @@ namespace QMatrixClient
             /// The room's version stability may have changed
             void stabilityUpdated(QString recommendedDefault,
                                   QStringList stableVersions);
-            /// This room has been upgraded and won't receive updates anymore
+            /// This room has been upgraded and won't receive updates any more
             void upgraded(QString serverMessage, Room* successor);
             /// An attempted room upgrade has failed
             void upgradeFailed(QString errorMessage);
