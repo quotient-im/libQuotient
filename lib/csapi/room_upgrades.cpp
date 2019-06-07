@@ -41,7 +41,7 @@ BaseJob::Status UpgradeRoomJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("replacement_room"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'replacement_room' not found in the response" };
     fromJson(json.value("replacement_room"_ls), d->replacementRoom);
     return Success;

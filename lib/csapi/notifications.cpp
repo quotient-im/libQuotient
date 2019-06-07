@@ -80,7 +80,7 @@ BaseJob::Status GetNotificationsJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     fromJson(json.value("next_token"_ls), d->nextToken);
     if (!json.contains("notifications"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'notifications' not found in the response" };
     fromJson(json.value("notifications"_ls), d->notifications);
     return Success;

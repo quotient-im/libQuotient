@@ -50,7 +50,7 @@ BaseJob::Status UploadContentJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("content_uri"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'content_uri' not found in the response" };
     fromJson(json.value("content_uri"_ls), d->contentUri);
     return Success;

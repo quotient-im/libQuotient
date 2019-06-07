@@ -57,7 +57,7 @@ BaseJob::Status JoinRoomByIdJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("room_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'room_id' not found in the response" };
     fromJson(json.value("room_id"_ls), d->roomId);
     return Success;
@@ -124,7 +124,7 @@ BaseJob::Status JoinRoomJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("room_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'room_id' not found in the response" };
     fromJson(json.value("room_id"_ls), d->roomId);
     return Success;

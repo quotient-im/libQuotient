@@ -39,7 +39,7 @@ BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("filter_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'filter_id' not found in the response" };
     fromJson(json.value("filter_id"_ls), d->filterId);
     return Success;

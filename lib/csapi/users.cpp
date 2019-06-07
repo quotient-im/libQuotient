@@ -63,11 +63,11 @@ BaseJob::Status SearchUserDirectoryJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("results"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'results' not found in the response" };
     fromJson(json.value("results"_ls), d->results);
     if (!json.contains("limited"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'limited' not found in the response" };
     fromJson(json.value("limited"_ls), d->limited);
     return Success;

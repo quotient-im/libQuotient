@@ -44,7 +44,7 @@ BaseJob::Status GetPushRulesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("global"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'global' not found in the response" };
     fromJson(json.value("global"_ls), d->global);
     return Success;
@@ -152,7 +152,7 @@ BaseJob::Status IsPushRuleEnabledJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("enabled"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'enabled' not found in the response" };
     fromJson(json.value("enabled"_ls), d->enabled);
     return Success;
@@ -201,7 +201,7 @@ BaseJob::Status GetPushRuleActionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("actions"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'actions' not found in the response" };
     fromJson(json.value("actions"_ls), d->actions);
     return Success;
