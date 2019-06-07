@@ -46,28 +46,36 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
             Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
         public:
-            /* Just in case, the values are compatible with KJob
-             * (which BaseJob used to inherit from). */
             enum StatusCode { NoError = 0 // To be compatible with Qt conventions
                 , Success = 0
                 , Pending = 1
                 , WarningLevel = 20
-                , UnexpectedResponseTypeWarning = 21
+                , UnexpectedResponseType = 21
+                , UnexpectedResponseTypeWarning = UnexpectedResponseType
                 , Abandoned = 50 //< A very brief period between abandoning and object deletion
                 , ErrorLevel = 100 //< Errors have codes starting from this
                 , NetworkError = 100
-                , JsonParseError // TODO: Merge into IncorrectResponseError
-                , TimeoutError
+                , Timeout
+                , TimeoutError = Timeout
                 , ContentAccessError
                 , NotFoundError
-                , IncorrectRequestError
-                , IncorrectResponseError
-                , TooManyRequestsError
-                , RequestNotImplementedError
-                , UnsupportedRoomVersionError
-                , NetworkAuthRequiredError
-                , UserConsentRequiredError
-                , UserDefinedError = 200
+                , IncorrectRequest
+                , IncorrectRequestError = IncorrectRequest
+                , IncorrectResponse
+                , IncorrectResponseError = IncorrectResponse
+                , JsonParseError  //< deprecated; Use IncorrectResponse instead
+                  = IncorrectResponse
+                , TooManyRequests
+                , TooManyRequestsError = TooManyRequests
+                , RequestNotImplemented
+                , RequestNotImplementedError = RequestNotImplemented
+                , UnsupportedRoomVersion
+                , UnsupportedRoomVersionError = UnsupportedRoomVersion
+                , NetworkAuthRequired
+                , NetworkAuthRequiredError = NetworkAuthRequired
+                , UserConsentRequired
+                , UserConsentRequiredError = UserConsentRequired
+                , UserDefinedError = 256
             };
 
             /**
