@@ -792,7 +792,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     {
         auto leaveJob = room->leaveRoom();
         connect(leaveJob, &BaseJob::result, this, [this, leaveJob, forgetJob, room] {
-            // After leave, continue if there is no error or the room id is not found (IncorrectRequestError)
+            // After leave, continue if there is no error or the room id is not found
             if(!leaveJob->error() || leaveJob->error() == BaseJob::StatusCode::UnknownObjectError) {
                 forgetJob->start(connectionData());
                 // If the matching /sync response hasn't arrived yet, mark the room
