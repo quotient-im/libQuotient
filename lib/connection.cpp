@@ -813,7 +813,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob]
     {
         // Leave room in case of success, or room not known by server
-        if(!forgetJob->error() || forgetJob->error() == BaseJob::StatusCode::IncorrectRequestError || forgetJob->error() == BaseJob::StatusCode::UnknownObjectError) {
+        if(!forgetJob->error() || forgetJob->error() == BaseJob::UnknownObjectError) {
             // Delete the room from roomMap
             d->removeRoom(id);
         } else {
