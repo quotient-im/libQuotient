@@ -18,6 +18,7 @@ static const auto Curve25519Name = QStringLiteral("curve25519");
 static const auto SignedCurve25519Name = QStringLiteral("signed_curve25519");
 static const auto OlmCurve25519AesSha256AlgoName = QStringLiteral("m.olm.curve25519-aes-sha256");
 static const auto MegolmV1AesShaAlgoName = QStringLiteral("m.megolm.v1.aes-sha");
+static const QStringList SupportedAlgorithms = { OlmCurve25519AesSha256AlgoName, MegolmV1AesShaAlgoName };
 
 class EncryptionManager::Private
 {
@@ -86,7 +87,52 @@ EncryptionManager::~EncryptionManager() = default;
 
 void EncryptionManager::uploadIdentityKeys(Connection* connection)
 {
-    // TODO
+    // https://matrix.org/docs/spec/client_server/latest#post-matrix-client-r0-keys-upload
+    DeviceKeys deviceKeys
+    {
+        /*
+         * The ID of the user the device belongs to. Must match the user ID used when logging in.
+         * The ID of the device these keys belong to. Must match the device ID used when logging in.
+         * The encryption algorithms supported by this device.
+         */
+        connection->userId(), connection->deviceId(), SupportedAlgorithms,
+        /*
+         * Public identity keys. The names of the properties should be in the format <algorithm>:<device_id>.
+         * The keys themselves should be encoded as specified by the key algorithm.
+         */
+        {
+            {
+                Curve25519Name + QStringLiteral(":") + connection->deviceId(),
+                        d->olmAccount->curve25519IdentityKey()
+            },
+            {
+                ed25519Name + QStringLiteral(":") + connection->deviceId(),
+                        d->olmAccount->ed25519IdentityKey()
+            }
+        },
+        /*
+         * Signatures for the device key object.
+         * A map from user ID, to a map from <algorithm>:<device_id> to the signature.
+         * The signature is calculated using the process called Signing JSON.
+         */
+        {
+            {
+                connection->userId(),
+                {
+                    {
+                        ed25519Name + QStringLiteral(":") + connection->deviceId(),
+                                d->olmAccount->sign(toJson(deviceKeys))
+                    }
+                }
+            }
+        }
+    };
+
+    connect(d->uploadIdentityKeysJob, &BaseJob::success, this, [this] {
+        d->setOneTimeKeyCounts(d->uploadIdentityKeysJob->oneTimeKeyCounts());
+        qDebug() << QString("Uploaded identity keys.");
+    });
+    d->uploadIdentityKeysJob = connection->callApi<UploadKeysJob>(deviceKeys);
 }
 
 void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpdate)
