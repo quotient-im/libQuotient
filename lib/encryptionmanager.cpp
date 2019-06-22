@@ -137,7 +137,50 @@ void EncryptionManager::uploadIdentityKeys(Connection* connection)
 
 void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpdate)
 {
-    // TODO
+    if (forceUpdate || d->oneTimeKeyCounts.isEmpty())
+    {
+        auto job = connection->callApi<UploadKeysJob>();
+        connect(job, &BaseJob::success, this, [job,this] {
+            d->setOneTimeKeyCounts(job->oneTimeKeyCounts());
+        });
+
+    }
+
+    int signedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(SignedCurve25519Name, 0);
+    int unsignedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(Curve25519Name, 0);
+
+    d->olmAccount->generateOneTimeKeys(signedKeysToUploadCount + unsignedKeysToUploadCount);
+
+    QHash<QString, QVariant> oneTimeKeys = {};
+    const auto& olmAccountCurve25519OneTimeKeys = d->olmAccount->curve25519OneTimeKeys();
+
+    int oneTimeKeysCounter = 0;
+    for (auto it = olmAccountCurve25519OneTimeKeys.cbegin(); it != olmAccountCurve25519OneTimeKeys.cend(); ++it)
+    {
+        QString keyId = it.key();
+        QString keyType;
+        QVariant key;
+        if (oneTimeKeysCounter < signedKeysToUploadCount)
+        {
+            QJsonObject message
+            {
+                {QStringLiteral("key"), it.value().toString()}
+            };
+            key = d->olmAccount->sign(message);
+            keyType = SignedCurve25519Name;
+
+        } else {
+            key = it.value();
+            keyType = Curve25519Name;
+        }
+        ++oneTimeKeysCounter;
+        oneTimeKeys.insert(QString("%1:%2").arg(keyType).arg(keyId), key);
+    }
+
+    d->uploadOneTimeKeysJob = connection->callApi<UploadKeysJob>(none, oneTimeKeys);
+    d->olmAccount->markKeysAsPublished();
+    qDebug() << QString("Uploaded new one-time keys: %1 signed, %2 unsigned.")
+                .arg(signedKeysToUploadCount).arg(unsignedKeysToUploadCount);
 }
 
 void EncryptionManager::Private::updateKeysToUpload()
