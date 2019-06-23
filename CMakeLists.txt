@@ -125,7 +125,8 @@ set(CSAPI_DIR csapi)
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
-foreach (D ${CSAPI_DIR} ${ASAPI_DEF_DIR} ${ISAPI_DEF_DIR})
+foreach (D ${CSAPI_DIR} ${CSAPI_DIR}/definitions
+         ${CSAPI_DIR}/definitions/wellknown ${ASAPI_DEF_DIR} ${ISAPI_DEF_DIR})
     aux_source_directory(lib/${D} api_SRCS)
 endforeach()
 
