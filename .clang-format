@@ -59,7 +59,7 @@ BreakInheritanceList: BeforeColon
 #BreakConstructorInitializers: BeforeComma
 #BreakStringLiterals: true
 ColumnLimit: 80
-CommentPragmas: '^!|^:'
+#CommentPragmas: '^!|^:'
 CompactNamespaces: false
 #ConstructorInitializerAllOnOneLineOrOnePerLine: false
 #ConstructorInitializerIndentWidth: 4
