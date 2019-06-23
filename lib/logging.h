@@ -28,54 +28,55 @@ Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
 
-namespace QMatrixClient {
-    // QDebug manipulators
+namespace QMatrixClient
+{
+// QDebug manipulators
 
-    using QDebugManip = QDebug (*)(QDebug);
+using QDebugManip = QDebug (*)(QDebug);
 
-    /**
-     * @brief QDebug manipulator to setup the stream for JSON output
-     *
-     * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
-     * and the respective addition of QDebug::noquote().
-     * Together with the operator<<() helper, the proposed usage is
-     * (similar to std:: I/O manipulators):
-     *
-     * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
-     */
-    inline QDebug formatJson(QDebug debug_object)
-    {
+/**
+ * @brief QDebug manipulator to setup the stream for JSON output
+ *
+ * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
+ * and the respective addition of QDebug::noquote().
+ * Together with the operator<<() helper, the proposed usage is
+ * (similar to std:: I/O manipulators):
+ *
+ * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
+ */
+inline QDebug formatJson(QDebug debug_object)
+{
 #if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
-        return debug_object;
+    return debug_object;
 #else
-        return debug_object.noquote();
+    return debug_object.noquote();
 #endif
-    }
-
-    /**
-     * @brief A helper operator to facilitate usage of formatJson (and possibly
-     * other manipulators)
-     *
-     * @param debug_object to output the json to
-     * @param qdm a QDebug manipulator
-     * @return a copy of debug_object that has its mode altered by qdm
-     */
-    inline QDebug operator<<(QDebug debug_object, QDebugManip qdm)
-    {
-        return qdm(debug_object);
-    }
-
-    inline qint64 profilerMinNsecs()
-    {
-        return
-#ifdef PROFILER_LOG_USECS
-                PROFILER_LOG_USECS
-#else
-                200
-#endif
-                * 1000;
-    }
 }
+
+/**
+ * @brief A helper operator to facilitate usage of formatJson (and possibly
+ * other manipulators)
+ *
+ * @param debug_object to output the json to
+ * @param qdm a QDebug manipulator
+ * @return a copy of debug_object that has its mode altered by qdm
+ */
+inline QDebug operator<<(QDebug debug_object, QDebugManip qdm)
+{
+    return qdm(debug_object);
+}
+
+inline qint64 profilerMinNsecs()
+{
+    return
+#ifdef PROFILER_LOG_USECS
+        PROFILER_LOG_USECS
+#else
+        200
+#endif
+        * 1000;
+}
+} // namespace QMatrixClient
 
 inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {

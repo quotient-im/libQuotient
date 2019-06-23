@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetRoomEventsJob::Private
 {
-    public:
+public:
     QString begin;
     QString end;
     RoomEvents chunk;
@@ -39,8 +39,8 @@ QUrl GetRoomEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                       const QString& filter)
 {
     return BaseJob::makeRequestUrl(
-            std::move(baseUrl), basePath % "/rooms/" % roomId % "/messages",
-            queryToGetRoomEvents(from, to, dir, limit, filter));
+        std::move(baseUrl), basePath % "/rooms/" % roomId % "/messages",
+        queryToGetRoomEvents(from, to, dir, limit, filter));
 }
 
 static const auto GetRoomEventsJobName = QStringLiteral("GetRoomEventsJob");
@@ -50,10 +50,9 @@ GetRoomEventsJob::GetRoomEventsJob(const QString& roomId, const QString& from,
                                    Omittable<int> limit, const QString& filter)
     : BaseJob(HttpVerb::Get, GetRoomEventsJobName,
               basePath % "/rooms/" % roomId % "/messages",
-              queryToGetRoomEvents(from, to, dir, limit, filter)),
-      d(new Private)
-{
-}
+              queryToGetRoomEvents(from, to, dir, limit, filter))
+    , d(new Private)
+{}
 
 GetRoomEventsJob::~GetRoomEventsJob() = default;
 
@@ -69,5 +68,6 @@ BaseJob::Status GetRoomEventsJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("start"_ls), d->begin);
     fromJson(json.value("end"_ls), d->end);
     fromJson(json.value("chunk"_ls), d->chunk);
+
     return Success;
 }

@@ -23,63 +23,73 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 
-static const auto RegExpOptions = QRegularExpression::CaseInsensitiveOption
-        | QRegularExpression::OptimizeOnFirstUsageOption
-        | QRegularExpression::UseUnicodePropertiesOption;
+static const auto RegExpOptions =
+    QRegularExpression::CaseInsensitiveOption
+    | QRegularExpression::OptimizeOnFirstUsageOption
+    | QRegularExpression::UseUnicodePropertiesOption;
 
 // Converts all that looks like a URL into HTML links
-static void linkifyUrls(QString& htmlEscapedText)
+void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
 {
+    // Note: outer parentheses are a part of C++ raw string delimiters, not of
+    // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
+    // Note2: the next-outer parentheses are \N in the replacement.
+
+    // generic url:
     // regexp is originally taken from Konsole (https://github.com/KDE/konsole)
-    // full url:
     // protocolname:// or www. followed by anything other than whitespaces,
     // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
     // comma or dot
-    // Note: outer parentheses are a part of C++ raw string delimiters, not of
-    // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
-    // Note2: yet another pair of outer parentheses are \1 in the replacement.
     static const QRegularExpression FullUrlRegExp(
-            QStringLiteral(
-                    R"(((www\.(?!\.)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
-            RegExpOptions);
+        QStringLiteral(
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+        RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
     static const QRegularExpression EmailAddressRegExp(
-            QStringLiteral(R"((mailto:)?(\b(\w|\.|-)+@(\w|\.|-)+\.\w+\b))"),
-            RegExpOptions);
+        QStringLiteral(R"(\b(mailto:)?((\w|\.|-)+@(\w|\.|-)+\.\w+\b))"),
+        RegExpOptions);
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
     static const QRegularExpression MxIdRegExp(
-            QStringLiteral(
-                    R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:[-.a-z0-9]+))"),
-            RegExpOptions);
+        QStringLiteral(
+            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
+        RegExpOptions);
 
-    // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&
+    // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
                             QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
     htmlEscapedText.replace(FullUrlRegExp,
                             QStringLiteral(R"(<a href="\1">\1</a>)"));
     htmlEscapedText.replace(
-            MxIdRegExp,
-            QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+        MxIdRegExp,
+        QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+}
+
+QString QMatrixClient::sanitized(const QString& plainText)
+{
+    auto text = plainText;
+    text.remove(QChar(0x202e)); // RLO
+    text.remove(QChar(0x202d)); // LRO
+    text.remove(QChar(0xfffc)); // Object replacement character
+    return text;
 }
 
 QString QMatrixClient::prettyPrint(const QString& plainText)
 {
-    auto pt = QStringLiteral("<span style='white-space:pre-wrap'>")
-            + plainText.toHtmlEscaped() + QStringLiteral("</span>");
-    pt.replace('\n', QStringLiteral("<br/>"));
-
+    auto pt = plainText.toHtmlEscaped();
     linkifyUrls(pt);
-    return pt;
+    pt.replace('\n', QStringLiteral("<br/>"));
+    return QStringLiteral("<span style='white-space:pre-wrap'>") + pt
+           + QStringLiteral("</span>");
 }
 
 QString QMatrixClient::cacheLocation(const QString& dirName)
 {
     const QString cachePath =
-            QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-            % '/' % dirName % '/';
+        QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % '/'
+        % dirName % '/';
     QDir dir;
     if (!dir.exists(cachePath))
         dir.mkpath(cachePath);
@@ -89,8 +99,8 @@ QString QMatrixClient::cacheLocation(const QString& dirName)
 // Tests for function_traits<>
 
 #ifdef Q_CC_CLANG
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCSimplifyInspection"
+#    pragma clang diagnostic push
+#    pragma ide diagnostic ignored "OCSimplifyInspection"
 #endif
 using namespace QMatrixClient;
 
@@ -106,14 +116,16 @@ void f2(int, QString);
 static_assert(std::is_same<fn_arg_t<decltype(f2), 1>, QString>::value,
               "Test fn_arg_t<>");
 
-struct S {
+struct S
+{
     int mf();
 };
 static_assert(is_callable_v<decltype(&S::mf)>, "Test member function");
 static_assert(returns<int, decltype(&S::mf)>(),
               "Test returns<> with member function");
 
-struct Fo {
+struct Fo
+{
     int operator()();
 };
 static_assert(is_callable_v<Fo>, "Test is_callable<> with function object");
@@ -121,7 +133,8 @@ static_assert(function_traits<Fo>::arg_number == 0, "Test function object");
 static_assert(std::is_same<fn_return_t<Fo>, int>::value,
               "Test return type of function object");
 
-struct Fo1 {
+struct Fo1
+{
     void operator()(int);
 };
 static_assert(function_traits<Fo1>::arg_number == 1, "Test function object 1");
@@ -136,10 +149,14 @@ static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
               "Test fn_return_t<> with lambda");
 #endif
 
-template <typename T> struct fn_object {
+template <typename T>
+struct fn_object
+{
     static int smf(double) { return 0; }
 };
-template <> struct fn_object<QString> {
+template <>
+struct fn_object<QString>
+{
     void operator()(QString);
 };
 static_assert(is_callable_v<fn_object<QString>>, "Test function object");
@@ -152,10 +169,14 @@ static_assert(!is_callable_v<fn_object<int>>, "Test non-function object");
 // static_assert(returns<int, decltype(&fn_object<int>::smf)>(),
 //              "Test returns<> with static member function");
 
-template <typename T> QString ft(T&&);
+template <typename T>
+QString ft(T&&)
+{
+    return {};
+}
 static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
               "Test function templates");
 
 #ifdef Q_CC_CLANG
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
 #endif

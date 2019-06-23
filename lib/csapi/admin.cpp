@@ -12,39 +12,45 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetWhoIsJob::ConnectionInfo& result)
-        {
-            fromJson(jo.value("ip"_ls), result.ip);
-            fromJson(jo.value("last_seen"_ls), result.lastSeen);
-            fromJson(jo.value("user_agent"_ls), result.userAgent);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetWhoIsJob::ConnectionInfo& result)
+    {
+        fromJson(jo.value("ip"_ls), result.ip);
+        fromJson(jo.value("last_seen"_ls), result.lastSeen);
+        fromJson(jo.value("user_agent"_ls), result.userAgent);
+    }
+};
 
-    template <> struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetWhoIsJob::SessionInfo& result)
-        {
-            fromJson(jo.value("connections"_ls), result.connections);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetWhoIsJob::SessionInfo>
+{
+    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
+    {
+        fromJson(jo.value("connections"_ls), result.connections);
+    }
+};
 
-    template <> struct JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetWhoIsJob::DeviceInfo& result)
-        {
-            fromJson(jo.value("sessions"_ls), result.sessions);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetWhoIsJob::DeviceInfo>
+{
+    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
+    {
+        fromJson(jo.value("sessions"_ls), result.sessions);
+    }
+};
+
 } // namespace QMatrixClient
 
 class GetWhoIsJob::Private
 {
-    public:
+public:
     QString userId;
     QHash<QString, DeviceInfo> devices;
 };
@@ -59,10 +65,9 @@ static const auto GetWhoIsJobName = QStringLiteral("GetWhoIsJob");
 
 GetWhoIsJob::GetWhoIsJob(const QString& userId)
     : BaseJob(HttpVerb::Get, GetWhoIsJobName,
-              basePath % "/admin/whois/" % userId),
-      d(new Private)
-{
-}
+              basePath % "/admin/whois/" % userId)
+    , d(new Private)
+{}
 
 GetWhoIsJob::~GetWhoIsJob() = default;
 
@@ -78,5 +83,6 @@ BaseJob::Status GetWhoIsJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     fromJson(json.value("user_id"_ls), d->userId);
     fromJson(json.value("devices"_ls), d->devices);
+
     return Success;
 }

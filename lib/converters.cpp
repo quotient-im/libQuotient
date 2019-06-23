@@ -36,20 +36,20 @@ QJsonObject JsonConverter<variant_map_t>::dump(const variant_map_t& map)
 {
     return
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-            QJsonObject::fromVariantHash
+        QJsonObject::fromVariantHash
 #else
-            QJsonObject::fromVariantMap
+        QJsonObject::fromVariantMap
 #endif
-            (map);
+        (map);
 }
 
 variant_map_t JsonConverter<QVariantHash>::load(const QJsonValue& jv)
 {
     return jv.toObject().
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-            toVariantHash
+        toVariantHash
 #else
-            toVariantMap
+        toVariantMap
 #endif
-            ();
+        ();
 }

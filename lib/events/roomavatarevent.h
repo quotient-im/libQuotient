@@ -21,21 +21,21 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient {
-    class RoomAvatarEvent : public StateEvent<EventContent::ImageContent>
-    {
-        // It's a bit of an overkill to use a full-fledged ImageContent
-        // because in reality m.room.avatar usually only has a single URL,
-        // without a thumbnail. But The Spec says there be thumbnails, and
-        // we follow The Spec.
-        public:
-        DEFINE_EVENT_TYPEID("m.room.avatar", RoomAvatarEvent)
-        explicit RoomAvatarEvent(const QJsonObject& obj)
-            : StateEvent(typeId(), obj)
-        {
-        }
-        QUrl url() const { return content().url; }
-    };
-    REGISTER_EVENT_TYPE(RoomAvatarEvent)
-    DEFINE_EVENTTYPE_ALIAS(RoomAvatar, RoomAvatarEvent)
+namespace QMatrixClient
+{
+class RoomAvatarEvent : public StateEvent<EventContent::ImageContent>
+{
+    // It's a bit of an overkill to use a full-fledged ImageContent
+    // because in reality m.room.avatar usually only has a single URL,
+    // without a thumbnail. But The Spec says there be thumbnails, and
+    // we follow The Spec.
+public:
+    DEFINE_EVENT_TYPEID("m.room.avatar", RoomAvatarEvent)
+    explicit RoomAvatarEvent(const QJsonObject& obj)
+        : StateEvent(typeId(), obj)
+    {}
+    QUrl url() const { return content().url; }
+};
+REGISTER_EVENT_TYPE(RoomAvatarEvent)
+DEFINE_EVENTTYPE_ALIAS(RoomAvatar, RoomAvatarEvent)
 } // namespace QMatrixClient

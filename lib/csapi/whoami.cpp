@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetTokenOwnerJob::Private
 {
-    public:
+public:
     QString userId;
 };
 
@@ -27,11 +27,9 @@ QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetTokenOwnerJobName = QStringLiteral("GetTokenOwnerJob");
 
 GetTokenOwnerJob::GetTokenOwnerJob()
-    : BaseJob(HttpVerb::Get, GetTokenOwnerJobName,
-              basePath % "/account/whoami"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetTokenOwnerJobName, basePath % "/account/whoami")
+    , d(new Private)
+{}
 
 GetTokenOwnerJob::~GetTokenOwnerJob() = default;
 
@@ -41,8 +39,9 @@ BaseJob::Status GetTokenOwnerJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("user_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'user_id' not found in the response" };
     fromJson(json.value("user_id"_ls), d->userId);
+
     return Success;
 }

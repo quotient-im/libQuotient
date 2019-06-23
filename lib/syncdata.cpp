@@ -26,20 +26,20 @@
 using namespace QMatrixClient;
 
 const QString SyncRoomData::UnreadCountKey =
-        QStringLiteral("x-qmatrixclient.unread_count");
+    QStringLiteral("x-qmatrixclient.unread_count");
 
 bool RoomSummary::isEmpty() const
 {
     return joinedMemberCount.omitted() && invitedMemberCount.omitted()
-            && heroes.omitted();
+           && heroes.omitted();
 }
 
 bool RoomSummary::merge(const RoomSummary& other)
 {
     // Using bitwise OR to prevent computation shortcut.
     return joinedMemberCount.merge(other.joinedMemberCount)
-            | invitedMemberCount.merge(other.invitedMemberCount)
-            | heroes.merge(other.heroes);
+           | invitedMemberCount.merge(other.invitedMemberCount)
+           | heroes.merge(other.heroes);
 }
 
 QDebug QMatrixClient::operator<<(QDebug dbg, const RoomSummary& rs)
@@ -71,24 +71,23 @@ void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
 {
     fromJson(jo["m.joined_member_count"_ls], rs.joinedMemberCount);
     fromJson(jo["m.invited_member_count"_ls], rs.invitedMemberCount);
-    fromJson(jo["m.heroes"], rs.heroes);
+    fromJson(jo["m.heroes"_ls], rs.heroes);
 }
 
 template <typename EventsArrayT, typename StrT>
 inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
 {
-    return fromJson<EventsArrayT>(
-            batches[keyName].toObject().value("events"_ls));
+    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
 
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
-    : roomId(roomId_),
-      joinState(joinState_),
-      summary(fromJson<RoomSummary>(room_["summary"])),
-      state(load<StateEvents>(room_,
-                              joinState == JoinState::Invite ? "invite_state"_ls
-                                                             : "state"_ls))
+    : roomId(roomId_)
+    , joinState(joinState_)
+    , summary(fromJson<RoomSummary>(room_["summary"_ls]))
+    , state(load<StateEvents>(room_, joinState == JoinState::Invite
+                                         ? "invite_state"_ls
+                                         : "state"_ls))
 {
     switch (joinState) {
     case JoinState::Join:
@@ -122,7 +121,7 @@ SyncData::SyncData(const QString& cacheFileName)
     auto json = loadJson(cacheFileName);
     auto requiredVersion = std::get<0>(cacheVersion());
     auto actualVersion =
-            json.value("cache_version").toObject().value("major").toInt();
+        json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
         parseJson(json, cacheFileInfo.absolutePath() + '/');
     else
@@ -159,10 +158,10 @@ QJsonObject SyncData::loadJson(const QString& fileName)
     }
     auto data = roomFile.readAll();
 
-    const auto json =
-            (data.startsWith('{') ? QJsonDocument::fromJson(data)
-                                  : QJsonDocument::fromBinaryData(data))
-                    .object();
+    const auto json = (data.startsWith('{')
+                           ? QJsonDocument::fromJson(data)
+                           : QJsonDocument::fromBinaryData(data))
+                          .object();
     if (json.isEmpty()) {
         qCWarning(MAIN) << "State cache in" << fileName
                         << "is broken or empty, discarding";
@@ -189,7 +188,8 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(static_cast<size_t>(rs.size()));
         for (auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt) {
-            auto roomJson = roomIt->isObject()
+            auto roomJson =
+                roomIt->isObject()
                     ? roomIt->toObject()
                     : loadJson(baseDir + fileNameForRoom(roomIt.key()));
             if (roomJson.isEmpty()) {
@@ -199,7 +199,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
             roomData.emplace_back(roomIt.key(), JoinState(ii), roomJson);
             const auto& r = roomData.back();
             totalEvents += r.state.size() + r.ephemeral.size()
-                    + r.accountData.size() + r.timeline.size();
+                           + r.accountData.size() + r.timeline.size();
         }
         totalRooms += rs.size();
     }

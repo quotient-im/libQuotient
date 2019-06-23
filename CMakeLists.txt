@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(qmatrixclient CXX)
+set(API_VERSION "0.6")
+project(qmatrixclient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
 option(QMATRIXCLIENT_INSTALL_EXAMPLE "install qmc-example application" ON)
 
@@ -64,6 +65,7 @@ message( STATUS )
 message( STATUS "=============================================================================" )
 message( STATUS "                       libqmatrixclient Build Information" )
 message( STATUS "=============================================================================" )
+message( STATUS "Version: ${PROJECT_VERSION}, API version: ${API_VERSION}")
 if (CMAKE_BUILD_TYPE)
     message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif(CMAKE_BUILD_TYPE)
@@ -172,8 +174,7 @@ endif()
 set(example_SRCS examples/qmc-example.cpp)
 
 add_library(QMatrixClient ${libqmatrixclient_SRCS} ${api_SRCS})
-set(API_VERSION "0.5")
-set_property(TARGET QMatrixClient PROPERTY VERSION "${API_VERSION}.0")
+set_property(TARGET QMatrixClient PROPERTY VERSION "${PROJECT_VERSION}")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY
              INTERFACE_QMatrixClient_MAJOR_VERSION ${API_VERSION})
@@ -201,10 +202,11 @@ install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
+# NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
+# Maybe consider jumping the gun and releasing 1.0, as semver advises?
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/QMatrixClient/QMatrixClientConfigVersion.cmake"
-    VERSION ${API_VERSION}
-    COMPATIBILITY AnyNewerVersion
+    COMPATIBILITY SameMajorVersion
 )
 
 export(PACKAGE QMatrixClient)

@@ -20,18 +20,19 @@
 
 #include "event.h"
 
-namespace QMatrixClient {
-    class DirectChatEvent : public Event
-    {
-        public:
-        DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
+namespace QMatrixClient
+{
+class DirectChatEvent : public Event
+{
+public:
+    DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
 
-        explicit DirectChatEvent(const QJsonObject& obj) : Event(typeId(), obj)
-        {
-        }
+    explicit DirectChatEvent(const QJsonObject& obj)
+        : Event(typeId(), obj)
+    {}
 
-        QMultiHash<QString, QString> usersToDirectChats() const;
-    };
-    REGISTER_EVENT_TYPE(DirectChatEvent)
-    DEFINE_EVENTTYPE_ALIAS(DirectChat, DirectChatEvent)
-}
+    QMultiHash<QString, QString> usersToDirectChats() const;
+};
+REGISTER_EVENT_TYPE(DirectChatEvent)
+DEFINE_EVENTTYPE_ALIAS(DirectChat, DirectChatEvent)
+} // namespace QMatrixClient

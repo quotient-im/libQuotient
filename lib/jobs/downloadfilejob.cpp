@@ -8,14 +8,15 @@ using namespace QMatrixClient;
 
 class DownloadFileJob::Private
 {
-    public:
-    Private() : tempFile(new QTemporaryFile()) {}
+public:
+    Private()
+        : tempFile(new QTemporaryFile())
+    {}
 
     explicit Private(const QString& localFilename)
-        : targetFile(new QFile(localFilename)),
-          tempFile(new QFile(targetFile->fileName() + ".qmcdownload"))
-    {
-    }
+        : targetFile(new QFile(localFilename))
+        , tempFile(new QFile(targetFile->fileName() + ".qmcdownload"))
+    {}
 
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
@@ -23,16 +24,17 @@ class DownloadFileJob::Private
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
 {
-    return makeRequestUrl(baseUrl, mxcUri.authority(), mxcUri.path().mid(1));
+    return makeRequestUrl(std::move(baseUrl), mxcUri.authority(),
+                          mxcUri.path().mid(1));
 }
 
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
                                  const QString& localFilename)
-    : GetContentJob(serverName, mediaId),
-      d(localFilename.isEmpty() ? new Private : new Private(localFilename))
+    : GetContentJob(serverName, mediaId)
+    , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
 {
-    setObjectName("DownloadFileJob");
+    setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
 QString DownloadFileJob::targetFileName() const
@@ -49,8 +51,7 @@ void DownloadFileJob::beforeStart(const ConnectionData*)
         setStatus(FileError, "Could not open the target file for writing");
         return;
     }
-    if (!d->tempFile->isReadable()
-        && !d->tempFile->open(QIODevice::WriteOnly)) {
+    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly)) {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the temporary download file");

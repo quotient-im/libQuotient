@@ -27,7 +27,7 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
 
 class GetPresenceJob::Private
 {
-    public:
+public:
     QString presence;
     Omittable<int> lastActiveAgo;
     QString statusMsg;
@@ -36,18 +36,17 @@ class GetPresenceJob::Private
 
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(
-            std::move(baseUrl), basePath % "/presence/" % userId % "/status");
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   basePath % "/presence/" % userId % "/status");
 }
 
 static const auto GetPresenceJobName = QStringLiteral("GetPresenceJob");
 
 GetPresenceJob::GetPresenceJob(const QString& userId)
     : BaseJob(HttpVerb::Get, GetPresenceJobName,
-              basePath % "/presence/" % userId % "/status"),
-      d(new Private)
-{
-}
+              basePath % "/presence/" % userId % "/status")
+    , d(new Private)
+{}
 
 GetPresenceJob::~GetPresenceJob() = default;
 
@@ -69,11 +68,12 @@ BaseJob::Status GetPresenceJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("presence"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'presence' not found in the response" };
     fromJson(json.value("presence"_ls), d->presence);
     fromJson(json.value("last_active_ago"_ls), d->lastActiveAgo);
     fromJson(json.value("status_msg"_ls), d->statusMsg);
     fromJson(json.value("currently_active"_ls), d->currentlyActive);
+
     return Success;
 }

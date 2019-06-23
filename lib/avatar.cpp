@@ -1,5 +1,3 @@
-#include <utility>
-
 /******************************************************************************
  * Copyright (C) 2017 Kitsune Ral <kitsune-ral@users.sf.net>
  *
@@ -21,6 +19,7 @@
 #include "avatar.h"
 
 #include "connection.h"
+
 #include "events/eventcontent.h"
 #include "jobs/mediathumbnailjob.h"
 
@@ -35,8 +34,10 @@ using std::move;
 
 class Avatar::Private
 {
-    public:
-    explicit Private(QUrl url = {}) : _url(move(url)) {}
+public:
+    explicit Private(QUrl url = {})
+        : _url(move(url))
+    {}
     ~Private()
     {
         if (isJobRunning(_thumbnailRequest))
@@ -64,9 +65,13 @@ class Avatar::Private
     mutable std::vector<get_callback_t> callbacks;
 };
 
-Avatar::Avatar() : d(std::make_unique<Private>()) {}
+Avatar::Avatar()
+    : d(std::make_unique<Private>())
+{}
 
-Avatar::Avatar(QUrl url) : d(std::make_unique<Private>(std::move(url))) {}
+Avatar::Avatar(QUrl url)
+    : d(std::make_unique<Private>(std::move(url)))
+{}
 
 Avatar::Avatar(Avatar&&) = default;
 
@@ -135,9 +140,8 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         QObject::connect(_thumbnailRequest, &MediaThumbnailJob::success,
                          _thumbnailRequest, [this] {
                              _imageSource = Network;
-                             _originalImage =
-                                     _thumbnailRequest->scaledThumbnail(
-                                             _requestedSize);
+                             _originalImage = _thumbnailRequest->scaledThumbnail(
+                                 _requestedSize);
                              _originalImage.save(localFile());
                              _scaledImages.clear();
                              for (const auto& n : callbacks)
@@ -150,9 +154,9 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         if (p.first == size)
             return p.second;
     auto result = _originalImage.isNull()
-            ? QImage()
-            : _originalImage.scaled(size, Qt::KeepAspectRatio,
-                                    Qt::SmoothTransformation);
+                      ? QImage()
+                      : _originalImage.scaled(size, Qt::KeepAspectRatio,
+                                              Qt::SmoothTransformation);
     _scaledImages.emplace_back(size, result);
     return result;
 }
@@ -184,7 +188,7 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
 
 QString Avatar::Private::localFile() const
 {
-    static const auto cachePath = cacheLocation("avatars");
+    static const auto cachePath = cacheLocation(QStringLiteral("avatars"));
     return cachePath % _url.authority() % '_' % _url.fileName() % ".png";
 }
 

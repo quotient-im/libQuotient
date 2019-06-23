@@ -4,34 +4,38 @@
 
 #pragma once
 
-#include "jobs/basejob.h"
-
 #include "converters.h"
 
-namespace QMatrixClient {
-    // Operations
+#include "jobs/basejob.h"
 
-    /// Informs the server that the user has started or stopped typing.
-    ///
-    /// This tells the server that the user is typing for the next N
-    /// milliseconds where N is the value specified in the ``timeout`` key.
-    /// Alternatively, if ``typing`` is ``false``, it tells the server that the
-    /// user has stopped typing.
-    class SetTypingJob : public BaseJob
-    {
-        public:
-        /*! Informs the server that the user has started or stopped typing.
-         * \param userId
-         *   The user who has started to type.
-         * \param roomId
-         *   The room in which the user is typing.
-         * \param typing
-         *   Whether the user is typing or not. If ``false``, the ``timeout``
-         *   key can be omitted.
-         * \param timeout
-         *   The length of time in milliseconds to mark this user as typing.
-         */
-        explicit SetTypingJob(const QString& userId, const QString& roomId,
-                              bool typing, Omittable<int> timeout = none);
-    };
+namespace QMatrixClient
+{
+
+// Operations
+
+/// Informs the server that the user has started or stopped typing.
+/*!
+ * This tells the server that the user is typing for the next N
+ * milliseconds where N is the value specified in the ``timeout`` key.
+ * Alternatively, if ``typing`` is ``false``, it tells the server that the
+ * user has stopped typing.
+ */
+class SetTypingJob : public BaseJob
+{
+public:
+    /*! Informs the server that the user has started or stopped typing.
+     * \param userId
+     *   The user who has started to type.
+     * \param roomId
+     *   The room in which the user is typing.
+     * \param typing
+     *   Whether the user is typing or not. If ``false``, the ``timeout``
+     *   key can be omitted.
+     * \param timeout
+     *   The length of time in milliseconds to mark this user as typing.
+     */
+    explicit SetTypingJob(const QString& userId, const QString& roomId,
+                          bool typing, Omittable<int> timeout = none);
+};
+
 } // namespace QMatrixClient

@@ -8,38 +8,42 @@
 
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient {
-    // Operations
+namespace QMatrixClient
+{
 
-    /// Obtain TURN server credentials.
-    ///
-    /// This API provides credentials for the client to use when initiating
-    /// calls.
-    class GetTurnServerJob : public BaseJob
-    {
-        public:
-        explicit GetTurnServerJob();
+// Operations
 
-        /*! Construct a URL without creating a full-fledged job object
-         *
-         * This function can be used when a URL for
-         * GetTurnServerJob is necessary but the job
-         * itself isn't.
-         */
-        static QUrl makeRequestUrl(QUrl baseUrl);
+/// Obtain TURN server credentials.
+/*!
+ * This API provides credentials for the client to use when initiating
+ * calls.
+ */
+class GetTurnServerJob : public BaseJob
+{
+public:
+    explicit GetTurnServerJob();
 
-        ~GetTurnServerJob() override;
+    /*! Construct a URL without creating a full-fledged job object
+     *
+     * This function can be used when a URL for
+     * GetTurnServerJob is necessary but the job
+     * itself isn't.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl);
 
-        // Result properties
+    ~GetTurnServerJob() override;
 
-        /// The TURN server credentials.
-        const QJsonObject& data() const;
+    // Result properties
 
-        protected:
-        Status parseJson(const QJsonDocument& data) override;
+    /// The TURN server credentials.
+    const QJsonObject& data() const;
 
-        private:
-        class Private;
-        QScopedPointer<Private> d;
-    };
+protected:
+    Status parseJson(const QJsonDocument& data) override;
+
+private:
+    class Private;
+    QScopedPointer<Private> d;
+};
+
 } // namespace QMatrixClient

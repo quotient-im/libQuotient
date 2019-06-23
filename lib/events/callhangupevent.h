@@ -20,16 +20,17 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient {
-    class CallHangupEvent : public CallEventBase
-    {
-        public:
-        DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
+namespace QMatrixClient
+{
+class CallHangupEvent : public CallEventBase
+{
+public:
+    DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
 
-        explicit CallHangupEvent(const QJsonObject& obj);
-        explicit CallHangupEvent(const QString& callId);
-    };
+    explicit CallHangupEvent(const QJsonObject& obj);
+    explicit CallHangupEvent(const QString& callId);
+};
 
-    REGISTER_EVENT_TYPE(CallHangupEvent)
-    DEFINE_EVENTTYPE_ALIAS(CallHangup, CallHangupEvent)
-}
+REGISTER_EVENT_TYPE(CallHangupEvent)
+DEFINE_EVENTTYPE_ALIAS(CallHangup, CallHangupEvent)
+} // namespace QMatrixClient

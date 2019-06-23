@@ -32,5 +32,4 @@ RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
     : BaseJob(HttpVerb::Get, RedirectToSSOJobName,
               basePath % "/login/sso/redirect",
               queryToRedirectToSSO(redirectUrl), {}, false)
-{
-}
+{}

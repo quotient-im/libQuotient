@@ -47,8 +47,7 @@ SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
     : SyncJob(since,
               QJsonDocument(toJson(filter)).toJson(QJsonDocument::Compact),
               timeout, presence)
-{
-}
+{}
 
 BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
 {

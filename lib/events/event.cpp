@@ -38,10 +38,13 @@ event_type_t EventTypeRegistry::initializeTypeId(event_mtype_t matrixTypeId)
 
 QString EventTypeRegistry::getMatrixType(event_type_t typeId)
 {
-    return typeId < get().eventTypes.size() ? get().eventTypes[typeId] : "";
+    return typeId < get().eventTypes.size() ? get().eventTypes[typeId]
+                                            : QString();
 }
 
-Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
+Event::Event(Type type, const QJsonObject& json)
+    : _type(type)
+    , _json(json)
 {
     if (!json.contains(ContentKeyL)
         && !json.value(UnsignedKeyL).toObject().contains(RedactedCauseKeyL)) {
@@ -50,11 +53,9 @@ Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
     }
 }
 
-Event::Event(Type type, event_mtype_t matrixType,
-             const QJsonObject& contentJson)
+Event::Event(Type type, event_mtype_t matrixType, const QJsonObject& contentJson)
     : Event(type, basicEventJson(matrixType, contentJson))
-{
-}
+{}
 
 Event::~Event() = default;
 

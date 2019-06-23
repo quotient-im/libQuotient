@@ -2,7 +2,7 @@ build
 .kdev4
 
 # Qt Creator project file
-*.user
+*.user*
 
 # qmake derivatives
 Makefile*

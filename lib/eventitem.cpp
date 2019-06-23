@@ -35,9 +35,8 @@ void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
     }
     if (auto* rae = getAs<RoomAvatarEvent>()) {
         Q_ASSERT(rae->content().fileInfo());
-        rae->editContent([remoteUrl](EventContent::FileInfo& fi) {
-            fi.url = remoteUrl;
-        });
+        rae->editContent(
+            [remoteUrl](EventContent::FileInfo& fi) { fi.url = remoteUrl; });
     }
     setStatus(EventStatus::FileUploaded);
 }

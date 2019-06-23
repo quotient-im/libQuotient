@@ -20,23 +20,23 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient {
-    class RedactionEvent : public RoomEvent
+namespace QMatrixClient
+{
+class RedactionEvent : public RoomEvent
+{
+public:
+    DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
+
+    explicit RedactionEvent(const QJsonObject& obj)
+        : RoomEvent(typeId(), obj)
+    {}
+
+    QString redactedEvent() const
     {
-        public:
-        DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
-
-        explicit RedactionEvent(const QJsonObject& obj)
-            : RoomEvent(typeId(), obj)
-        {
-        }
-
-        QString redactedEvent() const
-        {
-            return fullJson()["redacts"_ls].toString();
-        }
-        QString reason() const { return contentJson()["reason"_ls].toString(); }
-    };
-    REGISTER_EVENT_TYPE(RedactionEvent)
-    DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
+        return fullJson()["redacts"_ls].toString();
+    }
+    QString reason() const { return contentJson()["reason"_ls].toString(); }
+};
+REGISTER_EVENT_TYPE(RedactionEvent)
+DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
 } // namespace QMatrixClient

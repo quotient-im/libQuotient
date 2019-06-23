@@ -19,7 +19,6 @@
 #include "callanswerevent.h"
 
 #include "event.h"
-
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -55,20 +54,18 @@ CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
-    : CallEventBase(typeId(), matrixTypeId(), callId, 0,
-                    { { QStringLiteral("lifetime"), lifetime },
-                      { QStringLiteral("answer"),
-                        QJsonObject { { QStringLiteral("type"),
-                                        QStringLiteral("answer") },
-                                      { QStringLiteral("sdp"), sdp } } } })
-{
-}
+    : CallEventBase(
+        typeId(), matrixTypeId(), callId, 0,
+        { { QStringLiteral("lifetime"), lifetime },
+          { QStringLiteral("answer"),
+            QJsonObject { { QStringLiteral("type"), QStringLiteral("answer") },
+                          { QStringLiteral("sdp"), sdp } } } })
+{}
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
-    : CallEventBase(typeId(), matrixTypeId(), callId, 0,
-                    { { QStringLiteral("answer"),
-                        QJsonObject { { QStringLiteral("type"),
-                                        QStringLiteral("answer") },
-                                      { QStringLiteral("sdp"), sdp } } } })
-{
-}
+    : CallEventBase(
+        typeId(), matrixTypeId(), callId, 0,
+        { { QStringLiteral("answer"),
+            QJsonObject { { QStringLiteral("type"), QStringLiteral("answer") },
+                          { QStringLiteral("sdp"), sdp } } } })
+{}

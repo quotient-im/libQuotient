@@ -39,7 +39,7 @@ void JsonObjectConverter<ProtocolInstance>::fillFrom(const QJsonObject& jo,
 }
 
 void JsonObjectConverter<ThirdPartyProtocol>::dumpTo(
-        QJsonObject& jo, const ThirdPartyProtocol& pod)
+    QJsonObject& jo, const ThirdPartyProtocol& pod)
 {
     addParam<>(jo, QStringLiteral("user_fields"), pod.userFields);
     addParam<>(jo, QStringLiteral("location_fields"), pod.locationFields);
@@ -48,8 +48,8 @@ void JsonObjectConverter<ThirdPartyProtocol>::dumpTo(
     addParam<>(jo, QStringLiteral("instances"), pod.instances);
 }
 
-void JsonObjectConverter<ThirdPartyProtocol>::fillFrom(
-        const QJsonObject& jo, ThirdPartyProtocol& result)
+void JsonObjectConverter<ThirdPartyProtocol>::fillFrom(const QJsonObject& jo,
+                                                       ThirdPartyProtocol& result)
 {
     fromJson(jo.value("user_fields"_ls), result.userFields);
     fromJson(jo.value("location_fields"_ls), result.locationFields);

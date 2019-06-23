@@ -16,8 +16,7 @@ static const auto BanJobName = QStringLiteral("BanJob");
 
 BanJob::BanJob(const QString& roomId, const QString& userId,
                const QString& reason)
-    : BaseJob(HttpVerb::Post, BanJobName,
-              basePath % "/rooms/" % roomId % "/ban")
+    : BaseJob(HttpVerb::Post, BanJobName, basePath % "/rooms/" % roomId % "/ban")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);

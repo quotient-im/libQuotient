@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client");
 
 class GetVersionsJob::Private
 {
-    public:
+public:
     QStringList versions;
     QHash<QString, bool> unstableFeatures;
 };
@@ -27,10 +27,9 @@ QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetVersionsJobName = QStringLiteral("GetVersionsJob");
 
 GetVersionsJob::GetVersionsJob()
-    : BaseJob(HttpVerb::Get, GetVersionsJobName, basePath % "/versions", false),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetVersionsJobName, basePath % "/versions", false)
+    , d(new Private)
+{}
 
 GetVersionsJob::~GetVersionsJob() = default;
 
@@ -45,9 +44,10 @@ BaseJob::Status GetVersionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("versions"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'versions' not found in the response" };
     fromJson(json.value("versions"_ls), d->versions);
     fromJson(json.value("unstable_features"_ls), d->unstableFeatures);
+
     return Success;
 }

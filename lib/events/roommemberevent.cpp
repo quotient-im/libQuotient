@@ -28,31 +28,33 @@ static const std::array<QString, 5> membershipStrings = {
       QStringLiteral("leave"), QStringLiteral("ban") }
 };
 
-namespace QMatrixClient {
-    template <> struct JsonConverter<MembershipType> {
-        static MembershipType load(const QJsonValue& jv)
-        {
-            const auto& membershipString = jv.toString();
-            for (auto it = membershipStrings.begin();
-                 it != membershipStrings.end(); ++it)
-                if (membershipString == *it)
-                    return MembershipType(it - membershipStrings.begin());
+namespace QMatrixClient
+{
+template <>
+struct JsonConverter<MembershipType>
+{
+    static MembershipType load(const QJsonValue& jv)
+    {
+        const auto& membershipString = jv.toString();
+        for (auto it = membershipStrings.begin(); it != membershipStrings.end();
+             ++it)
+            if (membershipString == *it)
+                return MembershipType(it - membershipStrings.begin());
 
-            qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
-            return MembershipType::Undefined;
-        }
-    };
-}
+        qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
+        return MembershipType::Undefined;
+    }
+};
+} // namespace QMatrixClient
 
 using namespace QMatrixClient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
-    : membership(fromJson<MembershipType>(json["membership"_ls])),
-      isDirect(json["is_direct"_ls].toBool()),
-      displayName(json["displayname"_ls].toString()),
-      avatarUrl(json["avatar_url"_ls].toString())
-{
-}
+    : membership(fromJson<MembershipType>(json["membership"_ls]))
+    , isDirect(json["is_direct"_ls].toBool())
+    , displayName(sanitized(json["displayname"_ls].toString()))
+    , avatarUrl(json["avatar_url"_ls].toString())
+{}
 
 void MemberEventContent::fillJson(QJsonObject* o) const
 {
@@ -69,20 +71,20 @@ void MemberEventContent::fillJson(QJsonObject* o) const
 bool RoomMemberEvent::isInvite() const
 {
     return membership() == MembershipType::Invite
-            && (!prevContent() || prevContent()->membership != membership());
+           && (!prevContent() || prevContent()->membership != membership());
 }
 
 bool RoomMemberEvent::isJoin() const
 {
     return membership() == MembershipType::Join
-            && (!prevContent() || prevContent()->membership != membership());
+           && (!prevContent() || prevContent()->membership != membership());
 }
 
 bool RoomMemberEvent::isLeave() const
 {
     return membership() == MembershipType::Leave && prevContent()
-            && prevContent()->membership != membership()
-            && prevContent()->membership != MembershipType::Ban;
+           && prevContent()->membership != membership()
+           && prevContent()->membership != MembershipType::Ban;
 }
 
 bool RoomMemberEvent::isRename() const

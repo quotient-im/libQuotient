@@ -40,26 +40,26 @@ Example of a Receipt Event:
 
 using namespace QMatrixClient;
 
-ReceiptEvent::ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj)
+ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
+    : Event(typeId(), obj)
 {
     const auto& contents = contentJson();
     _eventsWithReceipts.reserve(contents.size());
-    for (auto eventIt = contents.begin(); eventIt != contents.end();
-         ++eventIt) {
+    for (auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt) {
         if (eventIt.key().isEmpty()) {
             qCWarning(EPHEMERAL)
-                    << "ReceiptEvent has an empty event id, skipping";
+                << "ReceiptEvent has an empty event id, skipping";
             qCDebug(EPHEMERAL) << "ReceiptEvent content follows:\n" << contents;
             continue;
         }
         const QJsonObject reads =
-                eventIt.value().toObject().value("m.read"_ls).toObject();
+            eventIt.value().toObject().value("m.read"_ls).toObject();
         QVector<Receipt> receipts;
         receipts.reserve(reads.size());
         for (auto userIt = reads.begin(); userIt != reads.end(); ++userIt) {
             const QJsonObject user = userIt.value().toObject();
             receipts.push_back(
-                    { userIt.key(), fromJson<QDateTime>(user["ts"_ls]) });
+                { userIt.key(), fromJson<QDateTime>(user["ts"_ls]) });
         }
         _eventsWithReceipts.push_back({ eventIt.key(), std::move(receipts) });
     }

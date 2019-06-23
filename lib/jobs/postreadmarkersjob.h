@@ -26,14 +26,14 @@ using namespace QMatrixClient;
 
 class PostReadMarkersJob : public BaseJob
 {
-    public:
+public:
     explicit PostReadMarkersJob(const QString& roomId,
                                 const QString& readUpToEventId)
-        : BaseJob(HttpVerb::Post, "PostReadMarkersJob",
-                  QStringLiteral("_matrix/client/r0/rooms/%1/read_markers")
-                          .arg(roomId))
+        : BaseJob(
+            HttpVerb::Post, "PostReadMarkersJob",
+            QStringLiteral("_matrix/client/r0/rooms/%1/read_markers").arg(roomId))
     {
-        setRequestData(QJsonObject {
-                { QStringLiteral("m.fully_read"), readUpToEventId } });
+        setRequestData(
+            QJsonObject { { QStringLiteral("m.fully_read"), readUpToEventId } });
     }
 };

@@ -23,31 +23,34 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QVector>
 
-namespace QMatrixClient {
-    struct Receipt {
-        QString userId;
-        QDateTime timestamp;
-    };
-    struct ReceiptsForEvent {
-        QString evtId;
-        QVector<Receipt> receipts;
-    };
-    using EventsWithReceipts = QVector<ReceiptsForEvent>;
+namespace QMatrixClient
+{
+struct Receipt
+{
+    QString userId;
+    QDateTime timestamp;
+};
+struct ReceiptsForEvent
+{
+    QString evtId;
+    QVector<Receipt> receipts;
+};
+using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
-    class ReceiptEvent : public Event
+class ReceiptEvent : public Event
+{
+public:
+    DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
+    explicit ReceiptEvent(const QJsonObject& obj);
+
+    const EventsWithReceipts& eventsWithReceipts() const
     {
-        public:
-        DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
-        explicit ReceiptEvent(const QJsonObject& obj);
+        return _eventsWithReceipts;
+    }
 
-        const EventsWithReceipts& eventsWithReceipts() const
-        {
-            return _eventsWithReceipts;
-        }
-
-        private:
-        EventsWithReceipts _eventsWithReceipts;
-    };
-    REGISTER_EVENT_TYPE(ReceiptEvent)
-    DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
+private:
+    EventsWithReceipts _eventsWithReceipts;
+};
+REGISTER_EVENT_TYPE(ReceiptEvent)
+DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
 } // namespace QMatrixClient

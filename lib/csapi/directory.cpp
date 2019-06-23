@@ -14,8 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0/directory");
 
 static const auto SetRoomAliasJobName = QStringLiteral("SetRoomAliasJob");
 
-SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias,
-                                 const QString& roomId)
+SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
     : BaseJob(HttpVerb::Put, SetRoomAliasJobName,
               basePath % "/room/" % roomAlias)
 {
@@ -26,7 +25,7 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias,
 
 class GetRoomIdByAliasJob::Private
 {
-    public:
+public:
     QString roomId;
     QStringList servers;
 };
@@ -38,14 +37,13 @@ QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 }
 
 static const auto GetRoomIdByAliasJobName =
-        QStringLiteral("GetRoomIdByAliasJob");
+    QStringLiteral("GetRoomIdByAliasJob");
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, GetRoomIdByAliasJobName,
-              basePath % "/room/" % roomAlias, false),
-      d(new Private)
-{
-}
+              basePath % "/room/" % roomAlias, false)
+    , d(new Private)
+{}
 
 GetRoomIdByAliasJob::~GetRoomIdByAliasJob() = default;
 
@@ -58,6 +56,7 @@ BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     fromJson(json.value("room_id"_ls), d->roomId);
     fromJson(json.value("servers"_ls), d->servers);
+
     return Success;
 }
 
@@ -72,5 +71,4 @@ static const auto DeleteRoomAliasJobName = QStringLiteral("DeleteRoomAliasJob");
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Delete, DeleteRoomAliasJobName,
               basePath % "/room/" % roomAlias)
-{
-}
+{}

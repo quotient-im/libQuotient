@@ -12,38 +12,42 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<GetPushersJob::PusherData> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetPushersJob::PusherData& result)
-        {
-            fromJson(jo.value("url"_ls), result.url);
-            fromJson(jo.value("format"_ls), result.format);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetPushersJob::PusherData>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetPushersJob::PusherData& result)
+    {
+        fromJson(jo.value("url"_ls), result.url);
+        fromJson(jo.value("format"_ls), result.format);
+    }
+};
 
-    template <> struct JsonObjectConverter<GetPushersJob::Pusher> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetPushersJob::Pusher& result)
-        {
-            fromJson(jo.value("pushkey"_ls), result.pushkey);
-            fromJson(jo.value("kind"_ls), result.kind);
-            fromJson(jo.value("app_id"_ls), result.appId);
-            fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
-            fromJson(jo.value("device_display_name"_ls),
-                     result.deviceDisplayName);
-            fromJson(jo.value("profile_tag"_ls), result.profileTag);
-            fromJson(jo.value("lang"_ls), result.lang);
-            fromJson(jo.value("data"_ls), result.data);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetPushersJob::Pusher>
+{
+    static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
+    {
+        fromJson(jo.value("pushkey"_ls), result.pushkey);
+        fromJson(jo.value("kind"_ls), result.kind);
+        fromJson(jo.value("app_id"_ls), result.appId);
+        fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
+        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+        fromJson(jo.value("profile_tag"_ls), result.profileTag);
+        fromJson(jo.value("lang"_ls), result.lang);
+        fromJson(jo.value("data"_ls), result.data);
+    }
+};
+
 } // namespace QMatrixClient
 
 class GetPushersJob::Private
 {
-    public:
+public:
     QVector<Pusher> pushers;
 };
 
@@ -55,10 +59,9 @@ QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetPushersJobName = QStringLiteral("GetPushersJob");
 
 GetPushersJob::GetPushersJob()
-    : BaseJob(HttpVerb::Get, GetPushersJobName, basePath % "/pushers"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetPushersJobName, basePath % "/pushers")
+    , d(new Private)
+{}
 
 GetPushersJob::~GetPushersJob() = default;
 
@@ -71,27 +74,30 @@ BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("pushers"_ls), d->pushers);
+
     return Success;
 }
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<PostPusherJob::PusherData> {
-        static void dumpTo(QJsonObject& jo,
-                           const PostPusherJob::PusherData& pod)
-        {
-            addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
-            addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
-        }
-    };
+template <>
+struct JsonObjectConverter<PostPusherJob::PusherData>
+{
+    static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
+    {
+        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
+        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
+    }
+};
+
 } // namespace QMatrixClient
 
 static const auto PostPusherJobName = QStringLiteral("PostPusherJob");
 
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
-                             const QString& appId,
-                             const QString& appDisplayName,
+                             const QString& appId, const QString& appDisplayName,
                              const QString& deviceDisplayName,
                              const QString& lang, const PusherData& data,
                              const QString& profileTag, Omittable<bool> append)

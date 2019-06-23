@@ -12,21 +12,25 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetLoginFlowsJob::LoginFlow& result)
-        {
-            fromJson(jo.value("type"_ls), result.type);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetLoginFlowsJob::LoginFlow& result)
+    {
+        fromJson(jo.value("type"_ls), result.type);
+    }
+};
+
 } // namespace QMatrixClient
 
 class GetLoginFlowsJob::Private
 {
-    public:
+public:
     QVector<LoginFlow> flows;
 };
 
@@ -38,10 +42,9 @@ QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetLoginFlowsJobName = QStringLiteral("GetLoginFlowsJob");
 
 GetLoginFlowsJob::GetLoginFlowsJob()
-    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName, basePath % "/login", false),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName, basePath % "/login", false)
+    , d(new Private)
+{}
 
 GetLoginFlowsJob::~GetLoginFlowsJob() = default;
 
@@ -54,12 +57,13 @@ BaseJob::Status GetLoginFlowsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("flows"_ls), d->flows);
+
     return Success;
 }
 
 class LoginJob::Private
 {
-    public:
+public:
     QString userId;
     QString accessToken;
     QString homeServer;
@@ -75,8 +79,8 @@ LoginJob::LoginJob(const QString& type,
                    const QString& deviceId,
                    const QString& initialDeviceDisplayName, const QString& user,
                    const QString& medium, const QString& address)
-    : BaseJob(HttpVerb::Post, LoginJobName, basePath % "/login", false),
-      d(new Private)
+    : BaseJob(HttpVerb::Post, LoginJobName, basePath % "/login", false)
+    , d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("type"), type);
@@ -115,5 +119,6 @@ BaseJob::Status LoginJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("home_server"_ls), d->homeServer);
     fromJson(json.value("device_id"_ls), d->deviceId);
     fromJson(json.value("well_known"_ls), d->wellKnown);
+
     return Success;
 }

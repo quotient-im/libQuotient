@@ -24,10 +24,9 @@ using namespace QMatrixClient;
 // StateEventBase itself can be instantiated if there's a state_key JSON key
 // but the event type is unknown.
 [[gnu::unused]] static auto stateEventTypeInitialised =
-        RoomEvent::factory_t::addMethod([](const QJsonObject& json,
-                                           const QString& matrixType)
-                                                -> StateEventPtr {
-            if (!json.contains("state_key"))
+    RoomEvent::factory_t::addMethod(
+        [](const QJsonObject& json, const QString& matrixType) -> StateEventPtr {
+            if (!json.contains("state_key"_ls))
                 return nullptr;
 
             if (auto e = StateEventBase::factory_t::make(json, matrixType))
@@ -53,7 +52,7 @@ void StateEventBase::dumpTo(QDebug dbg) const
         dbg << '<' << stateKey() << "> ";
     if (unsignedJson().contains(PrevContentKeyL))
         dbg << QJsonDocument(unsignedJson()[PrevContentKeyL].toObject())
-                        .toJson(QJsonDocument::Compact)
+                   .toJson(QJsonDocument::Compact)
             << " -> ";
     RoomEvent::dumpTo(dbg);
 }

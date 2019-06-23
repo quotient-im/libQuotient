@@ -22,7 +22,8 @@
 
 using namespace QMatrixClient;
 
-TypingEvent::TypingEvent(const QJsonObject& obj) : Event(typeId(), obj)
+TypingEvent::TypingEvent(const QJsonObject& obj)
+    : Event(typeId(), obj)
 {
     const auto& array = contentJson()["user_ids"_ls].toArray();
     for (const auto& user : array)

@@ -15,7 +15,7 @@ static const auto basePath = QStringLiteral("/_matrix/media/r0");
 
 class UploadContentJob::Private
 {
-    public:
+public:
     QString contentUri;
 };
 
@@ -31,11 +31,10 @@ static const auto UploadContentJobName = QStringLiteral("UploadContentJob");
 UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
                                    const QString& contentType)
     : BaseJob(HttpVerb::Post, UploadContentJobName, basePath % "/upload",
-              queryToUploadContent(filename)),
-      d(new Private)
+              queryToUploadContent(filename))
+    , d(new Private)
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
-
     setRequestData(Data(content));
 }
 
@@ -47,15 +46,16 @@ BaseJob::Status UploadContentJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("content_uri"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'content_uri' not found in the response" };
     fromJson(json.value("content_uri"_ls), d->contentUri);
+
     return Success;
 }
 
 class GetContentJob::Private
 {
-    public:
+public:
     QString contentType;
     QString contentDisposition;
     QIODevice* data;
@@ -73,7 +73,7 @@ QUrl GetContentJob::makeRequestUrl(QUrl baseUrl, const QString& serverName,
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    basePath % "/download/" % serverName % "/"
-                                           % mediaId,
+                                       % mediaId,
                                    queryToGetContent(allowRemote));
 }
 
@@ -83,8 +83,8 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId,
                              bool allowRemote)
     : BaseJob(HttpVerb::Get, GetContentJobName,
               basePath % "/download/" % serverName % "/" % mediaId,
-              queryToGetContent(allowRemote), {}, false),
-      d(new Private)
+              queryToGetContent(allowRemote), {}, false)
+    , d(new Private)
 {
     setExpectedContentTypes({ "*/*" });
 }
@@ -110,7 +110,7 @@ BaseJob::Status GetContentJob::parseReply(QNetworkReply* reply)
 
 class GetContentOverrideNameJob::Private
 {
-    public:
+public:
     QString contentType;
     QString contentDisposition;
     QIODevice* data;
@@ -131,12 +131,12 @@ QUrl GetContentOverrideNameJob::makeRequestUrl(QUrl baseUrl,
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    basePath % "/download/" % serverName % "/"
-                                           % mediaId % "/" % fileName,
+                                       % mediaId % "/" % fileName,
                                    queryToGetContentOverrideName(allowRemote));
 }
 
 static const auto GetContentOverrideNameJobName =
-        QStringLiteral("GetContentOverrideNameJob");
+    QStringLiteral("GetContentOverrideNameJob");
 
 GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
                                                      const QString& mediaId,
@@ -144,9 +144,9 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
                                                      bool allowRemote)
     : BaseJob(HttpVerb::Get, GetContentOverrideNameJobName,
               basePath % "/download/" % serverName % "/" % mediaId % "/"
-                      % fileName,
-              queryToGetContentOverrideName(allowRemote), {}, false),
-      d(new Private)
+                  % fileName,
+              queryToGetContentOverrideName(allowRemote), {}, false)
+    , d(new Private)
 {
     setExpectedContentTypes({ "*/*" });
 }
@@ -175,7 +175,7 @@ BaseJob::Status GetContentOverrideNameJob::parseReply(QNetworkReply* reply)
 
 class GetContentThumbnailJob::Private
 {
-    public:
+public:
     QString contentType;
     QIODevice* data;
 };
@@ -199,24 +199,23 @@ QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl,
                                             bool allowRemote)
 {
     return BaseJob::makeRequestUrl(
-            std::move(baseUrl),
-            basePath % "/thumbnail/" % serverName % "/" % mediaId,
-            queryToGetContentThumbnail(width, height, method, allowRemote));
+        std::move(baseUrl),
+        basePath % "/thumbnail/" % serverName % "/" % mediaId,
+        queryToGetContentThumbnail(width, height, method, allowRemote));
 }
 
 static const auto GetContentThumbnailJobName =
-        QStringLiteral("GetContentThumbnailJob");
+    QStringLiteral("GetContentThumbnailJob");
 
 GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName,
-                                               const QString& mediaId,
-                                               int width, int height,
-                                               const QString& method,
+                                               const QString& mediaId, int width,
+                                               int height, const QString& method,
                                                bool allowRemote)
     : BaseJob(HttpVerb::Get, GetContentThumbnailJobName,
               basePath % "/thumbnail/" % serverName % "/" % mediaId,
               queryToGetContentThumbnail(width, height, method, allowRemote),
-              {}, false),
-      d(new Private)
+              {}, false)
+    , d(new Private)
 {
     setExpectedContentTypes({ "image/jpeg", "image/png" });
 }
@@ -239,7 +238,7 @@ BaseJob::Status GetContentThumbnailJob::parseReply(QNetworkReply* reply)
 
 class GetUrlPreviewJob::Private
 {
-    public:
+public:
     Omittable<qint64> matrixImageSize;
     QString ogImage;
 };
@@ -255,8 +254,7 @@ BaseJob::Query queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
 QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url,
                                       Omittable<qint64> ts)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/preview_url",
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/preview_url",
                                    queryToGetUrlPreview(url, ts));
 }
 
@@ -264,10 +262,9 @@ static const auto GetUrlPreviewJobName = QStringLiteral("GetUrlPreviewJob");
 
 GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, Omittable<qint64> ts)
     : BaseJob(HttpVerb::Get, GetUrlPreviewJobName, basePath % "/preview_url",
-              queryToGetUrlPreview(url, ts)),
-      d(new Private)
-{
-}
+              queryToGetUrlPreview(url, ts))
+    , d(new Private)
+{}
 
 GetUrlPreviewJob::~GetUrlPreviewJob() = default;
 
@@ -283,12 +280,13 @@ BaseJob::Status GetUrlPreviewJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     fromJson(json.value("matrix:image:size"_ls), d->matrixImageSize);
     fromJson(json.value("og:image"_ls), d->ogImage);
+
     return Success;
 }
 
 class GetConfigJob::Private
 {
-    public:
+public:
     Omittable<qint64> uploadSize;
 };
 
@@ -300,10 +298,9 @@ QUrl GetConfigJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetConfigJobName = QStringLiteral("GetConfigJob");
 
 GetConfigJob::GetConfigJob()
-    : BaseJob(HttpVerb::Get, GetConfigJobName, basePath % "/config"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetConfigJobName, basePath % "/config")
+    , d(new Private)
+{}
 
 GetConfigJob::~GetConfigJob() = default;
 
@@ -313,5 +310,6 @@ BaseJob::Status GetConfigJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("m.upload.size"_ls), d->uploadSize);
+
     return Success;
 }

@@ -20,27 +20,30 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
-    class RoomCreateEvent : public StateEventBase
+namespace QMatrixClient
+{
+class RoomCreateEvent : public StateEventBase
+{
+public:
+    DEFINE_EVENT_TYPEID("m.room.create", RoomCreateEvent)
+
+    explicit RoomCreateEvent()
+        : StateEventBase(typeId(), matrixTypeId())
+    {}
+    explicit RoomCreateEvent(const QJsonObject& obj)
+        : StateEventBase(typeId(), obj)
+    {}
+
+    struct Predecessor
     {
-        public:
-        DEFINE_EVENT_TYPEID("m.room.create", RoomCreateEvent)
-
-        explicit RoomCreateEvent() : StateEventBase(typeId(), matrixTypeId()) {}
-        explicit RoomCreateEvent(const QJsonObject& obj)
-            : StateEventBase(typeId(), obj)
-        {
-        }
-
-        struct Predecessor {
-            QString roomId;
-            QString eventId;
-        };
-
-        bool isFederated() const;
-        QString version() const;
-        Predecessor predecessor() const;
-        bool isUpgrade() const;
+        QString roomId;
+        QString eventId;
     };
-    REGISTER_EVENT_TYPE(RoomCreateEvent)
-}
+
+    bool isFederated() const;
+    QString version() const;
+    Predecessor predecessor() const;
+    bool isUpgrade() const;
+};
+REGISTER_EVENT_TYPE(RoomCreateEvent)
+} // namespace QMatrixClient

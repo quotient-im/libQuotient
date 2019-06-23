@@ -21,18 +21,15 @@ static const auto LogoutJobName = QStringLiteral("LogoutJob");
 
 LogoutJob::LogoutJob()
     : BaseJob(HttpVerb::Post, LogoutJobName, basePath % "/logout")
-{
-}
+{}
 
 QUrl LogoutAllJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/logout/all");
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/logout/all");
 }
 
 static const auto LogoutAllJobName = QStringLiteral("LogoutAllJob");
 
 LogoutAllJob::LogoutAllJob()
     : BaseJob(HttpVerb::Post, LogoutAllJobName, basePath % "/logout/all")
-{
-}
+{}

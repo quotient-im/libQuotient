@@ -23,205 +23,203 @@
 
 class QFileInfo;
 
-namespace QMatrixClient {
-    namespace MessageEventContent = EventContent; // Back-compatibility
+namespace QMatrixClient
+{
+namespace MessageEventContent = EventContent; // Back-compatibility
+
+/**
+ * The event class corresponding to m.room.message events
+ */
+class RoomMessageEvent : public RoomEvent
+{
+    Q_GADGET
+    Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
+    Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
+    Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
+    Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
+public:
+    DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
+
+    enum class MsgType
+    {
+        Text,
+        Emote,
+        Notice,
+        Image,
+        File,
+        Location,
+        Video,
+        Audio,
+        Unknown
+    };
+
+    RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
+                     EventContent::TypedBase* content = nullptr);
+    explicit RoomMessageEvent(const QString& plainBody,
+                              MsgType msgType = MsgType::Text,
+                              EventContent::TypedBase* content = nullptr);
+    explicit RoomMessageEvent(const QString& plainBody, const QFileInfo& file,
+                              bool asGenericFile = false);
+    explicit RoomMessageEvent(const QJsonObject& obj);
+
+    MsgType msgtype() const;
+    QString rawMsgtype() const;
+    QString plainBody() const;
+    EventContent::TypedBase* content() const { return _content.data(); }
+    template <typename VisitorT>
+    void editContent(VisitorT visitor)
+    {
+        visitor(*_content);
+        editJson()[ContentKeyL] = assembleContentJson(plainBody(), rawMsgtype(),
+                                                      content());
+    }
+    QMimeType mimeType() const;
+    bool hasTextContent() const;
+    bool hasFileContent() const;
+    bool hasThumbnail() const;
+
+    static QString rawMsgTypeForUrl(const QUrl& url);
+    static QString rawMsgTypeForFile(const QFileInfo& fi);
+
+private:
+    QScopedPointer<EventContent::TypedBase> _content;
+
+    static QJsonObject assembleContentJson(const QString& plainBody,
+                                           const QString& jsonMsgType,
+                                           EventContent::TypedBase* content);
+
+    REGISTER_ENUM(MsgType)
+};
+REGISTER_EVENT_TYPE(RoomMessageEvent)
+DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
+using MessageEventType = RoomMessageEvent::MsgType;
+
+namespace EventContent
+{
+    // Additional event content types
+
+    struct RelatesTo
+    {
+        static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
+        QString type; // The only supported relation so far
+        QString eventId;
+    };
+    inline RelatesTo replyTo(QString eventId)
+    {
+        return { RelatesTo::ReplyTypeId(), std::move(eventId) };
+    }
 
     /**
-     * The event class corresponding to m.room.message events
+     * Rich text content for m.text, m.emote, m.notice
+     *
+     * Available fields: mimeType, body. The body can be either rich text
+     * or plain text, depending on what mimeType specifies.
      */
-    class RoomMessageEvent : public RoomEvent
+    class TextContent : public TypedBase
     {
-        Q_GADGET
-        Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
-        Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
-        Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
-        Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
-        public:
-        DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
+    public:
+        TextContent(const QString& text, const QString& contentType,
+                    Omittable<RelatesTo> relatesTo = none);
+        explicit TextContent(const QJsonObject& json);
 
-        enum class MsgType {
-            Text,
-            Emote,
-            Notice,
-            Image,
-            File,
-            Location,
-            Video,
-            Audio,
-            Unknown
-        };
+        QMimeType type() const override { return mimeType; }
 
-        RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
-                         EventContent::TypedBase* content = nullptr);
-        explicit RoomMessageEvent(const QString& plainBody,
-                                  MsgType msgType = MsgType::Text,
-                                  EventContent::TypedBase* content = nullptr);
-        explicit RoomMessageEvent(const QString& plainBody,
-                                  const QFileInfo& file,
-                                  bool asGenericFile = false);
-        explicit RoomMessageEvent(const QJsonObject& obj);
+        QMimeType mimeType;
+        QString body;
+        Omittable<RelatesTo> relatesTo;
 
-        MsgType msgtype() const;
-        QString rawMsgtype() const;
-        QString plainBody() const;
-        EventContent::TypedBase* content() const { return _content.data(); }
-        template <typename VisitorT> void editContent(VisitorT visitor)
-        {
-            visitor(*_content);
-            editJson()[ContentKeyL] =
-                    assembleContentJson(plainBody(), rawMsgtype(), content());
-        }
-        QMimeType mimeType() const;
-        bool hasTextContent() const;
-        bool hasFileContent() const;
-        bool hasThumbnail() const;
-
-        static QString rawMsgTypeForUrl(const QUrl& url);
-        static QString rawMsgTypeForFile(const QFileInfo& fi);
-
-        private:
-        QScopedPointer<EventContent::TypedBase> _content;
-
-        static QJsonObject
-        assembleContentJson(const QString& plainBody,
-                            const QString& jsonMsgType,
-                            EventContent::TypedBase* content);
-
-        REGISTER_ENUM(MsgType)
+    protected:
+        void fillJson(QJsonObject* json) const override;
     };
-    REGISTER_EVENT_TYPE(RoomMessageEvent)
-    DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
-    using MessageEventType = RoomMessageEvent::MsgType;
 
-    namespace EventContent {
-        // Additional event content types
+    /**
+     * Content class for m.location
+     *
+     * Available fields:
+     * - corresponding to the top-level JSON:
+     *   - geoUri ("geo_uri" in JSON)
+     * - corresponding to the "info" subobject:
+     *   - thumbnail.url ("thumbnail_url" in JSON)
+     * - corresponding to the "info/thumbnail_info" subobject:
+     *   - thumbnail.payloadSize
+     *   - thumbnail.mimeType
+     *   - thumbnail.imageSize
+     */
+    class LocationContent : public TypedBase
+    {
+    public:
+        LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
+        explicit LocationContent(const QJsonObject& json);
 
-        struct RelatesTo {
-            static constexpr const char* ReplyTypeId()
-            {
-                return "m.in_reply_to";
-            }
-            QString type; // The only supported relation so far
-            QString eventId;
-        };
-        inline RelatesTo replyTo(QString eventId)
+        QMimeType type() const override;
+
+    public:
+        QString geoUri;
+        Thumbnail thumbnail;
+
+    protected:
+        void fillJson(QJsonObject* o) const override;
+    };
+
+    /**
+     * A base class for info types that include duration: audio and video
+     */
+    template <typename ContentT>
+    class PlayableContent : public ContentT
+    {
+    public:
+        using ContentT::ContentT;
+        PlayableContent(const QJsonObject& json)
+            : ContentT(json)
+            , duration(ContentT::originalInfoJson["duration"_ls].toInt())
+        {}
+
+    protected:
+        void fillJson(QJsonObject* json) const override
         {
-            return { RelatesTo::ReplyTypeId(), std::move(eventId) };
+            ContentT::fillJson(json);
+            auto infoJson = json->take("info"_ls).toObject();
+            infoJson.insert(QStringLiteral("duration"), duration);
+            json->insert(QStringLiteral("info"), infoJson);
         }
 
-        /**
-         * Rich text content for m.text, m.emote, m.notice
-         *
-         * Available fields: mimeType, body. The body can be either rich text
-         * or plain text, depending on what mimeType specifies.
-         */
-        class TextContent : public TypedBase
-        {
-            public:
-            TextContent(const QString& text, const QString& contentType,
-                        Omittable<RelatesTo> relatesTo = none);
-            explicit TextContent(const QJsonObject& json);
+    public:
+        int duration;
+    };
 
-            QMimeType type() const override { return mimeType; }
+    /**
+     * Content class for m.video
+     *
+     * Available fields:
+     * - corresponding to the top-level JSON:
+     *   - url
+     *   - filename (extension to the CS API spec)
+     * - corresponding to the "info" subobject:
+     *   - payloadSize ("size" in JSON)
+     *   - mimeType ("mimetype" in JSON)
+     *   - duration
+     *   - imageSize (QSize for a combination of "h" and "w" in JSON)
+     *   - thumbnail.url ("thumbnail_url" in JSON)
+     * - corresponding to the "info/thumbnail_info" subobject: contents of
+     *   thumbnail field, in the same vein as for "info":
+     *   - payloadSize
+     *   - mimeType
+     *   - imageSize
+     */
+    using VideoContent = PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
 
-            QMimeType mimeType;
-            QString body;
-            Omittable<RelatesTo> relatesTo;
-
-            protected:
-            void fillJson(QJsonObject* json) const override;
-        };
-
-        /**
-         * Content class for m.location
-         *
-         * Available fields:
-         * - corresponding to the top-level JSON:
-         *   - geoUri ("geo_uri" in JSON)
-         * - corresponding to the "info" subobject:
-         *   - thumbnail.url ("thumbnail_url" in JSON)
-         * - corresponding to the "info/thumbnail_info" subobject:
-         *   - thumbnail.payloadSize
-         *   - thumbnail.mimeType
-         *   - thumbnail.imageSize
-         */
-        class LocationContent : public TypedBase
-        {
-            public:
-            LocationContent(const QString& geoUri,
-                            const Thumbnail& thumbnail = {});
-            explicit LocationContent(const QJsonObject& json);
-
-            QMimeType type() const override;
-
-            public:
-            QString geoUri;
-            Thumbnail thumbnail;
-
-            protected:
-            void fillJson(QJsonObject* o) const override;
-        };
-
-        /**
-         * A base class for info types that include duration: audio and video
-         */
-        template <typename ContentT> class PlayableContent : public ContentT
-        {
-            public:
-            using ContentT::ContentT;
-            PlayableContent(const QJsonObject& json)
-                : ContentT(json),
-                  duration(ContentT::originalInfoJson["duration"_ls].toInt())
-            {
-            }
-
-            protected:
-            void fillJson(QJsonObject* json) const override
-            {
-                ContentT::fillJson(json);
-                auto infoJson = json->take("info"_ls).toObject();
-                infoJson.insert(QStringLiteral("duration"), duration);
-                json->insert(QStringLiteral("info"), infoJson);
-            }
-
-            public:
-            int duration;
-        };
-
-        /**
-         * Content class for m.video
-         *
-         * Available fields:
-         * - corresponding to the top-level JSON:
-         *   - url
-         *   - filename (extension to the CS API spec)
-         * - corresponding to the "info" subobject:
-         *   - payloadSize ("size" in JSON)
-         *   - mimeType ("mimetype" in JSON)
-         *   - duration
-         *   - imageSize (QSize for a combination of "h" and "w" in JSON)
-         *   - thumbnail.url ("thumbnail_url" in JSON)
-         * - corresponding to the "info/thumbnail_info" subobject: contents of
-         *   thumbnail field, in the same vein as for "info":
-         *   - payloadSize
-         *   - mimeType
-         *   - imageSize
-         */
-        using VideoContent =
-                PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
-
-        /**
-         * Content class for m.audio
-         *
-         * Available fields:
-         * - corresponding to the top-level JSON:
-         *   - url
-         *   - filename (extension to the CS API spec)
-         * - corresponding to the "info" subobject:
-         *   - payloadSize ("size" in JSON)
-         *   - mimeType ("mimetype" in JSON)
-         *   - duration
-         */
-        using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
-    } // namespace EventContent
+    /**
+     * Content class for m.audio
+     *
+     * Available fields:
+     * - corresponding to the top-level JSON:
+     *   - url
+     *   - filename (extension to the CS API spec)
+     * - corresponding to the "info" subobject:
+     *   - payloadSize ("size" in JSON)
+     *   - mimeType ("mimetype" in JSON)
+     *   - duration
+     */
+    using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
+} // namespace EventContent
 } // namespace QMatrixClient

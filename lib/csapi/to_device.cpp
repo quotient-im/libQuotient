@@ -15,8 +15,8 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 static const auto SendToDeviceJobName = QStringLiteral("SendToDeviceJob");
 
 SendToDeviceJob::SendToDeviceJob(
-        const QString& eventType, const QString& txnId,
-        const QHash<QString, QHash<QString, QJsonObject>>& messages)
+    const QString& eventType, const QString& txnId,
+    const QHash<QString, QHash<QString, QJsonObject>>& messages)
     : BaseJob(HttpVerb::Put, SendToDeviceJobName,
               basePath % "/sendToDevice/" % eventType % "/" % txnId)
 {

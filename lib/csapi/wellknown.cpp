@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/.well-known");
 
 class GetWellknownJob::Private
 {
-    public:
+public:
     DiscoveryInformation data;
 };
 
@@ -28,10 +28,9 @@ static const auto GetWellknownJobName = QStringLiteral("GetWellknownJob");
 
 GetWellknownJob::GetWellknownJob()
     : BaseJob(HttpVerb::Get, GetWellknownJobName, basePath % "/matrix/client",
-              false),
-      d(new Private)
-{
-}
+              false)
+    , d(new Private)
+{}
 
 GetWellknownJob::~GetWellknownJob() = default;
 

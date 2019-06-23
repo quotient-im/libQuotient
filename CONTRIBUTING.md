@@ -86,34 +86,20 @@ a commit without a DCO is an accident and the DCO still applies.
 -->
 ### License
 
-Unless a contributor explicitly specifies otherwise, we assume that all
-contributed code is released under [the same license as libQMatrixClient itself](./COPYING),
-which is LGPL v2.1 as of the time of this writing.
+Unless a contributor explicitly specifies otherwise, we assume contributors
+to agree that all contributed code is released either under *LGPL v2.1 or later*.
+This is more than just [LGPL v2.1 libQMatrixClient now uses](./COPYING)
+because the project plans to switch to LGPL v3 for library code in the near future.
 <!-- The below is invalid yet!
 All new contributed material that is not executable, including all text when not executed, is also released under the
 [Creative Commons Attribution 4.0 International (CC BY 4.0) license](https://creativecommons.org/licenses/by/4.0/) or later.
 -->
 
 Any components proposed for reuse should have a license that permits releasing
-a derivative work under LGPL v2.1. Moreover, the license of a proposed component
-should be approved by OSI, no exceptions.
+a derivative work under *LGPL v2.1 or later* or LGPL v3. Moreover, the license of
+a proposed component should be approved by OSI, no exceptions.
 
-## Vulnerability reporting (security issues)
-
-If you find a significant vulnerability, or evidence of one,
-use either of the following contacts:
-* send an email to Kitsune Ral [Kitsune-Ral@users.sf.net](mailto:Kitsune-Ral@users.sf.net)
-* reach out in Matrix to #kitsune:matrix.org (if you can, switch encryption **on**)
-
-In any of these two options, _indicate that you have such information_
-(do not share the information yet), and we'll tell you the next steps.
-
-By default, we will give credit to anyone who reports a vulnerability in
-a responsible way so that we can fix it before public disclosure. If you want
-to remain anonymous or pseudonymous instead, please let us know that; we will
-gladly respect your wishes. If you provide a fix as a PR, you have no way
-to remain anonymous (and you also disclose the vulnerability thereby) so this
-is not the right way, unless the vulnerability is already made public.
+## Vulnerability reporting (security issues) - see [SECURITY.md](./SECURITY.md)
 
 ## Documentation changes
 
@@ -156,12 +142,12 @@ The code should strive to be DRY (don't repeat yourself), clear, and obviously c
 
 ### Generated C++ code for CS API
 The code in lib/csapi, lib/identity and lib/application-service, although
-it resides in Git, is actually generated from the official Matrix
-Swagger/OpenAPI definition files. If you're unhappy with something in these
-directories and want to improve the code, you have to understand the way these
-files are produced and setup some additional tooling. The shortest possible
-procedure resembling the below text can be found in .travis.yml (our Travis CI
-configuration actually regenerates those files upon every build).
+it resides in Git, is actually generated from (a soft fork of) the official
+Matrix Swagger/OpenAPI definition files. If you're unhappy with something in
+these directories and want to improve the code, you have to understand the way
+these files are produced and setup some additional tooling. The shortest
+possible procedure resembling the below text can be found in .travis.yml
+(our Travis CI configuration actually regenerates those files upon every build).
 The generating sequence only works with CMake atm;
 patches to enable it with qmake are (you guessed it) very welcome.
 
@@ -209,16 +195,23 @@ Instead of relying on the event structure definition in the OpenAPI files, `gtad
 
 ### Library API and doc-comments
 
-Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes and if that bothers you. Some parts are not even documented; adding doc-comments to them is highly encouraged.
+Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you. Some parts are not even documented; adding doc-comments to them is highly encouraged.
 
-Calls, data structures and other symbols not intended for use by clients should _not_ be exposed in (public) .h files, unless they are necessary to declare other public symbols. In particular, this involves private members (functions, typedefs, or variables) in public classes; use pimpl idiom to hide implementation details as much as possible.
+Calls, data structures and other symbols not intended for use by clients
+should _not_ be exposed in (public) .h files, unless they are necessary
+to declare other public symbols. In particular, this involves private members
+(functions, typedefs, or variables) in public classes; use pimpl idiom to hide
+implementation details as much as possible. `_impl` namespace is reserved for
+definitions that should not be used by clients and are not covered by
+API guarantees.
 
 Note: As of now, all header files of libQMatrixClient are considered public; this may change eventually.
 
 ### Qt-flavoured C++
 
-This is our primary language. We don't have a particular code style _as of yet_
-but some rules-of-thumb are below:
+This is our primary language. A particular code style is not enforced _yet_ but
+[the PR imposing the common code style](https://github.com/QMatrixClient/libqmatrixclient/pull/295)
+is planned to arrive in version 0.6.
 * 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
   spot the code abusing these - we'll thank you for fixing it.
 * Prefer keeping lines within 80 characters.
@@ -260,9 +253,12 @@ but some rules-of-thumb are below:
 
 ### Automated tests
 
-There's no testing framework as of now; either Catch or Qt Test or both will be used eventually. However, as a stopgap measure, qmc-example is used for automated end-to-end testing.
+There's no testing framework as of now; either Catch or Qt Test or both will
+be used eventually.
 
-Any significant addition to the library API should be accompanied by a respective test in qmc-example. To add a test you should:
+As a stopgap measure, qmc-example is used for automated functional testing.
+Therefore, any significant addition to the library API should be accompanied
+by a respective test in qmc-example. To add a test you should:
 - Add a new private slot to the `QMCTest` class.
 - Add to the beginning of the slot the line `running.push_back("Test name");`.
 - Add test logic to the slot, using `QMC_CHECK` macro to assert the test outcome. ALL (even failing) branches should conclude with a QMC_CHECK invocation, unless you intend to have a "DID NOT FINISH" message in the logs under certain conditions.
@@ -310,7 +306,7 @@ In Qt Creator, the following line can be used with the Clang code model
 
 ### Continuous Integration
 
-We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) and MacOS (Clang), and AppVeyor CI to build on Windows (MSVC). Every PR will go through these, and you'll see the traffic lights from them on the PR page. Failure on any platform will most likely entail a request to you for a fix before merging a PR.
+We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) and MacOS (Clang), and AppVeyor CI to build on Windows (MSVC). Every PR will go through these, and you'll see the traffic lights from them on the PR page. If your PR fails on any platform double-check that it's not your code causing it - and fix it if it is.
 
 ### Other tools
 
@@ -323,7 +319,7 @@ Qt Creator, in addition, knows about clazy, an even deeper Qt-aware static
 analysis tool. Even level 1 clazy eats away CPU but produces some very relevant
 and unobvious notices, such as possible unintended copying of a Qt container,
 or unguarded null pointers. You can use this time to time (see Analyze menu in
-Qt Creator) instead of loading your machine with deep runtime analysis.
+Qt Creator) instead of hogging your machine with deep analysis as you type.
 
 ## Git commit messages
 
@@ -343,7 +339,7 @@ When writing git commit messages, try to follow the guidelines in
 
 C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very conservative about adding dependencies to libQMatrixClient. That relates to additional Qt components and even more to other libraries. Fortunately, even the Qt components now in use (Qt Core and Network) are very feature-rich and provide plenty of ready-made stuff.
 
-Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for automated testing, so PRs onboarding a test framework will be considered with much gratitude.
+Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for futures and automated testing, so PRs onboarding those will be considered with much gratitude.
 
 Some cases need additional explanation:
 * Before rolling out your own super-optimised container or algorithm written
@@ -367,4 +363,4 @@ Some cases need additional explanation:
 
 ## Attribution
 
-This text is largely based on CONTRIBUTING.md from CII Best Practices Badge project, which is a collective work of its contributors (many thanks!). The text itself is licensed under CC-BY-4.0.
+This text is based on CONTRIBUTING.md from CII Best Practices Badge project, which is a collective work of its contributors (many thanks!). The text itself is licensed under CC-BY-4.0.

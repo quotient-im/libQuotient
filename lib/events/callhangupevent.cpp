@@ -19,7 +19,6 @@
 #include "callhangupevent.h"
 
 #include "event.h"
-
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -50,5 +49,4 @@ CallHangupEvent::CallHangupEvent(const QJsonObject& obj)
 
 CallHangupEvent::CallHangupEvent(const QString& callId)
     : CallEventBase(typeId(), matrixTypeId(), callId, 0)
-{
-}
+{}

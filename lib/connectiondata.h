@@ -24,31 +24,32 @@
 
 class QNetworkAccessManager;
 
-namespace QMatrixClient {
-    class ConnectionData
-    {
-        public:
-        explicit ConnectionData(QUrl baseUrl);
-        virtual ~ConnectionData();
+namespace QMatrixClient
+{
+class ConnectionData
+{
+public:
+    explicit ConnectionData(QUrl baseUrl);
+    virtual ~ConnectionData();
 
-        QByteArray accessToken() const;
-        QUrl baseUrl() const;
-        const QString& deviceId() const;
+    QByteArray accessToken() const;
+    QUrl baseUrl() const;
+    const QString& deviceId() const;
 
-        QNetworkAccessManager* nam() const;
-        void setBaseUrl(QUrl baseUrl);
-        void setToken(QByteArray accessToken);
-        void setHost(QString host);
-        void setPort(int port);
-        void setDeviceId(const QString& deviceId);
+    QNetworkAccessManager* nam() const;
+    void setBaseUrl(QUrl baseUrl);
+    void setToken(QByteArray accessToken);
+    void setHost(QString host);
+    void setPort(int port);
+    void setDeviceId(const QString& deviceId);
 
-        QString lastEvent() const;
-        void setLastEvent(QString identifier);
+    QString lastEvent() const;
+    void setLastEvent(QString identifier);
 
-        QByteArray generateTxnId() const;
+    QByteArray generateTxnId() const;
 
-        private:
-        struct Private;
-        std::unique_ptr<Private> d;
-    };
+private:
+    struct Private;
+    std::unique_ptr<Private> d;
+};
 } // namespace QMatrixClient

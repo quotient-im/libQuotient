@@ -20,22 +20,22 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
-    class RoomTombstoneEvent : public StateEventBase
-    {
-        public:
-        DEFINE_EVENT_TYPEID("m.room.tombstone", RoomTombstoneEvent)
+namespace QMatrixClient
+{
+class RoomTombstoneEvent : public StateEventBase
+{
+public:
+    DEFINE_EVENT_TYPEID("m.room.tombstone", RoomTombstoneEvent)
 
-        explicit RoomTombstoneEvent() : StateEventBase(typeId(), matrixTypeId())
-        {
-        }
-        explicit RoomTombstoneEvent(const QJsonObject& obj)
-            : StateEventBase(typeId(), obj)
-        {
-        }
+    explicit RoomTombstoneEvent()
+        : StateEventBase(typeId(), matrixTypeId())
+    {}
+    explicit RoomTombstoneEvent(const QJsonObject& obj)
+        : StateEventBase(typeId(), obj)
+    {}
 
-        QString serverMessage() const;
-        QString successorRoomId() const;
-    };
-    REGISTER_EVENT_TYPE(RoomTombstoneEvent)
-}
+    QString serverMessage() const;
+    QString successorRoomId() const;
+};
+REGISTER_EVENT_TYPE(RoomTombstoneEvent)
+} // namespace QMatrixClient

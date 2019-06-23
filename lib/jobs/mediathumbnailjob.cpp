@@ -29,19 +29,16 @@ QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
 }
 
 MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
-                                     const QString& mediaId,
-                                     QSize requestedSize)
+                                     const QString& mediaId, QSize requestedSize)
     : GetContentThumbnailJob(serverName, mediaId, requestedSize.width(),
                              requestedSize.height())
-{
-}
+{}
 
 MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
     : MediaThumbnailJob(mxcUri.authority(),
                         mxcUri.path().mid(1), // sans leading '/'
                         requestedSize)
-{
-}
+{}
 
 QImage MediaThumbnailJob::thumbnail() const { return _thumbnail; }
 
@@ -60,5 +57,6 @@ BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
     if (_thumbnail.loadFromData(data()->readAll()))
         return Success;
 
-    return { IncorrectResponseError, "Could not read image data" };
+    return { IncorrectResponseError,
+             QStringLiteral("Could not read image data") };
 }

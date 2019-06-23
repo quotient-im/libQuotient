@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetDevicesJob::Private
 {
-    public:
+public:
     QVector<Device> devices;
 };
 
@@ -26,10 +26,9 @@ QUrl GetDevicesJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetDevicesJobName = QStringLiteral("GetDevicesJob");
 
 GetDevicesJob::GetDevicesJob()
-    : BaseJob(HttpVerb::Get, GetDevicesJobName, basePath % "/devices"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetDevicesJobName, basePath % "/devices")
+    , d(new Private)
+{}
 
 GetDevicesJob::~GetDevicesJob() = default;
 
@@ -39,12 +38,13 @@ BaseJob::Status GetDevicesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("devices"_ls), d->devices);
+
     return Success;
 }
 
 class GetDeviceJob::Private
 {
-    public:
+public:
     Device data;
 };
 
@@ -57,11 +57,9 @@ QUrl GetDeviceJob::makeRequestUrl(QUrl baseUrl, const QString& deviceId)
 static const auto GetDeviceJobName = QStringLiteral("GetDeviceJob");
 
 GetDeviceJob::GetDeviceJob(const QString& deviceId)
-    : BaseJob(HttpVerb::Get, GetDeviceJobName,
-              basePath % "/devices/" % deviceId),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetDeviceJobName, basePath % "/devices/" % deviceId)
+    , d(new Private)
+{}
 
 GetDeviceJob::~GetDeviceJob() = default;
 
@@ -101,8 +99,7 @@ static const auto DeleteDevicesJobName = QStringLiteral("DeleteDevicesJob");
 
 DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices,
                                    const Omittable<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Post, DeleteDevicesJobName,
-              basePath % "/delete_devices")
+    : BaseJob(HttpVerb::Post, DeleteDevicesJobName, basePath % "/delete_devices")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("devices"), devices);

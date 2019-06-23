@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetTurnServerJob::Private
 {
-    public:
+public:
     QJsonObject data;
 };
 
@@ -27,11 +27,9 @@ QUrl GetTurnServerJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetTurnServerJobName = QStringLiteral("GetTurnServerJob");
 
 GetTurnServerJob::GetTurnServerJob()
-    : BaseJob(HttpVerb::Get, GetTurnServerJobName,
-              basePath % "/voip/turnServer"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetTurnServerJobName, basePath % "/voip/turnServer")
+    , d(new Private)
+{}
 
 GetTurnServerJob::~GetTurnServerJob() = default;
 

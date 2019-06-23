@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class PeekEventsJob::Private
 {
-    public:
+public:
     QString begin;
     QString end;
     RoomEvents chunk;
@@ -31,8 +31,7 @@ BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout,
 }
 
 QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
-                                   Omittable<int> timeout,
-                                   const QString& roomId)
+                                   Omittable<int> timeout, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/events",
                                    queryToPeekEvents(from, timeout, roomId));
@@ -43,10 +42,9 @@ static const auto PeekEventsJobName = QStringLiteral("PeekEventsJob");
 PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout,
                              const QString& roomId)
     : BaseJob(HttpVerb::Get, PeekEventsJobName, basePath % "/events",
-              queryToPeekEvents(from, timeout, roomId)),
-      d(new Private)
-{
-}
+              queryToPeekEvents(from, timeout, roomId))
+    , d(new Private)
+{}
 
 PeekEventsJob::~PeekEventsJob() = default;
 
@@ -62,5 +60,6 @@ BaseJob::Status PeekEventsJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("start"_ls), d->begin);
     fromJson(json.value("end"_ls), d->end);
     fromJson(json.value("chunk"_ls), d->chunk);
+
     return Success;
 }

@@ -12,35 +12,39 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<SearchUserDirectoryJob::User> {
-        static void fillFrom(const QJsonObject& jo,
-                             SearchUserDirectoryJob::User& result)
-        {
-            fromJson(jo.value("user_id"_ls), result.userId);
-            fromJson(jo.value("display_name"_ls), result.displayName);
-            fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
-        }
-    };
+template <>
+struct JsonObjectConverter<SearchUserDirectoryJob::User>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         SearchUserDirectoryJob::User& result)
+    {
+        fromJson(jo.value("user_id"_ls), result.userId);
+        fromJson(jo.value("display_name"_ls), result.displayName);
+        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+    }
+};
+
 } // namespace QMatrixClient
 
 class SearchUserDirectoryJob::Private
 {
-    public:
+public:
     QVector<User> results;
     bool limited;
 };
 
 static const auto SearchUserDirectoryJobName =
-        QStringLiteral("SearchUserDirectoryJob");
+    QStringLiteral("SearchUserDirectoryJob");
 
 SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm,
                                                Omittable<int> limit)
     : BaseJob(HttpVerb::Post, SearchUserDirectoryJobName,
-              basePath % "/user_directory/search"),
-      d(new Private)
+              basePath % "/user_directory/search")
+    , d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("search_term"), searchTerm);
@@ -50,8 +54,7 @@ SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm,
 
 SearchUserDirectoryJob::~SearchUserDirectoryJob() = default;
 
-const QVector<SearchUserDirectoryJob::User>&
-SearchUserDirectoryJob::results() const
+const QVector<SearchUserDirectoryJob::User>& SearchUserDirectoryJob::results() const
 {
     return d->results;
 }
@@ -62,12 +65,13 @@ BaseJob::Status SearchUserDirectoryJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("results"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'results' not found in the response" };
     fromJson(json.value("results"_ls), d->results);
     if (!json.contains("limited"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'limited' not found in the response" };
     fromJson(json.value("limited"_ls), d->limited);
+
     return Success;
 }

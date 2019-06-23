@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class DefineFilterJob::Private
 {
-    public:
+public:
     QString filterId;
 };
 
@@ -22,8 +22,8 @@ static const auto DefineFilterJobName = QStringLiteral("DefineFilterJob");
 
 DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
     : BaseJob(HttpVerb::Post, DefineFilterJobName,
-              basePath % "/user/" % userId % "/filter"),
-      d(new Private)
+              basePath % "/user/" % userId % "/filter")
+    , d(new Private)
 {
     setRequestData(Data(toJson(filter)));
 }
@@ -36,34 +36,34 @@ BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("filter_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
                  "The key 'filter_id' not found in the response" };
     fromJson(json.value("filter_id"_ls), d->filterId);
+
     return Success;
 }
 
 class GetFilterJob::Private
 {
-    public:
+public:
     Filter data;
 };
 
 QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
                                   const QString& filterId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/user/" % userId % "/filter/"
-                                           % filterId);
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/user/"
+                                                           % userId % "/filter/"
+                                                           % filterId);
 }
 
 static const auto GetFilterJobName = QStringLiteral("GetFilterJob");
 
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
     : BaseJob(HttpVerb::Get, GetFilterJobName,
-              basePath % "/user/" % userId % "/filter/" % filterId),
-      d(new Private)
-{
-}
+              basePath % "/user/" % userId % "/filter/" % filterId)
+    , d(new Private)
+{}
 
 GetFilterJob::~GetFilterJob() = default;
 

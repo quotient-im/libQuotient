@@ -19,7 +19,6 @@
 #include "callinviteevent.h"
 
 #include "event.h"
-
 #include "logging.h"
 
 #include <QtCore/QJsonDocument>
@@ -55,11 +54,10 @@ CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
 
 CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
-    : CallEventBase(typeId(), matrixTypeId(), callId, lifetime,
-                    { { QStringLiteral("lifetime"), lifetime },
-                      { QStringLiteral("offer"),
-                        QJsonObject { { QStringLiteral("type"),
-                                        QStringLiteral("offer") },
-                                      { QStringLiteral("sdp"), sdp } } } })
-{
-}
+    : CallEventBase(
+        typeId(), matrixTypeId(), callId, lifetime,
+        { { QStringLiteral("lifetime"), lifetime },
+          { QStringLiteral("offer"),
+            QJsonObject { { QStringLiteral("type"), QStringLiteral("offer") },
+                          { QStringLiteral("sdp"), sdp } } } })
+{}

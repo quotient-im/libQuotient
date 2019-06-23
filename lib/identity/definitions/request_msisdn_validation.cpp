@@ -7,7 +7,7 @@
 using namespace QMatrixClient;
 
 void JsonObjectConverter<RequestMsisdnValidation>::dumpTo(
-        QJsonObject& jo, const RequestMsisdnValidation& pod)
+    QJsonObject& jo, const RequestMsisdnValidation& pod)
 {
     addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
     addParam<>(jo, QStringLiteral("country"), pod.country);
@@ -17,7 +17,7 @@ void JsonObjectConverter<RequestMsisdnValidation>::dumpTo(
 }
 
 void JsonObjectConverter<RequestMsisdnValidation>::fillFrom(
-        const QJsonObject& jo, RequestMsisdnValidation& result)
+    const QJsonObject& jo, RequestMsisdnValidation& result)
 {
     fromJson(jo.value("client_secret"_ls), result.clientSecret);
     fromJson(jo.value("country"_ls), result.country);

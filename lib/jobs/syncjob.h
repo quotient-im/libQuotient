@@ -18,26 +18,26 @@
 
 #pragma once
 
-#include "basejob.h"
-
 #include "../csapi/definitions/sync_filter.h"
 #include "../syncdata.h"
+#include "basejob.h"
 
-namespace QMatrixClient {
-    class SyncJob : public BaseJob
-    {
-        public:
-        explicit SyncJob(const QString& since = {}, const QString& filter = {},
-                         int timeout = -1, const QString& presence = {});
-        explicit SyncJob(const QString& since, const Filter& filter,
-                         int timeout = -1, const QString& presence = {});
+namespace QMatrixClient
+{
+class SyncJob : public BaseJob
+{
+public:
+    explicit SyncJob(const QString& since = {}, const QString& filter = {},
+                     int timeout = -1, const QString& presence = {});
+    explicit SyncJob(const QString& since, const Filter& filter,
+                     int timeout = -1, const QString& presence = {});
 
-        SyncData&& takeData() { return std::move(d); }
+    SyncData&& takeData() { return std::move(d); }
 
-        protected:
-        Status parseJson(const QJsonDocument& data) override;
+protected:
+    Status parseJson(const QJsonDocument& data) override;
 
-        private:
-        SyncData d;
-    };
+private:
+    SyncData d;
+};
 } // namespace QMatrixClient

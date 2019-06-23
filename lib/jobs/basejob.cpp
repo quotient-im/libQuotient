@@ -32,7 +32,8 @@
 
 using namespace QMatrixClient;
 
-struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
+struct NetworkReplyDeleter : public QScopedPointerDeleteLater
+{
     static inline void cleanup(QNetworkReply* reply)
     {
         if (reply && reply->isRunning())
@@ -43,18 +44,17 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
 
 class BaseJob::Private
 {
-    public:
+public:
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
     Private(HttpVerb v, QString endpoint, const QUrlQuery& q, Data&& data,
             bool nt)
-        : verb(v),
-          apiEndpoint(std::move(endpoint)),
-          requestQuery(q),
-          requestData(std::move(data)),
-          needsToken(nt)
-    {
-    }
+        : verb(v)
+        , apiEndpoint(std::move(endpoint))
+        , requestQuery(q)
+        , requestData(std::move(data))
+        , needsToken(nt)
+    {}
 
     void sendRequest(bool inBackground);
     const JobTimeoutConfig& getCurrentTimeoutConfig() const;
@@ -94,8 +94,7 @@ class BaseJob::Private
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  bool needsToken)
     : BaseJob(verb, name, endpoint, Query {}, Data {}, needsToken)
-{
-}
+{}
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  const Query& query, Data&& data, bool needsToken)
@@ -121,9 +120,9 @@ QUrl BaseJob::requestUrl() const
 bool BaseJob::isBackground() const
 {
     return d->reply
-            && d->reply->request()
-                       .attribute(QNetworkRequest::BackgroundRequestAttribute)
-                       .toBool();
+           && d->reply->request()
+                  .attribute(QNetworkRequest::BackgroundRequestAttribute)
+                  .toBool();
 }
 
 const QString& BaseJob::apiEndpoint() const { return d->apiEndpoint; }
@@ -182,7 +181,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
     if (!pathBase.endsWith('/') && !path.startsWith('/'))
         pathBase.push_back('/');
 
-    baseUrl.setPath(pathBase + path);
+    baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
     baseUrl.setQuery(query);
     return baseUrl;
 }
@@ -253,8 +252,7 @@ void BaseJob::sendRequest(bool inBackground)
     if (!d->requestQuery.isEmpty())
         qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
     d->sendRequest(inBackground);
-    connect(d->reply.data(), &QNetworkReply::finished, this,
-            &BaseJob::gotReply);
+    connect(d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply);
     if (d->reply->isRunning()) {
         connect(d->reply.data(), &QNetworkReply::metaDataChanged, this,
                 &BaseJob::checkReply);
@@ -279,10 +277,10 @@ void BaseJob::gotReply()
     else {
         // FIXME: Factor out to smth like BaseJob::handleError()
         d->rawResponse = d->reply->readAll();
-        const auto jsonBody =
-                d->reply->rawHeader("Content-Type") == "application/json";
-        qCDebug(d->logCat).noquote() << "Error body (truncated if long):"
-                                     << d->rawResponse.left(500);
+        const auto jsonBody = d->reply->rawHeader("Content-Type")
+                              == "application/json";
+        qCDebug(d->logCat).noquote()
+            << "Error body (truncated if long):" << d->rawResponse.left(500);
         if (jsonBody) {
             auto json = QJsonDocument::fromJson(d->rawResponse).object();
             const auto errCode = json.value("errcode"_ls).toString();
@@ -291,8 +289,8 @@ void BaseJob::gotReply()
                 QString msg = tr("Too many requests");
                 auto retryInterval = json.value("retry_after_ms"_ls).toInt(-1);
                 if (retryInterval != -1)
-                    msg += tr(", next retry advised after %1 ms")
-                                   .arg(retryInterval);
+                    msg +=
+                        tr(", next retry advised after %1 ms").arg(retryInterval);
                 else // We still have to figure some reasonable interval
                     retryInterval = getNextRetryInterval();
 
@@ -301,7 +299,7 @@ void BaseJob::gotReply()
                 // Shortcut to retry instead of executing finishJob()
                 stop();
                 qCWarning(d->logCat)
-                        << this << "will retry in" << retryInterval << "ms";
+                    << this << "will retry in" << retryInterval << "ms";
                 d->retryTimer.start(retryInterval);
                 emit retryScheduled(d->retriesTaken, retryInterval);
                 return;
@@ -314,11 +312,10 @@ void BaseJob::gotReply()
                 d->status.code = UnsupportedRoomVersionError;
                 if (json.contains("room_version"))
                     d->status.message =
-                            tr("Requested room version: %1")
-                                    .arg(json.value("room_version").toString());
+                        tr("Requested room version: %1")
+                            .arg(json.value("room_version").toString());
             } else if (!json.isEmpty()) // Not localisable on the client side
-                setStatus(IncorrectRequestError,
-                          json.value("error"_ls).toString());
+                setStatus(d->status.code, json.value("error"_ls).toString());
         }
     }
 
@@ -341,7 +338,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
         Q_ASSERT_X(patternParts.size() <= 2, __FUNCTION__,
                    "BaseJob: Expected content type should have up to two"
                    " /-separated parts; violating pattern: "
-                           + pattern);
+                       + pattern);
 
         if (ctype.split('/').front() == patternParts.front()
             && patternParts.back() == "*")
@@ -358,25 +355,23 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     // so check genuine HTTP codes. The below processing is based on
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     const auto httpCodeHeader =
-            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (!httpCodeHeader.isValid()) {
         qCWarning(d->logCat) << this << "didn't get valid HTTP headers";
         return { NetworkError, reply->errorString() };
     }
 
     const QString replyState = reply->isRunning()
-            ? QStringLiteral("(tentative)")
-            : QStringLiteral("(final)");
+                                   ? QStringLiteral("(tentative)")
+                                   : QStringLiteral("(final)");
     const auto urlString = '|' + d->reply->url().toDisplayString();
     const auto httpCode = httpCodeHeader.toInt();
     const auto reason =
-            reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute)
-                    .toString();
+        reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
     if (httpCode / 100 == 2) // 2xx
     {
         qCDebug(d->logCat).noquote().nospace() << this << urlString;
-        qCDebug(d->logCat).noquote()
-                << "  " << httpCode << reason << replyState;
+        qCDebug(d->logCat).noquote() << "  " << httpCode << reason << replyState;
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,
@@ -423,7 +418,7 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 {
     d->rawResponse = reply->readAll();
-    QJsonParseError error;
+    QJsonParseError error { 0, QJsonParseError::MissingObject };
     const auto& json = QJsonDocument::fromJson(d->rawResponse, &error);
     if (error.error == QJsonParseError::NoError)
         return parseJson(json);
@@ -440,7 +435,7 @@ void BaseJob::stop()
         d->reply->disconnect(this); // Ignore whatever comes from the reply
         if (d->reply->isRunning()) {
             qCWarning(d->logCat)
-                    << this << "stopped without ready network reply";
+                << this << "stopped without ready network reply";
             d->reply->abort();
         }
     } else
@@ -455,12 +450,12 @@ void BaseJob::finishJob()
         // TODO: The whole retrying thing should be put to ConnectionManager
         // otherwise independently retrying jobs make a bit of notification
         // storm towards the UI.
-        const auto retryInterval =
-                error() == TimeoutError ? 0 : getNextRetryInterval();
+        const auto retryInterval = error() == TimeoutError
+                                       ? 0
+                                       : getNextRetryInterval();
         ++d->retriesTaken;
-        qCWarning(d->logCat).nospace()
-                << this << ": retry #" << d->retriesTaken << " in "
-                << retryInterval / 1000 << " s";
+        qCWarning(d->logCat).nospace() << this << ": retry #" << d->retriesTaken
+                                       << " in " << retryInterval / 1000 << " s";
         d->retryTimer.start(retryInterval);
         emit retryScheduled(d->retriesTaken, retryInterval);
         return;
@@ -510,19 +505,20 @@ BaseJob::Status BaseJob::status() const { return d->status; }
 QByteArray BaseJob::rawData(int bytesAtMost) const
 {
     return bytesAtMost > 0 && d->rawResponse.size() > bytesAtMost
-            ? d->rawResponse.left(bytesAtMost)
-            : d->rawResponse;
+               ? d->rawResponse.left(bytesAtMost)
+               : d->rawResponse;
 }
 
 QString BaseJob::rawDataSample(int bytesAtMost) const
 {
     auto data = rawData(bytesAtMost);
     Q_ASSERT(data.size() <= d->rawResponse.size());
-    return data.size() == d->rawResponse.size() ? data
-                                                : data
-                    + tr("...(truncated, %Ln bytes in total)",
-                         "Comes after trimmed raw network response",
-                         d->rawResponse.size());
+    return data.size() == d->rawResponse.size()
+               ? data
+               : data
+                     + tr("...(truncated, %Ln bytes in total)",
+                          "Comes after trimmed raw network response",
+                          d->rawResponse.size());
 }
 
 QString BaseJob::statusCaption() const
@@ -538,8 +534,6 @@ QString BaseJob::statusCaption() const
         return tr("Request was abandoned");
     case NetworkError:
         return tr("Network problems");
-    case JsonParseError:
-        return tr("Response could not be parsed");
     case TimeoutError:
         return tr("Request timed out");
     case ContentAccessError:
@@ -573,10 +567,25 @@ QUrl BaseJob::errorUrl() const { return d->errorUrl; }
 
 void BaseJob::setStatus(Status s)
 {
+    // The crash that led to this code has been reported in
+    // https://github.com/QMatrixClient/Quaternion/issues/566 - basically,
+    // when cleaning up childrent of a deleted Connection, there's a chance
+    // of pending jobs being abandoned, calling setStatus(Abandoned).
+    // There's nothing wrong with this; however, the safety check for
+    // cleartext access tokens below uses d->connection - which is a dangling
+    // pointer.
+    // To alleviate that, a stricter condition is applied, that for Abandoned
+    // and to-be-Abandoned jobs the status message will be disregarded entirely.
+    // For 0.6 we might rectify the situation by making d->connection
+    // a QPointer<> (and derive ConnectionData from QObject, respectively).
+    if (d->status.code == Abandoned || s.code == Abandoned)
+        s.message.clear();
+
     if (d->status == s)
         return;
 
-    if (d->connection && !d->connection->accessToken().isEmpty())
+    if (!s.message.isEmpty() && d->connection
+        && !d->connection->accessToken().isEmpty())
         s.message.replace(d->connection->accessToken(), "(REDACTED)");
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;

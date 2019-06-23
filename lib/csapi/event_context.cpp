@@ -14,7 +14,7 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetEventContextJob::Private
 {
-    public:
+public:
     QString begin;
     QString end;
     RoomEvents eventsBefore;
@@ -36,7 +36,7 @@ QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    basePath % "/rooms/" % roomId % "/context/"
-                                           % eventId,
+                                       % eventId,
                                    queryToGetEventContext(limit));
 }
 
@@ -47,10 +47,9 @@ GetEventContextJob::GetEventContextJob(const QString& roomId,
                                        Omittable<int> limit)
     : BaseJob(HttpVerb::Get, GetEventContextJobName,
               basePath % "/rooms/" % roomId % "/context/" % eventId,
-              queryToGetEventContext(limit)),
-      d(new Private)
-{
-}
+              queryToGetEventContext(limit))
+    , d(new Private)
+{}
 
 GetEventContextJob::~GetEventContextJob() = default;
 
@@ -81,5 +80,6 @@ BaseJob::Status GetEventContextJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("event"_ls), d->event);
     fromJson(json.value("events_after"_ls), d->eventsAfter);
     fromJson(json.value("state"_ls), d->state);
+
     return Success;
 }

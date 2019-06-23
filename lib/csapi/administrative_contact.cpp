@@ -12,25 +12,28 @@ using namespace QMatrixClient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <>
-    struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
-        static void fillFrom(const QJsonObject& jo,
-                             GetAccount3PIDsJob::ThirdPartyIdentifier& result)
-        {
-            fromJson(jo.value("medium"_ls), result.medium);
-            fromJson(jo.value("address"_ls), result.address);
-            fromJson(jo.value("validated_at"_ls), result.validatedAt);
-            fromJson(jo.value("added_at"_ls), result.addedAt);
-        }
-    };
+template <>
+struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetAccount3PIDsJob::ThirdPartyIdentifier& result)
+    {
+        fromJson(jo.value("medium"_ls), result.medium);
+        fromJson(jo.value("address"_ls), result.address);
+        fromJson(jo.value("validated_at"_ls), result.validatedAt);
+        fromJson(jo.value("added_at"_ls), result.addedAt);
+    }
+};
+
 } // namespace QMatrixClient
 
 class GetAccount3PIDsJob::Private
 {
-    public:
+public:
     QVector<ThirdPartyIdentifier> threepids;
 };
 
@@ -43,11 +46,9 @@ QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
 static const auto GetAccount3PIDsJobName = QStringLiteral("GetAccount3PIDsJob");
 
 GetAccount3PIDsJob::GetAccount3PIDsJob()
-    : BaseJob(HttpVerb::Get, GetAccount3PIDsJobName,
-              basePath % "/account/3pid"),
-      d(new Private)
-{
-}
+    : BaseJob(HttpVerb::Get, GetAccount3PIDsJobName, basePath % "/account/3pid")
+    , d(new Private)
+{}
 
 GetAccount3PIDsJob::~GetAccount3PIDsJob() = default;
 
@@ -61,21 +62,26 @@ BaseJob::Status GetAccount3PIDsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("threepids"_ls), d->threepids);
+
     return Success;
 }
 
-namespace QMatrixClient {
-    // Converters
+// Converters
+namespace QMatrixClient
+{
 
-    template <> struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
-        static void dumpTo(QJsonObject& jo,
-                           const Post3PIDsJob::ThreePidCredentials& pod)
-        {
-            addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
-            addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
-            addParam<>(jo, QStringLiteral("sid"), pod.sid);
-        }
-    };
+template <>
+struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials>
+{
+    static void dumpTo(QJsonObject& jo,
+                       const Post3PIDsJob::ThreePidCredentials& pod)
+    {
+        addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
+        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
+        addParam<>(jo, QStringLiteral("sid"), pod.sid);
+    }
+};
+
 } // namespace QMatrixClient
 
 static const auto Post3PIDsJobName = QStringLiteral("Post3PIDsJob");
@@ -91,7 +97,7 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds,
 }
 
 static const auto Delete3pidFromAccountJobName =
-        QStringLiteral("Delete3pidFromAccountJob");
+    QStringLiteral("Delete3pidFromAccountJob");
 
 Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
                                                    const QString& address)
@@ -106,19 +112,19 @@ Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
 
 class RequestTokenTo3PIDEmailJob::Private
 {
-    public:
+public:
     Sid data;
 };
 
 static const auto RequestTokenTo3PIDEmailJobName =
-        QStringLiteral("RequestTokenTo3PIDEmailJob");
+    QStringLiteral("RequestTokenTo3PIDEmailJob");
 
 RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(
-        const QString& clientSecret, const QString& email, int sendAttempt,
-        const QString& idServer, const QString& nextLink)
+    const QString& clientSecret, const QString& email, int sendAttempt,
+    const QString& idServer, const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenTo3PIDEmailJobName,
-              basePath % "/account/3pid/email/requestToken", false),
-      d(new Private)
+              basePath % "/account/3pid/email/requestToken", false)
+    , d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
@@ -141,20 +147,20 @@ BaseJob::Status RequestTokenTo3PIDEmailJob::parseJson(const QJsonDocument& data)
 
 class RequestTokenTo3PIDMSISDNJob::Private
 {
-    public:
+public:
     Sid data;
 };
 
 static const auto RequestTokenTo3PIDMSISDNJobName =
-        QStringLiteral("RequestTokenTo3PIDMSISDNJob");
+    QStringLiteral("RequestTokenTo3PIDMSISDNJob");
 
 RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
-        const QString& clientSecret, const QString& country,
-        const QString& phoneNumber, int sendAttempt, const QString& idServer,
-        const QString& nextLink)
+    const QString& clientSecret, const QString& country,
+    const QString& phoneNumber, int sendAttempt, const QString& idServer,
+    const QString& nextLink)
     : BaseJob(HttpVerb::Post, RequestTokenTo3PIDMSISDNJobName,
-              basePath % "/account/3pid/msisdn/requestToken", false),
-      d(new Private)
+              basePath % "/account/3pid/msisdn/requestToken", false)
+    , d(new Private)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("client_secret"), clientSecret);
@@ -170,8 +176,7 @@ RequestTokenTo3PIDMSISDNJob::~RequestTokenTo3PIDMSISDNJob() = default;
 
 const Sid& RequestTokenTo3PIDMSISDNJob::data() const { return d->data; }
 
-BaseJob::Status
-RequestTokenTo3PIDMSISDNJob::parseJson(const QJsonDocument& data)
+BaseJob::Status RequestTokenTo3PIDMSISDNJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
     return Success;

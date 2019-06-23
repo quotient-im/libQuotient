@@ -100,6 +100,8 @@ QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
 
 void QMCTest::setupAndRun()
 {
+    Q_ASSERT(!c->homeserver().isEmpty() && c->homeserver().isValid());
+    Q_ASSERT(c->domain() == c->userId().section(':', 1));
     cout << "Connected, server: "
          << c->homeserver().toDisplayString().toStdString() << endl;
     cout << "Access token: " << c->accessToken().toStdString() << endl;

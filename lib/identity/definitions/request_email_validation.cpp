@@ -7,7 +7,7 @@
 using namespace QMatrixClient;
 
 void JsonObjectConverter<RequestEmailValidation>::dumpTo(
-        QJsonObject& jo, const RequestEmailValidation& pod)
+    QJsonObject& jo, const RequestEmailValidation& pod)
 {
     addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
     addParam<>(jo, QStringLiteral("email"), pod.email);
@@ -16,7 +16,7 @@ void JsonObjectConverter<RequestEmailValidation>::dumpTo(
 }
 
 void JsonObjectConverter<RequestEmailValidation>::fillFrom(
-        const QJsonObject& jo, RequestEmailValidation& result)
+    const QJsonObject& jo, RequestEmailValidation& result)
 {
     fromJson(jo.value("client_secret"_ls), result.clientSecret);
     fromJson(jo.value("email"_ls), result.email);

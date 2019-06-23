@@ -25,15 +25,15 @@
 using namespace QMatrixClient;
 
 [[gnu::unused]] static auto roomEventTypeInitialised =
-        Event::factory_t::chainFactory<RoomEvent>();
+    Event::factory_t::chainFactory<RoomEvent>();
 
 RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
                      const QJsonObject& contentJson)
     : Event(type, matrixType, contentJson)
-{
-}
+{}
 
-RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
+RoomEvent::RoomEvent(Type type, const QJsonObject& json)
+    : Event(type, json)
 {
     const auto unsignedData = json[UnsignedKeyL].toObject();
     const auto redaction = unsignedData[RedactedCauseKeyL];
@@ -49,8 +49,7 @@ QString RoomEvent::id() const { return fullJson()[EventIdKeyL].toString(); }
 
 QDateTime RoomEvent::timestamp() const
 {
-    return QMatrixClient::fromJson<QDateTime>(
-            fullJson()["origin_server_ts"_ls]);
+    return QMatrixClient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
 }
 
 QString RoomEvent::roomId() const
@@ -108,8 +107,7 @@ CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
                              const QJsonObject& contentJson)
     : RoomEvent(type, matrixType,
                 makeCallContentJson(callId, version, contentJson))
-{
-}
+{}
 
 CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
     : RoomEvent(type, json)

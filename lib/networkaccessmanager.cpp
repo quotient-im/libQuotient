@@ -25,14 +25,14 @@ using namespace QMatrixClient;
 
 class NetworkAccessManager::Private
 {
-    public:
+public:
     QList<QSslError> ignoredSslErrors;
 };
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : d(std::make_unique<Private>())
-{
-}
+    : QNetworkAccessManager(parent)
+    , d(std::make_unique<Private>())
+{}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 {
@@ -69,10 +69,9 @@ NetworkAccessManager* NetworkAccessManager::instance()
 NetworkAccessManager::~NetworkAccessManager() = default;
 
 QNetworkReply* NetworkAccessManager::createRequest(
-        Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
+    Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
-    auto reply =
-            QNetworkAccessManager::createRequest(op, request, outgoingData);
+    auto reply = QNetworkAccessManager::createRequest(op, request, outgoingData);
     reply->ignoreSslErrors(d->ignoredSslErrors);
     return reply;
 }

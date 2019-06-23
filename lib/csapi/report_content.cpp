@@ -14,9 +14,8 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 static const auto ReportContentJobName = QStringLiteral("ReportContentJob");
 
-ReportContentJob::ReportContentJob(const QString& roomId,
-                                   const QString& eventId, int score,
-                                   const QString& reason)
+ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId,
+                                   int score, const QString& reason)
     : BaseJob(HttpVerb::Post, ReportContentJobName,
               basePath % "/rooms/" % roomId % "/report/" % eventId)
 {
