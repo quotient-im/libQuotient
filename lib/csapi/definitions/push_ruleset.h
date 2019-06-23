@@ -4,19 +4,16 @@
 
 #pragma once
 
-
-
 #include "converters.h"
 
 #include "csapi/definitions/push_rule.h"
-#include "converters.h"
+
 #include <QtCore/QVector>
 
 namespace QMatrixClient
 {
 
 // Data structures
-
 
 struct PushRuleset
 {
@@ -30,15 +27,13 @@ struct PushRuleset
     QVector<PushRule> sender;
 
     QVector<PushRule> underride;
-
-
 };
 
-template <> struct JsonObjectConverter<PushRuleset>
+template <>
+struct JsonObjectConverter<PushRuleset>
 {
     static void dumpTo(QJsonObject& jo, const PushRuleset& pod);
-    static void fillFrom(const QJsonObject& jo, PushRuleset& pod);};
-
-
+    static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
+};
 
 } // namespace QMatrixClient

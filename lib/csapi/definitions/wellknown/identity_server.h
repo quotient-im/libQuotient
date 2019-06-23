@@ -4,10 +4,7 @@
 
 #pragma once
 
-
-
 #include "converters.h"
-
 
 namespace QMatrixClient
 {
@@ -19,15 +16,13 @@ struct IdentityServerInformation
 {
     /// The base URL for the identity server for client-server connections.
     QString baseUrl;
-
-
 };
 
-template <> struct JsonObjectConverter<IdentityServerInformation>
+template <>
+struct JsonObjectConverter<IdentityServerInformation>
 {
     static void dumpTo(QJsonObject& jo, const IdentityServerInformation& pod);
-    static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod);};
-
-
+    static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod);
+};
 
 } // namespace QMatrixClient

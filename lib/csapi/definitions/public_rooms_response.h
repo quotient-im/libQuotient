@@ -4,18 +4,14 @@
 
 #pragma once
 
-
-
 #include "converters.h"
 
-#include "converters.h"
 #include <QtCore/QVector>
 
 namespace QMatrixClient
 {
 
 // Data structures
-
 
 struct PublicRoomsChunk
 {
@@ -33,39 +29,42 @@ struct PublicRoomsChunk
     QString topic;
     /// Whether the room may be viewed by guest users without joining.
     bool worldReadable;
-    /// Whether guest users may join the room and participate in it.If they can, they will be subject to ordinary power levelrules like any other user.
+    /// Whether guest users may join the room and participate in it.If they can,
+    /// they will be subject to ordinary power levelrules like any other user.
     bool guestCanJoin;
     /// The URL for the room's avatar, if one is set.
     QString avatarUrl;
-
-
 };
 
-template <> struct JsonObjectConverter<PublicRoomsChunk>
+template <>
+struct JsonObjectConverter<PublicRoomsChunk>
 {
     static void dumpTo(QJsonObject& jo, const PublicRoomsChunk& pod);
-    static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod);};
+    static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod);
+};
 
 /// A list of the rooms on the server.
 struct PublicRoomsResponse
 {
     /// A paginated chunk of public rooms.
     QVector<PublicRoomsChunk> chunk;
-    /// A pagination token for the response. The absence of this tokenmeans there are no more results to fetch and the client shouldstop paginating.
+    /// A pagination token for the response. The absence of this tokenmeans
+    /// there are no more results to fetch and the client shouldstop paginating.
     QString nextBatch;
-    /// A pagination token that allows fetching previous results. Theabsence of this token means there are no results before thisbatch, i.e. this is the first batch.
+    /// A pagination token that allows fetching previous results. Theabsence of
+    /// this token means there are no results before thisbatch, i.e. this is the
+    /// first batch.
     QString prevBatch;
-    /// An estimate on the total number of public rooms, if theserver has an estimate.
+    /// An estimate on the total number of public rooms, if theserver has an
+    /// estimate.
     Omittable<int> totalRoomCountEstimate;
-
-
 };
 
-template <> struct JsonObjectConverter<PublicRoomsResponse>
+template <>
+struct JsonObjectConverter<PublicRoomsResponse>
 {
     static void dumpTo(QJsonObject& jo, const PublicRoomsResponse& pod);
-    static void fillFrom(const QJsonObject& jo, PublicRoomsResponse& pod);};
-
-
+    static void fillFrom(const QJsonObject& jo, PublicRoomsResponse& pod);
+};
 
 } // namespace QMatrixClient
