@@ -158,8 +158,11 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         VERBATIM
     )
     if (CLANG_FORMAT)
-        set(api_HDRS ${api_SRCS})
-        list(TRANSFORM api_HDRS REPLACE ".cpp$" ".h")
+        # TODO: list(TRANSFORM) is available from CMake 3.12
+        foreach (S ${api_SRCS})
+            string (REGEX REPLACE ".cpp$" ".h" H ${S})
+            list(APPEND api_HDRS ${H})
+        endforeach()
         set(CLANG_FORMAT_ARGS -i -sort-includes -verbose)
         add_custom_target(update-format-api
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
