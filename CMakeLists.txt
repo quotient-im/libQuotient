@@ -49,7 +49,7 @@ find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if (GTAD_PATH)
-    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" PROGRAM)
+    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
 endif ()
 if (MATRIX_DOC_PATH)
     get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
