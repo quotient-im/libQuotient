@@ -116,9 +116,8 @@ public:
      * along the lines of StatusCode, with additional values
      * starting at UserDefinedError
      */
-    class Status
+    struct Status
     {
-    public:
         Status(StatusCode c)
             : code(c)
         {}
@@ -126,6 +125,7 @@ public:
             : code(c)
             , message(std::move(m))
         {}
+        static Status fromHttpCode(int httpCode, QString msg = {});
 
         bool good() const { return code < ErrorLevel; }
         friend QDebug operator<<(QDebug dbg, const Status& s)

@@ -348,6 +348,34 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
+BaseJob::Status BaseJob::Status::fromHttpCode(int httpCode, QString msg)
+{
+    // clang-format off
+    return { [httpCode]() -> StatusCode {
+            if (httpCode / 10 == 41) // 41x errors
+                return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+            switch (httpCode) {
+            case 401: case 403: case 407:
+                return ContentAccessError;
+            case 404:
+                return NotFoundError;
+            case 400: case 405: case 406: case 426: case 428: case 505:
+            case 494: // Unofficial nginx "Request header too large"
+            case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+                return IncorrectRequestError;
+            case 429:
+                return TooManyRequestsError;
+            case 501: case 510:
+                return RequestNotImplementedError;
+            case 511:
+                return NetworkAuthRequiredError;
+            default:
+                return NetworkError;
+            }
+        }(), msg };
+    // clang-format on
+}
+
 BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
     // QNetworkReply error codes seem to be flawed when it comes to HTTP;
@@ -381,38 +409,7 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 
     qCWarning(d->logCat).noquote().nospace() << this << urlString;
     qCWarning(d->logCat).noquote() << "  " << httpCode << reason << replyState;
-    return { [httpCode]() -> StatusCode {
-                if (httpCode / 10 == 41)
-                    return httpCode == 410 ? IncorrectRequestError
-                                           : NotFoundError;
-                switch (httpCode) {
-                case 401:
-                case 403:
-                case 407:
-                    return ContentAccessError;
-                case 404:
-                    return NotFoundError;
-                case 400:
-                case 405:
-                case 406:
-                case 426:
-                case 428:
-                case 505:
-                case 494: // Unofficial nginx "Request header too large"
-                case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-                    return IncorrectRequestError;
-                case 429:
-                    return TooManyRequestsError;
-                case 501:
-                case 510:
-                    return RequestNotImplementedError;
-                case 511:
-                    return NetworkAuthRequiredError;
-                default:
-                    return NetworkError;
-                }
-            }(),
-             reply->errorString() };
+    return Status::fromHttpCode(httpCode, reply->errorString());
 }
 
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
