@@ -23,6 +23,10 @@
 #include <QtCore/QDir>
 #include <QtCore/QStringBuilder>
 
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QtEndian>
+#include <QtCore/QDataStream>
+
 static const auto RegExpOptions =
     QRegularExpression::CaseInsensitiveOption
     | QRegularExpression::OptimizeOnFirstUsageOption
@@ -91,6 +95,21 @@ QString QMatrixClient::cacheLocation(const QString& dirName)
     if (!dir.exists(cachePath))
         dir.mkpath(cachePath);
     return cachePath;
+}
+
+qreal QMatrixClient::stringToHueF(const QString &string)
+{
+    Q_ASSERT(!string.isEmpty());
+    QByteArray hash = QCryptographicHash::hash(string.toUtf8(),
+                                               QCryptographicHash::Sha1);
+    QDataStream dataStream(qToLittleEndian(hash).left(2));
+    dataStream.setByteOrder(QDataStream::LittleEndian);
+    quint16 hashValue;
+    dataStream >> hashValue;
+    const auto hueF =
+            qreal(hashValue)/std::numeric_limits<quint16>::max();
+    Q_ASSERT((0 <= hueF) && (hueF <= 1));
+    return hueF;
 }
 
 // Tests for function_traits<>
