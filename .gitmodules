@@ -1,3 +1,3 @@
-[submodule "lib/libQtOlm"]
-	path = lib/libQtOlm
-	url = git@gitlab.com:aa13q/libqtolm.git
+[submodule "3rdparty/libQtOlm"]
+	path = 3rdparty/libQtOlm
+	url = https://gitlab.com/b0/libqtolm.git

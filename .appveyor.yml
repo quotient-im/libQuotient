@@ -26,6 +26,9 @@ init:
 
 before_build:
 - git submodule update --init --recursive
+- cd 3rdparty/libQtOlm
+- git clone https://gitlab.matrix.org/matrix-org/olm.git
+- cd ../..
 - if %MAKETOOL% == cmake cmake -G "NMake Makefiles JOM" -H. -Bbuild -DCMAKE_CXX_FLAGS="/EHsc /W3" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
 
 build_script:

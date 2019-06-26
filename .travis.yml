@@ -32,13 +32,9 @@ before_install:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
 
 install:
-# olm
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; else sudo apt-get update -qq; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install qt5; export PATH="$PATH:/usr/local/opt/qt/bin"; else sudo apt-get install -y qt5-default; fi
-- git clone https://matrix.org/git/olm.git && cd olm && make && sudo make install && cd ..
-- mkdir build && cd build
-- cmake ..
-# matrix-doc and gtad
+- pushd 3rdparty/libQtOlm
+- git clone https://gitlab.matrix.org/matrix-org/olm.git
+- popd
 - git clone https://github.com/QMatrixClient/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad

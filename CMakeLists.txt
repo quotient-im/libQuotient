@@ -10,11 +10,6 @@ if (NOT WIN32)
     include(GNUInstallDirs)
 endif(NOT WIN32)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# Find includes in corresponding build directories
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
@@ -54,9 +49,9 @@ find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
-        AND EXISTS ${PROJECT_SOURCE_DIR}/lib/libQtOlm/lib/utils.h)
-    add_subdirectory(lib/libQtOlm EXCLUDE_FROM_ALL)
-    include_directories(lib/libQtOlm)
+        AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
+    add_subdirectory(3rdparty/libQtOlm EXCLUDE_FROM_ALL)
+    include_directories(3rdparty/libQtOlm)
     if (NOT DEFINED USE_INTREE_LIBQOLM)
         set (USE_INTREE_LIBQOLM 1)
     endif ()
@@ -100,10 +95,10 @@ if (USE_INTREE_LIBQOLM)
     if (GIT_FOUND)
         execute_process(COMMAND
             "${GIT_EXECUTABLE}" rev-parse -q HEAD
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/libQtOlm/lib
-            OUTPUT_VARIABLE LIB_GIT_SHA1
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
+            OUTPUT_VARIABLE QTOLM_GIT_SHA1
             OUTPUT_STRIP_TRAILING_WHITESPACE)
-        message( STATUS "  Library git SHA1: ${LIB_GIT_SHA1}")
+        message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
     endif (GIT_FOUND)
 else ()
     message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
