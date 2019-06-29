@@ -29,13 +29,11 @@
 #include "events/event.h"
 #include "events/roommemberevent.h"
 
-#include <QtCore/QCryptographicHash>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
-#include <QtCore/QtEndian>
 
 #include <functional>
 
@@ -48,24 +46,10 @@ class User::Private
 public:
     static Avatar makeAvatar(QUrl url) { return Avatar(move(url)); }
 
-    qreal makeHueF()
-    {
-        Q_ASSERT(!userId.isEmpty());
-        QByteArray hash = QCryptographicHash::hash(userId.toUtf8(),
-                                                   QCryptographicHash::Sha1);
-        QDataStream dataStream(qToLittleEndian(hash).left(2));
-        dataStream.setByteOrder(QDataStream::LittleEndian);
-        quint16 hashValue;
-        dataStream >> hashValue;
-        const auto hueF = qreal(hashValue) / std::numeric_limits<quint16>::max();
-        Q_ASSERT((0 <= hueF) && (hueF <= 1));
-        return hueF;
-    }
-
     Private(QString userId, Connection* connection)
         : userId(move(userId))
         , connection(connection)
-        , hueF(makeHueF())
+        , hueF(stringToHueF(this->userId))
     {}
 
     QString userId;

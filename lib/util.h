@@ -341,4 +341,12 @@ QString prettyPrint(const QString& plainText);
  * \param dir path to cache directory relative to the standard cache path
  */
 QString cacheLocation(const QString& dirName);
+
+/** Hue color component of based of the hash of the string.
+ * The implementation is based on XEP-0392:
+ * https://xmpp.org/extensions/xep-0392.html
+ * Naming and range are the same as QColor's hueF method:
+ * https://doc.qt.io/qt-5/qcolor.html#integer-vs-floating-point-precision
+ */
+qreal stringToHueF(const QString& string);
 } // namespace QMatrixClient
