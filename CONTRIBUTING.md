@@ -138,26 +138,41 @@ If you don't plan/have substantial contributions, you can end reading here. Furt
 
 ## Code changes
 
-The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
+The code should strive to be DRY (don't repeat yourself), clear, and obviously
+correct (i.e. buildable). Some technical debt is inevitable,
+just don't bankrupt us with it. Refactoring is welcome.
 
 ### Generated C++ code for CS API
 The code in lib/csapi, lib/identity and lib/application-service, although
 it resides in Git, is actually generated from (a soft fork of) the official
-Matrix Swagger/OpenAPI definition files. If you're unhappy with something in
-these directories and want to improve the code, you have to understand the way
-these files are produced and setup some additional tooling. The shortest
-possible procedure resembling the below text can be found in .travis.yml
-(our Travis CI configuration actually regenerates those files upon every build).
-The generating sequence only works with CMake atm;
-patches to enable it with qmake are (you guessed it) very welcome.
+Matrix Swagger/OpenAPI definition files. Do not edit C++ files
+in these directories by hand!
+
+Now, if you're unhappy with something in there and want to improve the code,
+you have to understand the way these files are produced and setup
+some additional tooling. The shortest possible procedure resembling
+the below text can be found in .travis.yml (our Travis CI configuration
+actually regenerates those files upon every build). As described below,
+there are handy build targets for CMake; patches with the same targets
+for qmake are (you guessed it) very welcome.
 
 #### Why generate the code at all?
 Because before both original authors of libQMatrixClient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
 
 #### Prerequisites for CS API code generation
-1. Get the source code of GTAD and its dependencies, e.g. using the command: `git clone --recursive https://github.com/KitsuneRal/gtad.git`
-2. Build GTAD: in the source code directory, do `cmake . && cmake --build .` (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`, similar to libQMatrixClient itself).
-3. Get the Matrix CS API definitions that are included in the matrix-doc repo: `git clone https://github.com/QMatrixClient/matrix-doc.git` (QMatrixClient/matrix-doc is a fork that's known to produce working code; you may want to use your own fork if you wish to alter something in the API).
+1. Get the source code of GTAD and its dependencies, e.g. using the command:
+   `git clone --recursive https://github.com/KitsuneRal/gtad.git`
+2. Build GTAD: in the source code directory, do `cmake . && cmake --build .`
+   (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`,
+   similar to libQMatrixClient itself).
+3. Get the Matrix CS API definitions that are included in the matrix-doc repo:
+   `git clone https://github.com/QMatrixClient/matrix-doc.git`
+   (QMatrixClient/matrix-doc is a fork that's known to produce working code;
+   you may want to use your own fork if you wish to alter something in the API).
+4. If you plan to submit a PR or just would like the generated code to be
+   formatted, you should either ensure you have clang-format in your PATH or
+   pass the _absolute_ path to it by adding `-DCLANG_FORMAT=<absolute path>`
+   to the CMake invocation below.
 
 #### Generating CS API contents
 1. Pass additional configuration to CMake when configuring libQMatrixClient:
@@ -171,8 +186,7 @@ Because before both original authors of libQMatrixClient had to do monkey busine
    files in `lib/csapi`, `lib/identity`, `lib/application-service` for all
    YAML files it can find in `matrix-doc/api/client-server` and other files
    in `matrix-doc/api` these depend on.
-3. Once you've done that, you can build the library as usual; rerunning CMake
-   is recommended if the list of generated files has changed.
+3. Re-run CMake so that the build system knows about new files, if there are any.
 
 #### Changing generated code
 See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQMatrixClient are described here.
@@ -207,20 +221,19 @@ API guarantees.
 
 Note: As of now, all header files of libQMatrixClient are considered public; this may change eventually.
 
-### Qt-flavoured C++
+### Code formatting
 
-This is our primary language. A particular code style is not enforced _yet_ but
-[the PR imposing the common code style](https://github.com/QMatrixClient/libqmatrixclient/pull/295)
-is planned to arrive in version 0.6.
+The code style is defined by `.clang-format`, and in general, all C++ files
+should follow it. Files with minor deviations from the defined style are still
+accepted in PRs; however, unless explicitly marked with `// clang-format off`
+and `// clang-format on`, these deviations will be rectified any commit soon
+after.
+
+Additional considerations:
 * 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
-  spot the code abusing these - we'll thank you for fixing it.
-* Prefer keeping lines within 80 characters.
-* Braces after if's, while's, do's, function signatures etc. take
-  a separate line. Keeping the opening brace on the same line is still ok.
-* A historical deviation from the usual Qt code format conventions is an extra
-  indent inside _classes_ (access specifiers go at +4 spaces to the base,
-  members at +8 spaces) but not _structs_ (members at +4 spaces). This may
-  change in the future for something more conventional.
+  spot the code abusing these - thank you for fixing it.
+* Prefer keeping lines within 80 characters. Slight overflows are ok only
+  if that helps readability.
 * Please don't make "hypocritical structs" with protected or private members.
   In general, `struct` is used to denote a plain-old-data structure, rather
   than data+behaviour. If you need access control or are adding yet another
@@ -247,6 +260,9 @@ is planned to arrive in version 0.6.
     `std::deque` for a timeline). Exposing STL containers or iterators in API
     intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
     and therefore unlikely to be accepted into `master`.
+* Although `std::unique_ptr<>` gives slightly stronger guarantees,
+  `QScopedPointer<>` is better supported by Qt Creator's debugger UI and
+  therefore is preferred.
 * Use `QVector` instead of `QList` where possible - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details.
@@ -308,6 +324,12 @@ In Qt Creator, the following line can be used with the Clang code model
 
 We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) and MacOS (Clang), and AppVeyor CI to build on Windows (MSVC). Every PR will go through these, and you'll see the traffic lights from them on the PR page. If your PR fails on any platform double-check that it's not your code causing it - and fix it if it is.
 
+### clang-format
+
+We strongly recommend using clang-format or, even better, use an IDE that
+supports it. This will lay a tedious task of following the assumed
+code style from your shoulders over to your computer.
+
 ### Other tools
 
 Recent versions of Qt Creator and CLion can automatically run your code through
@@ -317,9 +339,10 @@ quite considerably but gives a good insight without too many false positives:
 
 Qt Creator, in addition, knows about clazy, an even deeper Qt-aware static
 analysis tool. Even level 1 clazy eats away CPU but produces some very relevant
-and unobvious notices, such as possible unintended copying of a Qt container,
-or unguarded null pointers. You can use this time to time (see Analyze menu in
-Qt Creator) instead of hogging your machine with deep analysis as you type.
+notices that are easy to overlook otherwise, such as possible unintended copying
+of a Qt container, or unguarded null pointers. You can use this time to time
+(see Analyze menu in Qt Creator) instead of hogging your machine with
+deep analysis as you type.
 
 ## Git commit messages
 
