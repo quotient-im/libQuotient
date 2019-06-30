@@ -164,13 +164,11 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             list(APPEND api_HDRS ${H})
         endforeach()
         set(CLANG_FORMAT_ARGS -i -sort-includes -verbose)
-        add_custom_target(update-format-api
+        add_custom_command(TARGET update-api POST_BUILD
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_HDRS}
-            DEPENDS update-api
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             VERBATIM
-            SOURCES .clang-format
         )
     endif()
 endif()
