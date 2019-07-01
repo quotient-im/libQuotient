@@ -110,6 +110,7 @@ class Connection::Private
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
+        void removeRoom(const QString& roomId);
 
         template <typename EventT>
         EventT* unpackAccountData() const
@@ -790,29 +791,36 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (room && room->joinState() != JoinState::Leave)
     {
         auto leaveJob = room->leaveRoom();
-        connect(leaveJob, &BaseJob::success, this, [this, forgetJob, room] {
-            forgetJob->start(connectionData());
-            // If the matching /sync response hasn't arrived yet, mark the room
-            // for explicit deletion
-            if (room->joinState() != JoinState::Leave)
-                d->roomIdsToForget.push_back(room->id());
-        });
+        connect(leaveJob, &BaseJob::result, this,
+                [this, leaveJob, forgetJob, room] {
+                    if (leaveJob->error() == BaseJob::Success
+                        || leaveJob->error() == BaseJob::NotFoundError)
+                    {
+                        forgetJob->start(connectionData());
+                        // If the matching /sync response hasn't arrived yet,
+                        // mark the room for explicit deletion
+                        if (room->joinState() != JoinState::Leave)
+                            d->roomIdsToForget.push_back(room->id());
+                    } else {
+                        qCWarning(MAIN).nospace()
+                            << "Error leaving room " << room->objectName()
+                            << ": " << leaveJob->errorString();
+                        forgetJob->abandon();
+                    }
+                });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
         forgetJob->start(connectionData());
-    connect(forgetJob, &BaseJob::success, this, [this, id]
+    connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob]
     {
-        // Delete whatever instances of the room are still in the map.
-        for (auto f: {false, true})
-            if (auto r = d->roomMap.take({ id, f }))
-            {
-                qCDebug(MAIN) << "Room" << r->objectName()
-                              << "in state" << toCString(r->joinState())
-                              << "will be deleted";
-                emit r->beforeDestruction(r);
-                r->deleteLater();
-            }
+        // Leave room in case of success, or room not known by server
+        if(forgetJob->error() == BaseJob::Success
+                || forgetJob->error() == BaseJob::NotFoundError)
+            d->removeRoom(id); // Delete the room from roomMap
+        else
+            qCWarning(MAIN).nospace() << "Error forgetting room " << id << ": "
+                                      << forgetJob->errorString();
     });
     return forgetJob;
 }
@@ -1054,6 +1062,20 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
 Connection::DirectChatsMap Connection::directChats() const
 {
     return d->directChats;
+}
+
+// Removes room with given id from roomMap
+void Connection::Private::removeRoom(const QString& roomId)
+{
+    for (auto f: {false, true})
+        if (auto r = roomMap.take({ roomId, f }))
+        {
+            qCDebug(MAIN) << "Room" << r->objectName()
+                          << "in state" << toCString(r->joinState())
+                          << "will be deleted";
+            emit r->beforeDestruction(r);
+            r->deleteLater();
+        }
 }
 
 void Connection::addToDirectChats(const Room* room, User* user)
