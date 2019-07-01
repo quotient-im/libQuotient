@@ -45,7 +45,7 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
     // comma or dot
     static const QRegularExpression FullUrlRegExp(QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
         ), RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
