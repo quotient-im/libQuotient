@@ -74,7 +74,7 @@ BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("user_id"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'user_id' not found in the response" };
     fromJson(json.value("user_id"_ls), d->userId);
     fromJson(json.value("access_token"_ls), d->accessToken);

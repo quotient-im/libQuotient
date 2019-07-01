@@ -560,8 +560,6 @@ QString BaseJob::statusCaption() const
             return tr("Request was abandoned");
         case NetworkError:
             return tr("Network problems");
-        case JsonParseError:
-            return tr("Response could not be parsed");
         case TimeoutError:
             return tr("Request timed out");
         case ContentAccessError:

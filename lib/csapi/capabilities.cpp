@@ -76,7 +76,7 @@ BaseJob::Status GetCapabilitiesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("capabilities"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'capabilities' not found in the response" };
     fromJson(json.value("capabilities"_ls), d->capabilities);
     return Success;

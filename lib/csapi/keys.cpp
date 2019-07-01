@@ -42,7 +42,7 @@ BaseJob::Status UploadKeysJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("one_time_key_counts"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'one_time_key_counts' not found in the response" };
     fromJson(json.value("one_time_key_counts"_ls), d->oneTimeKeyCounts);
     return Success;
