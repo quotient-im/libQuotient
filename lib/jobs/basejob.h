@@ -67,7 +67,6 @@ namespace QMatrixClient
                 , UnsupportedRoomVersionError
                 , NetworkAuthRequiredError
                 , UserConsentRequiredError
-                , UnknownObjectError // Unknown room or other item (M_UNKNOWN)
                 , UserDefinedError = 200
             };
 
@@ -303,7 +302,7 @@ namespace QMatrixClient
              * Processes the reply. By default, parses the reply into
              * a QJsonDocument and calls parseJson() if it's a valid JSON.
              *
-             * @param reply raw contents of a HTTP reply from the server (without headers)
+             * @param reply raw contents of a HTTP reply from the server
              *
              * @see gotReply, parseJson
              */
@@ -311,13 +310,22 @@ namespace QMatrixClient
 
             /**
              * Processes the JSON document received from the Matrix server.
-             * By default returns succesful status without analysing the JSON.
+             * By default returns successful status without analysing the JSON.
              *
              * @param json valid JSON document received from the server
              *
              * @see parseReply
              */
             virtual Status parseJson(const QJsonDocument&);
+
+            /**
+             * Processes the reply in case of unsuccessful HTTP code.
+             * The body is already loaded from the reply object to errorJson.
+             * @param reply the HTTP reply from the server
+             * @param errorJson the JSON payload describing the error
+             */
+            virtual Status parseError(QNetworkReply* reply,
+                                      const QJsonObject& errorJson);
 
             void setStatus(Status s);
             void setStatus(int code, QString message);

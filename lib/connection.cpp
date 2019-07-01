@@ -791,21 +791,23 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (room && room->joinState() != JoinState::Leave)
     {
         auto leaveJob = room->leaveRoom();
-        connect(leaveJob, &BaseJob::result, this, [this, leaveJob, forgetJob, room] {
-            // After leave, continue if there is no error or the room id is not found
-            if(!leaveJob->error() || leaveJob->error() == BaseJob::StatusCode::UnknownObjectError) {
-                forgetJob->start(connectionData());
-                // If the matching /sync response hasn't arrived yet, mark the room
-                // for explicit deletion
-                if (room->joinState() != JoinState::Leave)
-                    d->roomIdsToForget.push_back(room->id());
-            } else {
-                qCWarning(MAIN) << "Error leaving room "
-                                << room->name() << ":"
-                                << leaveJob->errorString();
-                forgetJob->abandon();
-            }
-        });
+        connect(leaveJob, &BaseJob::result, this,
+                [this, leaveJob, forgetJob, room] {
+                    if (leaveJob->error() == BaseJob::Success
+                        || leaveJob->error() == BaseJob::NotFoundError)
+                    {
+                        forgetJob->start(connectionData());
+                        // If the matching /sync response hasn't arrived yet,
+                        // mark the room for explicit deletion
+                        if (room->joinState() != JoinState::Leave)
+                            d->roomIdsToForget.push_back(room->id());
+                    } else {
+                        qCWarning(MAIN).nospace()
+                            << "Error leaving room " << room->objectName()
+                            << ": " << leaveJob->errorString();
+                        forgetJob->abandon();
+                    }
+                });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
@@ -813,14 +815,12 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob]
     {
         // Leave room in case of success, or room not known by server
-        if(!forgetJob->error() || forgetJob->error() == BaseJob::UnknownObjectError) {
-            // Delete the room from roomMap
-            d->removeRoom(id);
-        } else {
-            qCWarning(MAIN) << "Error forgetting room "
-                            << id << ":"
-                            << forgetJob->errorString();
-        }
+        if(forgetJob->error() == BaseJob::Success
+                || forgetJob->error() == BaseJob::NotFoundError)
+            d->removeRoom(id); // Delete the room from roomMap
+        else
+            qCWarning(MAIN).nospace() << "Error forgetting room " << id << ": "
+                                      << forgetJob->errorString();
     });
     return forgetJob;
 }
