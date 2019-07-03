@@ -96,9 +96,14 @@ class Room::Private
         /// The state of the room at timeline position after-maxTimelineIndex()
         /// \sa Room::syncEdge
         QHash<StateEventKey, const StateEventBase*> currentState;
+        /// Servers with aliases for this room except the one of the local user
+        /// \sa Room::remoteAliases
+        QSet<QString> aliasServers;
+
         Timeline timeline;
         PendingEvents unsyncedEvents;
         QHash<QString, TimelineItem::index_t> eventsIndex;
+
         QString displayname;
         Avatar avatar;
         int highlightCount = 0;
@@ -381,9 +386,18 @@ QString Room::name() const
     return d->getCurrentState<RoomNameEvent>()->name();
 }
 
-QStringList Room::aliases() const
+QStringList Room::localAliases() const
 {
-    return d->getCurrentState<RoomAliasesEvent>()->aliases();
+    return d->getCurrentState<RoomAliasesEvent>(
+                connection()->homeserver().authority())->aliases();
+}
+
+QStringList Room::remoteAliases() const
+{
+    QStringList result;
+    for (const auto& s: d->aliasServers)
+        result += d->getCurrentState<RoomAliasesEvent>(s)->aliases();
+    return result;
 }
 
 QString Room::canonicalAlias() const
@@ -1624,7 +1638,7 @@ void Room::setCanonicalAlias(const QString& newAlias)
     d->requestSetState(RoomCanonicalAliasEvent(newAlias));
 }
 
-void Room::setAliases(const QStringList& aliases)
+void Room::setLocalAliases(const QStringList& aliases)
 {
     d->requestSetState(RoomAliasesEvent(aliases));
 }
@@ -2192,16 +2206,30 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
         qCDebug(EVENTS) << "Room state event:" << e;
 
+    // clang-format off
     return visit(e
         , [] (const RoomNameEvent&) {
             return NameChange;
         }
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
+            // clang-format on
+            if (ae.aliases().isEmpty()) {
+                qDebug(MAIN).noquote() << ae.stateKey()
+                    << "no more has aliases for room" << objectName();
+                d->aliasServers.remove(ae.stateKey());
+            } else {
+                d->aliasServers.insert(ae.stateKey());
+                qDebug(MAIN).nospace().noquote()
+                    << "New server with aliases for room " << objectName()
+                    << ": " << ae.stateKey();
+            }
             const auto previousAliases = oldStateEvent
                 ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
                 : QStringList();
-            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
+            connection()->updateRoomAliases(id(), ae.stateKey(),
+                                            previousAliases, ae.aliases());
             return OtherChange;
+            // clang-format off
         }
         , [this] (const RoomCanonicalAliasEvent& evt) {
             setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
@@ -2216,6 +2244,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return AvatarChange;
         }
         , [this,oldStateEvent] (const RoomMemberEvent& evt) {
+            // clang-format on
             auto* u = user(evt.userId());
             const auto* oldMemberEvent =
                     static_cast<const RoomMemberEvent*>(oldStateEvent);
@@ -2288,6 +2317,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     d->membersLeft.append(u);
             }
             return MembersChange;
+            // clang-format off
         }
         , [this] (const EncryptionEvent&) {
             emit encryption(); // It can only be done once, so emit it here.
@@ -2310,6 +2340,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return OtherChange;
         }
     );
+    // clang-format on
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)

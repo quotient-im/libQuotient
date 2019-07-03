@@ -86,7 +86,8 @@ namespace QMatrixClient
             Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
             Q_PROPERTY(QString successorId READ successorId NOTIFY upgraded)
             Q_PROPERTY(QString name READ name NOTIFY namesChanged)
-            Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
+            Q_PROPERTY(QStringList localAliases READ localAliases NOTIFY namesChanged)
+            Q_PROPERTY(QStringList remoteAliases READ remoteAliases NOTIFY namesChanged)
             Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
             Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
             Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
@@ -156,7 +157,12 @@ namespace QMatrixClient
             QString predecessorId() const;
             QString successorId() const;
             QString name() const;
-            QStringList aliases() const;
+            /// Room aliases defined on the current user's server
+            /// \sa remoteAliases, setLocalAliases
+            QStringList localAliases() const;
+            /// Room aliases defined on other servers
+            /// \sa localAliases
+            QStringList remoteAliases() const;
             QString canonicalAlias() const;
             QString displayName() const;
             QString topic() const;
@@ -436,7 +442,8 @@ namespace QMatrixClient
             void discardMessage(const QString& txnId);
             void setName(const QString& newName);
             void setCanonicalAlias(const QString& newAlias);
-            void setAliases(const QStringList& aliases);
+            /// Set room aliases on the user's current server
+            void setLocalAliases(const QStringList& aliases);
             void setTopic(const QString& newTopic);
 
             /// You shouldn't normally call this method; it's here for debugging
@@ -590,7 +597,6 @@ namespace QMatrixClient
             void beforeDestruction(Room*);
 
         protected:
-            /// Returns true if any of room names/aliases has changed
             virtual Changes processStateEvent(const RoomEvent& e);
             virtual Changes processEphemeralEvent(EventPtr&& event);
             virtual Changes processAccountDataEvent(EventPtr&& event);
