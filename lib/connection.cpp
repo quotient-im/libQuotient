@@ -32,6 +32,7 @@
 #include "csapi/joining.h"
 #include "csapi/to_device.h"
 #include "csapi/room_send.h"
+#include "csapi/wellknown.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -194,37 +195,24 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     }
 
     setHomeserver(maybeBaseUrl);
-    emit resolved();
-    return;
 
-    // FIXME, #178: The below code is incorrect and is no more executed. The
-    // correct server resolution should be done from .well-known/matrix/client
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
-    // Check if the Matrix server has a dedicated service record.
-    auto* dns = new QDnsLookup();
-    dns->setType(QDnsLookup::SRV);
-    dns->setName("_matrix._tcp." + domain);
 
-    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
-        QUrl baseUrl { maybeBaseUrl };
-        if (dns->error() == QDnsLookup::NoError &&
-                dns->serviceRecords().isEmpty())
-        {
-            auto record = dns->serviceRecords().front();
-            baseUrl.setHost(record.target());
-            baseUrl.setPort(record.port());
-            qCDebug(MAIN) << "SRV record for" << maybeBaseUrl.host()
-                          << "is" << baseUrl.authority();
+    auto job = callApi<GetWellknownJob>();
+    connect(job, &BaseJob::finished, [this, job, maybeBaseUrl] {
+        QUrl baseUrl(job->data().homeserver.baseUrl);
+        if (!baseUrl.isValid() || job->status() != BaseJob::Success) {
+            baseUrl = maybeBaseUrl;
+            qCDebug(MAIN) << maybeBaseUrl.host() << "doesn't have .well-known record" << "- using the hostname as is";
         } else {
-            qCDebug(MAIN) << baseUrl.host() << "doesn't have SRV record"
-                          << dns->name() << "- using the hostname as is";
+            qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.authority();
         }
+
         setHomeserver(baseUrl);
         emit resolved();
-        dns->deleteLater();
+        job->deleteLater();
     });
-    dns->lookup();
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
