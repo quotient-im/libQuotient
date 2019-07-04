@@ -973,11 +973,6 @@ QString Connection::deviceId() const
     return d->data->deviceId();
 }
 
-QString Connection::token() const
-{
-    return accessToken();
-}
-
 QByteArray Connection::accessToken() const
 {
     return d->data->accessToken();

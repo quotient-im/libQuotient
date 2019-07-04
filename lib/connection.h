@@ -267,8 +267,6 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
-            [[deprecated("Use accessToken() instead")]]
-            Q_INVOKABLE QString token() const;
             Q_INVOKABLE void getTurnServers();
 
             struct SupportedRoomVersion
