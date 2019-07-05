@@ -203,13 +203,12 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     connect(job, &BaseJob::finished, [this, job, maybeBaseUrl] {
         QUrl baseUrl(job->data().homeserver.baseUrl);
         if (!baseUrl.isValid() || job->status() != BaseJob::Success) {
-            baseUrl = maybeBaseUrl;
-            qCDebug(MAIN) << maybeBaseUrl.host() << "doesn't have .well-known record" << "- using the hostname as is";
+            qCDebug(MAIN) << maybeBaseUrl.host() << "doesn't have valid .well-known file" << "- using the hostname as is";
         } else {
             qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.authority();
+            setHomeserver(baseUrl);
         }
 
-        setHomeserver(baseUrl);
         emit resolved();
         job->deleteLater();
     });
