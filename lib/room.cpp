@@ -1640,7 +1640,8 @@ void Room::setCanonicalAlias(const QString& newAlias)
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState(RoomAliasesEvent(aliases));
+    d->requestSetState(connection()->homeserver().authority(),
+        RoomAliasesEvent(aliases));
 }
 
 void Room::setTopic(const QString& newTopic)
