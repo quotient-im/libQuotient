@@ -41,7 +41,7 @@ namespace QMatrixClient
     inline const char* toCString(JoinState js)
     {
         size_t state = size_t(js), index = 0;
-        while (state >>= 1) ++index;
+        while (state >>= 1u) ++index;
         return JoinStateStrings[index];
     }
 }  // namespace QMatrixClient

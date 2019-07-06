@@ -164,7 +164,7 @@ BaseJob::Status SearchJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("search_categories"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'search_categories' not found in the response" };
     fromJson(json.value("search_categories"_ls), d->searchCategories);
     return Success;

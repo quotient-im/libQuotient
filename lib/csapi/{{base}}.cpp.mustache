@@ -115,7 +115,7 @@ BaseJob::Status {{camelCaseOperationId}}Job::parseJson(const QJsonDocument& data
 {{#inlineResponse}}    fromJson(data, d->{{paramName}});
 {{/inlineResponse}}{{^inlineResponse}}    auto json = data.object();
 {{#properties}}{{#required?}}    if (!json.contains("{{baseName}}"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key '{{baseName}}' not found in the response" };
 {{/required?}}    fromJson(json.value("{{baseName}}"_ls), d->{{paramName}});
 {{/properties}}{{/inlineResponse}}    return Success;

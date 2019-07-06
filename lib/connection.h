@@ -122,7 +122,7 @@ namespace QMatrixClient
 
             explicit Connection(QObject* parent = nullptr);
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
-            virtual ~Connection();
+            ~Connection() override;
 
             /** Get all Invited and Joined rooms
              * \return a hashmap from a composite key - room name and whether
@@ -250,11 +250,13 @@ namespace QMatrixClient
             Q_INVOKABLE Room* roomByAlias(const QString& roomAlias,
                 JoinStates states = JoinState::Invite|JoinState::Join) const;
             /** Update the internal map of room aliases to IDs */
-            /// This is used for internal bookkeeping of rooms. Do NOT use
-            /// it to try change aliases, use Room::setAliases instead
+            /// This is used to maintain the internal index of room aliases.
+            /// It does NOT change aliases on the server,
+            /// \sa Room::setLocalAliases
             void updateRoomAliases(const QString& roomId,
-                const QStringList& previousRoomAliases,
-                const QStringList& roomAliases);
+                                   const QString& aliasServer,
+                                   const QStringList& previousRoomAliases,
+                                   const QStringList& roomAliases);
             Q_INVOKABLE Room* invitation(const QString& roomId) const;
             Q_INVOKABLE User* user(const QString& userId);
             const User* user() const;
@@ -265,8 +267,6 @@ namespace QMatrixClient
             Q_INVOKABLE SyncJob* syncJob() const;
             Q_INVOKABLE int millisToReconnect() const;
 
-            [[deprecated("Use accessToken() instead")]]
-            Q_INVOKABLE QString token() const;
             Q_INVOKABLE void getTurnServers();
 
             struct SupportedRoomVersion

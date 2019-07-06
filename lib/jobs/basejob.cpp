@@ -289,56 +289,23 @@ void BaseJob::gotReply()
     if (status().good())
         setStatus(parseReply(d->reply.data()));
     else {
-        // FIXME: Factor out to smth like BaseJob::handleError()
         d->rawResponse = d->reply->readAll();
         const auto jsonBody =
-                d->reply->rawHeader("Content-Type") == "application/json";
+            d->reply->rawHeader("Content-Type") == "application/json";
         qCDebug(d->logCat).noquote()
-                << "Error body (truncated if long):" << d->rawResponse.left(500);
+            << "Error body (truncated if long):" << d->rawResponse.left(500);
         if (jsonBody)
-        {
-            auto json = QJsonDocument::fromJson(d->rawResponse).object();
-            const auto errCode = json.value("errcode"_ls).toString();
-            if (error() == TooManyRequestsError ||
-                    errCode == "M_LIMIT_EXCEEDED")
-            {
-                QString msg = tr("Too many requests");
-                auto retryInterval = json.value("retry_after_ms"_ls).toInt(-1);
-                if (retryInterval != -1)
-                    msg += tr(", next retry advised after %1 ms")
-                            .arg(retryInterval);
-                else // We still have to figure some reasonable interval
-                    retryInterval = getNextRetryInterval();
-
-                setStatus(TooManyRequestsError, msg);
-
-                // Shortcut to retry instead of executing finishJob()
-                stop();
-                qCWarning(d->logCat)
-                        << this << "will retry in" << retryInterval << "ms";
-                d->retryTimer.start(retryInterval);
-                emit retryScheduled(d->retriesTaken, retryInterval);
-                return;
-            }
-            if (errCode == "M_CONSENT_NOT_GIVEN")
-            {
-                d->status.code = UserConsentRequiredError;
-                d->errorUrl = json.value("consent_uri"_ls).toString();
-            }
-            else if (errCode == "M_UNSUPPORTED_ROOM_VERSION" ||
-                     errCode == "M_INCOMPATIBLE_ROOM_VERSION")
-            {
-                d->status.code = UnsupportedRoomVersionError;
-                if (json.contains("room_version"))
-                    d->status.message =
-                        tr("Requested room version: %1")
-                        .arg(json.value("room_version").toString());
-            } else if (!json.isEmpty()) // Not localisable on the client side
-                setStatus(d->status.code, json.value("error"_ls).toString());
-        }
+            setStatus(
+                parseError(d->reply.data(),
+                           QJsonDocument::fromJson(d->rawResponse).object()));
     }
 
-    finishJob();
+    if (error() != TooManyRequestsError)
+        finishJob();
+    else {
+        stop();
+        emit retryScheduled(d->retriesTaken, d->retryTimer.interval());
+    }
 }
 
 bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
@@ -442,8 +409,46 @@ BaseJob::Status BaseJob::parseJson(const QJsonDocument&)
     return Success;
 }
 
+BaseJob::Status BaseJob::parseError(QNetworkReply* reply,
+                                    const QJsonObject& errorJson)
+{
+    const auto errCode = errorJson.value("errcode"_ls).toString();
+    if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
+        QString msg = tr("Too many requests");
+        auto retryInterval = errorJson.value("retry_after_ms"_ls).toInt(-1);
+        if (retryInterval != -1)
+            msg += tr(", next retry advised after %1 ms").arg(retryInterval);
+        else // We still have to figure some reasonable interval
+            retryInterval = getNextRetryInterval();
+
+        qCWarning(d->logCat) << this << "will retry in" << retryInterval << "ms";
+        d->retryTimer.start(retryInterval);
+
+        return { TooManyRequestsError, msg };
+    }
+    if (errCode == "M_CONSENT_NOT_GIVEN") {
+        d->errorUrl = errorJson.value("consent_uri"_ls).toString();
+        return { UserConsentRequiredError };
+    }
+    if (errCode == "M_UNSUPPORTED_ROOM_VERSION"
+        || errCode == "M_INCOMPATIBLE_ROOM_VERSION")
+        return { UnsupportedRoomVersionError,
+                 errorJson.contains("room_version"_ls)
+                     ? tr("Requested room version: %1")
+                           .arg(errorJson.value("room_version"_ls).toString())
+                     : errorJson.value("error"_ls).toString() };
+
+    // Not localisable on the client side
+    if (errorJson.contains("error"_ls))
+        d->status.message = errorJson.value("error"_ls).toString();
+
+    return d->status;
+}
+
 void BaseJob::stop()
 {
+    // This method is used to semi-finalise the job before retrying; so
+    // stop the timeout timer but keep the retry timer running.
     d->timer.stop();
     if (d->reply)
     {
@@ -555,8 +560,6 @@ QString BaseJob::statusCaption() const
             return tr("Request was abandoned");
         case NetworkError:
             return tr("Network problems");
-        case JsonParseError:
-            return tr("Response could not be parsed");
         case TimeoutError:
             return tr("Request timed out");
         case ContentAccessError:

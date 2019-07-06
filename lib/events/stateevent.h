@@ -21,12 +21,28 @@
 #include "roomevent.h"
 
 namespace QMatrixClient {
+
+    /// Make a minimal correct Matrix state event JSON
+    template <typename StrT>
+    inline QJsonObject basicStateEventJson(StrT matrixType,
+            const QJsonObject& content, const QString& stateKey = {})
+    {
+      return { { TypeKey, std::forward<StrT>(matrixType) },
+               { StateKeyKey, stateKey },
+               { ContentKey, content } };
+    }
+
     class StateEventBase: public RoomEvent
     {
         public:
             using factory_t = EventFactory<StateEventBase>;
 
-            using RoomEvent::RoomEvent;
+            StateEventBase(Type type, const QJsonObject& json)
+                : RoomEvent(type, json)
+            { }
+            StateEventBase(Type type, event_mtype_t matrixType,
+                           const QString& stateKey = {},
+                           const QJsonObject& contentJson = {});
             ~StateEventBase() override = default;
 
             bool isStateEvent() const override { return true; }
@@ -83,8 +99,9 @@ namespace QMatrixClient {
             }
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, event_mtype_t matrixType,
+                                const QString& stateKey,
                                 ContentParamTs&&... contentParams)
-                : StateEventBase(type, matrixType)
+                : StateEventBase(type, matrixType, stateKey)
                 , _content(std::forward<ContentParamTs>(contentParams)...)
             {
                 editJson().insert(ContentKey, _content.toJson());

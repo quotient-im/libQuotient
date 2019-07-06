@@ -27,7 +27,7 @@ using namespace QMatrixClient;
     RoomEvent::factory_t::addMethod(
         [] (const QJsonObject& json, const QString& matrixType) -> StateEventPtr
         {
-            if (!json.contains("state_key"_ls))
+            if (!json.contains(StateKeyKeyL))
                 return nullptr;
 
             if (auto e = StateEventBase::factory_t::make(json, matrixType))
@@ -35,6 +35,12 @@ using namespace QMatrixClient;
 
             return makeEvent<StateEventBase>(unknownEventTypeId(), json);
         });
+
+StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
+                               const QString &stateKey,
+                               const QJsonObject &contentJson)
+    : RoomEvent(type, basicStateEventJson(matrixType, contentJson, stateKey))
+{ }
 
 bool StateEventBase::repeatsState() const
 {

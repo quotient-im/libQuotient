@@ -56,8 +56,14 @@ namespace QMatrixClient
             explicit RoomMemberEvent(const QJsonObject& obj)
                 : StateEvent(typeId(), obj)
             { }
+            [[deprecated("Use RoomMemberEvent(userId, contentArgs) instead")]]
             RoomMemberEvent(MemberEventContent&& c)
-                : StateEvent(typeId(), matrixTypeId(), c)
+                : StateEvent(typeId(), matrixTypeId(), QString(), c)
+            { }
+            template <typename... ArgTs>
+            RoomMemberEvent(const QString& userId, ArgTs&&... contentArgs)
+                : StateEvent(typeId(), matrixTypeId(), userId,
+                             std::forward<ArgTs>(contentArgs)...)
             { }
 
             /// A special constructor to create unknown RoomMemberEvents
@@ -76,7 +82,7 @@ namespace QMatrixClient
 
             MembershipType membership() const  { return content().membership; }
             QString userId() const
-                { return fullJson()["state_key"_ls].toString(); }
+                { return fullJson()[StateKeyKeyL].toString(); }
             bool isDirect() const { return content().isDirect; }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }

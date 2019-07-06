@@ -20,8 +20,6 @@
 
 #include "stateevent.h"
 
-#include "converters.h"
-
 namespace QMatrixClient
 {
     namespace EventContent
@@ -63,7 +61,7 @@ namespace QMatrixClient
             explicit _Name() : _Name(value_type()) { } \
             template <typename T> \
             explicit _Name(T&& value) \
-                : StateEvent(typeId(), matrixTypeId(), \
+                : StateEvent(typeId(), matrixTypeId(), QString(), \
                              QStringLiteral(#_ContentKey), \
                              std::forward<T>(value)) \
             { } \
@@ -78,13 +76,27 @@ namespace QMatrixClient
 
     DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
     DEFINE_EVENTTYPE_ALIAS(RoomName, RoomNameEvent)
-    DEFINE_SIMPLE_STATE_EVENT(RoomAliasesEvent, "m.room.aliases",
-                              QStringList, aliases)
-    DEFINE_EVENTTYPE_ALIAS(RoomAliases, RoomAliasesEvent)
     DEFINE_SIMPLE_STATE_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias",
                               QString, alias)
     DEFINE_EVENTTYPE_ALIAS(RoomCanonicalAlias, RoomCanonicalAliasEvent)
     DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
     DEFINE_EVENTTYPE_ALIAS(RoomTopic, RoomTopicEvent)
     DEFINE_EVENTTYPE_ALIAS(RoomEncryption, EncryptionEvent)
+
+    class RoomAliasesEvent
+        : public StateEvent<EventContent::SimpleContent<QStringList>>
+    {
+    public:
+        DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
+        explicit RoomAliasesEvent(const QJsonObject& obj)
+            : StateEvent(typeId(), obj, QStringLiteral("aliases"))
+        { }
+        RoomAliasesEvent(const QString& server, const QStringList& aliases)
+            : StateEvent(typeId(), matrixTypeId(), server,
+                         QStringLiteral("aliases"), aliases)
+        { }
+        QString server() const { return stateKey(); }
+        QStringList aliases() const { return content().value; }
+    };
+    REGISTER_EVENT_TYPE(RoomAliasesEvent)
 } // namespace QMatrixClient

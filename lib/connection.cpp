@@ -83,8 +83,9 @@ class Connection::Private
         // separately; specifically, we should keep objects for Invite and
         // Leave state of the same room if the two happen to co-exist.
         QHash<QPair<QString, bool>, Room*> roomMap;
-        // Mapping from aliases to room ids, as per the last sync
-        QHash<QString, QString> roomAliasMap;
+        /// Mapping from serverparts to alias/room id mappings,
+        /// as of the last sync
+        QHash<QString, QHash<QString, QString>> roomAliasMap;
         QVector<QString> roomIdsToForget;
         QVector<Room*> firstTimeRooms;
         QVector<QString> pendingStateRoomIds;
@@ -113,6 +114,7 @@ class Connection::Private
 
         void connectWithToken(const QString& user, const QString& accessToken,
                               const QString& deviceId);
+        void removeRoom(const QString& roomId);
 
         template <typename EventT>
         EventT* unpackAccountData() const
@@ -160,20 +162,31 @@ Connection::~Connection()
     stopSync();
 }
 
+static const auto ServerPartRegEx = QStringLiteral(
+    "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+    "(?::(\\d{1,5}))?" // Optional port
+);
+
+QString serverPart(const QString& mxId)
+{
+    static QString re = "^[@!#$+].+?:(" // Localpart and colon
+                     % ServerPartRegEx % ")$";
+    static QRegularExpression parser(re,
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+    return parser.match(mxId).captured(1);
+}
+
 void Connection::resolveServer(const QString& mxidOrDomain)
 {
-    // At this point we may have something as complex as
-    // @username:[IPv6:address]:port, or as simple as a plain domain name.
-
-    // Try to parse as an FQID; if there's no @ part, assume it's a domain name.
-    QRegularExpression parser(
+    // mxIdOrDomain may be something as complex as
+    // @username:[IPv6:address]:port, or as simple as a plain serverpart.
+    static QRegularExpression parser(
         "^(@.+?:)?" // Optional username (allow everything for compatibility)
-        "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
-        "(:\\d{1,5})?$", // Optional port
-        QRegularExpression::UseUnicodePropertiesOption); // Because asian digits
+        % ServerPartRegEx % '$',
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
     auto match = parser.match(mxidOrDomain);
 
-    QUrl maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    auto maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
     maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
     if (!match.hasMatch() || !maybeBaseUrl.isValid())
     {
@@ -800,29 +813,36 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (room && room->joinState() != JoinState::Leave)
     {
         auto leaveJob = room->leaveRoom();
-        connect(leaveJob, &BaseJob::success, this, [this, forgetJob, room] {
-            forgetJob->start(connectionData());
-            // If the matching /sync response hasn't arrived yet, mark the room
-            // for explicit deletion
-            if (room->joinState() != JoinState::Leave)
-                d->roomIdsToForget.push_back(room->id());
-        });
+        connect(leaveJob, &BaseJob::result, this,
+                [this, leaveJob, forgetJob, room] {
+                    if (leaveJob->error() == BaseJob::Success
+                        || leaveJob->error() == BaseJob::NotFoundError)
+                    {
+                        forgetJob->start(connectionData());
+                        // If the matching /sync response hasn't arrived yet,
+                        // mark the room for explicit deletion
+                        if (room->joinState() != JoinState::Leave)
+                            d->roomIdsToForget.push_back(room->id());
+                    } else {
+                        qCWarning(MAIN).nospace()
+                            << "Error leaving room " << room->objectName()
+                            << ": " << leaveJob->errorString();
+                        forgetJob->abandon();
+                    }
+                });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     }
     else
         forgetJob->start(connectionData());
-    connect(forgetJob, &BaseJob::success, this, [this, id]
+    connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob]
     {
-        // Delete whatever instances of the room are still in the map.
-        for (auto f: {false, true})
-            if (auto r = d->roomMap.take({ id, f }))
-            {
-                qCDebug(MAIN) << "Room" << r->objectName()
-                              << "in state" << toCString(r->joinState())
-                              << "will be deleted";
-                emit r->beforeDestruction(r);
-                r->deleteLater();
-            }
+        // Leave room in case of success, or room not known by server
+        if(forgetJob->error() == BaseJob::Success
+                || forgetJob->error() == BaseJob::NotFoundError)
+            d->removeRoom(id); // Delete the room from roomMap
+        else
+            qCWarning(MAIN).nospace() << "Error forgetting room " << id << ": "
+                                      << forgetJob->errorString();
     });
     return forgetJob;
 }
@@ -885,33 +905,36 @@ Room* Connection::room(const QString& roomId, JoinStates states) const
 
 Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
 {
-    const auto id = d->roomAliasMap.value(roomAlias);
+    const auto id =
+        d->roomAliasMap.value(serverPart(roomAlias)).value(roomAlias);
     if (!id.isEmpty())
         return room(id, states);
+
     qCWarning(MAIN) << "Room for alias" << roomAlias
                     << "is not found under account" << userId();
     return nullptr;
 }
 
 void Connection::updateRoomAliases(const QString& roomId,
+                                   const QString& aliasServer,
                                    const QStringList& previousRoomAliases,
                                    const QStringList& roomAliases)
 {
+    auto& aliasMap = d->roomAliasMap[aliasServer]; // Allocate if necessary
     for (const auto& a: previousRoomAliases)
-        if (d->roomAliasMap.remove(a) == 0)
+        if (aliasMap.remove(a) == 0)
             qCWarning(MAIN) << "Alias" << a << "is not found (already deleted?)";
 
     for (const auto& a: roomAliases)
     {
-        auto& mappedId = d->roomAliasMap[a];
+        auto& mappedId = aliasMap[a];
         if (!mappedId.isEmpty())
         {
             if (mappedId == roomId)
-                qCDebug(MAIN) << "Alias" << a << "is already mapped to room"
+                qCDebug(MAIN) << "Alias" << a << "is already mapped to"
                               << roomId;
             else
-                qCWarning(MAIN) << "Alias" << a
-                                << "will be force-remapped from room"
+                qCWarning(MAIN) << "Alias" << a << "will be force-remapped from"
                                 << mappedId << "to" << roomId;
         }
         mappedId = roomId;
@@ -958,11 +981,6 @@ QString Connection::userId() const
 QString Connection::deviceId() const
 {
     return d->data->deviceId();
-}
-
-QString Connection::token() const
-{
-    return accessToken();
 }
 
 QByteArray Connection::accessToken() const
@@ -1064,6 +1082,20 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
 Connection::DirectChatsMap Connection::directChats() const
 {
     return d->directChats;
+}
+
+// Removes room with given id from roomMap
+void Connection::Private::removeRoom(const QString& roomId)
+{
+    for (auto f: {false, true})
+        if (auto r = roomMap.take({ roomId, f }))
+        {
+            qCDebug(MAIN) << "Room" << r->objectName()
+                          << "in state" << toCString(r->joinState())
+                          << "will be deleted";
+            emit r->beforeDestruction(r);
+            r->deleteLater();
+        }
 }
 
 void Connection::addToDirectChats(const Room* room, User* user)

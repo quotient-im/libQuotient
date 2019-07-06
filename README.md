@@ -12,9 +12,13 @@
 libQMatrixClient is a Qt5-based library to make IM clients for the [Matrix](https://matrix.org) protocol. It is the backbone of [Quaternion](https://github.com/QMatrixClient/Quaternion), [Spectral](https://matrix.org/docs/projects/client/spectral.html) and some other projects.
 
 ## Contacts
-You can find authors of libQMatrixClient in the Matrix room: [#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
+You can find authors of libQMatrixClient in the Matrix room:
+[#qmatrixclient:matrix.org](https://matrix.to/#/#qmatrixclient:matrix.org).
 
-You can also file issues at [the project's issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues). If you have what looks like a security issue, please see respective instructions in CONTRIBUTING.md.
+You can also file issues at
+[the project's issue tracker](https://github.com/QMatrixClient/libqmatrixclient/issues).
+If you find what looks like a security issue, please use instructions
+in SECURITY.md.
 
 ## Building and usage
 So far the library is typically used as a git submodule of another project

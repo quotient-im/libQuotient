@@ -46,28 +46,36 @@ namespace QMatrixClient
             Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
             Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
         public:
-            /* Just in case, the values are compatible with KJob
-             * (which BaseJob used to inherit from). */
             enum StatusCode { NoError = 0 // To be compatible with Qt conventions
                 , Success = 0
                 , Pending = 1
                 , WarningLevel = 20
-                , UnexpectedResponseTypeWarning = 21
+                , UnexpectedResponseType = 21
+                , UnexpectedResponseTypeWarning = UnexpectedResponseType
                 , Abandoned = 50 //< A very brief period between abandoning and object deletion
                 , ErrorLevel = 100 //< Errors have codes starting from this
                 , NetworkError = 100
-                , JsonParseError // TODO: Merge into IncorrectResponseError
-                , TimeoutError
+                , Timeout
+                , TimeoutError = Timeout
                 , ContentAccessError
                 , NotFoundError
-                , IncorrectRequestError
-                , IncorrectResponseError
-                , TooManyRequestsError
-                , RequestNotImplementedError
-                , UnsupportedRoomVersionError
-                , NetworkAuthRequiredError
-                , UserConsentRequiredError
-                , UserDefinedError = 200
+                , IncorrectRequest
+                , IncorrectRequestError = IncorrectRequest
+                , IncorrectResponse
+                , IncorrectResponseError = IncorrectResponse
+                , JsonParseError  //< deprecated; Use IncorrectResponse instead
+                  = IncorrectResponse
+                , TooManyRequests
+                , TooManyRequestsError = TooManyRequests
+                , RequestNotImplemented
+                , RequestNotImplementedError = RequestNotImplemented
+                , UnsupportedRoomVersion
+                , UnsupportedRoomVersionError = UnsupportedRoomVersion
+                , NetworkAuthRequired
+                , NetworkAuthRequiredError = NetworkAuthRequired
+                , UserConsentRequired
+                , UserConsentRequiredError = UserConsentRequired
+                , UserDefinedError = 256
             };
 
             /**
@@ -302,7 +310,7 @@ namespace QMatrixClient
              * Processes the reply. By default, parses the reply into
              * a QJsonDocument and calls parseJson() if it's a valid JSON.
              *
-             * @param reply raw contents of a HTTP reply from the server (without headers)
+             * @param reply raw contents of a HTTP reply from the server
              *
              * @see gotReply, parseJson
              */
@@ -310,13 +318,22 @@ namespace QMatrixClient
 
             /**
              * Processes the JSON document received from the Matrix server.
-             * By default returns succesful status without analysing the JSON.
+             * By default returns successful status without analysing the JSON.
              *
              * @param json valid JSON document received from the server
              *
              * @see parseReply
              */
             virtual Status parseJson(const QJsonDocument&);
+
+            /**
+             * Processes the reply in case of unsuccessful HTTP code.
+             * The body is already loaded from the reply object to errorJson.
+             * @param reply the HTTP reply from the server
+             * @param errorJson the JSON payload describing the error
+             */
+            virtual Status parseError(QNetworkReply* reply,
+                                      const QJsonObject& errorJson);
 
             void setStatus(Status s);
             void setStatus(int code, QString message);

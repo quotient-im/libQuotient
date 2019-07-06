@@ -50,7 +50,7 @@ BaseJob::Status GetVersionsJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("versions"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'versions' not found in the response" };
     fromJson(json.value("versions"_ls), d->versions);
     fromJson(json.value("unstable_features"_ls), d->unstableFeatures);

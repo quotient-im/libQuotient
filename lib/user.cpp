@@ -33,9 +33,6 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QElapsedTimer>
 
-#include <QtCore/QCryptographicHash>
-#include <QtCore/QtEndian>
-
 #include <functional>
 
 using namespace QMatrixClient;
@@ -50,23 +47,8 @@ class User::Private
             return Avatar(move(url));
         }
 
-        qreal makeHueF()
-        {
-            Q_ASSERT(!userId.isEmpty());
-            QByteArray hash = QCryptographicHash::hash(userId.toUtf8(),
-                                                       QCryptographicHash::Sha1);
-            QDataStream dataStream(qToLittleEndian(hash).left(2));
-            dataStream.setByteOrder(QDataStream::LittleEndian);
-            quint16 hashValue;
-            dataStream >> hashValue;
-            const auto hueF =
-                    qreal(hashValue)/std::numeric_limits<quint16>::max();
-            Q_ASSERT((0 <= hueF) && (hueF <= 1));
-            return hueF;
-        }
-
         Private(QString userId, Connection* connection)
-            : userId(move(userId)), connection(connection), hueF(makeHueF())
+            : userId(move(userId)), connection(connection), hueF(stringToHueF(this->userId))
         { }
 
         QString userId;
@@ -310,7 +292,7 @@ void User::rename(const QString& newName, const Room* r)
     const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
     evtC.displayName = actualNewName;
-    connect(r->setMemberState(id(), RoomMemberEvent(move(evtC))),
+    connect(r->setState(RoomMemberEvent(id(), move(evtC))),
             &BaseJob::success, this, [=] { updateName(actualNewName, r); });
 }
 

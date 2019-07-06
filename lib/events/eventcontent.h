@@ -53,6 +53,9 @@ namespace QMatrixClient
                 QJsonObject originalJson;
 
             protected:
+                Base(const Base&) = default;
+                Base(Base&&) = default;
+
                 virtual void fillJson(QJsonObject* o) const = 0;
         };
 
@@ -167,11 +170,14 @@ namespace QMatrixClient
         class TypedBase: public Base
         {
             public:
-                explicit TypedBase(const QJsonObject& o = {}) : Base(o) { }
+                explicit TypedBase(QJsonObject o = {}) : Base(std::move(o)) { }
                 virtual QMimeType type() const = 0;
                 virtual const FileInfo* fileInfo() const { return nullptr; }
                 virtual FileInfo* fileInfo() { return nullptr; }
                 virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
+
+            protected:
+                using Base::Base;
         };
 
         /**

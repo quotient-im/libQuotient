@@ -74,7 +74,7 @@ BaseJob::Status GetPresenceJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("presence"_ls))
-        return { JsonParseError,
+        return { IncorrectResponse,
             "The key 'presence' not found in the response" };
     fromJson(json.value("presence"_ls), d->presence);
     fromJson(json.value("last_active_ago"_ls), d->lastActiveAgo);
