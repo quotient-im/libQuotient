@@ -93,6 +93,8 @@ class Room::Private
         /// The state of the room at timeline position before-0
         /// \sa timelineBase
         std::unordered_map<StateEventKey, StateEventPtr> baseState;
+        /// State event stubs - events without content, just type and state key
+        static decltype(baseState) stubbedState;
         /// The state of the room at timeline position after-maxTimelineIndex()
         /// \sa Room::syncEdge
         QHash<StateEventKey, const StateEventBase*> currentState;
@@ -193,9 +195,22 @@ class Room::Private
         template <typename EventT>
         const EventT* getCurrentState(const QString& stateKey = {}) const
         {
-            static const EventT empty;
-            const auto* evt =
-                currentState.value({EventT::matrixTypeId(), stateKey}, &empty);
+            const StateEventKey evtKey { EventT::matrixTypeId(), stateKey };
+            const auto* evt = currentState.value(evtKey, nullptr);
+            if (!evt) {
+                if (stubbedState.find(evtKey) == stubbedState.end()) {
+                    // In the absence of a real event, make a stub as-if an event
+                    // with empty content has been received. Event classes should be
+                    // prepared for empty/invalid/malicious content anyway.
+                    stubbedState.emplace(evtKey,
+                                         loadStateEvent(EventT::matrixTypeId(),
+                                                        {}, stateKey));
+                    qCDebug(MAIN) << "A new stub event created for key {"
+                                  << evtKey.first << evtKey.second << "}";
+                }
+                evt = stubbedState[evtKey].get();
+                Q_ASSERT(evt);
+            }
             Q_ASSERT(evt->type() == EventT::typeId() &&
                      evt->matrixType() == EventT::matrixTypeId());
             return static_cast<const EventT*>(evt);
@@ -272,28 +287,26 @@ class Room::Private
         QString doSendEvent(const RoomEvent* pEvent);
         void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
-        template <typename EvT>
-        SetRoomStateWithKeyJob* requestSetState(const QString& stateKey,
-                                                const EvT& event)
+        SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
         {
             if (q->successorId().isEmpty())
             {
                 // TODO: Queue up state events sending (see #133).
                 return connection->callApi<SetRoomStateWithKeyJob>(
-                        id, EvT::matrixTypeId(), stateKey, event.contentJson());
+                        id, event.matrixType(),
+                        event.stateKey(), event.contentJson());
             }
             qCWarning(MAIN) << q << "has been upgraded, state won't be set";
             return nullptr;
         }
 
-        template <typename EvT>
-        auto requestSetState(const EvT& event)
+        template <typename EvT, typename... ArgTs>
+        auto requestSetState(ArgTs&&... args)
         {
-            return connection->callApi<SetRoomStateJob>(
-                        id, EvT::matrixTypeId(), event.contentJson());
+            return requestSetState(EvT(std::forward<ArgTs>(args)...));
         }
 
-        /**
+  /**
          * @brief Apply redaction to the timeline
          *
          * Tries to find an event in the timeline and redact it; deletes the
@@ -316,6 +329,8 @@ class Room::Private
             return u == q->localUser();
         }
 };
+
+decltype(Room::Private::baseState) Room::Private::stubbedState { };
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
@@ -1625,28 +1640,32 @@ QString Room::postEvent(RoomEvent* event)
 QString Room::postJson(const QString& matrixType,
                        const QJsonObject& eventContent)
 {
-    return d->sendEvent(loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
+    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
+}
+
+SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt) const {
+    return d->requestSetState(evt);
 }
 
 void Room::setName(const QString& newName)
 {
-    d->requestSetState(RoomNameEvent(newName));
+    d->requestSetState<RoomNameEvent>(newName);
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState(RoomCanonicalAliasEvent(newAlias));
+    d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
 }
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState(connection()->homeserver().authority(),
-        RoomAliasesEvent(aliases));
+    d->requestSetState<RoomAliasesEvent>(
+        connection()->homeserver().authority(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
 {
-    d->requestSetState(RoomTopicEvent(newTopic));
+    d->requestSetState<RoomTopicEvent>(newTopic);
 }
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
@@ -1756,9 +1775,10 @@ LeaveRoomJob* Room::leaveRoom()
     return connection()->leaveRoom(this);
 }
 
-SetRoomStateWithKeyJob*Room::setMemberState(const QString& memberId, const RoomMemberEvent& event) const
+SetRoomStateWithKeyJob* Room::setMemberState(
+        const QString& memberId, const RoomMemberEvent& event) const
 {
-    return d->requestSetState(memberId, event);
+    return d->requestSetState<RoomMemberEvent>(memberId, event.content());
 }
 
 void Room::kickMember(const QString& memberId, const QString& reason)

@@ -36,6 +36,12 @@ using namespace QMatrixClient;
             return makeEvent<StateEventBase>(unknownEventTypeId(), json);
         });
 
+StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
+                               const QString &stateKey,
+                               const QJsonObject &contentJson)
+    : RoomEvent(type, basicStateEventJson(matrixType, contentJson, stateKey))
+{ }
+
 bool StateEventBase::repeatsState() const
 {
     const auto prevContentJson = unsignedJson().value(PrevContentKeyL);

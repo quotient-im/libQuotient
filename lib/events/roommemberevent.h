@@ -56,8 +56,14 @@ namespace QMatrixClient
             explicit RoomMemberEvent(const QJsonObject& obj)
                 : StateEvent(typeId(), obj)
             { }
+            [[deprecated("Use RoomMemberEvent(userId, contentArgs) instead")]]
             RoomMemberEvent(MemberEventContent&& c)
-                : StateEvent(typeId(), matrixTypeId(), c)
+                : StateEvent(typeId(), matrixTypeId(), QString(), c)
+            { }
+            template <typename... ArgTs>
+            RoomMemberEvent(const QString& userId, ArgTs&&... contentArgs)
+                : StateEvent(typeId(), matrixTypeId(), userId,
+                             std::forward<ArgTs>(contentArgs)...)
             { }
 
             /// A special constructor to create unknown RoomMemberEvents

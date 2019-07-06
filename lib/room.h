@@ -440,6 +440,9 @@ namespace QMatrixClient
                              const QJsonObject& eventContent);
             QString retryMessage(const QString& txnId);
             void discardMessage(const QString& txnId);
+
+            /// Send a request to update the room state with the given event
+            SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
             void setName(const QString& newName);
             void setCanonicalAlias(const QString& newAlias);
             /// Set room aliases on the user's current server
@@ -453,6 +456,7 @@ namespace QMatrixClient
 
             void inviteToRoom(const QString& memberId);
             LeaveRoomJob* leaveRoom();
+            /// \deprecated - use setState() instead")
             SetRoomStateWithKeyJob* setMemberState(
                     const QString& memberId, const RoomMemberEvent& event) const;
             void kickMember(const QString& memberId, const QString& reason = {});
