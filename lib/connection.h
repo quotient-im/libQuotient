@@ -122,7 +122,7 @@ namespace QMatrixClient
 
             explicit Connection(QObject* parent = nullptr);
             explicit Connection(const QUrl& server, QObject* parent = nullptr);
-            virtual ~Connection();
+            ~Connection() override;
 
             /** Get all Invited and Joined rooms
              * \return a hashmap from a composite key - room name and whether

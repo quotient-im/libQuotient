@@ -259,7 +259,7 @@ namespace QMatrixClient
             }
 
             template <typename T>
-            T content(const QLatin1String& key) const
+            T content(QLatin1String key) const
             {
                 return fromJson<T>(contentJson()[key]);
             }
