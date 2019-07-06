@@ -166,7 +166,7 @@ static const auto ServerPartRegEx = QStringLiteral(
 
 QString serverPart(const QString& mxId)
 {
-    static auto re = "^[@!#$+].+?:(" // Localpart and colon
+    static QString re = "^[@!#$+].+?:(" // Localpart and colon
                      % ServerPartRegEx % ")$";
     static QRegularExpression parser(re,
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
