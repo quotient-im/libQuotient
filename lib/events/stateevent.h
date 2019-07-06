@@ -99,7 +99,7 @@ namespace QMatrixClient {
             }
             template <typename... ContentParamTs>
             explicit StateEvent(Type type, event_mtype_t matrixType,
-                                const QString& stateKey = {},
+                                const QString& stateKey,
                                 ContentParamTs&&... contentParams)
                 : StateEventBase(type, matrixType, stateKey)
                 , _content(std::forward<ContentParamTs>(contentParams)...)
