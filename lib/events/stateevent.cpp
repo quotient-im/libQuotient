@@ -27,7 +27,7 @@ using namespace QMatrixClient;
     RoomEvent::factory_t::addMethod(
         [] (const QJsonObject& json, const QString& matrixType) -> StateEventPtr
         {
-            if (!json.contains("state_key"_ls))
+            if (!json.contains(StateKeyKeyL))
                 return nullptr;
 
             if (auto e = StateEventBase::factory_t::make(json, matrixType))

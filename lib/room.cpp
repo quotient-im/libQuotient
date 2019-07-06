@@ -1920,7 +1920,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     auto originalJson = target.originalJsonObject();
     static const QStringList keepKeys {
         EventIdKey, TypeKey, QStringLiteral("room_id"),
-        QStringLiteral("sender"), QStringLiteral("state_key"),
+        QStringLiteral("sender"), StateKeyKey,
         QStringLiteral("prev_content"), ContentKey,
         QStringLiteral("hashes"), QStringLiteral("signatures"),
         QStringLiteral("depth"), QStringLiteral("prev_events"),

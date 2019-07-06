@@ -21,6 +21,17 @@
 #include "roomevent.h"
 
 namespace QMatrixClient {
+
+    /// Make a minimal correct Matrix state event JSON
+    template <typename StrT>
+    inline QJsonObject basicStateEventJson(StrT matrixType,
+            const QJsonObject& content, const QString& stateKey = {})
+    {
+      return { { TypeKey, std::forward<StrT>(matrixType) },
+               { StateKeyKey, stateKey },
+               { ContentKey, content } };
+    }
+
     class StateEventBase: public RoomEvent
     {
         public:

@@ -76,7 +76,7 @@ namespace QMatrixClient
 
             MembershipType membership() const  { return content().membership; }
             QString userId() const
-                { return fullJson()["state_key"_ls].toString(); }
+                { return fullJson()[StateKeyKeyL].toString(); }
             bool isDirect() const { return content().isDirect; }
             QString displayName() const { return content().displayName; }
             QUrl avatarUrl() const      { return content().avatarUrl; }
