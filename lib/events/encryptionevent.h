@@ -56,8 +56,10 @@ namespace QMatrixClient
             explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate default value
                 : StateEvent(typeId(), obj)
             { }
-            EncryptionEvent(EncryptionEventContent&& c)
-                : StateEvent(typeId(), matrixTypeId(), c)
+            template <typename... ArgTs>
+            EncryptionEvent(ArgTs&&... contentArgs)
+                : StateEvent(typeId(), matrixTypeId(), QString(),
+                             std::forward<ArgTs>(contentArgs)...)
             { }
 
             EncryptionType encryption() const  { return content().encryption; }
