@@ -7,6 +7,8 @@ win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 }
 
+include(3rdparty/libQtOlm/libQtOlm.pri)
+
 SRCPATH = $$PWD/lib
 INCLUDEPATH += $$SRCPATH
 
