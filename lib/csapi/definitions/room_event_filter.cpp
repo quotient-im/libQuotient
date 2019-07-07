@@ -4,7 +4,7 @@
 
 #include "room_event_filter.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<RoomEventFilter>::dumpTo(QJsonObject& jo,
                                                   const RoomEventFilter& pod)

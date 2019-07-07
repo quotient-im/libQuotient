@@ -4,7 +4,7 @@
 
 #include "user_identifier.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<UserIdentifier>::dumpTo(QJsonObject& jo,
                                                  const UserIdentifier& pod)

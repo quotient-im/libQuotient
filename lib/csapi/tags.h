@@ -11,7 +11,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QVariant>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -123,4 +123,4 @@ public:
                                const QString& roomId, const QString& tag);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

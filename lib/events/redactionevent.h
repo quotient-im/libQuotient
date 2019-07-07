@@ -20,7 +20,7 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class RedactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
@@ -36,4 +36,4 @@ public:
 };
 REGISTER_EVENT_TYPE(RedactionEvent)
 DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

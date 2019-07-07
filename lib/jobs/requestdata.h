@@ -26,7 +26,7 @@ class QJsonArray;
 class QJsonDocument;
 class QIODevice;
 
-namespace QMatrixClient {
+namespace Quotient {
 /**
  * A simple wrapper that represents the request body.
  * Provides a unified interface to dump an unstructured byte stream
@@ -52,4 +52,6 @@ public:
 private:
     std::unique_ptr<QIODevice> _source;
 };
-} // namespace QMatrixClient
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;

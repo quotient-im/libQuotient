@@ -21,7 +21,7 @@
 #include "events/roomavatarevent.h"
 #include "events/roommessageevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
 {

@@ -4,7 +4,7 @@
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 class DownloadFileJob::Private {
 public:

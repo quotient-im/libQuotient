@@ -10,7 +10,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -85,4 +85,4 @@ struct JsonObjectConverter<ThirdPartyProtocol>
     static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

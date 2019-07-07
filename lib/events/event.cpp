@@ -22,7 +22,7 @@
 
 #include <QtCore/QJsonDocument>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 event_type_t EventTypeRegistry::initializeTypeId(event_mtype_t matrixTypeId)
 {

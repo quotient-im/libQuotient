@@ -8,7 +8,7 @@
 
 #include "jobs/basejob.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -36,4 +36,4 @@ public:
                               int score, const QString& reason);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

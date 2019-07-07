@@ -20,7 +20,7 @@
 
 #include "event.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class DirectChatEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
@@ -31,4 +31,4 @@ public:
 };
 REGISTER_EVENT_TYPE(DirectChatEvent)
 DEFINE_EVENTTYPE_ALIAS(DirectChat, DirectChatEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

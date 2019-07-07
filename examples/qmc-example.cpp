@@ -19,7 +19,7 @@
 #include <functional>
 #include <iostream>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using std::cout;
 using std::endl;
 using namespace std::placeholders;

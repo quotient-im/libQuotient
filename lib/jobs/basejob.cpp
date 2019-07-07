@@ -30,7 +30,7 @@
 
 #include <array>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)

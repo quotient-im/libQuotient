@@ -13,7 +13,7 @@
 
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -145,4 +145,4 @@ public:
                               const Omittable<AuthenticationData>& auth = none);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

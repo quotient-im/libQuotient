@@ -22,7 +22,7 @@
 
 #include <memory>
 
-namespace QMatrixClient {
+namespace Quotient {
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
@@ -43,4 +43,4 @@ private:
     class Private;
     std::unique_ptr<Private> d;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

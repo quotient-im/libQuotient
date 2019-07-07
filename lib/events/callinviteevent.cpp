@@ -44,7 +44,7 @@ m.call.invite
 }
 */
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
     : CallEventBase(typeId(), obj)

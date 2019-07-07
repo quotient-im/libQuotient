@@ -25,7 +25,7 @@
 #    define USE_EVENTTYPE_ALIAS 1
 #endif
 
-namespace QMatrixClient {
+namespace Quotient {
 // === event_ptr_tt<> and type casting facilities ===
 
 template <typename EventT>
@@ -292,7 +292,7 @@ using Events = EventsArray<Event>;
 // provide matrixTypeId() and typeId().
 #define DEFINE_EVENT_TYPEID(_Id, _Type)                             \
     static constexpr event_mtype_t matrixTypeId() { return _Id; }   \
-    static auto typeId() { return QMatrixClient::typeId<_Type>(); } \
+    static auto typeId() { return Quotient::typeId<_Type>(); } \
     // End of macro
 
 // This macro should be put after an event class definition (in .h or .cpp)
@@ -406,6 +406,6 @@ visit(const BaseEventT& event, FnT1&& visitor1, FnT2&& visitor2,
     return visit(event, std::forward<FnT2>(visitor2),
                  std::forward<FnTs>(visitors)...);
 }
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::Event*)
-Q_DECLARE_METATYPE(const QMatrixClient::Event*)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::Event*)
+Q_DECLARE_METATYPE(const Quotient::Event*)

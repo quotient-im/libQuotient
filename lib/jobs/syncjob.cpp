@@ -18,7 +18,7 @@
 
 #include "syncjob.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static size_t jobId = 0;
 

@@ -21,7 +21,7 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class RoomAvatarEvent : public StateEvent<EventContent::ImageContent> {
     // It's a bit of an overkill to use a full-fledged ImageContent
     // because in reality m.room.avatar usually only has a single URL,
@@ -35,4 +35,4 @@ public:
 };
 REGISTER_EVENT_TYPE(RoomAvatarEvent)
 DEFINE_EVENTTYPE_ALIAS(RoomAvatar, RoomAvatarEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -24,7 +24,7 @@
 
 class QVariant;
 
-namespace QMatrixClient {
+namespace Quotient {
 class Settings : public QSettings {
     Q_OBJECT
 public:
@@ -148,4 +148,4 @@ public:
     void setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle);
     Q_INVOKABLE void clearEncryptionAccountPickle();
 };
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -9,7 +9,7 @@ namespace QtOlm {
 class Account;
 }
 
-namespace QMatrixClient {
+namespace Quotient {
 class Connection;
 
 class EncryptionManager : public QObject {
@@ -35,4 +35,4 @@ private:
     std::unique_ptr<Private> d;
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -22,7 +22,7 @@
 
 #include <QtCore/QDateTime>
 
-namespace QMatrixClient {
+namespace Quotient {
 class RedactionEvent;
 
 /** This class corresponds to m.room.* events */
@@ -102,6 +102,6 @@ public:
     QString callId() const { return content<QString>("call_id"_ls); }
     int version() const { return content<int>("version"_ls); }
 };
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::RoomEvent*)
-Q_DECLARE_METATYPE(const QMatrixClient::RoomEvent*)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::RoomEvent*)
+Q_DECLARE_METATYPE(const Quotient::RoomEvent*)

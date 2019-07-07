@@ -26,7 +26,7 @@
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
 
-namespace QMatrixClient {
+namespace Quotient {
 namespace EventContent {
     /**
      * A base class for all content types that can be stored
@@ -275,4 +275,4 @@ namespace EventContent {
      */
     using FileContent = UrlWithThumbnailContent<FileInfo>;
 } // namespace EventContent
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -22,7 +22,7 @@
 
 #include "events/stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 /// Room summary, as defined in MSC688
 /**
  * Every member of this structure is an Omittable; as per the MSC, only
@@ -111,4 +111,4 @@ private:
 
     static QJsonObject loadJson(const QString& fileName);
 };
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -18,7 +18,7 @@
 
 #include "roomcreateevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 bool RoomCreateEvent::isFederated() const
 {

@@ -4,7 +4,7 @@
 
 #include "user.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<ThirdPartyUser>::dumpTo(QJsonObject& jo,
                                                  const ThirdPartyUser& pod)

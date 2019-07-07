@@ -36,7 +36,7 @@ namespace QtOlm {
 class Account;
 }
 
-namespace QMatrixClient {
+namespace Quotient {
 class Room;
 class User;
 class ConnectionData;
@@ -778,5 +778,5 @@ private:
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;
 };
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::Connection*)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::Connection*)

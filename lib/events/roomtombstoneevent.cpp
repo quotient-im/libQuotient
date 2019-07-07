@@ -18,7 +18,7 @@
 
 #include "roomtombstoneevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 QString RoomTombstoneEvent::serverMessage() const
 {

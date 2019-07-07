@@ -20,7 +20,7 @@
 
 #include <QtCore/QVariant>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 QJsonValue JsonConverter<QVariant>::dump(const QVariant& v)
 {

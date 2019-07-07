@@ -21,7 +21,7 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class MemberEventContent : public EventContent::Base {
 public:
     enum MembershipType : size_t {
@@ -107,4 +107,4 @@ public:
 
 REGISTER_EVENT_TYPE(RoomMemberEvent)
 DEFINE_EVENTTYPE_ALIAS(RoomMember, RoomMemberEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

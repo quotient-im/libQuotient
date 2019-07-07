@@ -53,7 +53,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
 template <typename HashT, typename Pred>
@@ -1349,9 +1349,9 @@ void Connection::setCacheState(bool newValue)
     }
 }
 
-bool QMatrixClient::Connection::lazyLoading() const { return d->lazyLoading; }
+bool Connection::lazyLoading() const { return d->lazyLoading; }
 
-void QMatrixClient::Connection::setLazyLoading(bool newValue)
+void Connection::setLazyLoading(bool newValue)
 {
     if (d->lazyLoading != newValue) {
         d->lazyLoading = newValue;

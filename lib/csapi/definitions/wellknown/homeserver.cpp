@@ -4,7 +4,7 @@
 
 #include "homeserver.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<HomeserverInformation>::dumpTo(
     QJsonObject& jo, const HomeserverInformation& pod)

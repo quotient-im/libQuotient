@@ -8,7 +8,7 @@
 
 #include "jobs/basejob.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -38,4 +38,4 @@ public:
                           bool typing, Omittable<int> timeout = none);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

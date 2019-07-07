@@ -8,12 +8,12 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
 
 template <>
@@ -26,7 +26,7 @@ struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
     }
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
 
 class GetLoginFlowsJob::Private
 {

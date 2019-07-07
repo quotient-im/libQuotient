@@ -21,7 +21,7 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class EncryptionEventContent : public EventContent::Base {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
@@ -71,4 +71,4 @@ private:
 
 REGISTER_EVENT_TYPE(EncryptionEvent)
 DEFINE_EVENTTYPE_ALIAS(Encryption, EncryptionEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

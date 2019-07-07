@@ -8,7 +8,7 @@
 
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -62,4 +62,4 @@ private:
     QScopedPointer<Private> d;
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

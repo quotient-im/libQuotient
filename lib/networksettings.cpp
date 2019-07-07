@@ -18,7 +18,7 @@
 
 #include "networksettings.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void NetworkSettings::setupApplicationProxy() const
 {

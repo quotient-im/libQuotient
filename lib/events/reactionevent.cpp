@@ -20,7 +20,7 @@
 
 using namespace QMatrixClient;
 
-void QMatrixClient::JsonObjectConverter<EventRelation>::dumpTo(
+void JsonObjectConverter<EventRelation>::dumpTo(
     QJsonObject& jo, const EventRelation& pod)
 {
     if (pod.type.isEmpty()) {
@@ -33,7 +33,7 @@ void QMatrixClient::JsonObjectConverter<EventRelation>::dumpTo(
         jo.insert(QStringLiteral("key"), pod.key);
 }
 
-void QMatrixClient::JsonObjectConverter<EventRelation>::fillFrom(
+void JsonObjectConverter<EventRelation>::fillFrom(
     const QJsonObject& jo, EventRelation& pod)
 {
     // The experimental logic for generic relationships (MSC1849)

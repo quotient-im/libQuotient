@@ -37,7 +37,7 @@
 
 #include <functional>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using namespace std::placeholders;
 using std::move;
 

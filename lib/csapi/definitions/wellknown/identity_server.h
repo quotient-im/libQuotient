@@ -6,7 +6,7 @@
 
 #include "converters.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -25,4 +25,4 @@ struct JsonObjectConverter<IdentityServerInformation>
     static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

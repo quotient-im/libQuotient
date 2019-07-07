@@ -4,7 +4,7 @@
 
 #include "event_filter.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<EventFilter>::dumpTo(QJsonObject& jo,
                                               const EventFilter& pod)

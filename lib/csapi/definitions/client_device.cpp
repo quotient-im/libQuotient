@@ -4,7 +4,7 @@
 
 #include "client_device.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<Device>::dumpTo(QJsonObject& jo, const Device& pod)
 {

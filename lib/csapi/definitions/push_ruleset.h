@@ -10,7 +10,7 @@
 
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -36,4 +36,4 @@ struct JsonObjectConverter<PushRuleset>
     static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

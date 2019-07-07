@@ -8,7 +8,7 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
@@ -50,7 +50,7 @@ BaseJob::Status UploadKeysJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
 
 template <>
@@ -74,7 +74,7 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation>
     }
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
 
 class QueryKeysJob::Private
 {

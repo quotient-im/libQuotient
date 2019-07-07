@@ -12,7 +12,7 @@
 
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -256,4 +256,4 @@ private:
     QScopedPointer<Private> d;
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

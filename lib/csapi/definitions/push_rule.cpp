@@ -4,7 +4,7 @@
 
 #include "push_rule.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<PushRule>::dumpTo(QJsonObject& jo, const PushRule& pod)
 {

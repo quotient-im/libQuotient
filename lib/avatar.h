@@ -24,7 +24,7 @@
 #include <functional>
 #include <memory>
 
-namespace QMatrixClient {
+namespace Quotient {
 class Connection;
 
 class Avatar {
@@ -56,4 +56,6 @@ private:
     class Private;
     std::unique_ptr<Private> d;
 };
-} // namespace QMatrixClient
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;

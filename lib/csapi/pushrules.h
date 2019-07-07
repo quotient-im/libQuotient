@@ -14,7 +14,7 @@
 
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -297,4 +297,4 @@ public:
                                    const QStringList& actions);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

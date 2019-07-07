@@ -22,7 +22,7 @@
 #include "../syncdata.h"
 #include "basejob.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class SyncJob : public BaseJob {
 public:
     explicit SyncJob(const QString& since = {}, const QString& filter = {},
@@ -38,4 +38,4 @@ protected:
 private:
     SyncData d;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

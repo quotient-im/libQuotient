@@ -4,7 +4,7 @@
 
 #include "full.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<DiscoveryInformation>::dumpTo(
     QJsonObject& jo, const DiscoveryInformation& pod)

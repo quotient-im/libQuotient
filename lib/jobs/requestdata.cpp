@@ -6,7 +6,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 auto fromData(const QByteArray& data)
 {

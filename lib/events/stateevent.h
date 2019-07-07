@@ -20,7 +20,7 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 
 /// Make a minimal correct Matrix state event JSON
 template <typename StrT>
@@ -128,12 +128,12 @@ private:
     ContentT _content;
     std::unique_ptr<Prev<ContentT>> _prev;
 };
-} // namespace QMatrixClient
+} // namespace Quotient
 
 namespace std {
 template <>
-struct hash<QMatrixClient::StateEventKey> {
-    size_t operator()(const QMatrixClient::StateEventKey& k) const Q_DECL_NOEXCEPT
+struct hash<Quotient::StateEventKey> {
+    size_t operator()(const Quotient::StateEventKey& k) const Q_DECL_NOEXCEPT
     {
         return qHash(k);
     }

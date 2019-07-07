@@ -22,7 +22,7 @@
 
 #include <utility>
 
-namespace QMatrixClient {
+namespace Quotient {
 class StateEventBase;
 
 class EventStatus {
@@ -153,5 +153,5 @@ inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
     d.nospace() << "(" << ti.index() << "|" << ti->id() << ")";
     return d;
 }
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::EventStatus)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::EventStatus)

@@ -22,7 +22,7 @@
 #include "logging.h"
 #include "redactionevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 [[gnu::unused]] static auto roomEventTypeInitialised =
     Event::factory_t::chainFactory<RoomEvent>();
@@ -48,7 +48,7 @@ QString RoomEvent::id() const { return fullJson()[EventIdKeyL].toString(); }
 
 QDateTime RoomEvent::timestamp() const
 {
-    return QMatrixClient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
+    return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
 }
 
 QString RoomEvent::roomId() const

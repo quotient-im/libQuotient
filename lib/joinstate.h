@@ -22,7 +22,7 @@
 
 #include <array>
 
-namespace QMatrixClient {
+namespace Quotient {
 enum class JoinState : unsigned int {
     Join = 0x1,
     Invite = 0x2,
@@ -43,5 +43,5 @@ inline const char* toCString(JoinState js)
         ++index;
     return JoinStateStrings[index];
 }
-} // namespace QMatrixClient
-Q_DECLARE_OPERATORS_FOR_FLAGS(QMatrixClient::JoinStates)
+} // namespace Quotient
+Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::JoinStates)

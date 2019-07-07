@@ -12,7 +12,7 @@
 #include <functional>
 #include <memory>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using namespace QtOlm;
 using std::move;
 

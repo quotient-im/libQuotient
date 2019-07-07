@@ -6,7 +6,7 @@
 
 #include "jobs/basejob.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -55,4 +55,4 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

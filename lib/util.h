@@ -63,7 +63,7 @@ static void qAsConst(const T&&) Q_DECL_EQ_DELETE;
 #    define BROKEN_INITIALIZER_LISTS
 #endif
 
-namespace QMatrixClient {
+namespace Quotient {
 // The below enables pretty-printing of enums in logs
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
 #    define REGISTER_ENUM(EnumName) Q_ENUM(EnumName)
@@ -330,4 +330,6 @@ qreal stringToHueF(const QString& string);
 
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
-} // namespace QMatrixClient
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;

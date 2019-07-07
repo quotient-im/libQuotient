@@ -23,7 +23,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QString>
 
-namespace QMatrixClient {
+namespace Quotient {
 class Connection;
 class Room;
 class RoomMemberEvent;
@@ -160,5 +160,5 @@ private:
     class Private;
     QScopedPointer<Private> d;
 };
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::User*)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::User*)

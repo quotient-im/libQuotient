@@ -71,7 +71,7 @@
 #include <message.h> // QtOlm
 #include <session.h> // QtOlm
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using namespace std::placeholders;
 using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
@@ -1085,7 +1085,7 @@ QUrl Room::fileSource(const QString& id) const
 
 QString Room::prettyPrint(const QString& plainText) const
 {
-    return QMatrixClient::prettyPrint(plainText);
+    return Quotient::prettyPrint(plainText);
 }
 
 QList<User*> Room::usersTyping() const { return d->usersTyping; }

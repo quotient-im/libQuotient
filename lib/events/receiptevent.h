@@ -23,7 +23,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QVector>
 
-namespace QMatrixClient {
+namespace Quotient {
 struct Receipt {
     QString userId;
     QDateTime timestamp;
@@ -49,4 +49,4 @@ private:
 };
 REGISTER_EVENT_TYPE(ReceiptEvent)
 DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

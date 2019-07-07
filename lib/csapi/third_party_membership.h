@@ -6,7 +6,7 @@
 
 #include "jobs/basejob.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -74,4 +74,4 @@ public:
                              const QString& medium, const QString& address);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

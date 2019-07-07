@@ -6,7 +6,7 @@
 
 #include "jobs/basejob.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -58,4 +58,4 @@ public:
     explicit UnbanJob(const QString& roomId, const QString& userId);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

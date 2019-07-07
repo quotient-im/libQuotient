@@ -8,7 +8,7 @@
 
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -37,4 +37,4 @@ public:
                             const QJsonObject& receipt = {});
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

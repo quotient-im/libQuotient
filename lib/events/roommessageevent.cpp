@@ -25,7 +25,7 @@
 #include <QtGui/QImageReader>
 #include <QtMultimedia/QMediaResource>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using namespace EventContent;
 
 using MsgType = RoomMessageEvent::MsgType;
@@ -279,7 +279,7 @@ TextContent::TextContent(const QString& text, const QString& contentType,
         mimeType = QMimeDatabase().mimeTypeForName("text/html");
 }
 
-namespace QMatrixClient {
+namespace Quotient {
 // Overload the default fromJson<> logic that defined in converters.h
 // as we want
 template <>
@@ -295,7 +295,7 @@ Omittable<RelatesTo> fromJson(const QJsonValue& jv)
     return RelatesTo { jo.value("rel_type"_ls).toString(),
                        jo.value(EventIdKeyL).toString() };
 }
-} // namespace QMatrixClient
+} // namespace Quotient
 
 TextContent::TextContent(const QJsonObject& json)
     : relatesTo(fromJson<Omittable<RelatesTo>>(json[RelatesToKeyL]))

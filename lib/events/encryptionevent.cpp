@@ -12,10 +12,10 @@
 #include <array>
 
 static const std::array<QString, 1> encryptionStrings = {
-    { QMatrixClient::MegolmV1AesSha2AlgoKey }
+    { Quotient::MegolmV1AesSha2AlgoKey }
 };
 
-namespace QMatrixClient {
+namespace Quotient {
 template <>
 struct JsonConverter<EncryptionType> {
     static EncryptionType load(const QJsonValue& jv)
@@ -32,7 +32,7 @@ struct JsonConverter<EncryptionType> {
 };
 } // namespace QMatrixClient
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
     : encryption(fromJson<EncryptionType>(json["algorithm"_ls]))

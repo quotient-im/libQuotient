@@ -8,7 +8,7 @@
 
 #include <QtCore/QVariant>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -31,4 +31,4 @@ struct JsonObjectConverter<UserIdentifier>
     static void fillFrom(QJsonObject jo, UserIdentifier& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

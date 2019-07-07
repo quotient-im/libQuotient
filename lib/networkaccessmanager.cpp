@@ -21,7 +21,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtNetwork/QNetworkReply>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 class NetworkAccessManager::Private {
 public:

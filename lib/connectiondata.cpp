@@ -21,7 +21,7 @@
 #include "logging.h"
 #include "networkaccessmanager.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 struct ConnectionData::Private {
     explicit Private(QUrl url) : baseUrl(std::move(url)) {}

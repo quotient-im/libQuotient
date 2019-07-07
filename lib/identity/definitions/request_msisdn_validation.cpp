@@ -4,7 +4,7 @@
 
 #include "request_msisdn_validation.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<RequestMsisdnValidation>::dumpTo(
     QJsonObject& jo, const RequestMsisdnValidation& pod)

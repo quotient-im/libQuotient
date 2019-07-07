@@ -9,7 +9,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QNetworkReply>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/media/r0");
 

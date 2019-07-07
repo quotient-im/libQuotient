@@ -4,7 +4,7 @@
 
 #include "push_condition.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<PushCondition>::dumpTo(QJsonObject& jo,
                                                 const PushCondition& pod)

@@ -3,7 +3,7 @@
 #include "e2ee.h"
 #include "roomevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class Room;
 /*
  * While the specification states:
@@ -63,4 +63,4 @@ public:
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 
-} // namespace QMatrixClient
+} // namespace Quotient
