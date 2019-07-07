@@ -48,7 +48,7 @@ install:
 - pushd 3rdparty/libQtOlm
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - popd
-- git clone https://github.com/QMatrixClient/matrix-doc.git
+- git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad
 - cmake $USE_NINJA -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .

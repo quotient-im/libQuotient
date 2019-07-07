@@ -95,8 +95,7 @@ public:
     DirectChatsMap directChats;
     DirectChatUsersMap directChatUsers;
     // The below two variables track local changes between sync completions.
-    // See also:
-    // https://github.com/QMatrixClient/libqmatrixclient/wiki/Handling-direct-chat-events
+    // See https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
     std::unordered_map<QString, EventPtr> accountData;
@@ -435,7 +434,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         visit(
             *eventPtr,
             [this](const DirectChatEvent& dce) {
-                // https://github.com/QMatrixClient/libqmatrixclient/wiki/Handling-direct-chat-events
+                // https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
                 DirectChatsMap remoteRemovals =
                     erase_if(d->directChats, [&usersToDCs, this](auto it) {

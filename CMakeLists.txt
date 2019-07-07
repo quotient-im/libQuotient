@@ -81,7 +81,7 @@ endif()
 
 message( STATUS )
 message( STATUS "=============================================================================" )
-message( STATUS "                       libqmatrixclient Build Information" )
+message( STATUS "                       libQuotient Build Information" )
 message( STATUS "=============================================================================" )
 message( STATUS "Version: ${PROJECT_VERSION}, API version: ${API_VERSION}")
 if (CMAKE_BUILD_TYPE)

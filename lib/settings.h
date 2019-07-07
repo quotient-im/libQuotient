@@ -140,7 +140,7 @@ public:
     /** \deprecated \sa setToken */
     QString accessToken() const;
     /** \deprecated Storing accessToken in QSettings is unsafe,
-     * see QMatrixClient/Quaternion#181 */
+     * see quotient-im/Quaternion#181 */
     void setAccessToken(const QString& accessToken);
     Q_INVOKABLE void clearAccessToken();
 
