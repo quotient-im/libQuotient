@@ -1,5 +1,15 @@
 language: cpp
 
+git:
+  depth: false
+
+before_cache:
+- brew cleanup
+
+cache:
+  directories:
+  - $HOME/Library/Caches/Homebrew
+
 addons:
   apt:
     sources:
