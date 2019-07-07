@@ -24,13 +24,17 @@ class EncryptionManager::Private
 {
     public:
         explicit Private(const QByteArray& encryptionAccountPickle, float signedKeysProportion, float oneTimeKeyThreshold)
-            : olmAccount(new Account(encryptionAccountPickle)), // TODO: passphrase even with qtkeychain?
-              signedKeysProportion(move(signedKeysProportion)),
-              oneTimeKeyThreshold(move(oneTimeKeyThreshold)),
-              targetKeysNumber(olmAccount->maxOneTimeKeys()) // 2 // see note below
+            : signedKeysProportion(move(signedKeysProportion)),
+              oneTimeKeyThreshold(move(oneTimeKeyThreshold))
         {
             Q_ASSERT((0 <= signedKeysProportion) && (signedKeysProportion <= 1));
             Q_ASSERT((0 <= oneTimeKeyThreshold) && (oneTimeKeyThreshold <= 1));
+            if (encryptionAccountPickle.isEmpty())
+            {
+                olmAccount.reset(new Account());
+            } else {
+                olmAccount.reset(new Account(encryptionAccountPickle)); // TODO: passphrase even with qtkeychain?
+            }
             /*
              * Note about targetKeysNumber:
              *
@@ -42,17 +46,19 @@ class EncryptionManager::Private
              * used instantly, and we want them to stay in libolm, until the limit is reached
              * and it starts discarding keys, starting by the oldest.
              */
+             targetKeysNumber = olmAccount->maxOneTimeKeys(); // 2 // see note below
+             targetOneTimeKeyCounts =
+             {
+                 {SignedCurve25519Name, qRound(signedKeysProportion * targetKeysNumber)},
+                 {Curve25519Name, qRound((1-signedKeysProportion) * targetKeysNumber)}
+             };
         }
-        ~Private()
-        {
-            delete olmAccount;
-        }
+        ~Private() = default;
 
         UploadKeysJob* uploadIdentityKeysJob = nullptr;
         UploadKeysJob* uploadOneTimeKeysJob = nullptr;
 
-        Account* olmAccount;
-        const QByteArray encryptionAccountPickle;
+        QScopedPointer<Account> olmAccount;
 
         float signedKeysProportion;
         float oneTimeKeyThreshold;
@@ -68,11 +74,7 @@ class EncryptionManager::Private
             updateKeysToUpload();
         }
         QHash<QString, int> oneTimeKeysToUploadCounts;
-        QHash<QString, int> targetOneTimeKeyCounts
-        {
-            {SignedCurve25519Name, qRound(signedKeysProportion * targetKeysNumber)},
-            {Curve25519Name, qRound((1-signedKeysProportion) * targetKeysNumber)}
-        };
+        QHash<QString, int> targetOneTimeKeyCounts;
 };
 
 EncryptionManager::EncryptionManager(const QByteArray &encryptionAccountPickle, float signedKeysProportion, float oneTimeKeyThreshold,
@@ -181,6 +183,11 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpda
     d->olmAccount->markKeysAsPublished();
     qDebug() << QString("Uploaded new one-time keys: %1 signed, %2 unsigned.")
                 .arg(signedKeysToUploadCount).arg(unsignedKeysToUploadCount);
+}
+
+QByteArray EncryptionManager::olmAccountPickle()
+{
+    return d->olmAccount->pickle(); // TODO: passphrase even with qtkeychain?
 }
 
 void EncryptionManager::Private::updateKeysToUpload()

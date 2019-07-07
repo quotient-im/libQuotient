@@ -15,12 +15,13 @@ namespace QMatrixClient
         public:
             // TODO: store constats separately?
             // TODO: 0.5 oneTimeKeyThreshold instead of 0.1?
-            explicit EncryptionManager(const QByteArray& encryptionAccountPickle, float signedKeysProportion = 1, float oneTimeKeyThreshold = float(0.1),
+            explicit EncryptionManager(const QByteArray& encryptionAccountPickle = QByteArray(), float signedKeysProportion = 1, float oneTimeKeyThreshold = float(0.1),
                                        QObject* parent = nullptr);
             ~EncryptionManager();
 
             void uploadIdentityKeys(Connection* connection);
             void uploadOneTimeKeys(Connection* connection, bool forceUpdate = false);
+            QByteArray olmAccountPickle();
 
         private:
             class Private;
