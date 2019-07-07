@@ -48,6 +48,24 @@ endforeach ()
 find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
+if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
+        AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
+    add_subdirectory(3rdparty/libQtOlm EXCLUDE_FROM_ALL)
+    include_directories(3rdparty/libQtOlm)
+    if (NOT DEFINED USE_INTREE_LIBQOLM)
+        set (USE_INTREE_LIBQOLM 1)
+    endif ()
+endif ()
+if (NOT USE_INTREE_LIBQOLM)
+    find_package(QtOlm 0.1.0 REQUIRED)
+    if (NOT QtOlm_FOUND)
+        message( WARNING "libQtOlm not found; configuration will most likely fail.")
+        message( WARNING "Make sure you have installed libQtOlm development files")
+        message( WARNING "as a package or checked out the library sources in lib/.")
+        message( WARNING "See also BUILDING.md")
+    endif ()
+endif ()
+
 if (GTAD_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
 endif ()
@@ -64,11 +82,26 @@ if (CMAKE_BUILD_TYPE)
     message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
+message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     message( STATUS "Generating API stubs enabled" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
     message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
+endif ()
+find_package(Git)
+if (USE_INTREE_LIBQOLM)
+    message( STATUS "Using in-tree libQtOlm")
+    if (GIT_FOUND)
+        execute_process(COMMAND
+            "${GIT_EXECUTABLE}" rev-parse -q HEAD
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
+            OUTPUT_VARIABLE QTOLM_GIT_SHA1
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
+    endif (GIT_FOUND)
+else ()
+    message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -87,6 +120,7 @@ set(libqmatrixclient_SRCS
     lib/networksettings.cpp
     lib/converters.cpp
     lib/util.cpp
+    lib/encryptionmanager.cpp
     lib/eventitem.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
@@ -103,6 +137,7 @@ set(libqmatrixclient_SRCS
     lib/events/callhangupevent.cpp
     lib/events/callinviteevent.cpp
     lib/events/directchatevent.cpp
+    lib/events/encryptionevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp
@@ -158,7 +193,7 @@ target_include_directories(QMatrixClient PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(QMatrixClient Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
+target_link_libraries(QMatrixClient QtOlm Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
 add_executable(qmc-example ${example_SRCS})
 target_link_libraries(qmc-example Qt5::Core QMatrixClient)

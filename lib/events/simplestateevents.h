@@ -81,8 +81,6 @@ namespace QMatrixClient
     DEFINE_EVENTTYPE_ALIAS(RoomCanonicalAlias, RoomCanonicalAliasEvent)
     DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
     DEFINE_EVENTTYPE_ALIAS(RoomTopic, RoomTopicEvent)
-    DEFINE_SIMPLE_STATE_EVENT(EncryptionEvent, "m.room.encryption",
-                              QString, algorithm)
     DEFINE_EVENTTYPE_ALIAS(RoomEncryption, EncryptionEvent)
 
     class RoomAliasesEvent

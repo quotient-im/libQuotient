@@ -23,6 +23,7 @@
 #include "events/eventloader.h"
 #include "room.h"
 #include "settings.h"
+#include "encryptionmanager.h"
 #include "csapi/login.h"
 #include "csapi/capabilities.h"
 #include "csapi/logout.h"
@@ -101,6 +102,8 @@ class Connection::Private
 
         GetCapabilitiesJob* capabilitiesJob = nullptr;
         GetCapabilitiesJob::Capabilities capabilities;
+
+        QScopedPointer<EncryptionManager> encryptionManager;
 
         SyncJob* syncJob = nullptr;
 
@@ -248,6 +251,13 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         [this, loginJob] {
             d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                                 loginJob->deviceId());
+
+            AccountSettings accountSettings(loginJob->userId());
+            d->encryptionManager.reset(new EncryptionManager(accountSettings.encryptionAccountPickle()));
+
+            d->encryptionManager->uploadIdentityKeys(this);
+            d->encryptionManager->uploadOneTimeKeys(this);
+
         });
     connect(loginJob, &BaseJob::failure, this,
         [this, loginJob] {

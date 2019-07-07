@@ -90,6 +90,7 @@ QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
 
 static const auto HomeserverKey = QStringLiteral("homeserver");
 static const auto AccessTokenKey = QStringLiteral("access_token");
+static const auto EncryptionAccountPickleKey = QStringLiteral("encryption_account_pickle");
 
 QUrl AccountSettings::homeserver() const
 {
@@ -114,7 +115,7 @@ QString AccountSettings::accessToken() const
 void AccountSettings::setAccessToken(const QString& accessToken)
 {
     qCWarning(MAIN) << "Saving access_token to QSettings is insecure."
-                       " Developers, please save access_token separately.";
+                       " Developers, do it manually or contribute to share QtKeychain logic to libQuotient.";
     setValue(AccessTokenKey, accessToken);
 }
 
@@ -123,4 +124,23 @@ void AccountSettings::clearAccessToken()
     legacySettings.remove(AccessTokenKey);
     legacySettings.remove(QStringLiteral("device_id")); // Force the server to re-issue it
     remove(AccessTokenKey);
+}
+
+QByteArray AccountSettings::encryptionAccountPickle()
+{
+    QString passphrase = ""; // FIXME: add QtKeychain
+    return value("encryption_account_pickle", "").toByteArray();
+}
+
+void AccountSettings::setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle)
+{
+    qCWarning(MAIN) << "Saving encryption_account_pickle to QSettings is insecure."
+                       " Developers, do it manually or contribute to share QtKeychain logic to libQuotient.";
+    QString passphrase = ""; // FIXME: add QtKeychain
+    setValue("encryption_account_pickle", encryptionAccountPickle);
+}
+
+void AccountSettings::clearEncryptionAccountPickle()
+{
+    remove(EncryptionAccountPickleKey); // TODO: Force to re-issue it?
 }
