@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "connection.h"
 #include "csapi/message_pagination.h"
 #include "events/roommessageevent.h"
 #include "events/accountdataevents.h"
@@ -36,7 +37,6 @@ namespace QMatrixClient
     class Avatar;
     class SyncRoomData;
     class RoomMemberEvent;
-    class Connection;
     class User;
     class MemberSorter;
     class LeaveRoomJob;
@@ -406,16 +406,13 @@ namespace QMatrixClient
 
             MemberSorter memberSorter() const;
 
-            Q_INVOKABLE void inviteCall(const QString& callId,
-                                        const int lifetime, const QString& sdp);
-            Q_INVOKABLE void sendCallCandidates(const QString& callId,
-                                            const QJsonArray& candidates);
-            Q_INVOKABLE void answerCall(const QString& callId, const int lifetime,
-                                        const QString& sdp);
-            Q_INVOKABLE void answerCall(const QString& callId,
-                                        const QString& sdp);
-            Q_INVOKABLE void hangupCall(const QString& callId);
             Q_INVOKABLE bool supportsCalls() const;
+
+            template <typename EvT, typename... ArgTs>
+            auto setState(ArgTs&&... args) const
+            {
+                return setState(EvT(std::forward<ArgTs>(args)...));
+            }
 
         public slots:
             /** Check whether the room should be upgraded */
@@ -480,6 +477,15 @@ namespace QMatrixClient
 
             /// Switch the room's version (aka upgrade)
             void switchVersion(QString newVersion);
+
+            void inviteCall(const QString& callId,
+                            const int lifetime, const QString& sdp);
+            void sendCallCandidates(const QString& callId,
+                                    const QJsonArray& candidates);
+            void answerCall(const QString& callId, const int lifetime,
+                            const QString& sdp);
+            void answerCall(const QString& callId, const QString& sdp);
+            void hangupCall(const QString& callId);
 
         signals:
             /// Initial set of state events has been loaded

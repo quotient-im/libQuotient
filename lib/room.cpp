@@ -290,15 +290,15 @@ class Room::Private
 
         SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
         {
-            if (q->successorId().isEmpty())
-            {
-                // TODO: Queue up state events sending (see #133).
-                return connection->callApi<SetRoomStateWithKeyJob>(
-                        id, event.matrixType(),
-                        event.stateKey(), event.contentJson());
-            }
-            qCWarning(MAIN) << q << "has been upgraded, state won't be set";
-            return nullptr;
+//            if (event.roomId().isEmpty())
+//                event.setRoomId(id);
+//            if (event.senderId().isEmpty())
+//                event.setSender(connection->userId());
+            // TODO: Queue up state events sending (see #133).
+            // TODO: Maybe addAsPending() as well, despite having no txnId
+            return connection->callApi<SetRoomStateWithKeyJob>(
+                    id, event.matrixType(),
+                    event.stateKey(), event.contentJson());
         }
 
         template <typename EvT, typename... ArgTs>
@@ -1416,6 +1416,10 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
+    if (event->roomId().isEmpty())
+        event->setRoomId(id);
+    if (event->senderId().isEmpty())
+        event->setSender(connection->userId());
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd(pEvent);
     unsyncedEvents.emplace_back(move(event));
@@ -1425,6 +1429,11 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
 {
+    if (q->usesEncryption())
+    {
+        qCCritical(MAIN) << "Room" << q->objectName()
+            << "enforces encryption; sending encrypted messages is not supported yet";
+    }
     if (q->successorId().isEmpty())
         return doSendEvent(addAsPending(std::move(event)));
 
@@ -1630,11 +1639,6 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
 
 QString Room::postEvent(RoomEvent* event)
 {
-    if (usesEncryption())
-    {
-        qCCritical(MAIN) << "Room" << displayName()
-            << "enforces encryption; sending encrypted messages is not supported yet";
-    }
     return d->sendEvent(RoomEventPtr(event));
 }
 
@@ -1715,33 +1719,33 @@ void Room::inviteCall(const QString& callId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallInviteEvent(callId, lifetime, sdp));
+    d->sendEvent<CallInviteEvent>(callId, lifetime, sdp);
 }
 
 void Room::sendCallCandidates(const QString& callId,
                               const QJsonArray& candidates)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallCandidatesEvent(callId, candidates));
+    d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
 void Room::answerCall(const QString& callId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallAnswerEvent(callId, lifetime, sdp));
+    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallAnswerEvent(callId, sdp));
+    d->sendEvent<CallAnswerEvent>(callId, sdp);
 }
 
 void Room::hangupCall(const QString& callId)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallHangupEvent(callId));
+    d->sendEvent<CallHangupEvent>(callId);
 }
 
 void Room::getPreviousContent(int limit)
