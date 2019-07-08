@@ -112,19 +112,29 @@ void EncryptionManager::uploadIdentityKeys(Connection* connection)
                         d->olmAccount->ed25519IdentityKey()
             }
         },
-        /*
-         * Signatures for the device key object.
-         * A map from user ID, to a map from <algorithm>:<device_id> to the signature.
-         * The signature is calculated using the process called Signing JSON.
-         */
+        /* signatures should be provided after the unsigned deviceKeys generation */
+        {}
+    };
+
+    QJsonObject deviceKeysJsonObject = toJson(deviceKeys);
+    /* additionally removing signatures key,
+     * since we could not initialize deviceKeys
+     * without an empty signatures value:
+     */
+    deviceKeysJsonObject.remove(QStringLiteral("signatures"));
+    /*
+     * Signatures for the device key object.
+     * A map from user ID, to a map from <algorithm>:<device_id> to the signature.
+     * The signature is calculated using the process called Signing JSON.
+     */
+    deviceKeys.signatures =
+    {
         {
+            connection->userId(),
             {
-                connection->userId(),
                 {
-                    {
-                        ed25519Name + QStringLiteral(":") + connection->deviceId(),
-                                d->olmAccount->sign(toJson(deviceKeys))
-                    }
+                    ed25519Name + QStringLiteral(":") + connection->deviceId(),
+                            d->olmAccount->sign(deviceKeysJsonObject)
                 }
             }
         }
