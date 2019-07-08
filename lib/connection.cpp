@@ -254,6 +254,9 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
 
             AccountSettings accountSettings(loginJob->userId());
             d->encryptionManager.reset(new EncryptionManager(accountSettings.encryptionAccountPickle()));
+            if (accountSettings.encryptionAccountPickle().isEmpty()) {
+                accountSettings.setEncryptionAccountPickle(d->encryptionManager->olmAccountPickle());
+            }
 
             d->encryptionManager->uploadIdentityKeys(this);
             d->encryptionManager->uploadOneTimeKeys(this);
