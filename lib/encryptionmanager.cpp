@@ -16,9 +16,9 @@ using std::move;
 static const auto ed25519Name = QStringLiteral("ed25519");
 static const auto Curve25519Name = QStringLiteral("curve25519");
 static const auto SignedCurve25519Name = QStringLiteral("signed_curve25519");
-static const auto OlmCurve25519AesSha256AlgoName = QStringLiteral("m.olm.curve25519-aes-sha256");
-static const auto MegolmV1AesShaAlgoName = QStringLiteral("m.megolm.v1.aes-sha");
-static const QStringList SupportedAlgorithms = { OlmCurve25519AesSha256AlgoName, MegolmV1AesShaAlgoName };
+static const auto OlmV1Curve25519AesSha2AlgoName = QStringLiteral("m.olm.v1.curve25519-aes-sha2");
+static const auto MegolmV1AesSha2AlgoName = QStringLiteral("m.megolm.v1.aes-sha2");
+static const QStringList SupportedAlgorithms = { OlmV1Curve25519AesSha2AlgoName, MegolmV1AesSha2AlgoName };
 
 class EncryptionManager::Private
 {
