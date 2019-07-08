@@ -112,6 +112,20 @@ qreal QMatrixClient::stringToHueF(const QString &string)
     return hueF;
 }
 
+static const auto ServerPartRegEx = QStringLiteral(
+    "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+    "(?::(\\d{1,5}))?" // Optional port
+);
+
+QString QMatrixClient::serverPart(const QString& mxId)
+{
+    static QString re = "^[@!#$+].+?:(" // Localpart and colon
+                     % ServerPartRegEx % ")$";
+    static QRegularExpression parser(re,
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+    return parser.match(mxId).captured(1);
+}
+
 // Tests for function_traits<>
 
 #ifdef Q_CC_CLANG

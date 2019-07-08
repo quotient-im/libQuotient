@@ -162,33 +162,11 @@ Connection::~Connection()
     stopSync();
 }
 
-static const auto ServerPartRegEx = QStringLiteral(
-    "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
-    "(?::(\\d{1,5}))?" // Optional port
-);
-
-QString serverPart(const QString& mxId)
+void Connection::resolveServer(const QString& mxid)
 {
-    static QString re = "^[@!#$+].+?:(" // Localpart and colon
-                     % ServerPartRegEx % ")$";
-    static QRegularExpression parser(re,
-        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
-    return parser.match(mxId).captured(1);
-}
-
-void Connection::resolveServer(const QString& mxidOrDomain)
-{
-    // mxIdOrDomain may be something as complex as
-    // @username:[IPv6:address]:port, or as simple as a plain serverpart.
-    static QRegularExpression parser(
-        "^(@.+?:)?" // Optional username (allow everything for compatibility)
-        % ServerPartRegEx % '$',
-        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
-    auto match = parser.match(mxidOrDomain);
-
-    auto maybeBaseUrl = QUrl::fromUserInput(match.captured(2));
+    auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
     maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
-    if (!match.hasMatch() || !maybeBaseUrl.isValid())
+    if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid())
     {
         emit resolveError(
             tr("%1 is not a valid homeserver address")

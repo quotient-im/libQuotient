@@ -408,8 +408,8 @@ namespace QMatrixClient
             /** Set the homeserver base URL */
             void setHomeserver(const QUrl& baseUrl);
 
-            /** Determine and set the homeserver from domain or MXID */
-            void resolveServer(const QString& mxidOrDomain);
+            /** Determine and set the homeserver from MXID */
+            void resolveServer(const QString& mxid);
 
             void connectToServer(const QString& user, const QString& password,
                                  const QString& initialDeviceName,
