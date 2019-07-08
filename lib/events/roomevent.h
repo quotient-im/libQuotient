@@ -60,6 +60,9 @@ namespace QMatrixClient
             QString transactionId() const;
             QString stateKey() const;
 
+            void setRoomId(const QString& roomId);
+            void setSender(const QString& senderId);
+
             /**
              * Sets the transaction id for locally created events. This should be
              * done before the event is exposed to any code using the respective

@@ -81,6 +81,16 @@ QString RoomEvent::stateKey() const
     return fullJson()[StateKeyKeyL].toString();
 }
 
+void RoomEvent::setRoomId(const QString& roomId)
+{
+    editJson().insert(QStringLiteral("room_id"), roomId);
+}
+
+void RoomEvent::setSender(const QString& senderId)
+{
+    editJson().insert(QStringLiteral("sender"), senderId);
+}
+
 void RoomEvent::setTransactionId(const QString& txnId)
 {
     auto unsignedData = fullJson()[UnsignedKeyL].toObject();
