@@ -33,6 +33,7 @@
 #include "csapi/to_device.h"
 #include "csapi/room_send.h"
 #include "csapi/wellknown.h"
+#include "csapi/versions.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
@@ -199,18 +200,40 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
 
-    auto job = callApi<GetWellknownJob>();
-    connect(job, &BaseJob::finished, [this, job, maybeBaseUrl] {
-        QUrl baseUrl(job->data().homeserver.baseUrl);
-        if (!baseUrl.isValid() || job->status() != BaseJob::Success) {
-            qCDebug(MAIN) << maybeBaseUrl.host() << "doesn't have valid .well-known file" << "- using the hostname as is";
+    auto getWellKnownJob = callApi<GetWellknownJob>();
+    connect(getWellKnownJob, &BaseJob::finished, [this, getWellKnownJob, maybeBaseUrl] {
+        if (getWellKnownJob->status() == BaseJob::NotFoundError) {
+            qCDebug(MAIN) << "No .well-known file, IGNORE";
+        } else if (getWellKnownJob->status() != BaseJob::Success) {
+            qCDebug(MAIN) << "Fetching .well-known file failed, FAIL_PROMPT";
+            emit resolveError(tr("Fetching .well-known file failed"));
+            return;
+        } else if (getWellKnownJob->data().homeserver.baseUrl.isEmpty()) {
+            qCDebug(MAIN) << "base_url not provided, FAIL_PROMPT";
+            emit resolveError(tr("base_url not provided"));
+            return;
+        } else if (!QUrl(getWellKnownJob->data().homeserver.baseUrl).isValid()) {
+            qCDebug(MAIN) << "base_url invalid, FAIL_ERROR";
+            emit resolveError(tr("base_url invalid"));
+            return;
         } else {
+            QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
+
             qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.authority();
             setHomeserver(baseUrl);
         }
 
-        emit resolved();
-        job->deleteLater();
+        auto getVersionsJob = callApi<GetVersionsJob>();
+
+        connect(getVersionsJob, &BaseJob::finished, [this, getVersionsJob] {
+            if (getVersionsJob->status() == BaseJob::Success) {
+                qCDebug(MAIN) << "homeserver url is valid";
+                emit resolved();
+            } else {
+                qCDebug(MAIN) << "homeserver url invalid";
+                emit resolveError(tr("homeserver url invalid"));
+            }
+        });
     });
 }
 
