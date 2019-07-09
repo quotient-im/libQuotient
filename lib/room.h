@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "connection.h"
 #include "eventitem.h"
 #include "joinstate.h"
 
@@ -38,7 +39,6 @@ class Event;
 class Avatar;
 class SyncRoomData;
 class RoomMemberEvent;
-class Connection;
 class User;
 class MemberSorter;
 class LeaveRoomJob;
@@ -95,7 +95,8 @@ class Room : public QObject
     Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
     Q_PROPERTY(QString successorId READ successorId NOTIFY upgraded)
     Q_PROPERTY(QString name READ name NOTIFY namesChanged)
-    Q_PROPERTY(QStringList aliases READ aliases NOTIFY namesChanged)
+    Q_PROPERTY(QStringList localAliases READ localAliases NOTIFY namesChanged)
+    Q_PROPERTY(QStringList remoteAliases READ remoteAliases NOTIFY namesChanged)
     Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
@@ -176,7 +177,12 @@ public:
     QString predecessorId() const;
     QString successorId() const;
     QString name() const;
-    QStringList aliases() const;
+    /// Room aliases defined on the current user's server
+    /// \sa remoteAliases, setLocalAliases
+    QStringList localAliases() const;
+    /// Room aliases defined on other servers
+    /// \sa localAliases
+    QStringList remoteAliases() const;
     QString canonicalAlias() const;
     QString displayName() const;
     QString topic() const;
@@ -420,15 +426,13 @@ public:
 
     MemberSorter memberSorter() const;
 
-    Q_INVOKABLE void inviteCall(const QString& callId, const int lifetime,
-                                const QString& sdp);
-    Q_INVOKABLE void sendCallCandidates(const QString& callId,
-                                        const QJsonArray& candidates);
-    Q_INVOKABLE void answerCall(const QString& callId, const int lifetime,
-                                const QString& sdp);
-    Q_INVOKABLE void answerCall(const QString& callId, const QString& sdp);
-    Q_INVOKABLE void hangupCall(const QString& callId);
     Q_INVOKABLE bool supportsCalls() const;
+
+    template <typename EvT, typename... ArgTs>
+    auto setState(ArgTs&&... args) const
+    {
+        return setState(EvT(std::forward<ArgTs>(args)...));
+    }
 
 public slots:
     /** Check whether the room should be upgraded */
@@ -451,9 +455,13 @@ public slots:
     QString postJson(const QString& matrixType, const QJsonObject& eventContent);
     QString retryMessage(const QString& txnId);
     void discardMessage(const QString& txnId);
+
+    /// Send a request to update the room state with the given event
+    SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
     void setName(const QString& newName);
     void setCanonicalAlias(const QString& newAlias);
-    void setAliases(const QStringList& aliases);
+    /// Set room aliases on the user's current server
+    void setLocalAliases(const QStringList& aliases);
     void setTopic(const QString& newTopic);
 
     /// You shouldn't normally call this method; it's here for debugging
@@ -463,6 +471,7 @@ public slots:
 
     void inviteToRoom(const QString& memberId);
     LeaveRoomJob* leaveRoom();
+    /// \deprecated - use setState() instead")
     SetRoomStateWithKeyJob* setMemberState(const QString& memberId,
                                            const RoomMemberEvent& event) const;
     void kickMember(const QString& memberId, const QString& reason = {});
@@ -484,6 +493,14 @@ public slots:
 
     /// Switch the room's version (aka upgrade)
     void switchVersion(QString newVersion);
+
+    void inviteCall(const QString& callId, const int lifetime,
+                    const QString& sdp);
+    void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
+    void answerCall(const QString& callId, const int lifetime,
+                    const QString& sdp);
+    void answerCall(const QString& callId, const QString& sdp);
+    void hangupCall(const QString& callId);
 
 signals:
     /// Initial set of state events has been loaded
@@ -604,7 +621,6 @@ signals:
     void beforeDestruction(Room*);
 
 protected:
-    /// Returns true if any of room names/aliases has changed
     virtual Changes processStateEvent(const RoomEvent& e);
     virtual Changes processEphemeralEvent(EventPtr&& event);
     virtual Changes processAccountDataEvent(EventPtr&& event);

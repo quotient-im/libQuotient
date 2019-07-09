@@ -7,16 +7,9 @@ environment:
     QTDIR: C:\Qt\5.9\msvc2017_64
     VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
     PLATFORM:
-    MAKETOOL: cmake
-  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    QTDIR: C:\Qt\5.9\msvc2017_64
-    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
-    PLATFORM:
-    MAKETOOL: qmake
   - QTDIR: C:\Qt\5.9\msvc2015
     VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat"
     PLATFORM: x86
-    MAKETOOL: cmake
 
 init:
 - call "%QTDIR%\bin\qtenv2.bat"
@@ -26,11 +19,15 @@ init:
 
 before_build:
 - git submodule update --init --recursive
-- if %MAKETOOL% == cmake cmake -G "NMake Makefiles JOM" -H. -Bbuild -DCMAKE_CXX_FLAGS="/EHsc /W3" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
+- cd 3rdparty/libQtOlm
+- git clone https://gitlab.matrix.org/matrix-org/olm.git
+- cd ../..
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DCMAKE_CXX_FLAGS="/EHsc /W3" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
 
 build_script:
-- if %MAKETOOL% == cmake cmake --build build
-- if %MAKETOOL% == qmake qmake && jom
+- cmake --build build
+# qmake uses olm just built by CMake - it can't build olm on its own.
+- qmake "INCLUDEPATH += 3rdparty/libQtOlm/olm/include" "LIBS += -Lbuild" && jom
 
 #after_build:
 #- cmake --build build --target install

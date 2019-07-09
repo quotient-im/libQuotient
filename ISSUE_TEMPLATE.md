@@ -13,7 +13,8 @@ Text between <!-- and --​> marks will be invisible in the report.
 
 ### Description
 
-Describe here the problem that you are experiencing, or the feature you are requesting.
+Describe here the problem that you are experiencing, or the feature
+you are requesting.
 
 ### Steps to reproduce
 
@@ -23,17 +24,25 @@ Describe here the problem that you are experiencing, or the feature you are requ
 
 Describe how what happens differs from what you expected.
 
-libqmatrixclient-based clients either have a log file or dump log to the standard output.
-If you can identify any log snippets relevant to your issue, please include
-those here (please be careful to remove any personal or private data):
+libQuotient-based clients either have a log file or dump log
+to the standard output. If you can identify any log snippets relevant
+to your issue, please include those here (please be careful to remove
+any personal or private data):
 
 ### Version information
 
-<!-- IMPORTANT: please answer the following questions, to help us narrow down the problem -->
+<!-- IMPORTANT: please answer the following questions,
+                to help us narrow down the problem -->
 
-- **The client application**: <!-- the problem might be not with the library but with the client -->
-- **libqmatrixclient version if you know it**: <!-- try to find it basing on the client version -->
-- **Qt version**: <!-- for Linux systems, it's usually installed system-wide; for other OSes,
-as well as Flatpak/AppImage/etc. containerised environments, it's a version used in the container. -->
-- **Install method**: <!-- package manager/Flatpak/archive downloaded (from which site?) -->
-- **Platform**: <!-- Operating system and anything about your platform you think can be relevant -->
+- **The client application**:
+<!-- the problem might be not with the library but with the client -->
+- **libQuotient version if you know it**:
+<!-- try to find it basing on the client version -->
+- **Qt version**:
+<!-- for Linux systems, it's usually installed system-wide; for other OSes,
+as well as Flatpak/AppImage/etc. containerised environments,
+it's a version used in the container. -->
+- **Install method**:
+<!-- package manager/Flatpak/archive downloaded (from which site?) -->
+- **Platform**:
+<!-- Operating system and anything about your platform you think can be relevant -->

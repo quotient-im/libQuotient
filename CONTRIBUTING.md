@@ -17,14 +17,14 @@ The long-read part:
 ## General information
 
 For specific proposals, please provide them as
-[pull requests](https://github.com/QMatrixClient/libQMatrixClient/pulls)
+[pull requests](https://github.com/quotient-im/libQuotient/pulls)
 or
-[issues](https://github.com/QMatrixClient/libqmatrxclient/issues)
+[issues](https://github.com/quotient-im/libQuotient/issues)
 For general discussion, feel free to use our Matrix room:
-[#quaternion:matrix.org](https://matrix.to/#/#quaternion:matrix.org).
+[#quotient:matrix.org](https://matrix.to/#/#quotient:matrix.org).
 
 If you're new to the project (or FLOSS in general),
-[issues tagged as easy](https://github.com/QMatrixClient/libQMatrixClient/labels/easy)
+[issues tagged as easy](https://github.com/quotient-im/libQuotient/labels/easy)
 are smaller tasks that may typically take 1-3 days.
 You are welcome aboard!
 
@@ -44,8 +44,8 @@ and
 ### How we handle proposals
 
 We use GitHub to track all changes via its
-[issue tracker](https://github.com/QMatrixClient/libQMatrixClient/issues) and
-[pull requests](https://github.com/QMatrixClient/libQMatrixClient/pulls).
+[issue tracker](https://github.com/quotient-im/libQuotient/issues) and
+[pull requests](https://github.com/quotient-im/libQuotient/pulls).
 Specific changes are proposed using those mechanisms.
 Issues are assigned to an individual who works on it and then marks it complete.
 If there are questions or objections, the conversation area of that
@@ -88,7 +88,7 @@ a commit without a DCO is an accident and the DCO still applies.
 
 Unless a contributor explicitly specifies otherwise, we assume contributors
 to agree that all contributed code is released either under *LGPL v2.1 or later*.
-This is more than just [LGPL v2.1 libQMatrixClient now uses](./COPYING)
+This is more than just [LGPL v2.1 libQuotient now uses](./COPYING)
 because the project plans to switch to LGPL v3 for library code in the near future.
 <!-- The below is invalid yet!
 All new contributed material that is not executable, including all text when not executed, is also released under the
@@ -108,7 +108,7 @@ filename extension. Any help on fixing/extending these is more than welcome.
 
 Where reasonable, limit yourself to Markdown that will be accepted by different
 markdown processors (e.g., what is specified by CommonMark or the original
-Markdown). In practice, as long as libQMatrixClient is hosted at GitHub,
+Markdown). In practice, as long as libQuotient is hosted at GitHub,
 [GFM (GitHub-flavoured Markdown)](https://help.github.com/articles/github-flavored-markdown/)
 is used to show those files in a browser, so it's fine to use its extensions.
 In particular, you can mark code snippets with the programming language used;
@@ -157,17 +157,17 @@ there are handy build targets for CMake; patches with the same targets
 for qmake are (you guessed it) very welcome.
 
 #### Why generate the code at all?
-Because before both original authors of libQMatrixClient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
+Because before both original authors of libQuotient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
 
 #### Prerequisites for CS API code generation
 1. Get the source code of GTAD and its dependencies, e.g. using the command:
    `git clone --recursive https://github.com/KitsuneRal/gtad.git`
 2. Build GTAD: in the source code directory, do `cmake . && cmake --build .`
    (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`,
-   similar to libQMatrixClient itself).
+   similar to libQuotient itself).
 3. Get the Matrix CS API definitions that are included in the matrix-doc repo:
-   `git clone https://github.com/QMatrixClient/matrix-doc.git`
-   (QMatrixClient/matrix-doc is a fork that's known to produce working code;
+   `git clone https://github.com/quotient-im/matrix-doc.git`
+   (quotient-im/matrix-doc is a fork that's known to produce working code;
    you may want to use your own fork if you wish to alter something in the API).
 4. If you plan to submit a PR or just would like the generated code to be
    formatted, you should either ensure you have clang-format in your PATH or
@@ -175,7 +175,7 @@ Because before both original authors of libQMatrixClient had to do monkey busine
    to the CMake invocation below.
 
 #### Generating CS API contents
-1. Pass additional configuration to CMake when configuring libQMatrixClient:
+1. Pass additional configuration to CMake when configuring libQuotient:
    `-DMATRIX_DOC_PATH=<path you your matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`.
    If everything's right, these two CMake variables will be mentioned in
    CMake output and will trigger configuration of an additional build target,
@@ -189,14 +189,14 @@ Because before both original authors of libQMatrixClient had to do monkey busine
 3. Re-run CMake so that the build system knows about new files, if there are any.
 
 #### Changing generated code
-See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQMatrixClient are described here.
+See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQuotient are described here.
 
 GTAD uses the following three kinds of sources:
 1. OpenAPI files. Each file is treated as a separate source (because this is how GTAD works now).
 2. A configuration file, in our case it's lib/csapi/gtad.yaml - this one is common for the whole API.
 3. Source code template files: lib/csapi/{{base}}.*.mustache - also common.
 
-The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the libQMatrixClient room - I (Kitsune) will be very glad to help you out.
+The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the Quotient room - I (Kitsune) will be very glad to help you out.
 
 The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
 * `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
@@ -205,7 +205,7 @@ The types map in `gtad.yaml` is the central switchboard when it comes to matchin
 * `omittedValue` - an alternative for `useOmittable`, just provide a value used for an omitted parameter. This is used for bool parameters which normally are considered false if omitted (or they have an explicit default value, passed in the "official" GTAD's `defaultValue` variable).
 * `initializer` - this is a _partial_ (see GTAD and Mustache documentation for explanations but basically it's a variable that is a Mustache template itself) that specifies how exactly a default value should be passed to the parameter. E.g., the default value for a `QString` parameter is enclosed into `QStringLiteral`.
 
-Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQMatrixClient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
+Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
 
 ### Library API and doc-comments
 
@@ -219,7 +219,7 @@ implementation details as much as possible. `_impl` namespace is reserved for
 definitions that should not be used by clients and are not covered by
 API guarantees.
 
-Note: As of now, all header files of libQMatrixClient are considered public; this may change eventually.
+Note: As of now, all header files of libQuotient are considered public; this may change eventually.
 
 ### Code formatting
 
@@ -244,7 +244,7 @@ Additional considerations:
   make sure to read about the rule of zero if you haven't before, it's not
   what you might think it is.
 * Qt containers are generally preferred to STL containers; however, there are
-  notable exceptions, and libQMatrixClient already uses them:
+  notable exceptions, and libQuotient already uses them:
   * `std::array` and `std::deque` have no direct counterparts in Qt.
   * Because of COW semantics, Qt containers cannot hold uncopyable classes.
     Classes without a default constructor are a problem too. Examples of that
@@ -292,14 +292,14 @@ Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Princi
 
 Protect private information, in particular passwords and email addresses. Absolutely _don't_ spill around this information in logs - use `access_token` and similar opaque ids instead, and only display those in UI where needed. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking. Matrix protocols evolve towards decoupling the personally identifiable information from user activity entirely - follow this trend.
 
-We want the software to have decent performance for typical users. At the same time we keep libQMatrixClient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. When you don't see a way to reduce algorithmic complexity, embed occasional `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
+We want the software to have decent performance for typical users. At the same time we keep libQuotient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. When you don't see a way to reduce algorithmic complexity, embed occasional `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
 
 Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
 
 Speaking of profiling logs (see README.md on how to turn them on) - in order
 to reduce small timespan logging spam, there's a default limit of at least
 200 microseconds to log most operations with the PROFILER
-(aka libqmatrixclient.profile.debug) logging category. You can override this
+(aka quotient.profile.debug) logging category. You can override this
 limit by passing the new value (in microseconds) in PROFILER_LOG_USECS to
 the compiler. In the future, this parameter will be made changeable at runtime
 _if_ needed.
@@ -360,7 +360,7 @@ When writing git commit messages, try to follow the guidelines in
 
 ## Reuse (libraries, frameworks, etc.)
 
-C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very conservative about adding dependencies to libQMatrixClient. That relates to additional Qt components and even more to other libraries. Fortunately, even the Qt components now in use (Qt Core and Network) are very feature-rich and provide plenty of ready-made stuff.
+C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very conservative about adding dependencies to libQuotient. That relates to additional Qt components and even more to other libraries. Fortunately, even the Qt components now in use (Qt Core and Network) are very feature-rich and provide plenty of ready-made stuff.
 
 Regardless of the above paragraph (and as mentioned earlier in the text), we're now looking at possible options for futures and automated testing, so PRs onboarding those will be considered with much gratitude.
 
@@ -373,16 +373,15 @@ Some cases need additional explanation:
   from KDE Frameworks. We don't rule this out and there's no prejudice against
   KDE; it just so happened that KDE Frameworks is one of most obvious
   reuse candidates but so far none of these components survived
-  as libQMatrixClient deps. So we are cautious. Extra notice to KDE folks:
-  I'll be happy if an addon library on top of libQMatrixClient is made using
+  as libQuotient deps. So we are cautious. Extra notice to KDE folks:
+  I'll be happy if an addon library on top of libQuotient is made using
   KDE facilities, and I'm willing to take part in its evolution; but please
   also respect LXDE people who normally don't have KDE frameworks installed.
-* Never forget that libQMatrixClient is aimed to be a non-visual library;
+* Never forget that libQuotient is aimed to be a non-visual library;
   QtGui in dependencies is only driven by (entirely offscreen) dealing with
   QImages. While there's a bunch of visual code (in C++ and QML) shared
-  between libQMatrixClient-enabled _applications_, this is likely to end up
-  in a separate (libQMatrixClient-enabled) library, rather than
-  libQMatrixClient itself.
+  between Quotient-enabled _applications_, this is likely to end up
+  in a separate (Quotient-enabled) library, rather than libQuotient itself.
 
 ## Attribution
 

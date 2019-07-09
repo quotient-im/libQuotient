@@ -269,8 +269,8 @@ void User::rename(const QString& newName, const Room* r)
     const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
     evtC.displayName = actualNewName;
-    connect(r->setMemberState(id(), RoomMemberEvent(move(evtC))),
-            &BaseJob::success, this, [=] { updateName(actualNewName, r); });
+    connect(r->setState<RoomMemberEvent>(id(), move(evtC)), &BaseJob::success,
+            this, [=] { updateName(actualNewName, r); });
 }
 
 bool User::setAvatar(const QString& fileName)

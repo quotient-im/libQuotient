@@ -130,6 +130,8 @@ class AccountSettings : public SettingsGroup
     QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
     /** \deprecated \sa setAccessToken */
     Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
+    Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
+                   WRITE setEncryptionAccountPickle)
 public:
     template <typename... ArgTs>
     explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
@@ -147,5 +149,9 @@ public:
      * see QMatrixClient/Quaternion#181 */
     void setAccessToken(const QString& accessToken);
     Q_INVOKABLE void clearAccessToken();
+
+    QByteArray encryptionAccountPickle();
+    void setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle);
+    Q_INVOKABLE void clearEncryptionAccountPickle();
 };
 } // namespace QMatrixClient

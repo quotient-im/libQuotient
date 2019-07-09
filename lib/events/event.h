@@ -61,14 +61,16 @@ static const auto TypeKey = QStringLiteral("type");
 static const auto ContentKey = QStringLiteral("content");
 static const auto EventIdKey = QStringLiteral("event_id");
 static const auto UnsignedKey = QStringLiteral("unsigned");
+static const auto StateKeyKey = QStringLiteral("state_key");
 static const auto TypeKeyL = "type"_ls;
 static const auto ContentKeyL = "content"_ls;
 static const auto EventIdKeyL = "event_id"_ls;
 static const auto UnsignedKeyL = "unsigned"_ls;
 static const auto RedactedCauseKeyL = "redacted_because"_ls;
 static const auto PrevContentKeyL = "prev_content"_ls;
+static const auto StateKeyKeyL = "state_key"_ls;
 
-// Minimal correct Matrix event JSON
+/// Make a minimal correct Matrix event JSON
 template <typename StrT>
 inline QJsonObject basicEventJson(StrT matrixType, const QJsonObject& content)
 {
@@ -257,7 +259,7 @@ public:
     }
 
     template <typename T>
-    T content(const QLatin1String& key) const
+    T content(QLatin1String key) const
     {
         return fromJson<T>(contentJson()[key]);
     }

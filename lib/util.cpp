@@ -45,7 +45,7 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     // comma or dot
     static const QRegularExpression FullUrlRegExp(
         QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet)://)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
         RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
@@ -111,6 +111,21 @@ qreal QMatrixClient::stringToHueF(const QString& string)
     const auto hueF = qreal(hashValue) / std::numeric_limits<quint16>::max();
     Q_ASSERT((0 <= hueF) && (hueF <= 1));
     return hueF;
+}
+
+static const auto ServerPartRegEx = QStringLiteral(
+    "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+    "(?::(\\d{1,5}))?" // Optional port
+);
+
+QString QMatrixClient::serverPart(const QString& mxId)
+{
+    static QString re = "^[@!#$+].+?:(" // Localpart and colon
+                        % ServerPartRegEx % ")$";
+    static QRegularExpression parser(
+        re,
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+    return parser.match(mxId).captured(1);
 }
 
 // Tests for function_traits<>

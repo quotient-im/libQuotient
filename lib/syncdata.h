@@ -37,7 +37,7 @@ struct RoomSummary
     Omittable<int> joinedMemberCount;
     Omittable<int> invitedMemberCount;
     Omittable<QStringList> heroes; //< mxids of users to take part in the room
-                                   //name
+                                   // name
 
     bool isEmpty() const;
     /// Merge the contents of another RoomSummary object into this one

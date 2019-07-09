@@ -26,9 +26,9 @@
 #endif
 
 // Use LOGGING_CATEGORY instead of Q_LOGGING_CATEGORY in the rest of the code
-LOGGING_CATEGORY(MAIN, "libqmatrixclient.main")
-LOGGING_CATEGORY(PROFILER, "libqmatrixclient.profiler")
-LOGGING_CATEGORY(EVENTS, "libqmatrixclient.events")
-LOGGING_CATEGORY(EPHEMERAL, "libqmatrixclient.events.ephemeral")
-LOGGING_CATEGORY(JOBS, "libqmatrixclient.jobs")
-LOGGING_CATEGORY(SYNCJOB, "libqmatrixclient.jobs.sync")
+LOGGING_CATEGORY(MAIN, "quotient.main")
+LOGGING_CATEGORY(PROFILER, "quotient.profiler")
+LOGGING_CATEGORY(EVENTS, "quotient.events")
+LOGGING_CATEGORY(EPHEMERAL, "quotient.events.ephemeral")
+LOGGING_CATEGORY(JOBS, "quotient.jobs")
+LOGGING_CATEGORY(SYNCJOB, "quotient.jobs.sync")

@@ -41,7 +41,7 @@ static const std::array<const char*, 3> JoinStateStrings { { "join", "invite",
 inline const char* toCString(JoinState js)
 {
     size_t state = size_t(js), index = 0;
-    while (state >>= 1)
+    while (state >>= 1u)
         ++index;
     return JoinStateStrings[index];
 }

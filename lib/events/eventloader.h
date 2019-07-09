@@ -34,7 +34,8 @@ namespace _impl
     }
 } // namespace _impl
 
-/** Create an event with proper type from a JSON object
+/*! Create an event with proper type from a JSON object
+ *
  * Use this factory template to detect the type from the JSON object
  * contents (the detected event type should derive from the template
  * parameter type) and create an event object of that type.
@@ -45,7 +46,8 @@ inline event_ptr_tt<BaseEventT> loadEvent(const QJsonObject& fullJson)
     return _impl::loadEvent<BaseEventT>(fullJson, fullJson[TypeKeyL].toString());
 }
 
-/** Create an event from a type string and content JSON
+/*! Create an event from a type string and content JSON
+ *
  * Use this factory template to resolve the C++ type from the Matrix
  * type string in \p matrixType and create an event of that type that has
  * its content part set to \p content.
@@ -56,6 +58,20 @@ inline event_ptr_tt<BaseEventT> loadEvent(const QString& matrixType,
 {
     return _impl::loadEvent<BaseEventT>(basicEventJson(matrixType, content),
                                         matrixType);
+}
+
+/*! Create a state event from a type string, content JSON and state key
+ *
+ * Use this factory to resolve the C++ type from the Matrix type string
+ * in \p matrixType and create a state event of that type with content part
+ * set to \p content and state key set to \p stateKey (empty by default).
+ */
+inline StateEventPtr loadStateEvent(const QString& matrixType,
+                                    const QJsonObject& content,
+                                    const QString& stateKey = {})
+{
+    return _impl::loadEvent<StateEventBase>(
+        basicStateEventJson(matrixType, content, stateKey), matrixType);
 }
 
 template <typename EventT>

@@ -41,6 +41,7 @@
 #include "events/callcandidatesevent.h"
 #include "events/callhangupevent.h"
 #include "events/callinviteevent.h"
+#include "events/encryptionevent.h"
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
 #include "events/roomavatarevent.h"
@@ -101,12 +102,19 @@ public:
     /// The state of the room at timeline position before-0
     /// \sa timelineBase
     std::unordered_map<StateEventKey, StateEventPtr> baseState;
+    /// State event stubs - events without content, just type and state key
+    static decltype(baseState) stubbedState;
     /// The state of the room at timeline position after-maxTimelineIndex()
     /// \sa Room::syncEdge
     QHash<StateEventKey, const StateEventBase*> currentState;
+    /// Servers with aliases for this room except the one of the local user
+    /// \sa Room::remoteAliases
+    QSet<QString> aliasServers;
+
     Timeline timeline;
     PendingEvents unsyncedEvents;
     QHash<QString, TimelineItem::index_t> eventsIndex;
+
     QString displayname;
     Avatar avatar;
     int highlightCount = 0;
@@ -198,9 +206,22 @@ public:
     template <typename EventT>
     const EventT* getCurrentState(const QString& stateKey = {}) const
     {
-        static const EventT empty;
-        const auto* evt =
-            currentState.value({ EventT::matrixTypeId(), stateKey }, &empty);
+        const StateEventKey evtKey { EventT::matrixTypeId(), stateKey };
+        const auto* evt = currentState.value(evtKey, nullptr);
+        if (!evt) {
+            if (stubbedState.find(evtKey) == stubbedState.end()) {
+                // In the absence of a real event, make a stub as-if an event
+                // with empty content has been received. Event classes should be
+                // prepared for empty/invalid/malicious content anyway.
+                stubbedState.emplace(evtKey,
+                                     loadStateEvent(EventT::matrixTypeId(), {},
+                                                    stateKey));
+                qCDebug(MAIN) << "A new stub event created for key {"
+                              << evtKey.first << evtKey.second << "}";
+            }
+            evt = stubbedState[evtKey].get();
+            Q_ASSERT(evt);
+        }
         Q_ASSERT(evt->type() == EventT::typeId()
                  && evt->matrixType() == EventT::matrixTypeId());
         return static_cast<const EventT*>(evt);
@@ -275,24 +296,22 @@ public:
     QString doSendEvent(const RoomEvent* pEvent);
     void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
-    template <typename EvT>
-    SetRoomStateWithKeyJob* requestSetState(const QString& stateKey,
-                                            const EvT& event)
+    SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
     {
-        if (q->successorId().isEmpty()) {
-            // TODO: Queue up state events sending (see #133).
-            return connection->callApi<SetRoomStateWithKeyJob>(
-                id, EvT::matrixTypeId(), stateKey, event.contentJson());
-        }
-        qCWarning(MAIN) << q << "has been upgraded, state won't be set";
-        return nullptr;
+        //            if (event.roomId().isEmpty())
+        //                event.setRoomId(id);
+        //            if (event.senderId().isEmpty())
+        //                event.setSender(connection->userId());
+        // TODO: Queue up state events sending (see #133).
+        // TODO: Maybe addAsPending() as well, despite having no txnId
+        return connection->callApi<SetRoomStateWithKeyJob>(
+            id, event.matrixType(), event.stateKey(), event.contentJson());
     }
 
-    template <typename EvT>
-    auto requestSetState(const EvT& event)
+    template <typename EvT, typename... ArgTs>
+    auto requestSetState(ArgTs&&... args)
     {
-        return connection->callApi<SetRoomStateJob>(id, EvT::matrixTypeId(),
-                                                    event.contentJson());
+        return requestSetState(EvT(std::forward<ArgTs>(args)...));
     }
 
     /**
@@ -315,6 +334,8 @@ private:
 
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 };
+
+decltype(Room::Private::baseState) Room::Private::stubbedState {};
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection)
@@ -376,9 +397,20 @@ QString Room::name() const
     return d->getCurrentState<RoomNameEvent>()->name();
 }
 
-QStringList Room::aliases() const
+QStringList Room::localAliases() const
 {
-    return d->getCurrentState<RoomAliasesEvent>()->aliases();
+    return d
+        ->getCurrentState<RoomAliasesEvent>(
+            connection()->homeserver().authority())
+        ->aliases();
+}
+
+QStringList Room::remoteAliases() const
+{
+    QStringList result;
+    for (const auto& s : d->aliasServers)
+        result += d->getCurrentState<RoomAliasesEvent>(s)->aliases();
+    return result;
 }
 
 QString Room::canonicalAlias() const
@@ -1279,6 +1311,10 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
+    if (event->roomId().isEmpty())
+        event->setRoomId(id);
+    if (event->senderId().isEmpty())
+        event->setSender(connection->userId());
     auto* pEvent = rawPtr(event);
     emit q->pendingEventAboutToAdd(pEvent);
     unsyncedEvents.emplace_back(move(event));
@@ -1288,6 +1324,11 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
 {
+    if (q->usesEncryption()) {
+        qCCritical(MAIN) << "Room" << q->objectName()
+                         << "enforces encryption; sending encrypted messages "
+                            "is not supported yet";
+    }
     if (q->successorId().isEmpty())
         return doSendEvent(addAsPending(std::move(event)));
 
@@ -1484,39 +1525,39 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
 
 QString Room::postEvent(RoomEvent* event)
 {
-    if (usesEncryption()) {
-        qCCritical(MAIN) << "Room" << displayName()
-                         << "enforces encryption; sending encrypted messages "
-                            "is not supported yet";
-    }
     return d->sendEvent(RoomEventPtr(event));
 }
 
 QString Room::postJson(const QString& matrixType,
                        const QJsonObject& eventContent)
 {
-    return d->sendEvent(
-        loadEvent<RoomEvent>(basicEventJson(matrixType, eventContent)));
+    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
+}
+
+SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt) const
+{
+    return d->requestSetState(evt);
 }
 
 void Room::setName(const QString& newName)
 {
-    d->requestSetState(RoomNameEvent(newName));
+    d->requestSetState<RoomNameEvent>(newName);
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState(RoomCanonicalAliasEvent(newAlias));
+    d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
 }
 
-void Room::setAliases(const QStringList& aliases)
+void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState(RoomAliasesEvent(aliases));
+    d->requestSetState<RoomAliasesEvent>(connection()->homeserver().authority(),
+                                         aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
 {
-    d->requestSetState(RoomTopicEvent(newTopic));
+    d->requestSetState<RoomTopicEvent>(newTopic);
 }
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
@@ -1561,33 +1602,33 @@ void Room::inviteCall(const QString& callId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallInviteEvent(callId, lifetime, sdp));
+    d->sendEvent<CallInviteEvent>(callId, lifetime, sdp);
 }
 
 void Room::sendCallCandidates(const QString& callId,
                               const QJsonArray& candidates)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallCandidatesEvent(callId, candidates));
+    d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
 void Room::answerCall(const QString& callId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallAnswerEvent(callId, lifetime, sdp));
+    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallAnswerEvent(callId, sdp));
+    d->sendEvent<CallAnswerEvent>(callId, sdp);
 }
 
 void Room::hangupCall(const QString& callId)
 {
     Q_ASSERT(supportsCalls());
-    postEvent(new CallHangupEvent(callId));
+    d->sendEvent<CallHangupEvent>(callId);
 }
 
 void Room::getPreviousContent(int limit) { d->getPreviousContent(limit); }
@@ -1622,7 +1663,7 @@ LeaveRoomJob* Room::leaveRoom()
 SetRoomStateWithKeyJob* Room::setMemberState(const QString& memberId,
                                              const RoomMemberEvent& event) const
 {
-    return d->requestSetState(memberId, event);
+    return d->requestSetState<RoomMemberEvent>(memberId, event.content());
 }
 
 void Room::kickMember(const QString& memberId, const QString& reason)
@@ -1780,7 +1821,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
                                         TypeKey,
                                         QStringLiteral("room_id"),
                                         QStringLiteral("sender"),
-                                        QStringLiteral("state_key"),
+                                        StateKeyKey,
                                         QStringLiteral("prev_content"),
                                         ContentKey,
                                         QStringLiteral("hashes"),
@@ -2063,27 +2104,47 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
         qCDebug(EVENTS) << "Room state event:" << e;
 
-    return visit(
-        e, [](const RoomNameEvent&) { return NameChange; },
-        [this, oldStateEvent](const RoomAliasesEvent& ae) {
+    // clang-format off
+    return visit(e
+        , [] (const RoomNameEvent&) {
+            return NameChange;
+        }
+        , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
+            // clang-format on
+            if (ae.aliases().isEmpty()) {
+                qDebug(MAIN).noquote()
+                    << ae.stateKey() << "no more has aliases for room"
+                    << objectName();
+                d->aliasServers.remove(ae.stateKey());
+            } else {
+                d->aliasServers.insert(ae.stateKey());
+                qDebug(MAIN).nospace().noquote()
+                    << "New server with aliases for room " << objectName()
+                    << ": " << ae.stateKey();
+            }
             const auto previousAliases =
                 oldStateEvent
                     ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
                     : QStringList();
-            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
+            connection()->updateRoomAliases(id(), ae.stateKey(),
+                                            previousAliases, ae.aliases());
             return OtherChange;
-        },
-        [this](const RoomCanonicalAliasEvent& evt) {
+            // clang-format off
+        }
+        , [this] (const RoomCanonicalAliasEvent& evt) {
             setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
             return CanonicalAliasChange;
-        },
-        [](const RoomTopicEvent&) { return TopicChange; },
-        [this](const RoomAvatarEvent& evt) {
+        }
+        , [] (const RoomTopicEvent&) {
+            return TopicChange;
+        }
+        , [this] (const RoomAvatarEvent& evt) {
             if (d->avatar.updateUrl(evt.url()))
                 emit avatarChanged();
             return AvatarChange;
-        },
-        [this, oldStateEvent](const RoomMemberEvent& evt) {
+        }
+        , [this,oldStateEvent] (const RoomMemberEvent& evt) {
+            // clang-format on
             auto* u = user(evt.userId());
             const auto* oldMemberEvent =
                 static_cast<const RoomMemberEvent*>(oldStateEvent);
@@ -2150,27 +2211,30 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     d->membersLeft.append(u);
             }
             return MembersChange;
-        },
-        [this](const EncryptionEvent&) {
+            // clang-format off
+        }
+        , [this] (const EncryptionEvent&) {
             emit encryption(); // It can only be done once, so emit it here.
             return OtherChange;
-        },
-        [this](const RoomTombstoneEvent& evt) {
+        }
+        , [this] (const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
             if (auto* successor = connection()->room(successorId))
                 emit upgraded(evt.serverMessage(), successor);
             else
                 connectUntil(connection(), &Connection::loadedRoomState, this,
-                             [this, successorId,
-                              serverMsg = evt.serverMessage()](Room* newRoom) {
-                                 if (newRoom->id() != successorId)
-                                     return false;
-                                 emit upgraded(serverMsg, newRoom);
-                                 return true;
-                             });
+                    [this,successorId,serverMsg=evt.serverMessage()]
+                    (Room* newRoom) {
+                        if (newRoom->id() != successorId)
+                            return false;
+                        emit upgraded(serverMsg, newRoom);
+                        return true;
+                    });
 
             return OtherChange;
-        });
+        }
+    );
+    // clang-format on
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)
