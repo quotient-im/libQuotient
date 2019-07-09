@@ -97,7 +97,7 @@ if (ABS_API_DEF_PATH AND ABS_GTAD_PATH)
     if (ABS_CLANG_FORMAT)
         message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
     else ()
-        message( STATUS "${CLANG_FORMAT} is NOT FOUND; --target update-format-api disabled")
+        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
     endif ()
 endif ()
 find_package(Git)
@@ -192,18 +192,19 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
                 ${API_DEFS}
         VERBATIM
     )
-    if (CLANG_FORMAT)
+    if (ABS_CLANG_FORMAT)
         # TODO: list(TRANSFORM) is available from CMake 3.12
         foreach (S ${api_SRCS})
             string (REGEX REPLACE ".cpp$" ".h" H ${S})
             list(APPEND api_HDRS ${H})
         endforeach()
-        set(CLANG_FORMAT_ARGS -i -sort-includes -verbose)
+        set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
         add_custom_command(TARGET update-api POST_BUILD
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_HDRS}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             VERBATIM
+            COMMENT Formatting files
         )
     endif()
 endif()

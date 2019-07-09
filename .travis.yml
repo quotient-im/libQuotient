@@ -21,6 +21,7 @@ addons:
     - qt57base
     - qt57multimedia
     - valgrind
+    - clang-format-6.0
 
 matrix:
   include:

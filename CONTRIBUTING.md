@@ -170,9 +170,9 @@ Because before both original authors of libQuotient had to do monkey business of
    (quotient-im/matrix-doc is a fork that's known to produce working code;
    you may want to use your own fork if you wish to alter something in the API).
 4. If you plan to submit a PR or just would like the generated code to be
-   formatted, you should either ensure you have clang-format in your PATH or
-   pass the _absolute_ path to it by adding `-DCLANG_FORMAT=<absolute path>`
-   to the CMake invocation below.
+   formatted, you should either ensure you have clang-format (version 6 at least)
+   in your PATH or pass the _absolute_ path to it by adding
+   `-DCLANG_FORMAT=<absolute path>` to the CMake invocation below.
 
 #### Generating CS API contents
 1. Pass additional configuration to CMake when configuring libQuotient:

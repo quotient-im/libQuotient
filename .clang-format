@@ -32,7 +32,7 @@ AlignOperands: true
 #AllowShortLoopsOnASingleLine: false
 #AlwaysBreakAfterReturnType: None
 #AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: Yes
+#AlwaysBreakTemplateDeclarations: true
 #BinPackArguments: true
 #BinPackParameters: true
 BraceWrapping:   
@@ -53,7 +53,7 @@ BraceWrapping:
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Custom
 #BreakBeforeInheritanceComma: false
-BreakInheritanceList: BeforeColon
+#BreakInheritanceList: BeforeColon # Only supported since clang-format 7
 #BreakBeforeTernaryOperators: true
 #BreakConstructorInitializersBeforeComma: false
 #BreakConstructorInitializers: BeforeComma
