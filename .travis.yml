@@ -40,7 +40,9 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt59/bin/qt59-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; . /opt/qt59/bin/qt59-env.sh; fi
+# Switching off temporarily due to broken Valgrind being installed in xenial container.
+#- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
 
 install:
 - pushd 3rdparty/libQtOlm
