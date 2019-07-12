@@ -200,7 +200,7 @@ void Connection::resolveServer(const QString& mxid)
         } else {
             QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
 
-            qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.authority();
+            qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.toString();
             setHomeserver(baseUrl);
         }
 
