@@ -107,6 +107,10 @@ namespace QMatrixClient
         return JsonConverter<T>::load(jd);
     }
 
+    // Convenience fromJson() overloads that deduce T instead of requiring
+    // the coder to explicitly type it. They still enforce the
+    // overwrite-everything semantics of fromJson(), unlike fillFromJson()
+
     template <typename T>
     inline void fromJson(const QJsonValue& jv, T& pod)
     {
@@ -357,7 +361,8 @@ namespace QMatrixClient
                 q.addQueryItem(it.key(), it.value().toString());
         }
 
-        // This one is for types that don't have isEmpty()
+        // This one is for types that don't have isEmpty() and for all types
+        // when Force is true
         template <typename ValT, bool Force = true, typename = bool>
         struct AddNode
         {
@@ -369,7 +374,7 @@ namespace QMatrixClient
             }
         };
 
-        // This one is for types that have isEmpty()
+        // This one is for types that have isEmpty() when Force is false
         template <typename ValT>
         struct AddNode<ValT, false,
                        decltype(std::declval<ValT>().isEmpty())>
@@ -420,6 +425,29 @@ namespace QMatrixClient
 
     static constexpr bool IfNotEmpty = false;
 
+    /*! Add a key-value pair to QJsonObject or QUrlQuery
+     *
+     * Adds a key-value pair(s) specified by \p key and \p value to
+     * \p container, optionally (in case IfNotEmpty is passed for the first
+     * template parameter) taking into account the value "emptiness".
+     * With IfNotEmpty, \p value is NOT added to the container if and only if:
+     * - it has a method `isEmpty()` and `value.isEmpty() == true`, or
+     * - it's an `Omittable<>` and `value.omitted() == true`.
+     *
+     * If \p container is a QUrlQuery, an attempt to fit \p value into it is
+     * made as follows:
+     * - if \p value is a QJsonObject, \p key is ignored and pairs from \p value
+     *   are copied to \p container, assuming that the value in each pair
+     *   is a string;
+     * - if \p value is a QStringList, it is "exploded" into a list of key-value
+     *   pairs with key equal to \p key and value taken from each list item;
+     * - if \p value is a bool, its OpenAPI (i.e. JSON) representation is added
+     *   to the query (`true` or `false`, respectively).
+     *
+     * \tparam Force add the pair even if the value is empty. This is true
+     *               by default; passing IfNotEmpty or false for this parameter
+     *               enables emptiness checks as described above
+     */
     template <bool Force = true, typename ContT, typename ValT>
     inline void addParam(ContT& container, const QString& key, ValT&& value)
     {
