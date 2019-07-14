@@ -194,6 +194,11 @@ QByteArray EncryptionManager::olmAccountPickle()
     return d->olmAccount->pickle(); // TODO: passphrase even with qtkeychain?
 }
 
+QtOlm::Account* EncryptionManager::account() const
+{
+    return d->olmAccount.data();
+}
+
 void EncryptionManager::Private::updateKeysToUpload()
 {
     for (auto it = targetOneTimeKeyCounts.cbegin(); it != targetOneTimeKeyCounts.cend(); ++it)

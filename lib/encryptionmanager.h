@@ -4,6 +4,10 @@
 #include <memory>
 #include <QtCore/QObject>
 
+namespace QtOlm {
+    class Account;
+}
+
 namespace QMatrixClient
 {
     class Connection;
@@ -22,6 +26,8 @@ namespace QMatrixClient
             void uploadIdentityKeys(Connection* connection);
             void uploadOneTimeKeys(Connection* connection, bool forceUpdate = false);
             QByteArray olmAccountPickle();
+
+            QtOlm::Account* account() const;
 
         private:
             class Private;

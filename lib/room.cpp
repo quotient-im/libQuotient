@@ -52,6 +52,12 @@
 #include "converters.h"
 #include "syncdata.h"
 
+#include "e2ee.h"
+
+#include <session.h> // QtOlm
+#include <groupsession.h> // QtOlm
+#include <message.h> // QtOlm
+
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QPointer>
@@ -1185,6 +1191,87 @@ int Room::timelineSize() const
 bool Room::usesEncryption() const
 {
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
+}
+
+const RoomEvent* Room::decryptMessage(EncryptedEvent *encryptedEvent) const
+{
+    if (encryptedEvent->algorithm() == OlmV1Curve25519AesSha2AlgoKey) {
+        QString identityKey = connection()->olmAccount()->curve25519IdentityKey();
+        QJsonObject personalCipherObject = encryptedEvent->ciphertext(identityKey);
+        if (personalCipherObject.isEmpty()) {
+            qCDebug(EVENTS) << "Encrypted event is not for the current device";
+            return nullptr;
+        }
+        return makeEvent<RoomMessageEvent>(decryptMessage(personalCipherObject, encryptedEvent->senderKey().toLatin1())).get();
+    }
+    if (encryptedEvent->algorithm() == MegolmV1AesSha2AlgoKey) {
+        return makeEvent<RoomMessageEvent>(decryptMessage(encryptedEvent->ciphertext(), encryptedEvent->senderKey(), encryptedEvent->deviceId(), encryptedEvent->sessionId())).get();
+    }
+    return nullptr;
+}
+
+const QString Room::decryptMessage(QJsonObject personalCipherObject, QByteArray senderKey) const
+{
+    QString decrypted;
+
+    using namespace QtOlm;
+    // TODO: new objects to private fields:
+    InboundSession* session;
+
+    int type = personalCipherObject.value(TypeKeyL).toInt(-1);
+    QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
+
+    PreKeyMessage* preKeyMessage = new PreKeyMessage(body);
+    session = new InboundSession(connection()->olmAccount(), preKeyMessage, senderKey);
+    if (type == 0) {
+        if (!session->matches(preKeyMessage, senderKey))
+        {
+            connection()->olmAccount()->removeOneTimeKeys(session);
+        }
+        try
+        {
+            decrypted = session->decrypt(preKeyMessage);
+        }
+        catch(std::runtime_error& e)
+        {
+            qWarning(EVENTS) << "Decrypt failed:" << e.what();
+        }
+    }
+    else if (type == 1)
+    {
+        Message* message = new Message(body);
+        if (!session->matches(preKeyMessage, senderKey))
+        {
+            qWarning(EVENTS) << "Invalid encrypted message";
+        }
+        try
+        {
+            decrypted = session->decrypt(message);
+        }
+        catch(std::runtime_error& e)
+        {
+            qWarning(EVENTS) << "Decrypt failed:" << e.what();
+        }
+    }
+
+    return decrypted;
+}
+
+const QString Room::sessionKey(const QString& senderKey, const QString& deviceId, const QString& sessionId) const
+{
+    // TODO: handling an m.room_key event
+    return "";
+}
+
+const QString Room::decryptMessage(QByteArray cipher, const QString& senderKey, const QString& deviceId, const QString& sessionId) const
+{
+    QString decrypted;
+    using namespace QtOlm;
+    InboundGroupSession* groupSession;
+    groupSession = new InboundGroupSession(sessionKey(senderKey, deviceId, sessionId).toLatin1());
+    groupSession->decrypt(cipher);
+    // TODO:  avoid replay attacks
+    return decrypted;
 }
 
 int Room::joinedCount() const

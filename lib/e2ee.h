@@ -4,6 +4,11 @@
 
 namespace QMatrixClient
 {
+    static const auto CiphertextKeyL = "ciphertext"_ls;
+    static const auto SenderKeyKeyL = "sender_key"_ls;
+    static const auto DeviceIdKeyL = "device_id"_ls;
+    static const auto SessionIdKeyL = "session_id"_ls;
+
     static const auto AlgorithmKeyL = "algorithm"_ls;
     static const auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
     static const auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
