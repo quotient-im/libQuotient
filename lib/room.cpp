@@ -1603,6 +1603,11 @@ QString Room::postHtmlText(const QString& plainText, const QString& html)
     return postHtmlMessage(plainText, html);
 }
 
+QString Room::postReaction(const QString& eventId, const QString& key)
+{
+    return d->sendEvent<ReactionEvent>(EventRelation::annotate(eventId, key));
+}
+
 QString Room::postFile(const QString& plainText, const QUrl& localPath,
                        bool asGenericFile)
 {

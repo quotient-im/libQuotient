@@ -430,6 +430,8 @@ namespace QMatrixClient
                         const QString& html,
                         MessageEventType type = MessageEventType::Text);
             QString postHtmlText(const QString& plainText, const QString& html);
+            /// Send a reaction on a given event with a given key
+            QString postReaction(const QString& eventId, const QString& key);
             QString postFile(const QString& plainText, const QUrl& localPath,
                              bool asGenericFile = false);
             /** Post a pre-created room message event
