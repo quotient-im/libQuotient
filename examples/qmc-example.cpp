@@ -180,10 +180,8 @@ void QMCTest::doTests()
 void QMCTest::loadMembers()
 {
     running.push_back("Loading members");
-    // The dedicated qmc-test room is too small to test
-    // lazy-loading-then-full-loading; use #qmatrixclient:matrix.org instead.
-    // TODO: #264
-    auto* r = c->room(QStringLiteral("!PCzUtxtOjUySxSelof:matrix.org"));
+    auto* r = c->roomByAlias(QStringLiteral("#quotient:matrix.org"),
+                             JoinState::Join);
     if (!r)
     {
         cout << "#test:matrix.org is not found in the test user's rooms" << endl;
