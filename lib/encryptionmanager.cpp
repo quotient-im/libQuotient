@@ -8,17 +8,11 @@
 
 #include "csapi/keys.h"
 #include "connection.h"
+#include "e2ee.h"
 
 using namespace QMatrixClient;
 using namespace QtOlm;
 using std::move;
-
-static const auto ed25519Name = QStringLiteral("ed25519");
-static const auto Curve25519Name = QStringLiteral("curve25519");
-static const auto SignedCurve25519Name = QStringLiteral("signed_curve25519");
-static const auto OlmV1Curve25519AesSha2AlgoName = QStringLiteral("m.olm.v1.curve25519-aes-sha2");
-static const auto MegolmV1AesSha2AlgoName = QStringLiteral("m.megolm.v1.aes-sha2");
-static const QStringList SupportedAlgorithms = { OlmV1Curve25519AesSha2AlgoName, MegolmV1AesSha2AlgoName };
 
 class EncryptionManager::Private
 {
@@ -49,8 +43,8 @@ class EncryptionManager::Private
              targetKeysNumber = olmAccount->maxOneTimeKeys(); // 2 // see note below
              targetOneTimeKeyCounts =
              {
-                 {SignedCurve25519Name, qRound(signedKeysProportion * targetKeysNumber)},
-                 {Curve25519Name, qRound((1-signedKeysProportion) * targetKeysNumber)}
+                 {SignedCurve25519Key, qRound(signedKeysProportion * targetKeysNumber)},
+                 {Curve25519Key, qRound((1-signedKeysProportion) * targetKeysNumber)}
              };
         }
         ~Private() = default;
@@ -104,11 +98,11 @@ void EncryptionManager::uploadIdentityKeys(Connection* connection)
          */
         {
             {
-                Curve25519Name + QStringLiteral(":") + connection->deviceId(),
+                Curve25519Key + QStringLiteral(":") + connection->deviceId(),
                         d->olmAccount->curve25519IdentityKey()
             },
             {
-                ed25519Name + QStringLiteral(":") + connection->deviceId(),
+                Ed25519Key + QStringLiteral(":") + connection->deviceId(),
                         d->olmAccount->ed25519IdentityKey()
             }
         },
@@ -133,7 +127,7 @@ void EncryptionManager::uploadIdentityKeys(Connection* connection)
             connection->userId(),
             {
                 {
-                    ed25519Name + QStringLiteral(":") + connection->deviceId(),
+                    Ed25519Key + QStringLiteral(":") + connection->deviceId(),
                             d->olmAccount->sign(deviceKeysJsonObject)
                 }
             }
@@ -158,8 +152,8 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpda
 
     }
 
-    int signedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(SignedCurve25519Name, 0);
-    int unsignedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(Curve25519Name, 0);
+    int signedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(SignedCurve25519Key, 0);
+    int unsignedKeysToUploadCount = d->oneTimeKeysToUploadCounts.value(Curve25519Key, 0);
 
     d->olmAccount->generateOneTimeKeys(signedKeysToUploadCount + unsignedKeysToUploadCount);
 
@@ -179,11 +173,11 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpda
                 {QStringLiteral("key"), it.value().toString()}
             };
             key = d->olmAccount->sign(message);
-            keyType = SignedCurve25519Name;
+            keyType = SignedCurve25519Key;
 
         } else {
             key = it.value();
-            keyType = Curve25519Name;
+            keyType = Curve25519Key;
         }
         ++oneTimeKeysCounter;
         oneTimeKeys.insert(QString("%1:%2").arg(keyType).arg(keyId), key);
@@ -198,6 +192,11 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection, bool forceUpda
 QByteArray EncryptionManager::olmAccountPickle()
 {
     return d->olmAccount->pickle(); // TODO: passphrase even with qtkeychain?
+}
+
+QtOlm::Account* EncryptionManager::account() const
+{
+    return d->olmAccount.data();
 }
 
 void EncryptionManager::Private::updateKeysToUpload()

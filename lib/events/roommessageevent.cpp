@@ -32,7 +32,6 @@ using MsgType = RoomMessageEvent::MsgType;
 
 static const auto RelatesToKey = "m.relates_to"_ls;
 static const auto MsgTypeKey = "msgtype"_ls;
-static const auto BodyKey = "body"_ls;
 static const auto FormattedBodyKey = "formatted_body"_ls;
 
 static const auto TextTypeKey = "m.text";
@@ -159,7 +158,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if ( content.contains(MsgTypeKey) && content.contains(BodyKey) )
+    if ( content.contains(MsgTypeKey) && content.contains(BodyKeyL) )
     {
         auto msgtype = content[MsgTypeKey].toString();
         bool msgTypeFound = false;
@@ -196,7 +195,7 @@ QString RoomMessageEvent::rawMsgtype() const
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentJson()[BodyKey].toString();
+    return contentJson()[BodyKeyL].toString();
 }
 
 QMimeType RoomMessageEvent::mimeType() const
@@ -267,7 +266,7 @@ TextContent::TextContent(const QJsonObject& json)
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
         mimeType = PlainTextMimeType;
-        body = json[BodyKey].toString();
+        body = json[BodyKeyL].toString();
     }
     const auto replyJson = json[RelatesToKey].toObject()
                            .value(RelatesTo::ReplyTypeId()).toObject();
