@@ -132,6 +132,7 @@ set(libqmatrixclient_SRCS
     lib/events/roommemberevent.cpp
     lib/events/typingevent.cpp
     lib/events/receiptevent.cpp
+    lib/events/reactionevent.cpp
     lib/events/callanswerevent.cpp
     lib/events/callcandidatesevent.cpp
     lib/events/callhangupevent.cpp

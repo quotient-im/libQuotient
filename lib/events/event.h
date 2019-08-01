@@ -57,6 +57,7 @@ namespace QMatrixClient
     // === Standard Matrix key names and basicEventJson() ===
 
     static const auto TypeKey = QStringLiteral("type");
+    static const auto BodyKey = QStringLiteral("body");
     static const auto ContentKey = QStringLiteral("content");
     static const auto EventIdKey = QStringLiteral("event_id");
     static const auto UnsignedKey = QStringLiteral("unsigned");

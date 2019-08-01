@@ -60,8 +60,8 @@ namespace QMatrixClient
     template <typename T>
     struct JsonObjectConverter
     {
-        static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod; }
-        static void fillFrom(const QJsonObject& jo, T& pod) { pod = jo; }
+        static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod.toJson(); }
+        static void fillFrom(const QJsonObject& jo, T& pod) { pod = T(jo); }
     };
 
     template <typename T>
@@ -89,14 +89,16 @@ namespace QMatrixClient
         return JsonConverter<T>::dump(pod);
     }
 
+    inline auto toJson(const QJsonObject& jo) { return jo; }
+
     template <typename T>
-    inline auto fillJson(QJsonObject& json, const T& data)
+    inline void fillJson(QJsonObject& json, const T& data)
     {
         JsonObjectConverter<T>::dumpTo(json, data);
     }
 
     template <typename T>
-    inline auto fromJson(const QJsonValue& jv)
+    inline T fromJson(const QJsonValue& jv)
     {
         return JsonConverter<T>::load(jv);
     }
@@ -114,8 +116,7 @@ namespace QMatrixClient
     template <typename T>
     inline void fromJson(const QJsonValue& jv, T& pod)
     {
-        if (!jv.isUndefined())
-            pod = fromJson<T>(jv);
+        pod = jv.isUndefined() ? T() : fromJson<T>(jv);
     }
 
     template <typename T>
@@ -124,21 +125,13 @@ namespace QMatrixClient
         pod = fromJson<T>(jd);
     }
 
-    // Unfolds Omittable<>
-    template <typename T>
-    inline void fromJson(const QJsonValue& jv, Omittable<T>& pod)
-    {
-        if (jv.isUndefined())
-            pod = none;
-        else
-            pod = fromJson<T>(jv);
-    }
-
     template <typename T>
     inline void fillFromJson(const QJsonValue& jv, T& pod)
     {
         if (jv.isObject())
             JsonObjectConverter<T>::fillFrom(jv.toObject(), pod);
+        else if (!jv.isUndefined())
+            pod = fromJson<T>(jv);
     }
 
     // JsonConverter<> specialisations
@@ -222,6 +215,21 @@ namespace QMatrixClient
     {
         static QJsonValue dump(const QVariant& v);
         static QVariant load(const QJsonValue& jv);
+    };
+
+    template <typename T>
+    struct JsonConverter<Omittable<T>>
+    {
+        static QJsonValue dump(const Omittable<T>& from)
+        {
+            return from.omitted() ? QJsonValue() : toJson(from.value());
+        }
+        static Omittable<T> load(const QJsonValue& jv)
+        {
+            if (jv.isUndefined())
+                return none;
+            return fromJson<T>(jv);
+        }
     };
 
     template <typename VectorT,
@@ -384,23 +392,20 @@ namespace QMatrixClient
                              ForwardedT&& value)
             {
                 if (!value.isEmpty())
-                    AddNode<ValT>::impl(container,
-                                        key, std::forward<ForwardedT>(value));
+                    addTo(container, key, std::forward<ForwardedT>(value));
             }
         };
 
-        // This is a special one that unfolds Omittable<>
-        template <typename ValT, bool Force>
-        struct AddNode<Omittable<ValT>, Force>
+        // This one unfolds Omittable<> (also only when Force is false)
+        template <typename ValT>
+        struct AddNode<Omittable<ValT>, false>
         {
             template <typename ContT, typename OmittableT>
             static void impl(ContT& container,
                              const QString& key, const OmittableT& value)
             {
                 if (!value.omitted())
-                    AddNode<ValT>::impl(container, key, value.value());
-                else if (Force) // Edge case, no value but must put something
-                    AddNode<ValT>::impl(container, key, QString{});
+                    addTo(container, key, value.value());
             }
         };
 

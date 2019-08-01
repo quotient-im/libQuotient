@@ -38,6 +38,7 @@
 #include "events/roommemberevent.h"
 #include "events/typingevent.h"
 #include "events/receiptevent.h"
+#include "events/reactionevent.h"
 #include "events/callinviteevent.h"
 #include "events/callcandidatesevent.h"
 #include "events/callanswerevent.h"
@@ -112,7 +113,10 @@ class Room::Private
         Timeline timeline;
         PendingEvents unsyncedEvents;
         QHash<QString, TimelineItem::index_t> eventsIndex;
-
+        // A map from evtId to a map of relation type to a vector of event
+        // pointers. Not using QMultiHash, because we want to quickly return
+        // a number of relations for a given event without enumerating them.
+        QHash<QPair<QString, QString>, RelatedEvents> relations;
         QString displayname;
         Avatar avatar;
         int highlightCount = 0;
@@ -313,13 +317,21 @@ class Room::Private
             return requestSetState(EvT(std::forward<ArgTs>(args)...));
         }
 
-  /**
-         * @brief Apply redaction to the timeline
+        /*! Apply redaction to the timeline
          *
          * Tries to find an event in the timeline and redact it; deletes the
          * redaction event whether the redacted event was found or not.
+         * \return true if the event has been found and redacted; false otherwise
          */
         bool processRedaction(const RedactionEvent& redaction);
+
+        /*! Apply a new revision of the event to the timeline
+         *
+         * Tries to find an event in the timeline and replace it with the new
+         * content passed in \p newMessage.
+         * \return true if the event has been found and replaced; false otherwise
+         */
+        bool processReplacement(const RoomMessageEvent& newMessage);
 
         void setTags(TagsMap newTags);
 
@@ -722,10 +734,10 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
     if (!d->timeline.empty() && d->eventsIndex.contains(evtId))
     {
         auto it = findInTimeline(d->eventsIndex.value(evtId));
-        Q_ASSERT((*it)->id() == evtId);
+        Q_ASSERT(it != historyEdge() && (*it)->id() == evtId);
         return it;
     }
-    return timelineEdge();
+    return historyEdge();
 }
 
 Room::PendingEvents::iterator Room::findPendingEvent(const QString& txnId)
@@ -739,6 +751,18 @@ Room::findPendingEvent(const QString& txnId) const
 {
     return std::find_if(d->unsyncedEvents.cbegin(), d->unsyncedEvents.cend(),
             [txnId] (const auto& item) { return item->transactionId() == txnId; });
+}
+
+const Room::RelatedEvents Room::relatedEvents(const QString& evtId,
+                                              const char* relType) const
+{
+    return d->relations.value({ evtId, relType });
+}
+
+const Room::RelatedEvents Room::relatedEvents(const RoomEvent& evt,
+                                              const char* relType) const
+{
+    return relatedEvents(evt.id(), relType);
 }
 
 void Room::Private::getAllMembers()
@@ -1666,6 +1690,11 @@ QString Room::postHtmlText(const QString& plainText, const QString& html)
     return postHtmlMessage(plainText, html);
 }
 
+QString Room::postReaction(const QString& eventId, const QString& key)
+{
+    return d->sendEvent<ReactionEvent>(EventRelation::annotate(eventId, key));
+}
+
 QString Room::postFile(const QString& plainText, const QUrl& localPath,
                        bool asGenericFile)
 {
@@ -2123,7 +2152,61 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
             updateDisplayname();
         }
     }
+    if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
+        const auto& targetEvtId = reaction->relation().eventId;
+        const auto lookupKey = qMakePair(targetEvtId,
+                                         EventRelation::Annotation());
+        if (relations.contains(lookupKey)) {
+            relations[lookupKey].removeOne(reaction);
+        }
+    }
     q->onRedaction(*oldEvent, *ti);
+    emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
+    return true;
+}
+
+/** Make a replaced event
+ *
+ * Takes \p target and returns a copy of it with content taken from
+ * \p replacement. Disposal of the original event after that is on the caller.
+ */
+RoomEventPtr makeReplaced(const RoomEvent& target,
+                          const RoomMessageEvent& replacement)
+{
+    auto originalJson = target.originalJsonObject();
+    originalJson[ContentKeyL] = replacement.contentJson();
+
+    auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
+    auto relations = unsignedData.take("m.relations"_ls).toObject();
+    relations["m.replace"_ls] = replacement.id();
+    unsignedData.insert(QStringLiteral("m.relations"), relations);
+    originalJson.insert(UnsignedKey, unsignedData);
+
+    return loadEvent<RoomEvent>(originalJson);
+}
+
+bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
+{
+    // Can't use findInTimeline because it returns a const iterator, and
+    // we need to change the underlying TimelineItem.
+    const auto pIdx = eventsIndex.find(newEvent.replacedEvent());
+    if (pIdx == eventsIndex.end())
+        return false;
+
+    Q_ASSERT(q->isValidIndex(*pIdx));
+
+    auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
+    if (ti->replacedBy() == newEvent.id())
+    {
+        qCDebug(MAIN) << "Event" << ti->id() << "is already replaced with"
+                      << newEvent.id();
+        return true;
+    }
+
+    // Make a new event from the redacted JSON and put it in the timeline
+    // instead of the redacted one. oldEvent will be deleted on return.
+    auto oldEvent = ti.replaceEvent(makeReplaced(*ti, newEvent));
+    qCDebug(MAIN) << "Replaced" << oldEvent->id() << "with" << newEvent.id();
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
     return true;
 }
@@ -2139,10 +2222,16 @@ User* Room::localUser() const
     return connection()->user();
 }
 
-inline bool isRedaction(const RoomEventPtr& ep)
+/// Whether the event is a redaction or a replacement
+inline bool isEditing(const RoomEventPtr& ep)
 {
     Q_ASSERT(ep);
-    return is<RedactionEvent>(*ep);
+    if (is<RedactionEvent>(*ep))
+        return true;
+    if (auto* msgEvent = eventCast<RoomMessageEvent>(ep))
+        return msgEvent->replacedEvent().isEmpty();
+
+    return false;
 }
 
 Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
@@ -2151,28 +2240,52 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::NoChange;
 
-    // Pre-process redactions so that events that get redacted in the same
-    // batch landed in the timeline already redacted.
-    // NB: We have to store redaction events to the timeline too - see #220.
-    auto redactionIt = std::find_if(events.begin(), events.end(), isRedaction);
-    for(const auto& eptr: RoomEventsRange(redactionIt, events.end()))
-        if (auto* r = eventCast<RedactionEvent>(eptr))
-        {
-            // Try to find the target in the timeline, then in the batch.
-            if (processRedaction(*r))
-                continue;
-            auto targetIt = std::find_if(events.begin(), redactionIt,
-                [id=r->redactedEvent()] (const RoomEventPtr& ep) {
-                    return ep->id() == id;
-                });
-            if (targetIt != redactionIt)
-                *targetIt = makeRedacted(**targetIt, *r);
-            else
-                qCDebug(MAIN) << "Redaction" << r->id()
-                              << "ignored: target event" << r->redactedEvent()
-                              << "is not found";
-            // If the target event comes later, it comes already redacted.
+    {
+        // Pre-process redactions and edits so that events that get
+        // redacted/replaced in the same batch landed in the timeline already
+        // treated.
+        // NB: We have to store redacting/replacing events to the timeline too -
+        // see #220.
+        auto it = std::find_if(events.begin(), events.end(), isEditing);
+        for (const auto& eptr : RoomEventsRange(it, events.end())) {
+            if (auto* r = eventCast<RedactionEvent>(eptr)) {
+                // Try to find the target in the timeline, then in the batch.
+                if (processRedaction(*r))
+                    continue;
+                auto targetIt = std::find_if(events.begin(), it,
+                                             [id = r->redactedEvent()](
+                                                 const RoomEventPtr& ep) {
+                                                 return ep->id() == id;
+                                             });
+                if (targetIt != it)
+                    *targetIt = makeRedacted(**targetIt, *r);
+                else
+                    qCDebug(MAIN)
+                        << "Redaction" << r->id() << "ignored: target event"
+                        << r->redactedEvent() << "is not found";
+                // If the target event comes later, it comes already redacted.
+            }
+            if (auto* msg = eventCast<RoomMessageEvent>(eptr)) {
+                if (!msg->replacedEvent().isEmpty()) {
+                    if (processReplacement(*msg))
+                        continue;
+                    auto targetIt = std::find_if(events.begin(), it,
+                                                 [id = msg->replacedEvent()](
+                                                     const RoomEventPtr& ep) {
+                                                     return ep->id() == id;
+                                                 });
+                    if (targetIt != it)
+                        *targetIt = makeReplaced(**targetIt, *msg);
+                    else // FIXME: don't ignore, just show it wherever it arrived
+                        qCDebug(MAIN) << "Replacing event" << msg->id()
+                                      << "ignored: replaced event"
+                                      << msg->replacedEvent() << "is not found";
+                    // Same as with redactions above, the replaced event coming
+                    // later will come already with the new content.
+                }
+            }
         }
+    }
 
     // State changes arrive as a part of timeline; the current room state gets
     // updated before merging events to the timeline because that's what
@@ -2238,6 +2351,14 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (totalInserted > 0)
     {
+        for (auto it = from; it != timeline.cend(); ++it) {
+            if (const auto* reaction = it->viewAs<ReactionEvent>()) {
+                const auto& relation = reaction->relation();
+                relations[{ relation.eventId, relation.type }] << reaction;
+                emit q->updatedEvent(relation.eventId);
+            }
+        }
+
         qCDebug(MAIN)
                 << "Room" << q->objectName() << "received" << totalInserted
                 << "new events; the last event is now" << timeline.back();
@@ -2296,6 +2417,13 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages(timeline.front().index(), from->index());
 
+    for (auto it = from; it != timeline.crend(); ++it) {
+        if (const auto* reaction = it->viewAs<ReactionEvent>()) {
+            const auto& relation = reaction->relation();
+            relations[{ relation.eventId, relation.type }] << reaction;
+            emit q->updatedEvent(relation.eventId);
+        }
+    }
     if (from <= q->readMarker())
         updateUnreadCount(from, timeline.crend());
 
