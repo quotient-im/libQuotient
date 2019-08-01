@@ -30,10 +30,9 @@ using namespace EventContent;
 
 using MsgType = RoomMessageEvent::MsgType;
 
-static const auto RelatesToKey = "m.relates_to"_ls;
-static const auto MsgTypeKey = "msgtype"_ls;
-static const auto BodyKey = "body"_ls;
-static const auto FormattedBodyKey = "formatted_body"_ls;
+static const auto RelatesToKeyL = "m.relates_to"_ls;
+static const auto MsgTypeKeyL = "msgtype"_ls;
+static const auto FormattedBodyKeyL = "formatted_body"_ls;
 
 static const auto TextTypeKey = "m.text";
 static const auto EmoteTypeKey = "m.emote";
@@ -50,7 +49,7 @@ TypedBase* make(const QJsonObject& json)
 template <>
 TypedBase* make<TextContent>(const QJsonObject& json)
 {
-    return json.contains(FormattedBodyKey) || json.contains(RelatesToKey)
+    return json.contains(FormattedBodyKeyL) || json.contains(RelatesToKeyL)
             ? new TextContent(json) : nullptr;
 }
 
@@ -96,12 +95,12 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                 const QString& jsonMsgType, TypedBase* content)
 {
     auto json = content ? content->toJson() : QJsonObject();
-    if (json.contains(RelatesToKey)) {
+    if (json.contains(RelatesToKeyL)) {
         if (jsonMsgType != TextTypeKey && jsonMsgType != NoticeTypeKey
             && jsonMsgType != EmoteTypeKey) {
-            json.remove(RelatesToKey);
+            json.remove(RelatesToKeyL);
             qCWarning(EVENTS)
-                << RelatesToKey << "cannot be used in" << jsonMsgType
+                << RelatesToKeyL << "cannot be used in" << jsonMsgType
                 << "messages; the relation has been stripped off";
         } else {
             // After the above, we know for sure that the content is TextContent
@@ -112,7 +111,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                 newContentJson.insert(BodyKey, plainBody);
                 newContentJson.insert(TypeKey, jsonMsgType);
                 json.insert(QStringLiteral("m.new_content"), newContentJson);
-                json[BodyKey] = "* " + plainBody;
+                json[BodyKeyL] = "* " + plainBody;
             }
         }
     }
@@ -173,9 +172,9 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if ( content.contains(MsgTypeKey) && content.contains(BodyKey) )
+    if ( content.contains(MsgTypeKeyL) && content.contains(BodyKeyL) )
     {
-        auto msgtype = content[MsgTypeKey].toString();
+        auto msgtype = content[MsgTypeKeyL].toString();
         bool msgTypeFound = false;
         for (const auto& mt: msgTypes)
             if (mt.matrixType == msgtype)
@@ -205,12 +204,12 @@ RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 
 QString RoomMessageEvent::rawMsgtype() const
 {
-    return contentJson()[MsgTypeKey].toString();
+    return contentJson()[MsgTypeKeyL].toString();
 }
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentJson()[BodyKey].toString();
+    return contentJson()[BodyKeyL].toString();
 }
 
 QMimeType RoomMessageEvent::mimeType() const
@@ -295,7 +294,7 @@ Omittable<RelatesTo> fromJson(const QJsonValue& jv)
 }
 
 TextContent::TextContent(const QJsonObject& json)
-    : relatesTo(fromJson<Omittable<RelatesTo>>(json[RelatesToKey]))
+    : relatesTo(fromJson<Omittable<RelatesTo>>(json[RelatesToKeyL]))
 {
     QMimeDatabase db;
     static const auto PlainTextMimeType = db.mimeTypeForName("text/plain");
@@ -309,25 +308,25 @@ TextContent::TextContent(const QJsonObject& json)
     if (actualJson["format"_ls].toString() == HtmlContentTypeId)
     {
         mimeType = HtmlMimeType;
-        body = actualJson[FormattedBodyKey].toString();
+        body = actualJson[FormattedBodyKeyL].toString();
     } else {
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
         mimeType = PlainTextMimeType;
-        body = actualJson[BodyKey].toString();
+        body = actualJson[BodyKeyL].toString();
     }
 }
 
 void TextContent::fillJson(QJsonObject* json) const
 {
     static const auto FormatKey = QStringLiteral("format");
-    static const auto RichBodyKey = QStringLiteral("formatted_body");
+    static const auto FormattedBodyKey = QStringLiteral("formatted_body");
 
     Q_ASSERT(json);
     if (mimeType.inherits("text/html"))
     {
         json->insert(FormatKey, HtmlContentTypeId);
-        json->insert(RichBodyKey, body);
+        json->insert(FormattedBodyKey, body);
     }
     if (!relatesTo.omitted()) {
         json->insert(QStringLiteral("m.relates_to"),
@@ -336,7 +335,7 @@ void TextContent::fillJson(QJsonObject* json) const
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html")) {
                 json->insert(FormatKey, HtmlContentTypeId);
-                json->insert(RichBodyKey, body);
+                json->insert(FormattedBodyKey, body);
             }
             json->insert(QStringLiteral("m.new_content"), newContentJson);
         }

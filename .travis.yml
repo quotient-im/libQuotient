@@ -1,4 +1,5 @@
 language: cpp
+dist: xenial
 
 git:
   depth: false
@@ -14,19 +15,18 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:beineri/opt-qt571-trusty'
+    - sourceline: 'ppa:beineri/opt-qt597-xenial'
     packages:
     - ninja-build
-    - g++-5
-    - qt57base
-    - qt57multimedia
+    - libgl1-mesa-dev # Forgotten Qt dep
+    - qt59base
+    - qt59multimedia
     - valgrind
 
 matrix:
   include:
   - os: linux
     compiler: gcc
-    env: [ 'ENV_EVAL="CC=gcc-5 && CXX=g++-5"' ]
   - os: linux
     compiler: clang
   - os: osx
@@ -40,7 +40,9 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; VALGRIND="valgrind $VALGRIND_OPTIONS"; . /opt/qt57/bin/qt57-env.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; . /opt/qt59/bin/qt59-env.sh; fi
+# Switching off temporarily due to broken Valgrind being installed in xenial container.
+#- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
 
 install:
 - pushd 3rdparty/libQtOlm

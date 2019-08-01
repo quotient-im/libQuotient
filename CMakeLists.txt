@@ -139,6 +139,7 @@ set(libqmatrixclient_SRCS
     lib/events/callinviteevent.cpp
     lib/events/directchatevent.cpp
     lib/events/encryptionevent.cpp
+    lib/events/encryptedevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp

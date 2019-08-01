@@ -24,8 +24,10 @@
 #include "events/accountdataevents.h"
 #include "eventitem.h"
 #include "joinstate.h"
+#include "events/encryptedevent.h"
 
 #include <QtGui/QImage>
+#include <QtCore/QJsonObject>
 
 #include <memory>
 #include <deque>
@@ -180,6 +182,10 @@ namespace QMatrixClient
             int memberCount() const;
             int timelineSize() const;
             bool usesEncryption() const;
+            const RoomEvent *decryptMessage(EncryptedEvent* encryptedEvent) const;
+            const QString decryptMessage(QJsonObject personalCipherObject, QByteArray senderKey) const;
+            const QString sessionKey(const QString &senderKey, const QString &deviceId, const QString &sessionId) const;
+            const QString decryptMessage(QByteArray cipher, const QString& senderKey, const QString& deviceId, const QString& sessionId) const;
             int joinedCount() const;
             int invitedCount() const;
             int totalMemberCount() const;

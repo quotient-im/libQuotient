@@ -979,6 +979,11 @@ QByteArray Connection::accessToken() const
     return d->data->accessToken();
 }
 
+QtOlm::Account* Connection::olmAccount() const
+{
+    return d->encryptionManager->account();
+}
+
 SyncJob* Connection::syncJob() const
 {
     return d->syncJob;
