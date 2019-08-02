@@ -1469,8 +1469,10 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 return;
             }
 
-            it->setReachedServer(call->eventId());
-            emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+            if (it->deliveryStatus() != EventStatus::ReachedServer) {
+                it->setReachedServer(call->eventId());
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+            }
         });
     } else
         onEventSendingFailure(txnId);
@@ -2171,10 +2173,11 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         auto nextPendingPair = findFirstOf(it, events.end(),
                                            unsyncedEvents.begin(),
                                            unsyncedEvents.end(), isEchoEvent);
-        auto nextPending = nextPendingPair.first;
+        const auto& remoteEcho = nextPendingPair.first;
+        const auto& localEcho = nextPendingPair.second;
 
-        if (it != nextPending) {
-            RoomEventsRange eventsSpan { it, nextPending };
+        if (it != remoteEcho) {
+            RoomEventsRange eventsSpan { it, remoteEcho };
             emit q->aboutToAddNewMessages(eventsSpan);
             auto insertedSize = moveEventsToTimeline(eventsSpan, Newer);
             totalInserted += insertedSize;
@@ -2183,15 +2186,16 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             emit q->addedMessages(firstInserted->index(),
                                   timeline.back().index());
         }
-        if (nextPending == events.end())
+        if (remoteEcho == events.end())
             break;
 
-        it = nextPending + 1;
-        auto* nextPendingEvt = nextPending->get();
-        const auto pendingEvtIdx =
-            int(nextPendingPair.second - unsyncedEvents.begin());
-        nextPendingPair.second->setReachedServer(nextPendingEvt->id());
-        emit q->pendingEventChanged(pendingEvtIdx);
+        it = remoteEcho + 1;
+        auto* nextPendingEvt = remoteEcho->get();
+        const auto pendingEvtIdx = int(localEcho - unsyncedEvents.begin());
+        if (localEcho->deliveryStatus() != EventStatus::ReachedServer) {
+            localEcho->setReachedServer(nextPendingEvt->id());
+            emit q->pendingEventChanged(pendingEvtIdx);
+        }
         emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
         qDebug(EVENTS) << "Merging pending event from transaction"
                        << nextPendingEvt->transactionId() << "into"
@@ -2200,13 +2204,12 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         if (transfer.status != FileTransferInfo::None)
             fileTransfers.insert(nextPendingEvt->id(), transfer);
         // After emitting pendingEventAboutToMerge() above we cannot rely
-        // on the previously obtained nextPendingPair.second staying valid
+        // on the previously obtained localEcho staying valid
         // because a signal handler may send another message, thereby altering
         // unsyncedEvents (see #286). Fortunately, unsyncedEvents only grows at
         // its back so we can rely on the index staying valid at least.
         unsyncedEvents.erase(unsyncedEvents.begin() + pendingEvtIdx);
-        if (auto insertedSize = moveEventsToTimeline({ nextPending, it },
-                                                     Newer)) {
+        if (auto insertedSize = moveEventsToTimeline({ remoteEcho, it }, Newer)) {
             totalInserted += insertedSize;
             q->onAddNewTimelineEvents(timeline.cend() - insertedSize);
         }
