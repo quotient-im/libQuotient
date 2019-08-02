@@ -22,10 +22,8 @@
 
 #include <array>
 
-namespace QMatrixClient
-{
-enum class JoinState : unsigned int
-{
+namespace QMatrixClient {
+enum class JoinState : unsigned int {
     Join = 0x1,
     Invite = 0x2,
     Leave = 0x4,

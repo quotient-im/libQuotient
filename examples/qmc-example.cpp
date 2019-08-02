@@ -24,8 +24,7 @@ using std::cout;
 using std::endl;
 using namespace std::placeholders;
 
-class QMCTest : public QObject
-{
+class QMCTest : public QObject {
 public:
     QMCTest(Connection* conn, QString testRoomName, QString source);
 
@@ -92,9 +91,7 @@ bool QMCTest::validatePendingEvent(const QString& txnId)
 }
 
 QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
-    : c(conn)
-    , origin(std::move(source))
-    , targetRoomName(std::move(testRoomName))
+    : c(conn), origin(std::move(source)), targetRoomName(std::move(testRoomName))
 {
     if (!origin.isEmpty())
         cout << "Origin for the test message: " << origin.toStdString() << endl;

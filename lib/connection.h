@@ -32,13 +32,11 @@
 
 #include <functional>
 
-namespace QtOlm
-{
+namespace QtOlm {
 class Account;
 }
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class Room;
 class User;
 class ConnectionData;
@@ -93,14 +91,9 @@ static inline user_factory_t defaultUserFactory()
  *
  * \sa Connection::callApi
  */
-enum RunningPolicy
-{
-    ForegroundRequest = 0x0,
-    BackgroundRequest = 0x1
-};
+enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
 
-class Connection : public QObject
-{
+class Connection : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)
@@ -129,8 +122,7 @@ public:
     using UsersToDevicesToEvents =
         std::unordered_map<QString, std::unordered_map<QString, const Event&>>;
 
-    enum RoomVisibility
-    {
+    enum RoomVisibility {
         PublishRoom,
         UnpublishRoom
     }; // FIXME: Should go inside CreateRoomJob
@@ -285,8 +277,7 @@ public:
 
     Q_INVOKABLE void getTurnServers();
 
-    struct SupportedRoomVersion
-    {
+    struct SupportedRoomVersion {
         QString id;
         QString status;
 

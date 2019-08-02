@@ -26,23 +26,20 @@ class QJsonArray;
 class QJsonDocument;
 class QIODevice;
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 /**
  * A simple wrapper that represents the request body.
  * Provides a unified interface to dump an unstructured byte stream
  * as well as JSON (and possibly other structures in the future) to
  * a QByteArray consumed by QNetworkAccessManager request methods.
  */
-class RequestData
-{
+class RequestData {
 public:
     RequestData() = default;
     RequestData(const QByteArray& a);
     RequestData(const QJsonObject& jo);
     RequestData(const QJsonArray& ja);
-    RequestData(QIODevice* source)
-        : _source(std::unique_ptr<QIODevice>(source))
+    RequestData(QIODevice* source) : _source(std::unique_ptr<QIODevice>(source))
     {}
     RequestData(const RequestData&) = delete;
     RequestData& operator=(const RequestData&) = delete;

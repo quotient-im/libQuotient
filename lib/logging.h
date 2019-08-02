@@ -28,8 +28,7 @@ Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 // QDebug manipulators
 
 using QDebugManip = QDebug (*)(QDebug);

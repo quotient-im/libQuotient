@@ -24,10 +24,8 @@
 
 class QVariant;
 
-namespace QMatrixClient
-{
-class Settings : public QSettings
-{
+namespace QMatrixClient {
+class Settings : public QSettings {
     Q_OBJECT
 public:
     /**
@@ -42,9 +40,7 @@ public:
 #if defined(_MSC_VER) && _MSC_VER < 1900
     // VS 2013 (and probably older) aren't friends with 'using' statements
     // that involve private constructors
-    explicit Settings(QObject* parent = 0)
-        : QSettings(parent)
-    {}
+    explicit Settings(QObject* parent = 0) : QSettings(parent) {}
 #else
     using QSettings::QSettings;
 #endif
@@ -71,8 +67,7 @@ protected:
     QSettings legacySettings { legacyOrganizationName, legacyApplicationName };
 };
 
-class SettingsGroup : public Settings
-{
+class SettingsGroup : public Settings {
 public:
     template <typename... ArgTs>
     explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
@@ -121,8 +116,7 @@ private:
         setValue(QStringLiteral(qsettingname), std::move(newValue));  \
     }
 
-class AccountSettings : public SettingsGroup
-{
+class AccountSettings : public SettingsGroup {
     Q_OBJECT
     Q_PROPERTY(QString userId READ userId CONSTANT)
     QMC_DECLARE_SETTING(QString, deviceId, setDeviceId)

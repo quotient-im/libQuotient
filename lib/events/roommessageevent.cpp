@@ -54,8 +54,7 @@ TypedBase* make<TextContent>(const QJsonObject& json)
                : nullptr;
 }
 
-struct MsgTypeDesc
-{
+struct MsgTypeDesc {
     QString matrixType;
     MsgType enumType;
     TypedBase* (*maker)(const QJsonObject&);
@@ -174,8 +173,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj)
-    , _content(nullptr)
+    : RoomEvent(typeId(), obj), _content(nullptr)
 {
     if (isRedacted())
         return;
@@ -281,8 +279,7 @@ TextContent::TextContent(const QString& text, const QString& contentType,
         mimeType = QMimeDatabase().mimeTypeForName("text/html");
 }
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 // Overload the default fromJson<> logic that defined in converters.h
 // as we want
 template <>
@@ -350,8 +347,7 @@ void TextContent::fillJson(QJsonObject* json) const
 
 LocationContent::LocationContent(const QString& geoUri,
                                  const Thumbnail& thumbnail)
-    : geoUri(geoUri)
-    , thumbnail(thumbnail)
+    : geoUri(geoUri), thumbnail(thumbnail)
 {}
 
 LocationContent::LocationContent(const QJsonObject& json)

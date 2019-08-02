@@ -23,22 +23,18 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QVector>
 
-namespace QMatrixClient
-{
-struct Receipt
-{
+namespace QMatrixClient {
+struct Receipt {
     QString userId;
     QDateTime timestamp;
 };
-struct ReceiptsForEvent
-{
+struct ReceiptsForEvent {
     QString evtId;
     QVector<Receipt> receipts;
 };
 using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
-class ReceiptEvent : public Event
-{
+class ReceiptEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
     explicit ReceiptEvent(const QJsonObject& obj);

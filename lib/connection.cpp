@@ -70,8 +70,7 @@ HashT erase_if(HashT& hashMap, Pred pred)
     return removals;
 }
 
-class Connection::Private
-{
+class Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
         : data(move(connection))
@@ -151,15 +150,12 @@ public:
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
-    : QObject(parent)
-    , d(new Private(std::make_unique<ConnectionData>(server)))
+    : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
 {
     d->q = this; // All d initialization should occur before this line
 }
 
-Connection::Connection(QObject* parent)
-    : Connection({}, parent)
-{}
+Connection::Connection(QObject* parent) : Connection({}, parent) {}
 
 Connection::~Connection()
 {
@@ -183,45 +179,47 @@ void Connection::resolveServer(const QString& mxid)
     qCDebug(MAIN) << "Finding the server" << domain;
 
     auto getWellKnownJob = callApi<GetWellknownJob>();
-    connect(getWellKnownJob, &BaseJob::finished,
-            [this, getWellKnownJob, maybeBaseUrl] {
-                if (getWellKnownJob->status() == BaseJob::NotFoundError) {
-                    qCDebug(MAIN) << "No .well-known file, IGNORE";
-                } else if (getWellKnownJob->status() != BaseJob::Success) {
+    connect(
+        getWellKnownJob, &BaseJob::finished,
+        [this, getWellKnownJob, maybeBaseUrl] {
+            if (getWellKnownJob->status() == BaseJob::NotFoundError)
+                qCDebug(MAIN) << "No .well-known file, IGNORE";
+            else {
+                if (getWellKnownJob->status() != BaseJob::Success) {
                     qCDebug(MAIN)
                         << "Fetching .well-known file failed, FAIL_PROMPT";
                     emit resolveError(tr("Fetching .well-known file failed"));
                     return;
-                } else if (getWellKnownJob->data().homeserver.baseUrl.isEmpty()) {
+                }
+                QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
+                if (baseUrl.isEmpty()) {
                     qCDebug(MAIN) << "base_url not provided, FAIL_PROMPT";
                     emit resolveError(tr("base_url not provided"));
                     return;
-                } else if (!QUrl(getWellKnownJob->data().homeserver.baseUrl)
-                                .isValid()) {
+                }
+                if (!baseUrl.isValid()) {
                     qCDebug(MAIN) << "base_url invalid, FAIL_ERROR";
                     emit resolveError(tr("base_url invalid"));
                     return;
-                } else {
-                    QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
-
-                    qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host()
-                                  << "is" << baseUrl.toString();
-                    setHomeserver(baseUrl);
                 }
 
-                auto getVersionsJob = callApi<GetVersionsJob>();
+                qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host()
+                              << "is" << baseUrl.toString();
+                setHomeserver(baseUrl);
+            }
 
-                connect(getVersionsJob, &BaseJob::finished,
-                        [this, getVersionsJob] {
-                            if (getVersionsJob->status() == BaseJob::Success) {
-                                qCDebug(MAIN) << "homeserver url is valid";
-                                emit resolved();
-                            } else {
-                                qCDebug(MAIN) << "homeserver url invalid";
-                                emit resolveError(tr("homeserver url invalid"));
-                            }
-                        });
+            auto getVersionsJob = callApi<GetVersionsJob>();
+
+            connect(getVersionsJob, &BaseJob::finished, [this, getVersionsJob] {
+                if (getVersionsJob->status() == BaseJob::Success) {
+                    qCDebug(MAIN) << "homeserver url is valid";
+                    emit resolved();
+                } else {
+                    qCDebug(MAIN) << "homeserver url invalid";
+                    emit resolveError(tr("homeserver url invalid"));
+                }
             });
+        });
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
@@ -372,8 +370,8 @@ void Connection::sync(int timeout)
     connect(job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
         if (job->error() == BaseJob::ContentAccessError) {
-            qCWarning(SYNCJOB)
-                << "Sync job failed with ContentAccessError - login expired?";
+            qCWarning(SYNCJOB) << "Sync job failed with ContentAccessError - "
+                                  "login expired?";
             emit loginError(job->errorString(), job->rawDataSample());
         } else
             emit syncError(job->errorString(), job->rawDataSample());
@@ -437,7 +435,6 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         visit(
             *eventPtr,
             [this](const DirectChatEvent& dce) {
-                // See
                 // https://github.com/QMatrixClient/libqmatrixclient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
                 DirectChatsMap remoteRemovals =
@@ -492,8 +489,8 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                         << QStringList::fromSet(ignoredUsers()).join(',');
 
                 auto& currentData = d->accountData[accountEvent.matrixType()];
-                // A polymorphic event-specific comparison might be a bit more
-                // efficient; maaybe do it another day
+                // A polymorphic event-specific comparison might be a bit
+                // more efficient; maaybe do it another day
                 if (!currentData
                     || currentData->contentJson() != accountEvent.contentJson()) {
                     currentData = std::move(eventPtr);
@@ -678,9 +675,9 @@ void Connection::requestDirectChat(const QString& userId)
     if (auto* u = user(userId))
         requestDirectChat(u);
     else
-        qCCritical(MAIN)
-            << "Connection::requestDirectChat: Couldn't get a user object for"
-            << userId;
+        qCCritical(MAIN) << "Connection::requestDirectChat: Couldn't get a "
+                            "user object for"
+                         << userId;
 }
 
 void Connection::requestDirectChat(User* u)

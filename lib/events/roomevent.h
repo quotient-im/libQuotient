@@ -22,13 +22,11 @@
 
 #include <QtCore/QDateTime>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class RedactionEvent;
 
 /** This class corresponds to m.room.* events */
-class RoomEvent : public Event
-{
+class RoomEvent : public Event {
     Q_GADGET
     Q_PROPERTY(QString id READ id)
     Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
@@ -93,8 +91,7 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-class CallEventBase : public RoomEvent
-{
+class CallEventBase : public RoomEvent {
 public:
     CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
                   int version, const QJsonObject& contentJson = {});

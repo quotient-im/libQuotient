@@ -2,15 +2,10 @@
 
 #include "csapi/content-repo.h"
 
-namespace QMatrixClient
-{
-class DownloadFileJob : public GetContentJob
-{
+namespace QMatrixClient {
+class DownloadFileJob : public GetContentJob {
 public:
-    enum
-    {
-        FileError = BaseJob::UserDefinedError + 1
-    };
+    enum { FileError = BaseJob::UserDefinedError + 1 };
 
     using GetContentJob::makeRequestUrl;
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri);

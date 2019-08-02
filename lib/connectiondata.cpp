@@ -23,11 +23,8 @@
 
 using namespace QMatrixClient;
 
-struct ConnectionData::Private
-{
-    explicit Private(QUrl url)
-        : baseUrl(std::move(url))
-    {}
+struct ConnectionData::Private {
+    explicit Private(QUrl url) : baseUrl(std::move(url)) {}
 
     QUrl baseUrl;
     QByteArray accessToken;

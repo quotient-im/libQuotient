@@ -24,8 +24,7 @@
 
 using namespace QMatrixClient;
 
-class PostReadMarkersJob : public BaseJob
-{
+class PostReadMarkersJob : public BaseJob {
 public:
     explicit PostReadMarkersJob(const QString& roomId,
                                 const QString& readUpToEventId)

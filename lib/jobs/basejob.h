@@ -28,32 +28,22 @@
 class QNetworkReply;
 class QSslError;
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class ConnectionData;
 
-enum class HttpVerb
-{
-    Get,
-    Put,
-    Post,
-    Delete
-};
+enum class HttpVerb { Get, Put, Post, Delete };
 
-struct JobTimeoutConfig
-{
+struct JobTimeoutConfig {
     int jobTimeout;
     int nextRetryInterval;
 };
 
-class BaseJob : public QObject
-{
+class BaseJob : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
 public:
-    enum StatusCode
-    {
+    enum StatusCode {
         NoError = 0 // To be compatible with Qt conventions
         ,
         Success = 0,
@@ -93,8 +83,7 @@ public:
      * A simple wrapper around QUrlQuery that allows its creation from
      * a list of string pairs
      */
-    class Query : public QUrlQuery
-    {
+    class Query : public QUrlQuery {
     public:
         using QUrlQuery::QUrlQuery;
         Query() = default;
@@ -115,16 +104,10 @@ public:
      * along the lines of StatusCode, with additional values
      * starting at UserDefinedError
      */
-    class Status
-    {
+    class Status {
     public:
-        Status(StatusCode c)
-            : code(c)
-        {}
-        Status(int c, QString m)
-            : code(c)
-            , message(std::move(m))
-        {}
+        Status(StatusCode c) : code(c) {}
+        Status(int c, QString m) : code(c), message(std::move(m)) {}
 
         bool good() const { return code < ErrorLevel; }
         friend QDebug operator<<(QDebug dbg, const Status& s)

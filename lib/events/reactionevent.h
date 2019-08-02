@@ -20,11 +20,9 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 
-struct EventRelation
-{
+struct EventRelation {
     using reltypeid_t = const char*;
     static constexpr reltypeid_t Reply() { return "m.in_reply_to"; }
     static constexpr reltypeid_t Annotation() { return "m.annotation"; }
@@ -48,14 +46,12 @@ struct EventRelation
     }
 };
 template <>
-struct JsonObjectConverter<EventRelation>
-{
+struct JsonObjectConverter<EventRelation> {
     static void dumpTo(QJsonObject& jo, const EventRelation& pod);
     static void fillFrom(const QJsonObject& jo, EventRelation& pod);
 };
 
-class ReactionEvent : public RoomEvent
-{
+class ReactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.reaction", ReactionEvent)
 
@@ -63,9 +59,7 @@ public:
         : RoomEvent(typeId(), matrixTypeId(),
                     { { QStringLiteral("m.relates_to"), toJson(value) } })
     {}
-    explicit ReactionEvent(const QJsonObject& obj)
-        : RoomEvent(typeId(), obj)
-    {}
+    explicit ReactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj) {}
     EventRelation relation() const
     {
         return content<EventRelation>(QStringLiteral("m.relates_to"));

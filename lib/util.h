@@ -63,8 +63,7 @@ static void qAsConst(const T&&) Q_DECL_EQ_DELETE;
 #    define BROKEN_INITIALIZER_LISTS
 #endif
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 // The below enables pretty-printing of enums in logs
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
 #    define REGISTER_ENUM(EnumName) Q_ENUM(EnumName)
@@ -88,8 +87,7 @@ inline auto unique_ptr_cast(PtrT2&& p)
     return std::unique_ptr<T1>(static_cast<T1*>(p.release()));
 }
 
-struct NoneTag
-{};
+struct NoneTag {};
 constexpr NoneTag none {};
 
 /** A crude substitute for `optional` while we're not C++17
@@ -97,27 +95,17 @@ constexpr NoneTag none {};
  * Only works with default-constructible types.
  */
 template <typename T>
-class Omittable
-{
+class Omittable {
     static_assert(!std::is_reference<T>::value,
                   "You cannot make an Omittable<> with a reference type");
 
 public:
     using value_type = std::decay_t<T>;
 
-    explicit Omittable()
-        : Omittable(none)
-    {}
-    Omittable(NoneTag)
-        : _value(value_type())
-        , _omitted(true)
-    {}
-    Omittable(const value_type& val)
-        : _value(val)
-    {}
-    Omittable(value_type&& val)
-        : _value(std::move(val))
-    {}
+    explicit Omittable() : Omittable(none) {}
+    Omittable(NoneTag) : _value(value_type()), _omitted(true) {}
+    Omittable(const value_type& val) : _value(val) {}
+    Omittable(value_type&& val) : _value(std::move(val)) {}
     Omittable<T>& operator=(const value_type& val)
     {
         _value = val;
@@ -192,8 +180,7 @@ private:
     bool _omitted = false;
 };
 
-namespace _impl
-{
+namespace _impl {
     template <typename AlwaysVoid, typename>
     struct fn_traits;
 }
@@ -205,13 +192,11 @@ namespace _impl
  * https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
  */
 template <typename T>
-struct function_traits : public _impl::fn_traits<void, T>
-{};
+struct function_traits : public _impl::fn_traits<void, T> {};
 
 // Specialisation for a function
 template <typename ReturnT, typename... ArgTs>
-struct function_traits<ReturnT(ArgTs...)>
-{
+struct function_traits<ReturnT(ArgTs...)> {
     static constexpr auto is_callable = true;
     using return_type = ReturnT;
     using arg_types = std::tuple<ArgTs...>;
@@ -219,30 +204,26 @@ struct function_traits<ReturnT(ArgTs...)>
     static constexpr auto arg_number = std::tuple_size<arg_types>::value;
 };
 
-namespace _impl
-{
+namespace _impl {
     template <typename AlwaysVoid, typename T>
-    struct fn_traits
-    {
+    struct fn_traits {
         static constexpr auto is_callable = false;
     };
 
     template <typename T>
     struct fn_traits<decltype(void(&T::operator())), T>
-        : public fn_traits<void, decltype(&T::operator())>
-    {}; // A generic function object that has (non-overloaded) operator()
+        : public fn_traits<void, decltype(&T::operator())> {
+    }; // A generic function object that has (non-overloaded) operator()
 
     // Specialisation for a member function
     template <typename ReturnT, typename ClassT, typename... ArgTs>
     struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...)>
-        : function_traits<ReturnT(ArgTs...)>
-    {};
+        : function_traits<ReturnT(ArgTs...)> {};
 
     // Specialisation for a const member function
     template <typename ReturnT, typename ClassT, typename... ArgTs>
     struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...) const>
-        : function_traits<ReturnT(ArgTs...)>
-    {};
+        : function_traits<ReturnT(ArgTs...)> {};
 } // namespace _impl
 
 template <typename FnT>
@@ -272,22 +253,15 @@ inline auto operator"" _ls(const char* s, std::size_t size)
  * are at least ForwardIterators. Inspired by Ranges TS.
  */
 template <typename ArrayT>
-class Range
-{
+class Range {
     // Looking forward for Ranges TS to produce something (in C++23?..)
     using iterator = typename ArrayT::iterator;
     using const_iterator = typename ArrayT::const_iterator;
     using size_type = typename ArrayT::size_type;
 
 public:
-    Range(ArrayT& arr)
-        : from(std::begin(arr))
-        , to(std::end(arr))
-    {}
-    Range(iterator from, iterator to)
-        : from(from)
-        , to(to)
-    {}
+    Range(ArrayT& arr) : from(std::begin(arr)), to(std::end(arr)) {}
+    Range(iterator from, iterator to) : from(from), to(to) {}
 
     size_type size() const
     {

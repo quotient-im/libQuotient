@@ -35,8 +35,7 @@
 #include <memory>
 #include <utility>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class Event;
 class Avatar;
 class SyncRoomData;
@@ -52,8 +51,7 @@ class RedactEventJob;
  * This is specifically tuned to work with QML exposing all traits as
  * Q_PROPERTY values.
  */
-class FileTransferInfo
-{
+class FileTransferInfo {
     Q_GADGET
     Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
     Q_PROPERTY(bool active READ active CONSTANT)
@@ -65,14 +63,7 @@ class FileTransferInfo
     Q_PROPERTY(QUrl localDir MEMBER localDir CONSTANT)
     Q_PROPERTY(QUrl localPath MEMBER localPath CONSTANT)
 public:
-    enum Status
-    {
-        None,
-        Started,
-        Completed,
-        Failed,
-        Cancelled
-    };
+    enum Status { None, Started, Completed, Failed, Cancelled };
     Status status = None;
     bool isUpload = false;
     int progress = 0;
@@ -86,8 +77,7 @@ public:
     bool failed() const { return status == Failed; }
 };
 
-class Room : public QObject
-{
+class Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
@@ -146,8 +136,7 @@ public:
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
-    enum Change : uint
-    {
+    enum Change : uint {
         NoChange = 0x0,
         NameChange = 0x1,
         CanonicalAliasChange = 0x2,
@@ -663,12 +652,9 @@ private:
     void setJoinState(JoinState state);
 };
 
-class MemberSorter
-{
+class MemberSorter {
 public:
-    explicit MemberSorter(const Room* r)
-        : room(r)
-    {}
+    explicit MemberSorter(const Room* r) : room(r) {}
 
     bool operator()(User* u1, User* u2) const;
     bool operator()(User* u1, const QString& u2name) const;

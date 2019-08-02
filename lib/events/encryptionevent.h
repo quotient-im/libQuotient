@@ -21,16 +21,10 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient
-{
-class EncryptionEventContent : public EventContent::Base
-{
+namespace QMatrixClient {
+class EncryptionEventContent : public EventContent::Base {
 public:
-    enum EncryptionType : size_t
-    {
-        MegolmV1AesSha2 = 0,
-        Undefined
-    };
+    enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
     explicit EncryptionEventContent(EncryptionType et = Undefined)
         : encryption(et)
@@ -48,8 +42,7 @@ protected:
 
 using EncryptionType = EncryptionEventContent::EncryptionType;
 
-class EncryptionEvent : public StateEvent<EncryptionEventContent>
-{
+class EncryptionEvent : public StateEvent<EncryptionEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)

@@ -32,12 +32,9 @@
 using namespace QMatrixClient;
 using std::move;
 
-class Avatar::Private
-{
+class Avatar::Private {
 public:
-    explicit Private(QUrl url = {})
-        : _url(move(url))
-    {}
+    explicit Private(QUrl url = {}) : _url(move(url)) {}
     ~Private()
     {
         if (isJobRunning(_thumbnailRequest))
@@ -65,13 +62,9 @@ public:
     mutable std::vector<get_callback_t> callbacks;
 };
 
-Avatar::Avatar()
-    : d(std::make_unique<Private>())
-{}
+Avatar::Avatar() : d(std::make_unique<Private>()) {}
 
-Avatar::Avatar(QUrl url)
-    : d(std::make_unique<Private>(std::move(url)))
-{}
+Avatar::Avatar(QUrl url) : d(std::make_unique<Private>(std::move(url))) {}
 
 Avatar::Avatar(Avatar&&) = default;
 

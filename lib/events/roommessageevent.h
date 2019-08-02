@@ -23,15 +23,13 @@
 
 class QFileInfo;
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 namespace MessageEventContent = EventContent; // Back-compatibility
 
 /**
  * The event class corresponding to m.room.message events
  */
-class RoomMessageEvent : public RoomEvent
-{
+class RoomMessageEvent : public RoomEvent {
     Q_GADGET
     Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
     Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
@@ -40,8 +38,7 @@ class RoomMessageEvent : public RoomEvent
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
 
-    enum class MsgType
-    {
+    enum class MsgType {
         Text,
         Emote,
         Notice,
@@ -96,12 +93,10 @@ REGISTER_EVENT_TYPE(RoomMessageEvent)
 DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
 using MessageEventType = RoomMessageEvent::MsgType;
 
-namespace EventContent
-{
+namespace EventContent {
     // Additional event content types
 
-    struct RelatesTo
-    {
+    struct RelatesTo {
         static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
         static constexpr const char* ReplacementTypeId() { return "m.replace"; }
         QString type; // The only supported relation so far
@@ -118,8 +113,7 @@ namespace EventContent
      * Available fields: mimeType, body. The body can be either rich text
      * or plain text, depending on what mimeType specifies.
      */
-    class TextContent : public TypedBase
-    {
+    class TextContent : public TypedBase {
     public:
         TextContent(const QString& text, const QString& contentType,
                     Omittable<RelatesTo> relatesTo = none);
@@ -148,8 +142,7 @@ namespace EventContent
      *   - thumbnail.mimeType
      *   - thumbnail.imageSize
      */
-    class LocationContent : public TypedBase
-    {
+    class LocationContent : public TypedBase {
     public:
         LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
         explicit LocationContent(const QJsonObject& json);
@@ -168,8 +161,7 @@ namespace EventContent
      * A base class for info types that include duration: audio and video
      */
     template <typename ContentT>
-    class PlayableContent : public ContentT
-    {
+    class PlayableContent : public ContentT {
     public:
         using ContentT::ContentT;
         PlayableContent(const QJsonObject& json)

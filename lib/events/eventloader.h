@@ -20,10 +20,8 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient
-{
-namespace _impl
-{
+namespace QMatrixClient {
+namespace _impl {
     template <typename BaseEventT>
     static inline auto loadEvent(const QJsonObject& json,
                                  const QString& matrixType)
@@ -75,8 +73,7 @@ inline StateEventPtr loadStateEvent(const QString& matrixType,
 }
 
 template <typename EventT>
-struct JsonConverter<event_ptr_tt<EventT>>
-{
+struct JsonConverter<event_ptr_tt<EventT>> {
     static auto load(const QJsonValue& jv)
     {
         return loadEvent<EventT>(jv.toObject());

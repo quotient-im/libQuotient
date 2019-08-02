@@ -24,20 +24,16 @@
 #include "event.h"
 #include "eventcontent.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 constexpr const char* FavouriteTag = "m.favourite";
 constexpr const char* LowPriorityTag = "m.lowpriority";
 
-struct TagRecord
-{
+struct TagRecord {
     using order_type = Omittable<float>;
 
     order_type order;
 
-    TagRecord(order_type order = none)
-        : order(order)
-    {}
+    TagRecord(order_type order = none) : order(order) {}
 
     bool operator<(const TagRecord& other) const
     {
@@ -48,8 +44,7 @@ struct TagRecord
 };
 
 template <>
-struct JsonObjectConverter<TagRecord>
-{
+struct JsonObjectConverter<TagRecord> {
     static void fillFrom(const QJsonObject& jo, TagRecord& rec)
     {
         // Parse a float both from JSON double and JSON string because
@@ -72,26 +67,23 @@ struct JsonObjectConverter<TagRecord>
 
 using TagsMap = QHash<QString, TagRecord>;
 
-#define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey) \
-    class _Name : public Event                                         \
-    {                                                                  \
-    public:                                                            \
-        using content_type = _ContentType;                             \
-        DEFINE_EVENT_TYPEID(_TypeId, _Name)                            \
-        explicit _Name(QJsonObject obj)                                \
-            : Event(typeId(), std::move(obj))                          \
-        {}                                                             \
-        explicit _Name(_ContentType content)                           \
-            : Event(typeId(), matrixTypeId(),                          \
-                    QJsonObject { { QStringLiteral(#_ContentKey),      \
-                                    toJson(std::move(content)) } })    \
-        {}                                                             \
-        auto _ContentKey() const                                       \
-        {                                                              \
-            return content<content_type>(#_ContentKey##_ls);           \
-        }                                                              \
-    };                                                                 \
-    REGISTER_EVENT_TYPE(_Name)                                         \
+#define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey)       \
+    class _Name : public Event {                                             \
+    public:                                                                  \
+        using content_type = _ContentType;                                   \
+        DEFINE_EVENT_TYPEID(_TypeId, _Name)                                  \
+        explicit _Name(QJsonObject obj) : Event(typeId(), std::move(obj)) {} \
+        explicit _Name(_ContentType content)                                 \
+            : Event(typeId(), matrixTypeId(),                                \
+                    QJsonObject { { QStringLiteral(#_ContentKey),            \
+                                    toJson(std::move(content)) } })          \
+        {}                                                                   \
+        auto _ContentKey() const                                             \
+        {                                                                    \
+            return content<content_type>(#_ContentKey##_ls);                 \
+        }                                                                    \
+    };                                                                       \
+    REGISTER_EVENT_TYPE(_Name)                                               \
     // End of macro
 
 DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", TagsMap, tags)

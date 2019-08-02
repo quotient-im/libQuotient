@@ -20,10 +20,8 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-class CallAnswerEvent : public CallEventBase
-{
+namespace QMatrixClient {
+class CallAnswerEvent : public CallEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.call.answer", CallAnswerEvent)
 

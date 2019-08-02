@@ -20,25 +20,20 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient
-{
-namespace EventContent
-{
+namespace QMatrixClient {
+namespace EventContent {
     template <typename T>
-    class SimpleContent
-    {
+    class SimpleContent {
     public:
         using value_type = T;
 
         // The constructor is templated to enable perfect forwarding
         template <typename TT>
         SimpleContent(QString keyName, TT&& value)
-            : value(std::forward<TT>(value))
-            , key(std::move(keyName))
+            : value(std::forward<TT>(value)), key(std::move(keyName))
         {}
         SimpleContent(const QJsonObject& json, QString keyName)
-            : value(fromJson<T>(json[keyName]))
-            , key(std::move(keyName))
+            : value(fromJson<T>(json[keyName])), key(std::move(keyName))
         {}
         QJsonObject toJson() const
         {
@@ -54,14 +49,11 @@ namespace EventContent
 } // namespace EventContent
 
 #define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey)     \
-    class _Name : public StateEvent<EventContent::SimpleContent<_ValueType>>   \
-    {                                                                          \
+    class _Name : public StateEvent<EventContent::SimpleContent<_ValueType>> { \
     public:                                                                    \
         using value_type = content_type::value_type;                           \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                    \
-        explicit _Name()                                                       \
-            : _Name(value_type())                                              \
-        {}                                                                     \
+        explicit _Name() : _Name(value_type()) {}                              \
         template <typename T>                                                  \
         explicit _Name(T&& value)                                              \
             : StateEvent(typeId(), matrixTypeId(), QString(),                  \
@@ -86,8 +78,7 @@ DEFINE_EVENTTYPE_ALIAS(RoomTopic, RoomTopicEvent)
 DEFINE_EVENTTYPE_ALIAS(RoomEncryption, EncryptionEvent)
 
 class RoomAliasesEvent
-    : public StateEvent<EventContent::SimpleContent<QStringList>>
-{
+    : public StateEvent<EventContent::SimpleContent<QStringList>> {
 public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)

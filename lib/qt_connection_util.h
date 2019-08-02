@@ -22,10 +22,8 @@
 
 #include <QtCore/QPointer>
 
-namespace QMatrixClient
-{
-namespace _impl
-{
+namespace QMatrixClient {
+namespace _impl {
     template <typename SenderT, typename SignalT, typename ContextT, typename... ArgTs>
     inline QMetaObject::Connection
     connectUntil(SenderT* sender, SignalT signal, ContextT* context,
@@ -86,12 +84,10 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
  * destruction.
  */
 template <typename T>
-class ConnectionsGuard : public QPointer<T>
-{
+class ConnectionsGuard : public QPointer<T> {
 public:
     ConnectionsGuard(T* publisher, QObject* subscriber)
-        : QPointer<T>(publisher)
-        , subscriber(subscriber)
+        : QPointer<T>(publisher), subscriber(subscriber)
     {}
     ~ConnectionsGuard()
     {

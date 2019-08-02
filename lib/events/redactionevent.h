@@ -20,15 +20,12 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-class RedactionEvent : public RoomEvent
-{
+namespace QMatrixClient {
+class RedactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
 
-    explicit RedactionEvent(const QJsonObject& obj)
-        : RoomEvent(typeId(), obj)
+    explicit RedactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj)
     {}
 
     QString redactedEvent() const

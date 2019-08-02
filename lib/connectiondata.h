@@ -24,10 +24,8 @@
 
 class QNetworkAccessManager;
 
-namespace QMatrixClient
-{
-class ConnectionData
-{
+namespace QMatrixClient {
+class ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
     virtual ~ConnectionData();

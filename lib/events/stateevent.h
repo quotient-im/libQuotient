@@ -20,8 +20,7 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 
 /// Make a minimal correct Matrix state event JSON
 template <typename StrT>
@@ -34,13 +33,11 @@ inline QJsonObject basicStateEventJson(StrT matrixType,
              { ContentKey, content } };
 }
 
-class StateEventBase : public RoomEvent
-{
+class StateEventBase : public RoomEvent {
 public:
     using factory_t = EventFactory<StateEventBase>;
 
-    StateEventBase(Type type, const QJsonObject& json)
-        : RoomEvent(type, json)
+    StateEventBase(Type type, const QJsonObject& json) : RoomEvent(type, json)
     {}
     StateEventBase(Type type, event_mtype_t matrixType,
                    const QString& stateKey = {},
@@ -71,8 +68,7 @@ inline bool is<StateEventBase>(const Event& e)
 using StateEventKey = QPair<QString, QString>;
 
 template <typename ContentT>
-struct Prev
-{
+struct Prev {
     template <typename... ContentParamTs>
     explicit Prev(const QJsonObject& unsignedJson,
                   ContentParamTs&&... contentParams)
@@ -86,8 +82,7 @@ struct Prev
 };
 
 template <typename ContentT>
-class StateEvent : public StateEventBase
-{
+class StateEvent : public StateEventBase {
 public:
     using content_type = ContentT;
 
@@ -135,11 +130,9 @@ private:
 };
 } // namespace QMatrixClient
 
-namespace std
-{
+namespace std {
 template <>
-struct hash<QMatrixClient::StateEventKey>
-{
+struct hash<QMatrixClient::StateEventKey> {
     size_t operator()(const QMatrixClient::StateEventKey& k) const Q_DECL_NOEXCEPT
     {
         return qHash(k);

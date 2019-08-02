@@ -4,8 +4,7 @@
 
 #include <QtCore/QStringList>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 static const auto CiphertextKeyL = "ciphertext"_ls;
 static const auto SenderKeyKeyL = "sender_key"_ls;
 static const auto DeviceIdKeyL = "device_id"_ls;

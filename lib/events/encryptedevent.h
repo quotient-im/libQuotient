@@ -3,8 +3,7 @@
 #include "e2ee.h"
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class Room;
 /*
  * While the specification states:
@@ -24,8 +23,7 @@ class Room;
  * in general. It's possible, because RoomEvent interface is similar to Event's
  * one and doesn't add new restrictions, just provides additional features.
  */
-class EncryptedEvent : public RoomEvent
-{
+class EncryptedEvent : public RoomEvent {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encrypted", EncryptedEvent)

@@ -23,16 +23,10 @@ inline auto fromJson(const JsonDataT& jdata)
     return fromData(QJsonDocument(jdata).toJson(QJsonDocument::Compact));
 }
 
-RequestData::RequestData(const QByteArray& a)
-    : _source(fromData(a))
-{}
+RequestData::RequestData(const QByteArray& a) : _source(fromData(a)) {}
 
-RequestData::RequestData(const QJsonObject& jo)
-    : _source(fromJson(jo))
-{}
+RequestData::RequestData(const QJsonObject& jo) : _source(fromJson(jo)) {}
 
-RequestData::RequestData(const QJsonArray& ja)
-    : _source(fromJson(ja))
-{}
+RequestData::RequestData(const QJsonArray& ja) : _source(fromJson(ja)) {}
 
 RequestData::~RequestData() = default;

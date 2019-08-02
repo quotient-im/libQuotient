@@ -124,7 +124,8 @@ QString QMatrixClient::serverPart(const QString& mxId)
                         % ServerPartRegEx % ")$";
     static QRegularExpression parser(
         re,
-        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian
+                                                         // digits
     return parser.match(mxId).captured(1);
 }
 
@@ -148,16 +149,14 @@ void f2(int, QString);
 static_assert(std::is_same<fn_arg_t<decltype(f2), 1>, QString>::value,
               "Test fn_arg_t<>");
 
-struct S
-{
+struct S {
     int mf();
 };
 static_assert(is_callable_v<decltype(&S::mf)>, "Test member function");
 static_assert(returns<int, decltype(&S::mf)>(),
               "Test returns<> with member function");
 
-struct Fo
-{
+struct Fo {
     int operator()();
 };
 static_assert(is_callable_v<Fo>, "Test is_callable<> with function object");
@@ -165,8 +164,7 @@ static_assert(function_traits<Fo>::arg_number == 0, "Test function object");
 static_assert(std::is_same<fn_return_t<Fo>, int>::value,
               "Test return type of function object");
 
-struct Fo1
-{
+struct Fo1 {
     void operator()(int);
 };
 static_assert(function_traits<Fo1>::arg_number == 1, "Test function object 1");
@@ -182,13 +180,11 @@ static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
 #endif
 
 template <typename T>
-struct fn_object
-{
+struct fn_object {
     static int smf(double) { return 0; }
 };
 template <>
-struct fn_object<QString>
-{
+struct fn_object<QString> {
     void operator()(QString);
 };
 static_assert(is_callable_v<fn_object<QString>>, "Test function object");

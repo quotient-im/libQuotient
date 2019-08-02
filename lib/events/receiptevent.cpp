@@ -40,8 +40,7 @@ Example of a Receipt Event:
 
 using namespace QMatrixClient;
 
-ReceiptEvent::ReceiptEvent(const QJsonObject& obj)
-    : Event(typeId(), obj)
+ReceiptEvent::ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj)
 {
     const auto& contents = contentJson();
     _eventsWithReceipts.reserve(contents.size());

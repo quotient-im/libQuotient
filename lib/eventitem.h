@@ -22,12 +22,10 @@
 
 #include <utility>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class StateEventBase;
 
-class EventStatus
-{
+class EventStatus {
     Q_GADGET
 public:
     /** Special marks an event can assume
@@ -35,8 +33,7 @@ public:
      * This is used to hint at a special status of some events in UI.
      * All values except Redacted and Hidden are mutually exclusive.
      */
-    enum Code
-    {
+    enum Code {
         Normal = 0x0, //< No special designation
         Submitted = 0x01, //< The event has just been submitted for sending
         FileUploaded = 0x02, //< The file attached to the event has been
@@ -51,11 +48,9 @@ public:
     Q_FLAG(Status)
 };
 
-class EventItemBase
-{
+class EventItemBase {
 public:
-    explicit EventItemBase(RoomEventPtr&& e)
-        : evt(std::move(e))
+    explicit EventItemBase(RoomEventPtr&& e) : evt(std::move(e))
     {
         Q_ASSERT(evt);
     }
@@ -87,16 +82,14 @@ private:
     RoomEventPtr evt;
 };
 
-class TimelineItem : public EventItemBase
-{
+class TimelineItem : public EventItemBase {
 public:
     // For compatibility with Qt containers, even though we use
     // a std:: container now for the room timeline
     using index_t = int;
 
     TimelineItem(RoomEventPtr&& e, index_t number)
-        : EventItemBase(std::move(e))
-        , idx(number)
+        : EventItemBase(std::move(e)), idx(number)
     {}
 
     index_t index() const { return idx; }
@@ -118,8 +111,7 @@ inline const CallEventBase* EventItemBase::viewAs<CallEventBase>() const
     return evt->isCallEvent() ? weakPtrCast<const CallEventBase>(evt) : nullptr;
 }
 
-class PendingEventItem : public EventItemBase
-{
+class PendingEventItem : public EventItemBase {
     Q_GADGET
 public:
     using EventItemBase::EventItemBase;

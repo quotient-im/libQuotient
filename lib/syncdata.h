@@ -22,8 +22,7 @@
 
 #include "events/stateevent.h"
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 /// Room summary, as defined in MSC688
 /**
  * Every member of this structure is an Omittable; as per the MSC, only
@@ -32,8 +31,7 @@ namespace QMatrixClient
  * means that nothing has come from the server; heroes.value().isEmpty()
  * means a peculiar case of a room with the only member - the current user.
  */
-struct RoomSummary
-{
+struct RoomSummary {
     Omittable<int> joinedMemberCount;
     Omittable<int> invitedMemberCount;
     Omittable<QStringList> heroes; //< mxids of users to take part in the room
@@ -48,14 +46,12 @@ struct RoomSummary
 };
 
 template <>
-struct JsonObjectConverter<RoomSummary>
-{
+struct JsonObjectConverter<RoomSummary> {
     static void dumpTo(QJsonObject& jo, const RoomSummary& rs);
     static void fillFrom(const QJsonObject& jo, RoomSummary& rs);
 };
 
-class SyncRoomData
-{
+class SyncRoomData {
 public:
     QString roomId;
     JoinState joinState;
@@ -82,8 +78,7 @@ public:
 // QVector cannot work with non-copiable objects, std::vector can.
 using SyncDataList = std::vector<SyncRoomData>;
 
-class SyncData
-{
+class SyncData {
 public:
     SyncData() = default;
     explicit SyncData(const QString& cacheFileName);

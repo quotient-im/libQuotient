@@ -22,10 +22,8 @@
 #include "../syncdata.h"
 #include "basejob.h"
 
-namespace QMatrixClient
-{
-class SyncJob : public BaseJob
-{
+namespace QMatrixClient {
+class SyncJob : public BaseJob {
 public:
     explicit SyncJob(const QString& since = {}, const QString& filter = {},
                      int timeout = -1, const QString& presence = {});

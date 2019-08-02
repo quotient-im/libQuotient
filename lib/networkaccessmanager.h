@@ -22,10 +22,8 @@
 
 #include <memory>
 
-namespace QMatrixClient
-{
-class NetworkAccessManager : public QNetworkAccessManager
-{
+namespace QMatrixClient {
+class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
     NetworkAccessManager(QObject* parent = nullptr);

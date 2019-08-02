@@ -15,11 +15,9 @@ static const std::array<QString, 1> encryptionStrings = {
     { QMatrixClient::MegolmV1AesSha2AlgoKey }
 };
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 template <>
-struct JsonConverter<EncryptionType>
-{
+struct JsonConverter<EncryptionType> {
     static EncryptionType load(const QJsonValue& jv)
     {
         const auto& encryptionString = jv.toString();

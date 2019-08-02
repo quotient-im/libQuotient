@@ -20,16 +20,12 @@
 
 #include "event.h"
 
-namespace QMatrixClient
-{
-class DirectChatEvent : public Event
-{
+namespace QMatrixClient {
+class DirectChatEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
 
-    explicit DirectChatEvent(const QJsonObject& obj)
-        : Event(typeId(), obj)
-    {}
+    explicit DirectChatEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
 
     QMultiHash<QString, QString> usersToDirectChats() const;
 };

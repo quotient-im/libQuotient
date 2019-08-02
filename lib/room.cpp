@@ -78,24 +78,16 @@ using std::move;
 using std::llround;
 #endif
 
-enum EventsPlacement : int
-{
-    Older = -1,
-    Newer = 1
-};
+enum EventsPlacement : int { Older = -1, Newer = 1 };
 
-class Room::Private
-{
+class Room::Private {
 public:
     /// Map of user names to users
     /** User names potentially duplicate, hence QMultiHash. */
     using members_map_t = QMultiHash<QString, User*>;
 
     Private(Connection* c, QString id_, JoinState initialJoinState)
-        : q(nullptr)
-        , connection(c)
-        , id(move(id_))
-        , joinState(initialJoinState)
+        : q(nullptr), connection(c), id(move(id_)), joinState(initialJoinState)
     {}
 
     Room* q;
@@ -144,8 +136,7 @@ public:
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
 
-    struct FileTransferPrivateInfo
-    {
+    struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
         FileTransferPrivateInfo(BaseJob* j, const QString& fileName,
                                 bool isUploading = false)
@@ -354,8 +345,7 @@ private:
 decltype(Room::Private::baseState) Room::Private::stubbedState {};
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
-    : QObject(connection)
-    , d(new Private(connection, id, initialJoinState))
+    : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
     setObjectName(id);
     // See "Accessing the Public Class" section in
@@ -1617,9 +1607,9 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                         // Normally in this situation we should instruct
                         // the media server to delete the file; alas, there's no
                         // API specced for that.
-                        qCWarning(MAIN)
-                            << "File uploaded to" << mxcUri
-                            << "but the event referring to it was cancelled";
+                        qCWarning(MAIN) << "File uploaded to" << mxcUri
+                                        << "but the event referring to it was "
+                                           "cancelled";
                     }
                     context->deleteLater();
                 }
@@ -2382,9 +2372,9 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 break;
             case MembershipType::Join:
                 if (evt.membership() == MembershipType::Invite)
-                    qCWarning(MAIN)
-                        << "Invalid membership change from Join to Invite:"
-                        << evt;
+                    qCWarning(MAIN) << "Invalid membership change from "
+                                       "Join to Invite:"
+                                    << evt;
                 if (evt.membership() != prevMembership) {
                     disconnect(u, &User::nameAboutToChange, this, nullptr);
                     disconnect(u, &User::nameChanged, this, nullptr);
@@ -2564,7 +2554,8 @@ Room::Private::buildShortlist(const ContT& users) const
     std::partial_sort_copy(
         users.begin(), users.end(), shortlist.begin(), shortlist.end(),
         [this](const User* u1, const User* u2) {
-            // localUser(), if it's in the list, is sorted below all others
+            // localUser(), if it's in the list, is sorted
+            // below all others
             return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
         });
     return shortlist;

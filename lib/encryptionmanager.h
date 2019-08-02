@@ -5,17 +5,14 @@
 #include <functional>
 #include <memory>
 
-namespace QtOlm
-{
+namespace QtOlm {
 class Account;
 }
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class Connection;
 
-class EncryptionManager : public QObject
-{
+class EncryptionManager : public QObject {
     Q_OBJECT
 
 public:

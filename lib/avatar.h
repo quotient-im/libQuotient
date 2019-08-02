@@ -24,12 +24,10 @@
 #include <functional>
 #include <memory>
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 class Connection;
 
-class Avatar
-{
+class Avatar {
 public:
     explicit Avatar();
     explicit Avatar(QUrl url);

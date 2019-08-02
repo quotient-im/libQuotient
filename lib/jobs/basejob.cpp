@@ -32,8 +32,7 @@
 
 using namespace QMatrixClient;
 
-struct NetworkReplyDeleter : public QScopedPointerDeleteLater
-{
+struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
     {
         if (reply && reply->isRunning())
@@ -42,8 +41,7 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater
     }
 };
 
-class BaseJob::Private
-{
+class BaseJob::Private {
 public:
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html

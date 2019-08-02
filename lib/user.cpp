@@ -41,8 +41,7 @@ using namespace QMatrixClient;
 using namespace std::placeholders;
 using std::move;
 
-class User::Private
-{
+class User::Private {
 public:
     static Avatar makeAvatar(QUrl url) { return Avatar(move(url)); }
 
@@ -184,8 +183,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
 }
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection)
-    , d(new Private(move(userId), connection))
+    : QObject(connection), d(new Private(move(userId), connection))
 {
     setObjectName(userId);
 }

@@ -16,8 +16,7 @@ using namespace QMatrixClient;
 using namespace QtOlm;
 using std::move;
 
-class EncryptionManager::Private
-{
+class EncryptionManager::Private {
 public:
     explicit Private(const QByteArray& encryptionAccountPickle,
                      float signedKeysProportion, float oneTimeKeyThreshold)

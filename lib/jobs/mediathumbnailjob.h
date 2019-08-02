@@ -22,10 +22,8 @@
 
 #include <QtGui/QPixmap>
 
-namespace QMatrixClient
-{
-class MediaThumbnailJob : public GetContentThumbnailJob
-{
+namespace QMatrixClient {
+class MediaThumbnailJob : public GetContentThumbnailJob {
 public:
     using GetContentThumbnailJob::makeRequestUrl;
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,

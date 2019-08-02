@@ -26,10 +26,8 @@
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
 
-namespace QMatrixClient
-{
-namespace EventContent
-{
+namespace QMatrixClient {
+namespace EventContent {
     /**
      * A base class for all content types that can be stored
      * in a RoomMessageEvent
@@ -40,12 +38,9 @@ namespace EventContent
      * assumed but not required that a content object can also be created
      * from plain data.
      */
-    class Base
-    {
+    class Base {
     public:
-        explicit Base(QJsonObject o = {})
-            : originalJson(std::move(o))
-        {}
+        explicit Base(QJsonObject o = {}) : originalJson(std::move(o)) {}
         virtual ~Base() = default;
 
         // FIXME: make toJson() from converters.* work on base classes
@@ -90,8 +85,7 @@ namespace EventContent
      *
      * This class is not polymorphic.
      */
-    class FileInfo
-    {
+    class FileInfo {
     public:
         explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
                           const QMimeType& mimeType = {},
@@ -131,8 +125,7 @@ namespace EventContent
     /**
      * A content info class for image content types: image, thumbnail, video
      */
-    class ImageInfo : public FileInfo
-    {
+    class ImageInfo : public FileInfo {
     public:
         explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
                            QMimeType mimeType = {}, const QSize& imageSize = {},
@@ -153,16 +146,11 @@ namespace EventContent
      * the JSON representation of event content; namely,
      * "info/thumbnail_url" and "info/thumbnail_info" fields are used.
      */
-    class Thumbnail : public ImageInfo
-    {
+    class Thumbnail : public ImageInfo {
     public:
-        Thumbnail()
-            : ImageInfo(QUrl())
-        {} // To allow empty thumbnails
+        Thumbnail() : ImageInfo(QUrl()) {} // To allow empty thumbnails
         Thumbnail(const QJsonObject& infoJson);
-        Thumbnail(const ImageInfo& info)
-            : ImageInfo(info)
-        {}
+        Thumbnail(const ImageInfo& info) : ImageInfo(info) {}
         using ImageInfo::ImageInfo;
 
         /**
@@ -172,12 +160,9 @@ namespace EventContent
         void fillInfoJson(QJsonObject* infoJson) const;
     };
 
-    class TypedBase : public Base
-    {
+    class TypedBase : public Base {
     public:
-        explicit TypedBase(QJsonObject o = {})
-            : Base(std::move(o))
-        {}
+        explicit TypedBase(QJsonObject o = {}) : Base(std::move(o)) {}
         virtual QMimeType type() const = 0;
         virtual const FileInfo* fileInfo() const { return nullptr; }
         virtual FileInfo* fileInfo() { return nullptr; }
@@ -198,8 +183,7 @@ namespace EventContent
      * \tparam InfoT base info class
      */
     template <class InfoT>
-    class UrlBasedContent : public TypedBase, public InfoT
-    {
+    class UrlBasedContent : public TypedBase, public InfoT {
     public:
         using InfoT::InfoT;
         explicit UrlBasedContent(const QJsonObject& json)
@@ -227,13 +211,11 @@ namespace EventContent
     };
 
     template <typename InfoT>
-    class UrlWithThumbnailContent : public UrlBasedContent<InfoT>
-    {
+    class UrlWithThumbnailContent : public UrlBasedContent<InfoT> {
     public:
         using UrlBasedContent<InfoT>::UrlBasedContent;
         explicit UrlWithThumbnailContent(const QJsonObject& json)
-            : UrlBasedContent<InfoT>(json)
-            , thumbnail(InfoT::originalInfoJson)
+            : UrlBasedContent<InfoT>(json), thumbnail(InfoT::originalInfoJson)
         {
             // Another small hack, to simplify making a thumbnail link
             UrlBasedContent<InfoT>::originalJson.insert("thumbnailMediaId",

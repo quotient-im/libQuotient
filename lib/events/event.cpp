@@ -42,9 +42,7 @@ QString EventTypeRegistry::getMatrixType(event_type_t typeId)
                                             : QString();
 }
 
-Event::Event(Type type, const QJsonObject& json)
-    : _type(type)
-    , _json(json)
+Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
 {
     if (!json.contains(ContentKeyL)
         && !json.value(UnsignedKeyL).toObject().contains(RedactedCauseKeyL)) {

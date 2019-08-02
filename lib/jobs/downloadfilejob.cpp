@@ -6,12 +6,9 @@
 
 using namespace QMatrixClient;
 
-class DownloadFileJob::Private
-{
+class DownloadFileJob::Private {
 public:
-    Private()
-        : tempFile(new QTemporaryFile())
-    {}
+    Private() : tempFile(new QTemporaryFile()) {}
 
     explicit Private(const QString& localFilename)
         : targetFile(new QFile(localFilename))

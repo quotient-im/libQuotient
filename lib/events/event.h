@@ -25,8 +25,7 @@
 #    define USE_EVENTTYPE_ALIAS 1
 #endif
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 // === event_ptr_tt<> and type casting facilities ===
 
 template <typename EventT>
@@ -85,8 +84,7 @@ inline QJsonObject basicEventJson(StrT matrixType, const QJsonObject& content)
 using event_type_t = size_t;
 using event_mtype_t = const char*;
 
-class EventTypeRegistry
-{
+class EventTypeRegistry {
 public:
     ~EventTypeRegistry() = default;
 
@@ -121,8 +119,7 @@ inline event_type_t EventTypeRegistry::initializeTypeId<void>()
 }
 
 template <typename EventT>
-struct EventTypeTraits
-{
+struct EventTypeTraits {
     static event_type_t id()
     {
         static const auto id = EventTypeRegistry::initializeTypeId<EventT>();
@@ -148,8 +145,7 @@ inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 }
 
 template <typename BaseEventT>
-class EventFactory
-{
+class EventFactory {
 public:
     template <typename FnT>
     static auto addMethod(FnT&& method)
@@ -223,8 +219,7 @@ inline auto registerEventType()
 
 // === Event ===
 
-class Event
-{
+class Event {
     Q_GADGET
     Q_PROPERTY(Type type READ type CONSTANT)
     Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
@@ -304,16 +299,14 @@ using Events = EventsArray<Event>;
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
 #define REGISTER_EVENT_TYPE(_Type)                               \
-    namespace                                                    \
-    {                                                            \
+    namespace {                                                  \
         [[gnu::unused]] static const auto _factoryAdded##_Type = \
             registerEventType<_Type>();                          \
     }                                                            \
     // End of macro
 
 #ifdef USE_EVENTTYPE_ALIAS
-namespace EventType
-{
+namespace EventType {
     inline event_type_t logEventType(event_type_t id, const char* idName)
     {
         qDebug(EVENTS) << "Using id" << id << "for" << idName;
@@ -324,8 +317,7 @@ namespace EventType
 // This macro provides constants in EventType:: namespace for
 // back-compatibility with libQMatrixClient 0.3 event type system.
 #    define DEFINE_EVENTTYPE_ALIAS(_Id, _Type)                  \
-        namespace EventType                                     \
-        {                                                       \
+        namespace EventType {                                   \
             [[deprecated("Use is<>(), eventCast<>() or "        \
                          "visit<>()")]] static const auto _Id = \
                 logEventType(typeId<_Type>(), #_Id);            \

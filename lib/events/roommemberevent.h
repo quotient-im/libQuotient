@@ -21,13 +21,10 @@
 #include "eventcontent.h"
 #include "stateevent.h"
 
-namespace QMatrixClient
-{
-class MemberEventContent : public EventContent::Base
-{
+namespace QMatrixClient {
+class MemberEventContent : public EventContent::Base {
 public:
-    enum MembershipType : size_t
-    {
+    enum MembershipType : size_t {
         Invite = 0,
         Join,
         Knock,
@@ -36,9 +33,7 @@ public:
         Undefined
     };
 
-    explicit MemberEventContent(MembershipType mt = Join)
-        : membership(mt)
-    {}
+    explicit MemberEventContent(MembershipType mt = Join) : membership(mt) {}
     explicit MemberEventContent(const QJsonObject& json);
 
     MembershipType membership;
@@ -52,16 +47,14 @@ protected:
 
 using MembershipType = MemberEventContent::MembershipType;
 
-class RoomMemberEvent : public StateEvent<MemberEventContent>
-{
+class RoomMemberEvent : public StateEvent<MemberEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
     using MembershipType = MemberEventContent::MembershipType;
 
-    explicit RoomMemberEvent(const QJsonObject& obj)
-        : StateEvent(typeId(), obj)
+    explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
     [[deprecated("Use RoomMemberEvent(userId, contentArgs) "
                  "instead")]] RoomMemberEvent(MemberEventContent&& c)
@@ -103,8 +96,7 @@ private:
 };
 
 template <>
-class EventFactory<RoomMemberEvent>
-{
+class EventFactory<RoomMemberEvent> {
 public:
     static event_ptr_tt<RoomMemberEvent> make(const QJsonObject& json,
                                               const QString&)

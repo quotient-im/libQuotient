@@ -20,10 +20,8 @@
 
 #include "event.h"
 
-namespace QMatrixClient
-{
-class TypingEvent : public Event
-{
+namespace QMatrixClient {
+class TypingEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
 

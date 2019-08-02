@@ -28,11 +28,9 @@ static const std::array<QString, 5> membershipStrings = {
       QStringLiteral("leave"), QStringLiteral("ban") }
 };
 
-namespace QMatrixClient
-{
+namespace QMatrixClient {
 template <>
-struct JsonConverter<MembershipType>
-{
+struct JsonConverter<MembershipType> {
     static MembershipType load(const QJsonValue& jv)
     {
         const auto& membershipString = jv.toString();
