@@ -35,15 +35,15 @@ AlignOperands: true
 AlwaysBreakTemplateDeclarations: true
 #BinPackArguments: true
 #BinPackParameters: true
-BraceWrapping:   
-  AfterClass:      true
+BraceWrapping:
+  AfterClass:      false
   AfterControlStatement: false
-  AfterEnum:       true
+  AfterEnum:       false
   AfterFunction:   true
-  AfterNamespace:  true
-  AfterStruct:     true
-  AfterUnion:      true
-  AfterExternBlock: true
+  AfterNamespace:  false
+  AfterStruct:     false
+  AfterUnion:      false
+  AfterExternBlock: false
   BeforeCatch:     false
   BeforeElse:      false
   IndentBraces:    false
