@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.h"
+
 #include <QtCore/QStringList>
 
 namespace QMatrixClient
