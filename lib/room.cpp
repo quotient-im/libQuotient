@@ -1520,6 +1520,7 @@ QString Room::retryMessage(const QString& txnId)
                " events are likely to be in the timeline after retry";
     }
     it->resetStatus();
+    emit pendingEventChanged(int(it - d->unsyncedEvents.begin()));
     return d->doSendEvent(it->event());
 }
 
@@ -2189,6 +2190,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         auto* nextPendingEvt = nextPending->get();
         const auto pendingEvtIdx =
             int(nextPendingPair.second - unsyncedEvents.begin());
+        nextPendingPair.second->setReachedServer(nextPendingEvt->id());
+        emit q->pendingEventChanged(pendingEvtIdx);
         emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
         qDebug(EVENTS) << "Merging pending event from transaction"
                        << nextPendingEvt->transactionId() << "into"
