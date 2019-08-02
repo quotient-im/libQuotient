@@ -58,11 +58,13 @@ ptrCast(event_ptr_tt<SourceT>&& ptr)
 // === Standard Matrix key names and basicEventJson() ===
 
 static const auto TypeKey = QStringLiteral("type");
+static const auto BodyKey = QStringLiteral("body");
 static const auto ContentKey = QStringLiteral("content");
 static const auto EventIdKey = QStringLiteral("event_id");
 static const auto UnsignedKey = QStringLiteral("unsigned");
 static const auto StateKeyKey = QStringLiteral("state_key");
 static const auto TypeKeyL = "type"_ls;
+static const auto BodyKeyL = "body"_ls;
 static const auto ContentKeyL = "content"_ls;
 static const auto EventIdKeyL = "event_id"_ls;
 static const auto UnsignedKeyL = "unsigned"_ls;
@@ -391,10 +393,8 @@ template <typename BaseEventT, typename FnT>
 inline std::enable_if_t<is_event<BaseEventT>() && needs_cast<BaseEventT, FnT>(),
                         fn_return_t<FnT>> // non-voidness is guarded by
                                           // defaultValue type
-                                          visit(const BaseEventT& event,
-                                                FnT&& visitor,
-                                                fn_return_t<FnT>&&
-                                                    defaultValue = {})
+visit(const BaseEventT& event, FnT&& visitor,
+      fn_return_t<FnT>&& defaultValue = {})
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))

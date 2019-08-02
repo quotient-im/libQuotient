@@ -25,8 +25,10 @@
 #include "csapi/message_pagination.h"
 
 #include "events/accountdataevents.h"
+#include "events/encryptedevent.h"
 #include "events/roommessageevent.h"
 
+#include <QtCore/QJsonObject>
 #include <QtGui/QImage>
 
 #include <deque>
@@ -140,6 +142,7 @@ class Room : public QObject
 public:
     using Timeline = std::deque<TimelineItem>;
     using PendingEvents = std::vector<PendingEventItem>;
+    using RelatedEvents = QVector<const RoomEvent*>;
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
@@ -199,6 +202,14 @@ public:
     memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
+    const RoomEvent* decryptMessage(EncryptedEvent* encryptedEvent) const;
+    const QString decryptMessage(QJsonObject personalCipherObject,
+                                 QByteArray senderKey) const;
+    const QString sessionKey(const QString& senderKey, const QString& deviceId,
+                             const QString& sessionId) const;
+    const QString decryptMessage(QByteArray cipher, const QString& senderKey,
+                                 const QString& deviceId,
+                                 const QString& sessionId) const;
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
@@ -283,6 +294,11 @@ public:
     rev_iter_t findInTimeline(const QString& evtId) const;
     PendingEvents::iterator findPendingEvent(const QString& txnId);
     PendingEvents::const_iterator findPendingEvent(const QString& txnId) const;
+
+    const RelatedEvents relatedEvents(const QString& evtId,
+                                      const char* relType) const;
+    const RelatedEvents relatedEvents(const RoomEvent& evt,
+                                      const char* relType) const;
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -443,6 +459,8 @@ public slots:
     QString postHtmlMessage(const QString& plainText, const QString& html,
                             MessageEventType type = MessageEventType::Text);
     QString postHtmlText(const QString& plainText, const QString& html);
+    /// Send a reaction on a given event with a given key
+    QString postReaction(const QString& eventId, const QString& key);
     QString postFile(const QString& plainText, const QUrl& localPath,
                      bool asGenericFile = false);
     /** Post a pre-created room message event
@@ -599,6 +617,7 @@ signals:
     void tagsAboutToChange();
     void tagsChanged();
 
+    void updatedEvent(QString eventId);
     void replacedEvent(const RoomEvent* newEvent, const RoomEvent* oldEvent);
 
     void newFileTransfer(QString id, QUrl localFile);

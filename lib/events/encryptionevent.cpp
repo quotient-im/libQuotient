@@ -6,12 +6,14 @@
 #include "encryptionevent.h"
 
 #include "converters.h"
+#include "e2ee.h"
 #include "logging.h"
 
 #include <array>
 
-static const std::array<QString, 1> encryptionStrings = { { QStringLiteral(
-    "m.megolm.v1.aes-sha2") } };
+static const std::array<QString, 1> encryptionStrings = {
+    { QMatrixClient::MegolmV1AesSha2AlgoKey }
+};
 
 namespace QMatrixClient
 {
@@ -36,9 +38,9 @@ using namespace QMatrixClient;
 
 EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
     : encryption(fromJson<EncryptionType>(json["algorithm"_ls]))
-    , algorithm(sanitized(json["algorithm"_ls].toString()))
-    , rotationPeriodMs(json["rotation_period_ms"_ls].toInt(604800000))
-    , rotationPeriodMsgs(json["rotation_period_msgs"_ls].toInt(100))
+    , algorithm(sanitized(json[AlgorithmKeyL].toString()))
+    , rotationPeriodMs(json[RotationPeriodMsKeyL].toInt(604800000))
+    , rotationPeriodMsgs(json[RotationPeriodMsgsKeyL].toInt(100))
 {}
 
 void EncryptionEventContent::fillJson(QJsonObject* o) const
@@ -48,7 +50,7 @@ void EncryptionEventContent::fillJson(QJsonObject* o) const
         encryption != EncryptionType::Undefined, __FUNCTION__,
         "The key 'algorithm' must be explicit in EncryptionEventContent");
     if (encryption != EncryptionType::Undefined)
-        o->insert(QStringLiteral("algorithm"), algorithm);
-    o->insert(QStringLiteral("rotation_period_ms"), rotationPeriodMs);
-    o->insert(QStringLiteral("rotation_period_msgs"), rotationPeriodMsgs);
+        o->insert(AlgorithmKey, algorithm);
+    o->insert(RotationPeriodMsKey, rotationPeriodMs);
+    o->insert(RotationPeriodMsgsKey, rotationPeriodMsgs);
 }

@@ -77,6 +77,7 @@ public:
     bool hasTextContent() const;
     bool hasFileContent() const;
     bool hasThumbnail() const;
+    QString replacedEvent() const;
 
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
@@ -84,6 +85,7 @@ public:
 private:
     QScopedPointer<EventContent::TypedBase> _content;
 
+    // FIXME: should it really be static?
     static QJsonObject assembleContentJson(const QString& plainBody,
                                            const QString& jsonMsgType,
                                            EventContent::TypedBase* content);
@@ -101,6 +103,7 @@ namespace EventContent
     struct RelatesTo
     {
         static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
+        static constexpr const char* ReplacementTypeId() { return "m.replace"; }
         QString type; // The only supported relation so far
         QString eventId;
     };

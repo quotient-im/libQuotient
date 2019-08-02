@@ -286,7 +286,7 @@ void BaseJob::gotReply()
                            QJsonDocument::fromJson(d->rawResponse).object()));
     }
 
-    if (error() != TooManyRequestsError)
+    if (status().code != TooManyRequestsError)
         finishJob();
     else {
         stop();

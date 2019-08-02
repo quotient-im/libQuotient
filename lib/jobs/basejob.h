@@ -61,8 +61,7 @@ public:
         WarningLevel = 20,
         UnexpectedResponseType = 21,
         UnexpectedResponseTypeWarning = UnexpectedResponseType,
-        Abandoned = 50 //< A very brief period between abandoning and object
-                       //deletion
+        Abandoned = 50 //< A tiny period between abandoning and object deletion
         ,
         ErrorLevel = 100 //< Errors have codes starting from this
         ,

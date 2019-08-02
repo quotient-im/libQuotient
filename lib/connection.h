@@ -32,6 +32,11 @@
 
 #include <functional>
 
+namespace QtOlm
+{
+class Account;
+}
+
 namespace QMatrixClient
 {
 class Room;
@@ -274,6 +279,7 @@ public:
     QString userId() const;
     QString deviceId() const;
     QByteArray accessToken() const;
+    QtOlm::Account* olmAccount() const;
     Q_INVOKABLE SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
 

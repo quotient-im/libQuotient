@@ -1,17 +1,21 @@
 
 #include "connection.h"
+#include "room.h"
+#include "user.h"
+
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "csapi/room_send.h"
+
+#include "events/reactionevent.h"
 #include "events/simplestateevents.h"
-#include "room.h"
-#include "user.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QFileInfo>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QTimer>
+
 #include <functional>
 #include <iostream>
 
@@ -22,28 +26,33 @@ using namespace std::placeholders;
 
 class QMCTest : public QObject
 {
-    public:
+public:
     QMCTest(Connection* conn, QString testRoomName, QString source);
 
-    private slots:
+private slots:
+    // clang-format off
     void setupAndRun();
     void onNewRoom(Room* r);
     void run();
     void doTests();
-    void loadMembers();
-    void sendMessage();
-    void sendFile();
-    void checkFileSendingOutcome(const QString& txnId, const QString& fileName);
-    void setTopic();
-    void addAndRemoveTag();
-    void sendAndRedact();
-    bool checkRedactionOutcome(const QString& evtIdToRedact);
-    void markDirectChat();
-    void checkDirectChatOutcome(const Connection::DirectChatsMap& added);
+        void loadMembers();
+        void sendMessage();
+            void sendReaction(const QString& targetEvtId);
+        void sendFile();
+            void checkFileSendingOutcome(const QString& txnId,
+                                         const QString& fileName);
+        void setTopic();
+        void addAndRemoveTag();
+        void sendAndRedact();
+            bool checkRedactionOutcome(const QString& evtIdToRedact);
+        void markDirectChat();
+            void checkDirectChatOutcome(
+                    const Connection::DirectChatsMap& added);
     void conclude();
     void finalize();
+    // clang-format on
 
-    private:
+private:
     QScopedPointer<Connection, QScopedPointerDeleteLater> c;
     QStringList running;
     QStringList succeeded;
@@ -55,37 +64,37 @@ class QMCTest : public QObject
     bool validatePendingEvent(const QString& txnId);
 };
 
-#define QMC_CHECK(description, condition)                                      \
-    {                                                                          \
-        Q_ASSERT(running.removeOne(description));                              \
-        if (!!(condition)) {                                                   \
-            succeeded.push_back(description);                                  \
-            cout << (description) << " successful" << endl;                    \
-            if (targetRoom)                                                    \
-                targetRoom->postMessage(origin % ": " % (description)          \
-                                                % " successful",               \
-                                        MessageEventType::Notice);             \
-        } else {                                                               \
-            failed.push_back(description);                                     \
-            cout << (description) << " FAILED" << endl;                        \
-            if (targetRoom)                                                    \
-                targetRoom->postPlainText(origin % ": " % (description)        \
-                                          % " FAILED");                        \
-        }                                                                      \
+#define QMC_CHECK(description, condition)                               \
+    {                                                                   \
+        Q_ASSERT(running.removeOne(description));                       \
+        if (!!(condition)) {                                            \
+            succeeded.push_back(description);                           \
+            cout << (description) << " successful" << endl;             \
+            if (targetRoom)                                             \
+                targetRoom->postMessage(origin % ": " % (description)   \
+                                            % " successful",            \
+                                        MessageEventType::Notice);      \
+        } else {                                                        \
+            failed.push_back(description);                              \
+            cout << (description) << " FAILED" << endl;                 \
+            if (targetRoom)                                             \
+                targetRoom->postPlainText(origin % ": " % (description) \
+                                          % " FAILED");                 \
+        }                                                               \
     }
 
 bool QMCTest::validatePendingEvent(const QString& txnId)
 {
     auto it = targetRoom->findPendingEvent(txnId);
     return it != targetRoom->pendingEvents().end()
-            && it->deliveryStatus() == EventStatus::Submitted
-            && (*it)->transactionId() == txnId;
+           && it->deliveryStatus() == EventStatus::Submitted
+           && (*it)->transactionId() == txnId;
 }
 
 QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
-    : c(conn),
-      origin(std::move(source)),
-      targetRoomName(std::move(testRoomName))
+    : c(conn)
+    , origin(std::move(source))
+    , targetRoomName(std::move(testRoomName))
 {
     if (!origin.isEmpty())
         cout << "Origin for the test message: " << origin.toStdString() << endl;
@@ -114,9 +123,8 @@ void QMCTest::setupAndRun()
             QMC_CHECK("Join room", false);
             conclude();
         });
-        // Connection::joinRoom() creates a Room object upon
-        // JoinRoomJob::success but this object is empty until the first sync is
-        // done.
+        // Connection::joinRoom() creates a Room object upon JoinRoomJob::success
+        // but this object is empty until the first sync is done.
         connect(joinJob, &BaseJob::success, this, [this, joinJob] {
             targetRoom = c->room(joinJob->roomId(), JoinState::Join);
             QMC_CHECK("Join room", targetRoom != nullptr);
@@ -183,13 +191,10 @@ void QMCTest::doTests()
 void QMCTest::loadMembers()
 {
     running.push_back("Loading members");
-    // The dedicated qmc-test room is too small to test
-    // lazy-loading-then-full-loading; use #qmatrixclient:matrix.org instead.
-    // TODO: #264
-    auto* r = c->room(QStringLiteral("!PCzUtxtOjUySxSelof:matrix.org"));
+    auto* r = c->roomByAlias(QStringLiteral("#quotient:matrix.org"),
+                             JoinState::Join);
     if (!r) {
-        cout << "#test:matrix.org is not found in the test user's rooms"
-             << endl;
+        cout << "#test:matrix.org is not found in the test user's rooms" << endl;
         QMC_CHECK("Loading members", false);
         return;
     }
@@ -219,23 +224,60 @@ void QMCTest::sendMessage()
         return;
     }
 
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
-                 [this, txnId](const RoomEvent* evt, int pendingIdx) {
-                     const auto& pendingEvents = targetRoom->pendingEvents();
-                     Q_ASSERT(pendingIdx >= 0
-                              && pendingIdx < int(pendingEvents.size()));
+    connectUntil(
+        targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this, txnId](const RoomEvent* evt, int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
-                     if (evt->transactionId() != txnId)
-                         return false;
+            if (evt->transactionId() != txnId)
+                return false;
 
-                     QMC_CHECK("Message sending",
-                               is<RoomMessageEvent>(*evt)
-                                       && !evt->id().isEmpty()
-                                       && pendingEvents[size_t(pendingIdx)]
-                                                       ->transactionId()
-                                               == evt->transactionId());
-                     return true;
-                 });
+            QMC_CHECK("Message sending",
+                      is<RoomMessageEvent>(*evt) && !evt->id().isEmpty()
+                          && pendingEvents[size_t(pendingIdx)]->transactionId()
+                                 == evt->transactionId());
+            sendReaction(evt->id());
+            return true;
+        });
+}
+
+void QMCTest::sendReaction(const QString& targetEvtId)
+{
+    running.push_back("Reaction sending");
+    cout << "Reacting to the newest message in the room" << endl;
+    Q_ASSERT(targetRoom->timelineSize() > 0);
+    const auto key = QStringLiteral("+1");
+    auto txnId = targetRoom->postReaction(targetEvtId, key);
+    if (!validatePendingEvent(txnId)) {
+        cout << "Invalid pending event right after submitting" << endl;
+        QMC_CHECK("Reaction sending", false);
+        return;
+    }
+
+    // TODO: Check that it came back as a reaction event and that it attached to
+    // the right event
+    connectUntil(
+        targetRoom, &Room::updatedEvent, this,
+        [this, txnId, key, targetEvtId](const QString& actualTargetEvtId) {
+            if (actualTargetEvtId != targetEvtId)
+                return false;
+            const auto reactions = targetRoom->relatedEvents(
+                targetEvtId, EventRelation::Annotation());
+            // It's a test room, assuming no interference there should
+            // be exactly one reaction
+            if (reactions.size() != 1) {
+                QMC_CHECK("Reaction sending", false);
+            } else {
+                const auto* evt =
+                    eventCast<const ReactionEvent>(reactions.back());
+                QMC_CHECK("Reaction sending",
+                          is<ReactionEvent>(*evt) && !evt->id().isEmpty()
+                              && evt->relation().key == key
+                              && evt->transactionId() == txnId);
+            }
+            return true;
+        });
 }
 
 void QMCTest::sendFile()
@@ -254,8 +296,8 @@ void QMCTest::sendFile()
     // the full path
     const auto tfName = QFileInfo(*tf).fileName();
     cout << "Sending file" << tfName.toStdString() << endl;
-    const auto txnId = targetRoom->postFile(
-            "Test file", QUrl::fromLocalFile(tf->fileName()));
+    const auto txnId =
+        targetRoom->postFile("Test file", QUrl::fromLocalFile(tf->fileName()));
     if (!validatePendingEvent(txnId)) {
         cout << "Invalid pending event right after submitting" << endl;
         QMC_CHECK("File sending", false);
@@ -307,41 +349,37 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
     }
 
     connectUntil(
-            targetRoom, &Room::pendingEventAboutToMerge, this,
-            [this, txnId, fileName](const RoomEvent* evt, int pendingIdx) {
-                const auto& pendingEvents = targetRoom->pendingEvents();
-                Q_ASSERT(pendingIdx >= 0
-                         && pendingIdx < int(pendingEvents.size()));
+        targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this, txnId, fileName](const RoomEvent* evt, int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
-                if (evt->transactionId() != txnId)
-                    return false;
+            if (evt->transactionId() != txnId)
+                return false;
 
-                cout << "File event " << txnId.toStdString()
-                     << " arrived in the timeline" << endl;
-                visit(*evt,
-                      [&](const RoomMessageEvent& e) {
-                          QMC_CHECK("File sending",
-                                    !e.id().isEmpty()
-                                            && pendingEvents[size_t(pendingIdx)]
-                                                            ->transactionId()
-                                                    == txnId
-                                            && e.hasFileContent()
-                                            && e.content()->fileInfo()
-                                                            ->originalName
-                                                    == fileName);
-                      },
-                      [this](const RoomEvent&) {
-                          QMC_CHECK("File sending", false);
-                      });
-                return true;
-            });
+            cout << "File event " << txnId.toStdString()
+                 << " arrived in the timeline" << endl;
+            visit(
+                *evt,
+                [&](const RoomMessageEvent& e) {
+                    QMC_CHECK(
+                        "File sending",
+                        !e.id().isEmpty()
+                            && pendingEvents[size_t(pendingIdx)]->transactionId()
+                                   == txnId
+                            && e.hasFileContent()
+                            && e.content()->fileInfo()->originalName == fileName);
+                },
+                [this](const RoomEvent&) { QMC_CHECK("File sending", false); });
+            return true;
+        });
 }
 
 void QMCTest::setTopic()
 {
     static const char* const stateTestName = "State setting test";
     static const char* const fakeStateTestName =
-            "Fake state event immunity test";
+        "Fake state event immunity test";
     running.push_back(stateTestName);
     running.push_back(fakeStateTestName);
     auto initialTopic = targetRoom->topic();
@@ -368,8 +406,7 @@ void QMCTest::setTopic()
 
     connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
                  [this, fakeTopic, initialTopic](const RoomEvent* e, int) {
-                     if (e->contentJson().value("topic").toString()
-                         != fakeTopic)
+                     if (e->contentJson().value("topic").toString() != fakeTopic)
                          return false; // Wait on for the right event
 
                      QMC_CHECK(fakeStateTestName, !e->isStateEvent());
@@ -420,9 +457,10 @@ void QMCTest::sendAndRedact()
                 cout << "Redacting the message" << endl;
                 targetRoom->redactEvent(evtId, origin);
 
-                connectUntil(
-                        targetRoom, &Room::addedMessages, this,
-                        [this, evtId] { return checkRedactionOutcome(evtId); });
+                connectUntil(targetRoom, &Room::addedMessages, this,
+                             [this, evtId] {
+                                 return checkRedactionOutcome(evtId);
+                             });
             });
 }
 
@@ -449,8 +487,7 @@ bool QMCTest::checkRedactionOutcome(const QString& evtIdToRedact)
 
                          QMC_CHECK("Redaction",
                                    newEvent->isRedacted()
-                                           && newEvent->redactionReason()
-                                                   == origin);
+                                       && newEvent->redactionReason() == origin);
                          return true;
                      });
     }
@@ -498,23 +535,23 @@ void QMCTest::conclude()
     c->stopSync();
     auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
     if (!failed.isEmpty() || !running.isEmpty())
-        succeededRec += " of "
-                % QString::number(succeeded.size() + failed.size()
-                                  + running.size())
-                % " total";
+        succeededRec +=
+            " of "
+            % QString::number(succeeded.size() + failed.size() + running.size())
+            % " total";
     QString plainReport = origin % ": Testing complete, " % succeededRec;
     QString color = failed.isEmpty() && running.isEmpty() ? "00AA00" : "AA0000";
     QString htmlReport = origin % ": <strong><font data-mx-color='#" % color
-            % "' color='#" % color % "'>Testing complete</font></strong>, "
-            % succeededRec;
+                         % "' color='#" % color
+                         % "'>Testing complete</font></strong>, " % succeededRec;
     if (!failed.isEmpty()) {
         plainReport += "\nFAILED: " % failed.join(", ");
         htmlReport += "<br><strong>Failed:</strong> " % failed.join(", ");
     }
     if (!running.isEmpty()) {
         plainReport += "\nDID NOT FINISH: " % running.join(", ");
-        htmlReport +=
-                "<br><strong>Did not finish:</strong> " % running.join(", ");
+        htmlReport += "<br><strong>Did not finish:</strong> "
+                      % running.join(", ");
     }
     cout << plainReport.toStdString() << endl;
 

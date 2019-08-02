@@ -62,8 +62,8 @@ namespace QMatrixClient
 template <typename T>
 struct JsonObjectConverter
 {
-    static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod; }
-    static void fillFrom(const QJsonObject& jo, T& pod) { pod = jo; }
+    static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod.toJson(); }
+    static void fillFrom(const QJsonObject& jo, T& pod) { pod = T(jo); }
 };
 
 template <typename T>
@@ -91,14 +91,16 @@ inline auto toJson(const T& pod)
     return JsonConverter<T>::dump(pod);
 }
 
+inline auto toJson(const QJsonObject& jo) { return jo; }
+
 template <typename T>
-inline auto fillJson(QJsonObject& json, const T& data)
+inline void fillJson(QJsonObject& json, const T& data)
 {
     JsonObjectConverter<T>::dumpTo(json, data);
 }
 
 template <typename T>
-inline auto fromJson(const QJsonValue& jv)
+inline T fromJson(const QJsonValue& jv)
 {
     return JsonConverter<T>::load(jv);
 }
@@ -109,11 +111,14 @@ inline T fromJson(const QJsonDocument& jd)
     return JsonConverter<T>::load(jd);
 }
 
+// Convenience fromJson() overloads that deduce T instead of requiring
+// the coder to explicitly type it. They still enforce the
+// overwrite-everything semantics of fromJson(), unlike fillFromJson()
+
 template <typename T>
 inline void fromJson(const QJsonValue& jv, T& pod)
 {
-    if (!jv.isUndefined())
-        pod = fromJson<T>(jv);
+    pod = jv.isUndefined() ? T() : fromJson<T>(jv);
 }
 
 template <typename T>
@@ -122,21 +127,13 @@ inline void fromJson(const QJsonDocument& jd, T& pod)
     pod = fromJson<T>(jd);
 }
 
-// Unfolds Omittable<>
-template <typename T>
-inline void fromJson(const QJsonValue& jv, Omittable<T>& pod)
-{
-    if (jv.isUndefined())
-        pod = none;
-    else
-        pod = fromJson<T>(jv);
-}
-
 template <typename T>
 inline void fillFromJson(const QJsonValue& jv, T& pod)
 {
     if (jv.isObject())
         JsonObjectConverter<T>::fillFrom(jv.toObject(), pod);
+    else if (!jv.isUndefined())
+        pod = fromJson<T>(jv);
 }
 
 // JsonConverter<> specialisations
@@ -226,6 +223,21 @@ struct JsonConverter<QVariant>
 {
     static QJsonValue dump(const QVariant& v);
     static QVariant load(const QJsonValue& jv);
+};
+
+template <typename T>
+struct JsonConverter<Omittable<T>>
+{
+    static QJsonValue dump(const Omittable<T>& from)
+    {
+        return from.omitted() ? QJsonValue() : toJson(from.value());
+    }
+    static Omittable<T> load(const QJsonValue& jv)
+    {
+        if (jv.isUndefined())
+            return none;
+        return fromJson<T>(jv);
+    }
 };
 
 template <typename VectorT, typename T = typename VectorT::value_type>
@@ -369,7 +381,8 @@ namespace _impl
             q.addQueryItem(it.key(), it.value().toString());
     }
 
-    // This one is for types that don't have isEmpty()
+    // This one is for types that don't have isEmpty() and for all types
+    // when Force is true
     template <typename ValT, bool Force = true, typename = bool>
     struct AddNode
     {
@@ -381,7 +394,7 @@ namespace _impl
         }
     };
 
-    // This one is for types that have isEmpty()
+    // This one is for types that have isEmpty() when Force is false
     template <typename ValT>
     struct AddNode<ValT, false, decltype(std::declval<ValT>().isEmpty())>
     {
@@ -390,23 +403,20 @@ namespace _impl
                          ForwardedT&& value)
         {
             if (!value.isEmpty())
-                AddNode<ValT>::impl(container, key,
-                                    std::forward<ForwardedT>(value));
+                addTo(container, key, std::forward<ForwardedT>(value));
         }
     };
 
-    // This is a special one that unfolds Omittable<>
-    template <typename ValT, bool Force>
-    struct AddNode<Omittable<ValT>, Force>
+    // This one unfolds Omittable<> (also only when Force is false)
+    template <typename ValT>
+    struct AddNode<Omittable<ValT>, false>
     {
         template <typename ContT, typename OmittableT>
         static void impl(ContT& container, const QString& key,
                          const OmittableT& value)
         {
             if (!value.omitted())
-                AddNode<ValT>::impl(container, key, value.value());
-            else if (Force) // Edge case, no value but must put something
-                AddNode<ValT>::impl(container, key, QString {});
+                addTo(container, key, value.value());
         }
     };
 
@@ -431,6 +441,29 @@ namespace _impl
 
 static constexpr bool IfNotEmpty = false;
 
+/*! Add a key-value pair to QJsonObject or QUrlQuery
+ *
+ * Adds a key-value pair(s) specified by \p key and \p value to
+ * \p container, optionally (in case IfNotEmpty is passed for the first
+ * template parameter) taking into account the value "emptiness".
+ * With IfNotEmpty, \p value is NOT added to the container if and only if:
+ * - it has a method `isEmpty()` and `value.isEmpty() == true`, or
+ * - it's an `Omittable<>` and `value.omitted() == true`.
+ *
+ * If \p container is a QUrlQuery, an attempt to fit \p value into it is
+ * made as follows:
+ * - if \p value is a QJsonObject, \p key is ignored and pairs from \p value
+ *   are copied to \p container, assuming that the value in each pair
+ *   is a string;
+ * - if \p value is a QStringList, it is "exploded" into a list of key-value
+ *   pairs with key equal to \p key and value taken from each list item;
+ * - if \p value is a bool, its OpenAPI (i.e. JSON) representation is added
+ *   to the query (`true` or `false`, respectively).
+ *
+ * \tparam Force add the pair even if the value is empty. This is true
+ *               by default; passing IfNotEmpty or false for this parameter
+ *               enables emptiness checks as described above
+ */
 template <bool Force = true, typename ContT, typename ValT>
 inline void addParam(ContT& container, const QString& key, ValT&& value)
 {

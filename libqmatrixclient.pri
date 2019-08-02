@@ -35,6 +35,7 @@ HEADERS += \
     $$SRCPATH/events/roomavatarevent.h \
     $$SRCPATH/events/typingevent.h \
     $$SRCPATH/events/receiptevent.h \
+    $$SRCPATH/events/reactionevent.h \
     $$SRCPATH/events/callanswerevent.h \
     $$SRCPATH/events/callcandidatesevent.h \
     $$SRCPATH/events/callhangupevent.h \
@@ -42,6 +43,7 @@ HEADERS += \
     $$SRCPATH/events/accountdataevents.h \
     $$SRCPATH/events/directchatevent.h \
     $$SRCPATH/events/encryptionevent.h \
+    $$SRCPATH/events/encryptedevent.h \
     $$SRCPATH/events/redactionevent.h \
     $$SRCPATH/events/eventloader.h \
     $$SRCPATH/jobs/requestdata.h \
@@ -80,6 +82,7 @@ SOURCES += \
     $$SRCPATH/events/roommessageevent.cpp \
     $$SRCPATH/events/roommemberevent.cpp \
     $$SRCPATH/events/typingevent.cpp \
+    $$SRCPATH/events/reactionevent.cpp \
     $$SRCPATH/events/callanswerevent.cpp \
     $$SRCPATH/events/callcandidatesevent.cpp \
     $$SRCPATH/events/callhangupevent.cpp \
@@ -87,6 +90,7 @@ SOURCES += \
     $$SRCPATH/events/receiptevent.cpp \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/events/encryptionevent.cpp \
+    $$SRCPATH/events/encryptedevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
