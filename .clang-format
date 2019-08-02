@@ -32,7 +32,7 @@ AlignOperands: true
 #AllowShortLoopsOnASingleLine: false
 #AlwaysBreakAfterReturnType: None
 #AlwaysBreakBeforeMultilineStrings: false
-#AlwaysBreakTemplateDeclarations: true
+AlwaysBreakTemplateDeclarations: true
 #BinPackArguments: true
 #BinPackParameters: true
 BraceWrapping:   
