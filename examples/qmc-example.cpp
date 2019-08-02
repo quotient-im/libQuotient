@@ -376,7 +376,6 @@ void QMCTest::setTopic()
 {
     static const char* const stateTestName = "State setting test";
     running.push_back(stateTestName);
-    auto initialTopic = targetRoom->topic();
 
     const auto newTopic = c->generateTxnId(); // Just a way to get a unique id
     targetRoom->setTopic(newTopic); // Sets the state by proper means
@@ -386,7 +385,7 @@ void QMCTest::setTopic()
                              RoomTopicEvent(fakeTopic).contentJson());
 
     connectUntil(targetRoom, &Room::topicChanged, this,
-                 [this, newTopic, fakeTopic, initialTopic] {
+                 [this, newTopic] {
                      if (targetRoom->topic() == newTopic) {
                          QMC_CHECK(stateTestName, true);
                          return true;
@@ -402,7 +401,7 @@ void QMCTest::setTopic()
     // to be emitted before Room::pendingEventAboutToMerge.
     connectUntil(
         targetRoom, &Room::pendingEventChanged, this,
-        [this, fakeTopic, initialTopic, fakeTxnId](int pendingIdx) {
+        [this, fakeTopic, fakeTxnId](int pendingIdx) {
             const auto& pendingEvents = targetRoom->pendingEvents();
             Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
             const auto& evt = pendingEvents[pendingIdx];
@@ -424,7 +423,7 @@ void QMCTest::setTopic()
             running.push_back(fakeStateTestName);
             connectUntil(
                 targetRoom, &Room::pendingEventAboutToMerge, this,
-                [this, fakeTopic, initialTopic](const RoomEvent* e, int) {
+                [this, fakeTopic](const RoomEvent* e, int) {
                     if (e->contentJson().value("topic").toString() != fakeTopic)
                         return false; // Wait on for the right event
 
