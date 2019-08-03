@@ -408,16 +408,14 @@ void QMCTest::setTopic()
             if (evt->transactionId() != fakeTxnId)
                 return false;
 
-            if (evt.deliveryStatus() == EventStatus::SendingFailed) {
-                QMC_CHECK("Fake state event immunity test", true);
+            // If Synapse rejected the event, skip the immunity test.
+            if (evt.deliveryStatus() == EventStatus::SendingFailed)
                 return true;
-            }
+
             if (evt.deliveryStatus() != EventStatus::ReachedServer)
                 return false;
 
             // All before was just a preparation, this is where the test starts.
-            // (If Synapse rejected the event the library immunity can't be
-            // tested.)
             static const char* const fakeStateTestName =
                 "Fake state event immunity test";
             running.push_back(fakeStateTestName);
