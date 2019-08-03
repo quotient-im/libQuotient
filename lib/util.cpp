@@ -13,19 +13,18 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "util.h"
 
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QDataStream>
+#include <QtCore/QDir>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QDir>
 #include <QtCore/QStringBuilder>
-
-#include <QtCore/QCryptographicHash>
 #include <QtCore/QtEndian>
-#include <QtCore/QDataStream>
 
 static const auto RegExpOptions =
     QRegularExpression::CaseInsensitiveOption
@@ -44,28 +43,31 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
     // protocolname:// or www. followed by anything other than whitespaces,
     // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
     // comma or dot
-    static const QRegularExpression FullUrlRegExp(QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"
-        ), RegExpOptions);
+    static const QRegularExpression FullUrlRegExp(
+        QStringLiteral(
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+        RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
-    static const QRegularExpression EmailAddressRegExp(QStringLiteral(
-            R"(\b(mailto:)?((\w|\.|-)+@(\w|\.|-)+\.\w+\b))"
-        ), RegExpOptions);
+    static const QRegularExpression EmailAddressRegExp(
+        QStringLiteral(R"(\b(mailto:)?((\w|\.|-)+@(\w|\.|-)+\.\w+\b))"),
+        RegExpOptions);
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
-    static const QRegularExpression MxIdRegExp(QStringLiteral(
-            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"
-        ), RegExpOptions);
+    static const QRegularExpression MxIdRegExp(
+        QStringLiteral(
+            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
+        RegExpOptions);
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
-                QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
+                            QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
     htmlEscapedText.replace(FullUrlRegExp,
-                QStringLiteral(R"(<a href="\1">\1</a>)"));
-    htmlEscapedText.replace(MxIdRegExp,
-                QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+                            QStringLiteral(R"(<a href="\1">\1</a>)"));
+    htmlEscapedText.replace(
+        MxIdRegExp,
+        QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
 }
 
 QString QMatrixClient::sanitized(const QString& plainText)
@@ -83,21 +85,21 @@ QString QMatrixClient::prettyPrint(const QString& plainText)
     linkifyUrls(pt);
     pt.replace('\n', QStringLiteral("<br/>"));
     return QStringLiteral("<span style='white-space:pre-wrap'>") + pt
-            + QStringLiteral("</span>");
+           + QStringLiteral("</span>");
 }
 
 QString QMatrixClient::cacheLocation(const QString& dirName)
 {
     const QString cachePath =
-        QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-            % '/' % dirName % '/';
+        QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % '/'
+        % dirName % '/';
     QDir dir;
     if (!dir.exists(cachePath))
         dir.mkpath(cachePath);
     return cachePath;
 }
 
-qreal QMatrixClient::stringToHueF(const QString &string)
+qreal QMatrixClient::stringToHueF(const QString& string)
 {
     Q_ASSERT(!string.isEmpty());
     QByteArray hash = QCryptographicHash::hash(string.toUtf8(),
@@ -106,8 +108,7 @@ qreal QMatrixClient::stringToHueF(const QString &string)
     dataStream.setByteOrder(QDataStream::LittleEndian);
     quint16 hashValue;
     dataStream >> hashValue;
-    const auto hueF =
-            qreal(hashValue)/std::numeric_limits<quint16>::max();
+    const auto hueF = qreal(hashValue) / std::numeric_limits<quint16>::max();
     Q_ASSERT((0 <= hueF) && (hueF <= 1));
     return hueF;
 }
@@ -120,17 +121,19 @@ static const auto ServerPartRegEx = QStringLiteral(
 QString QMatrixClient::serverPart(const QString& mxId)
 {
     static QString re = "^[@!#$+].+?:(" // Localpart and colon
-                     % ServerPartRegEx % ")$";
-    static QRegularExpression parser(re,
-        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+                        % ServerPartRegEx % ")$";
+    static QRegularExpression parser(
+        re,
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian
+                                                         // digits
     return parser.match(mxId).captured(1);
 }
 
 // Tests for function_traits<>
 
 #ifdef Q_CC_CLANG
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCSimplifyInspection"
+#    pragma clang diagnostic push
+#    pragma ide diagnostic ignored "OCSimplifyInspection"
 #endif
 using namespace QMatrixClient;
 
@@ -146,17 +149,24 @@ void f2(int, QString);
 static_assert(std::is_same<fn_arg_t<decltype(f2), 1>, QString>::value,
               "Test fn_arg_t<>");
 
-struct S { int mf(); };
+struct S {
+    int mf();
+};
 static_assert(is_callable_v<decltype(&S::mf)>, "Test member function");
-static_assert(returns<int, decltype(&S::mf)>(), "Test returns<> with member function");
+static_assert(returns<int, decltype(&S::mf)>(),
+              "Test returns<> with member function");
 
-struct Fo { int operator()(); };
+struct Fo {
+    int operator()();
+};
 static_assert(is_callable_v<Fo>, "Test is_callable<> with function object");
 static_assert(function_traits<Fo>::arg_number == 0, "Test function object");
 static_assert(std::is_same<fn_return_t<Fo>, int>::value,
               "Test return type of function object");
 
-struct Fo1 { void operator()(int); };
+struct Fo1 {
+    void operator()(int);
+};
 static_assert(function_traits<Fo1>::arg_number == 1, "Test function object 1");
 static_assert(is_callable_v<Fo1>, "Test is_callable<> with function object 1");
 static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
@@ -170,13 +180,11 @@ static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
 #endif
 
 template <typename T>
-struct fn_object
-{
+struct fn_object {
     static int smf(double) { return 0; }
 };
 template <>
-struct fn_object<QString>
-{
+struct fn_object<QString> {
     void operator()(QString);
 };
 static_assert(is_callable_v<fn_object<QString>>, "Test function object");
@@ -184,16 +192,19 @@ static_assert(returns<void, fn_object<QString>>(),
               "Test returns<> with function object");
 static_assert(!is_callable_v<fn_object<int>>, "Test non-function object");
 // FIXME: These two don't work
-//static_assert(is_callable_v<decltype(&fn_object<int>::smf)>,
+// static_assert(is_callable_v<decltype(&fn_object<int>::smf)>,
 //              "Test static member function");
-//static_assert(returns<int, decltype(&fn_object<int>::smf)>(),
+// static_assert(returns<int, decltype(&fn_object<int>::smf)>(),
 //              "Test returns<> with static member function");
 
 template <typename T>
-QString ft(T&&) { return {}; }
+QString ft(T&&)
+{
+    return {};
+}
 static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
               "Test function templates");
 
 #ifdef Q_CC_CLANG
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
 #endif

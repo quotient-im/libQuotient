@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 set(API_VERSION "0.6")
 project(qmatrixclient VERSION "${API_VERSION}.0" LANGUAGES CXX)
@@ -67,11 +67,17 @@ if (NOT USE_INTREE_LIBQOLM)
 endif ()
 
 if (GTAD_PATH)
-    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" ABSOLUTE)
+    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
 endif ()
 if (MATRIX_DOC_PATH)
-    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" ABSOLUTE)
+    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
 endif ()
+if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
+    if (NOT CLANG_FORMAT)
+        set(CLANG_FORMAT clang-format)
+    endif()
+    get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
+endif()
 
 message( STATUS )
 message( STATUS "=============================================================================" )
@@ -84,10 +90,15 @@ endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
-if (MATRIX_DOC_PATH AND GTAD_PATH)
-    message( STATUS "Generating API stubs enabled" )
+if (ABS_API_DEF_PATH AND ABS_GTAD_PATH)
+    message( STATUS "Generating API stubs enabled (use --target update-api)" )
     message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
     message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
+    if (ABS_CLANG_FORMAT)
+        message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
+    else ()
+        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
+    endif ()
 endif ()
 find_package(Git)
 if (USE_INTREE_LIBQOLM)
@@ -148,11 +159,24 @@ set(libqmatrixclient_SRCS
 )
 
 set(CSAPI_DIR csapi)
-set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
-set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
+
+foreach (D ${CSAPI_DIR} ${CSAPI_DIR}/definitions
+         ${CSAPI_DIR}/definitions/wellknown ${ASAPI_DEF_DIR} ${ISAPI_DEF_DIR})
+    aux_source_directory(lib/${D} api_SRCS)
+endforeach()
+
+# Make no mistake: CMake cannot run gtad first and then populate the list of
+# resulting api_SRCS files. In other words, placing the above foreach after
+# the custom targets definition won't bring the desired result:
+# CMake will execute it at cmake invocation and gtad will only run later
+# when building the update-api target. If you see that gtad has created
+# new files you have to re-run cmake.
+# TODO: check `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` (from CMake 3.14)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
+    set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
+    set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${FULL_CSAPI_SRC_DIR}/*.yaml
         ${ABS_API_DEF_PATH}/${ASAPI_DEF_DIR}/*.yaml
@@ -170,20 +194,26 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
                 ${API_DEFS}
         VERBATIM
     )
+    if (ABS_CLANG_FORMAT)
+        # TODO: list(TRANSFORM) is available from CMake 3.12
+        foreach (S ${api_SRCS})
+            string (REGEX REPLACE ".cpp$" ".h" H ${S})
+            list(APPEND api_HDRS ${H})
+        endforeach()
+        set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
+        add_custom_command(TARGET update-api POST_BUILD
+            COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
+            COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_HDRS}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            VERBATIM
+            COMMENT Formatting files
+        )
+    endif()
 endif()
-
-aux_source_directory(${FULL_CSAPI_DIR} libqmatrixclient_job_SRCS)
-aux_source_directory(${FULL_CSAPI_DIR}/definitions libqmatrixclient_csdef_SRCS)
-aux_source_directory(${FULL_CSAPI_DIR}/definitions/wellknown libqmatrixclient_cswellknown_SRCS)
-aux_source_directory(lib/${ASAPI_DEF_DIR} libqmatrixclient_asdef_SRCS)
-aux_source_directory(lib/${ISAPI_DEF_DIR} libqmatrixclient_isdef_SRCS)
 
 set(example_SRCS examples/qmc-example.cpp)
 
-add_library(QMatrixClient ${libqmatrixclient_SRCS}
-            ${libqmatrixclient_job_SRCS} ${libqmatrixclient_csdef_SRCS}
-            ${libqmatrixclient_cswellknown_SRCS}
-            ${libqmatrixclient_asdef_SRCS} ${libqmatrixclient_isdef_SRCS})
+add_library(QMatrixClient ${libqmatrixclient_SRCS} ${api_SRCS})
 set_property(TARGET QMatrixClient PROPERTY VERSION "${PROJECT_VERSION}")
 set_property(TARGET QMatrixClient PROPERTY SOVERSION ${API_VERSION} )
 set_property(TARGET QMatrixClient PROPERTY

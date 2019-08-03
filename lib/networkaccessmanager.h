@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -22,28 +22,25 @@
 
 #include <memory>
 
-namespace QMatrixClient
-{
-    class NetworkAccessManager : public QNetworkAccessManager
-    {
-            Q_OBJECT
-        public:
-            NetworkAccessManager(QObject* parent = nullptr);
-            ~NetworkAccessManager() override;
+namespace QMatrixClient {
+class NetworkAccessManager : public QNetworkAccessManager {
+    Q_OBJECT
+public:
+    NetworkAccessManager(QObject* parent = nullptr);
+    ~NetworkAccessManager() override;
 
-            QList<QSslError> ignoredSslErrors() const;
-            void addIgnoredSslError(const QSslError& error);
-            void clearIgnoredSslErrors();
+    QList<QSslError> ignoredSslErrors() const;
+    void addIgnoredSslError(const QSslError& error);
+    void clearIgnoredSslErrors();
 
-            /** Get a pointer to the singleton */
-            static NetworkAccessManager* instance();
+    /** Get a pointer to the singleton */
+    static NetworkAccessManager* instance();
 
-        private:
-            QNetworkReply * createRequest(Operation op,
-                                const QNetworkRequest &request,
-                                QIODevice *outgoingData = Q_NULLPTR) override;
+private:
+    QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
+                                 QIODevice* outgoingData = Q_NULLPTR) override;
 
-            class Private;
-            std::unique_ptr<Private> d;
-    };
+    class Private;
+    std::unique_ptr<Private> d;
+};
 } // namespace QMatrixClient

@@ -6,32 +6,31 @@
 #include "encryptionevent.h"
 
 #include "converters.h"
-#include "logging.h"
 #include "e2ee.h"
+#include "logging.h"
 
 #include <array>
 
-static const std::array<QString, 1> encryptionStrings = { {
-    QMatrixClient::MegolmV1AesSha2AlgoKey
-} };
+static const std::array<QString, 1> encryptionStrings = {
+    { QMatrixClient::MegolmV1AesSha2AlgoKey }
+};
 
 namespace QMatrixClient {
-    template <>
-    struct JsonConverter<EncryptionType>
+template <>
+struct JsonConverter<EncryptionType> {
+    static EncryptionType load(const QJsonValue& jv)
     {
-        static EncryptionType load(const QJsonValue& jv)
-        {
-            const auto& encryptionString = jv.toString();
-            for (auto it = encryptionStrings.begin();
-                    it != encryptionStrings.end(); ++it)
-                if (encryptionString == *it)
-                    return EncryptionType(it - encryptionStrings.begin());
+        const auto& encryptionString = jv.toString();
+        for (auto it = encryptionStrings.begin(); it != encryptionStrings.end();
+             ++it)
+            if (encryptionString == *it)
+                return EncryptionType(it - encryptionStrings.begin());
 
-            qCWarning(EVENTS) << "Unknown EncryptionType: " << encryptionString;
-            return EncryptionType::Undefined;
-        }
-    };
-}
+        qCWarning(EVENTS) << "Unknown EncryptionType: " << encryptionString;
+        return EncryptionType::Undefined;
+    }
+};
+} // namespace QMatrixClient
 
 using namespace QMatrixClient;
 
@@ -40,13 +39,14 @@ EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
     , algorithm(sanitized(json[AlgorithmKeyL].toString()))
     , rotationPeriodMs(json[RotationPeriodMsKeyL].toInt(604800000))
     , rotationPeriodMsgs(json[RotationPeriodMsgsKeyL].toInt(100))
-{ }
+{}
 
 void EncryptionEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
-    Q_ASSERT_X(encryption != EncryptionType::Undefined, __FUNCTION__,
-             "The key 'algorithm' must be explicit in EncryptionEventContent");
+    Q_ASSERT_X(
+        encryption != EncryptionType::Undefined, __FUNCTION__,
+        "The key 'algorithm' must be explicit in EncryptionEventContent");
     if (encryption != EncryptionType::Undefined)
         o->insert(AlgorithmKey, algorithm);
     o->insert(RotationPeriodMsKey, rotationPeriodMs);

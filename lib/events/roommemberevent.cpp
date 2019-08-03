@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "roommemberevent.h"
@@ -23,29 +23,27 @@
 
 #include <array>
 
-static const std::array<QString, 5> membershipStrings = { {
-    QStringLiteral("invite"), QStringLiteral("join"),
-    QStringLiteral("knock"), QStringLiteral("leave"),
-    QStringLiteral("ban")
-} };
+static const std::array<QString, 5> membershipStrings = {
+    { QStringLiteral("invite"), QStringLiteral("join"), QStringLiteral("knock"),
+      QStringLiteral("leave"), QStringLiteral("ban") }
+};
 
 namespace QMatrixClient {
-    template <>
-    struct JsonConverter<MembershipType>
+template <>
+struct JsonConverter<MembershipType> {
+    static MembershipType load(const QJsonValue& jv)
     {
-        static MembershipType load(const QJsonValue& jv)
-        {
-            const auto& membershipString = jv.toString();
-            for (auto it = membershipStrings.begin();
-                    it != membershipStrings.end(); ++it)
-                if (membershipString == *it)
-                    return MembershipType(it - membershipStrings.begin());
+        const auto& membershipString = jv.toString();
+        for (auto it = membershipStrings.begin(); it != membershipStrings.end();
+             ++it)
+            if (membershipString == *it)
+                return MembershipType(it - membershipStrings.begin());
 
-            qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
-            return MembershipType::Undefined;
-        }
-    };
-}
+        qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
+        return MembershipType::Undefined;
+    }
+};
+} // namespace QMatrixClient
 
 using namespace QMatrixClient;
 
@@ -54,13 +52,13 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
     , isDirect(json["is_direct"_ls].toBool())
     , displayName(sanitized(json["displayname"_ls].toString()))
     , avatarUrl(json["avatar_url"_ls].toString())
-{ }
+{}
 
 void MemberEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
     Q_ASSERT_X(membership != MembershipType::Undefined, __FUNCTION__,
-             "The key 'membership' must be explicit in MemberEventContent");
+               "The key 'membership' must be explicit in MemberEventContent");
     if (membership != MembershipType::Undefined)
         o->insert(QStringLiteral("membership"), membershipStrings[membership]);
     o->insert(QStringLiteral("displayname"), displayName);
@@ -70,21 +68,21 @@ void MemberEventContent::fillJson(QJsonObject* o) const
 
 bool RoomMemberEvent::isInvite() const
 {
-    return membership() == MembershipType::Invite &&
-            (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Invite
+           && (!prevContent() || prevContent()->membership != membership());
 }
 
 bool RoomMemberEvent::isJoin() const
 {
-    return membership() == MembershipType::Join &&
-            (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Join
+           && (!prevContent() || prevContent()->membership != membership());
 }
 
 bool RoomMemberEvent::isLeave() const
 {
-    return membership() == MembershipType::Leave &&
-            prevContent() && prevContent()->membership != membership() &&
-            prevContent()->membership != MembershipType::Ban;
+    return membership() == MembershipType::Leave && prevContent()
+           && prevContent()->membership != membership()
+           && prevContent()->membership != MembershipType::Ban;
 }
 
 bool RoomMemberEvent::isRename() const

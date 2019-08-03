@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -24,16 +24,15 @@
 
 using namespace QMatrixClient;
 
-class PostReadMarkersJob : public BaseJob
-{
-    public:
-        explicit PostReadMarkersJob(const QString& roomId,
-                                    const QString& readUpToEventId)
-            : BaseJob(HttpVerb::Post, "PostReadMarkersJob",
-                      QStringLiteral("_matrix/client/r0/rooms/%1/read_markers")
-                      .arg(roomId))
-        {
-            setRequestData(QJsonObject {{
-                QStringLiteral("m.fully_read"), readUpToEventId }});
-        }
+class PostReadMarkersJob : public BaseJob {
+public:
+    explicit PostReadMarkersJob(const QString& roomId,
+                                const QString& readUpToEventId)
+        : BaseJob(
+            HttpVerb::Post, "PostReadMarkersJob",
+            QStringLiteral("_matrix/client/r0/rooms/%1/read_markers").arg(roomId))
+    {
+        setRequestData(
+            QJsonObject { { QStringLiteral("m.fully_read"), readUpToEventId } });
+    }
 };

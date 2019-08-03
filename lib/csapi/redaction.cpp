@@ -14,15 +14,16 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class RedactEventJob::Private
 {
-    public:
-        QString eventId;
+public:
+    QString eventId;
 };
 
 static const auto RedactEventJobName = QStringLiteral("RedactEventJob");
 
-RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, const QString& txnId, const QString& reason)
+RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId,
+                               const QString& txnId, const QString& reason)
     : BaseJob(HttpVerb::Put, RedactEventJobName,
-        basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
+              basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
     , d(new Private)
 {
     QJsonObject _data;
@@ -32,15 +33,12 @@ RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId, co
 
 RedactEventJob::~RedactEventJob() = default;
 
-const QString& RedactEventJob::eventId() const
-{
-    return d->eventId;
-}
+const QString& RedactEventJob::eventId() const { return d->eventId; }
 
 BaseJob::Status RedactEventJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("event_id"_ls), d->eventId);
+
     return Success;
 }
-

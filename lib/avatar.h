@@ -13,49 +13,47 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
-#include <QtGui/QIcon>
 #include <QtCore/QUrl>
+#include <QtGui/QIcon>
 
 #include <functional>
 #include <memory>
 
-namespace QMatrixClient
-{
-    class Connection;
+namespace QMatrixClient {
+class Connection;
 
-    class Avatar
-    {
-        public:
-            explicit Avatar();
-            explicit Avatar(QUrl url);
-            Avatar(Avatar&&);
-            ~Avatar();
-            Avatar& operator=(Avatar&&);
+class Avatar {
+public:
+    explicit Avatar();
+    explicit Avatar(QUrl url);
+    Avatar(Avatar&&);
+    ~Avatar();
+    Avatar& operator=(Avatar&&);
 
-            using get_callback_t = std::function<void()>;
-            using upload_callback_t = std::function<void(QString)>;
+    using get_callback_t = std::function<void()>;
+    using upload_callback_t = std::function<void(QString)>;
 
-            QImage get(Connection* connection, int dimension,
-                       get_callback_t callback) const;
-            QImage get(Connection* connection, int w, int h,
-                       get_callback_t callback) const;
+    QImage get(Connection* connection, int dimension,
+               get_callback_t callback) const;
+    QImage get(Connection* connection, int w, int h,
+               get_callback_t callback) const;
 
-            bool upload(Connection* connection, const QString& fileName,
-                        upload_callback_t callback) const;
-            bool upload(Connection* connection, QIODevice* source,
-                        upload_callback_t callback) const;
+    bool upload(Connection* connection, const QString& fileName,
+                upload_callback_t callback) const;
+    bool upload(Connection* connection, QIODevice* source,
+                upload_callback_t callback) const;
 
-            QString mediaId() const;
-            QUrl url() const;
-            bool updateUrl(const QUrl& newUrl);
+    QString mediaId() const;
+    QUrl url() const;
+    bool updateUrl(const QUrl& newUrl);
 
-        private:
-            class Private;
-            std::unique_ptr<Private> d;
-    };
-}  // namespace QMatrixClient
+private:
+    class Private;
+    std::unique_ptr<Private> d;
+};
+} // namespace QMatrixClient

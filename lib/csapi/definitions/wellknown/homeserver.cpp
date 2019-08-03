@@ -7,7 +7,7 @@
 using namespace QMatrixClient;
 
 void JsonObjectConverter<HomeserverInformation>::dumpTo(
-        QJsonObject& jo, const HomeserverInformation& pod)
+    QJsonObject& jo, const HomeserverInformation& pod)
 {
     addParam<>(jo, QStringLiteral("base_url"), pod.baseUrl);
 }
@@ -17,4 +17,3 @@ void JsonObjectConverter<HomeserverInformation>::fillFrom(
 {
     fromJson(jo.value("base_url"_ls), result.baseUrl);
 }
-

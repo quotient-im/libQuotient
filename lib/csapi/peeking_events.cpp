@@ -14,13 +14,14 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class PeekEventsJob::Private
 {
-    public:
-        QString begin;
-        QString end;
-        RoomEvents chunk;
+public:
+    QString begin;
+    QString end;
+    RoomEvents chunk;
 };
 
-BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout, const QString& roomId)
+BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout,
+                                 const QString& roomId)
 {
     BaseJob::Query _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -29,39 +30,29 @@ BaseJob::Query queryToPeekEvents(const QString& from, Omittable<int> timeout, co
     return _q;
 }
 
-QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omittable<int> timeout, const QString& roomId)
+QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
+                                   Omittable<int> timeout, const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/events",
-            queryToPeekEvents(from, timeout, roomId));
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/events",
+                                   queryToPeekEvents(from, timeout, roomId));
 }
 
 static const auto PeekEventsJobName = QStringLiteral("PeekEventsJob");
 
-PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout, const QString& roomId)
-    : BaseJob(HttpVerb::Get, PeekEventsJobName,
-        basePath % "/events",
-        queryToPeekEvents(from, timeout, roomId))
+PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout,
+                             const QString& roomId)
+    : BaseJob(HttpVerb::Get, PeekEventsJobName, basePath % "/events",
+              queryToPeekEvents(from, timeout, roomId))
     , d(new Private)
-{
-}
+{}
 
 PeekEventsJob::~PeekEventsJob() = default;
 
-const QString& PeekEventsJob::begin() const
-{
-    return d->begin;
-}
+const QString& PeekEventsJob::begin() const { return d->begin; }
 
-const QString& PeekEventsJob::end() const
-{
-    return d->end;
-}
+const QString& PeekEventsJob::end() const { return d->end; }
 
-RoomEvents&& PeekEventsJob::chunk()
-{
-    return std::move(d->chunk);
-}
+RoomEvents&& PeekEventsJob::chunk() { return std::move(d->chunk); }
 
 BaseJob::Status PeekEventsJob::parseJson(const QJsonDocument& data)
 {
@@ -69,6 +60,6 @@ BaseJob::Status PeekEventsJob::parseJson(const QJsonDocument& data)
     fromJson(json.value("start"_ls), d->begin);
     fromJson(json.value("end"_ls), d->end);
     fromJson(json.value("chunk"_ls), d->chunk);
+
     return Success;
 }
-

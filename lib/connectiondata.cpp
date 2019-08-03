@@ -13,19 +13,18 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "connectiondata.h"
 
-#include "networkaccessmanager.h"
 #include "logging.h"
+#include "networkaccessmanager.h"
 
 using namespace QMatrixClient;
 
-struct ConnectionData::Private
-{
-    explicit Private(QUrl url) : baseUrl(std::move(url)) { }
+struct ConnectionData::Private {
+    explicit Private(QUrl url) : baseUrl(std::move(url)) {}
 
     QUrl baseUrl;
     QByteArray accessToken;
@@ -38,19 +37,13 @@ struct ConnectionData::Private
 
 ConnectionData::ConnectionData(QUrl baseUrl)
     : d(std::make_unique<Private>(std::move(baseUrl)))
-{ }
+{}
 
 ConnectionData::~ConnectionData() = default;
 
-QByteArray ConnectionData::accessToken() const
-{
-    return d->accessToken;
-}
+QByteArray ConnectionData::accessToken() const { return d->accessToken; }
 
-QUrl ConnectionData::baseUrl() const
-{
-    return d->baseUrl;
-}
+QUrl ConnectionData::baseUrl() const { return d->baseUrl; }
 
 QNetworkAccessManager* ConnectionData::nam() const
 {
@@ -80,10 +73,7 @@ void ConnectionData::setPort(int port)
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
 }
 
-const QString& ConnectionData::deviceId() const
-{
-    return d->deviceId;
-}
+const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
@@ -91,10 +81,7 @@ void ConnectionData::setDeviceId(const QString& deviceId)
     qCDebug(MAIN) << "updated deviceId to" << d->deviceId;
 }
 
-QString ConnectionData::lastEvent() const
-{
-    return d->lastEvent;
-}
+QString ConnectionData::lastEvent() const { return d->lastEvent; }
 
 void ConnectionData::setLastEvent(QString identifier)
 {
@@ -103,6 +90,5 @@ void ConnectionData::setLastEvent(QString identifier)
 
 QByteArray ConnectionData::generateTxnId() const
 {
-    return QByteArray::number(d->id) + 'q' +
-            QByteArray::number(++d->txnCounter);
+    return QByteArray::number(d->id) + 'q' + QByteArray::number(++d->txnCounter);
 }

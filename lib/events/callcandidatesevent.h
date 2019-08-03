@@ -13,36 +13,34 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-    class CallCandidatesEvent: public CallEventBase
+namespace QMatrixClient {
+class CallCandidatesEvent : public CallEventBase {
+public:
+    DEFINE_EVENT_TYPEID("m.call.candidates", CallCandidatesEvent)
+
+    explicit CallCandidatesEvent(const QJsonObject& obj)
+        : CallEventBase(typeId(), obj)
+    {}
+
+    explicit CallCandidatesEvent(const QString& callId,
+                                 const QJsonArray& candidates)
+        : CallEventBase(typeId(), matrixTypeId(), callId, 0,
+                        { { QStringLiteral("candidates"), candidates } })
+    {}
+
+    QJsonArray candidates() const
     {
-        public:
-            DEFINE_EVENT_TYPEID("m.call.candidates", CallCandidatesEvent)
+        return content<QJsonArray>("candidates"_ls);
+    }
+};
 
-            explicit CallCandidatesEvent(const QJsonObject& obj)
-                : CallEventBase(typeId(), obj)
-            { }
-
-            explicit CallCandidatesEvent(const QString& callId,
-                                         const QJsonArray& candidates)
-                : CallEventBase(typeId(), matrixTypeId(), callId, 0,
-                                {{ QStringLiteral("candidates"), candidates }})
-            { }
-
-            QJsonArray candidates() const
-            {
-                return content<QJsonArray>("candidates"_ls);
-            }
-    };
-
-    REGISTER_EVENT_TYPE(CallCandidatesEvent)
-    DEFINE_EVENTTYPE_ALIAS(CallCandidates, CallCandidatesEvent)
-}
+REGISTER_EVENT_TYPE(CallCandidatesEvent)
+DEFINE_EVENTTYPE_ALIAS(CallCandidates, CallCandidatesEvent)
+} // namespace QMatrixClient

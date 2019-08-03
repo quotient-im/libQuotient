@@ -18,7 +18,7 @@ void Settings::setLegacyNames(const QString& organizationName,
 
 void Settings::setValue(const QString& key, const QVariant& value)
 {
-//    qCDebug() << "Setting" << key << "to" << value;
+    //    qCDebug() << "Setting" << key << "to" << value;
     QSettings::setValue(key, value);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
@@ -56,15 +56,13 @@ bool SettingsGroup::contains(const QString& key) const
     return Settings::contains(groupPath + '/' + key);
 }
 
-QVariant SettingsGroup::value(const QString& key, const QVariant& defaultValue) const
+QVariant SettingsGroup::value(const QString& key,
+                              const QVariant& defaultValue) const
 {
     return Settings::value(groupPath + '/' + key, defaultValue);
 }
 
-QString SettingsGroup::group() const
-{
-    return groupPath;
-}
+QString SettingsGroup::group() const { return groupPath; }
 
 QStringList SettingsGroup::childGroups() const
 {
@@ -84,13 +82,17 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {}, setDeviceId)
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {}, setDeviceName)
-QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false, setKeepLoggedIn)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
+                   setDeviceId)
+QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
+                   setDeviceName)
+QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
+                   setKeepLoggedIn)
 
 static const auto HomeserverKey = QStringLiteral("homeserver");
 static const auto AccessTokenKey = QStringLiteral("access_token");
-static const auto EncryptionAccountPickleKey = QStringLiteral("encryption_account_pickle");
+static const auto EncryptionAccountPickleKey =
+    QStringLiteral("encryption_account_pickle");
 
 QUrl AccountSettings::homeserver() const
 {
@@ -102,10 +104,7 @@ void AccountSettings::setHomeserver(const QUrl& url)
     setValue(HomeserverKey, url.toString());
 }
 
-QString AccountSettings::userId() const
-{
-    return group().section('/', -1);
-}
+QString AccountSettings::userId() const { return group().section('/', -1); }
 
 QString AccountSettings::accessToken() const
 {
@@ -115,14 +114,16 @@ QString AccountSettings::accessToken() const
 void AccountSettings::setAccessToken(const QString& accessToken)
 {
     qCWarning(MAIN) << "Saving access_token to QSettings is insecure."
-                       " Developers, do it manually or contribute to share QtKeychain logic to libQuotient.";
+                       " Developers, do it manually or contribute to share "
+                       "QtKeychain logic to libQuotient.";
     setValue(AccessTokenKey, accessToken);
 }
 
 void AccountSettings::clearAccessToken()
 {
     legacySettings.remove(AccessTokenKey);
-    legacySettings.remove(QStringLiteral("device_id")); // Force the server to re-issue it
+    legacySettings.remove(QStringLiteral("device_id")); // Force the server to
+                                                        // re-issue it
     remove(AccessTokenKey);
 }
 
@@ -132,10 +133,13 @@ QByteArray AccountSettings::encryptionAccountPickle()
     return value("encryption_account_pickle", "").toByteArray();
 }
 
-void AccountSettings::setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle)
+void AccountSettings::setEncryptionAccountPickle(
+    const QByteArray& encryptionAccountPickle)
 {
-    qCWarning(MAIN) << "Saving encryption_account_pickle to QSettings is insecure."
-                       " Developers, do it manually or contribute to share QtKeychain logic to libQuotient.";
+    qCWarning(MAIN)
+        << "Saving encryption_account_pickle to QSettings is insecure."
+           " Developers, do it manually or contribute to share QtKeychain "
+           "logic to libQuotient.";
     QString passphrase = ""; // FIXME: add QtKeychain
     setValue("encryption_account_pickle", encryptionAccountPickle);
 }

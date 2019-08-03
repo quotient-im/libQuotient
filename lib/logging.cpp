@@ -13,15 +13,16 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "logging.h"
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
-#define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id), QtInfoMsg)
+#    define LOGGING_CATEGORY(Name, Id) \
+        Q_LOGGING_CATEGORY((Name), (Id), QtInfoMsg)
 #else
-#define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id))
+#    define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id))
 #endif
 
 // Use LOGGING_CATEGORY instead of Q_LOGGING_CATEGORY in the rest of the code

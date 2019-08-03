@@ -16,7 +16,7 @@ static const auto SetRoomAliasJobName = QStringLiteral("SetRoomAliasJob");
 
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
     : BaseJob(HttpVerb::Put, SetRoomAliasJobName,
-        basePath % "/room/" % roomAlias)
+              basePath % "/room/" % roomAlias)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("room_id"), roomId);
@@ -25,57 +25,50 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
 
 class GetRoomIdByAliasJob::Private
 {
-    public:
-        QString roomId;
-        QStringList servers;
+public:
+    QString roomId;
+    QStringList servers;
 };
 
 QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/room/" % roomAlias);
+                                   basePath % "/room/" % roomAlias);
 }
 
-static const auto GetRoomIdByAliasJobName = QStringLiteral("GetRoomIdByAliasJob");
+static const auto GetRoomIdByAliasJobName =
+    QStringLiteral("GetRoomIdByAliasJob");
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, GetRoomIdByAliasJobName,
-        basePath % "/room/" % roomAlias, false)
+              basePath % "/room/" % roomAlias, false)
     , d(new Private)
-{
-}
+{}
 
 GetRoomIdByAliasJob::~GetRoomIdByAliasJob() = default;
 
-const QString& GetRoomIdByAliasJob::roomId() const
-{
-    return d->roomId;
-}
+const QString& GetRoomIdByAliasJob::roomId() const { return d->roomId; }
 
-const QStringList& GetRoomIdByAliasJob::servers() const
-{
-    return d->servers;
-}
+const QStringList& GetRoomIdByAliasJob::servers() const { return d->servers; }
 
 BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("room_id"_ls), d->roomId);
     fromJson(json.value("servers"_ls), d->servers);
+
     return Success;
 }
 
 QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/room/" % roomAlias);
+                                   basePath % "/room/" % roomAlias);
 }
 
 static const auto DeleteRoomAliasJobName = QStringLiteral("DeleteRoomAliasJob");
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Delete, DeleteRoomAliasJobName,
-        basePath % "/room/" % roomAlias)
-{
-}
-
+              basePath % "/room/" % roomAlias)
+{}

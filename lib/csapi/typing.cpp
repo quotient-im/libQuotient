@@ -14,13 +14,13 @@ static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 static const auto SetTypingJobName = QStringLiteral("SetTypingJob");
 
-SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId, bool typing, Omittable<int> timeout)
+SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId,
+                           bool typing, Omittable<int> timeout)
     : BaseJob(HttpVerb::Put, SetTypingJobName,
-        basePath % "/rooms/" % roomId % "/typing/" % userId)
+              basePath % "/rooms/" % roomId % "/typing/" % userId)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("typing"), typing);
     addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
     setRequestData(_data);
 }
-

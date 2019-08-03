@@ -6,8 +6,7 @@
 
 using namespace QMatrixClient;
 
-void JsonObjectConverter<PushRule>::dumpTo(
-        QJsonObject& jo, const PushRule& pod)
+void JsonObjectConverter<PushRule>::dumpTo(QJsonObject& jo, const PushRule& pod)
 {
     addParam<>(jo, QStringLiteral("actions"), pod.actions);
     addParam<>(jo, QStringLiteral("default"), pod.isDefault);
@@ -17,8 +16,8 @@ void JsonObjectConverter<PushRule>::dumpTo(
     addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
 }
 
-void JsonObjectConverter<PushRule>::fillFrom(
-    const QJsonObject& jo, PushRule& result)
+void JsonObjectConverter<PushRule>::fillFrom(const QJsonObject& jo,
+                                             PushRule& result)
 {
     fromJson(jo.value("actions"_ls), result.actions);
     fromJson(jo.value("default"_ls), result.isDefault);
@@ -27,4 +26,3 @@ void JsonObjectConverter<PushRule>::fillFrom(
     fromJson(jo.value("conditions"_ls), result.conditions);
     fromJson(jo.value("pattern"_ls), result.pattern);
 }
-
