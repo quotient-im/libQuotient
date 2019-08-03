@@ -375,42 +375,63 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
 void QMCTest::setTopic()
 {
     static const char* const stateTestName = "State setting test";
-    static const char* const fakeStateTestName =
-        "Fake state event immunity test";
     running.push_back(stateTestName);
-    running.push_back(fakeStateTestName);
-    auto initialTopic = targetRoom->topic();
 
-    const auto newTopic = c->generateTxnId();
+    const auto newTopic = c->generateTxnId(); // Just a way to get a unique id
     targetRoom->setTopic(newTopic); // Sets the state by proper means
     const auto fakeTopic = c->generateTxnId();
-    targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
-                         RoomTopicEvent(fakeTopic).contentJson());
+    const auto fakeTxnId =
+        targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
+                             RoomTopicEvent(fakeTopic).contentJson());
 
     connectUntil(targetRoom, &Room::topicChanged, this,
-                 [this, newTopic, fakeTopic, initialTopic] {
+                 [this, newTopic] {
                      if (targetRoom->topic() == newTopic) {
                          QMC_CHECK(stateTestName, true);
-                         // Don't reset the topic yet if the negative test still
-                         // runs
-                         if (!running.contains(fakeStateTestName))
-                             targetRoom->setTopic(initialTopic);
-
                          return true;
                      }
                      return false;
                  });
 
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
-                 [this, fakeTopic, initialTopic](const RoomEvent* e, int) {
-                     if (e->contentJson().value("topic").toString() != fakeTopic)
-                         return false; // Wait on for the right event
+    // Older Synapses allowed sending fake state events through, although
+    // did not process them; // https://github.com/matrix-org/synapse/pull/5805
+    // changed that and now Synapse 400's in response to fake state events.
+    // The following two-step approach handles both cases, assuming that
+    // Room::pendingEventChanged() with EventStatus::ReachedServer is guaranteed
+    // to be emitted before Room::pendingEventAboutToMerge.
+    connectUntil(
+        targetRoom, &Room::pendingEventChanged, this,
+        [this, fakeTopic, fakeTxnId](int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
+            const auto& evt = pendingEvents[pendingIdx];
+            if (evt->transactionId() != fakeTxnId)
+                return false;
 
-                     QMC_CHECK(fakeStateTestName, !e->isStateEvent());
-                     if (!running.contains(fakeStateTestName))
-                         targetRoom->setTopic(initialTopic);
-                     return true;
-                 });
+            if (evt.deliveryStatus() == EventStatus::SendingFailed) {
+                QMC_CHECK("Fake state event immunity test", true);
+                return true;
+            }
+            if (evt.deliveryStatus() != EventStatus::ReachedServer)
+                return false;
+
+            // All before was just a preparation, this is where the test starts.
+            // (If Synapse rejected the event the library immunity can't be
+            // tested.)
+            static const char* const fakeStateTestName =
+                "Fake state event immunity test";
+            running.push_back(fakeStateTestName);
+            connectUntil(
+                targetRoom, &Room::pendingEventAboutToMerge, this,
+                [this, fakeTopic](const RoomEvent* e, int) {
+                    if (e->contentJson().value("topic").toString() != fakeTopic)
+                        return false; // Wait on for the right event
+
+                    QMC_CHECK(fakeStateTestName, !e->isStateEvent());
+                    return true;
+                });
+            return true;
+        });
 }
 
 void QMCTest::addAndRemoveTag()
