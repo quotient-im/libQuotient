@@ -35,21 +35,18 @@ on Windows or macOS, your best bet is to build the library from the source
 and bundle it with your application. In
 
 ### Pre-requisites
-- A Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
+- A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
   is known to work; mobile Windows and iOS might work too but never tried)
-  - For Ubuntu flavours - zesty or later is good enough out of the box;
-    older ones will need PPAs at least for a newer Qt. In particular,
-    if you (still) have xenial and cannot upgrade to a newer release
-    you'll have to add Kubuntu Backports PPA for it.
+  - Recent enough Linux examples: Debian Jessy; Fedora 28; OpenSUSE 15;
+    Ubuntu Bionic.
 - Qt 5 (either Open Source or Commercial), 5.9 or higher.
 - A build configuration tool:
-  - CMake (from your package management system or
+  - CMake 3.5 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
-- A C++ toolchain with C++14 support
-  - GCC 5 (Windows, Linux, macOS), Clang 5 (Linux), Apple Clang 8.1 (macOS)
-    and Visual Studio 2017 (Windows) are the oldest officially supported;
-    Clang 3.8, GCC 4.9.2, VS 2015 may work but not actively maintained.
+- A C++ toolchain with C++14 support:
+  - GCC 7 (Windows, Linux, macOS), Clang 6 (Linux), Apple Clang 10 (macOS)
+    and Visual Studio 2017 (Windows) are the oldest officially supported.
 - Any build system that works with CMake and/or qmake should be fine:
   GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
 

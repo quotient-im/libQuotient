@@ -153,7 +153,7 @@ you have to understand the way these files are produced and setup
 some additional tooling. The shortest possible procedure resembling
 the below text can be found in .travis.yml (our Travis CI configuration
 actually regenerates those files upon every build). As described below,
-there are handy build targets for CMake; patches with the same targets
+there is a handy build target for CMake; patches with a similar target
 for qmake are (you guessed it) very welcome.
 
 #### Why generate the code at all?
@@ -196,7 +196,15 @@ GTAD uses the following three kinds of sources:
 2. A configuration file, in our case it's lib/csapi/gtad.yaml - this one is common for the whole API.
 3. Source code template files: lib/csapi/{{base}}.*.mustache - also common.
 
-The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the Quotient room - I (Kitsune) will be very glad to help you out.
+The mustache files have a templated (not in C++ sense) definition of a network
+job, deriving from BaseJob; each job class is prepended, if necessary, with
+data structure definitions used by this job. The look of those files is hideous
+for a newcomer; and the only known highlighter that can handle the combination
+of Mustache (originally a web templating language) and C++ is provided in CLion.
+To slightly simplify things some more or less generic constructs are defined
+in gtad.yaml (see its "mustache:" section). Adventurous souls that would like
+to figure what's going on in these files should speak up in the Quotient room -
+I (Kitsune) will be very glad to help you out.
 
 The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
 * `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
