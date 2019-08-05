@@ -99,10 +99,10 @@ QString Quotient::cacheLocation(const QString& dirName)
     return cachePath;
 }
 
-qreal Quotient::stringToHueF(const QString& string)
+qreal Quotient::stringToHueF(const QString& s)
 {
-    Q_ASSERT(!string.isEmpty());
-    QByteArray hash = QCryptographicHash::hash(string.toUtf8(),
+    Q_ASSERT(!s.isEmpty());
+    QByteArray hash = QCryptographicHash::hash(s.toUtf8(),
                                                QCryptographicHash::Sha1);
     QDataStream dataStream(qToLittleEndian(hash).left(2));
     dataStream.setByteOrder(QDataStream::LittleEndian);

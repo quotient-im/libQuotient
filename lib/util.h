@@ -326,7 +326,7 @@ QString cacheLocation(const QString& dirName);
  * Naming and range are the same as QColor's hueF method:
  * https://doc.qt.io/qt-5/qcolor.html#integer-vs-floating-point-precision
  */
-qreal stringToHueF(const QString& string);
+qreal stringToHueF(const QString& s);
 
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
