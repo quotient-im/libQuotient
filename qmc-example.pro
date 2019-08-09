@@ -4,7 +4,7 @@ CONFIG += object_parallel_to_source
 
 windows { CONFIG += console }
 
-include(libqmatrixclient.pri)
+include(libquotient.pri)
 
 SOURCES += examples/qmc-example.cpp
 
