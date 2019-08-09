@@ -8,12 +8,12 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
 
 template <>
@@ -43,7 +43,7 @@ struct JsonObjectConverter<GetPushersJob::Pusher>
     }
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
 
 class GetPushersJob::Private
 {
@@ -79,7 +79,7 @@ BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
 
 template <>
@@ -92,7 +92,7 @@ struct JsonObjectConverter<PostPusherJob::PusherData>
     }
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
 
 static const auto PostPusherJobName = QStringLiteral("PostPusherJob");
 

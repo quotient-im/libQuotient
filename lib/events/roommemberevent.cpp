@@ -28,7 +28,7 @@ static const std::array<QString, 5> membershipStrings = {
       QStringLiteral("leave"), QStringLiteral("ban") }
 };
 
-namespace QMatrixClient {
+namespace Quotient {
 template <>
 struct JsonConverter<MembershipType> {
     static MembershipType load(const QJsonValue& jv)
@@ -43,9 +43,9 @@ struct JsonConverter<MembershipType> {
         return MembershipType::Undefined;
     }
 };
-} // namespace QMatrixClient
+} // namespace Quotient
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"_ls]))

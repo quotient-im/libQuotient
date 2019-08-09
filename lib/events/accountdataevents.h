@@ -24,7 +24,7 @@
 #include "event.h"
 #include "eventcontent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 constexpr const char* FavouriteTag = "m.favourite";
 constexpr const char* LowPriorityTag = "m.lowpriority";
 
@@ -93,4 +93,4 @@ DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, "m.ignored_user_list", QSet<QString>,
 
 DEFINE_EVENTTYPE_ALIAS(Tag, TagEvent)
 DEFINE_EVENTTYPE_ALIAS(ReadMarker, ReadMarkerEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

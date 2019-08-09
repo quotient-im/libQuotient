@@ -23,7 +23,7 @@
 
 #include <QtCore/QMimeDatabase>
 
-using namespace QMatrixClient::EventContent;
+using namespace Quotient::EventContent;
 
 QJsonObject Base::toJson() const
 {

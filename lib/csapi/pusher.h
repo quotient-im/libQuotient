@@ -10,7 +10,7 @@
 
 #include <QtCore/QVector>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -169,4 +169,4 @@ public:
                            Omittable<bool> append = none);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

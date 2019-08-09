@@ -4,7 +4,7 @@
 
 #include "public_rooms_response.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<PublicRoomsChunk>::dumpTo(QJsonObject& jo,
                                                    const PublicRoomsChunk& pod)

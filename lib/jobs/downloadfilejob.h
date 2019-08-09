@@ -2,7 +2,7 @@
 
 #include "csapi/content-repo.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class DownloadFileJob : public GetContentJob {
 public:
     enum { FileError = BaseJob::UserDefinedError + 1 };
@@ -24,4 +24,4 @@ private:
     void beforeAbandon(QNetworkReply*) override;
     Status parseReply(QNetworkReply*) override;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

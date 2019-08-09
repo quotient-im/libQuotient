@@ -8,7 +8,7 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
@@ -168,7 +168,7 @@ BaseJob::Status GetMembersByRoomJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
 
 template <>
@@ -182,7 +182,7 @@ struct JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember>
     }
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
 
 class GetJoinedMembersByRoomJob::Private
 {

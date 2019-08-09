@@ -4,7 +4,7 @@
 
 #include "device_keys.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<DeviceKeys>::dumpTo(QJsonObject& jo,
                                              const DeviceKeys& pod)

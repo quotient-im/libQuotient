@@ -20,7 +20,7 @@
 
 #include "event.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class TypingEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
@@ -34,4 +34,4 @@ private:
 };
 REGISTER_EVENT_TYPE(TypingEvent)
 DEFINE_EVENTTYPE_ALIAS(Typing, TypingEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

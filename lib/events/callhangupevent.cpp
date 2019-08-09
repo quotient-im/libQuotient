@@ -39,7 +39,7 @@ m.call.hangup
 }
 */
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 CallHangupEvent::CallHangupEvent(const QJsonObject& obj)
     : CallEventBase(typeId(), obj)

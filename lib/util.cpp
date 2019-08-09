@@ -32,7 +32,7 @@ static const auto RegExpOptions =
     | QRegularExpression::UseUnicodePropertiesOption;
 
 // Converts all that looks like a URL into HTML links
-void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
+void Quotient::linkifyUrls(QString& htmlEscapedText)
 {
     // Note: outer parentheses are a part of C++ raw string delimiters, not of
     // the regex (see http://en.cppreference.com/w/cpp/language/string_literal).
@@ -70,7 +70,7 @@ void QMatrixClient::linkifyUrls(QString& htmlEscapedText)
         QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
 }
 
-QString QMatrixClient::sanitized(const QString& plainText)
+QString Quotient::sanitized(const QString& plainText)
 {
     auto text = plainText;
     text.remove(QChar(0x202e)); // RLO
@@ -79,7 +79,7 @@ QString QMatrixClient::sanitized(const QString& plainText)
     return text;
 }
 
-QString QMatrixClient::prettyPrint(const QString& plainText)
+QString Quotient::prettyPrint(const QString& plainText)
 {
     auto pt = plainText.toHtmlEscaped();
     linkifyUrls(pt);
@@ -88,7 +88,7 @@ QString QMatrixClient::prettyPrint(const QString& plainText)
            + QStringLiteral("</span>");
 }
 
-QString QMatrixClient::cacheLocation(const QString& dirName)
+QString Quotient::cacheLocation(const QString& dirName)
 {
     const QString cachePath =
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % '/'
@@ -99,10 +99,10 @@ QString QMatrixClient::cacheLocation(const QString& dirName)
     return cachePath;
 }
 
-qreal QMatrixClient::stringToHueF(const QString& string)
+qreal Quotient::stringToHueF(const QString& s)
 {
-    Q_ASSERT(!string.isEmpty());
-    QByteArray hash = QCryptographicHash::hash(string.toUtf8(),
+    Q_ASSERT(!s.isEmpty());
+    QByteArray hash = QCryptographicHash::hash(s.toUtf8(),
                                                QCryptographicHash::Sha1);
     QDataStream dataStream(qToLittleEndian(hash).left(2));
     dataStream.setByteOrder(QDataStream::LittleEndian);
@@ -118,7 +118,7 @@ static const auto ServerPartRegEx = QStringLiteral(
     "(?::(\\d{1,5}))?" // Optional port
 );
 
-QString QMatrixClient::serverPart(const QString& mxId)
+QString Quotient::serverPart(const QString& mxId)
 {
     static QString re = "^[@!#$+].+?:(" // Localpart and colon
                         % ServerPartRegEx % ")$";
@@ -135,7 +135,7 @@ QString QMatrixClient::serverPart(const QString& mxId)
 #    pragma clang diagnostic push
 #    pragma ide diagnostic ignored "OCSimplifyInspection"
 #endif
-using namespace QMatrixClient;
+using namespace Quotient;
 
 int f();
 static_assert(std::is_same<fn_return_t<decltype(f)>, int>::value,

@@ -18,7 +18,7 @@
 
 #include "stateevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 // Aside from the normal factory to instantiate StateEventBase inheritors
 // StateEventBase itself can be instantiated if there's a state_key JSON key

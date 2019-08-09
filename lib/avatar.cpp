@@ -29,7 +29,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtGui/QPainter>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using std::move;
 
 class Avatar::Private {

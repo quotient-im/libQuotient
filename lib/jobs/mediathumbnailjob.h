@@ -22,7 +22,7 @@
 
 #include <QtGui/QPixmap>
 
-namespace QMatrixClient {
+namespace Quotient {
 class MediaThumbnailJob : public GetContentThumbnailJob {
 public:
     using GetContentThumbnailJob::makeRequestUrl;
@@ -42,4 +42,4 @@ protected:
 private:
     QImage _thumbnail;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

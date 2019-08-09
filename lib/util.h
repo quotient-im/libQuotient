@@ -63,7 +63,7 @@ static void qAsConst(const T&&) Q_DECL_EQ_DELETE;
 #    define BROKEN_INITIALIZER_LISTS
 #endif
 
-namespace QMatrixClient {
+namespace Quotient {
 // The below enables pretty-printing of enums in logs
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
 #    define REGISTER_ENUM(EnumName) Q_ENUM(EnumName)
@@ -326,8 +326,10 @@ QString cacheLocation(const QString& dirName);
  * Naming and range are the same as QColor's hueF method:
  * https://doc.qt.io/qt-5/qcolor.html#integer-vs-floating-point-precision
  */
-qreal stringToHueF(const QString& string);
+qreal stringToHueF(const QString& s);
 
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
-} // namespace QMatrixClient
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;

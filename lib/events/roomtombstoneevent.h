@@ -20,7 +20,7 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class RoomTombstoneEvent : public StateEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.room.tombstone", RoomTombstoneEvent)
@@ -34,4 +34,4 @@ public:
     QString successorRoomId() const;
 };
 REGISTER_EVENT_TYPE(RoomTombstoneEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

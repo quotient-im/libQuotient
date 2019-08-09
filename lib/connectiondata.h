@@ -24,7 +24,7 @@
 
 class QNetworkAccessManager;
 
-namespace QMatrixClient {
+namespace Quotient {
 class ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
@@ -50,4 +50,4 @@ private:
     struct Private;
     std::unique_ptr<Private> d;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

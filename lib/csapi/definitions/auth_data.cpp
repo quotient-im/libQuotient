@@ -4,7 +4,7 @@
 
 #include "auth_data.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<AuthenticationData>::dumpTo(
     QJsonObject& jo, const AuthenticationData& pod)

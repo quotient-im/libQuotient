@@ -8,7 +8,7 @@
 
 #include <QtCore/QHash>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -41,4 +41,4 @@ struct JsonObjectConverter<DeviceKeys>
     static void fillFrom(const QJsonObject& jo, DeviceKeys& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

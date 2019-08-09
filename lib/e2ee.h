@@ -4,7 +4,7 @@
 
 #include <QtCore/QStringList>
 
-namespace QMatrixClient {
+namespace Quotient {
 static const auto CiphertextKeyL = "ciphertext"_ls;
 static const auto SenderKeyKeyL = "sender_key"_ls;
 static const auto DeviceIdKeyL = "device_id"_ls;
@@ -28,4 +28,4 @@ static const auto MegolmV1AesSha2AlgoKey =
     QStringLiteral("m.megolm.v1.aes-sha2");
 static const QStringList SupportedAlgorithms = { OlmV1Curve25519AesSha2AlgoKey,
                                                  MegolmV1AesSha2AlgoKey };
-} // namespace QMatrixClient
+} // namespace Quotient

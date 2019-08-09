@@ -20,7 +20,7 @@
 
 #include "roomevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 
 struct EventRelation {
     using reltypeid_t = const char*;
@@ -70,4 +70,4 @@ private:
 };
 REGISTER_EVENT_TYPE(ReactionEvent)
 
-} // namespace QMatrixClient
+} // namespace Quotient

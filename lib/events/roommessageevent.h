@@ -23,7 +23,7 @@
 
 class QFileInfo;
 
-namespace QMatrixClient {
+namespace Quotient {
 namespace MessageEventContent = EventContent; // Back-compatibility
 
 /**
@@ -217,4 +217,4 @@ namespace EventContent {
      */
     using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
 } // namespace EventContent
-} // namespace QMatrixClient
+} // namespace Quotient

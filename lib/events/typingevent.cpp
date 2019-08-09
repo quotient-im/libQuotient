@@ -20,7 +20,7 @@
 
 #include <QtCore/QJsonArray>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 TypingEvent::TypingEvent(const QJsonObject& obj) : Event(typeId(), obj)
 {

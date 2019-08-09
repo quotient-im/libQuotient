@@ -4,7 +4,7 @@
 
 #include "location.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<ThirdPartyLocation>::dumpTo(
     QJsonObject& jo, const ThirdPartyLocation& pod)

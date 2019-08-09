@@ -4,7 +4,7 @@
 
 #include "protocol.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<FieldType>::dumpTo(QJsonObject& jo,
                                             const FieldType& pod)

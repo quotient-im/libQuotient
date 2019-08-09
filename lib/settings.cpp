@@ -4,7 +4,7 @@
 
 #include <QtCore/QUrl>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 QString Settings::legacyOrganizationName {};
 QString Settings::legacyApplicationName {};

@@ -28,7 +28,7 @@
 class QNetworkReply;
 class QSslError;
 
-namespace QMatrixClient {
+namespace Quotient {
 class ConnectionData;
 
 enum class HttpVerb { Get, Put, Post, Delete };
@@ -364,4 +364,4 @@ inline bool isJobRunning(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }
-} // namespace QMatrixClient
+} // namespace Quotient

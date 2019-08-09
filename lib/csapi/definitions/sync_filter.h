@@ -9,7 +9,7 @@
 #include "csapi/definitions/event_filter.h"
 #include "csapi/definitions/room_event_filter.h"
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Data structures
@@ -104,4 +104,4 @@ struct JsonObjectConverter<Filter>
     static void fillFrom(const QJsonObject& jo, Filter& pod);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

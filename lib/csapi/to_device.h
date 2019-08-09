@@ -9,7 +9,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -39,4 +39,4 @@ public:
         const QHash<QString, QHash<QString, QJsonObject>>& messages = {});
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient

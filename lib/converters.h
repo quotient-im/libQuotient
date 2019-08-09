@@ -55,7 +55,7 @@ struct hash<QString> {
 
 class QVariant;
 
-namespace QMatrixClient {
+namespace Quotient {
 template <typename T>
 struct JsonObjectConverter {
     static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod.toJson(); }
@@ -439,4 +439,4 @@ inline void addParam(ContT& container, const QString& key, ValT&& value)
     _impl::AddNode<std::decay_t<ValT>, Force>::impl(container, key,
                                                     std::forward<ValT>(value));
 }
-} // namespace QMatrixClient
+} // namespace Quotient

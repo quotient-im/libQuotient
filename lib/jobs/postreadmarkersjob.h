@@ -22,7 +22,7 @@
 
 #include <QtCore/QJsonObject>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 class PostReadMarkersJob : public BaseJob {
 public:

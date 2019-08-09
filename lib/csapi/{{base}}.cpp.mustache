@@ -8,7 +8,7 @@
 {{/producesNonJson?}}
 #include <QtCore/QStringBuilder>
 {{/operations}}
-using namespace QMatrixClient;
+using namespace Quotient;
 {{#models.model}}
     {{#in?}}
 void JsonObjectConverter<{{qualifiedName}}>::dumpTo(QJsonObject& jo, const {{qualifiedName}}& pod)
@@ -38,7 +38,7 @@ void JsonObjectConverter<{{qualifiedName}}>::fillFrom({{>maybeCrefJsonObject}} j
 static const auto basePath = QStringLiteral("{{basePathWithoutHost}}");
     {{#operation}}{{#models}}
 // Converters
-namespace QMatrixClient
+namespace Quotient
 {
         {{#model}}
 template <> struct JsonObjectConverter<{{qualifiedName}}>

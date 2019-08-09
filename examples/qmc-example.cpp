@@ -19,7 +19,7 @@
 #include <functional>
 #include <iostream>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using std::cout;
 using std::endl;
 using namespace std::placeholders;
@@ -435,7 +435,7 @@ void QMCTest::setTopic()
 void QMCTest::addAndRemoveTag()
 {
     running.push_back("Tagging test");
-    static const auto TestTag = QStringLiteral("org.qmatrixclient.test");
+    static const auto TestTag = QStringLiteral("org.quotient.test");
     // Pre-requisite
     if (targetRoom->tags().contains(TestTag))
         targetRoom->removeTag(TestTag);

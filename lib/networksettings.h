@@ -24,7 +24,7 @@
 
 Q_DECLARE_METATYPE(QNetworkProxy::ProxyType)
 
-namespace QMatrixClient {
+namespace Quotient {
 class NetworkSettings : public SettingsGroup {
     Q_OBJECT
     QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)

@@ -28,7 +28,7 @@ Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
 
-namespace QMatrixClient {
+namespace Quotient {
 // QDebug manipulators
 
 using QDebugManip = QDebug (*)(QDebug);
@@ -75,7 +75,9 @@ inline qint64 profilerMinNsecs()
 #endif
         * 1000;
 }
-} // namespace QMatrixClient
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;
 
 inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {

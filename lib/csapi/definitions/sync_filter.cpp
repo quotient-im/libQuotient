@@ -4,7 +4,7 @@
 
 #include "sync_filter.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<StateFilter>::dumpTo(QJsonObject& jo,
                                               const StateFilter& pod)

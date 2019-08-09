@@ -20,7 +20,7 @@
 
 #include <QtCore/QJsonArray>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const
 {

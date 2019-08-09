@@ -18,7 +18,7 @@
 
 #include "mediathumbnailjob.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
                                        QSize requestedSize)

@@ -20,7 +20,7 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 namespace EventContent {
     template <typename T>
     class SimpleContent {
@@ -37,7 +37,7 @@ namespace EventContent {
         {}
         QJsonObject toJson() const
         {
-            return { { key, QMatrixClient::toJson(value) } };
+            return { { key, Quotient::toJson(value) } };
         }
 
     public:
@@ -92,4 +92,4 @@ public:
     QStringList aliases() const { return content().value; }
 };
 REGISTER_EVENT_TYPE(RoomAliasesEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

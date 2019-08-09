@@ -30,7 +30,7 @@
 
 #include <array>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
@@ -321,7 +321,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
     // QNetworkReply error codes seem to be flawed when it comes to HTTP;
-    // see, e.g., https://github.com/QMatrixClient/libqmatrixclient/issues/200
+    // see, e.g., https://github.com/quotient-im/libQuotient/issues/200
     // so check genuine HTTP codes. The below processing is based on
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     const auto httpCodeHeader =
@@ -576,7 +576,7 @@ QUrl BaseJob::errorUrl() const { return d->errorUrl; }
 void BaseJob::setStatus(Status s)
 {
     // The crash that led to this code has been reported in
-    // https://github.com/QMatrixClient/Quaternion/issues/566 - basically,
+    // https://github.com/quotient-im/Quaternion/issues/566 - basically,
     // when cleaning up childrent of a deleted Connection, there's a chance
     // of pending jobs being abandoned, calling setStatus(Abandoned).
     // There's nothing wrong with this; however, the safety check for

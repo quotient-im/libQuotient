@@ -35,7 +35,7 @@
 #include <memory>
 #include <utility>
 
-namespace QMatrixClient {
+namespace Quotient {
 class Event;
 class Avatar;
 class SyncRoomData;
@@ -423,7 +423,7 @@ public:
     Q_INVOKABLE QUrl fileSource(const QString& id) const;
 
     /** Pretty-prints plain text into HTML
-     * As of now, it's exactly the same as QMatrixClient::prettyPrint();
+     * As of now, it's exactly the same as Quotient::prettyPrint();
      * in the future, it will also linkify room aliases, mxids etc.
      * using the room context.
      */
@@ -668,6 +668,6 @@ public:
 private:
     const Room* room;
 };
-} // namespace QMatrixClient
-Q_DECLARE_METATYPE(QMatrixClient::FileTransferInfo)
-Q_DECLARE_OPERATORS_FOR_FLAGS(QMatrixClient::Room::Changes)
+} // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::FileTransferInfo)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::Room::Changes)

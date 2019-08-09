@@ -38,7 +38,7 @@ Example of a Receipt Event:
 #include "converters.h"
 #include "logging.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 ReceiptEvent::ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj)
 {

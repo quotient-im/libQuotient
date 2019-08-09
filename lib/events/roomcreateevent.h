@@ -20,7 +20,7 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 class RoomCreateEvent : public StateEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.room.create", RoomCreateEvent)
@@ -41,4 +41,4 @@ public:
     bool isUpgrade() const;
 };
 REGISTER_EVENT_TYPE(RoomCreateEvent)
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -44,7 +44,7 @@ m.call.answer
 }
 */
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
     : CallEventBase(typeId(), obj)

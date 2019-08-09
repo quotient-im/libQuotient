@@ -22,7 +22,7 @@
 
 #include <QtCore/QPointer>
 
-namespace QMatrixClient {
+namespace Quotient {
 namespace _impl {
     template <typename SenderT, typename SignalT, typename ContextT, typename... ArgTs>
     inline QMetaObject::Connection
@@ -102,4 +102,4 @@ public:
 private:
     QObject* subscriber;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

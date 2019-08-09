@@ -4,7 +4,7 @@
 
 #include "identity_server.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<IdentityServerInformation>::dumpTo(
     QJsonObject& jo, const IdentityServerInformation& pod)

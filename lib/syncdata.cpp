@@ -23,7 +23,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 const QString SyncRoomData::UnreadCountKey =
     QStringLiteral("x-qmatrixclient.unread_count");
@@ -42,7 +42,7 @@ bool RoomSummary::merge(const RoomSummary& other)
            | heroes.merge(other.heroes);
 }
 
-QDebug QMatrixClient::operator<<(QDebug dbg, const RoomSummary& rs)
+QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
 {
     QDebugStateSaver _(dbg);
     QStringList sl;

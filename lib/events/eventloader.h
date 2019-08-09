@@ -20,7 +20,7 @@
 
 #include "stateevent.h"
 
-namespace QMatrixClient {
+namespace Quotient {
 namespace _impl {
     template <typename BaseEventT>
     static inline auto loadEvent(const QJsonObject& json,
@@ -83,4 +83,4 @@ struct JsonConverter<event_ptr_tt<EventT>> {
         return loadEvent<EventT>(jd.object());
     }
 };
-} // namespace QMatrixClient
+} // namespace Quotient

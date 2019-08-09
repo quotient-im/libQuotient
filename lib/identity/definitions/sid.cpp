@@ -4,7 +4,7 @@
 
 #include "sid.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<Sid>::dumpTo(QJsonObject& jo, const Sid& pod)
 {

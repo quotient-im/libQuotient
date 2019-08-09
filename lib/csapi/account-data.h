@@ -8,7 +8,7 @@
 
 #include <QtCore/QJsonObject>
 
-namespace QMatrixClient
+namespace Quotient
 {
 
 // Operations
@@ -122,4 +122,4 @@ public:
                                const QString& roomId, const QString& type);
 };
 
-} // namespace QMatrixClient
+} // namespace Quotient
