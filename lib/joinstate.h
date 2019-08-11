@@ -31,7 +31,7 @@ enum class JoinState : unsigned int {
 
 Q_DECLARE_FLAGS(JoinStates, JoinState)
 
-// We cannot use REGISTER_ENUM outside of a Q_OBJECT and besides, we want
+// We cannot use Q_ENUM outside of a Q_OBJECT and besides, we want
 // to use strings that match respective JSON keys.
 static const std::array<const char*, 3> JoinStateStrings { { "join", "invite",
                                                              "leave" } };

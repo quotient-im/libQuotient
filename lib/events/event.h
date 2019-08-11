@@ -47,11 +47,10 @@ inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 
 /// Re-wrap a smart pointer to base into a smart pointer to derived
 template <typename TargetT, typename SourceT>
-[[deprecated("Consider using eventCast() or visit() "
-             "instead")]] inline event_ptr_tt<TargetT>
-ptrCast(event_ptr_tt<SourceT>&& ptr)
+[[deprecated("Consider using eventCast() or visit() instead")]]
+inline event_ptr_tt<TargetT> ptrCast(event_ptr_tt<SourceT>&& ptr)
 {
-    return unique_ptr_cast<TargetT>(ptr);
+    return std::unique_ptr<TargetT>(static_cast<TargetT*>(ptr.release()));
 }
 
 // === Standard Matrix key names and basicEventJson() ===
@@ -290,19 +289,19 @@ using Events = EventsArray<Event>;
 
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
-#define DEFINE_EVENT_TYPEID(_Id, _Type)                             \
-    static constexpr event_mtype_t matrixTypeId() { return _Id; }   \
-    static auto typeId() { return Quotient::typeId<_Type>(); } \
+#define DEFINE_EVENT_TYPEID(_Id, _Type)                           \
+    static constexpr event_mtype_t matrixTypeId() { return _Id; } \
+    static auto typeId() { return Quotient::typeId<_Type>(); }    \
     // End of macro
 
 // This macro should be put after an event class definition (in .h or .cpp)
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(_Type)                               \
-    namespace {                                                  \
-        [[gnu::unused]] static const auto _factoryAdded##_Type = \
-            registerEventType<_Type>();                          \
-    }                                                            \
+#define REGISTER_EVENT_TYPE(_Type)                                \
+    namespace {                                                   \
+        [[maybe_unused]] static const auto _factoryAdded##_Type = \
+            registerEventType<_Type>();                           \
+    }                                                             \
     // End of macro
 
 // === is<>(), eventCast<>() and visit<>() ===

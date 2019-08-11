@@ -87,7 +87,7 @@ private:
                                            const QString& jsonMsgType,
                                            EventContent::TypedBase* content);
 
-    REGISTER_ENUM(MsgType)
+    Q_ENUM(MsgType)
 };
 REGISTER_EVENT_TYPE(RoomMessageEvent)
 using MessageEventType = RoomMessageEvent::MsgType;

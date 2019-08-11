@@ -66,7 +66,7 @@ public:
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
 
 private:
-    REGISTER_ENUM(EncryptionType)
+    Q_ENUM(EncryptionType)
 };
 
 REGISTER_EVENT_TYPE(EncryptionEvent)

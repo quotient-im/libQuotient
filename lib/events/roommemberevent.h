@@ -92,7 +92,7 @@ public:
     bool isAvatarUpdate() const;
 
 private:
-    REGISTER_ENUM(MembershipType)
+    Q_ENUM(MembershipType)
 };
 
 template <>

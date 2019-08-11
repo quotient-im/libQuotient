@@ -20,73 +20,15 @@
 
 #include <QtCore/QLatin1String>
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
-#    include <QtCore/QDebug>
-#    include <QtCore/QMetaEnum>
-#endif
-
 #include <functional>
 #include <memory>
 
-#if __has_cpp_attribute(fallthrough)
-#    define FALLTHROUGH [[fallthrough]]
-#elif __has_cpp_attribute(clang::fallthrough)
-#    define FALLTHROUGH [[clang::fallthrough]]
-#elif __has_cpp_attribute(gnu::fallthrough)
-#    define FALLTHROUGH [[gnu::fallthrough]]
-#else
-#    define FALLTHROUGH // -fallthrough
-#endif
-
-// Along the lines of Q_DISABLE_COPY
+// Along the lines of Q_DISABLE_COPY - the upstream version comes in Qt 5.13
 #define DISABLE_MOVE(_ClassName)               \
     _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
     _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
-// Copy-pasted from Qt 5.10
-template <typename T>
-Q_DECL_CONSTEXPR typename std::add_const<T>::type& qAsConst(T& t) Q_DECL_NOTHROW
-{
-    return t;
-}
-// prevent rvalue arguments:
-template <typename T>
-static void qAsConst(const T&&) Q_DECL_EQ_DELETE;
-#endif
-
-// MSVC 2015 and older GCC's don't handle initialisation from initializer lists
-// right in the absense of a constructor; MSVC 2015, notably, fails with
-// "error C2440: 'return': cannot convert from 'initializer list' to '<type>'"
-#if (defined(_MSC_VER) && _MSC_VER < 1910) \
-    || (defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 4)
-#    define BROKEN_INITIALIZER_LISTS
-#endif
-
 namespace Quotient {
-// The below enables pretty-printing of enums in logs
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-#    define REGISTER_ENUM(EnumName) Q_ENUM(EnumName)
-#else
-// Thanks to Olivier for spelling it and for making Q_ENUM to replace it:
-// https://woboq.com/blog/q_enum.html
-#    define REGISTER_ENUM(EnumName)                                               \
-        Q_ENUMS(EnumName)                                                         \
-        friend QDebug operator<<(QDebug dbg, EnumName val)                        \
-        {                                                                         \
-            static int enumIdx = staticMetaObject.indexOfEnumerator(#EnumName);   \
-            return dbg << Event::staticMetaObject.enumerator(enumIdx).valueToKey( \
-                       int(val));                                                 \
-        }
-#endif
-
-/** static_cast<> for unique_ptr's */
-template <typename T1, typename PtrT2>
-inline auto unique_ptr_cast(PtrT2&& p)
-{
-    return std::unique_ptr<T1>(static_cast<T1*>(p.release()));
-}
-
 struct NoneTag {};
 constexpr NoneTag none {};
 
@@ -185,7 +127,8 @@ namespace _impl {
     struct fn_traits;
 }
 
-/** Determine traits of an arbitrary function/lambda/functor
+/// Determine traits of an arbitrary function/lambda/functor
+/*!
  * Doesn't work with generic lambdas and function objects that have
  * operator() overloaded.
  * \sa

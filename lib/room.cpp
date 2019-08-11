@@ -1050,22 +1050,12 @@ FileTransferInfo Room::fileTransferInfo(const QString& id) const
         total = INT_MAX;
     }
 
-#ifdef BROKEN_INITIALIZER_LISTS
-    FileTransferInfo fti;
-    fti.status = infoIt->status;
-    fti.progress = int(progress);
-    fti.total = int(total);
-    fti.localDir = QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath());
-    fti.localPath = QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
-    return fti;
-#else
     return { infoIt->status,
              infoIt->isUpload,
              int(progress),
              int(total),
              QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
              QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath()) };
-#endif
 }
 
 QUrl Room::fileSource(const QString& id) const
