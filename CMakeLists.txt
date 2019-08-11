@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 set(API_VERSION "0.6")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
@@ -34,7 +34,7 @@ if (NOT CMAKE_INSTALL_INCLUDEDIR)
     set(CMAKE_INSTALL_INCLUDEDIR "include")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu-zero-variadic-macro-arguments)
     CHECK_CXX_COMPILER_FLAG("-W${FLAG}" WARN_${FLAG}_SUPPORTED)
@@ -43,9 +43,7 @@ foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu
     endif ()
 endforeach ()
 
-# Qt 5.6+ is the formal requirement but for the sake of supporting UBPorts
-# upstream Qt 5.4 is required.
-find_package(Qt5 5.4.1 REQUIRED Network Gui Multimedia)
+find_package(Qt5 5.9 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
@@ -265,8 +263,7 @@ install(FILES cmake/QuotientConfig.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/QuotientConfigVersion.cmake"
     DESTINATION ${ConfigFilesLocation}
 )
-# Only available from CMake 3.7; reserved for future use
-#install(EXPORT_ANDROID_MK QuotientTargets DESTINATION share/ndk-modules)
+install(EXPORT_ANDROID_MK QuotientTargets DESTINATION share/ndk-modules)
 
 if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)

@@ -32,19 +32,19 @@ Recent releases of Debian and OpenSuSE, e.g., already have the package
 (under the old name). If your Linux repo doesn't provide binary package
 (either libqmatrixclient - older - or libquotient - newer), or you're
 on Windows or macOS, your best bet is to build the library from the source
-and bundle it with your application. In
+and bundle it with your application.
 
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
   is known to work; mobile Windows and iOS might work too but never tried)
-  - Recent enough Linux examples: Debian Jessy; Fedora 28; OpenSUSE 15;
-    Ubuntu Bionic.
+  - Recent enough Linux examples: Debian Stretch; Fedora 28; OpenSUSE Leap 15;
+    Ubuntu Bionic Beaver.
 - Qt 5 (either Open Source or Commercial), 5.9 or higher.
 - A build configuration tool:
-  - CMake 3.5 or newer (from your package management system or
+  - CMake 3.10 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
-- A C++ toolchain with C++14 support:
+- A C++ toolchain with C++17 support:
   - GCC 7 (Windows, Linux, macOS), Clang 6 (Linux), Apple Clang 10 (macOS)
     and Visual Studio 2017 (Windows) are the oldest officially supported.
 - Any build system that works with CMake and/or qmake should be fine:
