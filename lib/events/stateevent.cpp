@@ -23,7 +23,7 @@ using namespace Quotient;
 // Aside from the normal factory to instantiate StateEventBase inheritors
 // StateEventBase itself can be instantiated if there's a state_key JSON key
 // but the event type is unknown.
-[[gnu::unused]] static auto stateEventTypeInitialised =
+[[maybe_unused]] static auto stateEventTypeInitialised =
     RoomEvent::factory_t::addMethod(
         [](const QJsonObject& json, const QString& matrixType) -> StateEventPtr {
             if (!json.contains(StateKeyKeyL))

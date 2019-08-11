@@ -24,7 +24,7 @@
 
 using namespace Quotient;
 
-[[gnu::unused]] static auto roomEventTypeInitialised =
+[[maybe_unused]] static auto roomEventTypeInitialised =
     Event::factory_t::chainFactory<RoomEvent>();
 
 RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
