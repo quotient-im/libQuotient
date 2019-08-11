@@ -37,7 +37,7 @@ and bundle it with your application.
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
   is known to work; mobile Windows and iOS might work too but never tried)
-  - Recent enough Linux examples: Debian Stretch; Fedora 28; OpenSUSE Leap 15;
+  - Recent enough Linux examples: Debian Buster; Fedora 28; OpenSUSE Leap 15;
     Ubuntu Bionic Beaver.
 - Qt 5 (either Open Source or Commercial), 5.9 or higher.
 - A build configuration tool:
