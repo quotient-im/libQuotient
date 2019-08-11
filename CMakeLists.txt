@@ -37,7 +37,9 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 if (MSVC)
-    add_compile_options(/EHsc /W4)
+    add_compile_options(/EHsc /W4
+        /Wd4100 /Wd4242 /Wd4245 /Wd4267 /Wd4365 /Wd4571 /Wd4625 /Wd4626 /Wd4820
+        /Wd5026 /Wd5027)
 else()
     foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu-zero-variadic-macro-arguments)
         CHECK_CXX_COMPILER_FLAG("-W${FLAG}" WARN_${FLAG}_SUPPORTED)
