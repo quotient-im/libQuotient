@@ -3,10 +3,10 @@ image: Visual Studio 2017
 environment:
   #DEPLOY_DIR: libqmatrixclient-%APPVEYOR_BUILD_VERSION%
   matrix:
-  - QTDIR: C:\Qt\5.12\msvc2017_64
+  - QTDIR: C:\Qt\5.13\msvc2017_64
     VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
     PLATFORM:
-  - QTDIR: C:\Qt\5.12\msvc2017
+  - QTDIR: C:\Qt\5.13\msvc2017
     VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat"
     PLATFORM: x86
 
@@ -21,7 +21,7 @@ before_build:
 - cd 3rdparty/libQtOlm
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - cd ../..
-- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DCMAKE_CXX_FLAGS="/EHsc /W3" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
 
 build_script:
 - cmake --build build
