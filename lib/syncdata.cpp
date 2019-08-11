@@ -26,7 +26,7 @@
 using namespace Quotient;
 
 const QString SyncRoomData::UnreadCountKey =
-    QStringLiteral("x-qmatrixclient.unread_count");
+    QStringLiteral("x-quotient.unread_count");
 
 bool RoomSummary::isEmpty() const
 {
