@@ -305,28 +305,6 @@ using Events = EventsArray<Event>;
     }                                                            \
     // End of macro
 
-#ifdef USE_EVENTTYPE_ALIAS
-namespace EventType {
-    inline event_type_t logEventType(event_type_t id, const char* idName)
-    {
-        qDebug(EVENTS) << "Using id" << id << "for" << idName;
-        return id;
-    }
-} // namespace EventType
-
-// This macro provides constants in EventType:: namespace for
-// back-compatibility with libQMatrixClient 0.3 event type system.
-#    define DEFINE_EVENTTYPE_ALIAS(_Id, _Type)                  \
-        namespace EventType {                                   \
-            [[deprecated("Use is<>(), eventCast<>() or "        \
-                         "visit<>()")]] static const auto _Id = \
-                logEventType(typeId<_Type>(), #_Id);            \
-        }                                                       \
-        // End of macro
-#else
-#    define DEFINE_EVENTTYPE_ALIAS(_Id, _Type) // Nothing
-#endif
-
 // === is<>(), eventCast<>() and visit<>() ===
 
 template <typename EventT>

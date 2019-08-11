@@ -48,5 +48,4 @@ private:
     EventsWithReceipts _eventsWithReceipts;
 };
 REGISTER_EVENT_TYPE(ReceiptEvent)
-DEFINE_EVENTTYPE_ALIAS(Receipt, ReceiptEvent)
 } // namespace Quotient

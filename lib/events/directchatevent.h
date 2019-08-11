@@ -30,5 +30,4 @@ public:
     QMultiHash<QString, QString> usersToDirectChats() const;
 };
 REGISTER_EVENT_TYPE(DirectChatEvent)
-DEFINE_EVENTTYPE_ALIAS(DirectChat, DirectChatEvent)
 } // namespace Quotient

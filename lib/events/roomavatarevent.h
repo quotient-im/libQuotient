@@ -34,5 +34,4 @@ public:
     QUrl url() const { return content().url; }
 };
 REGISTER_EVENT_TYPE(RoomAvatarEvent)
-DEFINE_EVENTTYPE_ALIAS(RoomAvatar, RoomAvatarEvent)
 } // namespace Quotient

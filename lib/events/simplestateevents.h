@@ -69,13 +69,9 @@ namespace EventContent {
     // End of macro
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
-DEFINE_EVENTTYPE_ALIAS(RoomName, RoomNameEvent)
 DEFINE_SIMPLE_STATE_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias",
                           QString, alias)
-DEFINE_EVENTTYPE_ALIAS(RoomCanonicalAlias, RoomCanonicalAliasEvent)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
-DEFINE_EVENTTYPE_ALIAS(RoomTopic, RoomTopicEvent)
-DEFINE_EVENTTYPE_ALIAS(RoomEncryption, EncryptionEvent)
 
 class RoomAliasesEvent
     : public StateEvent<EventContent::SimpleContent<QStringList>> {

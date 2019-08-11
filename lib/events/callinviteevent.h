@@ -41,5 +41,4 @@ public:
 };
 
 REGISTER_EVENT_TYPE(CallInviteEvent)
-DEFINE_EVENTTYPE_ALIAS(CallInvite, CallInviteEvent)
 } // namespace Quotient

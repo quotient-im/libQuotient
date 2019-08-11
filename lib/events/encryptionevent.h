@@ -70,5 +70,4 @@ private:
 };
 
 REGISTER_EVENT_TYPE(EncryptionEvent)
-DEFINE_EVENTTYPE_ALIAS(Encryption, EncryptionEvent)
 } // namespace Quotient

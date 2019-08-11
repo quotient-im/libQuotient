@@ -106,5 +106,4 @@ public:
 };
 
 REGISTER_EVENT_TYPE(RoomMemberEvent)
-DEFINE_EVENTTYPE_ALIAS(RoomMember, RoomMemberEvent)
 } // namespace Quotient

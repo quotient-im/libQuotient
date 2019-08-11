@@ -90,7 +90,6 @@ private:
     REGISTER_ENUM(MsgType)
 };
 REGISTER_EVENT_TYPE(RoomMessageEvent)
-DEFINE_EVENTTYPE_ALIAS(RoomMessage, RoomMessageEvent)
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {

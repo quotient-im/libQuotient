@@ -42,5 +42,4 @@ public:
 };
 
 REGISTER_EVENT_TYPE(CallCandidatesEvent)
-DEFINE_EVENTTYPE_ALIAS(CallCandidates, CallCandidatesEvent)
 } // namespace Quotient

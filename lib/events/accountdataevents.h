@@ -90,7 +90,4 @@ DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", TagsMap, tags)
 DEFINE_SIMPLE_EVENT(ReadMarkerEvent, "m.fully_read", QString, event_id)
 DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, "m.ignored_user_list", QSet<QString>,
                     ignored_users)
-
-DEFINE_EVENTTYPE_ALIAS(Tag, TagEvent)
-DEFINE_EVENTTYPE_ALIAS(ReadMarker, ReadMarkerEvent)
 } // namespace Quotient

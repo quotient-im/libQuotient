@@ -30,5 +30,4 @@ public:
 };
 
 REGISTER_EVENT_TYPE(CallHangupEvent)
-DEFINE_EVENTTYPE_ALIAS(CallHangup, CallHangupEvent)
 } // namespace Quotient
