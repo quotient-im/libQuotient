@@ -40,4 +40,4 @@ public:
 
     Q_INVOKABLE void setupApplicationProxy() const;
 };
-} // namespace QMatrixClient
+} // namespace Quotient

@@ -30,7 +30,7 @@ struct JsonConverter<EncryptionType> {
         return EncryptionType::Undefined;
     }
 };
-} // namespace QMatrixClient
+} // namespace Quotient
 
 using namespace Quotient;
 

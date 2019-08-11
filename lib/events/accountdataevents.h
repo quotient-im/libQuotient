@@ -48,7 +48,7 @@ struct JsonObjectConverter<TagRecord> {
     static void fillFrom(const QJsonObject& jo, TagRecord& rec)
     {
         // Parse a float both from JSON double and JSON string because
-        // libqmatrixclient previously used to use strings to store order.
+        // the library previously used to use strings to store order.
         const auto orderJv = jo.value("order"_ls);
         if (orderJv.isDouble())
             rec.order = fromJson<float>(orderJv);

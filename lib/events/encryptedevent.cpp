@@ -2,7 +2,7 @@
 
 #include "room.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 using namespace QtOlm;
 
 EncryptedEvent::EncryptedEvent(const QJsonObject& ciphertext,

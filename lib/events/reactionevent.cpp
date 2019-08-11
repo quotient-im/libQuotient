@@ -18,7 +18,7 @@
 
 #include "reactionevent.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<EventRelation>::dumpTo(
     QJsonObject& jo, const EventRelation& pod)
