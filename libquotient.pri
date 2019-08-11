@@ -1,8 +1,8 @@
 QT += network multimedia
-CONFIG += c++14 warn_on rtti_off create_prl object_parallel_to_source
+CONFIG += c++17 warn_on rtti_off create_prl object_parallel_to_source
 
 win32-msvc* {
-    QMAKE_CXXFLAGS_WARN_ON += -wd4100
+    QMAKE_CXXFLAGS_WARN_ON += -wd4100 -wd4267
 } else {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 }
