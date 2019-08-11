@@ -111,7 +111,8 @@ public:
 
     bool cacheState = true;
     bool cacheToBinary =
-        SettingsGroup("libqmatrixclient").value("cache_type").toString()
+        SettingsGroup("libQuotient").get("cache_type",
+                 SettingsGroup("libQMatrixClient").get<QString>("cache_type"))
         != "json";
     bool lazyLoading = false;
 
