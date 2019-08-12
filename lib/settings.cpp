@@ -18,8 +18,14 @@ void Settings::setLegacyNames(const QString& organizationName,
 
 void Settings::setValue(const QString& key, const QVariant& value)
 {
-    //    qCDebug() << "Setting" << key << "to" << value;
     QSettings::setValue(key, value);
+    if (legacySettings.contains(key))
+        legacySettings.remove(key);
+}
+
+void Settings::remove(const QString& key)
+{
+    QSettings::remove(key);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
 }

@@ -28,27 +28,50 @@ namespace Quotient {
 class Settings : public QSettings {
     Q_OBJECT
 public:
-    /**
+    /// Add a legacy organisation/application name to migrate settings from
+    /*!
      * Use this function before creating any Settings objects in order
-     * to setup a read-only location where configuration has previously
-     * been stored. This will provide an additional fallback in case of
-     * renaming the organisation/application.
+     * to set a legacy location where configuration has previously been stored.
+     * This will provide an additional fallback in case of renaming
+     * the organisation/application. Values in legacy locations are _removed_
+     * when setValue() or remove() is called.
      */
     static void setLegacyNames(const QString& organizationName,
                                const QString& applicationName = {});
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
-    // VS 2013 (and probably older) aren't friends with 'using' statements
-    // that involve private constructors
-    explicit Settings(QObject* parent = 0) : QSettings(parent) {}
-#else
     using QSettings::QSettings;
-#endif
 
+    /// Set the value for a given key
+    /*! If the key exists in the legacy location, it is removed. */
     Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
+
+    /// Remove the value from both the primary and legacy locations
+    Q_INVOKABLE void remove(const QString& key);
+
+    /// Obtain a value for a given key
+    /*!
+     * If the key doesn't exist in the primary settings location, the legacy
+     * location is checked. If neither location has the key,
+     * \p defaultValue is returned.
+     *
+     * This function returns a QVariant; use get<>() to get the unwrapped
+     * value if you know the type upfront.
+     *
+     * \sa setLegacyNames, get
+     */
     Q_INVOKABLE QVariant value(const QString& key,
                                const QVariant& defaultValue = {}) const;
 
+    /// Obtain a value for a given key, coerced to the given type
+    /*!
+     * On top of value(), this function unwraps the QVariant and returns
+     * its contents assuming the type passed as the template parameter.
+     * If the type is different from the one stored inside the QVariant,
+     * \p defaultValue is returned. In presence of legacy settings,
+     * only the first found value is checked; if its type does not match,
+     * further checks through legacy settings are not performed and
+     * \p defaultValue is returned.
+     */
     template <typename T>
     T get(const QString& key, const T& defaultValue = {}) const
     {
