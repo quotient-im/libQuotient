@@ -215,9 +215,35 @@ The types map in `gtad.yaml` is the central switchboard when it comes to matchin
 
 Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
 
-### Library API and doc-comments
+### Comments
 
-Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you. Some parts are not even documented; adding doc-comments to them is highly encouraged.
+Whenever you add a new call to the library API that you expect to be used
+from client code, you must supply a proper doc-comment along with the call.
+Doxygen style is preferred; but JavaDoc is acceptable too. Some parts are
+not documented at all; adding doc-comments to them is highly encouraged.
+
+Doc-comments for summaries should be separate from those details. Either of
+the two following ways is fine, with considerable preference on the first one:
+1. Use `///` for the summary comment and `/*! ... */` for details.
+2. Use `\brief` (or `@brief`) for the summary, and follow with details after
+   an empty doc-comment line. You can use either of the delimiters in that case.
+
+In the code, the advice for commenting is as follows:
+* Don't restate what's happening in the code unless it's not really obvious.
+  We assume the readers to have at least some command of C++ and Qt. If your
+  code is not obvious, consider rewriting it for clarity.
+* Both C++ and Qt still come with their arcane features and dark corners,
+  and we don't want to limit anybody who'd feels they have a case for
+  variable templates, raw literals, or use `qAsConst` to avoid container
+  detachment. Use your experience to figure what might be less well-known to
+  readers and comment such cases (references to web pages, Quotient wiki etc.
+  are very much ok).
+* Make sure to document not so much "what" but more "why" certain code is done
+  the way it is. In the worst case, the logic of the code can be
+  reverse-engineered; you rarely can reverse-engineer the line of reasoning and
+  the pitfalls avoided.
+
+### API conventions
 
 Calls, data structures and other symbols not intended for use by clients
 should _not_ be exposed in (public) .h files, unless they are necessary
