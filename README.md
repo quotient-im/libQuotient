@@ -39,8 +39,9 @@ and bundle it with your application.
   is known to work; mobile Windows and iOS might work too but never tried)
   - Recent enough Linux examples: Debian Buster; Fedora 28; OpenSUSE Leap 15;
     Ubuntu Bionic Beaver.
-- Qt 5 (either Open Source or Commercial), 5.9 or higher.
-- A build configuration tool:
+- Qt 5 (either Open Source or Commercial), 5.9 or higher;
+  5.12 is recommended, especially if you use qmake
+- A build configuration tool (CMake is recommended, qmake is yet supported):
   - CMake 3.10 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
@@ -65,8 +66,8 @@ If you use CMake, `find_package(Quotient)` sets up the client code to use
 libQuotient, assuming the library development files are installed. There's no
 documented procedure to use a preinstalled library with qmake; consider
 introducing a submodule in your source tree and build it along with the rest
-of the application for now. Patches to provide .prl files for qmake
-are welcome.
+of the application for now. Note also that qmake is considered for phase-out
+in Qt 6 so you should probably think of moving over to CMake eventually.
 
 Building with dynamic linkage are only tested on Linux at the moment and are
 a recommended way of linking your application with libQuotient on this platform.
@@ -124,9 +125,15 @@ The library provides a .pri file with an intention to be included from a bigger 
 qmake qmc-example.pro
 make all
 ```
-This will get you `debug/qmc-example` and `release/qmc-example` console executables that login to the Matrix server at matrix.org with credentials of your choosing (pass the username and password as arguments), run a sync long-polling loop and do some tests of the library API.
+This will get you `debug/qmc-example` and `release/qmc-example`
+console executables that login to the Matrix server at matrix.org with
+credentials of your choosing (pass the username and password as arguments),
+run a sync long-polling loop and do some tests of the library API. Note that
+qmake didn't really know about C++17 until Qt 5.12 so if your Qt is older
+you may have quite a bit of warnings during the compilation process.
 
-Installing the standalone library with qmake is not implemented yet.
+Installing the standalone library with qmake is not implemented yet; PRs are
+welcome though.
 
 ## Troubleshooting
 
