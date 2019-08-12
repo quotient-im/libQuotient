@@ -16,6 +16,7 @@ addons:
     packages:
     - ninja-build
     - qt5-default
+    - qtmultimedia5-dev
     - valgrind
 
 matrix:
