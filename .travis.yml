@@ -13,11 +13,8 @@ cache:
 
 addons:
   apt:
-    sources:
-    - sourceline: 'ppa:beineri/opt-qt597-bionic'
     packages:
     - ninja-build
-    - libgl1-mesa-dev # Forgotten Qt dep
     - qt59base
     - qt59multimedia
     - valgrind
@@ -39,8 +36,7 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; . /opt/qt59/bin/qt59-env.sh; fi
-# Switching off temporarily due to broken Valgrind being installed in xenial container.
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; fi
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
 
 install:
