@@ -15,8 +15,7 @@ addons:
   apt:
     packages:
     - ninja-build
-    - qt59base
-    - qt59multimedia
+    - qt5-default
     - valgrind
 
 matrix:
