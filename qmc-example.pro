@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-CONFIG += object_parallel_to_source
+CONFIG += c++17 warn_on object_parallel_to_source
 
 windows { CONFIG += console }
 
