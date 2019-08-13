@@ -27,6 +27,7 @@
 namespace Quotient {
 constexpr const char* FavouriteTag = "m.favourite";
 constexpr const char* LowPriorityTag = "m.lowpriority";
+constexpr const char* ServerNoticeTag = "m.server_notice";
 
 struct TagRecord {
     using order_type = Omittable<float>;

@@ -951,6 +951,11 @@ bool Room::isFavourite() const { return d->tags.contains(FavouriteTag); }
 
 bool Room::isLowPriority() const { return d->tags.contains(LowPriorityTag); }
 
+bool Room::isServerNoticeRoom() const
+{
+    return d->tags.contains(ServerNoticeTag);
+}
+
 bool Room::isDirectChat() const { return connection()->isDirectChat(id()); }
 
 QList<User*> Room::directChatUsers() const

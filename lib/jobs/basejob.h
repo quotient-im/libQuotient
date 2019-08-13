@@ -76,6 +76,7 @@ public:
         NetworkAuthRequiredError = NetworkAuthRequired,
         UserConsentRequired,
         UserConsentRequiredError = UserConsentRequired,
+        CannotLeaveRoom,
         UserDefinedError = 256
     };
 

@@ -426,6 +426,9 @@ BaseJob::Status BaseJob::parseError(QNetworkReply* reply,
                      ? tr("Requested room version: %1")
                            .arg(errorJson.value("room_version"_ls).toString())
                      : errorJson.value("error"_ls).toString() };
+    if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM")
+        return { CannotLeaveRoom,
+                 tr("It's not allowed to leave a server notices room") };
 
     // Not localisable on the client side
     if (errorJson.contains("error"_ls))
