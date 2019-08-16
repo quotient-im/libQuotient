@@ -429,6 +429,8 @@ BaseJob::Status BaseJob::parseError(QNetworkReply* reply,
     if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM")
         return { CannotLeaveRoom,
                  tr("It's not allowed to leave a server notices room") };
+    if (errCode == "M_USER_DEACTIVATED")
+        return { UserDeactivated };
 
     // Not localisable on the client side
     if (errorJson.contains("error"_ls))

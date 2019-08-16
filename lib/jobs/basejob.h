@@ -77,6 +77,7 @@ public:
         UserConsentRequired,
         UserConsentRequiredError = UserConsentRequired,
         CannotLeaveRoom,
+        UserDeactivated,
         UserDefinedError = 256
     };
 
