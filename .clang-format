@@ -96,8 +96,8 @@ IndentPPDirectives: AfterHash
 #MacroBlockEnd:   ''
 #MaxEmptyLinesToKeep: 1
 #NamespaceIndentation: Inner
-PenaltyBreakAssignment: 30
-PenaltyBreakBeforeFirstCallParameter: 50
+PenaltyBreakAssignment: 10
+PenaltyBreakBeforeFirstCallParameter: 70
 PenaltyBreakComment: 45
 #PenaltyBreakFirstLessLess: 120
 PenaltyBreakString: 200
