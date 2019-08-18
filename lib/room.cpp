@@ -1107,34 +1107,30 @@ bool Room::usesEncryption() const
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
-const RoomEvent* Room::decryptMessage(EncryptedEvent* encryptedEvent) const
+RoomEventPtr Room::decryptMessage(EncryptedEvent* encryptedEvent)
 {
     if (encryptedEvent->algorithm() == OlmV1Curve25519AesSha2AlgoKey) {
-        QString identityKey = connection()->olmAccount()->curve25519IdentityKey();
+        QString identityKey =
+            connection()->olmAccount()->curve25519IdentityKey();
         QJsonObject personalCipherObject =
             encryptedEvent->ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
-            qCDebug(EVENTS) << "Encrypted event is not for the current device";
-            return nullptr;
+            qCDebug(E2EE) << "Encrypted event is not for the current device";
+            return {};
         }
-        return makeEvent<RoomMessageEvent>(
-                   decryptMessage(personalCipherObject,
-                                  encryptedEvent->senderKey().toLatin1()))
-            .get();
+        return makeEvent<RoomMessageEvent>(decryptMessage(
+            personalCipherObject, encryptedEvent->senderKey().toLatin1()));
     }
     if (encryptedEvent->algorithm() == MegolmV1AesSha2AlgoKey) {
-        return makeEvent<RoomMessageEvent>(
-                   decryptMessage(encryptedEvent->ciphertext(),
-                                  encryptedEvent->senderKey(),
-                                  encryptedEvent->deviceId(),
-                                  encryptedEvent->sessionId()))
-            .get();
+        return makeEvent<RoomMessageEvent>(decryptMessage(
+            encryptedEvent->ciphertext(), encryptedEvent->senderKey(),
+            encryptedEvent->deviceId(), encryptedEvent->sessionId()));
     }
-    return nullptr;
+    return {};
 }
 
-const QString Room::decryptMessage(QJsonObject personalCipherObject,
-                                   QByteArray senderKey) const
+QString Room::decryptMessage(QJsonObject personalCipherObject,
+                             QByteArray senderKey)
 {
     QString decrypted;
 
@@ -1145,25 +1141,26 @@ const QString Room::decryptMessage(QJsonObject personalCipherObject,
     int type = personalCipherObject.value(TypeKeyL).toInt(-1);
     QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
 
-    PreKeyMessage* preKeyMessage = new PreKeyMessage(body);
-    session = new InboundSession(connection()->olmAccount(), preKeyMessage,
-                                 senderKey);
+    PreKeyMessage preKeyMessage { body };
+    session =
+        new InboundSession(connection()->olmAccount(), &preKeyMessage, senderKey, this);
     if (type == 0) {
-        if (!session->matches(preKeyMessage, senderKey)) {
+        if (!session->matches(&preKeyMessage, senderKey)) {
             connection()->olmAccount()->removeOneTimeKeys(session);
         }
         try {
-            decrypted = session->decrypt(preKeyMessage);
+            decrypted = session->decrypt(&preKeyMessage);
         } catch (std::runtime_error& e) {
             qWarning(EVENTS) << "Decrypt failed:" << e.what();
         }
-    } else if (type == 1) {
-        Message* message = new Message(body);
-        if (!session->matches(preKeyMessage, senderKey)) {
+    }
+    else if (type == 1) {
+        Message message { body };
+        if (!session->matches(&preKeyMessage, senderKey)) {
             qWarning(EVENTS) << "Invalid encrypted message";
         }
         try {
-            decrypted = session->decrypt(message);
+            decrypted = session->decrypt(&message);
         } catch (std::runtime_error& e) {
             qWarning(EVENTS) << "Decrypt failed:" << e.what();
         }
@@ -1172,16 +1169,15 @@ const QString Room::decryptMessage(QJsonObject personalCipherObject,
     return decrypted;
 }
 
-const QString Room::sessionKey(const QString& senderKey, const QString& deviceId,
-                               const QString& sessionId) const
+QString Room::sessionKey(const QString& senderKey, const QString& deviceId,
+                         const QString& sessionId) const
 {
     // TODO: handling an m.room_key event
     return "";
 }
 
-const QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
-                                   const QString& deviceId,
-                                   const QString& sessionId) const
+QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
+                             const QString& deviceId, const QString& sessionId)
 {
     QString decrypted;
     using namespace QtOlm;
