@@ -155,8 +155,11 @@ libQuotient uses Qt's logging categories to make switching certain types of logg
 quotient.<category>.<level>=<flag>
 ```
 where
-- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `events`, `events.ephemeral`, and `profiler` (you can always find the full list in the file `lib/logging.cpp`)
-- `<level>` is one of `debug` and `warning`
+- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `events`, `events.state`
+  (covering both the "usual" room state and account data), `events.messages`,
+  `events.ephemeral`, `e2ee` and `profiler` (you can always find the full list
+  in `lib/logging.cpp`)
+- `<level>` is one of `debug`, `info`, and `warning`
 - `<flag>` is either `true` or `false`.
 
 `*` can be used as a wildcard for any part between two dots, and semicolon is used for a separator. Latter statements override former ones, so if you want to switch on all debug logs except `jobs` you can set
