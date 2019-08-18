@@ -191,14 +191,13 @@ public:
     memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
-    const RoomEvent* decryptMessage(EncryptedEvent* encryptedEvent) const;
-    const QString decryptMessage(QJsonObject personalCipherObject,
-                                 QByteArray senderKey) const;
-    const QString sessionKey(const QString& senderKey, const QString& deviceId,
-                             const QString& sessionId) const;
-    const QString decryptMessage(QByteArray cipher, const QString& senderKey,
-                                 const QString& deviceId,
-                                 const QString& sessionId) const;
+    RoomEventPtr decryptMessage(EncryptedEvent* encryptedEvent);
+    QString decryptMessage(QJsonObject personalCipherObject,
+                           QByteArray senderKey);
+    QString sessionKey(const QString& senderKey, const QString& deviceId,
+                       const QString& sessionId) const;
+    QString decryptMessage(QByteArray cipher, const QString& senderKey,
+                           const QString& deviceId, const QString& sessionId);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
