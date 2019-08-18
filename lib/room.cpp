@@ -555,10 +555,10 @@ Room::Changes Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker,
 
     // Try to auto-promote the read marker over the user's own messages
     // (switch to direct iterators for that).
-    auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
-                               [=](const TimelineItem& ti) {
-                                   return ti->senderId() != u->id();
-                               });
+    auto eagerMarker =
+        find_if(newMarker.base(), timeline.cend(), [=](const TimelineItem& ti) {
+            return ti->senderId() != u->id();
+        });
 
     auto changes = setLastReadEvent(u, (*(eagerMarker - 1))->id());
     if (isLocalUser(u)) {
@@ -932,9 +932,8 @@ void Room::Private::setTags(TagsMap newTags)
 {
     emit q->tagsAboutToChange();
     const auto keys = newTags.keys();
-    for (const auto& k : keys) {
-        const auto& checkRes = validatedTag(k);
-        if (checkRes.first) {
+    for (const auto& k : keys)
+        if (const auto& checkRes = validatedTag(k); checkRes.first) {
             if (newTags.contains(checkRes.second))
                 newTags.remove(k);
             else
@@ -981,13 +980,12 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
     Q_ASSERT(event->hasFileContent());
     const auto* fileInfo = event->content()->fileInfo();
     QString fileName;
-    if (!fileInfo->originalName.isEmpty()) {
+    if (!fileInfo->originalName.isEmpty())
         fileName = QFileInfo(fileInfo->originalName).fileName();
-    } else if (!event->plainBody().isEmpty()) {
+    else if (!event->plainBody().isEmpty()) {
         // Having no better options, assume that the body has
         // the original file URL or at least the file name.
-        QUrl u { event->plainBody() };
-        if (u.isValid())
+        if (QUrl u { event->plainBody() }; u.isValid())
             fileName = QFileInfo(u.path()).fileName();
     }
     // Check the file name for sanity
@@ -995,8 +993,8 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
         return "file." % fileInfo->mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows") {
-        const auto& suffixes = fileInfo->mimeType.suffixes();
-        if (!suffixes.isEmpty()
+        if (const auto& suffixes = fileInfo->mimeType.suffixes();
+            suffixes.isEmpty()
             && std::none_of(suffixes.begin(), suffixes.end(),
                             [&fileName](const QString& s) {
                                 return fileName.endsWith(s);
@@ -1438,10 +1436,11 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
 {
     const auto txnId = pEvent->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
-    if (auto call = connection->callApi<SendMessageJob>(
-            BackgroundRequest, id, pEvent->matrixType(), txnId,
-            pEvent->contentJson())) {
-        Room::connect(call, &BaseJob::started, q, [this, txnId] {
+    if (auto call =
+            connection->callApi<SendMessageJob>(BackgroundRequest, id,
+                                                pEvent->matrixType(), txnId,
+                                                pEvent->contentJson())) {
+        Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
                 qWarning(EVENTS) << "Pending event for transaction" << txnId
@@ -1586,8 +1585,8 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
     {
-        auto&& event = makeEvent<RoomMessageEvent>(plainText, localFile,
-                                                   asGenericFile);
+        auto&& event =
+            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile);
         event->setTransactionId(txnId);
         d->addAsPending(std::move(event));
     }
@@ -1745,8 +1744,8 @@ void Room::Private::getPreviousContent(int limit)
     if (isJobRunning(eventsHistoryJob))
         return;
 
-    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, prevBatch, "b",
-                                                             "", limit);
+    eventsHistoryJob =
+        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [=] {
         prevBatch = eventsHistoryJob->end();
@@ -1896,10 +1895,10 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 
     // Multiple-remove (by different criteria), single-erase
     // 1. Check for duplicates against the timeline.
-    auto dupsBegin = remove_if(events.begin(), events.end(),
-                               [&](const RoomEventPtr& e) {
-                                   return eventsIndex.contains(e->id());
-                               });
+    auto dupsBegin =
+        remove_if(events.begin(), events.end(), [&](const RoomEventPtr& e) {
+            return eventsIndex.contains(e->id());
+        });
 
     // 2. Check for duplicates within the batch if there are still events.
     for (auto eIt = events.begin(); distance(eIt, dupsBegin) > 1; ++eIt)
@@ -2024,8 +2023,8 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
     }
     if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
         const auto& targetEvtId = reaction->relation().eventId;
-        const auto lookupKey = qMakePair(targetEvtId,
-                                         EventRelation::Annotation());
+        const auto lookupKey =
+            qMakePair(targetEvtId, EventRelation::Annotation());
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
         }
@@ -2166,9 +2165,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     auto timelineSize = timeline.size();
     size_t totalInserted = 0;
     for (auto it = events.begin(); it != events.end();) {
-        auto nextPendingPair = findFirstOf(it, events.end(),
-                                           unsyncedEvents.begin(),
-                                           unsyncedEvents.end(), isEchoEvent);
+        auto nextPendingPair =
+            findFirstOf(it, events.end(), unsyncedEvents.begin(),
+                        unsyncedEvents.end(), isEchoEvent);
         const auto& remoteEcho = nextPendingPair.first;
         const auto& localEcho = nextPendingPair.second;
 
@@ -2599,11 +2598,11 @@ QString Room::Private::calculateDisplayname() const
     // "heroes" if available.
 
     const bool localUserIsIn = joinState == JoinState::Join;
-    const bool emptyRoom = membersMap.isEmpty()
-                           || (membersMap.size() == 1
-                               && isLocalUser(*membersMap.begin()));
-    const bool nonEmptySummary = !summary.heroes.omitted()
-                                 && !summary.heroes->empty();
+    const bool emptyRoom =
+        membersMap.isEmpty()
+        || (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
+    const bool nonEmptySummary =
+        !summary.heroes.omitted() && !summary.heroes->empty();
     auto shortlist = nonEmptySummary ? buildShortlist(summary.heroes.value())
                                      : !emptyRoom ? buildShortlist(membersMap)
                                                   : users_shortlist_t {};
