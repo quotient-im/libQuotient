@@ -1383,15 +1383,18 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages) {
         qCDebug(MAIN) << "Setting unread_count to" << data.unreadCount;
         d->unreadMessages = data.unreadCount;
+        roomChanges |= Change::UnreadNotifsChange;
         emit unreadMessagesChanged(this);
     }
 
     if (data.highlightCount != d->highlightCount) {
         d->highlightCount = data.highlightCount;
+        roomChanges |= Change::UnreadNotifsChange;
         emit highlightCountChanged();
     }
     if (data.notificationCount != d->notificationCount) {
         d->notificationCount = data.notificationCount;
+        roomChanges |= Change::UnreadNotifsChange;
         emit notificationCountChanged();
     }
     if (roomChanges != Change::NoChange) {
