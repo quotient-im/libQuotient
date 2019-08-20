@@ -66,8 +66,7 @@ public:
         IncorrectRequestError = IncorrectRequest,
         IncorrectResponse,
         IncorrectResponseError = IncorrectResponse,
-        JsonParseError
-            Q_DECL_ENUMERATOR_DEPRECATED_X("Use IncorrectResponse instead")
+        JsonParseError //< \deprecated Use IncorrectResponse instead
         = IncorrectResponse,
         TooManyRequests,
         TooManyRequestsError = TooManyRequests,
