@@ -29,10 +29,11 @@ struct ConnectionData::Private {
     QUrl baseUrl;
     QByteArray accessToken;
     QString lastEvent;
+    QString userId;
     QString deviceId;
 
     mutable unsigned int txnCounter = 0;
-    const qint64 id = QDateTime::currentMSecsSinceEpoch();
+    const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
 };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
@@ -75,11 +76,14 @@ void ConnectionData::setPort(int port)
 
 const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
+const QString& ConnectionData::userId() const { return d->userId; }
+
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
     d->deviceId = deviceId;
-    qCDebug(MAIN) << "updated deviceId to" << d->deviceId;
 }
+
+void ConnectionData::setUserId(const QString& userId) { d->userId = userId; }
 
 QString ConnectionData::lastEvent() const { return d->lastEvent; }
 
@@ -90,5 +94,6 @@ void ConnectionData::setLastEvent(QString identifier)
 
 QByteArray ConnectionData::generateTxnId() const
 {
-    return QByteArray::number(d->id) + 'q' + QByteArray::number(++d->txnCounter);
+    return d->deviceId.toLatin1() + QByteArray::number(d->txnBase)
+           + QByteArray::number(++d->txnCounter);
 }

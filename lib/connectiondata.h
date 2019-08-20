@@ -33,13 +33,17 @@ public:
     QByteArray accessToken() const;
     QUrl baseUrl() const;
     const QString& deviceId() const;
-
+    const QString& userId() const;
     QNetworkAccessManager* nam() const;
+
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);
+    [[deprecated("Use setBaseUrl() instead")]]
     void setHost(QString host);
+    [[deprecated("Use setBaseUrl() instead")]]
     void setPort(int port);
     void setDeviceId(const QString& deviceId);
+    void setUserId(const QString& userId);
 
     QString lastEvent() const;
     void setLastEvent(QString identifier);

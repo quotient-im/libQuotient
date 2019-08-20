@@ -99,7 +99,6 @@ public:
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
     std::unordered_map<QString, EventPtr> accountData;
-    QString userId;
     int syncLoopTimeout = -1;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -116,7 +115,7 @@ public:
         != "json";
     bool lazyLoading = false;
 
-    void connectWithToken(const QString& user, const QString& accessToken,
+    void connectWithToken(const QString& userId, const QString& accessToken,
                           const QString& deviceId);
     void removeRoom(const QString& roomId);
 
@@ -132,7 +131,8 @@ public:
     void packAndSendAccountData(EventPtr&& event)
     {
         const auto eventType = event->matrixType();
-        q->callApi<SetAccountDataJob>(userId, eventType, event->contentJson());
+        q->callApi<SetAccountDataJob>(data->userId(), eventType,
+                                      event->contentJson());
         accountData[eventType] = std::move(event);
         emit q->accountDataChanged(eventType);
     }
@@ -159,7 +159,7 @@ Connection::Connection(QObject* parent) : Connection({}, parent) {}
 
 Connection::~Connection()
 {
-    qCDebug(MAIN) << "deconstructing connection object for" << d->userId;
+    qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
 }
 
@@ -234,11 +234,11 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    auto loginJob = callApi<LoginJob>(
-        QStringLiteral("m.login.password"),
-        UserIdentifier { QStringLiteral("m.id.user"),
-                         { { QStringLiteral("user"), user } } },
-        password, /*token*/ "", deviceId, initialDeviceName);
+    auto loginJob =
+        callApi<LoginJob>(QStringLiteral("m.login.password"),
+                          UserIdentifier { QStringLiteral("m.id.user"),
+                                           { { QStringLiteral("user"), user } } },
+                          password, /*token*/ "", deviceId, initialDeviceName);
     connect(loginJob, &BaseJob::success, this, [this, loginJob] {
         d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                             loginJob->deviceId());
@@ -299,11 +299,11 @@ bool Connection::loadingCapabilities() const
     return d->capabilities.roomVersions.omitted();
 }
 
-void Connection::Private::connectWithToken(const QString& user,
+void Connection::Private::connectWithToken(const QString& userId,
                                            const QString& accessToken,
                                            const QString& deviceId)
 {
-    userId = user;
+    data->setUserId(userId);
     q->user(); // Creates a User object for the local user
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);
@@ -354,9 +354,9 @@ void Connection::sync(int timeout)
     Filter filter;
     filter.room->timeline->limit = 100;
     filter.room->state->lazyLoadMembers = d->lazyLoading;
-    auto job = d->syncJob = callApi<SyncJob>(BackgroundRequest,
-                                             d->data->lastEvent(), filter,
-                                             timeout);
+    auto job = d->syncJob =
+        callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
+                         timeout);
     connect(job, &SyncJob::success, this, [this, job] {
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
@@ -485,7 +485,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
             [this, &eventPtr](const Event& accountEvent) {
                 if (is<IgnoredUsersEvent>(accountEvent))
                     qCDebug(MAIN)
-                        << "Users ignored by" << d->userId << "updated:"
+                        << "Users ignored by" << userId() << "updated:"
                         << QStringList::fromSet(ignoredUsers()).join(',');
 
                 auto& currentData = d->accountData[accountEvent.matrixType()];
@@ -504,7 +504,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         qDebug(MAIN) << "Sending updated direct chats to the server:"
                      << d->dcLocalRemovals.size() << "removal(s),"
                      << d->dcLocalAdditions.size() << "addition(s)";
-        callApi<SetAccountDataJob>(d->userId, QStringLiteral("m.direct"),
+        callApi<SetAccountDataJob>(userId(), QStringLiteral("m.direct"),
                                    toJson(d->directChats));
         d->dcLocalAdditions.clear();
         d->dcLocalRemovals.clear();
@@ -634,8 +634,8 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
-    auto* job = callApi<DownloadFileJob>(idParts.front(), idParts.back(),
-                                         localFilename);
+    auto* job =
+        callApi<DownloadFileJob>(idParts.front(), idParts.back(), localFilename);
     return job;
 }
 
@@ -648,7 +648,7 @@ Connection::createRoom(RoomVisibility visibility, const QString& alias,
                        const QVector<CreateRoomJob::Invite3pid>& invite3pids,
                        const QJsonObject& creationContent)
 {
-    invites.removeOne(d->userId); // The creator is by definition in the room
+    invites.removeOne(userId()); // The creator is by definition in the room
     auto job = callApi<CreateRoomJob>(visibility == PublishRoom
                                           ? QStringLiteral("public")
                                           : QStringLiteral("private"),
@@ -672,12 +672,7 @@ Connection::createRoom(RoomVisibility visibility, const QString& alias,
 
 void Connection::requestDirectChat(const QString& userId)
 {
-    if (auto* u = user(userId))
-        requestDirectChat(u);
-    else
-        qCCritical(MAIN) << "Connection::requestDirectChat: Couldn't get a "
-                            "user object for"
-                         << userId;
+    doInDirectChat(userId, [this](Room* r) { emit directChatAvailable(r); });
 }
 
 void Connection::requestDirectChat(User* u)
@@ -700,7 +695,7 @@ void Connection::doInDirectChat(User* u,
                                 const std::function<void(Room*)>& operation)
 {
     Q_ASSERT(u);
-    const auto& userId = u->id();
+    const auto& otherUserId = u->id();
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.
     DirectChatsMap removals;
@@ -710,9 +705,9 @@ void Connection::doInDirectChat(User* u,
         if (auto r = room(roomId, JoinState::Join)) {
             Q_ASSERT(r->id() == roomId);
             // A direct chat with yourself should only involve yourself :)
-            if (userId == d->userId && r->totalMemberCount() > 1)
+            if (otherUserId == userId() && r->totalMemberCount() > 1)
                 continue;
-            qCDebug(MAIN) << "Requested direct chat with" << userId
+            qCDebug(MAIN) << "Requested direct chat with" << otherUserId
                           << "is already available as" << r->id();
             operation(r);
             return;
@@ -721,10 +716,10 @@ void Connection::doInDirectChat(User* u,
             Q_ASSERT(ir->id() == roomId);
             auto j = joinRoom(ir->id());
             connect(j, &BaseJob::success, this,
-                    [this, roomId, userId, operation] {
+                    [this, roomId, otherUserId, operation] {
                         qCDebug(MAIN)
                             << "Joined the already invited direct chat with"
-                            << userId << "as" << roomId;
+                            << otherUserId << "as" << roomId;
                         operation(room(roomId, JoinState::Join));
                     });
             return;
@@ -734,7 +729,7 @@ void Connection::doInDirectChat(User* u,
         if (room(roomId, JoinState::Leave))
             continue;
 
-        qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
+        qCWarning(MAIN) << "Direct chat with" << otherUserId << "known as room"
                         << roomId << "is not valid and will be discarded";
         // Postpone actual deletion until we finish iterating d->directChats.
         removals.insert(it.key(), it.value());
@@ -750,9 +745,9 @@ void Connection::doInDirectChat(User* u,
         emit directChatsListChanged({}, removals);
     }
 
-    auto j = createDirectChat(userId);
-    connect(j, &BaseJob::success, this, [this, j, userId, operation] {
-        qCDebug(MAIN) << "Direct chat with" << userId << "has been created as"
+    auto j = createDirectChat(otherUserId);
+    connect(j, &BaseJob::success, this, [this, j, otherUserId, operation] {
+        qCDebug(MAIN) << "Direct chat with" << otherUserId << "has been created as"
                       << j->roomId();
         operation(room(j->roomId(), JoinState::Join));
     });
@@ -845,7 +840,7 @@ SendMessageJob* Connection::sendMessage(const QString& roomId,
 
 QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
-QString Connection::domain() const { return d->userId.section(':', 1); }
+QString Connection::domain() const { return userId().section(':', 1); }
 
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
@@ -905,30 +900,30 @@ Room* Connection::invitation(const QString& roomId) const
     return d->roomMap.value({ roomId, true }, nullptr);
 }
 
-User* Connection::user(const QString& userId)
+User* Connection::user(const QString& uId)
 {
-    if (userId.isEmpty())
+    if (uId.isEmpty())
         return nullptr;
-    if (!userId.startsWith('@') || !userId.contains(':')) {
-        qCCritical(MAIN) << "Malformed userId:" << userId;
+    if (!uId.startsWith('@') || !uId.contains(':')) {
+        qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
-    if (d->userMap.contains(userId))
-        return d->userMap.value(userId);
-    auto* user = userFactory()(this, userId);
-    d->userMap.insert(userId, user);
+    if (d->userMap.contains(uId))
+        return d->userMap.value(uId);
+    auto* user = userFactory()(this, uId);
+    d->userMap.insert(uId, user);
     emit newUser(user);
     return user;
 }
 
 const User* Connection::user() const
 {
-    return d->userMap.value(d->userId, nullptr);
+    return d->userMap.value(userId(), nullptr);
 }
 
-User* Connection::user() { return user(d->userId); }
+User* Connection::user() { return user(userId()); }
 
-QString Connection::userId() const { return d->userId; }
+QString Connection::userId() const { return d->data->userId(); }
 
 QString Connection::deviceId() const { return d->data->deviceId(); }
 
