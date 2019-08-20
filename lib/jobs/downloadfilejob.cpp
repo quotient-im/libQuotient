@@ -39,7 +39,7 @@ QString DownloadFileJob::targetFileName() const
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
 }
 
-void DownloadFileJob::beforeStart(const ConnectionData*)
+void DownloadFileJob::doPrepare()
 {
     if (d->targetFile && !d->targetFile->isReadable()
         && !d->targetFile->open(QIODevice::WriteOnly)) {
@@ -57,7 +57,7 @@ void DownloadFileJob::beforeStart(const ConnectionData*)
     qCDebug(JOBS) << "Downloading to" << d->tempFile->fileName();
 }
 
-void DownloadFileJob::afterStart(const ConnectionData*, QNetworkReply* reply)
+void DownloadFileJob::onSentRequest(QNetworkReply* reply)
 {
     connect(reply, &QNetworkReply::metaDataChanged, this, [this, reply] {
         if (!status().good())

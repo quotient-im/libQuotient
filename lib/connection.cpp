@@ -1358,7 +1358,7 @@ void Connection::setLazyLoading(bool newValue)
 void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
 {
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-    job->start(d->data.get(), runningPolicy & BackgroundRequest);
+    job->prepare(d->data.get(), runningPolicy & BackgroundRequest);
     d->data->submit(job);
 }
 

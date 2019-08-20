@@ -19,8 +19,8 @@ private:
     class Private;
     QScopedPointer<Private> d;
 
-    void beforeStart(const ConnectionData*) override;
-    void afterStart(const ConnectionData*, QNetworkReply* reply) override;
+    void doPrepare() override;
+    void onSentRequest(QNetworkReply* reply) override;
     void beforeAbandon(QNetworkReply*) override;
     Status parseReply(QNetworkReply*) override;
 };

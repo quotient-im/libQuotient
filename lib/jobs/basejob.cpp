@@ -31,6 +31,8 @@
 #include <array>
 
 using namespace Quotient;
+using std::chrono::seconds, std::chrono::milliseconds;
+using std::chrono_literals::operator""s;
 
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
@@ -43,6 +45,11 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
 
 class BaseJob::Private {
 public:
+    struct JobTimeoutConfig {
+        seconds jobTimeout;
+        seconds nextRetryInterval;
+    };
+
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
     Private(HttpVerb v, QString endpoint, const QUrlQuery& q, Data&& data,
@@ -52,12 +59,14 @@ public:
         , requestQuery(q)
         , requestData(std::move(data))
         , needsToken(nt)
-    {}
+    {
+        timer.setSingleShot(true);
+        retryTimer.setSingleShot(true);
+    }
 
-    void sendRequest(bool inBackground);
-    const JobTimeoutConfig& getCurrentTimeoutConfig() const;
+    void sendRequest();
 
-    const ConnectionData* connection = nullptr;
+    ConnectionData* connection = nullptr;
 
     // Contents for the network request
     HttpVerb verb;
@@ -67,13 +76,15 @@ public:
     Data requestData;
     bool needsToken;
 
+    bool inBackground = false;
+
     // There's no use of QMimeType here because we don't want to match
     // content types against the known MIME type hierarchy; and at the same
     // type QMimeType is of little help with MIME type globs (`text/*` etc.)
-    QByteArrayList expectedContentTypes;
+    QByteArrayList expectedContentTypes { "application/json" };
 
     QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
-    Status status = Pending;
+    Status status = Unprepared;
     QByteArray rawResponse;
     QUrl errorUrl; //< May contain a URL to help with some errors
 
@@ -82,11 +93,17 @@ public:
     QTimer timer;
     QTimer retryTimer;
 
-    QVector<JobTimeoutConfig> errorStrategy = { { 90, 5 },
-                                                { 90, 10 },
-                                                { 120, 30 } };
-    int maxRetries = errorStrategy.size();
+    static constexpr std::array<const JobTimeoutConfig, 3> errorStrategy {
+        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } }
+    };
+    int maxRetries = int(errorStrategy.size());
     int retriesTaken = 0;
+
+    const JobTimeoutConfig& getCurrentTimeoutConfig() const
+    {
+        return errorStrategy[std::min(size_t(retriesTaken),
+                                      errorStrategy.size() - 1)];
+    }
 
     QString urlForLog() const
     {
@@ -106,9 +123,11 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     : d(new Private(verb, endpoint, query, std::move(data), needsToken))
 {
     setObjectName(name);
-    setExpectedContentTypes({ "application/json" });
-    d->timer.setSingleShot(true);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
+    connect(&d->retryTimer, &QTimer::timeout, this, [this] {
+        setStatus(Pending);
+        sendRequest();
+    });
 }
 
 BaseJob::~BaseJob()
@@ -124,10 +143,7 @@ QUrl BaseJob::requestUrl() const
 
 bool BaseJob::isBackground() const
 {
-    return d->reply
-           && d->reply->request()
-                  .attribute(QNetworkRequest::BackgroundRequestAttribute)
-                  .toBool();
+    return d->inBackground;
 }
 
 const QString& BaseJob::apiEndpoint() const { return d->apiEndpoint; }
@@ -191,7 +207,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
     return baseUrl;
 }
 
-void BaseJob::Private::sendRequest(bool inBackground)
+void BaseJob::Private::sendRequest()
 {
     QNetworkRequest req { makeRequestUrl(connection->baseUrl(), apiEndpoint,
                                          requestQuery) };
@@ -223,36 +239,31 @@ void BaseJob::Private::sendRequest(bool inBackground)
     }
 }
 
-void BaseJob::beforeStart(const ConnectionData*) {}
+void BaseJob::doPrepare() {}
 
-void BaseJob::afterStart(const ConnectionData*, QNetworkReply*) {}
+void BaseJob::onSentRequest(QNetworkReply*) {}
 
 void BaseJob::beforeAbandon(QNetworkReply*) {}
 
-void BaseJob::start(const ConnectionData* connData, bool inBackground)
+void BaseJob::prepare(ConnectionData* connData, bool inBackground)
 {
+    d->inBackground = inBackground;
     d->connection = connData;
-    d->retryTimer.setSingleShot(true);
-    connect(&d->retryTimer, &QTimer::timeout, this,
-            [this, inBackground] { sendRequest(inBackground); });
-
-    beforeStart(connData);
-    if (status().good())
-        sendRequest(inBackground);
-    if (status().good())
-        afterStart(connData, d->reply.data());
-    if (!status().good())
+    doPrepare();
+    if (status().code != Unprepared && status().code != Pending)
         QTimer::singleShot(0, this, &BaseJob::finishJob);
+    setStatus(Pending);
 }
 
-void BaseJob::sendRequest(bool inBackground)
+void BaseJob::sendRequest()
 {
-    emit aboutToStart();
-    d->retryTimer.stop(); // In case we were counting down at the moment
-    qCDebug(d->logCat) << this << "sending request to" << d->apiEndpoint;
-    if (!d->requestQuery.isEmpty())
-        qCDebug(d->logCat) << "  query:" << d->requestQuery.toString();
-    d->sendRequest(inBackground);
+    if (status().code == Abandoned)
+        return;
+    Q_ASSERT(d->connection && status().code == Pending);
+    qCDebug(d->logCat) << "Making request to" << d->urlForLog();
+    emit aboutToSendRequest();
+    d->sendRequest();
+    Q_ASSERT(d->reply);
     connect(d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply);
     if (d->reply->isRunning()) {
         connect(d->reply.data(), &QNetworkReply::metaDataChanged, this,
@@ -262,10 +273,12 @@ void BaseJob::sendRequest(bool inBackground)
         connect(d->reply.data(), &QNetworkReply::downloadProgress, this,
                 &BaseJob::downloadProgress);
         d->timer.start(getCurrentTimeout());
-        qCDebug(d->logCat) << this << "request has been sent";
-        emit started();
+        qCInfo(d->logCat).noquote() << "Request sent to" << d->urlForLog();
+        onSentRequest(d->reply.data());
+        emit sentRequest();
     } else
-        qCWarning(d->logCat) << this << "request could not start";
+        qCWarning(d->logCat).noquote()
+            << "Request could not start:" << d->urlForLog();
 }
 
 void BaseJob::checkReply() { setStatus(doCheckReply(d->reply.data())); }
@@ -286,13 +299,7 @@ void BaseJob::gotReply()
                 parseError(d->reply.data(),
                            QJsonDocument::fromJson(d->rawResponse).object()));
     }
-
-    if (status().code != TooManyRequestsError)
-        finishJob();
-    else {
-        stop();
-        emit retryScheduled(d->retriesTaken, d->retryTimer.interval());
-    }
+    finishJob();
 }
 
 bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
@@ -416,14 +423,13 @@ BaseJob::Status BaseJob::parseError(QNetworkReply*  /*reply*/,
     const auto errCode = errorJson.value("errcode"_ls).toString();
     if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
         QString msg = tr("Too many requests");
-        auto retryInterval = errorJson.value("retry_after_ms"_ls).toInt(-1);
-        if (retryInterval != -1)
-            msg += tr(", next retry advised after %1 ms").arg(retryInterval);
+        int64_t retryAfterMs = errorJson.value("retry_after_ms"_ls).toInt(-1);
+        if (retryAfterMs >= 0)
+            msg += tr(", next retry advised after %1 ms").arg(retryAfterMs);
         else // We still have to figure some reasonable interval
-            retryInterval = getNextRetryInterval();
+            retryAfterMs = getNextRetryMs();
 
-        qCWarning(d->logCat) << this << "will retry in" << retryInterval << "ms";
-        d->retryTimer.start(retryInterval);
+        d->connection->limitRate(milliseconds(retryAfterMs));
 
         return { TooManyRequestsError, msg };
     }
@@ -470,19 +476,23 @@ void BaseJob::stop()
 void BaseJob::finishJob()
 {
     stop();
-    if ((error() == NetworkError || error() == TimeoutError)
+    if (error() == TooManyRequests) {
+        emit rateLimited();
+        setStatus(Pending);
+        d->connection->submit(this);
+        return;
+    }
+    if ((error() == NetworkError || error() == Timeout)
         && d->retriesTaken < d->maxRetries) {
-        // TODO: The whole retrying thing should be put to ConnectionManager
+        // TODO: The whole retrying thing should be put to Connection(Manager)
         // otherwise independently retrying jobs make a bit of notification
         // storm towards the UI.
-        const auto retryInterval = error() == TimeoutError
-                                       ? 0
-                                       : getNextRetryInterval();
+        const seconds retryIn = error() == Timeout ? 0s : getNextRetryInterval();
         ++d->retriesTaken;
         qCWarning(d->logCat).nospace() << this << ": retry #" << d->retriesTaken
-                                       << " in " << retryInterval / 1000 << " s";
-        d->retryTimer.start(retryInterval);
-        emit retryScheduled(d->retriesTaken, retryInterval);
+                                       << " in " << retryIn.count() << " s";
+        d->retryTimer.start(retryIn);
+        emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
         return;
     }
 
@@ -498,24 +508,35 @@ void BaseJob::finishJob()
     deleteLater();
 }
 
-const JobTimeoutConfig& BaseJob::Private::getCurrentTimeoutConfig() const
+seconds BaseJob::getCurrentTimeout() const
 {
-    return errorStrategy[std::min(retriesTaken, errorStrategy.size() - 1)];
+    return d->getCurrentTimeoutConfig().jobTimeout;
 }
 
-BaseJob::duration_t BaseJob::getCurrentTimeout() const
+BaseJob::duration_ms_t BaseJob::getCurrentTimeoutMs() const
 {
-    return d->getCurrentTimeoutConfig().jobTimeout * 1000;
+    return milliseconds(getCurrentTimeout()).count();
 }
 
-BaseJob::duration_t BaseJob::getNextRetryInterval() const
+seconds BaseJob::getNextRetryInterval() const
 {
-    return d->getCurrentTimeoutConfig().nextRetryInterval * 1000;
+    return d->getCurrentTimeoutConfig().nextRetryInterval;
 }
 
-BaseJob::duration_t BaseJob::millisToRetry() const
+BaseJob::duration_ms_t BaseJob::getNextRetryMs() const
 {
-    return d->retryTimer.isActive() ? d->retryTimer.remainingTime() : 0;
+    return milliseconds(getNextRetryInterval()).count();
+}
+
+milliseconds BaseJob::timeToRetry() const
+{
+    return d->retryTimer.isActive() ? d->retryTimer.remainingTimeAsDuration()
+                                    : 0s;
+}
+
+BaseJob::duration_ms_t BaseJob::millisToRetry() const
+{
+    return timeToRetry().count();
 }
 
 int BaseJob::maxRetries() const { return d->maxRetries; }

@@ -1440,7 +1440,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             connection->callApi<SendMessageJob>(BackgroundRequest, id,
                                                 pEvent->matrixType(), txnId,
                                                 pEvent->contentJson())) {
-        Room::connect(call, &BaseJob::started, q, [this, txnId] {
+        Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
                 qWarning(EVENTS) << "Pending event for transaction" << txnId

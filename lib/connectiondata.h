@@ -21,14 +21,20 @@
 #include <QtCore/QUrl>
 
 #include <memory>
+#include <chrono>
 
 class QNetworkAccessManager;
 
 namespace Quotient {
+class BaseJob;
+
 class ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
     virtual ~ConnectionData();
+
+    void submit(BaseJob* job);
+    void limitRate(std::chrono::milliseconds nextCallAfter);
 
     QByteArray accessToken() const;
     QUrl baseUrl() const;

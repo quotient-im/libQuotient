@@ -34,11 +34,6 @@ class ConnectionData;
 
 enum class HttpVerb { Get, Put, Post, Delete };
 
-struct JobTimeoutConfig {
-    int jobTimeout;
-    int nextRetryInterval;
-};
-
 class BaseJob : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
@@ -59,6 +54,7 @@ public:
         WarningLevel = 20, //< Warnings have codes starting from this
         UnexpectedResponseType = 21,
         UnexpectedResponseTypeWarning = UnexpectedResponseType,
+        Unprepared = 25, //< Initial job state is incomplete, hence warning level
         Abandoned = 50, //< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //< Errors have codes starting from this
         NetworkError = 100,
@@ -140,8 +136,6 @@ public:
         QString message;
     };
 
-    using duration_t = int; // milliseconds
-
 public:
     BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
             bool needsToken = true);
@@ -153,13 +147,16 @@ public:
 
     /** Current status of the job */
     Status status() const;
+
     /** Short human-friendly message on the job status */
     QString statusCaption() const;
+
     /** Get raw response body as received from the server
      * \param bytesAtMost return this number of leftmost bytes, or -1
      *                    to return the entire response
      */
     QByteArray rawData(int bytesAtMost = -1) const;
+
     /** Get UI-friendly sample of raw data
      *
      * This is almost the same as rawData but appends the "truncated"
@@ -175,17 +172,24 @@ public:
      * \sa status
      */
     int error() const;
+
     /** Error-specific message, as returned by the server */
     virtual QString errorString() const;
+
     /** A URL to help/clarify the error, if provided by the server */
     QUrl errorUrl() const;
 
     int maxRetries() const;
     void setMaxRetries(int newMaxRetries);
 
-    Q_INVOKABLE duration_t getCurrentTimeout() const;
-    Q_INVOKABLE duration_t getNextRetryInterval() const;
-    Q_INVOKABLE duration_t millisToRetry() const;
+    using duration_ms_t = std::chrono::milliseconds::rep; // normally int64_t
+
+    std::chrono::seconds getCurrentTimeout() const;
+    Q_INVOKABLE duration_ms_t getCurrentTimeoutMs() const;
+    std::chrono::seconds getNextRetryInterval() const;
+    Q_INVOKABLE duration_ms_t getNextRetryMs() const;
+    std::chrono::milliseconds timeToRetry() const;
+    Q_INVOKABLE duration_ms_t millisToRetry() const;
 
     friend QDebug operator<<(QDebug dbg, const BaseJob* j)
     {
@@ -193,7 +197,7 @@ public:
     }
 
 public slots:
-    void start(const ConnectionData* connData, bool inBackground = false);
+    void prepare(ConnectionData* connData, bool inBackground);
 
     /**
      * Abandons the result of this job, arrived or unarrived.
@@ -206,10 +210,10 @@ public slots:
 
 signals:
     /** The job is about to send a network request */
-    void aboutToStart();
+    void aboutToSendRequest();
 
     /** The job has sent a network request */
-    void started();
+    void sentRequest();
 
     /** The job has changed its status */
     void statusChanged(Status newStatus);
@@ -222,7 +226,14 @@ signals:
      * @param inMilliseconds the interval after which the next attempt will be
      * taken
      */
-    void retryScheduled(int nextAttempt, int inMilliseconds);
+    void retryScheduled(int nextAttempt, duration_ms_t inMilliseconds);
+
+    /**
+     * The previous network request has been rate-limited; the next attempt
+     * will be queued and run sometime later. Since other jobs may already
+     * wait in the queue, it's not possible to predict the wait time.
+     */
+    void rateLimited();
 
     /**
      * Emitted when the job is finished, in any case. It is used to notify
@@ -297,9 +308,20 @@ protected:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
                                const QUrlQuery& query = {});
 
-    virtual void beforeStart(const ConnectionData* connData);
-    virtual void afterStart(const ConnectionData* connData,
-                            QNetworkReply* reply);
+    /*! Prepares the job for execution
+     *
+     * This method is called no more than once per job lifecycle,
+     * when it's first scheduled for execution; in particular, it is not called
+     * on retries.
+     */
+    virtual void doPrepare();
+    /*! Postprocessing after the network request has been sent
+     *
+     * This method is called every time the job receives a running
+     * QNetworkReply object from NetworkAccessManager - basically, after
+     * successfully sending a network request (including retries).
+     */
+    virtual void onSentRequest(QNetworkReply*);
     virtual void beforeAbandon(QNetworkReply*);
 
     /**
@@ -341,8 +363,7 @@ protected:
      * @param reply the HTTP reply from the server
      * @param errorJson the JSON payload describing the error
      */
-    virtual Status parseError(QNetworkReply* reply,
-                              const QJsonObject& errorJson);
+    virtual Status parseError(QNetworkReply*, const QJsonObject& errorJson);
 
     void setStatus(Status s);
     void setStatus(int code, QString message);
@@ -359,9 +380,11 @@ protected slots:
     void timeout();
 
 private slots:
-    void sendRequest(bool inBackground);
+    void sendRequest();
     void checkReply();
     void gotReply();
+
+    friend class ConnectionData; // to provide access to sendRequest()
 
 private:
     void stop();
