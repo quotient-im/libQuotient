@@ -780,7 +780,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
                 [this, leaveJob, forgetJob, room] {
                     if (leaveJob->error() == BaseJob::Success
                         || leaveJob->error() == BaseJob::NotFoundError) {
-                        forgetJob->start(connectionData());
+                        run(forgetJob);
                         // If the matching /sync response hasn't arrived yet,
                         // mark the room for explicit deletion
                         if (room->joinState() != JoinState::Leave)
@@ -794,7 +794,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
                 });
         connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     } else
-        forgetJob->start(connectionData());
+        run(forgetJob);
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob] {
         // Leave room in case of success, or room not known by server
         if (forgetJob->error() == BaseJob::Success
@@ -1353,6 +1353,13 @@ void Connection::setLazyLoading(bool newValue)
         d->lazyLoading = newValue;
         emit lazyLoadingChanged();
     }
+}
+
+void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
+{
+    connect(job, &BaseJob::failure, this, &Connection::requestFailed);
+    job->start(d->data.get(), runningPolicy & BackgroundRequest);
+    d->data->submit(job);
 }
 
 void Connection::getTurnServers()
