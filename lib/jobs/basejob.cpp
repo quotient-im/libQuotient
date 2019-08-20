@@ -77,6 +77,8 @@ public:
     QByteArray rawResponse;
     QUrl errorUrl; //< May contain a URL to help with some errors
 
+    LoggingCategory logCat = JOBS;
+
     QTimer timer;
     QTimer retryTimer;
 
@@ -86,7 +88,12 @@ public:
     int maxRetries = errorStrategy.size();
     int retriesTaken = 0;
 
-    LoggingCategory logCat = JOBS;
+    QString urlForLog() const
+    {
+        return reply
+                   ? reply->url().toString(QUrl::RemoveQuery)
+                   : makeRequestUrl(connection->baseUrl(), apiEndpoint).toString();
+    }
 };
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
@@ -112,7 +119,7 @@ BaseJob::~BaseJob()
 
 QUrl BaseJob::requestUrl() const
 {
-    return d->reply ? d->reply->request().url() : QUrl();
+    return d->reply ? d->reply->url() : QUrl();
 }
 
 bool BaseJob::isBackground() const
@@ -193,17 +200,13 @@ void BaseJob::Private::sendRequest(bool inBackground)
     req.setRawHeader("Authorization",
                      QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
-#endif
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    // some sources claim that there are issues with QT 5.8
     req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
-#endif
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
+
     switch (verb) {
     case HttpVerb::Get:
         reply.reset(connection->nam()->get(req));
@@ -318,6 +321,47 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
+BaseJob::Status BaseJob::Status::fromHttpCode(int httpCode, QString msg)
+{
+    // clang-format off
+    return { [httpCode]() -> StatusCode {
+            if (httpCode / 10 == 41) // 41x errors
+                return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+            switch (httpCode) {
+            case 401: case 403: case 407:
+                return ContentAccessError;
+            case 404:
+                return NotFoundError;
+            case 400: case 405: case 406: case 426: case 428: case 505:
+            case 494: // Unofficial nginx "Request header too large"
+            case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+                return IncorrectRequestError;
+            case 429:
+                return TooManyRequestsError;
+            case 501: case 510:
+                return RequestNotImplementedError;
+            case 511:
+                return NetworkAuthRequiredError;
+            default:
+                return NetworkError;
+            }
+        }(), std::move(msg) };
+    // clang-format on
+}
+
+QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
+{
+    QDebugStateSaver _s(dbg);
+    dbg.noquote().nospace();
+    if (auto* const k = QMetaEnum::fromType<StatusCode>().valueToKey(code)) {
+        const QByteArray b = k;
+        dbg << b.mid(b.lastIndexOf(':'));
+    } else
+        dbg << code;
+    return dbg << ": " << message;
+
+}
+
 BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
     // QNetworkReply error codes seem to be flawed when it comes to HTTP;
@@ -327,62 +371,30 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     const auto httpCodeHeader =
         reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (!httpCodeHeader.isValid()) {
-        qCWarning(d->logCat) << this << "didn't get valid HTTP headers";
+        qCWarning(d->logCat) << "No valid HTTP headers from" << d->urlForLog();
         return { NetworkError, reply->errorString() };
     }
 
-    const QString replyState = reply->isRunning()
-                                   ? QStringLiteral("(tentative)")
-                                   : QStringLiteral("(final)");
-    const auto urlString = '|' + d->reply->url().toDisplayString();
     const auto httpCode = httpCodeHeader.toInt();
-    const auto reason =
-        reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
     if (httpCode / 100 == 2) // 2xx
     {
-        qCDebug(d->logCat).noquote().nospace() << this << urlString;
-        qCDebug(d->logCat).noquote() << "  " << httpCode << reason << replyState;
+        if (reply->isFinished())
+            qCInfo(d->logCat) << httpCode << "<-" << d->urlForLog();
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,
                      "Unexpected content type of the response" };
         return NoError;
     }
+    if (reply->isFinished())
+        qCWarning(d->logCat) << httpCode << "<-" << d->urlForLog();
 
-    qCWarning(d->logCat).noquote().nospace() << this << urlString;
-    qCWarning(d->logCat).noquote() << "  " << httpCode << reason << replyState;
-    return { [httpCode]() -> StatusCode {
-                if (httpCode / 10 == 41)
-                    return httpCode == 410 ? IncorrectRequestError
-                                           : NotFoundError;
-                switch (httpCode) {
-                case 401:
-                case 403:
-                case 407:
-                    return ContentAccessError;
-                case 404:
-                    return NotFoundError;
-                case 400:
-                case 405:
-                case 406:
-                case 426:
-                case 428:
-                case 505:
-                case 494: // Unofficial nginx "Request header too large"
-                case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-                    return IncorrectRequestError;
-                case 429:
-                    return TooManyRequestsError;
-                case 501:
-                case 510:
-                    return RequestNotImplementedError;
-                case 511:
-                    return NetworkAuthRequiredError;
-                default:
-                    return NetworkError;
-                }
-            }(),
-             reply->errorString() };
+    auto message = reply->errorString();
+    if (message.isEmpty())
+        message = reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute)
+                      .toString();
+
+    return Status::fromHttpCode(httpCode, message);
 }
 
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
@@ -398,7 +410,7 @@ BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 
 BaseJob::Status BaseJob::parseJson(const QJsonDocument&) { return Success; }
 
-BaseJob::Status BaseJob::parseError(QNetworkReply* reply,
+BaseJob::Status BaseJob::parseError(QNetworkReply*  /*reply*/,
                                     const QJsonObject& errorJson)
 {
     const auto errCode = errorJson.value("errcode"_ls).toString();
@@ -441,7 +453,7 @@ BaseJob::Status BaseJob::parseError(QNetworkReply* reply,
 
 void BaseJob::stop()
 {
-    // This method is used to semi-finalise the job before retrying; so
+    // This method is (also) used to semi-finalise the job before retrying; so
     // stop the timeout timer but keep the retry timer running.
     d->timer.stop();
     if (d->reply) {
@@ -449,7 +461,7 @@ void BaseJob::stop()
         if (d->reply->isRunning()) {
             qCWarning(d->logCat)
                 << this << "stopped without ready network reply";
-            d->reply->abort();
+            d->reply->abort(); // Keep the reply object in case clients need it
         }
     } else
         qCWarning(d->logCat) << this << "stopped with empty network reply";
@@ -474,10 +486,10 @@ void BaseJob::finishJob()
         return;
     }
 
-    // Notify those interested in any completion of the job (including killing)
+    // Notify those interested in any completion of the job including abandon()
     emit finished(this);
 
-    emit result(this);
+    emit result(this); // abandon() doesn't emit this
     if (error())
         emit failure(this);
     else
@@ -582,20 +594,21 @@ void BaseJob::setStatus(Status s)
 {
     // The crash that led to this code has been reported in
     // https://github.com/quotient-im/Quaternion/issues/566 - basically,
-    // when cleaning up childrent of a deleted Connection, there's a chance
+    // when cleaning up children of a deleted Connection, there's a chance
     // of pending jobs being abandoned, calling setStatus(Abandoned).
     // There's nothing wrong with this; however, the safety check for
     // cleartext access tokens below uses d->connection - which is a dangling
     // pointer.
     // To alleviate that, a stricter condition is applied, that for Abandoned
     // and to-be-Abandoned jobs the status message will be disregarded entirely.
-    // For 0.6 we might rectify the situation by making d->connection
-    // a QPointer<> (and derive ConnectionData from QObject, respectively).
-    if (d->status.code == Abandoned || s.code == Abandoned)
-        s.message.clear();
-
+    // We could rectify the situation by making d->connection a QPointer<>
+    // (and deriving ConnectionData from QObject, respectively) but it's
+    // a too edge case for the hassle.
     if (d->status == s)
         return;
+
+    if (d->status.code == Abandoned || s.code == Abandoned)
+        s.message.clear();
 
     if (!s.message.isEmpty() && d->connection
         && !d->connection->accessToken().isEmpty())

@@ -24,6 +24,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QObject>
 #include <QtCore/QUrlQuery>
+#include <QtCore/QMetaEnum>
 
 class QNetworkReply;
 class QSslError;
@@ -43,18 +44,23 @@ class BaseJob : public QObject {
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
 public:
+    /*! The status code of a job
+     *
+     * Every job is created in Unprepared status; upon calling prepare()
+     * from Connection (if things are fine) it go to Pending status. After
+     * that, the next transition comes after the reply arrives and its contents
+     * are analysed. At any point in time the job can be abandon()ed, causing
+     * it to switch to status Abandoned for a brief period before deletion.
+     */
     enum StatusCode {
-        NoError = 0 // To be compatible with Qt conventions
-        ,
         Success = 0,
+        NoError = Success, // To be compatible with Qt conventions
         Pending = 1,
-        WarningLevel = 20,
+        WarningLevel = 20, //< Warnings have codes starting from this
         UnexpectedResponseType = 21,
         UnexpectedResponseTypeWarning = UnexpectedResponseType,
-        Abandoned = 50 //< A tiny period between abandoning and object deletion
-        ,
-        ErrorLevel = 100 //< Errors have codes starting from this
-        ,
+        Abandoned = 50, //< A tiny period between abandoning and object deletion
+        ErrorLevel = 100, //< Errors have codes starting from this
         NetworkError = 100,
         Timeout,
         TimeoutError = Timeout,
@@ -64,10 +70,12 @@ public:
         IncorrectRequestError = IncorrectRequest,
         IncorrectResponse,
         IncorrectResponseError = IncorrectResponse,
-        JsonParseError //< deprecated; Use IncorrectResponse instead
+        JsonParseError
+            Q_DECL_ENUMERATOR_DEPRECATED_X("Use IncorrectResponse instead")
         = IncorrectResponse,
         TooManyRequests,
         TooManyRequestsError = TooManyRequests,
+        RateLimited = TooManyRequests,
         RequestNotImplemented,
         RequestNotImplementedError = RequestNotImplemented,
         UnsupportedRoomVersion,
@@ -80,6 +88,7 @@ public:
         UserDeactivated,
         UserDefinedError = 256
     };
+    Q_ENUM(StatusCode)
 
     /**
      * A simple wrapper around QUrlQuery that allows its creation from
@@ -97,7 +106,7 @@ public:
 
     using Data = RequestData;
 
-    /**
+    /*!
      * This structure stores the status of a server call job. The status
      * consists of a code, that is described (but not delimited) by the
      * respective enum, and a freeform message.
@@ -106,16 +115,16 @@ public:
      * along the lines of StatusCode, with additional values
      * starting at UserDefinedError
      */
-    class Status {
-    public:
+    struct Status {
         Status(StatusCode c) : code(c) {}
         Status(int c, QString m) : code(c), message(std::move(m)) {}
+        static Status fromHttpCode(int httpCode, QString msg = {});
 
         bool good() const { return code < ErrorLevel; }
-        friend QDebug operator<<(QDebug dbg, const Status& s)
+        QDebug dumpToLog(QDebug dbg) const;
+        friend QDebug operator<<(const QDebug& dbg, const Status& s)
         {
-            QDebugStateSaver _s(dbg);
-            return dbg.noquote().nospace() << s.code << ": " << s.message;
+            return s.dumpToLog(dbg);
         }
 
         bool operator==(const Status& other) const
