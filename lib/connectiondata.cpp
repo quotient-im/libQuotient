@@ -25,6 +25,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QPointer>
 
+#include <array>
 #include <queue>
 
 using namespace Quotient;

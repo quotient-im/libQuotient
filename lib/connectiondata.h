@@ -57,7 +57,7 @@ public:
     QByteArray generateTxnId() const;
 
 private:
-    struct Private;
+    class Private;
     std::unique_ptr<Private> d;
 };
 } // namespace Quotient
