@@ -25,6 +25,7 @@
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
+#include <QtCore/QMetaType>
 
 namespace Quotient {
 namespace EventContent {
@@ -276,3 +277,4 @@ namespace EventContent {
     using FileContent = UrlWithThumbnailContent<FileInfo>;
 } // namespace EventContent
 } // namespace Quotient
+Q_DECLARE_METATYPE(const Quotient::EventContent::TypedBase*)

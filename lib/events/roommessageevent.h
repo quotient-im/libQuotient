@@ -34,7 +34,7 @@ class RoomMessageEvent : public RoomEvent {
     Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
     Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
     Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
-    Q_PROPERTY(EventContent::TypedBase* content READ content CONSTANT)
+    Q_PROPERTY(const EventContent::TypedBase* content READ content CONSTANT)
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
 
@@ -62,13 +62,13 @@ public:
     MsgType msgtype() const;
     QString rawMsgtype() const;
     QString plainBody() const;
-    EventContent::TypedBase* content() const { return _content.data(); }
+    const EventContent::TypedBase* content() const { return _content.data(); }
     template <typename VisitorT>
-    void editContent(VisitorT visitor)
+    void editContent(VisitorT&& visitor)
     {
         visitor(*_content);
         editJson()[ContentKeyL] = assembleContentJson(plainBody(), rawMsgtype(),
-                                                      content());
+                                                      _content.data());
     }
     QMimeType mimeType() const;
     bool hasTextContent() const;
