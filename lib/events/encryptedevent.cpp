@@ -28,5 +28,5 @@ EncryptedEvent::EncryptedEvent(QByteArray ciphertext, const QString& senderKey,
 EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj)
 {
-    qCDebug(EVENTS) << "Encrypted event" << id();
+    qCDebug(E2EE) << "Encrypted event from" << senderId();
 }
