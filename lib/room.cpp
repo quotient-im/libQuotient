@@ -1233,6 +1233,11 @@ QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
     return decrypted;
 }
 
+void Room::handleRoomKeyEvent(RoomKeyEvent *roomKeyEvent, QString senderKey)
+{
+    // TODO
+}
+
 int Room::joinedCount() const
 {
     return d->summary.joinedMemberCount.value_or(d->membersMap.size());

@@ -43,6 +43,8 @@
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
 
+#include "account.h" // QtOlm
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
@@ -147,6 +149,65 @@ public:
     QString topLevelStatePath() const
     {
         return q->stateCacheDir().filePath("state.json");
+    }
+
+    RoomEventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
+    {
+        if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
+        {
+            return {};
+        }
+        QString identityKey =
+            encryptionManager->account()->curve25519IdentityKey();
+        QJsonObject personalCipherObject =
+            encryptedEvent.ciphertext(identityKey);
+        if (personalCipherObject.isEmpty()) {
+            qCDebug(E2EE) << "Encrypted event is not for the current device";
+            return {};
+        }
+        QString decrypted = encryptionManager->sessionDecryptMessage(
+            personalCipherObject, encryptedEvent.senderKey().toLatin1());
+        if (decrypted.isEmpty()) {
+            qCDebug(E2EE) << "Problem with new session from senderKey:"
+                          << encryptedEvent.senderKey()
+                          << encryptionManager->account()->oneTimeKeys();
+            return {};
+        }
+
+        RoomEventPtr decryptedEvent = makeEvent<RoomMessageEvent>(
+            QJsonDocument::fromJson(decrypted.toUtf8()).object());
+
+        if (decryptedEvent->senderId() != encryptedEvent.senderId()) {
+            qCDebug(E2EE) << "Found user" << decryptedEvent->senderId()
+                          << "instead of sender" << encryptedEvent.senderId()
+                          << "in Olm plaintext";
+            return {};
+        }
+
+        // TODO: keys to constants
+        QJsonObject decryptedEventObject = decryptedEvent->fullJson();
+        QString recipient =
+            decryptedEventObject.value("recipient"_ls).toString();
+        if (recipient != data->userId()) {
+            qCDebug(E2EE) << "Found user" << recipient << "instead of us"
+                          << data->userId() << "in Olm plaintext";
+            return {};
+        }
+        QString ourKey = decryptedEventObject.value("recipient_keys"_ls)
+                             .toObject()
+                             .value(Ed25519Key)
+                             .toString();
+        if (ourKey
+            != QString::fromUtf8(
+                encryptionManager->account()->ed25519IdentityKey())) {
+            qCDebug(E2EE) << "Found key" << ourKey
+                          << "instead of ours own ed25519 key"
+                          << encryptionManager->account()->ed25519IdentityKey()
+                          << "in Olm plaintext";
+            return {};
+        }
+
+        return decryptedEvent;
     }
 };
 
@@ -532,6 +593,57 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                                    toJson(d->directChats));
         d->dcLocalAdditions.clear();
         d->dcLocalRemovals.clear();
+    }
+    // handling m.room_key to-device encrypted event
+    for (auto&& toDeviceEvent : data.takeToDeviceEvents()) {
+        if (toDeviceEvent->type() == EncryptedEvent::typeId()) {
+            event_ptr_tt<EncryptedEvent> encryptedEvent =
+                makeEvent<EncryptedEvent>(toDeviceEvent->fullJson());
+            if (encryptedEvent->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                qCDebug(E2EE)
+                    << "Encrypted event" << encryptedEvent->id() << "algorithm"
+                    << encryptedEvent->algorithm() << "is not supported";
+                return;
+            }
+
+            // TODO: full maintaining of the device keys
+            // with device_lists sync extention and /keys/query
+            qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
+                          << encryptedEvent->senderId();
+            // d->encryptionManager->updateDeviceKeys();
+
+            RoomEventPtr decryptedEvent =
+                d->sessionDecryptMessage(*encryptedEvent.get());
+            // since we are waiting for the RoomKeyEvent:
+            event_ptr_tt<RoomKeyEvent> roomKeyEvent =
+                makeEvent<RoomKeyEvent>(decryptedEvent->fullJson());
+            if (!roomKeyEvent) {
+                qCDebug(E2EE) << "Failed to decrypt olm event from user"
+                              << encryptedEvent->senderId();
+                return;
+            }
+            Room* detectedRoom = room(roomKeyEvent->roomId());
+            if (!detectedRoom) {
+                qCDebug(E2EE)
+                    << "Encrypted event room id" << encryptedEvent->roomId()
+                    << "is not found at the connection";
+                return;
+            }
+            detectedRoom->handleRoomKeyEvent(roomKeyEvent.get(),
+                                             encryptedEvent->senderKey());
+        }
+    }
+    // handling device_one_time_keys_count
+    auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
+    if (!d->encryptionManager)
+    {
+        qCDebug(E2EE) << "Encryption manager is not there yet";
+        return;
+    }
+    if (!deviceOneTimeKeysCount.isEmpty())
+    {
+        d->encryptionManager->updateOneTimeKeyCounts(this,
+                                                     deviceOneTimeKeysCount);
     }
 }
 

@@ -26,6 +26,7 @@
 
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
+#include "events/roomkeyevent.h"
 #include "events/roommessageevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
@@ -215,6 +216,7 @@ public:
                        const QString& sessionId) const;
     QString decryptMessage(QByteArray cipher, const QString& senderKey,
                            const QString& deviceId, const QString& sessionId);
+    void handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
