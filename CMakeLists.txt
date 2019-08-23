@@ -159,6 +159,7 @@ set(lib_SRCS
     lib/events/directchatevent.cpp
     lib/events/encryptionevent.cpp
     lib/events/encryptedevent.cpp
+    lib/events/roomkeyevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp
