@@ -165,19 +165,26 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
     if (newUrl != mostUsedAvatar.url())
     {
         // Check if the new avatar is about to become most used.
-        if (avatarsToRooms.count(newUrl) >= totalRooms - avatarsToRooms.size())
-        {
+        const auto newUrlUsage = avatarsToRooms.count(newUrl);
+        if (newUrlUsage >= totalRooms - avatarsToRooms.size()) {
             QElapsedTimer et;
-            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
-            {
-                qCDebug(MAIN) << "Switching the most used avatar of user" << userId
-                              << "from" << mostUsedAvatar.url().toDisplayString()
-                              << "to" << newUrl.toDisplayString();
+            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG) {
+                qCInfo(MAIN) << "Switching the most used avatar of user" << userId
+                             << "from" << mostUsedAvatar.url().toDisplayString()
+                             << "to" << newUrl.toDisplayString();
                 et.start();
             }
             avatarsToRooms.remove(newUrl);
             auto nextMostUsedIt = otherAvatar(newUrl);
-            Q_ASSERT(nextMostUsedIt != otherAvatars.end());
+            if (nextMostUsedIt == otherAvatars.end()) {
+                qCCritical(MAIN)
+                    << userId << "doesn't have" << newUrl.toDisplayString()
+                    << "in otherAvatars though it seems to be used in"
+                    << newUrlUsage << "rooms";
+                Q_ASSERT(false);
+                otherAvatars.emplace_back(makeAvatar(newUrl));
+                nextMostUsedIt = otherAvatars.end() - 1;
+            }
             std::swap(mostUsedAvatar, *nextMostUsedIt);
             const auto& roomMap = connection->roomMap();
             for (const auto* r1: roomMap)
