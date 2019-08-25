@@ -2577,7 +2577,7 @@ Room::Private::buildShortlist(const QStringList& userIds) const
 
 QString Room::Private::calculateDisplayname() const
 {
-    // CS spec, section 11.2.2.5 Calculating the display name for a room
+    // CS spec, section 13.2.2.5 Calculating the display name for a room
     // Numbers below refer to respective parts in the spec.
 
     // 1. Name (from m.room.name)
@@ -2591,12 +2591,18 @@ QString Room::Private::calculateDisplayname() const
     if (!dispName.isEmpty())
         return dispName;
 
-    // Using m.room.aliases in naming is explicitly discouraged by the spec
+    // 3. m.room.aliases - only local aliases, subject for further removal
+    const auto aliases = q->localAliases();
+    if (!aliases.isEmpty())
+        return aliases.front();
 
-    // Supplementary code for 3 and 4: build the shortlist of users whose names
+    // 4. m.heroes and m.room.member
+    // From here on, we use a more general algorithm than the spec describes
+    // in order to provide back-compatibility with pre-MSC688 servers.
+
+    // Supplementary code: build the shortlist of users whose names
     // will be used to construct the room name. Takes into account MSC688's
     // "heroes" if available.
-
     const bool localUserIsIn = joinState == JoinState::Join;
     const bool emptyRoom =
         membersMap.isEmpty()
@@ -2607,15 +2613,13 @@ QString Room::Private::calculateDisplayname() const
                                      : !emptyRoom ? buildShortlist(membersMap)
                                                   : users_shortlist_t {};
 
-    // When lazy-loading is on, we can rely on the heroes list.
-    // If it's off, the below code gathers invited and left members.
-    // NB: including invitations, if any, into naming is a spec extension.
-    // This kicks in when there's no lazy loading and it's a room with
-    // the local user as the only member, with more users invited.
+    // When the heroes list is there, we can rely on it. If the heroes list is
+    // missing, the below code gathers invited, or, if there are no invitees,
+    // left members.
     if (!shortlist.front() && localUserIsIn)
         shortlist = buildShortlist(usersInvited);
 
-    if (!shortlist.front()) // Still empty shortlist; use left members
+    if (!shortlist.front())
         shortlist = buildShortlist(membersLeft);
 
     QStringList names;
@@ -2639,7 +2643,7 @@ QString Room::Private::calculateDisplayname() const
             usersCountExceptLocal - int(shortlist.size()));
     const auto namesList = QLocale().createSeparatedList(names);
 
-    // 3. Room members
+    // Room members
     if (!emptyRoom)
         return namesList;
 
@@ -2647,11 +2651,11 @@ QString Room::Private::calculateDisplayname() const
     if (!usersInvited.empty())
         return tr("Empty room (invited: %1)").arg(namesList);
 
-    // 4. Users that previously left the room
-    if (membersLeft.size() > 0)
+    // Users that previously left the room
+    if (!membersLeft.isEmpty())
         return tr("Empty room (was: %1)").arg(namesList);
 
-    // 5. Fail miserably
+    // Fail miserably
     return tr("Empty room (%1)").arg(id);
 }
 
