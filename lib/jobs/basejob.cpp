@@ -32,7 +32,7 @@
 
 using namespace Quotient;
 using std::chrono::seconds, std::chrono::milliseconds;
-using std::chrono_literals::operator""s;
+using namespace std::chrono_literals;
 
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
