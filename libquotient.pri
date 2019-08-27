@@ -1,5 +1,6 @@
 QT += network multimedia
-CONFIG += c++17 warn_on rtti_off create_prl object_parallel_to_source
+# TODO: Having moved to Qt 5.12, replace c++1z with c++17 below
+CONFIG *= c++1z warn_on rtti_off create_prl object_parallel_to_source
 
 win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -wd4100 -wd4267

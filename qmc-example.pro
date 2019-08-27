@@ -1,8 +1,8 @@
 TEMPLATE = app
 
-CONFIG += c++17 warn_on object_parallel_to_source
+CONFIG *= c++1z warn_on object_parallel_to_source
 
-windows { CONFIG += console }
+windows { CONFIG *= console }
 
 include(libquotient.pri)
 
