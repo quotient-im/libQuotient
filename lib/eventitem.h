@@ -35,12 +35,16 @@ public:
      */
     enum Code {
         Normal = 0x0, //< No special designation
-        Submitted = 0x01, //< The event has just been submitted for sending
-        FileUploaded = 0x02, //< The file attached to the event has been
-                             // uploaded to the server
-        Departed = 0x03, //< The event has left the client
-        ReachedServer = 0x04, //< The server has received the event
-        SendingFailed = 0x05, //< The server could not receive the event
+
+        /// The event is not queued for sending yet; either it's just
+        /// created or pending additional preparation, e.g. during file upload
+        Pending = 0x01,
+        ReadyToDepart = 0x02, //< The event is waiting in the queue to depart
+        FileUploaded = ReadyToDepart, //< Back-comp synonym for ReadyToDepart
+        Departing = 0x03, //< The event is being sent right now
+        Departed = 0x04, //< The event has left the client
+        ReachedServer = 0x05, //< The server has received the event
+        SendingFailed = 0x06, //< The server could not receive the event
         Redacted = 0x08, //< The event has been redacted
         Hidden = 0x10, //< The event should not be shown in the timeline
     };
@@ -115,36 +119,31 @@ class PendingEventItem : public EventItemBase {
     Q_GADGET
 public:
     using EventItemBase::EventItemBase;
+    PendingEventItem(RoomEventPtr&& e, EventStatus::Code initialStatus)
+        : EventItemBase(std::move(e)), _status(initialStatus)
+    {}
 
     EventStatus::Code deliveryStatus() const { return _status; }
+    bool isInFlight() const
+    {
+        return _status == EventStatus::Departing
+               || _status == EventStatus::Departed;
+    }
     QDateTime lastUpdated() const { return _lastUpdated; }
     QString annotation() const { return _annotation; }
 
-    void setDeparted() { setStatus(EventStatus::Departed); }
-    void setFileUploaded(const QUrl& remoteUrl);
-    void setReachedServer(const QString& eventId)
-    {
-        setStatus(EventStatus::ReachedServer);
-        (*this)->addId(eventId);
-    }
-    void setSendingFailed(QString errorText)
-    {
-        setStatus(EventStatus::SendingFailed);
-        _annotation = std::move(errorText);
-    }
-    void resetStatus() { setStatus(EventStatus::Submitted); }
-
-private:
-    EventStatus::Code _status = EventStatus::Submitted;
-    QDateTime _lastUpdated = QDateTime::currentDateTimeUtc();
-    QString _annotation;
-
-    void setStatus(EventStatus::Code status)
+    void setStatus(EventStatus::Code status, const QString& annotation = {})
     {
         _status = status;
         _lastUpdated = QDateTime::currentDateTimeUtc();
-        _annotation.clear();
+        _annotation = annotation;
     }
+    void updateUploadedFile(const QUrl& remoteUrl);
+
+private:
+    EventStatus::Code _status = EventStatus::ReadyToDepart;
+    QDateTime _lastUpdated = QDateTime::currentDateTimeUtc();
+    QString _annotation;
 };
 
 inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)

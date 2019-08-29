@@ -86,8 +86,7 @@ bool QMCTest::validatePendingEvent(const QString& txnId)
 {
     auto it = targetRoom->findPendingEvent(txnId);
     return it != targetRoom->pendingEvents().end()
-           && it->deliveryStatus() == EventStatus::Submitted
-           && (*it)->transactionId() == txnId;
+           && it->isInFlight() && (*it)->transactionId() == txnId;
 }
 
 QMCTest::QMCTest(Connection* conn, QString testRoomName, QString source)
@@ -242,7 +241,7 @@ void QMCTest::sendMessage()
 void QMCTest::sendReaction(const QString& targetEvtId)
 {
     running.push_back("Reaction sending");
-    cout << "Reacting to the newest message in the room" << endl;
+    cout << "Reacting to the recent message in the room" << endl;
     Q_ASSERT(targetRoom->timelineSize() > 0);
     const auto key = QStringLiteral("+1");
     auto txnId = targetRoom->postReaction(targetEvtId, key);
@@ -292,18 +291,23 @@ void QMCTest::sendFile()
     // QFileInfo::fileName brings only the file name; QFile::fileName brings
     // the full path
     const auto tfName = QFileInfo(*tf).fileName();
-    cout << "Sending file" << tfName.toStdString() << endl;
+    cout << "Sending a file " << tfName.toStdString() << endl;
     const auto txnId =
         targetRoom->postFile("Test file", QUrl::fromLocalFile(tf->fileName()));
-    if (!validatePendingEvent(txnId)) {
-        cout << "Invalid pending event right after submitting" << endl;
-        QMC_CHECK("File sending", false);
-        delete tf;
-        return;
+    {
+        auto it = targetRoom->findPendingEvent(txnId);
+        if (it == targetRoom->pendingEvents().end()
+            || it->deliveryStatus() != EventStatus::Pending
+            || (*it)->transactionId() != txnId) {
+            cout << "Invalid pending event right after submitting" << endl;
+            QMC_CHECK("File sending", false);
+            delete tf;
+            return;
+        }
     }
 
-    // FIXME: Clean away connections (connectUntil doesn't help here).
-    connect(targetRoom, &Room::fileTransferCompleted, this,
+    // Using tf as a context object to cleanup both connections whichever is hit
+    connect(targetRoom, &Room::fileTransferCompleted, tf,
             [this, txnId, tf, tfName](const QString& id) {
                 auto fti = targetRoom->fileTransferInfo(id);
                 Q_ASSERT(fti.status == FileTransferInfo::Completed);
@@ -311,18 +315,18 @@ void QMCTest::sendFile()
                 if (id != txnId)
                     return;
 
-                delete tf;
+                tf->deleteLater();
 
                 checkFileSendingOutcome(txnId, tfName);
             });
-    connect(targetRoom, &Room::fileTransferFailed, this,
+    connect(targetRoom, &Room::fileTransferFailed, tf,
             [this, txnId, tf](const QString& id, const QString& error) {
                 if (id != txnId)
                     return;
 
                 targetRoom->postPlainText(origin % ": File upload failed: "
                                           % error);
-                delete tf;
+                tf->deleteLater();
 
                 QMC_CHECK("File sending", false);
             });
@@ -337,10 +341,10 @@ void QMCTest::checkFileSendingOutcome(const QString& txnId,
         QMC_CHECK("File sending", false);
         return;
     }
-    if (it->deliveryStatus() != EventStatus::FileUploaded) {
+    if (it->deliveryStatus() != EventStatus::ReadyToDepart && !it->isInFlight()) {
         cout << "Pending file event status upon upload completion is "
-             << it->deliveryStatus() << " != FileUploaded("
-             << EventStatus::FileUploaded << ')' << endl;
+             << it->deliveryStatus() << ", expected either ReadyToDepart("
+             << EventStatus::ReadyToDepart << ") or already be in-flight" << endl;
         QMC_CHECK("File sending", false);
         return;
     }

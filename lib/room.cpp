@@ -290,9 +290,11 @@ public:
         return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
     }
 
-    RoomEvent* addAsPending(RoomEventPtr&& event);
+    PendingEvents::iterator
+    addAsPending(RoomEventPtr&& event,
+                 EventStatus::Code initialStatus = EventStatus::ReadyToDepart);
 
-    QString doSendEvent(const RoomEvent* pEvent);
+    QString doSendEvent(PendingEvents::iterator peIt);
     void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
     SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
@@ -1403,7 +1405,9 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     }
 }
 
-RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
+Room::PendingEvents::iterator
+Room::Private::addAsPending(RoomEventPtr&& event,
+                            EventStatus::Code initialStatus)
 {
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
@@ -1411,11 +1415,13 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setRoomId(id);
     if (event->senderId().isEmpty())
         event->setSender(connection->userId());
-    auto* pEvent = rawPtr(event);
-    emit q->pendingEventAboutToAdd(pEvent);
-    unsyncedEvents.emplace_back(move(event));
+    emit q->pendingEventAboutToAdd(rawPtr(event));
+    unsyncedEvents.emplace_back(move(event), initialStatus);
+    auto it = unsyncedEvents.end() - 1;
     emit q->pendingEventAdded();
-    return pEvent;
+    Q_ASSERT_X(it == unsyncedEvents.end() - 1, __FUNCTION__,
+               "pendingEventAdded() handler altered the list of pending events");
+    return it;
 }
 
 QString Room::Private::sendEvent(RoomEventPtr&& event)
@@ -1432,14 +1438,16 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
     return {};
 }
 
-QString Room::Private::doSendEvent(const RoomEvent* pEvent)
+QString Room::Private::doSendEvent(PendingEvents::iterator peIt)
 {
-    const auto txnId = pEvent->transactionId();
+    Q_ASSERT(peIt->deliveryStatus() == EventStatus::ReadyToDepart);
+    const auto& pe = **peIt;
+    const auto txnId = pe.transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
-    if (auto call =
-            connection->callApi<SendMessageJob>(BackgroundRequest, id,
-                                                pEvent->matrixType(), txnId,
-                                                pEvent->contentJson())) {
+    if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id,
+                                                        pe.matrixType(), txnId,
+                                                        pe.contentJson())) {
+        peIt->setStatus(EventStatus::Departing);
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
@@ -1447,7 +1455,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                                  << "not found - got synced so soon?";
                 return;
             }
-            it->setDeparted();
+            it->setStatus(EventStatus::Departed);
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
         Room::connect(call, &BaseJob::failure, q,
@@ -1463,7 +1471,8 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             }
 
             if (it->deliveryStatus() != EventStatus::ReachedServer) {
-                it->setReachedServer(call->eventId());
+                (*it)->addId(call->eventId());
+                it->setStatus(EventStatus::ReachedServer);
                 emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
             }
         });
@@ -1480,8 +1489,9 @@ void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
                           << "could not be sent";
         return;
     }
-    it->setSendingFailed(call ? call->statusCaption() % ": " % call->errorString()
-                              : tr("The call could not be started"));
+    it->setStatus(EventStatus::SendingFailed,
+                  call ? call->statusCaption() % ": " % call->errorString()
+                       : tr("The call could not be started"));
     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
 }
 
@@ -1492,6 +1502,9 @@ QString Room::retryMessage(const QString& txnId)
     qDebug(EVENTS) << "Retrying transaction" << txnId;
     const auto& transferIt = d->fileTransfers.find(txnId);
     if (transferIt != d->fileTransfers.end()) {
+        // Note that uploads are identified by transaction ids while downloads
+        // use event id. The way it stands now, you cannot download a file for
+        // a pending event because the event doesn't have an id.
         Q_ASSERT(transferIt->isUpload);
         if (transferIt->status == FileTransferInfo::Completed) {
             qCDebug(MESSAGES)
@@ -1502,12 +1515,11 @@ QString Room::retryMessage(const QString& txnId)
                 qCDebug(MESSAGES) << "Abandoning the upload job for transaction"
                                   << txnId << "and starting again";
                 transferIt->job->abandon();
-                emit fileTransferFailed(txnId,
-                                        tr("File upload will be retried"));
+                emit fileTransferCancelled(txnId);
             }
             uploadFile(txnId, QUrl::fromLocalFile(
                                   transferIt->localFileInfo.absoluteFilePath()));
-            // FIXME: Content type is no more passed here but it should
+            // FIXME: Pass the overridden content type again, too
         }
     }
     if (it->deliveryStatus() == EventStatus::ReachedServer) {
@@ -1515,9 +1527,9 @@ QString Room::retryMessage(const QString& txnId)
             << "The previous attempt has reached the server; two"
                " events are likely to be in the timeline after retry";
     }
-    it->resetStatus();
+    it->setStatus(EventStatus::ReadyToDepart);
     emit pendingEventChanged(int(it - d->unsyncedEvents.begin()));
-    return d->doSendEvent(it->event());
+    return d->doSendEvent(it);
 }
 
 void Room::discardMessage(const QString& txnId)
@@ -1580,26 +1592,28 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
-    const auto txnId = connection()->generateTxnId();
+    const auto txnId =
+        d->addAsPending(makeEvent<RoomMessageEvent>(plainText, localFile,
+                                                    asGenericFile),
+                        EventStatus::Pending)
+            ->event()
+            ->transactionId();
+
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
-    {
-        auto&& event =
-            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile);
-        event->setTransactionId(txnId);
-        d->addAsPending(std::move(event));
-    }
+
     auto* context = new QObject(this);
     connect(this, &Room::fileTransferCompleted, context,
             [context, this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {
-                        it->setFileUploaded(mxcUri);
+                        it->updateUploadedFile(mxcUri);
+                        it->setStatus(EventStatus::ReadyToDepart);
                         emit pendingEventChanged(
                             int(it - d->unsyncedEvents.begin()));
-                        d->doSendEvent(it->get());
+                        d->doSendEvent(it);
                     } else {
                         // Normally in this situation we should instruct
                         // the media server to delete the file; alas, there's no
@@ -2188,7 +2202,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         auto* nextPendingEvt = remoteEcho->get();
         const auto pendingEvtIdx = int(localEcho - unsyncedEvents.begin());
         if (localEcho->deliveryStatus() != EventStatus::ReachedServer) {
-            localEcho->setReachedServer(nextPendingEvt->id());
+            (*localEcho)->addId(nextPendingEvt->id());
+            localEcho->setStatus(EventStatus::ReachedServer);
             emit q->pendingEventChanged(pendingEvtIdx);
         }
         emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);

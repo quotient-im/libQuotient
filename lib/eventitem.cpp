@@ -23,7 +23,7 @@
 
 using namespace Quotient;
 
-void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
+void PendingEventItem::updateUploadedFile(const QUrl &remoteUrl)
 {
     // TODO: eventually we might introduce hasFileContent to RoomEvent,
     // and unify the code below.
@@ -38,5 +38,4 @@ void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
         rae->editContent(
             [remoteUrl](EventContent::FileInfo& fi) { fi.url = remoteUrl; });
     }
-    setStatus(EventStatus::FileUploaded);
 }
