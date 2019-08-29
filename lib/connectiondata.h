@@ -21,25 +21,35 @@
 #include <QtCore/QUrl>
 
 #include <memory>
+#include <chrono>
 
 class QNetworkAccessManager;
 
 namespace Quotient {
+class BaseJob;
+
 class ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
     virtual ~ConnectionData();
 
+    void submit(BaseJob* job);
+    void limitRate(std::chrono::milliseconds nextCallAfter);
+
     QByteArray accessToken() const;
     QUrl baseUrl() const;
     const QString& deviceId() const;
-
+    const QString& userId() const;
     QNetworkAccessManager* nam() const;
+
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);
+    [[deprecated("Use setBaseUrl() instead")]]
     void setHost(QString host);
+    [[deprecated("Use setBaseUrl() instead")]]
     void setPort(int port);
     void setDeviceId(const QString& deviceId);
+    void setUserId(const QString& userId);
 
     QString lastEvent() const;
     void setLastEvent(QString identifier);
@@ -47,7 +57,7 @@ public:
     QByteArray generateTxnId() const;
 
 private:
-    struct Private;
+    class Private;
     std::unique_ptr<Private> d;
 };
 } // namespace Quotient

@@ -37,6 +37,8 @@ class Account;
 }
 
 namespace Quotient {
+Q_NAMESPACE
+
 class Room;
 class User;
 class ConnectionData;
@@ -89,9 +91,11 @@ static inline user_factory_t defaultUserFactory()
 /** Enumeration with flags defining the network job running policy
  * So far only background/foreground flags are available.
  *
- * \sa Connection::callApi
+ * \sa Connection::callApi, Connection::run
  */
 enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
+
+Q_ENUM_NS(RunningPolicy)
 
 class Connection : public QObject {
     Q_OBJECT
@@ -352,9 +356,12 @@ public:
     bool lazyLoading() const;
     void setLazyLoading(bool newValue);
 
-    /** Start a job of a specified type with specified arguments and policy
+    /*! Start a pre-created job object on this connection */
+    void run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest) const;
+
+    /*! Start a job of a specified type with specified arguments and policy
      *
-     * This is a universal method to start a job of a type passed
+     * This is a universal method to create and start a job of a type passed
      * as a template parameter. The policy allows to fine-tune the way
      * the job is executed - as of this writing it means a choice
      * between "foreground" and "background".
@@ -368,14 +375,13 @@ public:
     JobT* callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs) const
     {
         auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
-        connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-        job->start(connectionData(), runningPolicy & BackgroundRequest);
+        run(job, runningPolicy);
         return job;
     }
 
-    /** Start a job of a specified type with specified arguments
+    /*! Start a job of a specified type with specified arguments
      *
-     * This is an overload that calls the job with "foreground" policy.
+     * This is an overload that runs the job with "foreground" policy.
      */
     template <typename JobT, typename... JobArgTs>
     JobT* callApi(JobArgTs&&... jobArgs) const
