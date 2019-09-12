@@ -129,13 +129,3 @@ private:
     std::unique_ptr<Prev<ContentT>> _prev;
 };
 } // namespace Quotient
-
-namespace std {
-template <>
-struct hash<Quotient::StateEventKey> {
-    size_t operator()(const Quotient::StateEventKey& k) const Q_DECL_NOEXCEPT
-    {
-        return qHash(k);
-    }
-};
-} // namespace std

@@ -98,7 +98,7 @@ public:
     RoomSummary summary = { none, 0, none };
     /// The state of the room at timeline position before-0
     /// \sa timelineBase
-    std::unordered_map<StateEventKey, StateEventPtr> baseState;
+    UnorderedMap<StateEventKey, StateEventPtr> baseState;
     /// State event stubs - events without content, just type and state key
     static decltype(baseState) stubbedState;
     /// The state of the room at timeline position after-maxTimelineIndex()
@@ -131,7 +131,7 @@ public:
     QHash<const User*, QString> lastReadEventIds;
     QString serverReadMarker;
     TagsMap tags;
-    std::unordered_map<QString, EventPtr> accountData;
+    UnorderedMap<QString, EventPtr> accountData;
     QString prevBatch;
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;

@@ -124,7 +124,7 @@ public:
     using IgnoredUsersList = IgnoredUsersEvent::content_type;
 
     using UsersToDevicesToEvents =
-        std::unordered_map<QString, std::unordered_map<QString, const Event&>>;
+        UnorderedMap<QString, UnorderedMap<QString, const Event&>>;
 
     enum RoomVisibility {
         PublishRoom,

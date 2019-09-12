@@ -28,16 +28,10 @@
 #include <QtCore/QUrlQuery>
 #include <QtCore/QVector>
 
-#include <unordered_map>
 #include <vector>
-#if 0 // Waiting for C++17
-#    include <experimental/optional>
-
-template <typename T>
-using optional = std::experimental::optional<T>;
-#endif
 
 // Enable std::unordered_map<QString, T>
+// REMOVEME in favor of UnorderedMap, once we regenerate API files
 namespace std {
 template <>
 struct hash<QString> {
@@ -296,9 +290,9 @@ struct HashMapFromJson {
     }
 };
 
-template <typename T>
-struct JsonObjectConverter<std::unordered_map<QString, T>>
-    : public HashMapFromJson<std::unordered_map<QString, T>> {};
+template <typename T, typename HashT>
+struct JsonObjectConverter<std::unordered_map<QString, T, HashT>>
+    : public HashMapFromJson<std::unordered_map<QString, T, HashT>> {};
 
 template <typename T>
 struct JsonObjectConverter<QHash<QString, T>>

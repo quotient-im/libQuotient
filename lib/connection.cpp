@@ -98,7 +98,7 @@ public:
     // See https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
-    std::unordered_map<QString, EventPtr> accountData;
+    UnorderedMap<QString, EventPtr> accountData;
     int syncLoopTimeout = -1;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;

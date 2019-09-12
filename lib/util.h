@@ -19,9 +19,11 @@
 #pragma once
 
 #include <QtCore/QLatin1String>
+#include <QtCore/QHashFunctions>
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 // Along the lines of Q_DISABLE_COPY - the upstream version comes in Qt 5.13
 #define DISABLE_MOVE(_ClassName)               \
@@ -29,6 +31,18 @@
     _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
 
 namespace Quotient {
+/// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
+template <typename T>
+struct HashQ {
+    size_t operator()(const T& s) const Q_DECL_NOEXCEPT
+    {
+        return qHash(s, uint(qGlobalQHashSeed()));
+    }
+};
+/// A wrapper around std::unordered_map compatible with types that have qHash
+template <typename KeyT, typename ValT>
+using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
+
 struct NoneTag {};
 constexpr NoneTag none {};
 
