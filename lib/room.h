@@ -557,7 +557,7 @@ signals:
      * Aside from all changes in the room state
      * @param changes a set of flags describing what changes occurred
      *                upon the last sync
-     * \sa StateChange
+     * \sa Changes
      */
     void changed(Changes changes);
     /**
