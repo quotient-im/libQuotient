@@ -4,10 +4,10 @@
 
 #include "event_filter.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
-void JsonObjectConverter<EventFilter>::dumpTo(
-        QJsonObject& jo, const EventFilter& pod)
+void JsonObjectConverter<EventFilter>::dumpTo(QJsonObject& jo,
+                                              const EventFilter& pod)
 {
     addParam<IfNotEmpty>(jo, QStringLiteral("limit"), pod.limit);
     addParam<IfNotEmpty>(jo, QStringLiteral("not_senders"), pod.notSenders);
@@ -16,8 +16,8 @@ void JsonObjectConverter<EventFilter>::dumpTo(
     addParam<IfNotEmpty>(jo, QStringLiteral("types"), pod.types);
 }
 
-void JsonObjectConverter<EventFilter>::fillFrom(
-    const QJsonObject& jo, EventFilter& result)
+void JsonObjectConverter<EventFilter>::fillFrom(const QJsonObject& jo,
+                                                EventFilter& result)
 {
     fromJson(jo.value("limit"_ls), result.limit);
     fromJson(jo.value("not_senders"_ls), result.notSenders);
@@ -25,4 +25,3 @@ void JsonObjectConverter<EventFilter>::fillFrom(
     fromJson(jo.value("senders"_ls), result.senders);
     fromJson(jo.value("types"_ls), result.types);
 }
-

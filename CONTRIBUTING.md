@@ -138,26 +138,41 @@ If you don't plan/have substantial contributions, you can end reading here. Furt
 
 ## Code changes
 
-The code should strive to be DRY (don't repeat yourself), clear, and obviously correct. Some technical debt is inevitable, just don't bankrupt us with it. Refactoring is welcome.
+The code should strive to be DRY (don't repeat yourself), clear, and obviously
+correct (i.e. buildable). Some technical debt is inevitable,
+just don't bankrupt us with it. Refactoring is welcome.
 
 ### Generated C++ code for CS API
 The code in lib/csapi, lib/identity and lib/application-service, although
 it resides in Git, is actually generated from (a soft fork of) the official
-Matrix Swagger/OpenAPI definition files. If you're unhappy with something in
-these directories and want to improve the code, you have to understand the way
-these files are produced and setup some additional tooling. The shortest
-possible procedure resembling the below text can be found in .travis.yml
-(our Travis CI configuration actually regenerates those files upon every build).
-The generating sequence only works with CMake atm;
-patches to enable it with qmake are (you guessed it) very welcome.
+Matrix Swagger/OpenAPI definition files. Do not edit C++ files
+in these directories by hand!
+
+Now, if you're unhappy with something in there and want to improve the code,
+you have to understand the way these files are produced and setup
+some additional tooling. The shortest possible procedure resembling
+the below text can be found in .travis.yml (our Travis CI configuration
+actually regenerates those files upon every build). As described below,
+there is a handy build target for CMake; patches with a similar target
+for qmake are (you guessed it) very welcome.
 
 #### Why generate the code at all?
 Because before both original authors of libQuotient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
 
 #### Prerequisites for CS API code generation
-1. Get the source code of GTAD and its dependencies, e.g. using the command: `git clone --recursive https://github.com/KitsuneRal/gtad.git`
-2. Build GTAD: in the source code directory, do `cmake . && cmake --build .` (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`, similar to libQuotient itself).
-3. Get the Matrix CS API definitions that are included in the matrix-doc repo: `git clone https://github.com/quotient-im/matrix-doc.git` (quotient-im/matrix-doc is a fork that's known to produce working code; you may want to use your own fork if you wish to alter something in the API).
+1. Get the source code of GTAD and its dependencies, e.g. using the command:
+   `git clone --recursive https://github.com/KitsuneRal/gtad.git`
+2. Build GTAD: in the source code directory, do `cmake . && cmake --build .`
+   (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`,
+   similar to libQuotient itself).
+3. Get the Matrix CS API definitions that are included in the matrix-doc repo:
+   `git clone https://github.com/quotient-im/matrix-doc.git`
+   (quotient-im/matrix-doc is a fork that's known to produce working code;
+   you may want to use your own fork if you wish to alter something in the API).
+4. If you plan to submit a PR or just would like the generated code to be
+   formatted, you should either ensure you have clang-format (version 6 at least)
+   in your PATH or pass the _absolute_ path to it by adding
+   `-DCLANG_FORMAT=<absolute path>` to the CMake invocation below.
 
 #### Generating CS API contents
 1. Pass additional configuration to CMake when configuring libQuotient:
@@ -171,8 +186,7 @@ Because before both original authors of libQuotient had to do monkey business of
    files in `lib/csapi`, `lib/identity`, `lib/application-service` for all
    YAML files it can find in `matrix-doc/api/client-server` and other files
    in `matrix-doc/api` these depend on.
-3. Once you've done that, you can build the library as usual; rerunning CMake
-   is recommended if the list of generated files has changed.
+3. Re-run CMake so that the build system knows about new files, if there are any.
 
 #### Changing generated code
 See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQuotient are described here.
@@ -182,7 +196,15 @@ GTAD uses the following three kinds of sources:
 2. A configuration file, in our case it's lib/csapi/gtad.yaml - this one is common for the whole API.
 3. Source code template files: lib/csapi/{{base}}.*.mustache - also common.
 
-The mustache files have a templated (not in C++ sense) definition of a network job, deriving from BaseJob; each job class is prepended, if necessary, with data structure definitions used by this job. The look of those files is hideous for a newcomer; the fact that there's no highlighter for the combination of Mustache (originally a web templating language) and C++ doesn't help things, either. To slightly simplify things some more or less generic constructs are defined in gtad.yaml (see its "mustache:" section). Adventurous souls that would like to figure what's going on in these files should speak up in the Quotient room - I (Kitsune) will be very glad to help you out.
+The mustache files have a templated (not in C++ sense) definition of a network
+job, deriving from BaseJob; each job class is prepended, if necessary, with
+data structure definitions used by this job. The look of those files is hideous
+for a newcomer; and the only known highlighter that can handle the combination
+of Mustache (originally a web templating language) and C++ is provided in CLion.
+To slightly simplify things some more or less generic constructs are defined
+in gtad.yaml (see its "mustache:" section). Adventurous souls that would like
+to figure what's going on in these files should speak up in the Quotient room -
+I (Kitsune) will be very glad to help you out.
 
 The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
 * `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
@@ -193,9 +215,35 @@ The types map in `gtad.yaml` is the central switchboard when it comes to matchin
 
 Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
 
-### Library API and doc-comments
+### Comments
 
-Whenever you add a new call to the library API that you expect to be used from client code, you must supply a proper doc-comment along with the call. Doxygen (with backslashes) style is preferred. You can find that some parts of the code still use JavaDoc (with @'s) style; feel free to replace it with Doxygen backslashes if that bothers you. Some parts are not even documented; adding doc-comments to them is highly encouraged.
+Whenever you add a new call to the library API that you expect to be used
+from client code, you must supply a proper doc-comment along with the call.
+Doxygen style is preferred; but JavaDoc is acceptable too. Some parts are
+not documented at all; adding doc-comments to them is highly encouraged.
+
+Doc-comments for summaries should be separate from those details. Either of
+the two following ways is fine, with considerable preference on the first one:
+1. Use `///` for the summary comment and `/*! ... */` for details.
+2. Use `\brief` (or `@brief`) for the summary, and follow with details after
+   an empty doc-comment line. You can use either of the delimiters in that case.
+
+In the code, the advice for commenting is as follows:
+* Don't restate what's happening in the code unless it's not really obvious.
+  We assume the readers to have at least some command of C++ and Qt. If your
+  code is not obvious, consider rewriting it for clarity.
+* Both C++ and Qt still come with their arcane features and dark corners,
+  and we don't want to limit anybody who'd feels they have a case for
+  variable templates, raw literals, or use `qAsConst` to avoid container
+  detachment. Use your experience to figure what might be less well-known to
+  readers and comment such cases (references to web pages, Quotient wiki etc.
+  are very much ok).
+* Make sure to document not so much "what" but more "why" certain code is done
+  the way it is. In the worst case, the logic of the code can be
+  reverse-engineered; you rarely can reverse-engineer the line of reasoning and
+  the pitfalls avoided.
+
+### API conventions
 
 Calls, data structures and other symbols not intended for use by clients
 should _not_ be exposed in (public) .h files, unless they are necessary
@@ -207,20 +255,19 @@ API guarantees.
 
 Note: As of now, all header files of libQuotient are considered public; this may change eventually.
 
-### Qt-flavoured C++
+### Code formatting
 
-This is our primary language. A particular code style is not enforced _yet_ but
-[the PR imposing the common code style](https://github.com/quotient-im/libQuotient/pull/295)
-is planned to arrive in version 0.6.
+The code style is defined by `.clang-format`, and in general, all C++ files
+should follow it. Files with minor deviations from the defined style are still
+accepted in PRs; however, unless explicitly marked with `// clang-format off`
+and `// clang-format on`, these deviations will be rectified any commit soon
+after.
+
+Additional considerations:
 * 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
-  spot the code abusing these - we'll thank you for fixing it.
-* Prefer keeping lines within 80 characters.
-* Braces after if's, while's, do's, function signatures etc. take
-  a separate line. Keeping the opening brace on the same line is still ok.
-* A historical deviation from the usual Qt code format conventions is an extra
-  indent inside _classes_ (access specifiers go at +4 spaces to the base,
-  members at +8 spaces) but not _structs_ (members at +4 spaces). This may
-  change in the future for something more conventional.
+  spot the code abusing these - thank you for fixing it.
+* Prefer keeping lines within 80 characters. Slight overflows are ok only
+  if that helps readability.
 * Please don't make "hypocritical structs" with protected or private members.
   In general, `struct` is used to denote a plain-old-data structure, rather
   than data+behaviour. If you need access control or are adding yet another
@@ -247,6 +294,9 @@ is planned to arrive in version 0.6.
     `std::deque` for a timeline). Exposing STL containers or iterators in API
     intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
     and therefore unlikely to be accepted into `master`.
+* Although `std::unique_ptr<>` gives slightly stronger guarantees,
+  `QScopedPointer<>` is better supported by Qt Creator's debugger UI and
+  therefore is preferred.
 * Use `QVector` instead of `QList` where possible - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details.
@@ -308,6 +358,12 @@ In Qt Creator, the following line can be used with the Clang code model
 
 We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) and MacOS (Clang), and AppVeyor CI to build on Windows (MSVC). Every PR will go through these, and you'll see the traffic lights from them on the PR page. If your PR fails on any platform double-check that it's not your code causing it - and fix it if it is.
 
+### clang-format
+
+We strongly recommend using clang-format or, even better, use an IDE that
+supports it. This will lay a tedious task of following the assumed
+code style from your shoulders over to your computer.
+
 ### Other tools
 
 Recent versions of Qt Creator and CLion can automatically run your code through
@@ -317,9 +373,10 @@ quite considerably but gives a good insight without too many false positives:
 
 Qt Creator, in addition, knows about clazy, an even deeper Qt-aware static
 analysis tool. Even level 1 clazy eats away CPU but produces some very relevant
-and unobvious notices, such as possible unintended copying of a Qt container,
-or unguarded null pointers. You can use this time to time (see Analyze menu in
-Qt Creator) instead of hogging your machine with deep analysis as you type.
+notices that are easy to overlook otherwise, such as possible unintended copying
+of a Qt container, or unguarded null pointers. You can use this time to time
+(see Analyze menu in Qt Creator) instead of hogging your machine with
+deep analysis as you type.
 
 ## Git commit messages
 

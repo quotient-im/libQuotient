@@ -13,24 +13,21 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-    class CallHangupEvent: public CallEventBase
-    {
-    public:
-        DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
-        
-        explicit CallHangupEvent(const QJsonObject& obj);
-        explicit CallHangupEvent(const QString& callId);
-    };
+namespace Quotient {
+class CallHangupEvent : public CallEventBase {
+public:
+    DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
 
-    REGISTER_EVENT_TYPE(CallHangupEvent)
-    DEFINE_EVENTTYPE_ALIAS(CallHangup, CallHangupEvent)
-}
+    explicit CallHangupEvent(const QJsonObject& obj);
+    explicit CallHangupEvent(const QString& callId);
+};
+
+REGISTER_EVENT_TYPE(CallHangupEvent)
+} // namespace Quotient

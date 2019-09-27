@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -22,26 +22,24 @@
 
 #include <QtGui/QPixmap>
 
-namespace QMatrixClient
-{
-    class MediaThumbnailJob: public GetContentThumbnailJob
-    {
-        public:
-            using GetContentThumbnailJob::makeRequestUrl;
-            static QUrl makeRequestUrl(QUrl baseUrl,
-                                       const QUrl& mxcUri, QSize requestedSize);
+namespace Quotient {
+class MediaThumbnailJob : public GetContentThumbnailJob {
+public:
+    using GetContentThumbnailJob::makeRequestUrl;
+    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
+                               QSize requestedSize);
 
-            MediaThumbnailJob(const QString& serverName, const QString& mediaId,
-                              QSize requestedSize);
-            MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize);
+    MediaThumbnailJob(const QString& serverName, const QString& mediaId,
+                      QSize requestedSize);
+    MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize);
 
-            QImage thumbnail() const;
-            QImage scaledThumbnail(QSize toSize) const;
+    QImage thumbnail() const;
+    QImage scaledThumbnail(QSize toSize) const;
 
-        protected:
-            Status parseReply(QNetworkReply* reply) override;
+protected:
+    Status parseReply(QNetworkReply* reply) override;
 
-        private:
-            QImage _thumbnail;
-    };
-}  // namespace QMatrixClient
+private:
+    QImage _thumbnail;
+};
+} // namespace Quotient

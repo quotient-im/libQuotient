@@ -6,39 +6,41 @@
 
 #include "jobs/basejob.h"
 
-
-namespace QMatrixClient
+namespace Quotient
 {
-    // Operations
 
-    /// Lists the user's current rooms.
-    ///
-    /// This API returns a list of the user's current rooms.
-    class GetJoinedRoomsJob : public BaseJob
-    {
-        public:
-            explicit GetJoinedRoomsJob();
+// Operations
 
-            /*! Construct a URL without creating a full-fledged job object
-             *
-             * This function can be used when a URL for
-             * GetJoinedRoomsJob is necessary but the job
-             * itself isn't.
-             */
-            static QUrl makeRequestUrl(QUrl baseUrl);
+/// Lists the user's current rooms.
+/*!
+ * This API returns a list of the user's current rooms.
+ */
+class GetJoinedRoomsJob : public BaseJob
+{
+public:
+    explicit GetJoinedRoomsJob();
 
-            ~GetJoinedRoomsJob() override;
+    /*! Construct a URL without creating a full-fledged job object
+     *
+     * This function can be used when a URL for
+     * GetJoinedRoomsJob is necessary but the job
+     * itself isn't.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl);
 
-            // Result properties
+    ~GetJoinedRoomsJob() override;
 
-            /// The ID of each room in which the user has ``joined`` membership.
-            const QStringList& joinedRooms() const;
+    // Result properties
 
-        protected:
-            Status parseJson(const QJsonDocument& data) override;
+    /// The ID of each room in which the user has ``joined`` membership.
+    const QStringList& joinedRooms() const;
 
-        private:
-            class Private;
-            QScopedPointer<Private> d;
-    };
-} // namespace QMatrixClient
+protected:
+    Status parseJson(const QJsonDocument& data) override;
+
+private:
+    class Private;
+    QScopedPointer<Private> d;
+};
+
+} // namespace Quotient

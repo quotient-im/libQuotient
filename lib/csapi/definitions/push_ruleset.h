@@ -6,26 +6,34 @@
 
 #include "converters.h"
 
-#include <QtCore/QVector>
-#include "converters.h"
 #include "csapi/definitions/push_rule.h"
 
-namespace QMatrixClient
+#include <QtCore/QVector>
+
+namespace Quotient
 {
-    // Data structures
 
-    struct PushRuleset
-    {
-        QVector<PushRule> content;
-        QVector<PushRule> override;
-        QVector<PushRule> room;
-        QVector<PushRule> sender;
-        QVector<PushRule> underride;
-    };
-    template <> struct JsonObjectConverter<PushRuleset>
-    {
-        static void dumpTo(QJsonObject& jo, const PushRuleset& pod);
-        static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
-    };
+// Data structures
 
-} // namespace QMatrixClient
+struct PushRuleset
+{
+
+    QVector<PushRule> content;
+
+    QVector<PushRule> override;
+
+    QVector<PushRule> room;
+
+    QVector<PushRule> sender;
+
+    QVector<PushRule> underride;
+};
+
+template <>
+struct JsonObjectConverter<PushRuleset>
+{
+    static void dumpTo(QJsonObject& jo, const PushRuleset& pod);
+    static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
+};
+
+} // namespace Quotient

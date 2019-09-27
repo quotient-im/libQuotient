@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -21,349 +21,380 @@
 #include "../logging.h"
 #include "requestdata.h"
 
+#include <QtCore/QJsonDocument>
 #include <QtCore/QObject>
 #include <QtCore/QUrlQuery>
-#include <QtCore/QJsonDocument>
+#include <QtCore/QMetaEnum>
 
 class QNetworkReply;
 class QSslError;
 
-namespace QMatrixClient
-{
-    class ConnectionData;
+namespace Quotient {
+class ConnectionData;
 
-    enum class HttpVerb { Get, Put, Post, Delete };
+enum class HttpVerb { Get, Put, Post, Delete };
 
-    struct JobTimeoutConfig
-    {
-        int jobTimeout;
-        int nextRetryInterval;
+class BaseJob : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
+    Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
+public:
+    /*! The status code of a job
+     *
+     * Every job is created in Unprepared status; upon calling prepare()
+     * from Connection (if things are fine) it go to Pending status. After
+     * that, the next transition comes after the reply arrives and its contents
+     * are analysed. At any point in time the job can be abandon()ed, causing
+     * it to switch to status Abandoned for a brief period before deletion.
+     */
+    enum StatusCode {
+        Success = 0,
+        NoError = Success, // To be compatible with Qt conventions
+        Pending = 1,
+        WarningLevel = 20, //< Warnings have codes starting from this
+        UnexpectedResponseType = 21,
+        UnexpectedResponseTypeWarning = UnexpectedResponseType,
+        Unprepared = 25, //< Initial job state is incomplete, hence warning level
+        Abandoned = 50, //< A tiny period between abandoning and object deletion
+        ErrorLevel = 100, //< Errors have codes starting from this
+        NetworkError = 100,
+        Timeout,
+        TimeoutError = Timeout,
+        ContentAccessError,
+        NotFoundError,
+        IncorrectRequest,
+        IncorrectRequestError = IncorrectRequest,
+        IncorrectResponse,
+        IncorrectResponseError = IncorrectResponse,
+        JsonParseError //< \deprecated Use IncorrectResponse instead
+        = IncorrectResponse,
+        TooManyRequests,
+        TooManyRequestsError = TooManyRequests,
+        RateLimited = TooManyRequests,
+        RequestNotImplemented,
+        RequestNotImplementedError = RequestNotImplemented,
+        UnsupportedRoomVersion,
+        UnsupportedRoomVersionError = UnsupportedRoomVersion,
+        NetworkAuthRequired,
+        NetworkAuthRequiredError = NetworkAuthRequired,
+        UserConsentRequired,
+        UserConsentRequiredError = UserConsentRequired,
+        CannotLeaveRoom,
+        UserDeactivated,
+        UserDefinedError = 256
+    };
+    Q_ENUM(StatusCode)
+
+    /**
+     * A simple wrapper around QUrlQuery that allows its creation from
+     * a list of string pairs
+     */
+    class Query : public QUrlQuery {
+    public:
+        using QUrlQuery::QUrlQuery;
+        Query() = default;
+        Query(const std::initializer_list<QPair<QString, QString>>& l)
+        {
+            setQueryItems(l);
+        }
     };
 
-    class BaseJob: public QObject
-    {
-            Q_OBJECT
-            Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
-            Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
-        public:
-            enum StatusCode { NoError = 0 // To be compatible with Qt conventions
-                , Success = 0
-                , Pending = 1
-                , WarningLevel = 20
-                , UnexpectedResponseType = 21
-                , UnexpectedResponseTypeWarning = UnexpectedResponseType
-                , Abandoned = 50 //< A very brief period between abandoning and object deletion
-                , ErrorLevel = 100 //< Errors have codes starting from this
-                , NetworkError = 100
-                , Timeout
-                , TimeoutError = Timeout
-                , ContentAccessError
-                , NotFoundError
-                , IncorrectRequest
-                , IncorrectRequestError = IncorrectRequest
-                , IncorrectResponse
-                , IncorrectResponseError = IncorrectResponse
-                , JsonParseError  //< deprecated; Use IncorrectResponse instead
-                  = IncorrectResponse
-                , TooManyRequests
-                , TooManyRequestsError = TooManyRequests
-                , RequestNotImplemented
-                , RequestNotImplementedError = RequestNotImplemented
-                , UnsupportedRoomVersion
-                , UnsupportedRoomVersionError = UnsupportedRoomVersion
-                , NetworkAuthRequired
-                , NetworkAuthRequiredError = NetworkAuthRequired
-                , UserConsentRequired
-                , UserConsentRequiredError = UserConsentRequired
-                , UserDefinedError = 256
-            };
+    using Data = RequestData;
 
-            /**
-             * A simple wrapper around QUrlQuery that allows its creation from
-             * a list of string pairs
-             */
-            class Query : public QUrlQuery
-            {
-                public:
-                    using QUrlQuery::QUrlQuery;
-                    Query() = default;
-                    Query(const std::initializer_list< QPair<QString, QString> >& l)
-                    {
-                        setQueryItems(l);
-                    }
-            };
+    /*!
+     * This structure stores the status of a server call job. The status
+     * consists of a code, that is described (but not delimited) by the
+     * respective enum, and a freeform message.
+     *
+     * To extend the list of error codes, define an (anonymous) enum
+     * along the lines of StatusCode, with additional values
+     * starting at UserDefinedError
+     */
+    struct Status {
+        Status(StatusCode c) : code(c) {}
+        Status(int c, QString m) : code(c), message(std::move(m)) {}
+        static Status fromHttpCode(int httpCode, QString msg = {});
 
-            using Data = RequestData;
+        bool good() const { return code < ErrorLevel; }
+        QDebug dumpToLog(QDebug dbg) const;
+        friend QDebug operator<<(const QDebug& dbg, const Status& s)
+        {
+            return s.dumpToLog(dbg);
+        }
 
-            /**
-             * This structure stores the status of a server call job. The status consists
-             * of a code, that is described (but not delimited) by the respective enum,
-             * and a freeform message.
-             *
-             * To extend the list of error codes, define an (anonymous) enum
-             * along the lines of StatusCode, with additional values
-             * starting at UserDefinedError
-             */
-            class Status
-            {
-                public:
-                    Status(StatusCode c) : code(c) { }
-                    Status(int c, QString m) : code(c), message(std::move(m)) { }
+        bool operator==(const Status& other) const
+        {
+            return code == other.code && message == other.message;
+        }
+        bool operator!=(const Status& other) const
+        {
+            return !operator==(other);
+        }
 
-                    bool good() const { return code < ErrorLevel; }
-                    friend QDebug operator<<(QDebug dbg, const Status& s)
-                    {
-                        QDebugStateSaver _s(dbg);
-                        return dbg.noquote().nospace()
-                                << s.code << ": " << s.message;
-                    }
-
-                    bool operator==(const Status& other) const
-                    {
-                        return code == other.code && message == other.message;
-                    }
-                    bool operator!=(const Status& other) const
-                    {
-                        return !operator==(other);
-                    }
-
-                    int code;
-                    QString message;
-            };
-
-            using duration_t = int; // milliseconds
-
-        public:
-            BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                    bool needsToken = true);
-            BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                    const Query& query, Data&& data = {},
-                    bool needsToken = true);
-
-            QUrl requestUrl() const;
-            bool isBackground() const;
-
-            /** Current status of the job */
-            Status status() const;
-            /** Short human-friendly message on the job status */
-            QString statusCaption() const;
-            /** Get raw response body as received from the server
-             * \param bytesAtMost return this number of leftmost bytes, or -1
-             *                    to return the entire response
-             */
-            QByteArray rawData(int bytesAtMost = -1) const;
-            /** Get UI-friendly sample of raw data
-             *
-             * This is almost the same as rawData but appends the "truncated"
-             * suffix if not all data fit in bytesAtMost. This call is
-             * recommended to present a sample of raw data as "details" next to
-             * error messages. Note that the default \p bytesAtMost value is
-             * also tailored to UI cases.
-             */
-            QString rawDataSample(int bytesAtMost = 65535) const;
-
-            /** Error (more generally, status) code
-             * Equivalent to status().code
-             * \sa status
-             */
-            int error() const;
-            /** Error-specific message, as returned by the server */
-            virtual QString errorString() const;
-            /** A URL to help/clarify the error, if provided by the server */
-            QUrl errorUrl() const;
-
-            int maxRetries() const;
-            void setMaxRetries(int newMaxRetries);
-
-            Q_INVOKABLE duration_t getCurrentTimeout() const;
-            Q_INVOKABLE duration_t getNextRetryInterval() const;
-            Q_INVOKABLE duration_t millisToRetry() const;
-
-            friend QDebug operator<<(QDebug dbg, const BaseJob* j)
-            {
-                return dbg << j->objectName();
-            }
-
-        public slots:
-            void start(const ConnectionData* connData,
-                       bool inBackground = false);
-
-            /**
-             * Abandons the result of this job, arrived or unarrived.
-             *
-             * This aborts waiting for a reply from the server (if there was
-             * any pending) and deletes the job object. No result signals
-             * (result, success, failure) are emitted.
-             */
-            void abandon();
-
-        signals:
-            /** The job is about to send a network request */
-            void aboutToStart();
-
-            /** The job has sent a network request */
-            void started();
-
-            /** The job has changed its status */
-            void statusChanged(Status newStatus);
-
-            /**
-             * The previous network request has failed; the next attempt will
-             * be done in the specified time
-             * @param nextAttempt the 1-based number of attempt (will always be more than 1)
-             * @param inMilliseconds the interval after which the next attempt will be taken
-             */
-            void retryScheduled(int nextAttempt, int inMilliseconds);
-
-            /**
-             * Emitted when the job is finished, in any case. It is used to notify
-             * observers that the job is terminated and that progress can be hidden.
-             *
-             * This should not be emitted directly by subclasses;
-             * use finishJob() instead.
-             *
-             * In general, to be notified of a job's completion, client code
-             * should connect to result(), success(), or failure()
-             * rather than finished(). However if you need to track the job's
-             * lifecycle you should connect to this instead of result();
-             * in particular, only this signal will be emitted on abandoning.
-             *
-             * @param job the job that emitted this signal
-             *
-             * @see result, success, failure
-             */
-            void finished(BaseJob* job);
-
-            /**
-             * Emitted when the job is finished (except when abandoned).
-             *
-             * Use error() to know if the job was finished with error.
-             *
-             * @param job the job that emitted this signal
-             *
-             * @see success, failure
-             */
-            void result(BaseJob* job);
-
-            /**
-             * Emitted together with result() in case there's no error.
-             *
-             * @see result, failure
-             */
-            void success(BaseJob*);
-
-            /**
-             * Emitted together with result() if there's an error.
-             * Similar to result(), this won't be emitted in case of abandon().
-             *
-             * @see result, success
-             */
-            void failure(BaseJob*);
-
-            void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-            void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
-
-        protected:
-            using headers_t = QHash<QByteArray, QByteArray>;
-
-            const QString& apiEndpoint() const;
-            void setApiEndpoint(const QString& apiEndpoint);
-            const headers_t& requestHeaders() const;
-            void setRequestHeader(const headers_t::key_type& headerName,
-                                  const headers_t::mapped_type& headerValue);
-            void setRequestHeaders(const headers_t& headers);
-            const QUrlQuery& query() const;
-            void setRequestQuery(const QUrlQuery& query);
-            const Data& requestData() const;
-            void setRequestData(Data&& data);
-            const QByteArrayList& expectedContentTypes() const;
-            void addExpectedContentType(const QByteArray& contentType);
-            void setExpectedContentTypes(const QByteArrayList& contentTypes);
-
-            /** Construct a URL out of baseUrl, path and query
-             * The function automatically adds '/' between baseUrl's path and
-             * \p path if necessary. The query component of \p baseUrl
-             * is ignored.
-             */
-            static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
-                                       const QUrlQuery& query = {});
-
-            virtual void beforeStart(const ConnectionData* connData);
-            virtual void afterStart(const ConnectionData* connData,
-                                    QNetworkReply* reply);
-            virtual void beforeAbandon(QNetworkReply*);
-
-            /**
-             * Used by gotReply() to check the received reply for general
-             * issues such as network errors or access denial.
-             * Returning anything except NoError/Success prevents
-             * further parseReply()/parseJson() invocation.
-             *
-             * @param reply the reply received from the server
-             * @return the result of checking the reply
-             *
-             * @see gotReply
-             */
-            virtual Status doCheckReply(QNetworkReply* reply) const;
-
-            /**
-             * Processes the reply. By default, parses the reply into
-             * a QJsonDocument and calls parseJson() if it's a valid JSON.
-             *
-             * @param reply raw contents of a HTTP reply from the server
-             *
-             * @see gotReply, parseJson
-             */
-            virtual Status parseReply(QNetworkReply* reply);
-
-            /**
-             * Processes the JSON document received from the Matrix server.
-             * By default returns successful status without analysing the JSON.
-             *
-             * @param json valid JSON document received from the server
-             *
-             * @see parseReply
-             */
-            virtual Status parseJson(const QJsonDocument&);
-
-            /**
-             * Processes the reply in case of unsuccessful HTTP code.
-             * The body is already loaded from the reply object to errorJson.
-             * @param reply the HTTP reply from the server
-             * @param errorJson the JSON payload describing the error
-             */
-            virtual Status parseError(QNetworkReply* reply,
-                                      const QJsonObject& errorJson);
-
-            void setStatus(Status s);
-            void setStatus(int code, QString message);
-
-            // Q_DECLARE_LOGGING_CATEGORY return different function types
-            // in different versions
-            using LoggingCategory = decltype(JOBS)*;
-            void setLoggingCategory(LoggingCategory lcf);
-
-            // Job objects should only be deleted via QObject::deleteLater
-            ~BaseJob() override;
-
-        protected slots:
-            void timeout();
-
-        private slots:
-            void sendRequest(bool inBackground);
-            void checkReply();
-            void gotReply();
-
-        private:
-            void stop();
-            void finishJob();
-
-            class Private;
-            QScopedPointer<Private> d;
+        int code;
+        QString message;
     };
 
-    inline bool isJobRunning(BaseJob* job)
+public:
+    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+            bool needsToken = true);
+    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+            const Query& query, Data&& data = {}, bool needsToken = true);
+
+    QUrl requestUrl() const;
+    bool isBackground() const;
+
+    /** Current status of the job */
+    Status status() const;
+
+    /** Short human-friendly message on the job status */
+    QString statusCaption() const;
+
+    /** Get raw response body as received from the server
+     * \param bytesAtMost return this number of leftmost bytes, or -1
+     *                    to return the entire response
+     */
+    QByteArray rawData(int bytesAtMost = -1) const;
+
+    /** Get UI-friendly sample of raw data
+     *
+     * This is almost the same as rawData but appends the "truncated"
+     * suffix if not all data fit in bytesAtMost. This call is
+     * recommended to present a sample of raw data as "details" next to
+     * error messages. Note that the default \p bytesAtMost value is
+     * also tailored to UI cases.
+     */
+    QString rawDataSample(int bytesAtMost = 65535) const;
+
+    /** Error (more generally, status) code
+     * Equivalent to status().code
+     * \sa status
+     */
+    int error() const;
+
+    /** Error-specific message, as returned by the server */
+    virtual QString errorString() const;
+
+    /** A URL to help/clarify the error, if provided by the server */
+    QUrl errorUrl() const;
+
+    int maxRetries() const;
+    void setMaxRetries(int newMaxRetries);
+
+    using duration_ms_t = std::chrono::milliseconds::rep; // normally int64_t
+
+    std::chrono::seconds getCurrentTimeout() const;
+    Q_INVOKABLE duration_ms_t getCurrentTimeoutMs() const;
+    std::chrono::seconds getNextRetryInterval() const;
+    Q_INVOKABLE duration_ms_t getNextRetryMs() const;
+    std::chrono::milliseconds timeToRetry() const;
+    Q_INVOKABLE duration_ms_t millisToRetry() const;
+
+    friend QDebug operator<<(QDebug dbg, const BaseJob* j)
     {
-        return job && job->error() == BaseJob::Pending;
+        return dbg << j->objectName();
     }
-}  // namespace QMatrixClient
+
+public slots:
+    void prepare(ConnectionData* connData, bool inBackground);
+
+    /**
+     * Abandons the result of this job, arrived or unarrived.
+     *
+     * This aborts waiting for a reply from the server (if there was
+     * any pending) and deletes the job object. No result signals
+     * (result, success, failure) are emitted.
+     */
+    void abandon();
+
+signals:
+    /** The job is about to send a network request */
+    void aboutToSendRequest();
+
+    /** The job has sent a network request */
+    void sentRequest();
+
+    /** The job has changed its status */
+    void statusChanged(Status newStatus);
+
+    /**
+     * The previous network request has failed; the next attempt will
+     * be done in the specified time
+     * @param nextAttempt the 1-based number of attempt (will always be more
+     * than 1)
+     * @param inMilliseconds the interval after which the next attempt will be
+     * taken
+     */
+    void retryScheduled(int nextAttempt, duration_ms_t inMilliseconds);
+
+    /**
+     * The previous network request has been rate-limited; the next attempt
+     * will be queued and run sometime later. Since other jobs may already
+     * wait in the queue, it's not possible to predict the wait time.
+     */
+    void rateLimited();
+
+    /**
+     * Emitted when the job is finished, in any case. It is used to notify
+     * observers that the job is terminated and that progress can be hidden.
+     *
+     * This should not be emitted directly by subclasses;
+     * use finishJob() instead.
+     *
+     * In general, to be notified of a job's completion, client code
+     * should connect to result(), success(), or failure()
+     * rather than finished(). However if you need to track the job's
+     * lifecycle you should connect to this instead of result();
+     * in particular, only this signal will be emitted on abandoning.
+     *
+     * @param job the job that emitted this signal
+     *
+     * @see result, success, failure
+     */
+    void finished(BaseJob* job);
+
+    /**
+     * Emitted when the job is finished (except when abandoned).
+     *
+     * Use error() to know if the job was finished with error.
+     *
+     * @param job the job that emitted this signal
+     *
+     * @see success, failure
+     */
+    void result(BaseJob* job);
+
+    /**
+     * Emitted together with result() in case there's no error.
+     *
+     * @see result, failure
+     */
+    void success(BaseJob*);
+
+    /**
+     * Emitted together with result() if there's an error.
+     * Similar to result(), this won't be emitted in case of abandon().
+     *
+     * @see result, success
+     */
+    void failure(BaseJob*);
+
+    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
+
+protected:
+    using headers_t = QHash<QByteArray, QByteArray>;
+
+    const QString& apiEndpoint() const;
+    void setApiEndpoint(const QString& apiEndpoint);
+    const headers_t& requestHeaders() const;
+    void setRequestHeader(const headers_t::key_type& headerName,
+                          const headers_t::mapped_type& headerValue);
+    void setRequestHeaders(const headers_t& headers);
+    const QUrlQuery& query() const;
+    void setRequestQuery(const QUrlQuery& query);
+    const Data& requestData() const;
+    void setRequestData(Data&& data);
+    const QByteArrayList& expectedContentTypes() const;
+    void addExpectedContentType(const QByteArray& contentType);
+    void setExpectedContentTypes(const QByteArrayList& contentTypes);
+
+    /** Construct a URL out of baseUrl, path and query
+     * The function automatically adds '/' between baseUrl's path and
+     * \p path if necessary. The query component of \p baseUrl
+     * is ignored.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
+                               const QUrlQuery& query = {});
+
+    /*! Prepares the job for execution
+     *
+     * This method is called no more than once per job lifecycle,
+     * when it's first scheduled for execution; in particular, it is not called
+     * on retries.
+     */
+    virtual void doPrepare();
+    /*! Postprocessing after the network request has been sent
+     *
+     * This method is called every time the job receives a running
+     * QNetworkReply object from NetworkAccessManager - basically, after
+     * successfully sending a network request (including retries).
+     */
+    virtual void onSentRequest(QNetworkReply*);
+    virtual void beforeAbandon(QNetworkReply*);
+
+    /**
+     * Used by gotReply() to check the received reply for general
+     * issues such as network errors or access denial.
+     * Returning anything except NoError/Success prevents
+     * further parseReply()/parseJson() invocation.
+     *
+     * @param reply the reply received from the server
+     * @return the result of checking the reply
+     *
+     * @see gotReply
+     */
+    virtual Status doCheckReply(QNetworkReply* reply) const;
+
+    /**
+     * Processes the reply. By default, parses the reply into
+     * a QJsonDocument and calls parseJson() if it's a valid JSON.
+     *
+     * @param reply raw contents of a HTTP reply from the server
+     *
+     * @see gotReply, parseJson
+     */
+    virtual Status parseReply(QNetworkReply* reply);
+
+    /**
+     * Processes the JSON document received from the Matrix server.
+     * By default returns successful status without analysing the JSON.
+     *
+     * @param json valid JSON document received from the server
+     *
+     * @see parseReply
+     */
+    virtual Status parseJson(const QJsonDocument&);
+
+    /**
+     * Processes the reply in case of unsuccessful HTTP code.
+     * The body is already loaded from the reply object to errorJson.
+     * @param reply the HTTP reply from the server
+     * @param errorJson the JSON payload describing the error
+     */
+    virtual Status parseError(QNetworkReply*, const QJsonObject& errorJson);
+
+    void setStatus(Status s);
+    void setStatus(int code, QString message);
+
+    // Q_DECLARE_LOGGING_CATEGORY return different function types
+    // in different versions
+    using LoggingCategory = decltype(JOBS)*;
+    void setLoggingCategory(LoggingCategory lcf);
+
+    // Job objects should only be deleted via QObject::deleteLater
+    ~BaseJob() override;
+
+protected slots:
+    void timeout();
+
+private slots:
+    void sendRequest();
+    void checkReply();
+    void gotReply();
+
+    friend class ConnectionData; // to provide access to sendRequest()
+
+private:
+    void stop();
+    void finishJob();
+
+    class Private;
+    QScopedPointer<Private> d;
+};
+
+inline bool isJobRunning(BaseJob* job)
+{
+    return job && job->error() == BaseJob::Pending;
+}
+} // namespace Quotient

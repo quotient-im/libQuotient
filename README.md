@@ -32,24 +32,22 @@ Recent releases of Debian and OpenSuSE, e.g., already have the package
 (under the old name). If your Linux repo doesn't provide binary package
 (either libqmatrixclient - older - or libquotient - newer), or you're
 on Windows or macOS, your best bet is to build the library from the source
-and bundle it with your application. In
+and bundle it with your application.
 
 ### Pre-requisites
-- A Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
+- A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
   is known to work; mobile Windows and iOS might work too but never tried)
-  - For Ubuntu flavours - zesty or later is good enough out of the box;
-    older ones will need PPAs at least for a newer Qt. In particular,
-    if you (still) have xenial and cannot upgrade to a newer release
-    you'll have to add Kubuntu Backports PPA for it.
-- Qt 5 (either Open Source or Commercial), 5.9 or higher.
-- A build configuration tool:
-  - CMake (from your package management system or
+  - Recent enough Linux examples: Debian Buster; Fedora 28; OpenSUSE Leap 15;
+    Ubuntu Bionic Beaver.
+- Qt 5 (either Open Source or Commercial), 5.9 or higher;
+  5.12 is recommended, especially if you use qmake
+- A build configuration tool (CMake is recommended, qmake is yet supported):
+  - CMake 3.10 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
-- A C++ toolchain with C++14 support
-  - GCC 5 (Windows, Linux, macOS), Clang 5 (Linux), Apple Clang 8.1 (macOS)
-    and Visual Studio 2017 (Windows) are the oldest officially supported;
-    Clang 3.8, GCC 4.9.2, VS 2015 may work but not actively maintained.
+- A C++ toolchain with C++17 support:
+  - GCC 7 (Windows, Linux, macOS), Clang 6 (Linux), Apple Clang 10 (macOS)
+    and Visual Studio 2017 (Windows) are the oldest officially supported.
 - Any build system that works with CMake and/or qmake should be fine:
   GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
 
@@ -68,8 +66,8 @@ If you use CMake, `find_package(Quotient)` sets up the client code to use
 libQuotient, assuming the library development files are installed. There's no
 documented procedure to use a preinstalled library with qmake; consider
 introducing a submodule in your source tree and build it along with the rest
-of the application for now. Patches to provide .prl files for qmake
-are welcome.
+of the application for now. Note also that qmake is considered for phase-out
+in Qt 6 so you should probably think of moving over to CMake eventually.
 
 Building with dynamic linkage are only tested on Linux at the moment and are
 a recommended way of linking your application with libQuotient on this platform.
@@ -127,9 +125,15 @@ The library provides a .pri file with an intention to be included from a bigger 
 qmake qmc-example.pro
 make all
 ```
-This will get you `debug/qmc-example` and `release/qmc-example` console executables that login to the Matrix server at matrix.org with credentials of your choosing (pass the username and password as arguments), run a sync long-polling loop and do some tests of the library API.
+This will get you `debug/qmc-example` and `release/qmc-example`
+console executables that login to the Matrix server at matrix.org with
+credentials of your choosing (pass the username and password as arguments),
+run a sync long-polling loop and do some tests of the library API. Note that
+qmake didn't really know about C++17 until Qt 5.12 so if your Qt is older
+you may have quite a bit of warnings during the compilation process.
 
-Installing the standalone library with qmake is not implemented yet.
+Installing the standalone library with qmake is not implemented yet; PRs are
+welcome though.
 
 ## Troubleshooting
 
@@ -151,8 +155,11 @@ libQuotient uses Qt's logging categories to make switching certain types of logg
 quotient.<category>.<level>=<flag>
 ```
 where
-- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `events`, `events.ephemeral`, and `profiler` (you can always find the full list in the file `lib/logging.cpp`)
-- `<level>` is one of `debug` and `warning`
+- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `events`, `events.state`
+  (covering both the "usual" room state and account data), `events.messages`,
+  `events.ephemeral`, `e2ee` and `profiler` (you can always find the full list
+  in `lib/logging.cpp`)
+- `<level>` is one of `debug`, `info`, and `warning`
 - `<flag>` is either `true` or `false`.
 
 `*` can be used as a wildcard for any part between two dots, and semicolon is used for a separator. Latter statements override former ones, so if you want to switch on all debug logs except `jobs` you can set

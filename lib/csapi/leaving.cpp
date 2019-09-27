@@ -8,35 +8,32 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 QUrl LeaveRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/rooms/" % roomId % "/leave");
+                                   basePath % "/rooms/" % roomId % "/leave");
 }
 
 static const auto LeaveRoomJobName = QStringLiteral("LeaveRoomJob");
 
 LeaveRoomJob::LeaveRoomJob(const QString& roomId)
     : BaseJob(HttpVerb::Post, LeaveRoomJobName,
-        basePath % "/rooms/" % roomId % "/leave")
-{
-}
+              basePath % "/rooms/" % roomId % "/leave")
+{}
 
 QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/rooms/" % roomId % "/forget");
+                                   basePath % "/rooms/" % roomId % "/forget");
 }
 
 static const auto ForgetRoomJobName = QStringLiteral("ForgetRoomJob");
 
 ForgetRoomJob::ForgetRoomJob(const QString& roomId)
     : BaseJob(HttpVerb::Post, ForgetRoomJobName,
-        basePath % "/rooms/" % roomId % "/forget")
-{
-}
-
+              basePath % "/rooms/" % roomId % "/forget")
+{}

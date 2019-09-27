@@ -1,29 +1,28 @@
 #include "downloadfilejob.h"
 
-#include <QtNetwork/QNetworkReply>
 #include <QtCore/QFile>
 #include <QtCore/QTemporaryFile>
+#include <QtNetwork/QNetworkReply>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
-class DownloadFileJob::Private
-{
-    public:
-        Private() : tempFile(new QTemporaryFile()) { }
+class DownloadFileJob::Private {
+public:
+    Private() : tempFile(new QTemporaryFile()) {}
 
-        explicit Private(const QString& localFilename)
-            : targetFile(new QFile(localFilename))
-            , tempFile(new QFile(targetFile->fileName() + ".qmcdownload"))
-        { }
+    explicit Private(const QString& localFilename)
+        : targetFile(new QFile(localFilename))
+        , tempFile(new QFile(targetFile->fileName() + ".qmcdownload"))
+    {}
 
-        QScopedPointer<QFile> targetFile;
-        QScopedPointer<QFile> tempFile;
+    QScopedPointer<QFile> targetFile;
+    QScopedPointer<QFile> tempFile;
 };
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
 {
-    return makeRequestUrl(
-                std::move(baseUrl), mxcUri.authority(), mxcUri.path().mid(1));
+    return makeRequestUrl(std::move(baseUrl), mxcUri.authority(),
+                          mxcUri.path().mid(1));
 }
 
 DownloadFileJob::DownloadFileJob(const QString& serverName,
@@ -40,18 +39,16 @@ QString DownloadFileJob::targetFileName() const
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
 }
 
-void DownloadFileJob::beforeStart(const ConnectionData*)
+void DownloadFileJob::doPrepare()
 {
-    if (d->targetFile && !d->targetFile->isReadable() &&
-            !d->targetFile->open(QIODevice::WriteOnly))
-    {
-        qCWarning(JOBS) << "Couldn't open the file"
-                        << d->targetFile->fileName() << "for writing";
+    if (d->targetFile && !d->targetFile->isReadable()
+        && !d->targetFile->open(QIODevice::WriteOnly)) {
+        qCWarning(JOBS) << "Couldn't open the file" << d->targetFile->fileName()
+                        << "for writing";
         setStatus(FileError, "Could not open the target file for writing");
         return;
     }
-    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly))
-    {
+    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly)) {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the temporary download file");
@@ -60,18 +57,16 @@ void DownloadFileJob::beforeStart(const ConnectionData*)
     qCDebug(JOBS) << "Downloading to" << d->tempFile->fileName();
 }
 
-void DownloadFileJob::afterStart(const ConnectionData*, QNetworkReply* reply)
+void DownloadFileJob::onSentRequest(QNetworkReply* reply)
 {
-    connect(reply, &QNetworkReply::metaDataChanged, this, [this,reply] {
+    connect(reply, &QNetworkReply::metaDataChanged, this, [this, reply] {
         if (!status().good())
             return;
         auto sizeHeader = reply->header(QNetworkRequest::ContentLengthHeader);
-        if (sizeHeader.isValid())
-        {
+        if (sizeHeader.isValid()) {
             auto targetSize = sizeHeader.value<qint64>();
             if (targetSize != -1)
-                if (!d->tempFile->resize(targetSize))
-                {
+                if (!d->tempFile->resize(targetSize)) {
                     qCWarning(JOBS) << "Failed to allocate" << targetSize
                                     << "bytes for" << d->tempFile->fileName();
                     setStatus(FileError,
@@ -79,16 +74,15 @@ void DownloadFileJob::afterStart(const ConnectionData*, QNetworkReply* reply)
                 }
         }
     });
-    connect(reply, &QIODevice::readyRead, this, [this,reply] {
+    connect(reply, &QIODevice::readyRead, this, [this, reply] {
         if (!status().good())
             return;
         auto bytes = reply->read(reply->bytesAvailable());
         if (!bytes.isEmpty())
             d->tempFile->write(bytes);
         else
-            qCWarning(JOBS)
-                    << "Unexpected empty chunk when downloading from"
-                    << reply->url() << "to" << d->tempFile->fileName();
+            qCWarning(JOBS) << "Unexpected empty chunk when downloading from"
+                            << reply->url() << "to" << d->tempFile->fileName();
     });
 }
 
@@ -101,22 +95,18 @@ void DownloadFileJob::beforeAbandon(QNetworkReply*)
 
 BaseJob::Status DownloadFileJob::parseReply(QNetworkReply*)
 {
-    if (d->targetFile)
-    {
+    if (d->targetFile) {
         d->targetFile->close();
-        if (!d->targetFile->remove())
-        {
+        if (!d->targetFile->remove()) {
             qCWarning(JOBS) << "Failed to remove the target file placeholder";
             return { FileError, "Couldn't finalise the download" };
         }
-        if (!d->tempFile->rename(d->targetFile->fileName()))
-        {
+        if (!d->tempFile->rename(d->targetFile->fileName())) {
             qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
                             << "to" << d->targetFile->fileName();
             return { FileError, "Couldn't finalise the download" };
         }
-    }
-    else
+    } else
         d->tempFile->close();
     qCDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;

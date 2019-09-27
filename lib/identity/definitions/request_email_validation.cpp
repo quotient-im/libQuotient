@@ -4,10 +4,10 @@
 
 #include "request_email_validation.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<RequestEmailValidation>::dumpTo(
-        QJsonObject& jo, const RequestEmailValidation& pod)
+    QJsonObject& jo, const RequestEmailValidation& pod)
 {
     addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
     addParam<>(jo, QStringLiteral("email"), pod.email);
@@ -23,4 +23,3 @@ void JsonObjectConverter<RequestEmailValidation>::fillFrom(
     fromJson(jo.value("send_attempt"_ls), result.sendAttempt);
     fromJson(jo.value("next_link"_ls), result.nextLink);
 }
-

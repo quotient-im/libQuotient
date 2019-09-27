@@ -48,8 +48,8 @@ endforeach ()
 find_package(Qt5 5.6 REQUIRED Network Gui Multimedia)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
-find_package(QMatrixClient REQUIRED)
-get_filename_component(QMC_Prefix "${QMatrixClient_DIR}/../.." ABSOLUTE)
+find_package(Quotient REQUIRED)
+get_filename_component(QMC_Prefix "${Quotient_DIR}/../.." ABSOLUTE)
 
 message( STATUS "qmc-example configuration:" )
 if (CMAKE_BUILD_TYPE)
@@ -57,12 +57,12 @@ if (CMAKE_BUILD_TYPE)
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "  Qt: ${Qt5_VERSION} at ${Qt5_Prefix}" )
-message( STATUS "  QMatrixClient: ${QMatrixClient_VERSION} at ${QMC_Prefix}" )
+message( STATUS "  Quotient: ${Quotient_VERSION} at ${QMC_Prefix}" )
 
 set(example_SRCS qmc-example.cpp)
 
 add_executable(qmc-example ${example_SRCS})
-target_link_libraries(qmc-example Qt5::Core QMatrixClient)
+target_link_libraries(qmc-example Qt5::Core Quotient)
 
 # Installation
 

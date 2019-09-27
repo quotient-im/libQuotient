@@ -1,5 +1,5 @@
 language: cpp
-dist: xenial
+dist: bionic
 
 git:
   depth: false
@@ -13,14 +13,10 @@ cache:
 
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:beineri/opt-qt597-xenial'
     packages:
     - ninja-build
-    - libgl1-mesa-dev # Forgotten Qt dep
-    - qt59base
-    - qt59multimedia
+    - qt5-default
+    - qtmultimedia5-dev
     - valgrind
 
 matrix:
@@ -40,15 +36,17 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; . /opt/qt59/bin/qt59-env.sh; fi
-# Switching off temporarily due to broken Valgrind being installed in xenial container.
-#- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
 
 install:
-- pushd 3rdparty/libQtOlm
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
+- pushd olm
+- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=../install
+- cmake --build build
+- cmake --build build --target install
 - popd
-- git clone https://github.com/QMatrixClient/matrix-doc.git
+- git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad
 - cmake $USE_NINJA -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .

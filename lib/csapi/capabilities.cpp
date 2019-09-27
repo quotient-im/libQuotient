@@ -8,62 +8,67 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-namespace QMatrixClient
+// Converters
+namespace Quotient
 {
-    // Converters
 
-    template <> struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability>
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetCapabilitiesJob::ChangePasswordCapability& result)
     {
-        static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::ChangePasswordCapability& result)
-        {
-            fromJson(jo.value("enabled"_ls), result.enabled);
-        }
-    };
+        fromJson(jo.value("enabled"_ls), result.enabled);
+    }
+};
 
-    template <> struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability>
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability>
+{
+    static void fillFrom(const QJsonObject& jo,
+                         GetCapabilitiesJob::RoomVersionsCapability& result)
     {
-        static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::RoomVersionsCapability& result)
-        {
-            fromJson(jo.value("default"_ls), result.defaultVersion);
-            fromJson(jo.value("available"_ls), result.available);
-        }
-    };
+        fromJson(jo.value("default"_ls), result.defaultVersion);
+        fromJson(jo.value("available"_ls), result.available);
+    }
+};
 
-    template <> struct JsonObjectConverter<GetCapabilitiesJob::Capabilities>
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::Capabilities>
+{
+    static void fillFrom(QJsonObject jo,
+                         GetCapabilitiesJob::Capabilities& result)
     {
-        static void fillFrom(QJsonObject jo, GetCapabilitiesJob::Capabilities& result)
-        {
-            fromJson(jo.take("m.change_password"_ls), result.changePassword);
-            fromJson(jo.take("m.room_versions"_ls), result.roomVersions);
-            fromJson(jo, result.additionalProperties);
-        }
-    };
-} // namespace QMatrixClient
+        fromJson(jo.take("m.change_password"_ls), result.changePassword);
+        fromJson(jo.take("m.room_versions"_ls), result.roomVersions);
+        fromJson(jo, result.additionalProperties);
+    }
+};
+
+} // namespace Quotient
 
 class GetCapabilitiesJob::Private
 {
-    public:
-        Capabilities capabilities;
+public:
+    Capabilities capabilities;
 };
 
 QUrl GetCapabilitiesJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/capabilities");
+                                   basePath % "/capabilities");
 }
 
 static const auto GetCapabilitiesJobName = QStringLiteral("GetCapabilitiesJob");
 
 GetCapabilitiesJob::GetCapabilitiesJob()
-    : BaseJob(HttpVerb::Get, GetCapabilitiesJobName,
-        basePath % "/capabilities")
+    : BaseJob(HttpVerb::Get, GetCapabilitiesJobName, basePath % "/capabilities")
     , d(new Private)
-{
-}
+{}
 
 GetCapabilitiesJob::~GetCapabilitiesJob() = default;
 
@@ -77,8 +82,8 @@ BaseJob::Status GetCapabilitiesJob::parseJson(const QJsonDocument& data)
     auto json = data.object();
     if (!json.contains("capabilities"_ls))
         return { IncorrectResponse,
-            "The key 'capabilities' not found in the response" };
+                 "The key 'capabilities' not found in the response" };
     fromJson(json.value("capabilities"_ls), d->capabilities);
+
     return Success;
 }
-

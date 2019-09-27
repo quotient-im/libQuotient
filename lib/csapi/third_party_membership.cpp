@@ -8,15 +8,16 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 static const auto InviteBy3PIDJobName = QStringLiteral("InviteBy3PIDJob");
 
-InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer, const QString& medium, const QString& address)
+InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
+                                 const QString& medium, const QString& address)
     : BaseJob(HttpVerb::Post, InviteBy3PIDJobName,
-        basePath % "/rooms/" % roomId % "/invite")
+              basePath % "/rooms/" % roomId % "/invite")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("id_server"), idServer);
@@ -24,4 +25,3 @@ InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
     addParam<>(_data, QStringLiteral("address"), address);
     setRequestData(_data);
 }
-

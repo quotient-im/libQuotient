@@ -13,66 +13,61 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
-#include "stateevent.h"
 #include "eventcontent.h"
+#include "stateevent.h"
 
-namespace QMatrixClient
-{
-    class EncryptionEventContent: public EventContent::Base
-    {
-        public:
-            enum EncryptionType : size_t { MegolmV1AesSha2 = 0,
-                                           Undefined };
+namespace Quotient {
+class EncryptionEventContent : public EventContent::Base {
+public:
+    enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
-            explicit EncryptionEventContent(EncryptionType et = Undefined)
-                : encryption(et)
-            { }
-            explicit EncryptionEventContent(const QJsonObject& json);
+    explicit EncryptionEventContent(EncryptionType et = Undefined)
+        : encryption(et)
+    {}
+    explicit EncryptionEventContent(const QJsonObject& json);
 
-            EncryptionType encryption;
-            QString algorithm;
-            int rotationPeriodMs;
-            int rotationPeriodMsgs;
+    EncryptionType encryption;
+    QString algorithm;
+    int rotationPeriodMs;
+    int rotationPeriodMsgs;
 
-        protected:
-            void fillJson(QJsonObject* o) const override;
-    };
+protected:
+    void fillJson(QJsonObject* o) const override;
+};
+
+using EncryptionType = EncryptionEventContent::EncryptionType;
+
+class EncryptionEvent : public StateEvent<EncryptionEventContent> {
+    Q_GADGET
+public:
+    DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
 
     using EncryptionType = EncryptionEventContent::EncryptionType;
 
-    class EncryptionEvent : public StateEvent<EncryptionEventContent>
-    {
-            Q_GADGET
-        public:
-            DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
+    explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate
+                                                          // default value
+        : StateEvent(typeId(), obj)
+    {}
+    template <typename... ArgTs>
+    EncryptionEvent(ArgTs&&... contentArgs)
+        : StateEvent(typeId(), matrixTypeId(), QString(),
+                     std::forward<ArgTs>(contentArgs)...)
+    {}
 
-            using EncryptionType = EncryptionEventContent::EncryptionType;
+    EncryptionType encryption() const { return content().encryption; }
 
-            explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate default value
-                : StateEvent(typeId(), obj)
-            { }
-            template <typename... ArgTs>
-            EncryptionEvent(ArgTs&&... contentArgs)
-                : StateEvent(typeId(), matrixTypeId(), QString(),
-                             std::forward<ArgTs>(contentArgs)...)
-            { }
+    QString algorithm() const { return content().algorithm; }
+    int rotationPeriodMs() const { return content().rotationPeriodMs; }
+    int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
 
-            EncryptionType encryption() const  { return content().encryption; }
+private:
+    Q_ENUM(EncryptionType)
+};
 
-            QString algorithm() const { return content().algorithm; }
-            int rotationPeriodMs() const { return content().rotationPeriodMs; }
-            int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
-
-        private:
-            REGISTER_ENUM(EncryptionType)
-    };
-
-    REGISTER_EVENT_TYPE(EncryptionEvent)
-    DEFINE_EVENTTYPE_ALIAS(Encryption, EncryptionEvent)
-}  // namespace QMatrixClient
-
+REGISTER_EVENT_TYPE(EncryptionEvent)
+} // namespace Quotient

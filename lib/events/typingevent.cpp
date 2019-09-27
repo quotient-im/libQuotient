@@ -13,20 +13,18 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "typingevent.h"
 
 #include <QtCore/QJsonArray>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
-TypingEvent::TypingEvent(const QJsonObject& obj)
-    : Event(typeId(), obj)
+TypingEvent::TypingEvent(const QJsonObject& obj) : Event(typeId(), obj)
 {
     const auto& array = contentJson()["user_ids"_ls].toArray();
-    for(const auto& user: array )
+    for (const auto& user : array)
         _users.push_back(user.toString());
 }
-

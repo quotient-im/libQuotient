@@ -13,145 +13,162 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include <QtCore/QSettings>
-#include <QtCore/QVector>
 #include <QtCore/QUrl>
+#include <QtCore/QVector>
 
 class QVariant;
 
-namespace QMatrixClient
-{
-    class Settings: public QSettings
+namespace Quotient {
+class Settings : public QSettings {
+    Q_OBJECT
+public:
+    /// Add a legacy organisation/application name to migrate settings from
+    /*!
+     * Use this function before creating any Settings objects in order
+     * to set a legacy location where configuration has previously been stored.
+     * This will provide an additional fallback in case of renaming
+     * the organisation/application. Values in legacy locations are _removed_
+     * when setValue() or remove() is called.
+     */
+    static void setLegacyNames(const QString& organizationName,
+                               const QString& applicationName = {});
+
+    using QSettings::QSettings;
+
+    /// Set the value for a given key
+    /*! If the key exists in the legacy location, it is removed. */
+    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
+
+    /// Remove the value from both the primary and legacy locations
+    Q_INVOKABLE void remove(const QString& key);
+
+    /// Obtain a value for a given key
+    /*!
+     * If the key doesn't exist in the primary settings location, the legacy
+     * location is checked. If neither location has the key,
+     * \p defaultValue is returned.
+     *
+     * This function returns a QVariant; use get<>() to get the unwrapped
+     * value if you know the type upfront.
+     *
+     * \sa setLegacyNames, get
+     */
+    Q_INVOKABLE QVariant value(const QString& key,
+                               const QVariant& defaultValue = {}) const;
+
+    /// Obtain a value for a given key, coerced to the given type
+    /*!
+     * On top of value(), this function unwraps the QVariant and returns
+     * its contents assuming the type passed as the template parameter.
+     * If the type is different from the one stored inside the QVariant,
+     * \p defaultValue is returned. In presence of legacy settings,
+     * only the first found value is checked; if its type does not match,
+     * further checks through legacy settings are not performed and
+     * \p defaultValue is returned.
+     */
+    template <typename T>
+    T get(const QString& key, const T& defaultValue = {}) const
     {
-            Q_OBJECT
-        public:
-            /**
-             * Use this function before creating any Settings objects in order
-             * to setup a read-only location where configuration has previously
-             * been stored. This will provide an additional fallback in case of
-             * renaming the organisation/application.
-             */
-            static void setLegacyNames(const QString& organizationName,
-                                       const QString& applicationName = {});
+        const auto qv = value(key, QVariant());
+        return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
+    }
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
-            // VS 2013 (and probably older) aren't friends with 'using' statements
-            // that involve private constructors
-            explicit Settings(QObject* parent = 0) : QSettings(parent) { }
-#else
-            using QSettings::QSettings;
-#endif
+    Q_INVOKABLE bool contains(const QString& key) const;
+    Q_INVOKABLE QStringList childGroups() const;
 
-            Q_INVOKABLE void setValue(const QString &key,
-                                      const QVariant &value);
-            Q_INVOKABLE QVariant value(const QString &key,
-                                       const QVariant &defaultValue = {}) const;
+private:
+    static QString legacyOrganizationName;
+    static QString legacyApplicationName;
 
-            template <typename T>
-            T get(const QString& key, const T& defaultValue = {}) const
-            {
-                const auto qv = value(key, QVariant());
-                return qv.isValid() && qv.canConvert<T>() ? qv.value<T>()
-                                                          : defaultValue;
-            }
+protected:
+    QSettings legacySettings { legacyOrganizationName, legacyApplicationName };
+};
 
-            Q_INVOKABLE bool contains(const QString& key) const;
-            Q_INVOKABLE QStringList childGroups() const;
+class SettingsGroup : public Settings {
+public:
+    template <typename... ArgTs>
+    explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
+        : Settings(std::forward<ArgTs>(qsettingsArgs)...)
+        , groupPath(std::move(path))
+    {}
 
-        private:
-            static QString legacyOrganizationName;
-            static QString legacyApplicationName;
+    Q_INVOKABLE bool contains(const QString& key) const;
+    Q_INVOKABLE QVariant value(const QString& key,
+                               const QVariant& defaultValue = {}) const;
 
-        protected:
-            QSettings legacySettings { legacyOrganizationName,
-                                       legacyApplicationName };
-    };
-
-    class SettingsGroup: public Settings
+    template <typename T>
+    T get(const QString& key, const T& defaultValue = {}) const
     {
-        public:
-            template <typename... ArgTs>
-            explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
-                : Settings(std::forward<ArgTs>(qsettingsArgs)...)
-                , groupPath(std::move(path))
-            { }
+        const auto qv = value(key, QVariant());
+        return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
+    }
 
-            Q_INVOKABLE bool contains(const QString& key) const;
-            Q_INVOKABLE QVariant value(const QString &key,
-                                       const QVariant &defaultValue = {}) const;
+    Q_INVOKABLE QString group() const;
+    Q_INVOKABLE QStringList childGroups() const;
+    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
 
-            template <typename T>
-            T get(const QString& key, const T& defaultValue = {}) const
-            {
-                const auto qv = value(key, QVariant());
-                return qv.isValid() && qv.canConvert<T>() ? qv.value<T>()
-                                                          : defaultValue;
-            }
+    Q_INVOKABLE void remove(const QString& key);
 
-            Q_INVOKABLE QString group() const;
-            Q_INVOKABLE QStringList childGroups() const;
-            Q_INVOKABLE void setValue(const QString &key,
-                                      const QVariant &value);
+private:
+    QString groupPath;
+};
 
-            Q_INVOKABLE void remove(const QString& key);
+#define QMC_DECLARE_SETTING(type, propname, setter)      \
+    Q_PROPERTY(type propname READ propname WRITE setter) \
+public:                                                  \
+    type propname() const;                               \
+    void setter(type newValue);                          \
+                                                         \
+private:
 
-        private:
-            QString groupPath;
-    };
+#define QMC_DEFINE_SETTING(classname, type, propname, qsettingname,   \
+                           defaultValue, setter)                      \
+    type classname::propname() const                                  \
+    {                                                                 \
+        return get<type>(QStringLiteral(qsettingname), defaultValue); \
+    }                                                                 \
+                                                                      \
+    void classname::setter(type newValue)                             \
+    {                                                                 \
+        setValue(QStringLiteral(qsettingname), std::move(newValue));  \
+    }
 
-#define QMC_DECLARE_SETTING(type, propname, setter) \
-        Q_PROPERTY(type propname READ propname WRITE setter) \
-    public: \
-        type propname() const; \
-        void setter(type newValue); \
-    private:
+class AccountSettings : public SettingsGroup {
+    Q_OBJECT
+    Q_PROPERTY(QString userId READ userId CONSTANT)
+    QMC_DECLARE_SETTING(QString, deviceId, setDeviceId)
+    QMC_DECLARE_SETTING(QString, deviceName, setDeviceName)
+    QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
+    /** \deprecated \sa setAccessToken */
+    Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
+    Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
+                   WRITE setEncryptionAccountPickle)
+public:
+    template <typename... ArgTs>
+    explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
+        : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
+    {}
 
-#define QMC_DEFINE_SETTING(classname, type, propname, qsettingname, defaultValue, setter) \
-type classname::propname() const \
-{ \
-    return get<type>(QStringLiteral(qsettingname), defaultValue); \
-} \
-\
-void classname::setter(type newValue) \
-{ \
-    setValue(QStringLiteral(qsettingname), std::move(newValue)); \
-} \
+    QString userId() const;
 
-    class AccountSettings: public SettingsGroup
-    {
-            Q_OBJECT
-            Q_PROPERTY(QString userId READ userId CONSTANT)
-            QMC_DECLARE_SETTING(QString, deviceId, setDeviceId)
-            QMC_DECLARE_SETTING(QString, deviceName, setDeviceName)
-            QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
-            /** \deprecated \sa setAccessToken */
-            Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
-            Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle WRITE setEncryptionAccountPickle)
-        public:
-            template <typename... ArgTs>
-            explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
-                : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
-            { }
+    QUrl homeserver() const;
+    void setHomeserver(const QUrl& url);
 
-            QString userId() const;
+    /** \deprecated \sa setToken */
+    QString accessToken() const;
+    /** \deprecated Storing accessToken in QSettings is unsafe,
+     * see quotient-im/Quaternion#181 */
+    void setAccessToken(const QString& accessToken);
+    Q_INVOKABLE void clearAccessToken();
 
-            QUrl homeserver() const;
-            void setHomeserver(const QUrl& url);
-
-            /** \deprecated \sa setToken */
-            QString accessToken() const;
-            /** \deprecated Storing accessToken in QSettings is unsafe,
-             * see QMatrixClient/Quaternion#181 */
-            void setAccessToken(const QString& accessToken);
-            Q_INVOKABLE void clearAccessToken();
-
-            QByteArray encryptionAccountPickle();
-            void setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle);
-            Q_INVOKABLE void clearEncryptionAccountPickle();
-    };
-}  // namespace QMatrixClient
+    QByteArray encryptionAccountPickle();
+    void setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle);
+    Q_INVOKABLE void clearEncryptionAccountPickle();
+};
+} // namespace Quotient

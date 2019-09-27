@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -22,63 +22,67 @@
 #include <QtCore/QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(MAIN)
-Q_DECLARE_LOGGING_CATEGORY(PROFILER)
+Q_DECLARE_LOGGING_CATEGORY(STATE)
+Q_DECLARE_LOGGING_CATEGORY(MESSAGES)
 Q_DECLARE_LOGGING_CATEGORY(EVENTS)
 Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
+Q_DECLARE_LOGGING_CATEGORY(E2EE)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
+Q_DECLARE_LOGGING_CATEGORY(PROFILER)
 
-namespace QMatrixClient
+namespace Quotient {
+// QDebug manipulators
+
+using QDebugManip = QDebug (*)(QDebug);
+
+/**
+ * @brief QDebug manipulator to setup the stream for JSON output
+ *
+ * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
+ * and the respective addition of QDebug::noquote().
+ * Together with the operator<<() helper, the proposed usage is
+ * (similar to std:: I/O manipulators):
+ *
+ * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
+ */
+inline QDebug formatJson(QDebug debug_object)
 {
-    // QDebug manipulators
-
-    using QDebugManip = QDebug (*)(QDebug);
-
-    /**
-     * @brief QDebug manipulator to setup the stream for JSON output
-     *
-     * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
-     * and the respective addition of QDebug::noquote().
-     * Together with the operator<<() helper, the proposed usage is
-     * (similar to std:: I/O manipulators):
-     *
-     * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
-     */
-    inline QDebug formatJson(QDebug debug_object)
-    {
 #if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
-            return debug_object;
+    return debug_object;
 #else
-            return debug_object.noquote();
+    return debug_object.noquote();
 #endif
-    }
-
-    /**
-     * @brief A helper operator to facilitate usage of formatJson (and possibly
-     * other manipulators)
-     *
-     * @param debug_object to output the json to
-     * @param qdm a QDebug manipulator
-     * @return a copy of debug_object that has its mode altered by qdm
-     */
-    inline QDebug operator<< (QDebug debug_object, QDebugManip qdm)
-    {
-        return qdm(debug_object);
-    }
-
-    inline qint64 profilerMinNsecs()
-    {
-        return
-#ifdef PROFILER_LOG_USECS
-            PROFILER_LOG_USECS
-#else
-            200
-#endif
-        * 1000;
-    }
 }
 
-inline QDebug operator<< (QDebug debug_object, const QElapsedTimer& et)
+/**
+ * @brief A helper operator to facilitate usage of formatJson (and possibly
+ * other manipulators)
+ *
+ * @param debug_object to output the json to
+ * @param qdm a QDebug manipulator
+ * @return a copy of debug_object that has its mode altered by qdm
+ */
+inline QDebug operator<<(QDebug debug_object, QDebugManip qdm)
+{
+    return qdm(debug_object);
+}
+
+inline qint64 profilerMinNsecs()
+{
+    return
+#ifdef PROFILER_LOG_USECS
+        PROFILER_LOG_USECS
+#else
+        200
+#endif
+        * 1000;
+}
+} // namespace Quotient
+/// \deprecated Use namespace Quotient instead
+namespace QMatrixClient = Quotient;
+
+inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {
     auto val = et.nsecsElapsed() / 1000;
     if (val < 1000)

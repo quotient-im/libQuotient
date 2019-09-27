@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -21,35 +21,43 @@
 #include <QtCore/QUrl>
 
 #include <memory>
+#include <chrono>
 
 class QNetworkAccessManager;
 
-namespace QMatrixClient
-{
-    class ConnectionData
-    {
-        public:
-            explicit ConnectionData(QUrl baseUrl);
-            virtual ~ConnectionData();
+namespace Quotient {
+class BaseJob;
 
-            QByteArray accessToken() const;
-            QUrl baseUrl() const;
-            const QString& deviceId() const;
+class ConnectionData {
+public:
+    explicit ConnectionData(QUrl baseUrl);
+    virtual ~ConnectionData();
 
-            QNetworkAccessManager* nam() const;
-            void setBaseUrl(QUrl baseUrl);
-            void setToken(QByteArray accessToken);
-            void setHost( QString host );
-            void setPort( int port );
-            void setDeviceId(const QString& deviceId);
+    void submit(BaseJob* job);
+    void limitRate(std::chrono::milliseconds nextCallAfter);
 
-            QString lastEvent() const;
-            void setLastEvent( QString identifier );
+    QByteArray accessToken() const;
+    QUrl baseUrl() const;
+    const QString& deviceId() const;
+    const QString& userId() const;
+    QNetworkAccessManager* nam() const;
 
-            QByteArray generateTxnId() const;
+    void setBaseUrl(QUrl baseUrl);
+    void setToken(QByteArray accessToken);
+    [[deprecated("Use setBaseUrl() instead")]]
+    void setHost(QString host);
+    [[deprecated("Use setBaseUrl() instead")]]
+    void setPort(int port);
+    void setDeviceId(const QString& deviceId);
+    void setUserId(const QString& userId);
 
-        private:
-            struct Private;
-            std::unique_ptr<Private> d;
-    };
-}  // namespace QMatrixClient
+    QString lastEvent() const;
+    void setLastEvent(QString identifier);
+
+    QByteArray generateTxnId() const;
+
+private:
+    class Private;
+    std::unique_ptr<Private> d;
+};
+} // namespace Quotient

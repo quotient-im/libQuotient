@@ -13,32 +13,32 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-    class CallInviteEvent: public CallEventBase
+namespace Quotient {
+class CallInviteEvent : public CallEventBase {
+public:
+    DEFINE_EVENT_TYPEID("m.call.invite", CallInviteEvent)
+
+    explicit CallInviteEvent(const QJsonObject& obj);
+
+    explicit CallInviteEvent(const QString& callId, const int lifetime,
+                             const QString& sdp);
+
+    int lifetime() const
     {
-    public:
-        DEFINE_EVENT_TYPEID("m.call.invite", CallInviteEvent)
-          
-        explicit CallInviteEvent(const QJsonObject& obj);
+        return content<int>("lifetime"_ls);
+    } // FIXME: Omittable<>?
+    QString sdp() const
+    {
+        return contentJson()["offer"_ls].toObject().value("sdp"_ls).toString();
+    }
+};
 
-        explicit CallInviteEvent(const QString& callId, const int lifetime,
-                                 const QString& sdp);
-
-        int lifetime() const { return content<int>("lifetime"_ls); } // FIXME: Omittable<>?
-        QString sdp() const {
-            return contentJson()["offer"_ls].toObject()
-                    .value("sdp"_ls).toString();
-        }
-    };
-
-    REGISTER_EVENT_TYPE(CallInviteEvent)
-    DEFINE_EVENTTYPE_ALIAS(CallInvite, CallInviteEvent)
-}
+REGISTER_EVENT_TYPE(CallInviteEvent)
+} // namespace Quotient

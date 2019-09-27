@@ -8,21 +8,21 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class DefineFilterJob::Private
 {
-    public:
-        QString filterId;
+public:
+    QString filterId;
 };
 
 static const auto DefineFilterJobName = QStringLiteral("DefineFilterJob");
 
 DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
     : BaseJob(HttpVerb::Post, DefineFilterJobName,
-        basePath % "/user/" % userId % "/filter")
+              basePath % "/user/" % userId % "/filter")
     , d(new Private)
 {
     setRequestData(Data(toJson(filter)));
@@ -30,52 +30,47 @@ DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
 
 DefineFilterJob::~DefineFilterJob() = default;
 
-const QString& DefineFilterJob::filterId() const
-{
-    return d->filterId;
-}
+const QString& DefineFilterJob::filterId() const { return d->filterId; }
 
 BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     if (!json.contains("filter_id"_ls))
         return { IncorrectResponse,
-            "The key 'filter_id' not found in the response" };
+                 "The key 'filter_id' not found in the response" };
     fromJson(json.value("filter_id"_ls), d->filterId);
+
     return Success;
 }
 
 class GetFilterJob::Private
 {
-    public:
-        Filter data;
+public:
+    Filter data;
 };
 
-QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& filterId)
+QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
+                                  const QString& filterId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/user/" % userId % "/filter/" % filterId);
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/user/"
+                                                           % userId % "/filter/"
+                                                           % filterId);
 }
 
 static const auto GetFilterJobName = QStringLiteral("GetFilterJob");
 
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
     : BaseJob(HttpVerb::Get, GetFilterJobName,
-        basePath % "/user/" % userId % "/filter/" % filterId)
+              basePath % "/user/" % userId % "/filter/" % filterId)
     , d(new Private)
-{
-}
+{}
 
 GetFilterJob::~GetFilterJob() = default;
 
-const Filter& GetFilterJob::data() const
-{
-    return d->data;
-}
+const Filter& GetFilterJob::data() const { return d->data; }
 
 BaseJob::Status GetFilterJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
     return Success;
 }
-

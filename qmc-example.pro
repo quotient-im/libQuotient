@@ -1,10 +1,10 @@
 TEMPLATE = app
 
-CONFIG += object_parallel_to_source
+CONFIG *= c++1z warn_on object_parallel_to_source
 
-windows { CONFIG += console }
+windows { CONFIG *= console }
 
-include(libqmatrixclient.pri)
+include(libquotient.pri)
 
 SOURCES += examples/qmc-example.cpp
 

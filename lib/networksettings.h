@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
@@ -24,21 +24,20 @@
 
 Q_DECLARE_METATYPE(QNetworkProxy::ProxyType)
 
-namespace QMatrixClient {
-    class NetworkSettings: public SettingsGroup
-    {
-            Q_OBJECT
-            QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
-            QMC_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
-            QMC_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
-            Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
-        public:
-            template <typename... ArgTs>
-            explicit NetworkSettings(ArgTs... qsettingsArgs)
-                : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
-            { }
-            ~NetworkSettings() override = default;
+namespace Quotient {
+class NetworkSettings : public SettingsGroup {
+    Q_OBJECT
+    QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
+    QMC_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
+    QMC_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
+    Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
+public:
+    template <typename... ArgTs>
+    explicit NetworkSettings(ArgTs... qsettingsArgs)
+        : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
+    {}
+    ~NetworkSettings() override = default;
 
-            Q_INVOKABLE void setupApplicationProxy() const;
-    };
-}
+    Q_INVOKABLE void setupApplicationProxy() const;
+};
+} // namespace Quotient

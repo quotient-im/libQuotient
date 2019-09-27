@@ -8,72 +8,62 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetDevicesJob::Private
 {
-    public:
-        QVector<Device> devices;
+public:
+    QVector<Device> devices;
 };
 
 QUrl GetDevicesJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/devices");
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/devices");
 }
 
 static const auto GetDevicesJobName = QStringLiteral("GetDevicesJob");
 
 GetDevicesJob::GetDevicesJob()
-    : BaseJob(HttpVerb::Get, GetDevicesJobName,
-        basePath % "/devices")
+    : BaseJob(HttpVerb::Get, GetDevicesJobName, basePath % "/devices")
     , d(new Private)
-{
-}
+{}
 
 GetDevicesJob::~GetDevicesJob() = default;
 
-const QVector<Device>& GetDevicesJob::devices() const
-{
-    return d->devices;
-}
+const QVector<Device>& GetDevicesJob::devices() const { return d->devices; }
 
 BaseJob::Status GetDevicesJob::parseJson(const QJsonDocument& data)
 {
     auto json = data.object();
     fromJson(json.value("devices"_ls), d->devices);
+
     return Success;
 }
 
 class GetDeviceJob::Private
 {
-    public:
-        Device data;
+public:
+    Device data;
 };
 
 QUrl GetDeviceJob::makeRequestUrl(QUrl baseUrl, const QString& deviceId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/devices/" % deviceId);
+                                   basePath % "/devices/" % deviceId);
 }
 
 static const auto GetDeviceJobName = QStringLiteral("GetDeviceJob");
 
 GetDeviceJob::GetDeviceJob(const QString& deviceId)
-    : BaseJob(HttpVerb::Get, GetDeviceJobName,
-        basePath % "/devices/" % deviceId)
+    : BaseJob(HttpVerb::Get, GetDeviceJobName, basePath % "/devices/" % deviceId)
     , d(new Private)
-{
-}
+{}
 
 GetDeviceJob::~GetDeviceJob() = default;
 
-const Device& GetDeviceJob::data() const
-{
-    return d->data;
-}
+const Device& GetDeviceJob::data() const { return d->data; }
 
 BaseJob::Status GetDeviceJob::parseJson(const QJsonDocument& data)
 {
@@ -83,9 +73,10 @@ BaseJob::Status GetDeviceJob::parseJson(const QJsonDocument& data)
 
 static const auto UpdateDeviceJobName = QStringLiteral("UpdateDeviceJob");
 
-UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId, const QString& displayName)
+UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId,
+                                 const QString& displayName)
     : BaseJob(HttpVerb::Put, UpdateDeviceJobName,
-        basePath % "/devices/" % deviceId)
+              basePath % "/devices/" % deviceId)
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("display_name"), displayName);
@@ -94,9 +85,10 @@ UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId, const QString& display
 
 static const auto DeleteDeviceJobName = QStringLiteral("DeleteDeviceJob");
 
-DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const Omittable<AuthenticationData>& auth)
+DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId,
+                                 const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Delete, DeleteDeviceJobName,
-        basePath % "/devices/" % deviceId)
+              basePath % "/devices/" % deviceId)
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
@@ -105,13 +97,12 @@ DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const Omittable<Authen
 
 static const auto DeleteDevicesJobName = QStringLiteral("DeleteDevicesJob");
 
-DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices, const Omittable<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Post, DeleteDevicesJobName,
-        basePath % "/delete_devices")
+DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices,
+                                   const Omittable<AuthenticationData>& auth)
+    : BaseJob(HttpVerb::Post, DeleteDevicesJobName, basePath % "/delete_devices")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("devices"), devices);
     addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
     setRequestData(_data);
 }
-

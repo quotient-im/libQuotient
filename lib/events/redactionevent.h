@@ -13,29 +13,26 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #pragma once
 
 #include "roomevent.h"
 
-namespace QMatrixClient
-{
-    class RedactionEvent : public RoomEvent
+namespace Quotient {
+class RedactionEvent : public RoomEvent {
+public:
+    DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
+
+    explicit RedactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj)
+    {}
+
+    QString redactedEvent() const
     {
-        public:
-            DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
-
-            explicit RedactionEvent(const QJsonObject& obj)
-                : RoomEvent(typeId(), obj)
-            { }
-
-            QString redactedEvent() const
-            { return fullJson()["redacts"_ls].toString(); }
-            QString reason() const
-            { return contentJson()["reason"_ls].toString(); }
-    };
-    REGISTER_EVENT_TYPE(RedactionEvent)
-    DEFINE_EVENTTYPE_ALIAS(Redaction, RedactionEvent)
-} // namespace QMatrixClient
+        return fullJson()["redacts"_ls].toString();
+    }
+    QString reason() const { return contentJson()["reason"_ls].toString(); }
+};
+REGISTER_EVENT_TYPE(RedactionEvent)
+} // namespace Quotient

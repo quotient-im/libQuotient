@@ -4,10 +4,10 @@
 
 #include "request_msisdn_validation.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 void JsonObjectConverter<RequestMsisdnValidation>::dumpTo(
-        QJsonObject& jo, const RequestMsisdnValidation& pod)
+    QJsonObject& jo, const RequestMsisdnValidation& pod)
 {
     addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
     addParam<>(jo, QStringLiteral("country"), pod.country);
@@ -25,4 +25,3 @@ void JsonObjectConverter<RequestMsisdnValidation>::fillFrom(
     fromJson(jo.value("send_attempt"_ls), result.sendAttempt);
     fromJson(jo.value("next_link"_ls), result.nextLink);
 }
-

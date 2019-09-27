@@ -6,21 +6,23 @@
 
 #include "converters.h"
 
-
-namespace QMatrixClient
+namespace Quotient
 {
-    // Data structures
 
-    /// Used by clients to discover homeserver information.
-    struct HomeserverInformation
-    {
-        /// The base URL for the homeserver for client-server connections.
-        QString baseUrl;
-    };
-    template <> struct JsonObjectConverter<HomeserverInformation>
-    {
-        static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod);
-        static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod);
-    };
+// Data structures
 
-} // namespace QMatrixClient
+/// Used by clients to discover homeserver information.
+struct HomeserverInformation
+{
+    /// The base URL for the homeserver for client-server connections.
+    QString baseUrl;
+};
+
+template <>
+struct JsonObjectConverter<HomeserverInformation>
+{
+    static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod);
+    static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod);
+};
+
+} // namespace Quotient

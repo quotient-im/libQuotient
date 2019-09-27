@@ -8,30 +8,29 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 class GetProtocolsJob::Private
 {
-    public:
-        QHash<QString, ThirdPartyProtocol> data;
+public:
+    QHash<QString, ThirdPartyProtocol> data;
 };
 
 QUrl GetProtocolsJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/protocols");
+                                   basePath % "/thirdparty/protocols");
 }
 
 static const auto GetProtocolsJobName = QStringLiteral("GetProtocolsJob");
 
 GetProtocolsJob::GetProtocolsJob()
     : BaseJob(HttpVerb::Get, GetProtocolsJobName,
-        basePath % "/thirdparty/protocols")
+              basePath % "/thirdparty/protocols")
     , d(new Private)
-{
-}
+{}
 
 GetProtocolsJob::~GetProtocolsJob() = default;
 
@@ -48,24 +47,25 @@ BaseJob::Status GetProtocolsJob::parseJson(const QJsonDocument& data)
 
 class GetProtocolMetadataJob::Private
 {
-    public:
-        ThirdPartyProtocol data;
+public:
+    ThirdPartyProtocol data;
 };
 
-QUrl GetProtocolMetadataJob::makeRequestUrl(QUrl baseUrl, const QString& protocol)
+QUrl GetProtocolMetadataJob::makeRequestUrl(QUrl baseUrl,
+                                            const QString& protocol)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/protocol/" % protocol);
+    return BaseJob::makeRequestUrl(
+        std::move(baseUrl), basePath % "/thirdparty/protocol/" % protocol);
 }
 
-static const auto GetProtocolMetadataJobName = QStringLiteral("GetProtocolMetadataJob");
+static const auto GetProtocolMetadataJobName =
+    QStringLiteral("GetProtocolMetadataJob");
 
 GetProtocolMetadataJob::GetProtocolMetadataJob(const QString& protocol)
     : BaseJob(HttpVerb::Get, GetProtocolMetadataJobName,
-        basePath % "/thirdparty/protocol/" % protocol)
+              basePath % "/thirdparty/protocol/" % protocol)
     , d(new Private)
-{
-}
+{}
 
 GetProtocolMetadataJob::~GetProtocolMetadataJob() = default;
 
@@ -82,8 +82,8 @@ BaseJob::Status GetProtocolMetadataJob::parseJson(const QJsonDocument& data)
 
 class QueryLocationByProtocolJob::Private
 {
-    public:
-        QVector<ThirdPartyLocation> data;
+public:
+    QVector<ThirdPartyLocation> data;
 };
 
 BaseJob::Query queryToQueryLocationByProtocol(const QString& searchFields)
@@ -93,22 +93,25 @@ BaseJob::Query queryToQueryLocationByProtocol(const QString& searchFields)
     return _q;
 }
 
-QUrl QueryLocationByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& searchFields)
+QUrl QueryLocationByProtocolJob::makeRequestUrl(QUrl baseUrl,
+                                                const QString& protocol,
+                                                const QString& searchFields)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/location/" % protocol,
-            queryToQueryLocationByProtocol(searchFields));
+                                   basePath % "/thirdparty/location/" % protocol,
+                                   queryToQueryLocationByProtocol(searchFields));
 }
 
-static const auto QueryLocationByProtocolJobName = QStringLiteral("QueryLocationByProtocolJob");
+static const auto QueryLocationByProtocolJobName =
+    QStringLiteral("QueryLocationByProtocolJob");
 
-QueryLocationByProtocolJob::QueryLocationByProtocolJob(const QString& protocol, const QString& searchFields)
+QueryLocationByProtocolJob::QueryLocationByProtocolJob(
+    const QString& protocol, const QString& searchFields)
     : BaseJob(HttpVerb::Get, QueryLocationByProtocolJobName,
-        basePath % "/thirdparty/location/" % protocol,
-        queryToQueryLocationByProtocol(searchFields))
+              basePath % "/thirdparty/location/" % protocol,
+              queryToQueryLocationByProtocol(searchFields))
     , d(new Private)
-{
-}
+{}
 
 QueryLocationByProtocolJob::~QueryLocationByProtocolJob() = default;
 
@@ -125,8 +128,8 @@ BaseJob::Status QueryLocationByProtocolJob::parseJson(const QJsonDocument& data)
 
 class QueryUserByProtocolJob::Private
 {
-    public:
-        QVector<ThirdPartyUser> data;
+public:
+    QVector<ThirdPartyUser> data;
 };
 
 BaseJob::Query queryToQueryUserByProtocol(const QString& fields)
@@ -136,22 +139,25 @@ BaseJob::Query queryToQueryUserByProtocol(const QString& fields)
     return _q;
 }
 
-QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol, const QString& fields)
+QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl,
+                                            const QString& protocol,
+                                            const QString& fields)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/user/" % protocol,
-            queryToQueryUserByProtocol(fields));
+                                   basePath % "/thirdparty/user/" % protocol,
+                                   queryToQueryUserByProtocol(fields));
 }
 
-static const auto QueryUserByProtocolJobName = QStringLiteral("QueryUserByProtocolJob");
+static const auto QueryUserByProtocolJobName =
+    QStringLiteral("QueryUserByProtocolJob");
 
-QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol, const QString& fields)
+QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol,
+                                               const QString& fields)
     : BaseJob(HttpVerb::Get, QueryUserByProtocolJobName,
-        basePath % "/thirdparty/user/" % protocol,
-        queryToQueryUserByProtocol(fields))
+              basePath % "/thirdparty/user/" % protocol,
+              queryToQueryUserByProtocol(fields))
     , d(new Private)
-{
-}
+{}
 
 QueryUserByProtocolJob::~QueryUserByProtocolJob() = default;
 
@@ -168,8 +174,8 @@ BaseJob::Status QueryUserByProtocolJob::parseJson(const QJsonDocument& data)
 
 class QueryLocationByAliasJob::Private
 {
-    public:
-        QVector<ThirdPartyLocation> data;
+public:
+    QVector<ThirdPartyLocation> data;
 };
 
 BaseJob::Query queryToQueryLocationByAlias(const QString& alias)
@@ -182,19 +188,19 @@ BaseJob::Query queryToQueryLocationByAlias(const QString& alias)
 QUrl QueryLocationByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& alias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/location",
-            queryToQueryLocationByAlias(alias));
+                                   basePath % "/thirdparty/location",
+                                   queryToQueryLocationByAlias(alias));
 }
 
-static const auto QueryLocationByAliasJobName = QStringLiteral("QueryLocationByAliasJob");
+static const auto QueryLocationByAliasJobName =
+    QStringLiteral("QueryLocationByAliasJob");
 
 QueryLocationByAliasJob::QueryLocationByAliasJob(const QString& alias)
     : BaseJob(HttpVerb::Get, QueryLocationByAliasJobName,
-        basePath % "/thirdparty/location",
-        queryToQueryLocationByAlias(alias))
+              basePath % "/thirdparty/location",
+              queryToQueryLocationByAlias(alias))
     , d(new Private)
-{
-}
+{}
 
 QueryLocationByAliasJob::~QueryLocationByAliasJob() = default;
 
@@ -211,8 +217,8 @@ BaseJob::Status QueryLocationByAliasJob::parseJson(const QJsonDocument& data)
 
 class QueryUserByIDJob::Private
 {
-    public:
-        QVector<ThirdPartyUser> data;
+public:
+    QVector<ThirdPartyUser> data;
 };
 
 BaseJob::Query queryToQueryUserByID(const QString& userid)
@@ -225,19 +231,17 @@ BaseJob::Query queryToQueryUserByID(const QString& userid)
 QUrl QueryUserByIDJob::makeRequestUrl(QUrl baseUrl, const QString& userid)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/thirdparty/user",
-            queryToQueryUserByID(userid));
+                                   basePath % "/thirdparty/user",
+                                   queryToQueryUserByID(userid));
 }
 
 static const auto QueryUserByIDJobName = QStringLiteral("QueryUserByIDJob");
 
 QueryUserByIDJob::QueryUserByIDJob(const QString& userid)
     : BaseJob(HttpVerb::Get, QueryUserByIDJobName,
-        basePath % "/thirdparty/user",
-        queryToQueryUserByID(userid))
+              basePath % "/thirdparty/user", queryToQueryUserByID(userid))
     , d(new Private)
-{
-}
+{}
 
 QueryUserByIDJob::~QueryUserByIDJob() = default;
 
@@ -251,4 +255,3 @@ BaseJob::Status QueryUserByIDJob::parseJson(const QJsonDocument& data)
     fromJson(data, d->data);
     return Success;
 }
-

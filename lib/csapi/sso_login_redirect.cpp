@@ -8,7 +8,7 @@
 
 #include <QtCore/QStringBuilder>
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
@@ -22,17 +22,14 @@ BaseJob::Query queryToRedirectToSSO(const QString& redirectUrl)
 QUrl RedirectToSSOJob::makeRequestUrl(QUrl baseUrl, const QString& redirectUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-            basePath % "/login/sso/redirect",
-            queryToRedirectToSSO(redirectUrl));
+                                   basePath % "/login/sso/redirect",
+                                   queryToRedirectToSSO(redirectUrl));
 }
 
 static const auto RedirectToSSOJobName = QStringLiteral("RedirectToSSOJob");
 
 RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
     : BaseJob(HttpVerb::Get, RedirectToSSOJobName,
-        basePath % "/login/sso/redirect",
-        queryToRedirectToSSO(redirectUrl),
-        {}, false)
-{
-}
-
+              basePath % "/login/sso/redirect",
+              queryToRedirectToSSO(redirectUrl), {}, false)
+{}

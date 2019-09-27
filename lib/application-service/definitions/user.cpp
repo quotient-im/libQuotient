@@ -4,21 +4,20 @@
 
 #include "user.h"
 
-using namespace QMatrixClient;
+using namespace Quotient;
 
-void JsonObjectConverter<ThirdPartyUser>::dumpTo(
-        QJsonObject& jo, const ThirdPartyUser& pod)
+void JsonObjectConverter<ThirdPartyUser>::dumpTo(QJsonObject& jo,
+                                                 const ThirdPartyUser& pod)
 {
     addParam<>(jo, QStringLiteral("userid"), pod.userid);
     addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
     addParam<>(jo, QStringLiteral("fields"), pod.fields);
 }
 
-void JsonObjectConverter<ThirdPartyUser>::fillFrom(
-    const QJsonObject& jo, ThirdPartyUser& result)
+void JsonObjectConverter<ThirdPartyUser>::fillFrom(const QJsonObject& jo,
+                                                   ThirdPartyUser& result)
 {
     fromJson(jo.value("userid"_ls), result.userid);
     fromJson(jo.value("protocol"_ls), result.protocol);
     fromJson(jo.value("fields"_ls), result.fields);
 }
-

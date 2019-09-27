@@ -8,22 +8,27 @@
 
 #include <QtCore/QVariant>
 
-namespace QMatrixClient
+namespace Quotient
 {
-    // Data structures
+
+// Data structures
+
+/// Identification information for a user
+struct UserIdentifier
+{
+    /// The type of identification.  See `Identifier types`_ for supported
+    /// values and additional property descriptions.
+    QString type;
 
     /// Identification information for a user
-    struct UserIdentifier
-    {
-        /// The type of identification.  See `Identifier types`_ for supported values and additional property descriptions.
-        QString type;
-        /// Identification information for a user
-        QVariantHash additionalProperties;
-    };
-    template <> struct JsonObjectConverter<UserIdentifier>
-    {
-        static void dumpTo(QJsonObject& jo, const UserIdentifier& pod);
-        static void fillFrom(QJsonObject jo, UserIdentifier& pod);
-    };
+    QVariantHash additionalProperties;
+};
 
-} // namespace QMatrixClient
+template <>
+struct JsonObjectConverter<UserIdentifier>
+{
+    static void dumpTo(QJsonObject& jo, const UserIdentifier& pod);
+    static void fillFrom(QJsonObject jo, UserIdentifier& pod);
+};
+
+} // namespace Quotient
