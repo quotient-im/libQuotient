@@ -20,11 +20,10 @@ before_build:
 - git submodule update --init --recursive
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - cd olm
-- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
+- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO
 - cmake --build build
-- cmake --build build --target install
 - cd ..
-- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%" -DOlm_DIR="%DEPLOY_DIR%"
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%" -DOlm_DIR="./olm/build"
 
 build_script:
 - cmake --build build
