@@ -64,7 +64,7 @@ script:
 - cmake --build build --target install
 # Build qmc-example with the installed library
 - mkdir build-example && pushd build-example
-- cmake -DCMAKE_PREFIX_PATH=../install ../examples
+- cmake -DCMAKE_PREFIX_PATH=../install -DOlm_DIR=../olm/install/lib/cmake/Olm ../examples
 - cmake --build . --target all
 - popd
 # Build with qmake
