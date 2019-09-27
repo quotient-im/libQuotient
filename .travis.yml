@@ -68,7 +68,7 @@ script:
 - cmake --build . --target all
 - popd
 # Build with qmake
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += 3rdparty/libQtOlm/olm/include" "LIBS += -Lbuild/lib"
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib"
 - make all
 # Run the qmake-compiled qmc-example under valgrind
 - if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="build/lib" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
