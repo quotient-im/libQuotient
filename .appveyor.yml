@@ -20,7 +20,7 @@ before_build:
 - git submodule update --init --recursive
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - cd olm
-- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=install
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=install
 - cmake --build build
 - cmake --build build --target install
 - cd ..
