@@ -42,7 +42,7 @@ before_install:
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
-- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=../install
+- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=install
 - cmake --build build
 - cmake --build build --target install
 - popd
@@ -55,7 +55,7 @@ install:
 
 before_script:
 - mkdir build && pushd build
-- cmake $USE_NINJA -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install ..
+- cmake $USE_NINJA -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install -DOlm_DIR=../olm/install/lib/cmake/Olm ..
 - cmake --build . --target update-api
 - popd
 
