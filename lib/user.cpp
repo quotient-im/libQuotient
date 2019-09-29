@@ -111,8 +111,7 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
                 et.start();
             }
 
-            const auto& roomMap = connection->roomMap();
-            for (auto* r1 : roomMap)
+            for (auto* r1: connection->allRooms())
                 if (nameForRoom(r1) == mostUsedName)
                     otherNames.insert(mostUsedName, r1);
 
@@ -176,8 +175,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
                 nextMostUsedIt = otherAvatars.end() - 1;
             }
             std::swap(mostUsedAvatar, *nextMostUsedIt);
-            const auto& roomMap = connection->roomMap();
-            for (const auto* r1 : roomMap)
+            for (const auto* r1: connection->allRooms())
                 if (avatarUrlForRoom(r1) == nextMostUsedIt->url())
                     avatarsToRooms.insert(nextMostUsedIt->url(), r1);
 
