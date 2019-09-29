@@ -1,7 +1,7 @@
 image: Visual Studio 2017
 
 environment:
-  #DEPLOY_DIR: libqmatrixclient-%APPVEYOR_BUILD_VERSION%
+  #DEPLOY_DIR: quotient-%APPVEYOR_BUILD_VERSION%
   matrix:
   - QTDIR: C:\Qt\5.13\msvc2017_64
     VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
@@ -30,7 +30,7 @@ build_script:
 
 #after_build:
 #- cmake --build build --target install
-#- 7z a libqmatrixclient.zip "%DEPLOY_DIR%\"
+#- 7z a quotient.zip "%DEPLOY_DIR%\"
 
 # Uncomment this to connect to the AppVeyor build worker
 #on_finish:
@@ -39,4 +39,4 @@ build_script:
 test: off
 
 #artifacts:
-#- path: libqmatrixclient.zip
+#- path: quotient.zip
