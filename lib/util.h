@@ -154,23 +154,19 @@ struct function_traits : public _impl::fn_traits<void, T> {};
 // Specialisation for a function
 template <typename ReturnT, typename... ArgTs>
 struct function_traits<ReturnT(ArgTs...)> {
-    static constexpr auto is_callable = true;
     using return_type = ReturnT;
     using arg_types = std::tuple<ArgTs...>;
-    using function_type = std::function<ReturnT(ArgTs...)>;
-    static constexpr auto arg_number = std::tuple_size<arg_types>::value;
 };
 
 namespace _impl {
     template <typename AlwaysVoid, typename T>
-    struct fn_traits {
-        static constexpr auto is_callable = false;
-    };
+    struct fn_traits;
 
+    // Specialisation for function objects with (non-overloaded) operator()
+    // (this includes non-generic lambdas)
     template <typename T>
     struct fn_traits<decltype(void(&T::operator())), T>
-        : public fn_traits<void, decltype(&T::operator())> {
-    }; // A generic function object that has (non-overloaded) operator()
+        : public fn_traits<void, decltype(&T::operator())> {};
 
     // Specialisation for a member function
     template <typename ReturnT, typename ClassT, typename... ArgTs>
@@ -189,16 +185,6 @@ using fn_return_t = typename function_traits<FnT>::return_type;
 template <typename FnT, int ArgN = 0>
 using fn_arg_t =
     std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
-
-template <typename R, typename FnT>
-constexpr bool returns()
-{
-    return std::is_same<fn_return_t<FnT>, R>::value;
-}
-
-// Poor-man's is_invokable
-template <typename T>
-constexpr auto is_callable_v = function_traits<T>::is_callable;
 
 inline auto operator"" _ls(const char* s, std::size_t size)
 {
