@@ -187,8 +187,8 @@ public:
 
     Q_INVOKABLE QList<User*> users() const;
     QStringList memberNames() const;
-    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]] int
-    memberCount() const;
+    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
+    int memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(EncryptedEvent* encryptedEvent);
