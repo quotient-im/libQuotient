@@ -18,15 +18,18 @@ init:
 
 before_build:
 - git submodule update --init --recursive
-- cd 3rdparty/libQtOlm
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
-- cd ../..
-- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%"
+- cd olm
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=install
+- cmake --build build
+- cmake --build build --target install
+- cd ..
+- cmake -G "NMake Makefiles JOM" -H. -Bbuild -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="%DEPLOY_DIR%" -DOlm_DIR="olm/install/lib/cmake/Olm"
 
 build_script:
 - cmake --build build
 # qmake uses olm just built by CMake - it can't build olm on its own.
-- qmake "INCLUDEPATH += 3rdparty/libQtOlm/olm/include" "LIBS += -Lbuild" && jom
+- qmake "INCLUDEPATH += olm/install/include" "LIBS += -Lbuild" "LIBS += -Lolm/install/lib" && jom
 
 #after_build:
 #- cmake --build build --target install
