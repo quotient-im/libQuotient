@@ -27,9 +27,9 @@ Q_DECLARE_METATYPE(QNetworkProxy::ProxyType)
 namespace Quotient {
 class NetworkSettings : public SettingsGroup {
     Q_OBJECT
-    QMC_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
-    QMC_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
-    QMC_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
+    QTNT_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
+    QTNT_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)
+    QTNT_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
     Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
 public:
     template <typename... ArgTs>

@@ -187,8 +187,8 @@ public:
 
     Q_INVOKABLE QList<User*> users() const;
     QStringList memberNames() const;
-    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]] int
-    memberCount() const;
+    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
+    int memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(EncryptedEvent* encryptedEvent);
@@ -434,6 +434,24 @@ public:
 
     Q_INVOKABLE bool supportsCalls() const;
 
+    /// Get a state event with the given event type and state key
+    /*! This method returns a (potentially empty) state event corresponding
+     * to the pair of event type \p evtType and state key \p stateKey.
+     */
+    Q_INVOKABLE const StateEventBase*
+    getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
+
+    template <typename EvT>
+    const EvT* getCurrentState(const QString& stateKey = {}) const
+    {
+        const auto* evt =
+            eventCast<const EvT>(getCurrentState(EvT::matrixTypeId(), stateKey));
+        Q_ASSERT(evt);
+        Q_ASSERT(evt->matrixTypeId() == EvT::matrixTypeId()
+                 && evt->stateKey() == stateKey);
+        return evt;
+    }
+
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args) const
     {
@@ -557,7 +575,7 @@ signals:
      * Aside from all changes in the room state
      * @param changes a set of flags describing what changes occurred
      *                upon the last sync
-     * \sa StateChange
+     * \sa Changes
      */
     void changed(Changes changes);
     /**

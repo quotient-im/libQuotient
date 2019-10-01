@@ -119,7 +119,7 @@ private:
     QString groupPath;
 };
 
-#define QMC_DECLARE_SETTING(type, propname, setter)      \
+#define QTNT_DECLARE_SETTING(type, propname, setter)      \
     Q_PROPERTY(type propname READ propname WRITE setter) \
 public:                                                  \
     type propname() const;                               \
@@ -127,7 +127,7 @@ public:                                                  \
                                                          \
 private:
 
-#define QMC_DEFINE_SETTING(classname, type, propname, qsettingname,   \
+#define QTNT_DEFINE_SETTING(classname, type, propname, qsettingname,   \
                            defaultValue, setter)                      \
     type classname::propname() const                                  \
     {                                                                 \
@@ -142,9 +142,9 @@ private:
 class AccountSettings : public SettingsGroup {
     Q_OBJECT
     Q_PROPERTY(QString userId READ userId CONSTANT)
-    QMC_DECLARE_SETTING(QString, deviceId, setDeviceId)
-    QMC_DECLARE_SETTING(QString, deviceName, setDeviceName)
-    QMC_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
+    QTNT_DECLARE_SETTING(QString, deviceId, setDeviceId)
+    QTNT_DECLARE_SETTING(QString, deviceName, setDeviceName)
+    QTNT_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
     /** \deprecated \sa setAccessToken */
     Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle

@@ -12,7 +12,7 @@ public:
 
     explicit Private(const QString& localFilename)
         : targetFile(new QFile(localFilename))
-        , tempFile(new QFile(targetFile->fileName() + ".qmcdownload"))
+        , tempFile(new QFile(targetFile->fileName() + ".qtntdownload"))
     {}
 
     QScopedPointer<QFile> targetFile;

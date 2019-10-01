@@ -49,7 +49,10 @@ bool Settings::contains(const QString& key) const
 QStringList Settings::childGroups() const
 {
     auto l = QSettings::childGroups();
-    return !l.isEmpty() ? l : legacySettings.childGroups();
+    for (const auto& g: legacySettings.childGroups())
+        if (!l.contains(g))
+            l.push_back(g);
+    return l;
 }
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
@@ -88,11 +91,11 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
+QTNT_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
                    setDeviceId)
-QMC_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
+QTNT_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
                    setDeviceName)
-QMC_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
+QTNT_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
 static const auto HomeserverKey = QStringLiteral("homeserver");

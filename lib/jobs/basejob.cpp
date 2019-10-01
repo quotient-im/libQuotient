@@ -24,6 +24,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
+#include <QtCore/QStringBuilder>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -105,11 +106,17 @@ public:
                                       errorStrategy.size() - 1)];
     }
 
-    QString urlForLog() const
+    QString dumpRequest() const
     {
-        return reply
-                   ? reply->url().toString(QUrl::RemoveQuery)
-                   : makeRequestUrl(connection->baseUrl(), apiEndpoint).toString();
+        // Thanks to C++17, std::array's type and bounds are deduced
+        static const auto verbs =
+            std::array { QStringLiteral("GET"), QStringLiteral("PUT"),
+                         QStringLiteral("POST"), QStringLiteral("DELETE") };
+        const auto verbWord = verbs.at(size_t(verb));
+        return verbWord % ' '
+               % (reply ? reply->url().toString(QUrl::RemoveQuery)
+                        : makeRequestUrl(connection->baseUrl(), apiEndpoint)
+                              .toString());
     }
 };
 
@@ -260,7 +267,7 @@ void BaseJob::sendRequest()
     if (status().code == Abandoned)
         return;
     Q_ASSERT(d->connection && status().code == Pending);
-    qCDebug(d->logCat) << "Making request to" << d->urlForLog();
+    qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
     emit aboutToSendRequest();
     d->sendRequest();
     Q_ASSERT(d->reply);
@@ -273,12 +280,12 @@ void BaseJob::sendRequest()
         connect(d->reply.data(), &QNetworkReply::downloadProgress, this,
                 &BaseJob::downloadProgress);
         d->timer.start(getCurrentTimeout());
-        qCInfo(d->logCat).noquote() << "Request sent to" << d->urlForLog();
+        qCInfo(d->logCat).noquote() << "Sent" << d->dumpRequest();
         onSentRequest(d->reply.data());
         emit sentRequest();
     } else
         qCWarning(d->logCat).noquote()
-            << "Request could not start:" << d->urlForLog();
+            << "Request could not start:" << d->dumpRequest();
 }
 
 void BaseJob::checkReply() { setStatus(doCheckReply(d->reply.data())); }
@@ -378,7 +385,8 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     const auto httpCodeHeader =
         reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (!httpCodeHeader.isValid()) {
-        qCWarning(d->logCat) << "No valid HTTP headers from" << d->urlForLog();
+        qCWarning(d->logCat).noquote()
+            << "No valid HTTP headers from" << d->dumpRequest();
         return { NetworkError, reply->errorString() };
     }
 
@@ -386,7 +394,7 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     if (httpCode / 100 == 2) // 2xx
     {
         if (reply->isFinished())
-            qCInfo(d->logCat) << httpCode << "<-" << d->urlForLog();
+            qCInfo(d->logCat).noquote() << httpCode << "<-" << d->dumpRequest();
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,
@@ -394,7 +402,7 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
         return NoError;
     }
     if (reply->isFinished())
-        qCWarning(d->logCat) << httpCode << "<-" << d->urlForLog();
+        qCWarning(d->logCat).noquote() << httpCode << "<-" << d->dumpRequest();
 
     auto message = reply->errorString();
     if (message.isEmpty())

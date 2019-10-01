@@ -202,25 +202,31 @@ public:
 
     void getPreviousContent(int limit = 10);
 
-    template <typename EventT>
-    const EventT* getCurrentState(const QString& stateKey = {}) const
+    const StateEventBase* getCurrentState(const StateEventKey& evtKey) const
     {
-        const StateEventKey evtKey { EventT::matrixTypeId(), stateKey };
         const auto* evt = currentState.value(evtKey, nullptr);
         if (!evt) {
             if (stubbedState.find(evtKey) == stubbedState.end()) {
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey,
-                                     loadStateEvent(EventT::matrixTypeId(), {},
-                                                    stateKey));
+                stubbedState.emplace(evtKey, loadStateEvent(evtKey.first, {},
+                                                            evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
             }
             evt = stubbedState[evtKey].get();
             Q_ASSERT(evt);
         }
+        Q_ASSERT(evt->matrixType() == evtKey.first
+                 && evt->stateKey() == evtKey.second);
+        return evt;
+    }
+
+    template <typename EventT>
+    const EventT* getCurrentState(const QString& stateKey = {}) const
+    {
+        const auto* evt = getCurrentState({ EventT::matrixTypeId(), stateKey });
         Q_ASSERT(evt->type() == EventT::typeId()
                  && evt->matrixType() == EventT::matrixTypeId());
         return static_cast<const EventT*>(evt);
@@ -327,7 +333,7 @@ public:
      * content passed in \p newMessage.
      * \return true if the event has been found and replaced; false otherwise
      */
-    bool processReplacement(const RoomMessageEvent& newMessage);
+    bool processReplacement(const RoomMessageEvent& newEvent);
 
     void setTags(TagsMap newTags);
 
@@ -879,10 +885,10 @@ std::pair<bool, QString> validatedTag(QString name)
     if (name.contains('.'))
         return { false, name };
 
-    qWarning(MAIN) << "The tag" << name
+    qCWarning(MAIN) << "The tag" << name
                    << "doesn't follow the CS API conventions";
     name.prepend("u.");
-    qWarning(MAIN) << "Using " << name << "instead";
+    qCWarning(MAIN) << "Using " << name << "instead";
 
     return { true, name };
 }
@@ -916,7 +922,7 @@ void Room::removeTag(const QString& name)
     } else if (!name.startsWith("u."))
         removeTag("u." + name);
     else
-        qWarning(MAIN) << "Tag" << name << "on room" << objectName()
+        qCWarning(MAIN) << "Tag" << name << "on room" << objectName()
                        << "not found, nothing to remove";
 }
 
@@ -971,7 +977,7 @@ Room::Private::getEventWithFile(const QString& eventId) const
         if (event->hasFileContent())
             return event;
     }
-    qWarning() << "No files to download in event" << eventId;
+    qCWarning(MAIN) << "No files to download in event" << eventId;
     return nullptr;
 }
 
@@ -1014,7 +1020,7 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
                                                      thumbnail->url,
                                                      thumbnail->imageSize);
         }
-    qDebug() << "Event" << eventId << "has no thumbnail";
+    qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
 }
 
@@ -1105,6 +1111,12 @@ bool Room::usesEncryption() const
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
 }
 
+const StateEventBase* Room::getCurrentState(const QString& evtType,
+                                            const QString& stateKey) const
+{
+    return d->getCurrentState({ evtType, stateKey });
+}
+
 RoomEventPtr Room::decryptMessage(EncryptedEvent* encryptedEvent)
 {
     if (encryptedEvent->algorithm() == OlmV1Curve25519AesSha2AlgoKey) {
@@ -1149,18 +1161,18 @@ QString Room::decryptMessage(QJsonObject personalCipherObject,
         try {
             decrypted = session->decrypt(&preKeyMessage);
         } catch (std::runtime_error& e) {
-            qWarning(EVENTS) << "Decrypt failed:" << e.what();
+            qCWarning(EVENTS) << "Decrypt failed:" << e.what();
         }
     }
     else if (type == 1) {
         Message message { body };
         if (!session->matches(&preKeyMessage, senderKey)) {
-            qWarning(EVENTS) << "Invalid encrypted message";
+            qCWarning(EVENTS) << "Invalid encrypted message";
         }
         try {
             decrypted = session->decrypt(&message);
         } catch (std::runtime_error& e) {
-            qWarning(EVENTS) << "Decrypt failed:" << e.what();
+            qCWarning(EVENTS) << "Decrypt failed:" << e.what();
         }
     }
 
@@ -1443,11 +1455,12 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
-                qWarning(EVENTS) << "Pending event for transaction" << txnId
+                qCWarning(EVENTS) << "Pending event for transaction" << txnId
                                  << "not found - got synced so soon?";
                 return;
             }
             it->setDeparted();
+            qCDebug(EVENTS) << "Event txn" << txnId << "has departed";
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
         Room::connect(call, &BaseJob::failure, q,
@@ -1457,7 +1470,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             emit q->messageSent(txnId, call->eventId());
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
-                qDebug(EVENTS) << "Pending event for transaction" << txnId
+                qCDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
                 return;
             }
@@ -1489,7 +1502,7 @@ QString Room::retryMessage(const QString& txnId)
 {
     const auto it = findPendingEvent(txnId);
     Q_ASSERT(it != d->unsyncedEvents.end());
-    qDebug(EVENTS) << "Retrying transaction" << txnId;
+    qCDebug(EVENTS) << "Retrying transaction" << txnId;
     const auto& transferIt = d->fileTransfers.find(txnId);
     if (transferIt != d->fileTransfers.end()) {
         Q_ASSERT(transferIt->isUpload);
@@ -1527,7 +1540,7 @@ void Room::discardMessage(const QString& txnId)
                                return evt->transactionId() == txnId;
                            });
     Q_ASSERT(it != d->unsyncedEvents.end());
-    qDebug(EVENTS) << "Discarding transaction" << txnId;
+    qCDebug(EVENTS) << "Discarding transaction" << txnId;
     const auto& transferIt = d->fileTransfers.find(txnId);
     if (transferIt != d->fileTransfers.end()) {
         Q_ASSERT(transferIt->isUpload);
@@ -2192,7 +2205,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             emit q->pendingEventChanged(pendingEvtIdx);
         }
         emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
-        qDebug(MESSAGES) << "Merging pending event from transaction"
+        qCDebug(MESSAGES) << "Merging pending event from transaction"
                          << nextPendingEvt->transactionId() << "into"
                          << nextPendingEvt->id();
         auto transfer = fileTransfers.take(nextPendingEvt->transactionId());
@@ -2323,13 +2336,13 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
             // clang-format on
             if (ae.aliases().isEmpty()) {
-                qDebug(STATE).noquote()
+                qCDebug(STATE).noquote()
                     << ae.stateKey() << "no more has aliases for room"
                     << objectName();
                 d->aliasServers.remove(ae.stateKey());
             } else {
                 d->aliasServers.insert(ae.stateKey());
-                qDebug(STATE).nospace().noquote()
+                qCDebug(STATE).nospace().noquote()
                     << "New server with aliases for room " << objectName()
                     << ": " << ae.stateKey();
             }
@@ -2665,7 +2678,7 @@ void Room::Private::updateDisplayname()
     if (swappedName != displayname) {
         emit q->displaynameAboutToChange(q);
         swap(displayname, swappedName);
-        qDebug(MAIN) << q->objectName() << "has changed display name from"
+        qCDebug(MAIN) << q->objectName() << "has changed display name from"
                      << swappedName << "to" << displayname;
         emit q->displaynameChanged(q, swappedName);
     }
