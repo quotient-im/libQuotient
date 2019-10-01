@@ -202,25 +202,31 @@ public:
 
     void getPreviousContent(int limit = 10);
 
-    template <typename EventT>
-    const EventT* getCurrentState(const QString& stateKey = {}) const
+    const StateEventBase* getCurrentState(const StateEventKey& evtKey) const
     {
-        const StateEventKey evtKey { EventT::matrixTypeId(), stateKey };
         const auto* evt = currentState.value(evtKey, nullptr);
         if (!evt) {
             if (stubbedState.find(evtKey) == stubbedState.end()) {
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey,
-                                     loadStateEvent(EventT::matrixTypeId(), {},
-                                                    stateKey));
+                stubbedState.emplace(evtKey, loadStateEvent(evtKey.first, {},
+                                                            evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
             }
             evt = stubbedState[evtKey].get();
             Q_ASSERT(evt);
         }
+        Q_ASSERT(evt->matrixType() == evtKey.first
+                 && evt->stateKey() == evtKey.second);
+        return evt;
+    }
+
+    template <typename EventT>
+    const EventT* getCurrentState(const QString& stateKey = {}) const
+    {
+        const auto* evt = getCurrentState({ EventT::matrixTypeId(), stateKey });
         Q_ASSERT(evt->type() == EventT::typeId()
                  && evt->matrixType() == EventT::matrixTypeId());
         return static_cast<const EventT*>(evt);
@@ -1103,6 +1109,12 @@ int Room::timelineSize() const { return int(d->timeline.size()); }
 bool Room::usesEncryption() const
 {
     return !d->getCurrentState<EncryptionEvent>()->algorithm().isEmpty();
+}
+
+const StateEventBase* Room::getCurrentState(const QString& evtType,
+                                            const QString& stateKey) const
+{
+    return d->getCurrentState({ evtType, stateKey });
 }
 
 RoomEventPtr Room::decryptMessage(EncryptedEvent* encryptedEvent)
