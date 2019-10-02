@@ -28,7 +28,7 @@ in SECURITY.md.
 
 ## Getting and using libQuotient
 Depending on your platform, the library can come as a separate package.
-Recent releases of Debian and OpenSuSE, e.g., already have the package
+Recent releases of Debian and openSUSE, e.g., already have the package
 (under the old name). If your Linux repo doesn't provide binary package
 (either libqmatrixclient - older - or libquotient - newer), or you're
 on Windows or macOS, your best bet is to build the library from the source
@@ -37,7 +37,7 @@ and bundle it with your application.
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
   is known to work; mobile Windows and iOS might work too but never tried)
-  - Recent enough Linux examples: Debian Buster; Fedora 28; OpenSUSE Leap 15;
+  - Recent enough Linux examples: Debian Buster; Fedora 28; openSUSE Leap 15;
     Ubuntu Bionic Beaver.
 - Qt 5 (either Open Source or Commercial), 5.9 or higher;
   5.12 is recommended, especially if you use qmake
