@@ -106,13 +106,13 @@ public:
     int maxRetries = int(errorStrategy.size());
     int retriesTaken = 0;
 
-    const JobTimeoutConfig& getCurrentTimeoutConfig() const
+    [[nodiscard]] const JobTimeoutConfig& getCurrentTimeoutConfig() const
     {
         return errorStrategy[std::min(size_t(retriesTaken),
                                       errorStrategy.size() - 1)];
     }
 
-    QString dumpRequest() const
+    [[nodiscard]] QString dumpRequest() const
     {
         // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
         static const auto verbs =
