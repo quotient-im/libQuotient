@@ -413,7 +413,7 @@ QStringList Room::localAliases() const
 {
     return d
         ->getCurrentState<RoomAliasesEvent>(
-            connection()->homeserver().authority())
+            connection()->domain())
         ->aliases();
 }
 
