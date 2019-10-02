@@ -149,19 +149,21 @@ namespace _impl {
  * https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
  */
 template <typename T>
-struct function_traits : public _impl::fn_traits<void, T> {};
+struct function_traits
+    : public _impl::fn_traits<void, std::remove_reference_t<T>> {};
 
 // Specialisation for a function
 template <typename ReturnT, typename... ArgTs>
 struct function_traits<ReturnT(ArgTs...)> {
     using return_type = ReturnT;
     using arg_types = std::tuple<ArgTs...>;
+    // Doesn't (and there's no plan to make it) work for "classic"
+    // member functions (i.e. outside of functors).
+    // See also the comment for wrap_in_function() below
+    using function_type = std::function<ReturnT(ArgTs...)>;
 };
 
 namespace _impl {
-    template <typename AlwaysVoid, typename T>
-    struct fn_traits;
-
     // Specialisation for function objects with (non-overloaded) operator()
     // (this includes non-generic lambdas)
     template <typename T>
@@ -185,6 +187,14 @@ using fn_return_t = typename function_traits<FnT>::return_type;
 template <typename FnT, int ArgN = 0>
 using fn_arg_t =
     std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
+
+// TODO: get rid of it as soon as Apple Clang gets proper deduction guides
+// for std::function<>
+template <typename FnT>
+inline auto wrap_in_function(FnT&& f)
+{
+    return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
+}
 
 inline auto operator"" _ls(const char* s, std::size_t size)
 {

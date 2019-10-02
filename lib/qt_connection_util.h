@@ -104,7 +104,7 @@ inline auto connectUntil(SenderT* sender, SignalT signal, ContextT* context,
                          const FunctorT& slot,
                          Qt::ConnectionType connType = Qt::AutoConnection)
 {
-    return _impl::connectUntil(sender, signal, context, std::function(slot),
+    return _impl::connectUntil(sender, signal, context, wrap_in_function(slot),
                                connType);
 }
 
@@ -115,7 +115,7 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
     return _impl::connectSingleShot(
-        sender, signal, context, std::function(slot), connType);
+        sender, signal, context, wrap_in_function(slot), connType);
 }
 
 // Specialisation for usual Qt slots passed as pointers-to-members.
@@ -128,7 +128,7 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
 {
     // TODO: when switching to C++20, use std::bind_front() instead
     return _impl::connectSingleShot(sender, signal, receiver,
-                                    std::function(
+                                    wrap_in_function(
                                         [receiver, slot](const ArgTs&... args) {
                                             (receiver->*slot)(args...);
                                         }),
