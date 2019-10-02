@@ -142,6 +142,150 @@ The code should strive to be DRY (don't repeat yourself), clear, and obviously
 correct (i.e. buildable). Some technical debt is inevitable,
 just don't bankrupt us with it. Refactoring is welcome.
 
+### Code style and formatting
+
+As of Quotient 0.6, the C++ standard for newly written code is C++17, with a few
+restrictions, notably:
+* standard library's _deduction guides_ cannot be used to lighten up syntax
+  in template instantiation, i.e. you have to still write
+  `std::array<int, 2> { 1, 2 }` instead of `std::array { 1, 2 }` or use helpers
+  like `std::make_pair` - once we move over to the later Apple toolchain, this
+  will be no more necessary.
+* enumerators and slots cannot have `[[attributes]]` because moc of Qt 5.9
+  chokes on them. This will be lifted when we move on to Qt 5.12 for the oldest
+  supported version.
+* things from `std::filesystem` cannot be used yet until we push the oldest
+  required g++/libc to version 8.
+
+The code style is defined by `.clang-format`, and in general, all C++ files
+should follow it. Files with minor deviations from the defined style are still
+accepted in PRs; however, unless explicitly marked with `// clang-format off`
+and `// clang-format on`, these deviations will be rectified any commit soon
+after.
+
+Additional considerations:
+* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
+  spot the code abusing these - thank you for fixing it.
+* Prefer keeping lines within 80 characters. Slight overflows are ok only
+  if that helps readability.
+* Please don't make "hypocritical structs" with protected or private members.
+  In general, `struct` is used to denote a plain-old-data structure, rather
+  than data+behaviour. If you need access control or are adding yet another
+  non-trivial (construction, assignment) member function to a `struct`,
+  just make it a `class` instead.
+* For newly created classes, keep to
+  [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) -
+  make sure to read about the rule of zero if you haven't before, it's not
+  what you might think it is.
+* Qt containers are generally preferred to STL containers; however, there are
+  notable exceptions, and libQuotient already uses them:
+  * `std::array` and `std::deque` have no direct counterparts in Qt.
+  * Because of COW semantics, Qt containers cannot hold uncopyable classes.
+    Classes without a default constructor are a problem too. Examples of that
+    are `SyncRoomData` and `EventsArray<>`. Use STL containers for those but
+    see the next point and also consider if you can supply a reasonable
+    copy/default constructor.
+  * STL containers can be freely used in code internal to a translation unit
+    (i.e., in a certain .cpp file) _as long as that is not exposed in the API_.
+    It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up
+    code where you don't need COW, or when dealing with uncopyable
+    data structures (see the previous point). However, exposing STL containers
+    in the API is not encouraged (except where absolutely necessary, e.g. we use
+    `std::deque` for a timeline). Exposing STL containers or iterators in API
+    intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
+    and therefore unlikely to be accepted into `master`.
+* Although `std::unique_ptr<>` gives slightly stronger guarantees,
+  `QScopedPointer<>` is better supported by Qt Creator's debugger UI and
+  therefore is preferred.
+* Use `QVector` instead of `QList` where possible - see the
+  [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
+  for details.
+
+### API conventions
+
+Calls, data structures and other symbols not intended for use by clients
+should _not_ be exposed in (public) .h files, unless they are necessary
+to declare other public symbols. In particular, this involves private members
+(functions, typedefs, or variables) in public classes; use pimpl idiom to hide
+implementation details as much as possible. `_impl` namespace is reserved for
+definitions that should not be used by clients and are not covered by
+API guarantees.
+
+Note: As of now, all header files of libQuotient are considered public; this may change eventually.
+
+### Comments
+
+Whenever you add a new call to the library API that you expect to be used
+from client code, you must supply a proper doc-comment along with the call.
+Doxygen style is preferred; but JavaDoc is acceptable too. Some parts are
+not documented at all; adding doc-comments to them is highly encouraged.
+
+Doc-comments for summaries should be separate from those details. Either of
+the two following ways is fine, with considerable preference on the first one:
+1. Use `///` for the summary comment and `/*! ... */` for details.
+2. Use `\brief` (or `@brief`) for the summary, and follow with details after
+   an empty doc-comment line. You can use either of the delimiters in that case.
+
+In the code, the advice for commenting is as follows:
+* Don't restate what's happening in the code unless it's not really obvious.
+  We assume the readers to have at least some command of C++ and Qt. If your
+  code is not obvious, consider rewriting it for clarity.
+* Both C++ and Qt still come with their arcane features and dark corners,
+  and we don't want to limit anybody who'd feels they have a case for
+  variable templates, raw literals, or use `qAsConst` to avoid container
+  detachment. Use your experience to figure what might be less well-known to
+  readers and comment such cases (references to web pages, Quotient wiki etc.
+  are very much ok).
+* Make sure to document not so much "what" but more "why" certain code is done
+  the way it is. In the worst case, the logic of the code can be
+  reverse-engineered; you rarely can reverse-engineer the line of reasoning and
+  the pitfalls avoided.
+
+### Automated tests
+
+There's no testing framework as of now; either Catch or Qt Test or both will
+be used eventually.
+
+The `tests/` directory contains a command-line program, quotest, used for
+automated functional testing. Any significant addition to the library API
+should be accompanied by a respective test in quotest. To add a test you should:
+- Add a new test to the `TestSuite` class (technically, each test is a public
+  slot and there are two macros, `TEST_DECL()` and `TEST_IMPL()`, that conceal
+  passing the testing context to the test method).
+- Add test logic to the slot, using `FINISH_TEST` macro to assert the test
+  outcome and complete the test (`FINISH_TEST` contains `return`). ALL
+  (even failing) branches should conclude with a `FINISH_TEST` invocation,
+  unless you intend to have a "DID NOT FINISH" message in the logs
+  under certain conditions.
+
+The `TestManager` class sets up some basic test fixture to help you with testing;
+notably, the tests can rely on having an initialised `Room` object for the test
+room in `targetRoom` member variable. PRs to introduce a proper testing framework
+are very welcome (make sure to migrate tests from quotest though). Note that
+tests can go async, which is the biggest hurdle for Qt Test adoption.
+
+### Security, privacy, and performance
+
+Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++).
+
+`char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead. Where you see fit (usually with data structures), try to use smart pointers, especially `std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing with `QObject`s, use the parent-child ownership semantics exercised by Qt (this is preferred to using smart pointers). Shared pointers are not used in the code so far; but if you find a particular use case where the strict semantic of unique pointers doesn't help and a shared pointer is necessary, feel free to step up with the working code and it will be considered for inclusion.
+
+Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
+
+Protect private information, in particular passwords and email addresses. Absolutely _don't_ spill around this information in logs - use `access_token` and similar opaque ids instead, and only display those in UI where needed. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking. Matrix protocols evolve towards decoupling the personally identifiable information from user activity entirely - follow this trend.
+
+We want the software to have decent performance for typical users. At the same time we keep libQuotient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. When you don't see a way to reduce algorithmic complexity, embed occasional `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
+
+Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
+
+Speaking of profiling logs (see README.md on how to turn them on) - in order
+to reduce small timespan logging spam, there's a default limit of at least
+200 microseconds to log most operations with the PROFILER
+(aka quotient.profile.debug) logging category. You can override this
+limit by passing the new value (in microseconds) in PROFILER_LOG_USECS to
+the compiler. In the future, this parameter will be made changeable at runtime
+_if_ needed.
+
 ### Generated C++ code for CS API
 The code in lib/csapi, lib/identity and lib/application-service, although
 it resides in Git, is actually generated from (a soft fork of) the official
@@ -215,129 +359,6 @@ The types map in `gtad.yaml` is the central switchboard when it comes to matchin
 
 Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
 
-### Comments
-
-Whenever you add a new call to the library API that you expect to be used
-from client code, you must supply a proper doc-comment along with the call.
-Doxygen style is preferred; but JavaDoc is acceptable too. Some parts are
-not documented at all; adding doc-comments to them is highly encouraged.
-
-Doc-comments for summaries should be separate from those details. Either of
-the two following ways is fine, with considerable preference on the first one:
-1. Use `///` for the summary comment and `/*! ... */` for details.
-2. Use `\brief` (or `@brief`) for the summary, and follow with details after
-   an empty doc-comment line. You can use either of the delimiters in that case.
-
-In the code, the advice for commenting is as follows:
-* Don't restate what's happening in the code unless it's not really obvious.
-  We assume the readers to have at least some command of C++ and Qt. If your
-  code is not obvious, consider rewriting it for clarity.
-* Both C++ and Qt still come with their arcane features and dark corners,
-  and we don't want to limit anybody who'd feels they have a case for
-  variable templates, raw literals, or use `qAsConst` to avoid container
-  detachment. Use your experience to figure what might be less well-known to
-  readers and comment such cases (references to web pages, Quotient wiki etc.
-  are very much ok).
-* Make sure to document not so much "what" but more "why" certain code is done
-  the way it is. In the worst case, the logic of the code can be
-  reverse-engineered; you rarely can reverse-engineer the line of reasoning and
-  the pitfalls avoided.
-
-### API conventions
-
-Calls, data structures and other symbols not intended for use by clients
-should _not_ be exposed in (public) .h files, unless they are necessary
-to declare other public symbols. In particular, this involves private members
-(functions, typedefs, or variables) in public classes; use pimpl idiom to hide
-implementation details as much as possible. `_impl` namespace is reserved for
-definitions that should not be used by clients and are not covered by
-API guarantees.
-
-Note: As of now, all header files of libQuotient are considered public; this may change eventually.
-
-### Code formatting
-
-The code style is defined by `.clang-format`, and in general, all C++ files
-should follow it. Files with minor deviations from the defined style are still
-accepted in PRs; however, unless explicitly marked with `// clang-format off`
-and `// clang-format on`, these deviations will be rectified any commit soon
-after.
-
-Additional considerations:
-* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
-  spot the code abusing these - thank you for fixing it.
-* Prefer keeping lines within 80 characters. Slight overflows are ok only
-  if that helps readability.
-* Please don't make "hypocritical structs" with protected or private members.
-  In general, `struct` is used to denote a plain-old-data structure, rather
-  than data+behaviour. If you need access control or are adding yet another
-  non-trivial (construction, assignment) member function to a `struct`,
-  just make it a `class` instead.
-* For newly created classes, keep to
-  [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) -
-  make sure to read about the rule of zero if you haven't before, it's not
-  what you might think it is.
-* Qt containers are generally preferred to STL containers; however, there are
-  notable exceptions, and libQuotient already uses them:
-  * `std::array` and `std::deque` have no direct counterparts in Qt.
-  * Because of COW semantics, Qt containers cannot hold uncopyable classes.
-    Classes without a default constructor are a problem too. Examples of that
-    are `SyncRoomData` and `EventsArray<>`. Use STL containers for those but
-    see the next point and also consider if you can supply a reasonable
-    copy/default constructor.
-  * STL containers can be freely used in code internal to a translation unit
-    (i.e., in a certain .cpp file) _as long as that is not exposed in the API_.
-    It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up
-    code where you don't need COW, or when dealing with uncopyable
-    data structures (see the previous point). However, exposing STL containers
-    in the API is not encouraged (except where absolutely necessary, e.g. we use
-    `std::deque` for a timeline). Exposing STL containers or iterators in API
-    intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
-    and therefore unlikely to be accepted into `master`.
-* Although `std::unique_ptr<>` gives slightly stronger guarantees,
-  `QScopedPointer<>` is better supported by Qt Creator's debugger UI and
-  therefore is preferred.
-* Use `QVector` instead of `QList` where possible - see the
-  [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
-  for details.
-
-### Automated tests
-
-There's no testing framework as of now; either Catch or Qt Test or both will
-be used eventually.
-
-As a stopgap measure, qmc-example is used for automated functional testing.
-Therefore, any significant addition to the library API should be accompanied
-by a respective test in qmc-example. To add a test you should:
-- Add a new private slot to the `QMCTest` class.
-- Add to the beginning of the slot the line `running.push_back("Test name");`.
-- Add test logic to the slot, using `QMC_CHECK` macro to assert the test outcome. ALL (even failing) branches should conclude with a QMC_CHECK invocation, unless you intend to have a "DID NOT FINISH" message in the logs under certain conditions.
-- Call the slot from `QMCTest::startTests()`.
-
-`QMCTest` sets up some basic test fixture to help you with testing; notably by the moment `startTests()` is invoked you can rely on having a working connection in `c` member variable and a test room in `targetRoom` member variable. PRs to introduce a proper testing framework are very welcome (make sure to migrate tests from qmc-example though); shifting qmc-example to use Qt Test seems to be a particularly low-hanging fruit.
-
-### Security, privacy, and performance
-
-Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++).
-
-`char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead. Where you see fit (usually with data structures), try to use smart pointers, especially `std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing with `QObject`s, use the parent-child ownership semantics exercised by Qt (this is preferred to using smart pointers). Shared pointers are not used in the code so far; but if you find a particular use case where the strict semantic of unique pointers doesn't help and a shared pointer is necessary, feel free to step up with the working code and it will be considered for inclusion.
-
-Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
-
-Protect private information, in particular passwords and email addresses. Absolutely _don't_ spill around this information in logs - use `access_token` and similar opaque ids instead, and only display those in UI where needed. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking. Matrix protocols evolve towards decoupling the personally identifiable information from user activity entirely - follow this trend.
-
-We want the software to have decent performance for typical users. At the same time we keep libQuotient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. When you don't see a way to reduce algorithmic complexity, embed occasional `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
-
-Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
-
-Speaking of profiling logs (see README.md on how to turn them on) - in order
-to reduce small timespan logging spam, there's a default limit of at least
-200 microseconds to log most operations with the PROFILER
-(aka quotient.profile.debug) logging category. You can override this
-limit by passing the new value (in microseconds) in PROFILER_LOG_USECS to
-the compiler. In the future, this parameter will be made changeable at runtime
-_if_ needed.
-
 ## How to check proposed changes before submitting them
 
 Checking the code on at least one configuration is essential; if you only have
@@ -350,8 +371,7 @@ The following warnings configuration is applied with GCC and Clang when using CM
 `-W -Wall -Wextra -pedantic -Werror=return-type -Wno-unused-parameter -Wno-gnu-zero-variadic-macro-arguments`
 (the last one is to mute a warning triggered by Qt code for debug logging).
 We don't turn most of the warnings to errors but please treat them as such.
-In Qt Creator, the following line can be used with the Clang code model
-(before Qt Creator 4.7 you should explicitly enable the Clang code model plugin):
+If you use Qt Creator, the following line can be used with the Clang code model:
 `-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma`.
 
 ### Continuous Integration

@@ -45,7 +45,7 @@ and bundle it with your application.
   - CMake 3.10 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
-- A C++ toolchain with C++17 support:
+- A C++ toolchain with _reasonably complete_ C++17 support:
   - GCC 7 (Windows, Linux, macOS), Clang 6 (Linux), Apple Clang 10 (macOS)
     and Visual Studio 2017 (Windows) are the oldest officially supported.
 - Any build system that works with CMake and/or qmake should be fine:
