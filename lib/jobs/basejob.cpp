@@ -44,6 +44,12 @@ struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     }
 };
 
+template <typename... Ts>
+constexpr auto make_array(Ts&&... items)
+{
+    return std::array<std::common_type_t<Ts...>, sizeof...(Ts)>({items...});
+}
+
 class BaseJob::Private {
 public:
     struct JobTimeoutConfig {
@@ -108,10 +114,10 @@ public:
 
     QString dumpRequest() const
     {
-        // Thanks to C++17, std::array's type and bounds are deduced
+        // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
         static const auto verbs =
-            std::array { QStringLiteral("GET"), QStringLiteral("PUT"),
-                         QStringLiteral("POST"), QStringLiteral("DELETE") };
+            make_array(QStringLiteral("GET"), QStringLiteral("PUT"),
+                       QStringLiteral("POST"), QStringLiteral("DELETE"));
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % ' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
