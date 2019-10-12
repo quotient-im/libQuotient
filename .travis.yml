@@ -47,16 +47,8 @@ matrix:
 
 before_install:
 - eval "${ENV_EVAL}"
-#- export DESTDIR=$TRAVIS_BUILD_DIR/install
-#- export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} -DCMAKE_PREFIX_PATH=${DESTDIR}/install"
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CMAKE_ARGS="$CMAKE_ARGS -GNinja"; fi
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
-
-# RPM spec-style: swallow a command with default parameters into a variable
-# and add/override parameters further in the code if/as necessary
-#- export _CMAKE_CONFIG="cmake $CMAKE_ARGS . -Bbuild"
-#- export _CMAKE_BUILD="cmake --build build"
-#- export _CMAKE_BUILD_INSTALL="$_CMAKE_BUILD --target install"
 
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
@@ -72,16 +64,16 @@ install:
 - popd
 
 before_script:
-- $_CMAKE_CONFIG -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad"
+- $_CMAKE_CONFIG -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build
 - $_CMAKE_BUILD --target update-api
 
 script:
 - $_CMAKE_BUILD_INSTALL
 # Build qmc-example with the installed library
-- cmake $CMAKE_ARGS examples -Bbuild-example
+- cmake $CMAKE_ARGS examples -Bbuild-example -DOlm_DIR=olm/build
 - cmake --build build-example --target all
 # Build with qmake
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += $DESTDIR/include" "LIBS += -Lbuild/lib" "LIBS += -L$DESTDIR/lib"
+- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
 - make all
 # Run the qmake-compiled qmc-example under valgrind
 - if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="build/lib" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
