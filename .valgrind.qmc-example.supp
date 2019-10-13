@@ -9,50 +9,11 @@
 }
 
 {
-   sendPostedEvents1
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
-   fun:_ZN15QtSharedPointer20ExternalRefCountData9getAndRefEPK7QObject
-   obj:/opt/qt56/lib/libQt5Network.so.*
-}
-
-{
-   sendPostedEvents3
-   Memcheck:Leak
-   ...
-   obj:/opt/qt56/lib/libQt5Network.so.*
-   fun:_ZN7QObject5eventEP6QEvent
-   fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
-   fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
-   fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
-   obj:/opt/qt56/lib/libQt5Core.so.*
-}
-
-{
    QAuthenticator
    Memcheck:Leak
    match-leak-kinds: possible
    ...
    fun:_ZN14QAuthenticator6detachEv
-}
-
-{
-   QObject_connect
-   Memcheck:Leak
-   match-leak-kinds: possible
-   ...
-   obj:/opt/qt56/lib/libQt5Core.so.*
-   fun:_ZN7QObject7connectEPKS_PKcS1_S3_N2Qt14ConnectionTypeE
-}
-
-{
-   QNetworkProxy
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
-   fun:_ZN13QNetworkProxyC1ENS_9ProxyTypeERK7QStringtS3_S3_
-   obj:/opt/qt56/lib/libQt5Network.so.*
 }
 
 {
@@ -74,46 +35,6 @@
 }
 
 {
-   sendPostedEvents6
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
-   ...
-   obj:/opt/qt56/lib/libQt5Network.so.*
-   fun:_ZN7QObject5eventEP6QEvent
-   fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
-   fun:_ZN16QCoreApplication15notifyInternal2EP7QObjectP6QEvent
-   fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
-}
-
-{
-    QMetaObject_activate_in_QtNetwork
-    Memcheck:Leak
-    match-leak-kinds: possible
-    fun:_Znwm
-    ...
-    obj:/opt/qt56/lib/libQt5Network.so.*
-    fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
-}
-
-{
-   QMapDatabase_from_QtNetwork
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
-   fun:_ZN12QMapDataBase10createDataEv
-   obj:/opt/qt56/lib/libQt5Network.so.*
-}
-
-{
-   QThread
-   Memcheck:Leak
-   match-leak-kinds: possible
-   ...
-   fun:_ZN7QThread5startENS_8PriorityE
-}
-
-{
    libcrypto_ASN1
    Memcheck:Leak
    match-leak-kinds: definite
@@ -123,30 +44,25 @@
 }
 
 {
-   QObject_from_QtNetwork
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znwm
-   fun:_ZN7QObjectC1EPS_
-   obj:/opt/qt56/lib/libQt5Network.so.*
-}
-
-{
-   array_new_from_QtNetwork
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:_Znam
-   obj:/opt/qt56/lib/libQt5Network.so.*
-}
-
-{
    malloc_from_libcrypto
    Memcheck:Leak
    match-leak-kinds: possible
    fun:malloc
    fun:CRYPTO_malloc
    ...
-   obj:/lib/x86_64-linux-gnu/libcrypto.so.1.0.0
+   obj:/lib/x86_64-linux-gnu/libcrypto.so.*
+}
+
+{
+   Slot_activation_from_QtNetwork
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:inflateInit2_
+   obj:/*/*/*/libQt5Network.so.*
    ...
-   obj:/opt/qt56/lib/libQt5Network.so.*
+   fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
+   ...
+   fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
+   obj:/*/*/*/libQt5Network.so.*
 }
