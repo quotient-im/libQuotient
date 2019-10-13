@@ -53,8 +53,9 @@ before_install:
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
-- $_CMAKE_CONFIG -DBUILD_SHARED_LIBS=NO
-- $_CMAKE_BUILD_INSTALL
+- $_CMAKE_CONFIG
+- $_CMAKE_BUILD
+#- $_CMAKE_BUILD_INSTALL
 - popd
 - git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
@@ -76,7 +77,7 @@ script:
 - qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
 - make all
 # Run the qmake-compiled qmc-example under valgrind
-- if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="build/lib" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
+- if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="olm/build" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
 notifications:
   webhooks:
