@@ -17,11 +17,6 @@ env:
   - DESTDIR="$TRAVIS_BUILD_DIR/install"
   - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=$DESTDIR/usr"
   - VALGRIND="valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=.valgrind.qmc-example.supp $VALGRIND_OPTIONS"
-  # RPM spec-style: swallow a command with default parameters into a variable
-  # and add/override parameters further in the code if/as necessary
-  - _CMAKE_CONFIG="cmake $CMAKE_ARGS . -Bbuild"
-  - _CMAKE_BUILD="cmake --build build"
-  - _CMAKE_BUILD_INSTALL="$_CMAKE_BUILD --target install"
 
 matrix:
   include:
@@ -45,13 +40,17 @@ matrix:
 
 before_install:
 - if [ -f "$(which ninja)" ]; then export CMAKE_ARGS="$CMAKE_ARGS -GNinja"; fi
+# RPM spec-style: swallow a command with default parameters into an alias
+# and add/override parameters further in the code if/as necessary
+- shopt -s expand_aliases
+- alias _cmake_config='cmake $CMAKE_ARGS . -Bbuild'
+- alias _cmake_build='cmake --build build'
 
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
-- $_CMAKE_CONFIG
-- $_CMAKE_BUILD
-#- $_CMAKE_BUILD_INSTALL
+- _cmake_config
+- _cmake_build # TODO: add --target install when the patch lands in olm
 - popd
 - git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
@@ -61,11 +60,11 @@ install:
 - popd
 
 before_script:
-- $_CMAKE_CONFIG -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build
-- $_CMAKE_BUILD --target update-api
+- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build
+- _cmake_build --target update-api
 
 script:
-- $_CMAKE_BUILD_INSTALL
+- _cmake_build --target install
 # Build qmc-example with the installed libQuotient
 - cmake $CMAKE_ARGS examples -Bbuild-example -DOlm_DIR=olm/build
 - cmake --build build-example --target all
