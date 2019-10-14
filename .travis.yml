@@ -4,13 +4,6 @@ dist: bionic
 git:
   depth: false
 
-before_cache:
-- brew cleanup
-
-cache:
-  directories:
-  - $HOME/Library/Caches/Homebrew
-
 addons:
   apt:
     packages:
@@ -23,7 +16,7 @@ env:
   global:
   - DESTDIR="$TRAVIS_BUILD_DIR/install"
   - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=$DESTDIR/usr"
-  - VALGRIND_OPTIONS="--tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=.valgrind.qmc-example.supp"
+  - VALGRIND="valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=.valgrind.qmc-example.supp $VALGRIND_OPTIONS"
   # RPM spec-style: swallow a command with default parameters into a variable
   # and add/override parameters further in the code if/as necessary
   - _CMAKE_CONFIG="cmake $CMAKE_ARGS . -Bbuild"
@@ -38,17 +31,20 @@ matrix:
     compiler: clang
   - os: osx
     osx_image: xcode10.1
-    env: [ 'PATH=/usr/local/opt/qt/bin:$PATH' ]
+    env: [ 'PATH=/usr/local/opt/qt/bin:$PATH', 'VALGRIND=' ]
     addons:
       homebrew:
         update: true
         packages:
         - qt5
+    before_cache:
+    - brew cleanup
+    cache:
+      directories:
+      - $HOME/Library/Caches/Homebrew
 
 before_install:
-- eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CMAKE_ARGS="$CMAKE_ARGS -GNinja"; fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
+- if [ -f "$(which ninja)" ]; then export CMAKE_ARGS="$CMAKE_ARGS -GNinja"; fi
 
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
@@ -70,7 +66,7 @@ before_script:
 
 script:
 - $_CMAKE_BUILD_INSTALL
-# Build qmc-example with the installed library
+# Build qmc-example with the installed libQuotient
 - cmake $CMAKE_ARGS examples -Bbuild-example -DOlm_DIR=olm/build
 - cmake --build build-example --target all
 # Build with qmake
