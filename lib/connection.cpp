@@ -99,6 +99,7 @@ public:
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
     UnorderedMap<QString, EventPtr> accountData;
+    QMetaObject::Connection syncLoopConnection {};
     int syncLoopTimeout = -1;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -380,9 +381,20 @@ void Connection::sync(int timeout)
 
 void Connection::syncLoop(int timeout)
 {
-    d->syncLoopTimeout = timeout;
-    connect(this, &Connection::syncDone, this, &Connection::syncLoopIteration);
-    syncLoopIteration(); // initial sync to start the loop
+    if (d->syncLoopConnection && d->syncLoopTimeout == timeout) {
+        qCInfo(MAIN) << "Attempt to run sync loop but there's one already "
+                        "running; nothing will be done";
+        return;
+    }
+    std::swap(d->syncLoopTimeout, timeout);
+    if (d->syncLoopConnection) {
+        qCWarning(MAIN) << "Overriding timeout of the running sync loop from"
+                        << timeout << "to" << d->syncLoopTimeout;
+    } else {
+        d->syncLoopConnection = connect(this, &Connection::syncDone,
+                                        this, &Connection::syncLoopIteration);
+        syncLoopIteration(); // initial sync to start the loop
+    }
 }
 
 QJsonObject toJson(const DirectChatsMap& directChats)
@@ -514,8 +526,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 void Connection::stopSync()
 {
     // If there's a sync loop, break it
-    disconnect(this, &Connection::syncDone, this,
-               &Connection::syncLoopIteration);
+    disconnect(d->syncLoopConnection);
     if (d->syncJob) // If there's an ongoing sync job, stop it too
     {
         d->syncJob->abandon();
