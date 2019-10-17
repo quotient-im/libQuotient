@@ -534,10 +534,14 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
     auto job = callApi<JoinRoomJob>(roomAlias, serverNames);
-    // Upon completion, ensure a room object in Join state is created but only
-    // if it's not already there due to a sync completing earlier.
-    connect(job, &JoinRoomJob::success, this,
-            [this, job] { provideRoom(job->roomId()); });
+    // Upon completion, ensure a room object in Join state is created
+    // (or it might already be there due to a sync completing earlier).
+    // finished() is used here instead of success() to overtake clients
+    // that may add their own slots to finished().
+    connect(job, &BaseJob::finished, this, [this, job] {
+        if (job->status().good())
+            provideRoom(job->roomId());
+    });
     return job;
 }
 
