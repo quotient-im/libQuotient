@@ -384,12 +384,16 @@ TEST_IMPL(setTopic)
     const auto newTopic = c->generateTxnId(); // Just a way to get a unique id
     targetRoom->setTopic(newTopic);
 
-    connectUntil(targetRoom, &Room::topicChanged, this,
-                 [this, newTopic] {
-                     FINISH_TEST("State setting test",
-                                 targetRoom->topic() == newTopic);
-                     return true;
-                 });
+    connectUntil(targetRoom, &Room::topicChanged, this, [this, newTopic] {
+        if (targetRoom->topic() == newTopic)
+            FINISH_TEST("State setting test", true);
+        else {
+            cout << "Requested topic was " << newTopic.toStdString() << ", "
+                 << targetRoom->topic().toStdString() << " arrived instead"
+                 << endl;
+        }
+        return true;
+    });
 }
 
 TEST_IMPL(sendAndRedact)
