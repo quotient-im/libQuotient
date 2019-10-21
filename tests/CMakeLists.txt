@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 # This CMakeLists file assumes that the library is installed to CMAKE_INSTALL_PREFIX
 # and ignores the in-tree library code. You can use this to start work on your own client.
 
-project(qmc-example CXX)
+project(quotest CXX)
 
 include(CheckCXXCompilerFlag)
 if (NOT WIN32)
@@ -45,25 +45,25 @@ foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter no-gnu
     endif ()
 endforeach ()
 
-find_package(Qt5 5.6 REQUIRED Network Gui Multimedia)
+find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 find_package(Quotient REQUIRED)
-get_filename_component(QMC_Prefix "${Quotient_DIR}/../.." ABSOLUTE)
+get_filename_component(Quotient_Prefix "${Quotient_DIR}/../.." ABSOLUTE)
 
-message( STATUS "qmc-example configuration:" )
+message( STATUS "${PROJECT_NAME} configuration:" )
 if (CMAKE_BUILD_TYPE)
     message( STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "  Qt: ${Qt5_VERSION} at ${Qt5_Prefix}" )
-message( STATUS "  Quotient: ${Quotient_VERSION} at ${QMC_Prefix}" )
+message( STATUS "  Quotient: ${Quotient_VERSION} at ${Quotient_Prefix}" )
 
-set(example_SRCS qmc-example.cpp)
+set(example_SRCS quotest.cpp)
 
-add_executable(qmc-example ${example_SRCS})
-target_link_libraries(qmc-example Qt5::Core Quotient)
+add_executable(${PROJECT_NAME} ${example_SRCS})
+target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Test Quotient)
 
 # Installation
 
-install (TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

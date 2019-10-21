@@ -385,7 +385,7 @@ void Connection::syncLoop(int timeout)
     syncLoopIteration(); // initial sync to start the loop
 }
 
-QJsonObject toJson(const Connection::DirectChatsMap& directChats)
+QJsonObject toJson(const DirectChatsMap& directChats)
 {
     QJsonObject json;
     for (auto it = directChats.begin(); it != directChats.end();) {
@@ -1050,7 +1050,7 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
     return rooms;
 }
 
-Connection::DirectChatsMap Connection::directChats() const
+DirectChatsMap Connection::directChats() const
 {
     return d->directChats;
 }
@@ -1117,7 +1117,7 @@ bool Connection::isIgnored(const User* user) const
     return ignoredUsers().contains(user->id());
 }
 
-Connection::IgnoredUsersList Connection::ignoredUsers() const
+IgnoredUsersList Connection::ignoredUsers() const
 {
     const auto* event = d->unpackAccountData<IgnoredUsersEvent>();
     return event ? event->ignored_users() : IgnoredUsersList();

@@ -97,6 +97,14 @@ enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
 
 Q_ENUM_NS(RunningPolicy)
 
+// Room ids, rather than room pointers, are used in the direct chat
+// map types because the library keeps Invite rooms separate from
+// rooms in Join and Leave state; and direct chats in account data
+// are stored with no regard to their state.
+using DirectChatsMap = QMultiHash<const User*, QString>;
+using DirectChatUsersMap = QMultiHash<QString, User*>;
+using IgnoredUsersList = IgnoredUsersEvent::content_type;
+
 class Connection : public QObject {
     Q_OBJECT
 
@@ -115,14 +123,6 @@ class Connection : public QObject {
                    lazyLoadingChanged)
 
 public:
-    // Room ids, rather than room pointers, are used in the direct chat
-    // map types because the library keeps Invite rooms separate from
-    // rooms in Join and Leave state; and direct chats in account data
-    // are stored with no regard to their state.
-    using DirectChatsMap = QMultiHash<const User*, QString>;
-    using DirectChatUsersMap = QMultiHash<QString, User*>;
-    using IgnoredUsersList = IgnoredUsersEvent::content_type;
-
     using UsersToDevicesToEvents =
         UnorderedMap<QString, UnorderedMap<QString, const Event&>>;
 
@@ -153,7 +153,7 @@ public:
      *       from the server.
      * \sa rooms, room, roomsWithTag
      */
-    Q_INVOKABLE QVector<Room*> allRooms() const;
+    Q_INVOKABLE QVector<Quotient::Room*> allRooms() const;
 
     /// Get rooms that have either of the given join state(s)
     /*!
@@ -163,10 +163,11 @@ public:
      *       Leave rooms from the server.
      * \sa allRooms, room, roomsWithTag
      */
-    Q_INVOKABLE QVector<Room*> rooms(JoinStates joinStates) const;
+    Q_INVOKABLE QVector<Quotient::Room*>
+    rooms(Quotient::JoinStates joinStates) const;
 
     /// Get the total number of rooms in the given join state(s)
-    Q_INVOKABLE int roomsCount(JoinStates joinStates) const;
+    Q_INVOKABLE int roomsCount(Quotient::JoinStates joinStates) const;
 
     /** Check whether the account has data of the given type
      * Direct chats map is not supported by this method _yet_.
@@ -253,10 +254,10 @@ public:
     QList<User*> directChatUsers(const Room* room) const;
 
     /** Check whether a particular user is in the ignore list */
-    Q_INVOKABLE bool isIgnored(const User* user) const;
+    Q_INVOKABLE bool isIgnored(const Quotient::User* user) const;
 
     /** Get the whole list of ignored users */
-    Q_INVOKABLE IgnoredUsersList ignoredUsers() const;
+    Q_INVOKABLE Quotient::IgnoredUsersList ignoredUsers() const;
 
     /** Add the user to the ignore list
      * The change signal is emitted synchronously, without waiting
@@ -264,14 +265,14 @@ public:
      *
      * \sa ignoredUsersListChanged
      */
-    Q_INVOKABLE void addToIgnoredUsers(const User* user);
+    Q_INVOKABLE void addToIgnoredUsers(const Quotient::User* user);
 
     /** Remove the user from the ignore list */
     /** Similar to adding, the change signal is emitted synchronously.
      *
      * \sa ignoredUsersListChanged
      */
-    Q_INVOKABLE void removeFromIgnoredUsers(const User* user);
+    Q_INVOKABLE void removeFromIgnoredUsers(const Quotient::User* user);
 
     /** Get the full list of users known to this account */
     QMap<QString, User*> users() const;
@@ -281,13 +282,14 @@ public:
     /** Get the domain name used for ids/aliases on the server */
     QString domain() const;
     /** Find a room by its id and a mask of applicable states */
-    Q_INVOKABLE Room* room(const QString& roomId,
-                           JoinStates states = JoinState::Invite
-                                               | JoinState::Join) const;
+    Q_INVOKABLE Quotient::Room*
+    room(const QString& roomId,
+         Quotient::JoinStates states = JoinState::Invite | JoinState::Join) const;
     /** Find a room by its alias and a mask of applicable states */
-    Q_INVOKABLE Room* roomByAlias(const QString& roomAlias,
-                                  JoinStates states = JoinState::Invite
-                                                      | JoinState::Join) const;
+    Q_INVOKABLE Quotient::Room*
+    roomByAlias(const QString& roomAlias,
+                Quotient::JoinStates states = JoinState::Invite
+                                              | JoinState::Join) const;
     /** Update the internal map of room aliases to IDs */
     /// This is used to maintain the internal index of room aliases.
     /// It does NOT change aliases on the server,
@@ -295,15 +297,15 @@ public:
     void updateRoomAliases(const QString& roomId, const QString& aliasServer,
                            const QStringList& previousRoomAliases,
                            const QStringList& roomAliases);
-    Q_INVOKABLE Room* invitation(const QString& roomId) const;
-    Q_INVOKABLE User* user(const QString& userId);
+    Q_INVOKABLE Quotient::Room* invitation(const QString& roomId) const;
+    Q_INVOKABLE Quotient::User* user(const QString& userId);
     const User* user() const;
     User* user();
     QString userId() const;
     QString deviceId() const;
     QByteArray accessToken() const;
     QtOlm::Account* olmAccount() const;
-    Q_INVOKABLE SyncJob* syncJob() const;
+    Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
 
     Q_INVOKABLE void getTurnServers();
@@ -589,6 +591,7 @@ public slots:
     /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead
      */
     virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event) const;
+
 signals:
     /**
      * @deprecated
@@ -622,7 +625,7 @@ signals:
      *
      * @param request - the pointer to the failed job
      */
-    void requestFailed(BaseJob* request);
+    void requestFailed(Quotient::BaseJob* request);
 
     /** A network request (job) failed due to network problems
      *
@@ -640,7 +643,7 @@ signals:
     void syncDone();
     void syncError(QString message, QString details);
 
-    void newUser(User* user);
+    void newUser(Quotient::User* user);
 
     /**
      * \group Signals emitted on room transitions
@@ -672,7 +675,7 @@ signals:
      */
 
     /** A new room object has been created */
-    void newRoom(Room* room);
+    void newRoom(Quotient::Room* room);
 
     /** A room invitation is seen for the first time
      *
@@ -680,7 +683,7 @@ signals:
      * that initial sync will trigger this signal for all rooms in
      * Invite state.
      */
-    void invitedRoom(Room* room, Room* prev);
+    void invitedRoom(Quotient::Room* room, Quotient::Room* prev);
 
     /** A joined room is seen for the first time
      *
@@ -691,7 +694,7 @@ signals:
      * this room was in Invite state before, the respective object is
      * passed in prev (and it will be deleted shortly afterwards).
      */
-    void joinedRoom(Room* room, Room* prev);
+    void joinedRoom(Quotient::Room* room, Quotient::Room* prev);
 
     /** A room has just been left
      *
@@ -702,10 +705,10 @@ signals:
      * Left rooms upon initial sync (not only those that were left
      * right before the sync).
      */
-    void leftRoom(Room* room, Room* prev);
+    void leftRoom(Quotient::Room* room, Quotient::Room* prev);
 
     /** The room object is about to be deleted */
-    void aboutToDeleteRoom(Room* room);
+    void aboutToDeleteRoom(Quotient::Room* room);
 
     /** The room has just been created by createRoom or requestDirectChat
      *
@@ -716,7 +719,7 @@ signals:
      *       use directChatAvailable signal if you just need to obtain
      *       a direct chat room.
      */
-    void createdRoom(Room* room);
+    void createdRoom(Quotient::Room* room);
 
     /** The first sync for the room has been completed
      *
@@ -726,7 +729,7 @@ signals:
      * signals (newRoom, joinedRoom etc.) come earlier, when the room
      * has just been created.
      */
-    void loadedRoomState(Room* room);
+    void loadedRoomState(Quotient::Room* room);
 
     /** Account data (except direct chats) have changed */
     void accountDataChanged(QString type);
@@ -735,18 +738,18 @@ signals:
      * This signal is emitted upon any successful outcome from
      * requestDirectChat.
      */
-    void directChatAvailable(Room* directChat);
+    void directChatAvailable(Quotient::Room* directChat);
 
     /** The list of direct chats has changed
      * This signal is emitted every time when the mapping of users
      * to direct chat rooms is changed (because of either local updates
      * or a different list arrived from the server).
      */
-    void directChatsListChanged(DirectChatsMap additions,
-                                DirectChatsMap removals);
+    void directChatsListChanged(Quotient::DirectChatsMap additions,
+                                Quotient::DirectChatsMap removals);
 
-    void ignoredUsersListChanged(IgnoredUsersList additions,
-                                 IgnoredUsersList removals);
+    void ignoredUsersListChanged(Quotient::IgnoredUsersList additions,
+                                 Quotient::IgnoredUsersList removals);
 
     void cacheStateChanged();
     void lazyLoadingChanged();
@@ -812,4 +815,5 @@ private:
     static user_factory_t _userFactory;
 };
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::Connection*)
+Q_DECLARE_METATYPE(Quotient::DirectChatsMap)
+Q_DECLARE_METATYPE(Quotient::IgnoredUsersList)

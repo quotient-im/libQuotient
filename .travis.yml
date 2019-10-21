@@ -16,7 +16,7 @@ env:
   global:
   - DESTDIR="$TRAVIS_BUILD_DIR/install"
   - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=$DESTDIR/usr"
-  - VALGRIND="valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=.valgrind.qmc-example.supp $VALGRIND_OPTIONS"
+  - VALGRIND="valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp $VALGRIND_OPTIONS"
 
 matrix:
   include:
@@ -65,14 +65,14 @@ before_script:
 
 script:
 - _cmake_build --target install
-# Build qmc-example with the installed libQuotient
-- cmake $CMAKE_ARGS examples -Bbuild-example -DOlm_DIR=olm/build
-- cmake --build build-example --target all
+# Build quotest with the installed libQuotient
+- cmake $CMAKE_ARGS tests -Bbuild-test -DOlm_DIR=olm/build
+- cmake --build build-test --target all
 # Build with qmake
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
+- qmake quotest.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
 - make all
-# Run the qmake-compiled qmc-example under valgrind
-- if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="olm/build" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
+# Run the qmake-compiled quotest under valgrind
+- if [ "$TEST_USER" != "" ]; then LD_LIBRARY_PATH="olm/build" $VALGRIND ./quotest "$QMC_TEST_USER" "$QMC_TEST_PWD" quotest-travis '#quotest:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
 notifications:
   webhooks:
