@@ -26,9 +26,9 @@ using std::cout, std::endl;
 
 class TestSuite;
 
-class TestManager : public QObject {
+class TestManager : public QCoreApplication {
 public:
-    TestManager(Connection* conn, QString testRoomName, QString source);
+    TestManager(int& argc, char** argv);
 
 private:
     void setupAndRun();
@@ -38,7 +38,7 @@ private:
     void finalize();
 
 private:
-    QScopedPointer<Connection, QScopedPointerDeleteLater> c;
+    Connection* c = nullptr;
     QString origin;
     QString targetRoomName;
     TestSuite* testSuite = nullptr;
@@ -74,19 +74,11 @@ const char* testName(const TestToken& token) { return token.constData(); }
 class TestSuite : public QObject {
     Q_OBJECT
 public:
-    TestSuite(Connection* conn, QString testRoomAlias, QString source,
-              TestManager* parent)
-        : QObject(parent)
-        , targetConn(conn)
-        , targetRoomAlias(std::move(testRoomAlias))
-        , origin(std::move(source))
+    TestSuite(Room* testRoom, QString source, TestManager* parent)
+        : QObject(parent), targetRoom(testRoom), origin(std::move(source))
     {
-        Q_ASSERT(conn && parent);
-        Q_ASSERT(targetRoomAlias.startsWith('!')
-                 || targetRoomAlias.startsWith('#'));
+        Q_ASSERT(testRoom && parent);
     }
-
-    TEST_DECL(joinRoom)
 
 signals:
     void finishedItem(QByteArray /*name*/, bool /*condition*/);
@@ -104,7 +96,7 @@ public slots:
 
 public:
     Room* room() const { return targetRoom; }
-    Connection* connection() const { return targetConn; }
+    Connection* connection() const { return targetRoom->connection(); }
 
 private slots:
     bool checkFileSendingOutcome(const TestToken& thisTest,
@@ -119,10 +111,8 @@ private:
                     int line);
 
 private:
-    Connection* targetConn;
-    QString targetRoomAlias;
+    Room* targetRoom;
     QString origin;
-    Room* targetRoom = nullptr;
 };
 
 #define TEST_IMPL(Name) bool TestSuite::Name(const TestToken& thisTest)
@@ -162,17 +152,46 @@ void TestSuite::finishTest(const TestToken& token, bool condition,
     emit finishedItem(item, condition);
 }
 
-TestManager::TestManager(Connection* conn, QString testRoomName, QString source)
-    : c(conn), origin(std::move(source)), targetRoomName(std::move(testRoomName))
+TestManager::TestManager(int& argc, char** argv)
+    : QCoreApplication(argc, argv), c(new Connection(this))
 {
-    if (!origin.isEmpty())
+    Q_ASSERT(argc >= 5);
+    cout << "Connecting to Matrix as " << argv[1] << endl;
+    c->connectToServer(argv[1], argv[2], argv[3]);
+    targetRoomName = argv[4];
+    cout << "Test room name: " << argv[4] << endl;
+    if (argc > 5) {
+        origin = argv[5];
         cout << "Origin for the test message: " << origin.toStdString() << endl;
-    cout << "Test room name: " << targetRoomName.toStdString() << endl;
+    }
 
-    connect(c.data(), &Connection::connected, this, &TestManager::setupAndRun);
-    connect(c.data(), &Connection::loadedRoomState, this, &TestManager::onNewRoom);
+    connect(c, &Connection::connected, this, &TestManager::setupAndRun);
+    connect(c, &Connection::resolveError, this,
+        [this](const QString& error) {
+            cout << "Failed to resolve the server: " << error.toStdString()
+                 << endl;
+            this->exit(-2);
+        },
+        Qt::QueuedConnection);
+    connect(c, &Connection::loginError, this,
+        [this](const QString& message, const QString& details) {
+            cout << "Failed to login to "
+                 << c->homeserver().toDisplayString().toStdString() << ": "
+                 << message.toStdString() << endl
+                 << "Details:" << endl
+                 << details.toStdString() << endl;
+            this->exit(-2);
+        },
+        Qt::QueuedConnection);
+    connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
+
     // Big countdown watchdog
-    QTimer::singleShot(180000, this, &TestManager::conclude);
+    QTimer::singleShot(180000, this, [this] {
+        if (testSuite)
+            conclude();
+        else
+            finalize();
+    });
 }
 
 void TestManager::setupAndRun()
@@ -185,8 +204,30 @@ void TestManager::setupAndRun()
 
     c->setLazyLoading(true);
     c->syncLoop();
-    connectSingleShot(c.data(), &Connection::syncDone, this,
-                      &TestManager::doTests);
+
+    cout << "Joining " << targetRoomName.toStdString() << endl;
+    auto joinJob = c->joinRoom(targetRoomName);
+    // Ensure, before this test is completed, that the room has been joined
+    // and filled with some events so that other tests could use that
+    connect(joinJob, &BaseJob::success, this, [this, joinJob] {
+        testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
+        testSuite->room()->getPreviousContent();
+        connectSingleShot(testSuite->room(), &Room::addedMessages, this, [this] {
+            connectSingleShot(c, &Connection::syncDone, this,
+                              &TestManager::doTests);
+            connect(c, &Connection::syncDone, testSuite, [this] {
+                cout << "Sync complete" << endl;
+                if (auto* r = testSuite->room())
+                    cout << "Test room timeline size = " << r->timelineSize()
+                         << ", pending size = " << r->pendingEvents().size()
+                         << endl;
+            });
+        });
+    });
+    connect(joinJob, &BaseJob::failure, this, [this] {
+        cout << "Failed to join the test room" << endl;
+        finalize();
+    });
 }
 
 void TestManager::onNewRoom(Room* r)
@@ -198,23 +239,21 @@ void TestManager::onNewRoom(Room* r)
     connect(r, &Room::aboutToAddNewMessages, r, [r](RoomEventsRange timeline) {
         cout << timeline.size() << " new event(s) in room "
              << r->canonicalAlias().toStdString() << endl;
-        //        for (const auto& item: timeline)
-        //        {
-        //            cout << "From: "
-        //                 << r->roomMembername(item->senderId()).toStdString()
-        //                 << endl << "Timestamp:"
-        //                 << item->timestamp().toString().toStdString() << endl
-        //                 << "JSON:" << endl <<
-        //                 item->originalJson().toStdString() << endl;
-        //        }
     });
 }
 
 void TestManager::doTests()
 {
+    if (testSuite->room()->memberJoinState(c->user()) != JoinState::Join) {
+        cout << "Test room sanity check failed; after joining the test "
+                "user is still not in Join state"
+             << endl;
+        finalize();
+        return;
+    }
     cout << "Starting tests" << endl;
-    Q_ASSERT(!targetRoomName.isEmpty());
-    testSuite = new TestSuite(c.data(), targetRoomName, origin, this);
+    // Some tests below are synchronous; in order to analyse all test outcomes
+    // uniformly, connect to the signal in advance.
     connect(testSuite, &TestSuite::finishedItem, this,
             [this](const QByteArray& itemName, bool condition) {
                 if (auto i = running.indexOf(itemName); i != -1)
@@ -224,35 +263,23 @@ void TestManager::doTests()
                                "Test item is not in running state");
             });
 
-    running.push_back("joinRoom");
-    testSuite->joinRoom("joinRoom");
-    connectSingleShot(testSuite, &TestSuite::finishedItem, this,
-        [this](const QByteArray&, bool condition) {
-            if (!condition) {
-                finalize();
-                return;
-            }
-            const auto* metaObj = testSuite->metaObject();
-            for (auto i = metaObj->methodOffset(); i < metaObj->methodCount();
-                 ++i) {
-                const auto metaMethod = metaObj->method(i);
-                if (metaMethod.access() != QMetaMethod::Public
-                    || metaMethod.methodType() != QMetaMethod::Slot)
-                    continue;
+    const auto* metaObj = testSuite->metaObject();
+    for (auto i = metaObj->methodOffset(); i < metaObj->methodCount();
+         ++i) {
+        const auto metaMethod = metaObj->method(i);
+        if (metaMethod.access() != QMetaMethod::Public
+            || metaMethod.methodType() != QMetaMethod::Slot)
+            continue;
 
-                // By now connectSingleShot() has already disconnected this
-                // slot so the tests below can emit finishedItem() without
-                // the risk of recursion.
-                cout << "Starting: " << metaMethod.name().constData() << endl;
-                running.push_back(metaMethod.name());
-                metaMethod.invoke(testSuite, Qt::DirectConnection,
-                                  Q_ARG(QByteArray, metaMethod.name()));
-            }
-        });
-    connect(c.data(), &Connection::syncDone, c.data(), [this] {
-        cout << "Sync complete, ";
+        cout << "Starting: " << metaMethod.name().constData() << endl;
+        running.push_back(metaMethod.name());
+        metaMethod.invoke(testSuite, Qt::DirectConnection,
+                          Q_ARG(QByteArray, metaMethod.name()));
+    }
+    // By now, sync tests have all completed; catch up with async ones
+    connect(testSuite, &TestSuite::finishedItem, this, [this] {
         if (running.empty()) {
-            cout << "all tests finished" << endl;
+            cout << "All tests finished" << endl;
             conclude();
             return;
         }
@@ -260,28 +287,7 @@ void TestManager::doTests()
         for (const auto& test: qAsConst(running))
             cout << " " << testName(test);
         cout << endl;
-        if (auto* r = testSuite->room())
-            cout << "Test room timeline size = " << r->timelineSize()
-                 << ", pending size = " << r->pendingEvents().size() << endl;
     });
-}
-
-TEST_IMPL(joinRoom)
-{
-    cout << "Joining " << targetRoomAlias.toStdString() << endl;
-    auto joinJob = connection()->joinRoom(targetRoomAlias);
-    // Ensure, before this test is completed, that the room has been joined
-    // and filled with some events so that other tests could use that
-    connect(joinJob, &BaseJob::success, this, [this, joinJob, thisTest] {
-        targetRoom = connection()->room(joinJob->roomId());
-        targetRoom->getPreviousContent();
-        connectUntil(targetRoom, &Room::addedMessages, this, [this, thisTest] {
-            FINISH_TEST(targetRoom->memberJoinState(connection()->user())
-                        == JoinState::Join);
-        });
-    });
-    connect(joinJob, &BaseJob::failure, this, [this, thisTest] { FAIL_TEST(); });
-    return false;
 }
 
 TEST_IMPL(loadMembers)
@@ -588,7 +594,6 @@ TEST_IMPL(markDirectChat)
 
 void TestManager::conclude()
 {
-    c->stopSync();
     auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
     if (!failed.empty() || !running.empty())
         succeededRec +=
@@ -602,14 +607,14 @@ void TestManager::conclude()
                          % "'>Testing complete</font></strong>, " % succeededRec;
     if (!failed.empty()) {
         QByteArray failedList;
-        for (const auto& f : failed)
+        for (const auto& f : qAsConst(failed))
             failedList += ' ' + f;
         plainReport += "\nFAILED:" + failedList;
         htmlReport += "<br><strong>Failed:</strong>" + failedList;
     }
     if (!running.empty()) {
         QByteArray dnfList;
-        for (const auto& r : running)
+        for (const auto& r : qAsConst(running))
             dnfList += ' ' + r;
         plainReport += "\nDID NOT FINISH:" + dnfList;
         htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
@@ -640,26 +645,20 @@ void TestManager::finalize()
 {
     cout << "Logging out" << endl;
     c->logout();
-    connect(c.data(), &Connection::loggedOut, qApp, [this] {
-        QCoreApplication::processEvents();
-        QCoreApplication::exit(failed.size() + running.size());
-    });
+    connect(c, &Connection::loggedOut,
+        this, [this] { this->exit(failed.size() + running.size()); },
+        Qt::QueuedConnection);
 }
 
 int main(int argc, char* argv[])
 {
-    QCoreApplication app(argc, argv);
+    // TODO: use QCommandLineParser
     if (argc < 5) {
         cout << "Usage: quotest <user> <passwd> <device_name> <room_alias> [origin]"
              << endl;
         return -1;
     }
-
-    cout << "Connecting to the server as " << argv[1] << endl;
-    auto conn = new Connection;
-    conn->connectToServer(argv[1], argv[2], argv[3]);
-    TestManager test { conn, argv[4], argc >= 6 ? argv[5] : nullptr };
-    return app.exec();
+    return TestManager(argc, argv).exec();
 }
 
 #include "quotest.moc"
