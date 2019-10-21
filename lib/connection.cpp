@@ -100,7 +100,7 @@ public:
     DirectChatsMap dcLocalRemovals;
     UnorderedMap<QString, EventPtr> accountData;
     QMetaObject::Connection syncLoopConnection {};
-    int syncLoopTimeout = -1;
+    int syncTimeout = -1;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
@@ -260,8 +260,6 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
     });
 }
 
-void Connection::syncLoopIteration() { sync(d->syncLoopTimeout); }
-
 void Connection::connectWithToken(const QString& userId,
                                   const QString& accessToken,
                                   const QString& deviceId)
@@ -336,22 +334,34 @@ void Connection::checkAndConnect(const QString& userId,
 
 void Connection::logout()
 {
-    auto job = callApi<LogoutJob>();
-    connect(job, &LogoutJob::finished, this, [job, this] {
+    // If there's an ongoing sync job, stop it but don't break the sync loop yet
+    const auto syncWasRunning = bool(d->syncJob);
+    if (syncWasRunning)
+    {
+        d->syncJob->abandon();
+        d->syncJob = nullptr;
+    }
+    const auto* job = callApi<LogoutJob>();
+    connect(job, &LogoutJob::finished, this, [this, job, syncWasRunning] {
         if (job->status().good() || job->error() == BaseJob::ContentAccessError) {
-            stopSync();
+            if (d->syncLoopConnection)
+                disconnect(d->syncLoopConnection);
             d->data->setToken({});
             emit stateChanged();
             emit loggedOut();
-        }
+        } else if (syncWasRunning)
+            syncLoopIteration(); // Resume sync loop (or a single sync)
     });
 }
 
 void Connection::sync(int timeout)
 {
-    if (d->syncJob)
+    if (d->syncJob) {
+        qCInfo(MAIN) << d->syncJob << "is already running";
         return;
+    }
 
+    d->syncTimeout = timeout;
     Filter filter;
     filter.room->timeline->limit = 100;
     filter.room->state->lazyLoadMembers = d->lazyLoading;
@@ -381,21 +391,24 @@ void Connection::sync(int timeout)
 
 void Connection::syncLoop(int timeout)
 {
-    if (d->syncLoopConnection && d->syncLoopTimeout == timeout) {
+    if (d->syncLoopConnection && d->syncTimeout == timeout) {
         qCInfo(MAIN) << "Attempt to run sync loop but there's one already "
                         "running; nothing will be done";
         return;
     }
-    std::swap(d->syncLoopTimeout, timeout);
+    std::swap(d->syncTimeout, timeout);
     if (d->syncLoopConnection) {
-        qCWarning(MAIN) << "Overriding timeout of the running sync loop from"
-                        << timeout << "to" << d->syncLoopTimeout;
+        qCInfo(MAIN) << "Timeout for next syncs changed from"
+                        << timeout << "to" << d->syncTimeout;
     } else {
         d->syncLoopConnection = connect(this, &Connection::syncDone,
-                                        this, &Connection::syncLoopIteration);
+                                        this, &Connection::syncLoopIteration,
+                                        Qt::QueuedConnection);
         syncLoopIteration(); // initial sync to start the loop
     }
 }
+
+void Connection::syncLoopIteration() { sync(d->syncTimeout); }
 
 QJsonObject toJson(const DirectChatsMap& directChats)
 {
