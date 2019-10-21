@@ -67,7 +67,6 @@ ConnectionData::ConnectionData(QUrl baseUrl)
         for (auto& q : d->jobs)
             while (!q.empty()) {
                 auto& job = q.front();
-                q.pop();
                 if (!job || job->error() == BaseJob::Abandoned)
                     continue;
                 if (job->error() != BaseJob::Pending) {
@@ -79,6 +78,7 @@ ConnectionData::ConnectionData(QUrl baseUrl)
                 }
                 job->sendRequest();
                 d->rateLimiter.start();
+                q.pop();
                 return;
             }
         qCDebug(MAIN) << d->id() << "job queues are empty";
