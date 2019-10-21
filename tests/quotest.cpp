@@ -46,6 +46,7 @@ private:
 };
 
 using TestToken = QByteArray; // return value of QMetaMethod::name
+Q_DECLARE_METATYPE(TestToken);
 // For now, the token itself is the test name but that may change.
 const char* testName(const TestToken& token) { return token.constData(); }
 
@@ -77,6 +78,7 @@ public:
     TestSuite(Room* testRoom, QString source, TestManager* parent)
         : QObject(parent), targetRoom(testRoom), origin(std::move(source))
     {
+        qRegisterMetaType<TestToken>();
         Q_ASSERT(testRoom && parent);
     }
 
@@ -84,6 +86,9 @@ signals:
     void finishedItem(QByteArray /*name*/, bool /*condition*/);
 
 public slots:
+    void doTest(const QByteArray& testName);
+
+private slots:
     TEST_DECL(loadMembers)
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
@@ -98,13 +103,12 @@ public:
     Room* room() const { return targetRoom; }
     Connection* connection() const { return targetRoom->connection(); }
 
-private slots:
+private:
     bool checkFileSendingOutcome(const TestToken& thisTest,
                                  const QString& txnId, const QString& fileName);
     bool checkRedactionOutcome(const QByteArray& thisTest,
                                const QString& evtIdToRedact);
 
-private:
     bool validatePendingEvent(const QString& txnId);
     bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
@@ -124,6 +128,13 @@ private:
     return (finishTest(thisTest, Condition, __FILE__, __LINE__), true)
 
 #define FAIL_TEST() FINISH_TEST(false)
+
+void TestSuite::doTest(const QByteArray& testName)
+{
+    clog << "Starting: " << testName.constData() << endl;
+    QMetaObject::invokeMethod(this, testName, Qt::DirectConnection,
+                              Q_ARG(TestToken, testName));
+}
 
 bool TestSuite::validatePendingEvent(const QString& txnId)
 {
@@ -211,17 +222,14 @@ void TestManager::setupAndRun()
     // and filled with some events so that other tests could use that
     connect(joinJob, &BaseJob::success, this, [this, joinJob] {
         testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
-        testSuite->room()->getPreviousContent();
-        connectSingleShot(testSuite->room(), &Room::addedMessages, this, [this] {
-            connectSingleShot(c, &Connection::syncDone, this,
-                              &TestManager::doTests);
-            connect(c, &Connection::syncDone, testSuite, [this] {
-                clog << "Sync complete" << endl;
-                if (auto* r = testSuite->room())
-                    clog << "Test room timeline size = " << r->timelineSize()
-                         << ", pending size = " << r->pendingEvents().size()
-                         << endl;
-            });
+        connectSingleShot(c, &Connection::syncDone, this, [this] {
+            if (testSuite->room()->timelineSize() > 0)
+                doTests();
+            else {
+                testSuite->room()->getPreviousContent();
+                connectSingleShot(testSuite->room(), &Room::addedMessages, this,
+                                  &TestManager::doTests);
+            }
         });
     });
     connect(joinJob, &BaseJob::failure, this, [this] {
@@ -244,16 +252,24 @@ void TestManager::onNewRoom(Room* r)
 
 void TestManager::doTests()
 {
-    if (testSuite->room()->memberJoinState(c->user()) != JoinState::Join) {
-        clog << "Test room sanity check failed; after joining the test "
-                "user is still not in Join state"
-             << endl;
-        finalize();
-        return;
+    const auto* metaObj = testSuite->metaObject();
+    for (auto i = metaObj->methodOffset(); i < metaObj->methodCount(); ++i) {
+        const auto metaMethod = metaObj->method(i);
+        if (metaMethod.access() != QMetaMethod::Private
+            || metaMethod.methodType() != QMetaMethod::Slot)
+            continue;
+
+        const auto testName = metaMethod.name();
+        running.push_back(testName);
+        // Some tests return the result immediately, so queue everything
+        // so that we could process all tests asynchronously.
+        QMetaObject::invokeMethod(testSuite, "doTest", Qt::QueuedConnection,
+                                  Q_ARG(QByteArray, testName));
     }
-    clog << "Starting tests" << endl;
-    // Some tests below are synchronous; in order to analyse all test outcomes
-    // uniformly, connect to the signal in advance.
+    clog << "Tests to do:";
+    for (const auto& test: qAsConst(running))
+        clog << " " << testName(test);
+    clog << endl;
     connect(testSuite, &TestSuite::finishedItem, this,
             [this](const QByteArray& itemName, bool condition) {
                 if (auto i = running.indexOf(itemName); i != -1)
@@ -261,32 +277,24 @@ void TestManager::doTests()
                 else
                     Q_ASSERT_X(false, itemName,
                                "Test item is not in running state");
+                if (running.empty()) {
+                    clog << "All tests finished" << endl;
+                    conclude();
+                }
             });
 
-    const auto* metaObj = testSuite->metaObject();
-    for (auto i = metaObj->methodOffset(); i < metaObj->methodCount();
-         ++i) {
-        const auto metaMethod = metaObj->method(i);
-        if (metaMethod.access() != QMetaMethod::Public
-            || metaMethod.methodType() != QMetaMethod::Slot)
-            continue;
-
-        clog << "Starting: " << metaMethod.name().constData() << endl;
-        running.push_back(metaMethod.name());
-        metaMethod.invoke(testSuite, Qt::DirectConnection,
-                          Q_ARG(QByteArray, metaMethod.name()));
-    }
-    // By now, sync tests have all completed; catch up with async ones
-    connect(testSuite, &TestSuite::finishedItem, this, [this] {
-        if (running.empty()) {
-            clog << "All tests finished" << endl;
-            conclude();
-            return;
+    connect(c, &Connection::syncDone, this, [this] {
+        static int i = 0;
+        clog << "Sync " << ++i << " complete" << endl;
+        if (auto* r = testSuite->room())
+            clog << "Test room timeline size = " << r->timelineSize()
+                 << ", pending size = " << r->pendingEvents().size() << endl;
+        if (!running.empty()) {
+            clog << running.size() << " test(s) in the air:";
+            for (const auto& test: qAsConst(running))
+                clog << " " << testName(test);
+            clog << endl;
         }
-        clog << running.size() << " test(s) in the air:";
-        for (const auto& test: qAsConst(running))
-            clog << " " << testName(test);
-        clog << endl;
     });
 }
 
