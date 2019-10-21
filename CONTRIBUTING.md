@@ -249,14 +249,14 @@ be used eventually.
 The `tests/` directory contains a command-line program, quotest, used for
 automated functional testing. Any significant addition to the library API
 should be accompanied by a respective test in quotest. To add a test you should:
-- Add a new test to the `TestSuite` class (technically, each test is a public
+- Add a new test to the `TestSuite` class (technically, each test is a private
   slot and there are two macros, `TEST_DECL()` and `TEST_IMPL()`, that conceal
-  passing the testing context to the test method).
+  passing the testing handle in `thisTest` variable to the test method).
 - Add test logic to the slot, using `FINISH_TEST` macro to assert the test
   outcome and complete the test (`FINISH_TEST` contains `return`). ALL
-  (even failing) branches should conclude with a `FINISH_TEST` invocation,
-  unless you intend to have a "DID NOT FINISH" message in the logs
-  under certain conditions.
+  (even failing) branches should conclude with a `FINISH_TEST` (or `FAIL_TEST`
+  that is a shortcut for a failing `FINISH_TEST`) invocation, unless you
+  intend to have a "DID NOT FINISH" message in the logs in certain conditions.
 
 The `TestManager` class sets up some basic test fixture to help you with testing;
 notably, the tests can rely on having an initialised `Room` object for the test

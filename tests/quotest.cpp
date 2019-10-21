@@ -22,13 +22,13 @@
 #include <iostream>
 
 using namespace Quotient;
-using std::cout, std::endl;
+using std::clog, std::endl;
 
 class TestSuite;
 
-class TestManager : public QObject {
+class TestManager : public QCoreApplication {
 public:
-    TestManager(Connection* conn, QString testRoomName, QString source);
+    TestManager(int& argc, char** argv);
 
 private:
     void setupAndRun();
@@ -38,7 +38,7 @@ private:
     void finalize();
 
 private:
-    QScopedPointer<Connection, QScopedPointerDeleteLater> c;
+    Connection* c = nullptr;
     QString origin;
     QString targetRoomName;
     TestSuite* testSuite = nullptr;
@@ -46,6 +46,7 @@ private:
 };
 
 using TestToken = QByteArray; // return value of QMetaMethod::name
+Q_DECLARE_METATYPE(TestToken);
 // For now, the token itself is the test name but that may change.
 const char* testName(const TestToken& token) { return token.constData(); }
 
@@ -74,24 +75,20 @@ const char* testName(const TestToken& token) { return token.constData(); }
 class TestSuite : public QObject {
     Q_OBJECT
 public:
-    TestSuite(Connection* conn, QString testRoomAlias, QString source,
-              TestManager* parent)
-        : QObject(parent)
-        , targetConn(conn)
-        , targetRoomAlias(std::move(testRoomAlias))
-        , origin(std::move(source))
+    TestSuite(Room* testRoom, QString source, TestManager* parent)
+        : QObject(parent), targetRoom(testRoom), origin(std::move(source))
     {
-        Q_ASSERT(conn && parent);
-        Q_ASSERT(targetRoomAlias.startsWith('!')
-                 || targetRoomAlias.startsWith('#'));
+        qRegisterMetaType<TestToken>();
+        Q_ASSERT(testRoom && parent);
     }
-
-    TEST_DECL(joinRoom)
 
 signals:
     void finishedItem(QByteArray /*name*/, bool /*condition*/);
 
 public slots:
+    void doTest(const QByteArray& testName);
+
+private slots:
     TEST_DECL(loadMembers)
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
@@ -104,25 +101,22 @@ public slots:
 
 public:
     Room* room() const { return targetRoom; }
-    Connection* connection() const { return targetConn; }
+    Connection* connection() const { return targetRoom->connection(); }
 
-private slots:
+private:
     bool checkFileSendingOutcome(const TestToken& thisTest,
                                  const QString& txnId, const QString& fileName);
     bool checkRedactionOutcome(const QByteArray& thisTest,
                                const QString& evtIdToRedact);
 
-private:
     bool validatePendingEvent(const QString& txnId);
     bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
                     int line);
 
 private:
-    Connection* targetConn;
-    QString targetRoomAlias;
+    Room* targetRoom;
     QString origin;
-    Room* targetRoom = nullptr;
 };
 
 #define TEST_IMPL(Name) bool TestSuite::Name(const TestToken& thisTest)
@@ -134,6 +128,13 @@ private:
     return (finishTest(thisTest, Condition, __FILE__, __LINE__), true)
 
 #define FAIL_TEST() FINISH_TEST(false)
+
+void TestSuite::doTest(const QByteArray& testName)
+{
+    clog << "Starting: " << testName.constData() << endl;
+    QMetaObject::invokeMethod(this, testName, Qt::DirectConnection,
+                              Q_ARG(TestToken, testName));
+}
 
 bool TestSuite::validatePendingEvent(const QString& txnId)
 {
@@ -148,12 +149,12 @@ void TestSuite::finishTest(const TestToken& token, bool condition,
 {
     const auto& item = testName(token);
     if (condition) {
-        cout << item << " successful" << endl;
+        clog << item << " successful" << endl;
         if (targetRoom)
             targetRoom->postMessage(origin % ": " % item % " successful",
                                     MessageEventType::Notice);
     } else {
-        cout << item << " FAILED at " << file << ":" << line << endl;
+        clog << item << " FAILED at " << file << ":" << line << endl;
         if (targetRoom)
             targetRoom->postPlainText(origin % ": " % item % " FAILED at "
                                       % file % ", line " % QString::number(line));
@@ -162,59 +163,113 @@ void TestSuite::finishTest(const TestToken& token, bool condition,
     emit finishedItem(item, condition);
 }
 
-TestManager::TestManager(Connection* conn, QString testRoomName, QString source)
-    : c(conn), origin(std::move(source)), targetRoomName(std::move(testRoomName))
+TestManager::TestManager(int& argc, char** argv)
+    : QCoreApplication(argc, argv), c(new Connection(this))
 {
-    if (!origin.isEmpty())
-        cout << "Origin for the test message: " << origin.toStdString() << endl;
-    cout << "Test room name: " << targetRoomName.toStdString() << endl;
+    Q_ASSERT(argc >= 5);
+    clog << "Connecting to Matrix as " << argv[1] << endl;
+    c->connectToServer(argv[1], argv[2], argv[3]);
+    targetRoomName = argv[4];
+    clog << "Test room name: " << argv[4] << endl;
+    if (argc > 5) {
+        origin = argv[5];
+        clog << "Origin for the test message: " << origin.toStdString() << endl;
+    }
 
-    connect(c.data(), &Connection::connected, this, &TestManager::setupAndRun);
-    connect(c.data(), &Connection::loadedRoomState, this, &TestManager::onNewRoom);
+    connect(c, &Connection::connected, this, &TestManager::setupAndRun);
+    connect(c, &Connection::resolveError, this,
+        [this](const QString& error) {
+            clog << "Failed to resolve the server: " << error.toStdString()
+                 << endl;
+            this->exit(-2);
+        },
+        Qt::QueuedConnection);
+    connect(c, &Connection::loginError, this,
+        [this](const QString& message, const QString& details) {
+            clog << "Failed to login to "
+                 << c->homeserver().toDisplayString().toStdString() << ": "
+                 << message.toStdString() << endl
+                 << "Details:" << endl
+                 << details.toStdString() << endl;
+            this->exit(-2);
+        },
+        Qt::QueuedConnection);
+    connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
+
     // Big countdown watchdog
-    QTimer::singleShot(180000, this, &TestManager::conclude);
+    QTimer::singleShot(180000, this, [this] {
+        if (testSuite)
+            conclude();
+        else
+            finalize();
+    });
 }
 
 void TestManager::setupAndRun()
 {
     Q_ASSERT(!c->homeserver().isEmpty() && c->homeserver().isValid());
     Q_ASSERT(c->domain() == c->userId().section(':', 1));
-    cout << "Connected, server: "
+    clog << "Connected, server: "
          << c->homeserver().toDisplayString().toStdString() << endl;
-    cout << "Access token: " << c->accessToken().toStdString() << endl;
+    clog << "Access token: " << c->accessToken().toStdString() << endl;
 
     c->setLazyLoading(true);
     c->syncLoop();
-    connectSingleShot(c.data(), &Connection::syncDone, this,
-                      &TestManager::doTests);
+
+    clog << "Joining " << targetRoomName.toStdString() << endl;
+    auto joinJob = c->joinRoom(targetRoomName);
+    // Ensure, before this test is completed, that the room has been joined
+    // and filled with some events so that other tests could use that
+    connect(joinJob, &BaseJob::success, this, [this, joinJob] {
+        testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
+        connectSingleShot(c, &Connection::syncDone, this, [this] {
+            if (testSuite->room()->timelineSize() > 0)
+                doTests();
+            else {
+                testSuite->room()->getPreviousContent();
+                connectSingleShot(testSuite->room(), &Room::addedMessages, this,
+                                  &TestManager::doTests);
+            }
+        });
+    });
+    connect(joinJob, &BaseJob::failure, this, [this] {
+        clog << "Failed to join the test room" << endl;
+        finalize();
+    });
 }
 
 void TestManager::onNewRoom(Room* r)
 {
-    cout << "New room: " << r->id().toStdString() << endl
+    clog << "New room: " << r->id().toStdString() << endl
          << "  Name: " << r->name().toStdString() << endl
          << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
          << endl;
     connect(r, &Room::aboutToAddNewMessages, r, [r](RoomEventsRange timeline) {
-        cout << timeline.size() << " new event(s) in room "
+        clog << timeline.size() << " new event(s) in room "
              << r->canonicalAlias().toStdString() << endl;
-        //        for (const auto& item: timeline)
-        //        {
-        //            cout << "From: "
-        //                 << r->roomMembername(item->senderId()).toStdString()
-        //                 << endl << "Timestamp:"
-        //                 << item->timestamp().toString().toStdString() << endl
-        //                 << "JSON:" << endl <<
-        //                 item->originalJson().toStdString() << endl;
-        //        }
     });
 }
 
 void TestManager::doTests()
 {
-    cout << "Starting tests" << endl;
-    Q_ASSERT(!targetRoomName.isEmpty());
-    testSuite = new TestSuite(c.data(), targetRoomName, origin, this);
+    const auto* metaObj = testSuite->metaObject();
+    for (auto i = metaObj->methodOffset(); i < metaObj->methodCount(); ++i) {
+        const auto metaMethod = metaObj->method(i);
+        if (metaMethod.access() != QMetaMethod::Private
+            || metaMethod.methodType() != QMetaMethod::Slot)
+            continue;
+
+        const auto testName = metaMethod.name();
+        running.push_back(testName);
+        // Some tests return the result immediately, so queue everything
+        // so that we could process all tests asynchronously.
+        QMetaObject::invokeMethod(testSuite, "doTest", Qt::QueuedConnection,
+                                  Q_ARG(QByteArray, testName));
+    }
+    clog << "Tests to do:";
+    for (const auto& test: qAsConst(running))
+        clog << " " << testName(test);
+    clog << endl;
     connect(testSuite, &TestSuite::finishedItem, this,
             [this](const QByteArray& itemName, bool condition) {
                 if (auto i = running.indexOf(itemName); i != -1)
@@ -222,66 +277,25 @@ void TestManager::doTests()
                 else
                     Q_ASSERT_X(false, itemName,
                                "Test item is not in running state");
+                if (running.empty()) {
+                    clog << "All tests finished" << endl;
+                    conclude();
+                }
             });
 
-    running.push_back("joinRoom");
-    testSuite->joinRoom("joinRoom");
-    connectSingleShot(testSuite, &TestSuite::finishedItem, this,
-        [this](const QByteArray&, bool condition) {
-            if (!condition) {
-                finalize();
-                return;
-            }
-            const auto* metaObj = testSuite->metaObject();
-            for (auto i = metaObj->methodOffset(); i < metaObj->methodCount();
-                 ++i) {
-                const auto metaMethod = metaObj->method(i);
-                if (metaMethod.access() != QMetaMethod::Public
-                    || metaMethod.methodType() != QMetaMethod::Slot)
-                    continue;
-
-                // By now connectSingleShot() has already disconnected this
-                // slot so the tests below can emit finishedItem() without
-                // the risk of recursion.
-                cout << "Starting: " << metaMethod.name().constData() << endl;
-                running.push_back(metaMethod.name());
-                metaMethod.invoke(testSuite, Qt::DirectConnection,
-                                  Q_ARG(QByteArray, metaMethod.name()));
-            }
-        });
-    connect(c.data(), &Connection::syncDone, c.data(), [this] {
-        cout << "Sync complete, ";
-        if (running.empty()) {
-            cout << "all tests finished" << endl;
-            conclude();
-            return;
-        }
-        cout << running.size() << " test(s) in the air:";
-        for (const auto& test: qAsConst(running))
-            cout << " " << testName(test);
-        cout << endl;
+    connect(c, &Connection::syncDone, this, [this] {
+        static int i = 0;
+        clog << "Sync " << ++i << " complete" << endl;
         if (auto* r = testSuite->room())
-            cout << "Test room timeline size = " << r->timelineSize()
+            clog << "Test room timeline size = " << r->timelineSize()
                  << ", pending size = " << r->pendingEvents().size() << endl;
+        if (!running.empty()) {
+            clog << running.size() << " test(s) in the air:";
+            for (const auto& test: qAsConst(running))
+                clog << " " << testName(test);
+            clog << endl;
+        }
     });
-}
-
-TEST_IMPL(joinRoom)
-{
-    cout << "Joining " << targetRoomAlias.toStdString() << endl;
-    auto joinJob = connection()->joinRoom(targetRoomAlias);
-    // Ensure, before this test is completed, that the room has been joined
-    // and filled with some events so that other tests could use that
-    connect(joinJob, &BaseJob::success, this, [this, joinJob, thisTest] {
-        targetRoom = connection()->room(joinJob->roomId());
-        targetRoom->getPreviousContent();
-        connectUntil(targetRoom, &Room::addedMessages, this, [this, thisTest] {
-            FINISH_TEST(targetRoom->memberJoinState(connection()->user())
-                        == JoinState::Join);
-        });
-    });
-    connect(joinJob, &BaseJob::failure, this, [this, thisTest] { FAIL_TEST(); });
-    return false;
 }
 
 TEST_IMPL(loadMembers)
@@ -290,7 +304,7 @@ TEST_IMPL(loadMembers)
     auto* r = connection()->roomByAlias(QStringLiteral("#quotient:matrix.org"),
                                         JoinState::Join);
     if (!r) {
-        cout << "#quotient:matrix.org is not found in the test user's rooms"
+        clog << "#quotient:matrix.org is not found in the test user's rooms"
              << endl;
         FAIL_TEST();
     }
@@ -298,7 +312,7 @@ TEST_IMPL(loadMembers)
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
     if (r->memberNames().size() >= r->joinedCount()) {
-        cout << "Lazy loading doesn't seem to be enabled" << endl;
+        clog << "Lazy loading doesn't seem to be enabled" << endl;
         FAIL_TEST();
     }
     r->setDisplayed();
@@ -312,7 +326,7 @@ TEST_IMPL(sendMessage)
 {
     auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
     if (!validatePendingEvent(txnId)) {
-        cout << "Invalid pending event right after submitting" << endl;
+        clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
     connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
@@ -332,13 +346,13 @@ TEST_IMPL(sendMessage)
 
 TEST_IMPL(sendReaction)
 {
-    cout << "Reacting to the newest message in the room" << endl;
+    clog << "Reacting to the newest message in the room" << endl;
     Q_ASSERT(targetRoom->timelineSize() > 0);
     const auto targetEvtId = targetRoom->messageEvents().back()->id();
     const auto key = QStringLiteral("+1");
     const auto txnId = targetRoom->postReaction(targetEvtId, key);
     if (!validatePendingEvent(txnId)) {
-        cout << "Invalid pending event right after submitting" << endl;
+        clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
 
@@ -369,7 +383,7 @@ TEST_IMPL(sendFile)
 {
     auto* tf = new QTemporaryFile;
     if (!tf->open()) {
-        cout << "Failed to create a temporary file" << endl;
+        clog << "Failed to create a temporary file" << endl;
         FAIL_TEST();
     }
     tf->write("Test");
@@ -377,11 +391,11 @@ TEST_IMPL(sendFile)
     // QFileInfo::fileName brings only the file name; QFile::fileName brings
     // the full path
     const auto tfName = QFileInfo(*tf).fileName();
-    cout << "Sending file " << tfName.toStdString() << endl;
+    clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId =
         targetRoom->postFile("Test file", QUrl::fromLocalFile(tf->fileName()));
     if (!validatePendingEvent(txnId)) {
-        cout << "Invalid pending event right after submitting" << endl;
+        clog << "Invalid pending event right after submitting" << endl;
         delete tf;
         FAIL_TEST();
     }
@@ -416,11 +430,11 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
 {
     auto it = targetRoom->findPendingEvent(txnId);
     if (it == targetRoom->pendingEvents().end()) {
-        cout << "Pending file event dropped before upload completion" << endl;
+        clog << "Pending file event dropped before upload completion" << endl;
         FAIL_TEST();
     }
     if (it->deliveryStatus() != EventStatus::FileUploaded) {
-        cout << "Pending file event status upon upload completion is "
+        clog << "Pending file event status upon upload completion is "
              << it->deliveryStatus() << " != FileUploaded("
              << EventStatus::FileUploaded << ')' << endl;
         FAIL_TEST();
@@ -434,7 +448,7 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
             if (evt->transactionId() != txnId)
                 return false;
 
-            cout << "File event " << txnId.toStdString()
+            clog << "File event " << txnId.toStdString()
                  << " arrived in the timeline" << endl;
             // This part tests visit()
             return visit(
@@ -462,7 +476,7 @@ TEST_IMPL(setTopic)
             if (targetRoom->topic() == newTopic)
                 FINISH_TEST(true);
 
-            cout << "Requested topic was " << newTopic.toStdString() << ", "
+            clog << "Requested topic was " << newTopic.toStdString() << ", "
                  << targetRoom->topic().toStdString() << " arrived instead"
                  << endl;
             return false;
@@ -472,7 +486,7 @@ TEST_IMPL(setTopic)
 
 TEST_IMPL(sendAndRedact)
 {
-    cout << "Sending a message to redact" << endl;
+    clog << "Sending a message to redact" << endl;
     auto txnId = targetRoom->postPlainText(origin % ": message to redact");
     if (txnId.isEmpty())
         FAIL_TEST();
@@ -482,7 +496,7 @@ TEST_IMPL(sendAndRedact)
                 if (tId != txnId)
                     return;
 
-                cout << "Redacting the message" << endl;
+                clog << "Redacting the message" << endl;
                 targetRoom->redactEvent(evtId, origin);
 
                 connectUntil(targetRoom, &Room::addedMessages, this,
@@ -504,11 +518,11 @@ bool TestSuite::checkRedactionOutcome(const QByteArray& thisTest,
         return false; // Waiting for the next sync
 
     if ((*it)->isRedacted()) {
-        cout << "The sync brought already redacted message" << endl;
+        clog << "The sync brought already redacted message" << endl;
         FINISH_TEST(true);
     }
 
-    cout << "Message came non-redacted with the sync, waiting for redaction"
+    clog << "Message came non-redacted with the sync, waiting for redaction"
          << endl;
     connectUntil(targetRoom, &Room::replacedEvent, this,
                  [this, thisTest, evtIdToRedact](const RoomEvent* newEvent,
@@ -537,10 +551,10 @@ TEST_IMPL(addAndRemoveTag)
     QSignalSpy spy(targetRoom, &Room::tagsChanged);
     targetRoom->addTag(TestTag);
     if (spy.count() != 1 || !targetRoom->tags().contains(TestTag)) {
-        cout << "Tag adding failed" << endl;
+        clog << "Tag adding failed" << endl;
         FAIL_TEST();
     }
-    cout << "Test tag set, removing it now" << endl;
+    clog << "Test tag set, removing it now" << endl;
     targetRoom->removeTag(TestTag);
     FINISH_TEST(spy.count() == 2 && !targetRoom->tags().contains(TestTag));
 }
@@ -562,7 +576,7 @@ TEST_IMPL(markDirectChat)
     // Same as with tags (and unusual for the rest of Quotient), direct chat
     // operations are synchronous.
     QSignalSpy spy(connection(), &Connection::directChatsListChanged);
-    cout << "Marking the room as a direct chat" << endl;
+    clog << "Marking the room as a direct chat" << endl;
     connection()->addToDirectChats(targetRoom, connection()->user());
     if (spy.count() != 1 || !checkDirectChat())
         FAIL_TEST();
@@ -571,11 +585,11 @@ TEST_IMPL(markDirectChat)
     const auto& addedDCs = spy.back().front().value<DirectChatsMap>();
     if (addedDCs.size() != 1
         || !addedDCs.contains(connection()->user(), targetRoom->id())) {
-        cout << "The room is not in added direct chats" << endl;
+        clog << "The room is not in added direct chats" << endl;
         FAIL_TEST();
     }
 
-    cout << "Unmarking the direct chat" << endl;
+    clog << "Unmarking the direct chat" << endl;
     connection()->removeFromDirectChats(targetRoom->id(), connection()->user());
     if (spy.count() != 2 && checkDirectChat())
         FAIL_TEST();
@@ -588,7 +602,6 @@ TEST_IMPL(markDirectChat)
 
 void TestManager::conclude()
 {
-    c->stopSync();
     auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
     if (!failed.empty() || !running.empty())
         succeededRec +=
@@ -602,19 +615,19 @@ void TestManager::conclude()
                          % "'>Testing complete</font></strong>, " % succeededRec;
     if (!failed.empty()) {
         QByteArray failedList;
-        for (const auto& f : failed)
+        for (const auto& f : qAsConst(failed))
             failedList += ' ' + f;
         plainReport += "\nFAILED:" + failedList;
         htmlReport += "<br><strong>Failed:</strong>" + failedList;
     }
     if (!running.empty()) {
         QByteArray dnfList;
-        for (const auto& r : running)
+        for (const auto& r : qAsConst(running))
             dnfList += ' ' + r;
         plainReport += "\nDID NOT FINISH:" + dnfList;
         htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
     }
-    cout << plainReport.toStdString() << endl;
+    clog << plainReport.toStdString() << endl;
 
     // TODO: Waiting for proper futures to come so that it could be:
     //            targetRoom->postHtmlText(...)
@@ -627,7 +640,7 @@ void TestManager::conclude()
                 if (txnId != serverTxnId)
                     return;
 
-                cout << "Leaving the room" << endl;
+                clog << "Leaving the room" << endl;
                 auto* job = room->leaveRoom();
                 connect(job, &BaseJob::finished, this, [this, job] {
                     Q_ASSERT(job->status().good());
@@ -638,28 +651,22 @@ void TestManager::conclude()
 
 void TestManager::finalize()
 {
-    cout << "Logging out" << endl;
+    clog << "Logging out" << endl;
     c->logout();
-    connect(c.data(), &Connection::loggedOut, qApp, [this] {
-        QCoreApplication::processEvents();
-        QCoreApplication::exit(failed.size() + running.size());
-    });
+    connect(c, &Connection::loggedOut,
+        this, [this] { this->exit(failed.size() + running.size()); },
+        Qt::QueuedConnection);
 }
 
 int main(int argc, char* argv[])
 {
-    QCoreApplication app(argc, argv);
+    // TODO: use QCommandLineParser
     if (argc < 5) {
-        cout << "Usage: quotest <user> <passwd> <device_name> <room_alias> [origin]"
+        clog << "Usage: quotest <user> <passwd> <device_name> <room_alias> [origin]"
              << endl;
         return -1;
     }
-
-    cout << "Connecting to the server as " << argv[1] << endl;
-    auto conn = new Connection;
-    conn->connectToServer(argv[1], argv[2], argv[3]);
-    TestManager test { conn, argv[4], argc >= 6 ? argv[5] : nullptr };
-    return app.exec();
+    return TestManager(argc, argv).exec();
 }
 
 #include "quotest.moc"
