@@ -206,7 +206,7 @@ template <typename T>
 struct JsonConverter<Omittable<T>> {
     static QJsonValue dump(const Omittable<T>& from)
     {
-        return from.omitted() ? QJsonValue() : toJson(from.value());
+        return from.has_value() ? toJson(from.value()) : QJsonValue();
     }
     static Omittable<T> load(const QJsonValue& jv)
     {
@@ -378,28 +378,10 @@ namespace _impl {
         static void impl(ContT& container, const QString& key,
                          const OmittableT& value)
         {
-            if (!value.omitted())
-                addTo(container, key, value.value());
+            if (value)
+                addTo(container, key, *value);
         }
     };
-
-#if 0
-        // This is a special one that unfolds optional<>
-        template <typename ValT, bool Force>
-        struct AddNode<optional<ValT>, Force>
-        {
-            template <typename ContT, typename OptionalT>
-            static void impl(ContT& container,
-                             const QString& key, const OptionalT& value)
-            {
-                if (value)
-                    AddNode<ValT>::impl(container, key, value.value());
-                else if (Force) // Edge case, no value but must put something
-                    AddNode<ValT>::impl(container, key, QString{});
-            }
-        };
-#endif
-
 } // namespace _impl
 
 static constexpr bool IfNotEmpty = false;
