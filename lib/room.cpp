@@ -1208,7 +1208,7 @@ int Room::invitedCount() const
 {
     // TODO: Store invited users in Room too
     Q_ASSERT(d->summary.invitedMemberCount.has_value());
-    return d->summary.invitedMemberCount.value();
+    return d->summary.invitedMemberCount.value_or(0);
 }
 
 int Room::totalMemberCount() const { return joinedCount() + invitedCount(); }

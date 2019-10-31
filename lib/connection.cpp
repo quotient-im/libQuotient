@@ -1182,7 +1182,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
-    // If joinState.omitted(), all joinState == comparisons below are false.
+    // If joinState is empty, all joinState == comparisons below are false.
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room) {
@@ -1214,17 +1214,17 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     if (!joinState)
         return room;
 
-    if (joinState == JoinState::Invite) {
+    if (*joinState == JoinState::Invite) {
         // prev is either Leave or nullptr
         auto* prev = d->roomMap.value({ id, false }, nullptr);
         emit invitedRoom(room, prev);
     } else {
-        room->setJoinState(joinState.value());
+        room->setJoinState(*joinState);
         // Preempt the Invite room (if any) with a room in Join/Leave state.
         auto* prevInvite = d->roomMap.take({ id, true });
-        if (joinState == JoinState::Join)
+        if (*joinState == JoinState::Join)
             emit joinedRoom(room, prevInvite);
-        else if (joinState == JoinState::Leave)
+        else if (*joinState == JoinState::Leave)
             emit leftRoom(room, prevInvite);
         if (prevInvite) {
             const auto dcUsers = prevInvite->directChatUsers();

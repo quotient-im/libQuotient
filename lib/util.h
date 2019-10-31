@@ -56,6 +56,7 @@ class Omittable : public std::optional<T> {
                   "You cannot make an Omittable<> with a reference type");
 
 public:
+    using base_type = std::optional<T>;
     using value_type = std::decay_t<T>;
     static_assert(std::is_default_constructible_v<value_type>,
                   "Omittable<> requires a default-constructible type");
@@ -64,13 +65,22 @@ public:
 
     // Overload emplace() to allow passing braced-init-lists (the standard
     // emplace() does direct-initialisation but not direct-list-initialisation).
-    using std::optional<T>::emplace;
-    T& emplace(const T& val) { return std::optional<T>::emplace(val); }
-    T& emplace(T&& val) { return std::optional<T>::emplace(std::move(val)); }
+    using base_type::emplace;
+    T& emplace(const T& val) { return base_type::emplace(val); }
+    T& emplace(T&& val) { return base_type::emplace(std::move(val)); }
 
+    // use value_or() or check (with operator! or has_value) before accessing
+    // with operator-> or operator*
+    // The technical reason is that Xcode 10 has incomplete std::optional
+    // that has no value(); but using value() may also mean that you rely
+    // on the optional throwing an exception (which is not assumed practice
+    // throughout Quotient) or that you spend unnecessary CPU cycles on
+    // an extraneous has_value() check.
+    value_type& value() = delete;
+    const value_type& value() const = delete;
     value_type& edit()
     {
-        return this->has_value() ? this->value() : this->emplace();
+        return this->has_value() ? base_type::operator*() : this->emplace();
     }
 
     /// Merge the value from another Omittable
@@ -92,10 +102,10 @@ public:
     // a bit too surprising: value() & doesn't lazy-create an object;
     // and it's too easy to inadvertently change the underlying value.
 
-    const value_type* operator->() const& { return &this->value(); }
-    value_type* operator->() && { return &this->value(); }
-    const value_type& operator*() const& { return this->value(); }
-    value_type& operator*() && { return this->value(); }
+    const value_type* operator->() const& { return base_type::operator->(); }
+    value_type* operator->() && { return base_type::operator->(); }
+    const value_type& operator*() const& { return base_type::operator*(); }
+    value_type& operator*() && { return base_type::operator*(); }
 };
 
 namespace _impl {
