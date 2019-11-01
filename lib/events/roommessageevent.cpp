@@ -95,6 +95,11 @@ MsgType jsonToMsgType(const QString& matrixType)
     return MsgType::Unknown;
 }
 
+inline bool isReplacement(const Omittable<RelatesTo>& rel)
+{
+    return rel && rel->type == RelatesTo::ReplacementTypeId();
+}
+
 QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,
                                                   TypedBase* content)
@@ -111,6 +116,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
             // After the above, we know for sure that the content is TextContent
             // and that its RelatesTo structure is not omitted
             auto* textContent = static_cast<const TextContent*>(content);
+            Q_ASSERT(textContent && textContent->relatesTo.has_value());
             if (textContent->relatesTo->type == RelatesTo::ReplacementTypeId()) {
                 auto newContentJson = json.take("m.new_content"_ls).toObject();
                 newContentJson.insert(BodyKey, plainBody);
@@ -243,9 +249,7 @@ QString RoomMessageEvent::replacedEvent() const
         return {};
 
     const auto& rel = static_cast<const TextContent*>(content())->relatesTo;
-    return !rel.omitted() && rel->type == RelatesTo::ReplacementTypeId()
-               ? rel->eventId
-               : QString();
+    return isReplacement(rel) ? rel->eventId : QString();
 }
 
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
@@ -269,10 +273,10 @@ QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
     return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForFile(fi));
 }
 
-TextContent::TextContent(const QString& text, const QString& contentType,
+TextContent::TextContent(QString text, const QString& contentType,
                          Omittable<RelatesTo> relatesTo)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType))
-    , body(text)
+    , body(std::move(text))
     , relatesTo(std::move(relatesTo))
 {
     if (contentType == HtmlContentTypeId)
@@ -304,10 +308,9 @@ TextContent::TextContent(const QJsonObject& json)
     static const auto PlainTextMimeType = db.mimeTypeForName("text/plain");
     static const auto HtmlMimeType = db.mimeTypeForName("text/html");
 
-    const auto actualJson =
-        relatesTo.omitted() || relatesTo->type != RelatesTo::ReplacementTypeId()
-            ? json
-            : json.value("m.new_content"_ls).toObject();
+    const auto actualJson = isReplacement(relatesTo)
+                                ? json.value("m.new_content"_ls).toObject()
+                                : json;
     // Special-casing the custom matrix.org's (actually, Riot's) way
     // of sending HTML messages.
     if (actualJson["format"_ls].toString() == HtmlContentTypeId) {
@@ -331,7 +334,7 @@ void TextContent::fillJson(QJsonObject* json) const
         json->insert(FormatKey, HtmlContentTypeId);
         json->insert(FormattedBodyKey, body);
     }
-    if (!relatesTo.omitted()) {
+    if (relatesTo) {
         json->insert(QStringLiteral("m.relates_to"),
                      QJsonObject { { relatesTo->type, relatesTo->eventId } });
         if (relatesTo->type == RelatesTo::ReplacementTypeId()) {

@@ -114,7 +114,7 @@ namespace EventContent {
      */
     class TextContent : public TypedBase {
     public:
-        TextContent(const QString& text, const QString& contentType,
+        TextContent(QString text, const QString& contentType,
                     Omittable<RelatesTo> relatesTo = none);
         explicit TextContent(const QJsonObject& json);
 

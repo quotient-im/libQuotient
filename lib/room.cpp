@@ -1201,16 +1201,14 @@ QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
 
 int Room::joinedCount() const
 {
-    return d->summary.joinedMemberCount.omitted()
-               ? d->membersMap.size()
-               : d->summary.joinedMemberCount.value();
+    return d->summary.joinedMemberCount.value_or(d->membersMap.size());
 }
 
 int Room::invitedCount() const
 {
     // TODO: Store invited users in Room too
-    Q_ASSERT(!d->summary.invitedMemberCount.omitted());
-    return d->summary.invitedMemberCount.value();
+    Q_ASSERT(d->summary.invitedMemberCount.has_value());
+    return d->summary.invitedMemberCount.value_or(0);
 }
 
 int Room::totalMemberCount() const { return joinedCount() + invitedCount(); }
@@ -2620,9 +2618,8 @@ QString Room::Private::calculateDisplayname() const
     const bool emptyRoom =
         membersMap.isEmpty()
         || (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
-    const bool nonEmptySummary =
-        !summary.heroes.omitted() && !summary.heroes->empty();
-    auto shortlist = nonEmptySummary ? buildShortlist(summary.heroes.value())
+    const bool nonEmptySummary = summary.heroes && !summary.heroes->empty();
+    auto shortlist = nonEmptySummary ? buildShortlist(*summary.heroes)
                                      : !emptyRoom ? buildShortlist(membersMap)
                                                   : users_shortlist_t {};
 

@@ -277,16 +277,16 @@ void Connection::reloadCapabilities()
         else if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
             qCDebug(MAIN) << "Server doesn't support /capabilities";
 
-        if (d->capabilities.roomVersions.omitted()) {
+        if (!d->capabilities.roomVersions) {
             qCWarning(MAIN) << "Pinning supported room version to 1";
-            d->capabilities.roomVersions = { "1", { { "1", "stable" } } };
+            d->capabilities.roomVersions.emplace({ "1", { { "1", "stable" } } });
         } else {
             qCDebug(MAIN) << "Room versions:" << defaultRoomVersion()
                           << "is default, full list:" << availableRoomVersions();
         }
-        Q_ASSERT(!d->capabilities.roomVersions.omitted());
+        Q_ASSERT(d->capabilities.roomVersions.has_value());
         emit capabilitiesLoaded();
-        for (auto* r : d->roomMap)
+        for (auto* r : qAsConst(d->roomMap))
             r->checkVersion();
     });
 }
@@ -295,7 +295,7 @@ bool Connection::loadingCapabilities() const
 {
     // (Ab)use the fact that room versions cannot be omitted after
     // the capabilities have been loaded (see reloadCapabilities() above).
-    return d->capabilities.roomVersions.omitted();
+    return !d->capabilities.roomVersions;
 }
 
 void Connection::Private::connectWithToken(const QString& userId,
@@ -363,8 +363,8 @@ void Connection::sync(int timeout)
 
     d->syncTimeout = timeout;
     Filter filter;
-    filter.room->timeline->limit = 100;
-    filter.room->state->lazyLoadMembers = d->lazyLoading;
+    filter.room.edit().timeline.edit().limit.emplace(100);
+    filter.room.edit().state.edit().lazyLoadMembers.emplace(d->lazyLoading);
     auto job = d->syncJob =
         callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
                          timeout);
@@ -446,7 +446,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r)) {
                 emit loadedRoomState(r);
-                if (!d->capabilities.roomVersions.omitted())
+                if (d->capabilities.roomVersions)
                     r->checkVersion();
                 // Otherwise, the version will be checked in reloadCapabilities()
             }
@@ -1182,7 +1182,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
-    // If joinState.omitted(), all joinState == comparisons below are false.
+    // If joinState is empty, all joinState == comparisons below are false.
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room) {
@@ -1191,7 +1191,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)
             return room;
-    } else if (joinState.omitted()) {
+    } else if (!joinState) {
         // No Join and Leave, maybe Invite?
         room = d->roomMap.value({ id, true }, nullptr);
         if (room)
@@ -1200,9 +1200,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     }
 
     if (!room) {
-        room = roomFactory()(this, id,
-                             joinState.omitted() ? JoinState::Join
-                                                 : joinState.value());
+        room = roomFactory()(this, id, joinState.value_or(JoinState::Join));
         if (!room) {
             qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
@@ -1213,20 +1211,20 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
                 &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
-    if (joinState.omitted())
+    if (!joinState)
         return room;
 
-    if (joinState == JoinState::Invite) {
+    if (*joinState == JoinState::Invite) {
         // prev is either Leave or nullptr
         auto* prev = d->roomMap.value({ id, false }, nullptr);
         emit invitedRoom(room, prev);
     } else {
-        room->setJoinState(joinState.value());
+        room->setJoinState(*joinState);
         // Preempt the Invite room (if any) with a room in Join/Leave state.
         auto* prevInvite = d->roomMap.take({ id, true });
-        if (joinState == JoinState::Join)
+        if (*joinState == JoinState::Join)
             emit joinedRoom(room, prevInvite);
-        else if (joinState == JoinState::Leave)
+        else if (*joinState == JoinState::Leave)
             emit leftRoom(room, prevInvite);
         if (prevInvite) {
             const auto dcUsers = prevInvite->directChatUsers();
@@ -1431,13 +1429,13 @@ const QString Connection::SupportedRoomVersion::StableTag =
 
 QString Connection::defaultRoomVersion() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     return d->capabilities.roomVersions->defaultVersion;
 }
 
 QStringList Connection::stableRoomVersions() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QStringList l;
     const auto& allVersions = d->capabilities.roomVersions->available;
     for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
@@ -1457,7 +1455,7 @@ inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
 
 QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QVector<SupportedRoomVersion> result;
     result.reserve(d->capabilities.roomVersions->available.size());
     for (auto it = d->capabilities.roomVersions->available.begin();

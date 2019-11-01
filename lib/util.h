@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <optional>
 
 // Along the lines of Q_DISABLE_COPY - the upstream version comes in Qt 5.13
 #define DISABLE_MOVE(_ClassName)               \
@@ -43,68 +44,45 @@ struct HashQ {
 template <typename KeyT, typename ValT>
 using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
-struct NoneTag {};
-constexpr NoneTag none {};
+inline constexpr auto none = std::nullopt;
 
-/** A crude substitute for `optional` while we're not C++17
+/** `std::optional` with tweaks
  *
- * Only works with default-constructible types.
+ * Due to tweaks, only works with default-constructible types.
  */
 template <typename T>
-class Omittable {
+class Omittable : public std::optional<T> {
     static_assert(!std::is_reference<T>::value,
                   "You cannot make an Omittable<> with a reference type");
 
 public:
+    using base_type = std::optional<T>;
     using value_type = std::decay_t<T>;
+    static_assert(std::is_default_constructible_v<value_type>,
+                  "Omittable<> requires a default-constructible type");
 
-    explicit Omittable() : Omittable(none) {}
-    Omittable(NoneTag) : _value(value_type()), _omitted(true) {}
-    Omittable(const value_type& val) : _value(val) {}
-    Omittable(value_type&& val) : _value(std::move(val)) {}
-    Omittable<T>& operator=(const value_type& val)
-    {
-        _value = val;
-        _omitted = false;
-        return *this;
-    }
-    Omittable<T>& operator=(value_type&& val)
-    {
-        // For some reason GCC complains about -Wmaybe-uninitialized
-        // in the context of using Omittable<bool> with converters.h;
-        // though the logic looks very much benign (GCC bug???)
-        _value = std::move(val);
-        _omitted = false;
-        return *this;
-    }
+    using std::optional<T>::optional;
 
-    bool operator==(const value_type& rhs) const
+    // Overload emplace() to allow passing braced-init-lists (the standard
+    // emplace() does direct-initialisation but not direct-list-initialisation).
+    using base_type::emplace;
+    T& emplace(const T& val) { return base_type::emplace(val); }
+    T& emplace(T&& val) { return base_type::emplace(std::move(val)); }
+
+    // use value_or() or check (with operator! or has_value) before accessing
+    // with operator-> or operator*
+    // The technical reason is that Xcode 10 has incomplete std::optional
+    // that has no value(); but using value() may also mean that you rely
+    // on the optional throwing an exception (which is not assumed practice
+    // throughout Quotient) or that you spend unnecessary CPU cycles on
+    // an extraneous has_value() check.
+    value_type& value() = delete;
+    const value_type& value() const = delete;
+    value_type& edit()
     {
-        return !omitted() && value() == rhs;
-    }
-    friend bool operator==(const value_type& lhs,
-                           const Omittable<value_type>& rhs)
-    {
-        return rhs == lhs;
-    }
-    bool operator!=(const value_type& rhs) const { return !operator==(rhs); }
-    friend bool operator!=(const value_type& lhs,
-                           const Omittable<value_type>& rhs)
-    {
-        return !(rhs == lhs);
+        return this->has_value() ? base_type::operator*() : this->emplace();
     }
 
-    bool omitted() const { return _omitted; }
-    const value_type& value() const
-    {
-        Q_ASSERT(!_omitted);
-        return _value;
-    }
-    value_type& editValue()
-    {
-        _omitted = false;
-        return _value;
-    }
     /// Merge the value from another Omittable
     /// \return true if \p other is not omitted and the value of
     ///         the current Omittable was different (or omitted);
@@ -114,26 +92,20 @@ public:
     auto merge(const Omittable<T1>& other)
         -> std::enable_if_t<std::is_convertible<T1, T>::value, bool>
     {
-        if (other.omitted() || (!_omitted && _value == other.value()))
+        if (!other || (this->has_value() && **this == *other))
             return false;
-        _omitted = false;
-        _value = other.value();
+        *this = other;
         return true;
     }
-    value_type&& release()
-    {
-        _omitted = true;
-        return std::move(_value);
-    }
 
-    const value_type* operator->() const& { return &value(); }
-    value_type* operator->() & { return &editValue(); }
-    const value_type& operator*() const& { return value(); }
-    value_type& operator*() & { return editValue(); }
+    // Hide non-const lvalue operator-> and operator* as these are
+    // a bit too surprising: value() & doesn't lazy-create an object;
+    // and it's too easy to inadvertently change the underlying value.
 
-private:
-    T _value;
-    bool _omitted = false;
+    const value_type* operator->() const& { return base_type::operator->(); }
+    value_type* operator->() && { return base_type::operator->(); }
+    const value_type& operator*() const& { return base_type::operator*(); }
+    value_type& operator*() && { return base_type::operator*(); }
 };
 
 namespace _impl {
@@ -213,19 +185,19 @@ class Range {
     using size_type = typename ArrayT::size_type;
 
 public:
-    Range(ArrayT& arr) : from(std::begin(arr)), to(std::end(arr)) {}
-    Range(iterator from, iterator to) : from(from), to(to) {}
+    constexpr Range(ArrayT& arr) : from(std::begin(arr)), to(std::end(arr)) {}
+    constexpr Range(iterator from, iterator to) : from(from), to(to) {}
 
-    size_type size() const
+    constexpr size_type size() const
     {
         Q_ASSERT(std::distance(from, to) >= 0);
         return size_type(std::distance(from, to));
     }
-    bool empty() const { return from == to; }
-    const_iterator begin() const { return from; }
-    const_iterator end() const { return to; }
-    iterator begin() { return from; }
-    iterator end() { return to; }
+    constexpr bool empty() const { return from == to; }
+    constexpr const_iterator begin() const { return from; }
+    constexpr const_iterator end() const { return to; }
+    constexpr iterator begin() { return from; }
+    constexpr iterator end() { return to; }
 
 private:
     iterator from;
@@ -239,8 +211,8 @@ private:
  */
 template <typename InputIt, typename ForwardIt, typename Pred>
 inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
-                                                 ForwardIt sFirst,
-                                                 ForwardIt sLast, Pred pred)
+                                                    ForwardIt sFirst,
+                                                    ForwardIt sLast, Pred pred)
 {
     for (; first != last; ++first)
         for (auto it = sFirst; it != sLast; ++it)

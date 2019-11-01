@@ -30,8 +30,7 @@ const QString SyncRoomData::UnreadCountKey =
 
 bool RoomSummary::isEmpty() const
 {
-    return joinedMemberCount.omitted() && invitedMemberCount.omitted()
-           && heroes.omitted();
+    return !joinedMemberCount && !invitedMemberCount && !heroes;
 }
 
 bool RoomSummary::merge(const RoomSummary& other)
@@ -46,12 +45,12 @@ QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
 {
     QDebugStateSaver _(dbg);
     QStringList sl;
-    if (!rs.joinedMemberCount.omitted())
-        sl << QStringLiteral("joined: %1").arg(rs.joinedMemberCount.value());
-    if (!rs.invitedMemberCount.omitted())
-        sl << QStringLiteral("invited: %1").arg(rs.invitedMemberCount.value());
-    if (!rs.heroes.omitted())
-        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes.value().join(','));
+    if (rs.joinedMemberCount)
+        sl << QStringLiteral("joined: %1").arg(*rs.joinedMemberCount);
+    if (rs.invitedMemberCount)
+        sl << QStringLiteral("invited: %1").arg(*rs.invitedMemberCount);
+    if (rs.heroes)
+        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(','));
     dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
     return dbg;
 }
