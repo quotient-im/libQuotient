@@ -83,6 +83,12 @@ public:
         return this->has_value() ? base_type::operator*() : this->emplace();
     }
 
+    [[deprecated("Use '!o' or '!o.has_value()' instead of 'o.omitted()'")]]
+    bool omitted() const
+    {
+        return !this->has_value();
+    }
+
     /// Merge the value from another Omittable
     /// \return true if \p other is not omitted and the value of
     ///         the current Omittable was different (or omitted);
