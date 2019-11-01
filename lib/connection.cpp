@@ -279,7 +279,7 @@ void Connection::reloadCapabilities()
 
         if (!d->capabilities.roomVersions) {
             qCWarning(MAIN) << "Pinning supported room version to 1";
-            d->capabilities.roomVersions.emplace({ "1", { { "1", "stable" } } });
+            d->capabilities.roomVersions = { "1", { { "1", "stable" } } };
         } else {
             qCDebug(MAIN) << "Room versions:" << defaultRoomVersion()
                           << "is default, full list:" << availableRoomVersions();

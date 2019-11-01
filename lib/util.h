@@ -44,27 +44,59 @@ struct HashQ {
 template <typename KeyT, typename ValT>
 using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
-inline constexpr auto none = std::nullopt;
+constexpr auto none = std::nullopt;
 
 /** `std::optional` with tweaks
  *
- * Due to tweaks, only works with default-constructible types.
+ * The tweaks are:
+ * - streamlined assignment (operator=)/emplace()ment of values that can be
+ *   used to implicitly construct the underlying type, including
+ *   direct-list-initialisation, e.g.:
+ *   \code
+ *   struct S { int a; char b; }
+ *   Omittable<S> o;
+ *   o = { 1, 'a' }; // std::optional would require o = S { 1, 'a' }
+ *   \endcode
+ * - entirely deleted value(). The technical reason is that Xcode 10 doesn't
+ *   have it; but besides that, value_or() or (after explicit checking)
+ *   `operator*()`/`operator->()` are better alternatives within Quotient
+ *   that doesn't practice throwing exceptions (as doesn't most of Qt).
+ * - disabled non-const lvalue operator*() and operator->(), as it's too easy
+ *   to inadvertently cause a value change through them.
+ * - edit() to provide a safe and explicit lvalue accessor instead of those
+ *   above. Requires the underlying type to be default-constructible.
+ *   Allows chained initialisation of nested Omittables:
+ *   \code
+ *   struct Inner { int member = 10; Omittable<int> innermost; };
+ *   struct Outer { int anotherMember = 10; Omittable<Inner> inner; };
+ *   Omittable<Outer> o; // = { 10, std::nullopt };
+ *   o.edit().inner.edit().innermost.emplace(42);
+ *   \endcode
+ * - merge() - a soft version of operator= that only overwrites its first
+ *   operand with the second one if the second one is not empty.
  */
 template <typename T>
 class Omittable : public std::optional<T> {
-    static_assert(!std::is_reference<T>::value,
-                  "You cannot make an Omittable<> with a reference type");
-
 public:
     using base_type = std::optional<T>;
     using value_type = std::decay_t<T>;
-    static_assert(std::is_default_constructible_v<value_type>,
-                  "Omittable<> requires a default-constructible type");
 
     using std::optional<T>::optional;
 
-    // Overload emplace() to allow passing braced-init-lists (the standard
-    // emplace() does direct-initialisation but not direct-list-initialisation).
+    // Overload emplace() and operator=() to allow passing braced-init-lists
+    // (the standard emplace() does direct-initialisation but
+    // not direct-list-initialisation).
+    using base_type::operator=;
+    Omittable& operator=(const value_type& v)
+    {
+        base_type::operator=(v);
+        return *this;
+    }
+    Omittable& operator=(value_type&& v)
+    {
+        base_type::operator=(v);
+        return *this;
+    }
     using base_type::emplace;
     T& emplace(const T& val) { return base_type::emplace(val); }
     T& emplace(T&& val) { return base_type::emplace(std::move(val)); }
