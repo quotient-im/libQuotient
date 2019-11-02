@@ -37,6 +37,7 @@ template <typename T>
 using optional = std::experimental::optional<T>;
 #endif
 
+#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
 // Enable std::unordered_map<QString, T>
 namespace std
 {
@@ -51,7 +52,8 @@ namespace std
                          );
         }
     };
-}
+} // namespace std
+#endif
 
 class QVariant;
 
