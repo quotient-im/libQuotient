@@ -30,6 +30,7 @@
 
 #include <vector>
 
+#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
 // Enable std::unordered_map<QString, T>
 // REMOVEME in favor of UnorderedMap, once we regenerate API files
 namespace std {
@@ -37,15 +38,12 @@ template <>
 struct hash<QString> {
     size_t operator()(const QString& s) const Q_DECL_NOEXCEPT
     {
-        return qHash(s
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-                     ,
-                     uint(qGlobalQHashSeed())
-#endif
+        return qHash(s, uint(qGlobalQHashSeed())
         );
     }
 };
 } // namespace std
+#endif
 
 class QVariant;
 
