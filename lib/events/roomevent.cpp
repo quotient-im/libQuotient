@@ -36,10 +36,8 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
     const auto unsignedData = json[UnsignedKeyL].toObject();
     const auto redaction = unsignedData[RedactedCauseKeyL];
-    if (redaction.isObject()) {
+    if (redaction.isObject())
         _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
-        return;
-    }
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
