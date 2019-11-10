@@ -1934,22 +1934,16 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
     auto originalJson = target.originalJsonObject();
-    static const QStringList keepKeys { EventIdKey,
-                                        TypeKey,
-                                        QStringLiteral("room_id"),
-                                        QStringLiteral("sender"),
-                                        StateKeyKey,
-                                        QStringLiteral("prev_content"),
-                                        ContentKey,
-                                        QStringLiteral("hashes"),
-                                        QStringLiteral("signatures"),
-                                        QStringLiteral("depth"),
-                                        QStringLiteral("prev_events"),
-                                        QStringLiteral("prev_state"),
-                                        QStringLiteral("auth_events"),
-                                        QStringLiteral("origin"),
-                                        QStringLiteral("origin_server_ts"),
-                                        QStringLiteral("membership") };
+    // clang-format off
+    static const QStringList keepKeys { EventIdKey, TypeKey,
+        QStringLiteral("room_id"), QStringLiteral("sender"), StateKeyKey,
+        QStringLiteral("prev_content"), ContentKey,
+        QStringLiteral("hashes"), QStringLiteral("signatures"),
+        QStringLiteral("depth"), QStringLiteral("prev_events"),
+        QStringLiteral("prev_state"), QStringLiteral("auth_events"),
+        QStringLiteral("origin"), QStringLiteral("origin_server_ts"),
+        QStringLiteral("membership") };
+    // clang-format on
 
     std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
