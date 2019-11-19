@@ -60,6 +60,7 @@ public:
         NetworkError = 100,
         Timeout,
         TimeoutError = Timeout,
+        Unauthorised,
         ContentAccessError,
         NotFoundError,
         IncorrectRequest,
@@ -113,7 +114,12 @@ public:
     struct Status {
         Status(StatusCode c) : code(c) {}
         Status(int c, QString m) : code(c), message(std::move(m)) {}
-        static Status fromHttpCode(int httpCode, QString msg = {});
+
+        static StatusCode fromHttpCode(int httpCode);
+        static Status fromHttpCode(int httpCode, QString msg)
+        {
+            return { fromHttpCode(httpCode), std::move(msg) };
+        }
 
         bool good() const { return code < ErrorLevel; }
         QDebug dumpToLog(QDebug dbg) const;

@@ -42,6 +42,7 @@ public:
     QString lastEvent;
     QString userId;
     QString deviceId;
+    std::vector<QString> needToken;
 
     mutable unsigned int txnCounter = 0;
     const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
@@ -143,12 +144,23 @@ const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 const QString& ConnectionData::userId() const { return d->userId; }
 
+bool ConnectionData::needsToken(const QString& requestName) const
+{
+    return std::find(d->needToken.cbegin(), d->needToken.cend(), requestName)
+           != d->needToken.cend();
+}
+
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
     d->deviceId = deviceId;
 }
 
 void ConnectionData::setUserId(const QString& userId) { d->userId = userId; }
+
+void ConnectionData::setNeedsToken(const QString& requestName)
+{
+    d->needToken.push_back(requestName);
+}
 
 QString ConnectionData::lastEvent() const { return d->lastEvent; }
 

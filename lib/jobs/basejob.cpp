@@ -226,8 +226,9 @@ void BaseJob::Private::sendRequest()
                                          requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    req.setRawHeader("Authorization",
-                     QByteArray("Bearer ") + connection->accessToken());
+    if (needsToken)
+        req.setRawHeader("Authorization",
+                         QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
@@ -274,6 +275,7 @@ void BaseJob::sendRequest()
         return;
     Q_ASSERT(d->connection && status().code == Pending);
     qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
+    d->needsToken |= d->connection->needsToken(objectName());
     emit aboutToSendRequest();
     d->sendRequest();
     Q_ASSERT(d->reply);
@@ -341,32 +343,32 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
-BaseJob::Status BaseJob::Status::fromHttpCode(int httpCode, QString msg)
+BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
 {
+    if (httpCode / 10 == 41) // 41x errors
+        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+    switch (httpCode) {
+    case 401:
+        return Unauthorised;
     // clang-format off
-    return { [httpCode]() -> StatusCode {
-            if (httpCode / 10 == 41) // 41x errors
-                return httpCode == 410 ? IncorrectRequestError : NotFoundError;
-            switch (httpCode) {
-            case 401: case 403: case 407:
-                return ContentAccessError;
-            case 404:
-                return NotFoundError;
-            case 400: case 405: case 406: case 426: case 428: case 505:
-            case 494: // Unofficial nginx "Request header too large"
-            case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-                return IncorrectRequestError;
-            case 429:
-                return TooManyRequestsError;
-            case 501: case 510:
-                return RequestNotImplementedError;
-            case 511:
-                return NetworkAuthRequiredError;
-            default:
-                return NetworkError;
-            }
-        }(), std::move(msg) };
-    // clang-format on
+    case 403: case 407: // clang-format on
+        return ContentAccessError;
+    case 404:
+        return NotFoundError;
+    // clang-format off
+    case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
+    case 494: // Unofficial nginx "Request header too large"
+    case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+        return IncorrectRequestError;
+    case 429:
+        return TooManyRequestsError;
+    case 501: case 510:
+        return RequestNotImplementedError;
+    case 511:
+        return NetworkAuthRequiredError;
+    default:
+        return NetworkError;
+    }
 }
 
 QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
@@ -496,6 +498,16 @@ void BaseJob::finishJob()
         d->connection->submit(this);
         return;
     }
+    if (error() == Unauthorised && !d->needsToken
+        && !d->connection->accessToken().isEmpty()) {
+        // Rerun with access token (extension of the spec while
+        // https://github.com/matrix-org/matrix-doc/issues/701 is pending)
+        d->connection->setNeedsToken(objectName());
+        qCWarning(d->logCat) << this << "re-running with authentication";
+        emit retryScheduled(d->retriesTaken, 0);
+        setStatus(Pending);
+        sendRequest();
+    }
     if ((error() == NetworkError || error() == Timeout)
         && d->retriesTaken < d->maxRetries) {
         // TODO: The whole retrying thing should be put to Connection(Manager)
@@ -596,6 +608,8 @@ QString BaseJob::statusCaption() const
         return tr("Network problems");
     case TimeoutError:
         return tr("Request timed out");
+    case Unauthorised:
+        return tr("Unauthorised request");
     case ContentAccessError:
         return tr("Access error");
     case NotFoundError:

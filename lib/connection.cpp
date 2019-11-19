@@ -343,7 +343,8 @@ void Connection::logout()
     }
     const auto* job = callApi<LogoutJob>();
     connect(job, &LogoutJob::finished, this, [this, job, syncWasRunning] {
-        if (job->status().good() || job->error() == BaseJob::ContentAccessError) {
+        if (job->status().good() || job->error() == BaseJob::Unauthorised
+            || job->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
             d->data->setToken({});
@@ -380,9 +381,9 @@ void Connection::sync(int timeout)
             });
     connect(job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
-        if (job->error() == BaseJob::ContentAccessError) {
-            qCWarning(SYNCJOB) << "Sync job failed with ContentAccessError - "
-                                  "login expired?";
+        if (job->error() == BaseJob::Unauthorised) {
+            qCWarning(SYNCJOB)
+                << "Sync job failed with Unauthorised - login expired?";
             emit loginError(job->errorString(), job->rawDataSample());
         } else
             emit syncError(job->errorString(), job->rawDataSample());
