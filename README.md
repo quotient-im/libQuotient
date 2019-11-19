@@ -7,6 +7,7 @@
 [![release](https://img.shields.io/github/release/quotient-im/libQuotient/all.svg)](https://github.com/quotient-im/libQuotient/releases/latest)
 [![](https://img.shields.io/cii/percentage/1023.svg?label=CII%20best%20practices)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
 ![](https://img.shields.io/github/commit-activity/y/quotient-im/libQuotient.svg)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/quotient-im/libQuotient.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/quotient-im/libQuotient/context:cpp)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 The Quotient project aims to produce a Qt5-based SDK to develop applications
