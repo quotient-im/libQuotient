@@ -41,12 +41,6 @@ StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
     : RoomEvent(type, basicStateEventJson(matrixType, contentJson, stateKey))
 {}
 
-bool StateEventBase::repeatsState() const
-{
-    const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
-    return fullJson().value(ContentKeyL) == prevContentJson;
-}
-
 QString StateEventBase::replacedState() const
 {
     return unsignedJson().value("replaces_state"_ls).toString();
@@ -56,9 +50,5 @@ void StateEventBase::dumpTo(QDebug dbg) const
 {
     if (!stateKey().isEmpty())
         dbg << '<' << stateKey() << "> ";
-    if (unsignedJson().contains(PrevContentKeyL))
-        dbg << QJsonDocument(unsignedJson()[PrevContentKeyL].toObject())
-                   .toJson(QJsonDocument::Compact)
-            << " -> ";
     RoomEvent::dumpTo(dbg);
 }

@@ -68,31 +68,15 @@ void MemberEventContent::fillJson(QJsonObject* o) const
 
 bool RoomMemberEvent::isInvite() const
 {
-    return membership() == MembershipType::Invite
-           && (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Invite;
 }
 
 bool RoomMemberEvent::isJoin() const
 {
-    return membership() == MembershipType::Join
-           && (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Join;
 }
 
 bool RoomMemberEvent::isLeave() const
 {
-    return membership() == MembershipType::Leave && prevContent()
-           && prevContent()->membership != membership()
-           && prevContent()->membership != MembershipType::Ban;
-}
-
-bool RoomMemberEvent::isRename() const
-{
-    auto prevName = prevContent() ? prevContent()->displayName : QString();
-    return displayName() != prevName;
-}
-
-bool RoomMemberEvent::isAvatarUpdate() const
-{
-    auto prevAvatarUrl = prevContent() ? prevContent()->avatarUrl : QUrl();
-    return avatarUrl() != prevAvatarUrl;
+    return membership() == MembershipType::Leave;
 }

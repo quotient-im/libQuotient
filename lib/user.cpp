@@ -391,18 +391,8 @@ void User::processEvent(const RoomMemberEvent& event, const Room* room,
         }
         newName.truncate(match.capturedStart(0));
     }
-    if (event.prevContent()) {
-        // FIXME: the hint doesn't work for bridged users
-        auto oldNameHint = d->nameForRoom(room,
-                                          event.prevContent()->displayName);
-        updateName(newName, oldNameHint, room);
-        updateAvatarUrl(event.avatarUrl(),
-                        d->avatarUrlForRoom(room, event.prevContent()->avatarUrl),
-                        room);
-    } else {
-        updateName(newName, room);
-        updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
-    }
+    updateName(newName, room);
+    updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
 }
 
 qreal User::hueF() const { return d->hueF; }

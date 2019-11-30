@@ -88,8 +88,6 @@ public:
     bool isInvite() const;
     bool isJoin() const;
     bool isLeave() const;
-    bool isRename() const;
-    bool isAvatarUpdate() const;
 
 private:
     Q_ENUM(MembershipType)

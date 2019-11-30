@@ -67,7 +67,6 @@ static const auto ContentKeyL = "content"_ls;
 static const auto EventIdKeyL = "event_id"_ls;
 static const auto UnsignedKeyL = "unsigned"_ls;
 static const auto RedactedCauseKeyL = "redacted_because"_ls;
-static const auto PrevContentKeyL = "prev_content"_ls;
 static const auto StateKeyKeyL = "state_key"_ls;
 
 /// Make a minimal correct Matrix event JSON

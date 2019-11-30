@@ -47,8 +47,6 @@ public:
     bool isStateEvent() const override { return true; }
     QString replacedState() const;
     void dumpTo(QDebug dbg) const override;
-
-    virtual bool repeatsState() const;
 };
 using StateEventPtr = event_ptr_tt<StateEventBase>;
 using StateEvents = EventsArray<StateEventBase>;
@@ -68,20 +66,6 @@ inline bool is<StateEventBase>(const Event& e)
 using StateEventKey = QPair<QString, QString>;
 
 template <typename ContentT>
-struct Prev {
-    template <typename... ContentParamTs>
-    explicit Prev(const QJsonObject& unsignedJson,
-                  ContentParamTs&&... contentParams)
-        : senderId(unsignedJson.value("prev_sender"_ls).toString())
-        , content(unsignedJson.value(PrevContentKeyL).toObject(),
-                  std::forward<ContentParamTs>(contentParams)...)
-    {}
-
-    QString senderId;
-    ContentT content;
-};
-
-template <typename ContentT>
 class StateEvent : public StateEventBase {
 public:
     using content_type = ContentT;
@@ -91,12 +75,7 @@ public:
                         ContentParamTs&&... contentParams)
         : StateEventBase(type, fullJson)
         , _content(contentJson(), std::forward<ContentParamTs>(contentParams)...)
-    {
-        const auto& unsignedData = unsignedJson();
-        if (unsignedData.contains(PrevContentKeyL))
-            _prev = std::make_unique<Prev<ContentT>>(
-                unsignedData, std::forward<ContentParamTs>(contentParams)...);
-    }
+    {}
     template <typename... ContentParamTs>
     explicit StateEvent(Type type, event_mtype_t matrixType,
                         const QString& stateKey,
@@ -114,18 +93,8 @@ public:
         visitor(_content);
         editJson()[ContentKeyL] = _content.toJson();
     }
-    [[deprecated("Use prevContent instead")]] const ContentT* prev_content() const
-    {
-        return prevContent();
-    }
-    const ContentT* prevContent() const
-    {
-        return _prev ? &_prev->content : nullptr;
-    }
-    QString prevSenderId() const { return _prev ? _prev->senderId : QString(); }
 
 private:
     ContentT _content;
-    std::unique_ptr<Prev<ContentT>> _prev;
 };
 } // namespace Quotient

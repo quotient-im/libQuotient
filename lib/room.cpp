@@ -1971,7 +1971,6 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
                 [&target](const auto& t) { return target.type() == t.first; });
     if (keepContentKeys == keepContentKeysMap.end()) {
         originalJson.remove(ContentKeyL);
-        originalJson.remove(PrevContentKeyL);
     } else {
         auto content = originalJson.take(ContentKeyL).toObject();
         for (auto it = content.begin(); it != content.end();) {
