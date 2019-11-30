@@ -56,7 +56,7 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
     static const QRegularExpression MxIdRegExp(
         QStringLiteral(
-            R"((^|[^<>/])([!#@][-a-z0-9_=/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
+            R"((^|[^<>/])([!#@][-a-z0-9_=#/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
         RegExpOptions);
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
