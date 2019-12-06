@@ -1937,7 +1937,6 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     // clang-format off
     static const QStringList keepKeys { EventIdKey, TypeKey,
         QStringLiteral("room_id"), QStringLiteral("sender"), StateKeyKey,
-        QStringLiteral("prev_content"), ContentKey,
         QStringLiteral("hashes"), QStringLiteral("signatures"),
         QStringLiteral("depth"), QStringLiteral("prev_events"),
         QStringLiteral("prev_state"), QStringLiteral("auth_events"),
