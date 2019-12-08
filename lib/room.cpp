@@ -2122,12 +2122,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))
                     continue;
-                auto targetIt = std::find_if(events.begin(), it,
-                                             [id = r->redactedEvent()](
-                                                 const RoomEventPtr& ep) {
-                                                 return ep->id() == id;
-                                             });
-                if (targetIt != it)
+                if (auto targetIt = std::find_if(events.begin(), events.end(),
+                        [id = r->redactedEvent()](const RoomEventPtr& ep) {
+                            return ep->id() == id;
+                        }); targetIt != events.end())
                     *targetIt = makeRedacted(**targetIt, *r);
                 else
                     qCDebug(EVENTS)
