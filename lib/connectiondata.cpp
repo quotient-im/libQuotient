@@ -86,7 +86,11 @@ ConnectionData::ConnectionData(QUrl baseUrl)
     });
 }
 
-ConnectionData::~ConnectionData() = default;
+ConnectionData::~ConnectionData()
+{
+    d->rateLimiter.disconnect();
+    d->rateLimiter.stop();
+}
 
 void ConnectionData::submit(BaseJob* job)
 {
