@@ -2134,25 +2134,23 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                         << r->redactedEvent() << "is not found";
                 // If the target event comes later, it comes already redacted.
             }
-            if (auto* msg = eventCast<RoomMessageEvent>(eptr)) {
-                if (!msg->replacedEvent().isEmpty()) {
-                    if (processReplacement(*msg))
-                        continue;
-                    auto targetIt = std::find_if(events.begin(), it,
-                                                 [id = msg->replacedEvent()](
-                                                     const RoomEventPtr& ep) {
-                                                     return ep->id() == id;
-                                                 });
-                    if (targetIt != it)
-                        *targetIt = makeReplaced(**targetIt, *msg);
-                    else // FIXME: don't ignore, just show it wherever it arrived
-                        qCDebug(EVENTS)
-                            << "Replacing event" << msg->id()
-                            << "ignored: replaced event" << msg->replacedEvent()
-                            << "is not found";
-                    // Same as with redactions above, the replaced event coming
-                    // later will come already with the new content.
-                }
+            if (auto* msg = eventCast<RoomMessageEvent>(eptr);
+                    msg && !msg->replacedEvent().isEmpty()) {
+                if (processReplacement(*msg))
+                    continue;
+                auto targetIt = std::find_if(events.begin(), it,
+                        [id = msg->replacedEvent()](const RoomEventPtr& ep) {
+                            return ep->id() == id;
+                        });
+                if (targetIt != it)
+                    *targetIt = makeReplaced(**targetIt, *msg);
+                else // FIXME: don't ignore, just show it wherever it arrived
+                    qCDebug(EVENTS)
+                        << "Replacing event" << msg->id()
+                        << "ignored: replaced event" << msg->replacedEvent()
+                        << "is not found";
+                // Same as with redactions above, the replaced event coming
+                // later will come already with the new content.
             }
         }
     }
@@ -2317,7 +2315,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
     if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
-        qCDebug(EVENTS) << "Room state event:" << e;
+        qCDebug(STATE) << "Room state event:" << e;
 
     // clang-format off
     return visit(e
@@ -2327,10 +2325,10 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
             // clang-format on
             if (ae.aliases().isEmpty()) {
-                qCDebug(STATE).noquote()
-                    << ae.stateKey() << "no more has aliases for room"
-                    << objectName();
-                d->aliasServers.remove(ae.stateKey());
+                if (d->aliasServers.remove(ae.stateKey()))
+                    qCDebug(STATE).noquote()
+                        << ae.stateKey() << "no more has aliases for room"
+                        << objectName();
             } else {
                 d->aliasServers.insert(ae.stateKey());
                 qCDebug(STATE).nospace().noquote()
