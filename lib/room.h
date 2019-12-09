@@ -442,6 +442,10 @@ public:
     Q_INVOKABLE const Quotient::StateEventBase*
     getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
 
+    /// Get a state event with the given event type and state key
+    /*! This is a typesafe overload that accepts a C++ event type instead of
+     * its Matrix name.
+     */
     template <typename EvT>
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
@@ -453,6 +457,14 @@ public:
         return evt;
     }
 
+    /// Set a state event of the given type with the given arguments
+    /*! This typesafe overload attempts to send a state event with the type
+     * \p EvT and the content defined by \p args. Specifically, the function
+     * creates a temporary object of type \p EvT passing \p args to
+     * the constructor, and sends a request to the homeserver using
+     * the Matrix event type defined by \p EvT and the event content produced
+     * via EvT::contentJson().
+     */
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args) const
     {
