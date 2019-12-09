@@ -46,7 +46,10 @@ public:
     ~RoomEvent() override;
 
     QString id() const;
-    QDateTime timestamp() const;
+    QDateTime originTimestamp() const;
+    [[deprecated("Use originTimestamp()")]] QDateTime timestamp() const {
+        return originTimestamp();
+    }
     QString roomId() const;
     QString senderId() const;
     bool isReplaced() const;

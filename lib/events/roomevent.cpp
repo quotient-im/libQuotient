@@ -44,7 +44,7 @@ RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
 QString RoomEvent::id() const { return fullJson()[EventIdKeyL].toString(); }
 
-QDateTime RoomEvent::timestamp() const
+QDateTime RoomEvent::originTimestamp() const
 {
     return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
 }
