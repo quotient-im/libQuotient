@@ -27,6 +27,8 @@
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
 #include "events/roommessageevent.h"
+#include "events/roomcreateevent.h"
+#include "events/roomtombstoneevent.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -302,6 +304,11 @@ public:
                                       const char* relType) const;
     const RelatedEvents relatedEvents(const RoomEvent& evt,
                                       const char* relType) const;
+
+    const RoomCreateEvent* creation() const
+    { return getCurrentState<RoomCreateEvent>(); }
+    const RoomTombstoneEvent* tombstone() const
+    { return getCurrentState<RoomTombstoneEvent>(); }
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
