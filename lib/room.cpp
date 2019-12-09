@@ -515,7 +515,9 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
     // that has just arrived. In this case we should recalculate
     // unreadMessages and might need to promote the read marker further
     // over local-origin messages.
-    const auto readMarker = q->readMarker();
+    auto readMarker = q->readMarker();
+    if (readMarker == timeline.crend() && q->allHistoryLoaded())
+        --readMarker; // Read marker not found in the timeline, initialise it
     if (readMarker >= from && readMarker < to) {
         promoteReadMarker(q->localUser(), readMarker, true);
         return;
