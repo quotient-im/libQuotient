@@ -183,6 +183,7 @@ class Room::Private
         rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
 
         void getPreviousContent(int limit = 10);
+        bool allHistoryLoaded() const;
 
         template <typename EventT>
         const EventT* getCurrentState(const QString& stateKey = {}) const
@@ -370,6 +371,11 @@ const Room::PendingEvents& Room::pendingEvents() const
     return d->unsyncedEvents;
 }
 
+bool Room::Private::allHistoryLoaded() const
+{
+    return !timeline.empty() && is<RoomCreateEvent>(*timeline.front());
+}
+
 QString Room::name() const
 {
     return d->getCurrentState<RoomNameEvent>()->name();
@@ -503,7 +509,9 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
     // that has just arrived. In this case we should recalculate
     // unreadMessages and might need to promote the read marker further
     // over local-origin messages.
-    const auto readMarker = q->readMarker();
+    auto readMarker = q->readMarker();
+    if (readMarker == timeline.crend() && allHistoryLoaded())
+        --readMarker; // Read marker not found in the timeline, initialise it
     if (readMarker >= from && readMarker < to)
     {
         promoteReadMarker(q->localUser(), readMarker, true);
