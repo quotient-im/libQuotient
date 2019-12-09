@@ -167,7 +167,22 @@ public:
     QString version() const;
     bool isUnstable() const;
     QString predecessorId() const;
+    /// Room predecessor
+    /** This function validates that the predecessor has a tombstone and
+     * the tombstone refers to the current room. If that's not the case,
+     * or if the predecessor is in a join state not matching \p stateFilter,
+     * the function returns nullptr.
+     */
+    Room* predecessor(JoinStates statesFilter = JoinState::Invite
+                                                | JoinState::Join) const;
     QString successorId() const;
+    /// Room successor
+    /** This function validates that the successor room's creation event
+     * refers to the current room. If that's not the case, or if the successor
+     * is in a join state not matching \p stateFilter, it returns nullptr.
+     */
+    Room* successor(JoinStates statesFilter = JoinState::Invite
+                                              | JoinState::Join) const;
     QString name() const;
     /// Room aliases defined on the current user's server
     /// \sa remoteAliases, setLocalAliases

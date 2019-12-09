@@ -387,9 +387,29 @@ QString Room::predecessorId() const
     return d->getCurrentState<RoomCreateEvent>()->predecessor().roomId;
 }
 
+Room* Room::predecessor(JoinStates statesFilter) const
+{
+    if (const auto& predId = predecessorId(); !predId.isEmpty())
+        if (auto* r = connection()->room(predId, statesFilter);
+                r && r->successorId() == id())
+            return r;
+
+    return nullptr;
+}
+
 QString Room::successorId() const
 {
     return d->getCurrentState<RoomTombstoneEvent>()->successorRoomId();
+}
+
+Room* Room::successor(JoinStates statesFilter) const
+{
+    if (const auto& succId = successorId(); !succId.isEmpty())
+        if (auto* r = connection()->room(succId, statesFilter);
+                r && r->predecessorId() == id())
+            return r;
+
+    return nullptr;
 }
 
 const Room::Timeline& Room::messageEvents() const { return d->timeline; }
