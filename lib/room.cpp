@@ -948,12 +948,27 @@ void Room::removeTag(const QString& name)
                        << "not found, nothing to remove";
 }
 
-void Room::setTags(TagsMap newTags)
+void Room::setTags(TagsMap newTags, ActionScope applyOn)
 {
+    bool propagate = applyOn != ActionScope::ThisRoomOnly;
+    auto joinStates =
+        applyOn == ActionScope::WithinSameState ? joinState() :
+        applyOn == ActionScope::OmitLeftState ? JoinState::Join|JoinState::Invite :
+        JoinState::Join|JoinState::Invite|JoinState::Leave;
+    if (propagate) {
+        for (auto* r = this; (r = r->predecessor(joinStates));)
+            r->setTags(newTags, ActionScope::ThisRoomOnly);
+    }
+
     d->setTags(move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
         localUser()->id(), id(), TagEvent::matrixTypeId(),
         TagEvent(d->tags).contentJson());
+
+    if (propagate) {
+        for (auto* r = this; (r = r->successor(joinStates));)
+            r->setTags(newTags, ActionScope::ThisRoomOnly);
+    }
 }
 
 void Room::Private::setTags(TagsMap newTags)

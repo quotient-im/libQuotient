@@ -396,6 +396,19 @@ public:
     /// Remove a tag from the room
     Q_INVOKABLE void removeTag(const QString& name);
 
+    /// The scope to apply an action on
+    /*! This enumeration is used to pick a strategy to propagate certain
+     * actions on the room to its predecessors and successors.
+     */
+    enum ActionScope {
+        ThisRoomOnly,    //< Do not apply to predecessors and successors
+        WithinSameState, //< Apply to predecessors and successors in the same
+                         //< state as the current one
+        OmitLeftState,   //< Apply to all reachable predecessors and successors
+                         //< except those in Leave state
+        WholeSequence    //< Apply to all reachable predecessors and successors
+    };
+
     /** Overwrite the room's tags
      * This completely replaces the existing room's tags with a set
      * of new ones and updates the new set on the server. Unlike
@@ -403,8 +416,11 @@ public:
      * immediately, not waiting for confirmation from the server
      * (because tags are saved in account data rather than in shared
      * room state).
+     * \param applyOn setting this to Room::OnAllConversations will set tags
+     *                on this and all _known_ predecessors and successors;
+     *                by default only the current room is changed
      */
-    void setTags(TagsMap newTags);
+    void setTags(TagsMap newTags, ActionScope applyOn = ThisRoomOnly);
 
     /// Check whether the list of tags has m.favourite
     bool isFavourite() const;
