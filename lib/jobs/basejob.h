@@ -57,7 +57,7 @@ public:
         Unprepared = 25, //< Initial job state is incomplete, hence warning level
         Abandoned = 50, //< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //< Errors have codes starting from this
-        NetworkError = 100,
+        NetworkError = 101,
         Timeout,
         TimeoutError = Timeout,
         Unauthorised,
