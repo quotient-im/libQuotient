@@ -27,6 +27,8 @@
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
 #include "events/roommessageevent.h"
+#include "events/roomcreateevent.h"
+#include "events/roomtombstoneevent.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -167,7 +169,22 @@ public:
     QString version() const;
     bool isUnstable() const;
     QString predecessorId() const;
+    /// Room predecessor
+    /** This function validates that the predecessor has a tombstone and
+     * the tombstone refers to the current room. If that's not the case,
+     * or if the predecessor is in a join state not matching \p stateFilter,
+     * the function returns nullptr.
+     */
+    Room* predecessor(JoinStates statesFilter = JoinState::Invite
+                                                | JoinState::Join) const;
     QString successorId() const;
+    /// Room successor
+    /** This function validates that the successor room's creation event
+     * refers to the current room. If that's not the case, or if the successor
+     * is in a join state not matching \p stateFilter, it returns nullptr.
+     */
+    Room* successor(JoinStates statesFilter = JoinState::Invite
+                                              | JoinState::Join) const;
     QString name() const;
     /// Room aliases defined on the current user's server
     /// \sa remoteAliases, setLocalAliases
@@ -288,6 +305,11 @@ public:
     const RelatedEvents relatedEvents(const RoomEvent& evt,
                                       const char* relType) const;
 
+    const RoomCreateEvent* creation() const
+    { return getCurrentState<RoomCreateEvent>(); }
+    const RoomTombstoneEvent* tombstone() const
+    { return getCurrentState<RoomTombstoneEvent>(); }
+
     bool displayed() const;
     /// Mark the room as currently displayed to the user
     /**
@@ -374,6 +396,19 @@ public:
     /// Remove a tag from the room
     Q_INVOKABLE void removeTag(const QString& name);
 
+    /// The scope to apply an action on
+    /*! This enumeration is used to pick a strategy to propagate certain
+     * actions on the room to its predecessors and successors.
+     */
+    enum ActionScope {
+        ThisRoomOnly,    //< Do not apply to predecessors and successors
+        WithinSameState, //< Apply to predecessors and successors in the same
+                         //< state as the current one
+        OmitLeftState,   //< Apply to all reachable predecessors and successors
+                         //< except those in Leave state
+        WholeSequence    //< Apply to all reachable predecessors and successors
+    };
+
     /** Overwrite the room's tags
      * This completely replaces the existing room's tags with a set
      * of new ones and updates the new set on the server. Unlike
@@ -381,8 +416,11 @@ public:
      * immediately, not waiting for confirmation from the server
      * (because tags are saved in account data rather than in shared
      * room state).
+     * \param applyOn setting this to Room::OnAllConversations will set tags
+     *                on this and all _known_ predecessors and successors;
+     *                by default only the current room is changed
      */
-    void setTags(TagsMap newTags);
+    void setTags(TagsMap newTags, ActionScope applyOn = ThisRoomOnly);
 
     /// Check whether the list of tags has m.favourite
     bool isFavourite() const;
