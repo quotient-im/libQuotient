@@ -94,7 +94,7 @@ ConnectionData::~ConnectionData()
 
 void ConnectionData::submit(BaseJob* job)
 {
-    Q_ASSERT(job->error() == BaseJob::Pending);
+    job->setStatus(BaseJob::Pending);
     if (!d->rateLimiter.isActive()) {
         job->sendRequest();
         return;

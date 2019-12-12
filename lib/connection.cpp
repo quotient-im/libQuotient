@@ -1414,8 +1414,7 @@ void Connection::setLazyLoading(bool newValue)
 void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
 {
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-    job->prepare(d->data.get(), runningPolicy & BackgroundRequest);
-    d->data->submit(job);
+    job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
 }
 
 void Connection::getTurnServers()
