@@ -1037,7 +1037,7 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
 
     if (QSysInfo::productType() == "windows") {
         if (const auto& suffixes = fileInfo->mimeType.suffixes();
-            suffixes.isEmpty()
+            !suffixes.isEmpty()
             && std::none_of(suffixes.begin(), suffixes.end(),
                             [&fileName](const QString& s) {
                                 return fileName.endsWith(s);
