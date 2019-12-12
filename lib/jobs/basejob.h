@@ -82,6 +82,7 @@ public:
         UserConsentRequiredError = UserConsentRequired,
         CannotLeaveRoom,
         UserDeactivated,
+        FileError,
         UserDefinedError = 256
     };
     Q_ENUM(StatusCode)
