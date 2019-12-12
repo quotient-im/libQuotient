@@ -267,7 +267,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
     doPrepare();
 
     if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
-        && !d->requestData.source()->isReadable()) {
+        && d->requestData.source() && !d->requestData.source()->isReadable()) {
         setStatus(FileError, "Request data not ready");
     }
     Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
