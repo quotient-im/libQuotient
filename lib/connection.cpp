@@ -624,12 +624,17 @@ UploadContentJob*
 Connection::uploadContent(QIODevice* contentSource, const QString& filename,
                           const QString& overrideContentType) const
 {
+    Q_ASSERT(contentSource != nullptr);
     auto contentType = overrideContentType;
     if (contentType.isEmpty()) {
         contentType = QMimeDatabase()
                           .mimeTypeForFileNameAndData(filename, contentSource)
                           .name();
-        contentSource->open(QIODevice::ReadOnly);
+        if (!contentSource->open(QIODevice::ReadOnly)) {
+            qCWarning(MAIN) << "Couldn't open content source" << filename
+                            << "for reading:" << contentSource->errorString();
+            return nullptr;
+        }
     }
     return callApi<UploadContentJob>(contentSource, filename, contentType);
 }
@@ -638,11 +643,6 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
                                          const QString& overrideContentType)
 {
     auto sourceFile = new QFile(fileName);
-    if (!sourceFile->open(QIODevice::ReadOnly)) {
-        qCWarning(MAIN) << "Couldn't open" << sourceFile->fileName()
-                        << "for reading";
-        return nullptr;
-    }
     return uploadContent(sourceFile, QFileInfo(*sourceFile).fileName(),
                          overrideContentType);
 }
