@@ -11,9 +11,8 @@ using namespace Quotient;
 auto fromData(const QByteArray& data)
 {
     auto source = std::make_unique<QBuffer>();
-    source->open(QIODevice::WriteOnly);
-    source->write(data);
-    source->close();
+    source->setData(data);
+    source->open(QIODevice::ReadOnly);
     return source;
 }
 
