@@ -1628,19 +1628,16 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
-    const auto txnId = connection()->generateTxnId();
+    const auto txnId =
+        d->addAsPending(
+             makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile))
+            ->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
-    {
-        auto&& event =
-            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile);
-        event->setTransactionId(txnId);
-        d->addAsPending(std::move(event));
-    }
-    auto* context = new QObject(this);
-    connect(this, &Room::fileTransferCompleted, context,
-            [context, this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
+    // Below, the upload job is used as a context object to clean up connections
+    connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
+            [this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {
@@ -1656,11 +1653,10 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                                         << "but the event referring to it was "
                                            "cancelled";
                     }
-                    context->deleteLater();
                 }
             });
-    connect(this, &Room::fileTransferCancelled, this,
-            [context, this, txnId](const QString& id) {
+    connect(this, &Room::fileTransferCancelled, d->fileTransfers[txnId].job,
+            [this, txnId](const QString& id) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {
@@ -1670,7 +1666,6 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                         d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
                         emit pendingEventDiscarded();
                     }
-                    context->deleteLater();
                 }
             });
 
@@ -1849,7 +1844,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     auto fileName = localFilename.toLocalFile();
     auto job = connection()->uploadFile(fileName, overrideContentType);
     if (isJobRunning(job)) {
-        d->fileTransfers.insert(id, { job, fileName, true });
+        d->fileTransfers[id] = { job, fileName, true };
         connect(job, &BaseJob::uploadProgress, this,
                 [this, id](qint64 sent, qint64 total) {
                     d->fileTransfers[id].update(sent, total);
