@@ -400,8 +400,9 @@ TEST_IMPL(sendFile)
         FAIL_TEST();
     }
 
-    // FIXME: Clean away connections (connectUntil doesn't help here).
-    connectUntil(targetRoom, &Room::fileTransferCompleted, this,
+    // Using tf as a context object to clean away both connections
+    // once either of them triggers.
+    connectUntil(targetRoom, &Room::fileTransferCompleted, tf,
         [this, thisTest, txnId, tf, tfName](const QString& id) {
             auto fti = targetRoom->fileTransferInfo(id);
             Q_ASSERT(fti.status == FileTransferInfo::Completed);
@@ -409,16 +410,16 @@ TEST_IMPL(sendFile)
             if (id != txnId)
                 return false;
 
-            delete tf;
+            tf->deleteLater();
             return checkFileSendingOutcome(thisTest, txnId, tfName);
         });
-    connectUntil(targetRoom, &Room::fileTransferFailed, this,
+    connectUntil(targetRoom, &Room::fileTransferFailed, tf,
         [this, thisTest, txnId, tf](const QString& id, const QString& error) {
             if (id != txnId)
                 return false;
 
             targetRoom->postPlainText(origin % ": File upload failed: " % error);
-            delete tf;
+            tf->deleteLater();
             FAIL_TEST();
         });
     return false;
@@ -454,6 +455,8 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
             return visit(
                 *evt,
                 [&](const RoomMessageEvent& e) {
+                    // TODO: actually try to download it to check, e.g., #366
+                    // (and #368 would help to test against bad file names).
                     FINISH_TEST(
                         !e.id().isEmpty()
                             && pendingEvents[size_t(pendingIdx)]->transactionId()
