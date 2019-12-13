@@ -994,6 +994,11 @@ QList<User*> Room::directChatUsers() const
     return connection()->directChatUsers(this);
 }
 
+QString safeFileName(QString rawName)
+{
+    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -1010,24 +1015,26 @@ Room::Private::getEventWithFile(const QString& eventId) const
 
 QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
 {
-    Q_ASSERT(event->hasFileContent());
+    Q_ASSERT(event && event->hasFileContent());
     const auto* fileInfo = event->content()->fileInfo();
     QString fileName;
     if (!fileInfo->originalName.isEmpty())
-    {
-        fileName = QFileInfo(fileInfo->originalName).fileName();
-    }
-    else if (!event->plainBody().isEmpty())
-    {
+        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    else {
         // Having no better options, assume that the body has
         // the original file URL or at least the file name.
         QUrl u { event->plainBody() };
         if (u.isValid())
-            fileName = QFileInfo(u.path()).fileName();
+        {
+            qDebug(MAIN) << event->id()
+                         << "has no file name supplied but the event body "
+                            "looks like a URL - using the file name from it";
+            fileName = u.fileName();
+        }
     }
-    // Check the file name for sanity
-    if (fileName.isEmpty() || !QTemporaryFile(fileName).open())
-        return "file." % fileInfo->mimeType.preferredSuffix();
+    if (fileName.isEmpty())
+        return safeFileName(fileInfo->mediaId()).replace('.', '-') % '.'
+               % fileInfo->mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows")
     {
@@ -1845,17 +1852,20 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     if (filePath.isEmpty())
     {
         // Build our own file path, starting with temp directory and eventId.
-        filePath = eventId;
-        filePath = QDir::tempPath() % '/' %
-            filePath.replace(QRegularExpression("[/\\<>|\"*?:]"), "_") %
-                '#' % d->fileNameToDownload(event);
+        filePath =
+            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
+
+        if (filePath.size() > 200) // If too long, elide in the middle
+            filePath.replace(128, filePath.size() - 192, "---");
+
+        filePath = QDir::tempPath() % '/' % filePath;
+        qDebug(MAIN) << "File path:" << filePath;
     }
     auto job = connection()->downloadFile(fileUrl, filePath);
     if (isJobRunning(job))
     {
-        // If there was a previous transfer (completed or failed), remove it.
-        d->fileTransfers.remove(eventId);
-        d->fileTransfers.insert(eventId, { job, job->targetFileName() });
+        // If there was a previous transfer (completed or failed), overwrite it.
+        d->fileTransfers[eventId] = { job, job->targetFileName() };
         connect(job, &BaseJob::downloadProgress, this,
             [this,eventId] (qint64 received, qint64 total) {
                 d->fileTransfers[eventId].update(received, total);
