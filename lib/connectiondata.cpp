@@ -96,7 +96,7 @@ void ConnectionData::submit(BaseJob* job)
 {
     job->setStatus(BaseJob::Pending);
     if (!d->rateLimiter.isActive()) {
-        job->sendRequest();
+        QTimer::singleShot(0, job, &BaseJob::sendRequest);
         return;
     }
     d->jobs[size_t(job->isBackground())].emplace(job);
