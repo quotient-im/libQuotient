@@ -804,7 +804,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (!room)
         room = d->roomMap.value({ id, true });
     if (room && room->joinState() != JoinState::Leave) {
-        auto leaveJob = room->leaveRoom();
+        auto leaveJob = leaveRoom(room);
         connect(leaveJob, &BaseJob::result, this,
                 [this, leaveJob, forgetJob, room] {
                     if (leaveJob->error() == BaseJob::Success
