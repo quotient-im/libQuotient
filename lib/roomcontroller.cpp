@@ -74,28 +74,31 @@ public:
         }
         return nullptr;
     }
-    void replaceId(Room* r, const RoomEvent& evt)
+    bool replaceId(Room* r, const RoomEvent& evt)
     {
-        if (auto scopeIt = transfersMap.find(r); scopeIt != transfersMap.end()) {
-            auto& submap = scopeIt->second;
-            if (submap.find(evt.id()) != submap.end()) {
-                qWarning(MAIN)
-                    << "Cannot move file transfer from txnId"
-                    << evt.transactionId() << "to event id" << evt.id()
-                    << "as there's another file transfer with that id";
-                qWarning(MAIN) << "Both file transfers remain intact";
-                return;
-            }
-            auto node = submap.extract(evt.transactionId());
-            if (!node.empty()) {
-                node.key() = evt.id();
-                qCDebug(MAIN) << "File transfer id:" << evt.transactionId()
-                              << "->" << evt.id();
+        auto scopeIt = transfersMap.find(r);
+        if (scopeIt == transfersMap.end())
+            return false;
 
-                bool inserted = !submap.insert(std::move(node)).inserted;
-                Q_ASSERT(inserted);
-            }
+        auto& submap = scopeIt->second;
+        // It would be great to use unordered_map::extract() below;
+        // alas, Apple's implementation doesn't have it.
+        auto valIt = submap.find(evt.transactionId());
+        if (valIt == submap.end())
+            return false;
+
+        if (submap.find(evt.id()) != submap.end()) {
+            qWarning(MAIN) << "Cannot move file transfer from txnId"
+                           << evt.transactionId() << "to event id" << evt.id()
+                           << "as there's another file transfer with that id";
+            qWarning(MAIN) << "Both file transfers remain intact";
+            return false;
         }
+        qCDebug(MAIN) << "File transfer id:" << evt.transactionId() << "->"
+                      << evt.id();
+        bool inserted = submap.insert({ evt.id(), valIt->second }).second;
+        Q_ASSERT(inserted);
+        return true;
     }
 
     bool erase(Room* r, const QString& tid, FileTransfer* ft)
