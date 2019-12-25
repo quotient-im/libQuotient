@@ -21,6 +21,7 @@
 #include "avatar.h"
 #include "connection.h"
 #include "room.h"
+#include "roomcontroller.h"
 
 #include "csapi/content-repo.h"
 #include "csapi/profile.h"
@@ -261,7 +262,7 @@ void User::rename(const QString& newName)
             &BaseJob::success, this, [=] { updateName(actualNewName); });
 }
 
-void User::rename(const QString& newName, const Room* r)
+void User::rename(const QString& newName, Room* r)
 {
     if (!r) {
         qCWarning(MAIN) << "Passing a null room to two-argument User::rename()"
@@ -274,8 +275,8 @@ void User::rename(const QString& newName, const Room* r)
     const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
     evtC.displayName = actualNewName;
-    connect(r->setState<RoomMemberEvent>(id(), move(evtC)), &BaseJob::success,
-            this, [=] { updateName(actualNewName, r); });
+    connect(RoomController(r).setState<RoomMemberEvent>(id(), move(evtC)),
+            &BaseJob::success, this, [=] { updateName(actualNewName, r); });
 }
 
 bool User::setAvatar(const QString& fileName)

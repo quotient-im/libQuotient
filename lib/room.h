@@ -44,40 +44,6 @@ class SyncRoomData;
 class RoomMemberEvent;
 class User;
 class MemberSorter;
-class LeaveRoomJob;
-class SetRoomStateWithKeyJob;
-class RedactEventJob;
-
-/** The data structure used to expose file transfer information to views
- *
- * This is specifically tuned to work with QML exposing all traits as
- * Q_PROPERTY values.
- */
-class FileTransferInfo {
-    Q_GADGET
-    Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
-    Q_PROPERTY(bool active READ active CONSTANT)
-    Q_PROPERTY(bool started READ started CONSTANT)
-    Q_PROPERTY(bool completed READ completed CONSTANT)
-    Q_PROPERTY(bool failed READ failed CONSTANT)
-    Q_PROPERTY(int progress MEMBER progress CONSTANT)
-    Q_PROPERTY(int total MEMBER total CONSTANT)
-    Q_PROPERTY(QUrl localDir MEMBER localDir CONSTANT)
-    Q_PROPERTY(QUrl localPath MEMBER localPath CONSTANT)
-public:
-    enum Status { None, Started, Completed, Failed, Cancelled };
-    Status status = None;
-    bool isUpload = false;
-    int progress = 0;
-    int total = -1;
-    QUrl localDir {};
-    QUrl localPath {};
-
-    bool started() const { return status == Started; }
-    bool completed() const { return status == Completed; }
-    bool active() const { return started() || completed(); }
-    bool failed() const { return status == Failed; }
-};
 
 class Room : public QObject {
     Q_OBJECT
@@ -269,6 +235,7 @@ public:
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
     const Timeline& messageEvents() const;
+    /// Get the list of dispatched events not yet seen in the room's timeline
     const PendingEvents& pendingEvents() const;
 
     /// Check whether all historical messages are already loaded
@@ -368,59 +335,21 @@ public:
     Q_INVOKABLE int highlightCount() const;
     Q_INVOKABLE void resetHighlightCount();
 
-    /** Check whether the room has account data of the given type
-     * Tags and read markers are not supported by this method _yet_.
+    /// Check whether the room has account data of the given type
+    /*! Tags and read markers are not supported by this method yet.
      */
     bool hasAccountData(const QString& type) const;
 
-    /** Get a generic account data event of the given type
-     * This returns a generic hash map for any room account data event
+    /// Get a generic account data event of the given type
+    /*! This returns a generic hash map for any room account data event
      * stored on the server. Tags and read markers cannot be retrieved
-     * using this method _yet_.
+     * using this method yet.
      */
     const EventPtr& accountData(const QString& type) const;
 
     QStringList tagNames() const;
     TagsMap tags() const;
     TagRecord tag(const QString& name) const;
-
-    /** Add a new tag to this room
-     * If this room already has this tag, nothing happens. If it's a new
-     * tag for the room, the respective tag record is added to the set
-     * of tags and the new set is sent to the server to update other
-     * clients.
-     */
-    void addTag(const QString& name, const TagRecord& record = {});
-    Q_INVOKABLE void addTag(const QString& name, float order);
-
-    /// Remove a tag from the room
-    Q_INVOKABLE void removeTag(const QString& name);
-
-    /// The scope to apply an action on
-    /*! This enumeration is used to pick a strategy to propagate certain
-     * actions on the room to its predecessors and successors.
-     */
-    enum ActionScope {
-        ThisRoomOnly,    //< Do not apply to predecessors and successors
-        WithinSameState, //< Apply to predecessors and successors in the same
-                         //< state as the current one
-        OmitLeftState,   //< Apply to all reachable predecessors and successors
-                         //< except those in Leave state
-        WholeSequence    //< Apply to all reachable predecessors and successors
-    };
-
-    /** Overwrite the room's tags
-     * This completely replaces the existing room's tags with a set
-     * of new ones and updates the new set on the server. Unlike
-     * most other methods in Room, this one sends a signal about changes
-     * immediately, not waiting for confirmation from the server
-     * (because tags are saved in account data rather than in shared
-     * room state).
-     * \param applyOn setting this to Room::OnAllConversations will set tags
-     *                on this and all _known_ predecessors and successors;
-     *                by default only the current room is changed
-     */
-    void setTags(TagsMap newTags, ActionScope applyOn = ThisRoomOnly);
 
     /// Check whether the list of tags has m.favourite
     bool isFavourite() const;
@@ -438,29 +367,12 @@ public:
     Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
     Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
 
-    /// Get a file name for downloading for a given event id
+    /// Get a file name for downloading by a given event id
     /*!
      * The event MUST be RoomMessageEvent and have content
      * for downloading. \sa RoomMessageEvent::hasContent
      */
     Q_INVOKABLE QString fileNameToDownload(const QString& eventId) const;
-
-    /// Get information on file upload/download
-    /*!
-     * \param id uploads are identified by the corresponding event's
-     *           transactionId (because uploads are done before
-     *           the event is even sent), while downloads are using
-     *           the normal event id for identifier.
-     */
-    Q_INVOKABLE Quotient::FileTransferInfo
-    fileTransferInfo(const QString& id) const;
-
-    /// Get the URL to the actual file source in a unified way
-    /*!
-     * For uploads it will return a URL to a local file; for downloads
-     * the URL will be taken from the corresponding room event.
-     */
-    Q_INVOKABLE QUrl fileSource(const QString& id) const;
 
     /** Pretty-prints plain text into HTML
      * As of now, it's exactly the same as Quotient::prettyPrint();
@@ -495,89 +407,17 @@ public:
         return evt;
     }
 
-    /// Set a state event of the given type with the given arguments
-    /*! This typesafe overload attempts to send a state event with the type
-     * \p EvT and the content defined by \p args. Specifically, the function
-     * creates a temporary object of type \p EvT passing \p args to
-     * the constructor, and sends a request to the homeserver using
-     * the Matrix event type defined by \p EvT and the event content produced
-     * via EvT::contentJson().
-     */
-    template <typename EvT, typename... ArgTs>
-    auto setState(ArgTs&&... args) const
-    {
-        return setState(EvT(std::forward<ArgTs>(args)...));
-    }
-
 public slots:
-    /** Check whether the room should be upgraded */
-    void checkVersion();
-
-    QString postMessage(const QString& plainText, MessageEventType type);
-    QString postPlainText(const QString& plainText);
-    QString postHtmlMessage(const QString& plainText, const QString& html,
-                            MessageEventType type = MessageEventType::Text);
-    QString postHtmlText(const QString& plainText, const QString& html);
-    /// Send a reaction on a given event with a given key
-    QString postReaction(const QString& eventId, const QString& key);
-    QString postFile(const QString& plainText, const QUrl& localPath,
-                     bool asGenericFile = false);
-    /** Post a pre-created room message event
-     *
-     * Takes ownership of the event, deleting it once the matching one
-     * arrives with the sync
-     * \return transaction id associated with the event.
-     */
-    QString postEvent(RoomEvent* event);
-    QString postJson(const QString& matrixType, const QJsonObject& eventContent);
-    QString retryMessage(const QString& txnId);
-    void discardMessage(const QString& txnId);
-
-    /// Send a request to update the room state with the given event
-    SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
-    void setName(const QString& newName);
-    void setCanonicalAlias(const QString& newAlias);
-    /// Set room aliases on the user's current server
-    void setLocalAliases(const QStringList& aliases);
-    void setTopic(const QString& newTopic);
-
     /// You shouldn't normally call this method; it's here for debugging
     void refreshDisplayName();
 
     void getPreviousContent(int limit = 10);
-
-    void inviteToRoom(const QString& memberId);
-    LeaveRoomJob* leaveRoom();
-    /// \deprecated - use setState() instead")
-    SetRoomStateWithKeyJob* setMemberState(const QString& memberId,
-                                           const RoomMemberEvent& event) const;
-    void kickMember(const QString& memberId, const QString& reason = {});
-    void ban(const QString& userId, const QString& reason = {});
-    void unban(const QString& userId);
-    void redactEvent(const QString& eventId, const QString& reason = {});
-
-    void uploadFile(const QString& id, const QUrl& localFilename,
-                    const QString& overrideContentType = {});
-    // If localFilename is empty a temporary file is created
-    void downloadFile(const QString& eventId, const QUrl& localFilename = {});
-    void cancelFileTransfer(const QString& id);
 
     /// Mark all messages in the room as read
     void markAllMessagesAsRead();
 
     /// Whether the current user is allowed to upgrade the room
     bool canSwitchVersions() const;
-
-    /// Switch the room's version (aka upgrade)
-    void switchVersion(QString newVersion);
-
-    void inviteCall(const QString& callId, const int lifetime,
-                    const QString& sdp);
-    void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
-    void answerCall(const QString& callId, const int lifetime,
-                    const QString& sdp);
-    void answerCall(const QString& callId, const QString& sdp);
-    void hangupCall(const QString& callId);
 
 signals:
     /// Initial set of state events has been loaded
@@ -612,16 +452,6 @@ signals:
     /// The status of a pending event has changed
     /** \sa PendingEventItem::deliveryStatus */
     void pendingEventChanged(int pendingEventIndex);
-    /// The server accepted the message
-    /** This is emitted when an event sending request has successfully
-     * completed. This does not mean that the event is already in the
-     * local timeline, only that the server has accepted it.
-     * \param txnId transaction id assigned by the client during sending
-     * \param eventId event id assigned by the server upon acceptance
-     * \sa postEvent, postPlainText, postMessage, postHtmlMessage
-     * \sa pendingEventMerged, aboutToAddNewMessages
-     */
-    void messageSent(QString txnId, QString eventId);
 
     /** A common signal for various kinds of changes in the room
      * Aside from all changes in the room state
@@ -682,21 +512,15 @@ signals:
     void replacedEvent(const Quotient::RoomEvent* newEvent,
                        const Quotient::RoomEvent* oldEvent);
 
-    void newFileTransfer(QString id, QUrl localFile);
-    void fileTransferProgress(QString id, qint64 progress, qint64 total);
-    void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
-    void fileTransferFailed(QString id, QString errorMessage = {});
-    void fileTransferCancelled(QString id);
-
     void callEvent(Quotient::Room* room, const Quotient::RoomEvent* event);
 
-    /// The room's version stability may have changed
+    /// \deprecated - use Connection::capabilitiesReloaded() to be notified
+    /// of changes in room versions, and Connection::loadedRoomState() or
+    /// Room::baseStateLoaded() to initialise the room state.
     void stabilityUpdated(QString recommendedDefault,
                           QStringList stableVersions);
     /// This room has been upgraded and won't receive updates any more
     void upgraded(QString serverMessage, Quotient::Room* successor);
-    /// An attempted room upgrade has failed
-    void upgradeFailed(QString errorMessage);
 
     /// The room is about to be deleted
     void beforeDestruction(Quotient::Room*);
@@ -715,6 +539,7 @@ protected:
 
 private:
     friend class Connection;
+    friend class RoomController;
 
     class Private;
     Private* d;
@@ -723,6 +548,34 @@ private:
     // arrived from the server. Clients should use
     // Connection::joinRoom() and Room::leaveRoom() to change the state.
     void setJoinState(JoinState state);
+    // Connection calls this to emit stabilityUpdated()
+    // TODO: the whole thing looks contrived, not much to do with Room
+    void checkVersion();
+
+    // RoomController uses this to clean up tags before applying (->util.h?)
+    static std::pair<bool, QString> validatedTag(QString name);
+
+    // Tentative callbacks for RoomController, before pending events are moved
+    // away
+    RoomEvent* addAsPending(RoomEventPtr&& event);
+    SendMessageJob* doSendEvent(const RoomEvent* pEvent);
+    QString resendEvent(PendingEvents::iterator it);
+    template <typename VisitorT>
+    void updatePendingEvent(PendingEvents::iterator it, VisitorT&& visitor)
+    {
+        visitor(*it);
+        emit pendingEventChanged(int(it - pendingEvents().begin()));
+    }
+    bool erasePendingEvent(const QString& txnId);
+    const RoomMessageEvent* getFileEvent(const QString& eventId) const;
+    template <typename VisitorT>
+    void updateTags(VisitorT&& visitor)
+    {
+        emit tagsAboutToChange();
+        visitor(tagsRef());
+        emit tagsChanged();
+    }
+    TagsMap& tagsRef();
 };
 
 class MemberSorter {
@@ -742,5 +595,4 @@ private:
     const Room* room;
 };
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::FileTransferInfo)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::Room::Changes)

@@ -25,23 +25,9 @@
 #include "syncdata.h"
 #include "user.h"
 
-#include "csapi/account-data.h"
-#include "csapi/banning.h"
-#include "csapi/inviting.h"
-#include "csapi/kicking.h"
-#include "csapi/leaving.h"
 #include "csapi/receipts.h"
-#include "csapi/redaction.h"
-#include "csapi/room_send.h"
-#include "csapi/room_state.h"
-#include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
-#include "csapi/tags.h"
 
-#include "events/callanswerevent.h"
-#include "events/callcandidatesevent.h"
-#include "events/callhangupevent.h"
-#include "events/callinviteevent.h"
 #include "events/encryptionevent.h"
 #include "events/reactionevent.h"
 #include "events/receiptevent.h"
@@ -59,13 +45,11 @@
 #include <QtCore/QDir>
 #include <QtCore/QHash>
 #include <QtCore/QMimeDatabase>
-#include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QTemporaryFile>
 
 #include <array>
-#include <cmath>
 #include <functional>
 #include <groupsession.h> // QtOlm
 #include <message.h> // QtOlm
@@ -74,9 +58,6 @@
 using namespace Quotient;
 using namespace std::placeholders;
 using std::move;
-#if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
-using std::llround;
-#endif
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
@@ -135,52 +116,6 @@ public:
     QString prevBatch;
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
-
-    struct FileTransferPrivateInfo {
-        FileTransferPrivateInfo() = default;
-        FileTransferPrivateInfo(BaseJob* j, const QString& fileName,
-                                bool isUploading = false)
-            : status(FileTransferInfo::Started)
-            , job(j)
-            , localFileInfo(fileName)
-            , isUpload(isUploading)
-        {}
-
-        FileTransferInfo::Status status = FileTransferInfo::None;
-        QPointer<BaseJob> job = nullptr;
-        QFileInfo localFileInfo {};
-        bool isUpload = false;
-        qint64 progress = 0;
-        qint64 total = -1;
-
-        void update(qint64 p, qint64 t)
-        {
-            if (t == 0) {
-                t = -1;
-                if (p == 0)
-                    p = -1;
-            }
-            if (p != -1)
-                qCDebug(PROFILER) << "Transfer progress:" << p << "/" << t
-                                  << "=" << llround(double(p) / t * 100) << "%";
-            progress = p;
-            total = t;
-        }
-    };
-    void failedTransfer(const QString& tid, const QString& errorMessage = {})
-    {
-        qCWarning(MAIN) << "File transfer failed for id" << tid;
-        if (!errorMessage.isEmpty())
-            qCWarning(MAIN) << "Message:" << errorMessage;
-        fileTransfers[tid].status = FileTransferInfo::Failed;
-        emit q->fileTransferFailed(tid, errorMessage);
-    }
-    /// A map from event/txn ids to information about the long operation;
-    /// used for both download and upload operations
-    QHash<QString, FileTransferPrivateInfo> fileTransfers;
-
-    const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
-    QString fileNameToDownload(const RoomMessageEvent* event) const;
 
     Changes setSummary(RoomSummary&& newSummary);
 
@@ -288,36 +223,7 @@ public:
 
     void getAllMembers();
 
-    QString sendEvent(RoomEventPtr&& event);
-
-    template <typename EventT, typename... ArgTs>
-    QString sendEvent(ArgTs&&... eventArgs)
-    {
-        return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
-    }
-
     RoomEvent* addAsPending(RoomEventPtr&& event);
-
-    QString doSendEvent(const RoomEvent* pEvent);
-    void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
-
-    SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
-    {
-        //            if (event.roomId().isEmpty())
-        //                event.setRoomId(id);
-        //            if (event.senderId().isEmpty())
-        //                event.setSender(connection->userId());
-        // TODO: Queue up state events sending (see #133).
-        // TODO: Maybe addAsPending() as well, despite having no txnId
-        return connection->callApi<SetRoomStateWithKeyJob>(
-            id, event.matrixType(), event.stateKey(), event.contentJson());
-    }
-
-    template <typename EvT, typename... ArgTs>
-    auto requestSetState(ArgTs&&... args)
-    {
-        return requestSetState(EvT(std::forward<ArgTs>(args)...));
-    }
 
     /*! Apply redaction to the timeline
      *
@@ -871,19 +777,6 @@ void Room::resetHighlightCount()
     emit highlightCountChanged();
 }
 
-void Room::switchVersion(QString newVersion)
-{
-    if (!successorId().isEmpty()) {
-        Q_ASSERT(!successorId().isEmpty());
-        emit upgradeFailed(tr("The room is already upgraded"));
-    }
-    if (auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion))
-        connect(job, &BaseJob::failure, this,
-                [this, job] { emit upgradeFailed(job->errorString()); });
-    else
-        emit upgradeFailed(tr("Couldn't initiate upgrade"));
-}
-
 bool Room::hasAccountData(const QString& type) const
 {
     return d->accountData.find(type) != d->accountData.end();
@@ -902,7 +795,7 @@ TagsMap Room::tags() const { return d->tags; }
 
 TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
 
-std::pair<bool, QString> validatedTag(QString name)
+std::pair<bool, QString> Room::validatedTag(QString name)
 {
     if (name.contains('.'))
         return { false, name };
@@ -915,68 +808,12 @@ std::pair<bool, QString> validatedTag(QString name)
     return { true, name };
 }
 
-void Room::addTag(const QString& name, const TagRecord& record)
-{
-    const auto& checkRes = validatedTag(name);
-    if (d->tags.contains(name)
-        || (checkRes.first && d->tags.contains(checkRes.second)))
-        return;
-
-    emit tagsAboutToChange();
-    d->tags.insert(checkRes.second, record);
-    emit tagsChanged();
-    connection()->callApi<SetRoomTagJob>(localUser()->id(), id(),
-                                         checkRes.second, record.order);
-}
-
-void Room::addTag(const QString& name, float order)
-{
-    addTag(name, TagRecord { order });
-}
-
-void Room::removeTag(const QString& name)
-{
-    if (d->tags.contains(name)) {
-        emit tagsAboutToChange();
-        d->tags.remove(name);
-        emit tagsChanged();
-        connection()->callApi<DeleteRoomTagJob>(localUser()->id(), id(), name);
-    } else if (!name.startsWith("u."))
-        removeTag("u." + name);
-    else
-        qCWarning(MAIN) << "Tag" << name << "on room" << objectName()
-                       << "not found, nothing to remove";
-}
-
-void Room::setTags(TagsMap newTags, ActionScope applyOn)
-{
-    bool propagate = applyOn != ActionScope::ThisRoomOnly;
-    auto joinStates =
-        applyOn == ActionScope::WithinSameState ? joinState() :
-        applyOn == ActionScope::OmitLeftState ? JoinState::Join|JoinState::Invite :
-        JoinState::Join|JoinState::Invite|JoinState::Leave;
-    if (propagate) {
-        for (auto* r = this; (r = r->predecessor(joinStates));)
-            r->setTags(newTags, ActionScope::ThisRoomOnly);
-    }
-
-    d->setTags(move(newTags));
-    connection()->callApi<SetAccountDataPerRoomJob>(
-        localUser()->id(), id(), TagEvent::matrixTypeId(),
-        TagEvent(d->tags).contentJson());
-
-    if (propagate) {
-        for (auto* r = this; (r = r->successor(joinStates));)
-            r->setTags(newTags, ActionScope::ThisRoomOnly);
-    }
-}
-
 void Room::Private::setTags(TagsMap newTags)
 {
     emit q->tagsAboutToChange();
     const auto keys = newTags.keys();
     for (const auto& k : keys)
-        if (const auto& checkRes = validatedTag(k); checkRes.first) {
+        if (const auto& checkRes = q->validatedTag(k); checkRes.first) {
             if (newTags.contains(checkRes.second))
                 newTags.remove(k);
             else
@@ -1005,122 +842,45 @@ QList<User*> Room::directChatUsers() const
     return connection()->directChatUsers(this);
 }
 
-QString safeFileName(QString rawName)
+const RoomMessageEvent* Room::getFileEvent(const QString &eventId) const
 {
-    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");
-}
+    if (auto evtIt = findInTimeline(eventId); evtIt != historyEdge())
+        if (auto* e = evtIt->viewAs<RoomMessageEvent>(); e->hasFileContent())
+            return e;
 
-const RoomMessageEvent*
-Room::Private::getEventWithFile(const QString& eventId) const
-{
-    auto evtIt = q->findInTimeline(eventId);
-    if (evtIt != timeline.rend() && is<RoomMessageEvent>(**evtIt)) {
-        auto* event = evtIt->viewAs<RoomMessageEvent>();
-        if (event->hasFileContent())
-            return event;
-    }
     qCWarning(MAIN) << "No files to download in event" << eventId;
     return nullptr;
 }
 
-QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
-{
-    Q_ASSERT(event && event->hasFileContent());
-    const auto* fileInfo = event->content()->fileInfo();
-    QString fileName;
-    if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
-    else if (QUrl u { event->plainBody() }; u.isValid()) {
-        qDebug(MAIN) << event->id()
-                     << "has no file name supplied but the event body "
-                        "looks like a URL - using the file name from it";
-        fileName = u.fileName();
-    }
-    if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace('.', '-') % '.'
-               % fileInfo->mimeType.preferredSuffix();
-
-    if (QSysInfo::productType() == "windows") {
-        if (const auto& suffixes = fileInfo->mimeType.suffixes();
-            !suffixes.isEmpty()
-            && std::none_of(suffixes.begin(), suffixes.end(),
-                            [&fileName](const QString& s) {
-                                return fileName.endsWith(s);
-                            }))
-            return fileName % '.' % fileInfo->mimeType.preferredSuffix();
-    }
-    return fileName;
-}
+TagsMap& Room::tagsRef() { return d->tags; }
 
 QUrl Room::urlToThumbnail(const QString& eventId) const
 {
-    if (auto* event = d->getEventWithFile(eventId))
-        if (event->hasThumbnail()) {
-            auto* thumbnail = event->content()->thumbnailInfo();
-            Q_ASSERT(thumbnail != nullptr);
+    if (auto* event = getFileEvent(eventId))
+        if (auto* thumbnail = event->content()->thumbnailInfo())
             return MediaThumbnailJob::makeRequestUrl(connection()->homeserver(),
                                                      thumbnail->url,
                                                      thumbnail->imageSize);
-        }
+
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
 }
 
 QUrl Room::urlToDownload(const QString& eventId) const
 {
-    if (auto* event = d->getEventWithFile(eventId)) {
-        auto* fileInfo = event->content()->fileInfo();
-        Q_ASSERT(fileInfo != nullptr);
-        return DownloadFileJob::makeRequestUrl(connection()->homeserver(),
-                                               fileInfo->url);
-    }
+    if (auto* event = getFileEvent(eventId))
+        if (auto* fileInfo = event->content()->fileInfo())
+            return DownloadFileJob::makeRequestUrl(connection()->homeserver(),
+                                                   fileInfo->url);
+
     return {};
 }
 
 QString Room::fileNameToDownload(const QString& eventId) const
 {
-    if (auto* event = d->getEventWithFile(eventId))
-        return d->fileNameToDownload(event);
-    return {};
-}
+    if (auto* event = getFileEvent(eventId))
+        return event->getFileName();
 
-FileTransferInfo Room::fileTransferInfo(const QString& id) const
-{
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt == d->fileTransfers.end())
-        return {};
-
-    // FIXME: Add lib tests to make sure FileTransferInfo::status stays
-    // consistent with FileTransferInfo::job
-
-    qint64 progress = infoIt->progress;
-    qint64 total = infoIt->total;
-    if (total > INT_MAX) {
-        // JavaScript doesn't deal with 64-bit integers; scale down if necessary
-        progress = llround(double(progress) / total * INT_MAX);
-        total = INT_MAX;
-    }
-
-    return { infoIt->status,
-             infoIt->isUpload,
-             int(progress),
-             int(total),
-             QUrl::fromLocalFile(infoIt->localFileInfo.absolutePath()),
-             QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath()) };
-}
-
-QUrl Room::fileSource(const QString& id) const
-{
-    auto url = urlToDownload(id);
-    if (url.isValid())
-        return url;
-
-    // No urlToDownload means it's a pending or completed upload.
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt != d->fileTransfers.end())
-        return QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
-
-    qCWarning(MAIN) << "File source for identifier" << id << "not found";
     return {};
 }
 
@@ -1455,263 +1215,36 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     }
 }
 
-RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
+RoomEvent* Room::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
-        event->setTransactionId(connection->generateTxnId());
+        event->setTransactionId(connection()->generateTxnId());
     if (event->roomId().isEmpty())
-        event->setRoomId(id);
+        event->setRoomId(id());
     if (event->senderId().isEmpty())
-        event->setSender(connection->userId());
+        event->setSender(connection()->userId());
     auto* pEvent = rawPtr(event);
-    emit q->pendingEventAboutToAdd(pEvent);
-    unsyncedEvents.emplace_back(move(event));
-    emit q->pendingEventAdded();
+    qCDebug(MESSAGES) << "About to add pending event" << pEvent->transactionId()
+                      << "at index" << d->unsyncedEvents.size();
+    emit pendingEventAboutToAdd(pEvent);
+    d->unsyncedEvents.emplace_back(move(event));
+    emit pendingEventAdded();
     return pEvent;
 }
 
-QString Room::Private::sendEvent(RoomEventPtr&& event)
+bool Room::erasePendingEvent(const QString& txnId)
 {
-    if (q->usesEncryption()) {
-        qCCritical(MAIN) << "Room" << q->objectName()
-                         << "enforces encryption; sending encrypted messages "
-                            "is not supported yet";
+    auto it = findPendingEvent(txnId);
+    if (it != d->unsyncedEvents.end()) {
+        const auto idx = int(it - d->unsyncedEvents.begin());
+        qCDebug(MESSAGES) << "About to discard pending event" << txnId
+                          << "found at index" << idx;
+        emit pendingEventAboutToDiscard(int(it - pendingEvents().begin()));
+        // See #286 on why iterator may not be valid here.
+        d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
+        emit pendingEventDiscarded();
     }
-    if (q->successorId().isEmpty())
-        return doSendEvent(addAsPending(std::move(event)));
-
-    qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
-    return {};
-}
-
-QString Room::Private::doSendEvent(const RoomEvent* pEvent)
-{
-    const auto txnId = pEvent->transactionId();
-    // TODO, #133: Enqueue the job rather than immediately trigger it.
-    if (auto call =
-            connection->callApi<SendMessageJob>(BackgroundRequest, id,
-                                                pEvent->matrixType(), txnId,
-                                                pEvent->contentJson())) {
-        Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
-            auto it = q->findPendingEvent(txnId);
-            if (it == unsyncedEvents.end()) {
-                qCWarning(EVENTS) << "Pending event for transaction" << txnId
-                                 << "not found - got synced so soon?";
-                return;
-            }
-            it->setDeparted();
-            qCDebug(EVENTS) << "Event txn" << txnId << "has departed";
-            emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-        });
-        Room::connect(call, &BaseJob::failure, q,
-                      std::bind(&Room::Private::onEventSendingFailure, this,
-                                txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId] {
-            emit q->messageSent(txnId, call->eventId());
-            auto it = q->findPendingEvent(txnId);
-            if (it == unsyncedEvents.end()) {
-                qCDebug(EVENTS) << "Pending event for transaction" << txnId
-                               << "already merged";
-                return;
-            }
-
-            if (it->deliveryStatus() != EventStatus::ReachedServer) {
-                it->setReachedServer(call->eventId());
-                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-            }
-        });
-    } else
-        onEventSendingFailure(txnId);
-    return txnId;
-}
-
-void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
-{
-    auto it = q->findPendingEvent(txnId);
-    if (it == unsyncedEvents.end()) {
-        qCritical(EVENTS) << "Pending event for transaction" << txnId
-                          << "could not be sent";
-        return;
-    }
-    it->setSendingFailed(call ? call->statusCaption() % ": " % call->errorString()
-                              : tr("The call could not be started"));
-    emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-}
-
-QString Room::retryMessage(const QString& txnId)
-{
-    const auto it = findPendingEvent(txnId);
-    Q_ASSERT(it != d->unsyncedEvents.end());
-    qCDebug(EVENTS) << "Retrying transaction" << txnId;
-    const auto& transferIt = d->fileTransfers.find(txnId);
-    if (transferIt != d->fileTransfers.end()) {
-        Q_ASSERT(transferIt->isUpload);
-        if (transferIt->status == FileTransferInfo::Completed) {
-            qCDebug(MESSAGES)
-                << "File for transaction" << txnId
-                << "has already been uploaded, bypassing re-upload";
-        } else {
-            if (isJobRunning(transferIt->job)) {
-                qCDebug(MESSAGES) << "Abandoning the upload job for transaction"
-                                  << txnId << "and starting again";
-                transferIt->job->abandon();
-                emit fileTransferFailed(txnId,
-                                        tr("File upload will be retried"));
-            }
-            uploadFile(txnId, QUrl::fromLocalFile(
-                                  transferIt->localFileInfo.absoluteFilePath()));
-            // FIXME: Content type is no more passed here but it should
-        }
-    }
-    if (it->deliveryStatus() == EventStatus::ReachedServer) {
-        qCWarning(MAIN)
-            << "The previous attempt has reached the server; two"
-               " events are likely to be in the timeline after retry";
-    }
-    it->resetStatus();
-    emit pendingEventChanged(int(it - d->unsyncedEvents.begin()));
-    return d->doSendEvent(it->event());
-}
-
-void Room::discardMessage(const QString& txnId)
-{
-    auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
-                           [txnId](const auto& evt) {
-                               return evt->transactionId() == txnId;
-                           });
-    Q_ASSERT(it != d->unsyncedEvents.end());
-    qCDebug(EVENTS) << "Discarding transaction" << txnId;
-    const auto& transferIt = d->fileTransfers.find(txnId);
-    if (transferIt != d->fileTransfers.end()) {
-        Q_ASSERT(transferIt->isUpload);
-        if (isJobRunning(transferIt->job)) {
-            transferIt->status = FileTransferInfo::Cancelled;
-            transferIt->job->abandon();
-            emit fileTransferFailed(txnId, tr("File upload cancelled"));
-        } else if (transferIt->status == FileTransferInfo::Completed) {
-            qCWarning(MAIN)
-                << "File for transaction" << txnId
-                << "has been uploaded but the message was discarded";
-        }
-    }
-    emit pendingEventAboutToDiscard(int(it - d->unsyncedEvents.begin()));
-    d->unsyncedEvents.erase(it);
-    emit pendingEventDiscarded();
-}
-
-QString Room::postMessage(const QString& plainText, MessageEventType type)
-{
-    return d->sendEvent<RoomMessageEvent>(plainText, type);
-}
-
-QString Room::postPlainText(const QString& plainText)
-{
-    return postMessage(plainText, MessageEventType::Text);
-}
-
-QString Room::postHtmlMessage(const QString& plainText, const QString& html,
-                              MessageEventType type)
-{
-    return d->sendEvent<RoomMessageEvent>(
-        plainText, type,
-        new EventContent::TextContent(html, QStringLiteral("text/html")));
-}
-
-QString Room::postHtmlText(const QString& plainText, const QString& html)
-{
-    return postHtmlMessage(plainText, html);
-}
-
-QString Room::postReaction(const QString& eventId, const QString& key)
-{
-    return d->sendEvent<ReactionEvent>(EventRelation::annotate(eventId, key));
-}
-
-QString Room::postFile(const QString& plainText, const QUrl& localPath,
-                       bool asGenericFile)
-{
-    QFileInfo localFile { localPath.toLocalFile() };
-    Q_ASSERT(localFile.isFile());
-
-    const auto txnId =
-        d->addAsPending(
-             makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile))
-            ->transactionId();
-    // Remote URL will only be known after upload; fill in the local path
-    // to enable the preview while the event is pending.
-    uploadFile(txnId, localPath);
-    // Below, the upload job is used as a context object to clean up connections
-    connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
-            [this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
-                if (id == txnId) {
-                    auto it = findPendingEvent(txnId);
-                    if (it != d->unsyncedEvents.end()) {
-                        it->setFileUploaded(mxcUri);
-                        emit pendingEventChanged(
-                            int(it - d->unsyncedEvents.begin()));
-                        d->doSendEvent(it->get());
-                    } else {
-                        // Normally in this situation we should instruct
-                        // the media server to delete the file; alas, there's no
-                        // API specced for that.
-                        qCWarning(MAIN) << "File uploaded to" << mxcUri
-                                        << "but the event referring to it was "
-                                           "cancelled";
-                    }
-                }
-            });
-    connect(this, &Room::fileTransferCancelled, d->fileTransfers[txnId].job,
-            [this, txnId](const QString& id) {
-                if (id == txnId) {
-                    auto it = findPendingEvent(txnId);
-                    if (it != d->unsyncedEvents.end()) {
-                        const auto idx = int(it - d->unsyncedEvents.begin());
-                        emit pendingEventAboutToDiscard(idx);
-                        // See #286 on why iterator may not be valid here.
-                        d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
-                        emit pendingEventDiscarded();
-                    }
-                }
-            });
-
-    return txnId;
-}
-
-QString Room::postEvent(RoomEvent* event)
-{
-    return d->sendEvent(RoomEventPtr(event));
-}
-
-QString Room::postJson(const QString& matrixType,
-                       const QJsonObject& eventContent)
-{
-    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
-}
-
-SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt) const
-{
-    return d->requestSetState(evt);
-}
-
-void Room::setName(const QString& newName)
-{
-    d->requestSetState<RoomNameEvent>(newName);
-}
-
-void Room::setCanonicalAlias(const QString& newAlias)
-{
-    d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
-}
-
-void Room::setLocalAliases(const QStringList& aliases)
-{
-    d->requestSetState<RoomAliasesEvent>(connection()->homeserver().authority(),
-                                         aliases);
-}
-
-void Room::setTopic(const QString& newTopic)
-{
-    d->requestSetState<RoomTopicEvent>(newTopic);
+    return it != d->unsyncedEvents.end();
 }
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
@@ -1752,39 +1285,6 @@ void Room::checkVersion()
     }
 }
 
-void Room::inviteCall(const QString& callId, const int lifetime,
-                      const QString& sdp)
-{
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallInviteEvent>(callId, lifetime, sdp);
-}
-
-void Room::sendCallCandidates(const QString& callId,
-                              const QJsonArray& candidates)
-{
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallCandidatesEvent>(callId, candidates);
-}
-
-void Room::answerCall(const QString& callId, const int lifetime,
-                      const QString& sdp)
-{
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
-}
-
-void Room::answerCall(const QString& callId, const QString& sdp)
-{
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, sdp);
-}
-
-void Room::hangupCall(const QString& callId)
-{
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallHangupEvent>(callId);
-}
-
 void Room::getPreviousContent(int limit) { d->getPreviousContent(limit); }
 
 void Room::Private::getPreviousContent(int limit)
@@ -1801,141 +1301,6 @@ void Room::Private::getPreviousContent(int limit)
     });
     connect(eventsHistoryJob, &QObject::destroyed, q,
             &Room::eventsHistoryJobChanged);
-}
-
-void Room::inviteToRoom(const QString& memberId)
-{
-    connection()->callApi<InviteUserJob>(id(), memberId);
-}
-
-LeaveRoomJob* Room::leaveRoom()
-{
-    // FIXME, #63: It should be RoomManager, not Connection
-    return connection()->leaveRoom(this);
-}
-
-SetRoomStateWithKeyJob* Room::setMemberState(const QString& memberId,
-                                             const RoomMemberEvent& event) const
-{
-    return d->requestSetState<RoomMemberEvent>(memberId, event.content());
-}
-
-void Room::kickMember(const QString& memberId, const QString& reason)
-{
-    connection()->callApi<KickJob>(id(), memberId, reason);
-}
-
-void Room::ban(const QString& userId, const QString& reason)
-{
-    connection()->callApi<BanJob>(id(), userId, reason);
-}
-
-void Room::unban(const QString& userId)
-{
-    connection()->callApi<UnbanJob>(id(), userId);
-}
-
-void Room::redactEvent(const QString& eventId, const QString& reason)
-{
-    connection()->callApi<RedactEventJob>(id(), QUrl::toPercentEncoding(eventId),
-                                          connection()->generateTxnId(), reason);
-}
-
-void Room::uploadFile(const QString& id, const QUrl& localFilename,
-                      const QString& overrideContentType)
-{
-    Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
-               "localFilename should point at a local file");
-    auto fileName = localFilename.toLocalFile();
-    auto job = connection()->uploadFile(fileName, overrideContentType);
-    if (isJobRunning(job)) {
-        d->fileTransfers[id] = { job, fileName, true };
-        connect(job, &BaseJob::uploadProgress, this,
-                [this, id](qint64 sent, qint64 total) {
-                    d->fileTransfers[id].update(sent, total);
-                    emit fileTransferProgress(id, sent, total);
-                });
-        connect(job, &BaseJob::success, this, [this, id, localFilename, job] {
-            d->fileTransfers[id].status = FileTransferInfo::Completed;
-            emit fileTransferCompleted(id, localFilename, job->contentUri());
-        });
-        connect(job, &BaseJob::failure, this,
-                std::bind(&Private::failedTransfer, d, id, job->errorString()));
-        emit newFileTransfer(id, localFilename);
-    } else
-        d->failedTransfer(id);
-}
-
-void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
-{
-    auto ongoingTransfer = d->fileTransfers.find(eventId);
-    if (ongoingTransfer != d->fileTransfers.end()
-        && ongoingTransfer->status == FileTransferInfo::Started) {
-        qCWarning(MAIN) << "Transfer for" << eventId
-                        << "is ongoing; download won't start";
-        return;
-    }
-
-    Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
-               __FUNCTION__, "localFilename should point at a local file");
-    const auto* event = d->getEventWithFile(eventId);
-    if (!event) {
-        qCCritical(MAIN)
-            << eventId << "is not in the local timeline or has no file content";
-        Q_ASSERT(false);
-        return;
-    }
-    const auto* const fileInfo = event->content()->fileInfo();
-    if (!fileInfo->isValid()) {
-        qCWarning(MAIN) << "Event" << eventId
-                        << "has an empty or malformed mxc URL; won't download";
-        return;
-    }
-    const auto fileUrl = fileInfo->url;
-    auto filePath = localFilename.toLocalFile();
-    if (filePath.isEmpty()) { // Setup default file path
-        filePath =
-            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
-
-        if (filePath.size() > 200) // If too long, elide in the middle
-            filePath.replace(128, filePath.size() - 192, "---");
-
-        filePath = QDir::tempPath() % '/' % filePath;
-        qDebug(MAIN) << "File path:" << filePath;
-    }
-    auto job = connection()->downloadFile(fileUrl, filePath);
-    if (isJobRunning(job)) {
-        // If there was a previous transfer (completed or failed), overwrite it.
-        d->fileTransfers[eventId] = { job, job->targetFileName() };
-        connect(job, &BaseJob::downloadProgress, this,
-                [this, eventId](qint64 received, qint64 total) {
-                    d->fileTransfers[eventId].update(received, total);
-                    emit fileTransferProgress(eventId, received, total);
-                });
-        connect(job, &BaseJob::success, this, [this, eventId, fileUrl, job] {
-            d->fileTransfers[eventId].status = FileTransferInfo::Completed;
-            emit fileTransferCompleted(
-                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()));
-        });
-        connect(job, &BaseJob::failure, this,
-                std::bind(&Private::failedTransfer, d, eventId,
-                          job->errorString()));
-    } else
-        d->failedTransfer(eventId);
-}
-
-void Room::cancelFileTransfer(const QString& id)
-{
-    auto it = d->fileTransfers.find(id);
-    if (it == d->fileTransfers.end()) {
-        qCWarning(MAIN) << "No information on file transfer" << id << "in room"
-                        << d->id;
-        return;
-    }
-    if (isJobRunning(it->job))
-        it->job->abandon();
-    d->fileTransfers.remove(id);
-    emit fileTransferCancelled(id);
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents& events) const
@@ -2230,13 +1595,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             localEcho->setReachedServer(nextPendingEvt->id());
             emit q->pendingEventChanged(pendingEvtIdx);
         }
-        emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
         qCDebug(MESSAGES) << "Merging pending event from transaction"
-                         << nextPendingEvt->transactionId() << "into"
-                         << nextPendingEvt->id();
-        auto transfer = fileTransfers.take(nextPendingEvt->transactionId());
-        if (transfer.status != FileTransferInfo::None)
-            fileTransfers.insert(nextPendingEvt->id(), transfer);
+                          << nextPendingEvt->transactionId() << "into"
+                          << nextPendingEvt->id();
+        emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
         // After emitting pendingEventAboutToMerge() above we cannot rely
         // on the previously obtained localEcho staying valid
         // because a signal handler may send another message, thereby altering

@@ -22,6 +22,8 @@
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QStringBuilder>
 #include <QtGui/QImageReader>
 #include <QtMultimedia/QMediaResource>
 
@@ -250,6 +252,46 @@ QString RoomMessageEvent::replacedEvent() const
 
     const auto& rel = static_cast<const TextContent*>(content())->relatesTo;
     return isReplacement(rel) ? rel->eventId : QString();
+}
+
+QString safeFileName(QString rawName)
+{
+    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");
+}
+
+QString RoomMessageEvent::getFileName() const
+{
+    if (!hasFileContent()) {
+        qCritical(EVENTS) << "Event" << id()
+                          << "has no file content, can't produce a filename";
+        Q_ASSERT(false);
+        return {};
+    }
+    const auto* fileInfo = content()->fileInfo();
+    QString fileName;
+    if (!fileInfo->originalName.isEmpty())
+        fileName =
+            QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    else if (QUrl u { plainBody() }; u.isValid()) {
+        qDebug(MAIN) << id()
+                     << "has no file name supplied but the event body "
+                        "looks like a URL - using the file name from it";
+        fileName = u.fileName();
+    }
+    if (fileName.isEmpty())
+        return safeFileName(fileInfo->mediaId()).replace('.', '-') % '.'
+               % fileInfo->mimeType.preferredSuffix();
+
+    if (QSysInfo::productType() == "windows") {
+        if (const auto& suffixes = fileInfo->mimeType.suffixes();
+            !suffixes.isEmpty()
+            && std::none_of(suffixes.begin(), suffixes.end(),
+                            [&fileName](const QString& s) {
+                                return fileName.endsWith(s);
+                            }))
+            return fileName % '.' % fileInfo->mimeType.preferredSuffix();
+    }
+    return fileName;
 }
 
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)

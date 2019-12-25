@@ -19,6 +19,8 @@ HEADERS += \
     $$SRCPATH/encryptionmanager.h \
     $$SRCPATH/eventitem.h \
     $$SRCPATH/room.h \
+    $$SRCPATH/roomcontroller.h \
+    $$SRCPATH/filetransfer.h \
     $$SRCPATH/user.h \
     $$SRCPATH/avatar.h \
     $$SRCPATH/syncdata.h \
@@ -70,6 +72,8 @@ SOURCES += \
     $$SRCPATH/encryptionmanager.cpp \
     $$SRCPATH/eventitem.cpp \
     $$SRCPATH/room.cpp \
+    $$SRCPATH/roomcontroller.cpp \
+    $$SRCPATH/filetransfer.cpp \
     $$SRCPATH/user.cpp \
     $$SRCPATH/avatar.cpp \
     $$SRCPATH/syncdata.cpp \

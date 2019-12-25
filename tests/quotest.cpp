@@ -1,6 +1,8 @@
 
 #include "connection.h"
 #include "room.h"
+#include "roomcontroller.h"
+#include "filetransfer.h"
 #include "user.h"
 
 #include "csapi/joining.h"
@@ -76,7 +78,9 @@ class TestSuite : public QObject {
     Q_OBJECT
 public:
     TestSuite(Room* testRoom, QString source, TestManager* parent)
-        : QObject(parent), targetRoom(testRoom), origin(std::move(source))
+        : QObject(parent)
+        , roomController(new RoomController(testRoom, this))
+        , origin(std::move(source))
     {
         qRegisterMetaType<TestToken>();
         Q_ASSERT(testRoom && parent);
@@ -100,8 +104,9 @@ private slots:
     // Add more tests above here
 
 public:
-    Room* room() const { return targetRoom; }
-    Connection* connection() const { return targetRoom->connection(); }
+    RoomController* rc() const { return roomController;  }
+    Room* room() const { return rc()->room(); }
+    Connection* connection() const { return room()->connection(); }
 
 private:
     bool checkFileSendingOutcome(const TestToken& thisTest,
@@ -115,7 +120,7 @@ private:
                     int line);
 
 private:
-    Room* targetRoom;
+    RoomController* roomController;
     QString origin;
 };
 
@@ -138,8 +143,8 @@ void TestSuite::doTest(const QByteArray& testName)
 
 bool TestSuite::validatePendingEvent(const QString& txnId)
 {
-    auto it = targetRoom->findPendingEvent(txnId);
-    return it != targetRoom->pendingEvents().end()
+    auto it = room()->findPendingEvent(txnId);
+    return it != room()->pendingEvents().end()
            && it->deliveryStatus() == EventStatus::Submitted
            && (*it)->transactionId() == txnId;
 }
@@ -150,14 +155,12 @@ void TestSuite::finishTest(const TestToken& token, bool condition,
     const auto& item = testName(token);
     if (condition) {
         clog << item << " successful" << endl;
-        if (targetRoom)
-            targetRoom->postMessage(origin % ": " % item % " successful",
-                                    MessageEventType::Notice);
+        rc()->postMessage(origin % ": " % item % " successful",
+                          MessageEventType::Notice);
     } else {
         clog << item << " FAILED at " << file << ":" << line << endl;
-        if (targetRoom)
-            targetRoom->postPlainText(origin % ": " % item % " FAILED at "
-                                      % file % ", line " % QString::number(line));
+        rc()->postPlainText(origin % ": " % item % " FAILED at " % file
+                            % ", line " % QString::number(line));
     }
 
     emit finishedItem(item, condition);
@@ -324,14 +327,14 @@ TEST_IMPL(loadMembers)
 
 TEST_IMPL(sendMessage)
 {
-    auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
+    auto txnId = rc()->postPlainText("Hello, " % origin % " is here");
     if (!validatePendingEvent(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
+    connectUntil(room(), &Room::pendingEventAboutToMerge, this,
         [this, thisTest, txnId](const RoomEvent* evt, int pendingIdx) {
-            const auto& pendingEvents = targetRoom->pendingEvents();
+            const auto& pendingEvents = room()->pendingEvents();
             Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
             if (evt->transactionId() != txnId)
@@ -347,10 +350,10 @@ TEST_IMPL(sendMessage)
 TEST_IMPL(sendReaction)
 {
     clog << "Reacting to the newest message in the room" << endl;
-    Q_ASSERT(targetRoom->timelineSize() > 0);
-    const auto targetEvtId = targetRoom->messageEvents().back()->id();
+    Q_ASSERT(room()->timelineSize() > 0);
+    const auto targetEvtId = room()->messageEvents().back()->id();
     const auto key = QStringLiteral("+1");
-    const auto txnId = targetRoom->postReaction(targetEvtId, key);
+    const auto txnId = rc()->postReaction(targetEvtId, key);
     if (!validatePendingEvent(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
@@ -359,11 +362,11 @@ TEST_IMPL(sendReaction)
     // TODO: Check that it came back as a reaction event and that it attached to
     // the right event
     connectUntil(
-        targetRoom, &Room::updatedEvent, this,
+        room(), &Room::updatedEvent, this,
         [this, thisTest, txnId, key, targetEvtId](const QString& actualTargetEvtId) {
             if (actualTargetEvtId != targetEvtId)
                 return false;
-            const auto reactions = targetRoom->relatedEvents(
+            const auto reactions = room()->relatedEvents(
                 targetEvtId, EventRelation::Annotation());
             // It's a test room, assuming no interference there should
             // be exactly one reaction
@@ -393,35 +396,38 @@ TEST_IMPL(sendFile)
     const auto tfName = QFileInfo(*tf).fileName();
     clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId =
-        targetRoom->postFile("Test file", QUrl::fromLocalFile(tf->fileName()));
+        rc()->postFile("Test file", QUrl::fromLocalFile(tf->fileName()));
     if (!validatePendingEvent(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         delete tf;
         FAIL_TEST();
     }
 
-    // Using tf as a context object to clean away both connections
+    // Deletion of the file transfer object cleans away both connections
     // once either of them triggers.
-    connectUntil(targetRoom, &Room::fileTransferCompleted, tf,
-        [this, thisTest, txnId, tf, tfName](const QString& id) {
-            auto fti = targetRoom->fileTransferInfo(id);
-            Q_ASSERT(fti.status == FileTransferInfo::Completed);
+    auto* xfer = rc()->fileTransfer(txnId);
+    connectUntil(xfer, &FileTransfer::completed, this,
+                 [this, thisTest, txnId, tf, tfName, xfer](const QUrl& from) {
+                     Q_ASSERT(xfer->status() == FileTransfer::Completed);
 
-            if (id != txnId)
-                return false;
-
-            tf->deleteLater();
-            return checkFileSendingOutcome(thisTest, txnId, tfName);
-        });
-    connectUntil(targetRoom, &Room::fileTransferFailed, tf,
-        [this, thisTest, txnId, tf](const QString& id, const QString& error) {
-            if (id != txnId)
-                return false;
-
-            targetRoom->postPlainText(origin % ": File upload failed: " % error);
-            tf->deleteLater();
-            FAIL_TEST();
-        });
+                     if (tf->fileName() != from.toLocalFile()) {
+                         clog << tf->fileName().toStdString() << " != "
+                              << from.toLocalFile().toStdString() << endl;
+                         FAIL_TEST();
+                     }
+                     xfer->deleteLater();
+                     clog << "Upload successful, waiting for the event w/txnId "
+                          << txnId.toStdString() << endl;
+                     return checkFileSendingOutcome(thisTest, txnId, tfName);
+                 });
+    connectUntil(xfer, &FileTransfer::failed, this,
+                 [this, thisTest, xfer](const QString& error) {
+                     Q_ASSERT(xfer->status() == FileTransfer::Failed);
+                     rc()->postPlainText(origin % ": File upload failed: "
+                                         % error);
+                     xfer->deleteLater();
+                     FAIL_TEST();
+                 });
     return false;
 }
 
@@ -429,8 +435,8 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                                         const QString& txnId,
                                         const QString& fileName)
 {
-    auto it = targetRoom->findPendingEvent(txnId);
-    if (it == targetRoom->pendingEvents().end()) {
+    auto it = room()->findPendingEvent(txnId);
+    if (it == room()->pendingEvents().end()) {
         clog << "Pending file event dropped before upload completion" << endl;
         FAIL_TEST();
     }
@@ -441,9 +447,9 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
         FAIL_TEST();
     }
 
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
+    connectUntil(room(), &Room::pendingEventAboutToMerge, this,
         [this, thisTest, txnId, fileName](const RoomEvent* evt, int pendingIdx) {
-            const auto& pendingEvents = targetRoom->pendingEvents();
+            const auto& pendingEvents = room()->pendingEvents();
             Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
             if (evt->transactionId() != txnId)
@@ -473,14 +479,14 @@ TEST_IMPL(setTopic)
 {
     const auto newTopic = connection()->generateTxnId(); // Just a way to make
                                                          // a unique id
-    targetRoom->setTopic(newTopic);
-    connectUntil(targetRoom, &Room::topicChanged, this,
+    rc()->setTopic(newTopic);
+    connectUntil(room(), &Room::topicChanged, this,
         [this, thisTest, newTopic] {
-            if (targetRoom->topic() == newTopic)
+            if (room()->topic() == newTopic)
                 FINISH_TEST(true);
 
             clog << "Requested topic was " << newTopic.toStdString() << ", "
-                 << targetRoom->topic().toStdString() << " arrived instead"
+                 << room()->topic().toStdString() << " arrived instead"
                  << endl;
             return false;
         });
@@ -490,19 +496,19 @@ TEST_IMPL(setTopic)
 TEST_IMPL(sendAndRedact)
 {
     clog << "Sending a message to redact" << endl;
-    auto txnId = targetRoom->postPlainText(origin % ": message to redact");
+    auto txnId = rc()->postPlainText(origin % ": message to redact");
     if (txnId.isEmpty())
         FAIL_TEST();
 
-    connect(targetRoom, &Room::messageSent, this,
+    connect(rc(), &RoomController::messageSent, this,
             [this, thisTest, txnId](const QString& tId, const QString& evtId) {
                 if (tId != txnId)
                     return;
 
                 clog << "Redacting the message" << endl;
-                targetRoom->redactEvent(evtId, origin);
+                rc()->redactEvent(evtId, origin);
 
-                connectUntil(targetRoom, &Room::addedMessages, this,
+                connectUntil(room(), &Room::addedMessages, this,
                              [this, thisTest, evtId] {
                                  return checkRedactionOutcome(thisTest, evtId);
                              });
@@ -516,8 +522,8 @@ bool TestSuite::checkRedactionOutcome(const QByteArray& thisTest,
     // There are two possible (correct) outcomes: either the event comes already
     // redacted at the next sync, or the nearest sync completes with
     // the unredacted event but the next one brings redaction.
-    auto it = targetRoom->findInTimeline(evtIdToRedact);
-    if (it == targetRoom->timelineEdge())
+    auto it = room()->findInTimeline(evtIdToRedact);
+    if (it == room()->timelineEdge())
         return false; // Waiting for the next sync
 
     if ((*it)->isRedacted()) {
@@ -527,7 +533,7 @@ bool TestSuite::checkRedactionOutcome(const QByteArray& thisTest,
 
     clog << "Message came non-redacted with the sync, waiting for redaction"
          << endl;
-    connectUntil(targetRoom, &Room::replacedEvent, this,
+    connectUntil(room(), &Room::replacedEvent, this,
                  [this, thisTest, evtIdToRedact](const RoomEvent* newEvent,
                                                  const RoomEvent* oldEvent) {
                      if (oldEvent->id() != evtIdToRedact)
@@ -543,34 +549,34 @@ TEST_IMPL(addAndRemoveTag)
 {
     static const auto TestTag = QStringLiteral("im.quotient.test");
     // Pre-requisite
-    if (targetRoom->tags().contains(TestTag))
-        targetRoom->removeTag(TestTag);
+    if (room()->tags().contains(TestTag))
+        rc()->removeTag(TestTag);
 
     // Unlike for most of Quotient, tags are applied and tagsChanged is emitted
     // synchronously, with the server being notified async. The test checks
     // that the signal is emitted, not only that tags have changed; but there's
     // (currently) no way to check that the server has been correctly notified
     // of the tag change.
-    QSignalSpy spy(targetRoom, &Room::tagsChanged);
-    targetRoom->addTag(TestTag);
-    if (spy.count() != 1 || !targetRoom->tags().contains(TestTag)) {
+    QSignalSpy spy(room(), &Room::tagsChanged);
+    rc()->addTag(TestTag);
+    if (spy.count() != 1 || !room()->tags().contains(TestTag)) {
         clog << "Tag adding failed" << endl;
         FAIL_TEST();
     }
     clog << "Test tag set, removing it now" << endl;
-    targetRoom->removeTag(TestTag);
-    FINISH_TEST(spy.count() == 2 && !targetRoom->tags().contains(TestTag));
+    rc()->removeTag(TestTag);
+    FINISH_TEST(spy.count() == 2 && !room()->tags().contains(TestTag));
 }
 
 bool TestSuite::checkDirectChat() const
 {
-    return targetRoom->directChatUsers().contains(connection()->user());
+    return room()->directChatUsers().contains(connection()->user());
 }
 
 TEST_IMPL(markDirectChat)
 {
     if (checkDirectChat())
-        connection()->removeFromDirectChats(targetRoom->id(),
+        connection()->removeFromDirectChats(room()->id(),
                                             connection()->user());
 
     int id = qRegisterMetaType<DirectChatsMap>(); // For QSignalSpy
@@ -580,27 +586,27 @@ TEST_IMPL(markDirectChat)
     // operations are synchronous.
     QSignalSpy spy(connection(), &Connection::directChatsListChanged);
     clog << "Marking the room as a direct chat" << endl;
-    connection()->addToDirectChats(targetRoom, connection()->user());
+    connection()->addToDirectChats(room(), connection()->user());
     if (spy.count() != 1 || !checkDirectChat())
         FAIL_TEST();
 
     // Check that the first argument (added DCs) actually contains the room
     const auto& addedDCs = spy.back().front().value<DirectChatsMap>();
     if (addedDCs.size() != 1
-        || !addedDCs.contains(connection()->user(), targetRoom->id())) {
+        || !addedDCs.contains(connection()->user(), room()->id())) {
         clog << "The room is not in added direct chats" << endl;
         FAIL_TEST();
     }
 
     clog << "Unmarking the direct chat" << endl;
-    connection()->removeFromDirectChats(targetRoom->id(), connection()->user());
+    connection()->removeFromDirectChats(room()->id(), connection()->user());
     if (spy.count() != 2 && checkDirectChat())
         FAIL_TEST();
 
     // Check that the second argument (removed DCs) actually contains the room
     const auto& removedDCs = spy.back().back().value<DirectChatsMap>();
     FINISH_TEST(removedDCs.size() == 1
-                && removedDCs.contains(connection()->user(), targetRoom->id()));
+                && removedDCs.contains(connection()->user(), room()->id()));
 }
 
 void TestManager::conclude()
@@ -633,18 +639,18 @@ void TestManager::conclude()
     clog << plainReport.toStdString() << endl;
 
     // TODO: Waiting for proper futures to come so that it could be:
-    //            targetRoom->postHtmlText(...)
+    //            rc->postHtmlText(...)
     //            .then(this, &TestManager::finalize); // Qt-style or
     //            .then([this] { finalize(); }); // STL-style
-    auto* room = testSuite->room();
-    auto txnId = room->postHtmlText(plainReport, htmlReport);
-    connect(room, &Room::messageSent, this,
-            [this, room, txnId](const QString& serverTxnId) {
+    auto* rc = testSuite->rc();
+    auto txnId = rc->postHtmlText(plainReport, htmlReport);
+    connect(rc, &RoomController::messageSent, this,
+            [this, rc, txnId](const QString& serverTxnId) {
                 if (txnId != serverTxnId)
                     return;
 
                 clog << "Leaving the room" << endl;
-                auto* job = room->leaveRoom();
+                auto* job = rc->leaveRoom();
                 connect(job, &BaseJob::finished, this, [this, job] {
                     Q_ASSERT(job->status().good());
                     finalize();

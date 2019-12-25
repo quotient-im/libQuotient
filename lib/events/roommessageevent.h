@@ -76,6 +76,11 @@ public:
     bool hasThumbnail() const;
     QString replacedEvent() const;
 
+    /// Get the best file name for downloading
+    /*! The function returns the best available file name, trying in sequence
+     * the name specified in the file content, the plain body, and media id. */
+    Q_INVOKABLE QString getFileName() const;
+
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 

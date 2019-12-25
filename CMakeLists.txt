@@ -131,6 +131,8 @@ set(lib_SRCS
     lib/connection.cpp
     lib/logging.cpp
     lib/room.cpp
+    lib/roomcontroller.cpp
+    lib/filetransfer.cpp
     lib/user.cpp
     lib/avatar.cpp
     lib/syncdata.cpp
