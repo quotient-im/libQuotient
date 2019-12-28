@@ -2137,7 +2137,7 @@ inline bool isEditing(const RoomEventPtr& ep)
     if (is<RedactionEvent>(*ep))
         return true;
     if (auto* msgEvent = eventCast<RoomMessageEvent>(ep))
-        return msgEvent->replacedEvent().isEmpty();
+        return !msgEvent->replacedEvent().isEmpty();
 
     return false;
 }
