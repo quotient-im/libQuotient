@@ -387,9 +387,29 @@ QString Room::predecessorId() const
     return d->getCurrentState<RoomCreateEvent>()->predecessor().roomId;
 }
 
+Room* Room::predecessor(JoinStates statesFilter) const
+{
+    if (const auto& predId = predecessorId(); !predId.isEmpty())
+        if (auto* r = connection()->room(predId, statesFilter);
+                r && r->successorId() == id())
+            return r;
+
+    return nullptr;
+}
+
 QString Room::successorId() const
 {
     return d->getCurrentState<RoomTombstoneEvent>()->successorRoomId();
+}
+
+Room* Room::successor(JoinStates statesFilter) const
+{
+    if (const auto& succId = successorId(); !succId.isEmpty())
+        if (auto* r = connection()->room(succId, statesFilter);
+                r && r->predecessorId() == id())
+            return r;
+
+    return nullptr;
 }
 
 const Room::Timeline& Room::messageEvents() const { return d->timeline; }
@@ -515,7 +535,9 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
     // that has just arrived. In this case we should recalculate
     // unreadMessages and might need to promote the read marker further
     // over local-origin messages.
-    const auto readMarker = q->readMarker();
+    auto readMarker = q->readMarker();
+    if (readMarker == timeline.crend() && q->allHistoryLoaded())
+        --readMarker; // Read marker not found in the timeline, initialise it
     if (readMarker >= from && readMarker < to) {
         promoteReadMarker(q->localUser(), readMarker, true);
         return;
@@ -926,12 +948,27 @@ void Room::removeTag(const QString& name)
                        << "not found, nothing to remove";
 }
 
-void Room::setTags(TagsMap newTags)
+void Room::setTags(TagsMap newTags, ActionScope applyOn)
 {
+    bool propagate = applyOn != ActionScope::ThisRoomOnly;
+    auto joinStates =
+        applyOn == ActionScope::WithinSameState ? joinState() :
+        applyOn == ActionScope::OmitLeftState ? JoinState::Join|JoinState::Invite :
+        JoinState::Join|JoinState::Invite|JoinState::Leave;
+    if (propagate) {
+        for (auto* r = this; (r = r->predecessor(joinStates));)
+            r->setTags(newTags, ActionScope::ThisRoomOnly);
+    }
+
     d->setTags(move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
         localUser()->id(), id(), TagEvent::matrixTypeId(),
         TagEvent(d->tags).contentJson());
+
+    if (propagate) {
+        for (auto* r = this; (r = r->successor(joinStates));)
+            r->setTags(newTags, ActionScope::ThisRoomOnly);
+    }
 }
 
 void Room::Private::setTags(TagsMap newTags)
@@ -968,6 +1005,11 @@ QList<User*> Room::directChatUsers() const
     return connection()->directChatUsers(this);
 }
 
+QString safeFileName(QString rawName)
+{
+    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");
+}
+
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -983,24 +1025,24 @@ Room::Private::getEventWithFile(const QString& eventId) const
 
 QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
 {
-    Q_ASSERT(event->hasFileContent());
+    Q_ASSERT(event && event->hasFileContent());
     const auto* fileInfo = event->content()->fileInfo();
     QString fileName;
     if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(fileInfo->originalName).fileName();
-    else if (!event->plainBody().isEmpty()) {
-        // Having no better options, assume that the body has
-        // the original file URL or at least the file name.
-        if (QUrl u { event->plainBody() }; u.isValid())
-            fileName = QFileInfo(u.path()).fileName();
+        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    else if (QUrl u { event->plainBody() }; u.isValid()) {
+        qDebug(MAIN) << event->id()
+                     << "has no file name supplied but the event body "
+                        "looks like a URL - using the file name from it";
+        fileName = u.fileName();
     }
-    // Check the file name for sanity
-    if (fileName.isEmpty() || !QTemporaryFile(fileName).open())
-        return "file." % fileInfo->mimeType.preferredSuffix();
+    if (fileName.isEmpty())
+        return safeFileName(fileInfo->mediaId()).replace('.', '-') % '.'
+               % fileInfo->mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows") {
         if (const auto& suffixes = fileInfo->mimeType.suffixes();
-            suffixes.isEmpty()
+            !suffixes.isEmpty()
             && std::none_of(suffixes.begin(), suffixes.end(),
                             [&fileName](const QString& s) {
                                 return fileName.endsWith(s);
@@ -1201,16 +1243,14 @@ QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
 
 int Room::joinedCount() const
 {
-    return d->summary.joinedMemberCount.omitted()
-               ? d->membersMap.size()
-               : d->summary.joinedMemberCount.value();
+    return d->summary.joinedMemberCount.value_or(d->membersMap.size());
 }
 
 int Room::invitedCount() const
 {
     // TODO: Store invited users in Room too
-    Q_ASSERT(!d->summary.invitedMemberCount.omitted());
-    return d->summary.invitedMemberCount.value();
+    Q_ASSERT(d->summary.invitedMemberCount.has_value());
+    return d->summary.invitedMemberCount.value_or(0);
 }
 
 int Room::totalMemberCount() const { return joinedCount() + invitedCount(); }
@@ -1593,19 +1633,16 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
-    const auto txnId = connection()->generateTxnId();
+    const auto txnId =
+        d->addAsPending(
+             makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile))
+            ->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
-    {
-        auto&& event =
-            makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile);
-        event->setTransactionId(txnId);
-        d->addAsPending(std::move(event));
-    }
-    auto* context = new QObject(this);
-    connect(this, &Room::fileTransferCompleted, context,
-            [context, this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
+    // Below, the upload job is used as a context object to clean up connections
+    connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
+            [this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {
@@ -1621,11 +1658,10 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                                         << "but the event referring to it was "
                                            "cancelled";
                     }
-                    context->deleteLater();
                 }
             });
-    connect(this, &Room::fileTransferCancelled, this,
-            [context, this, txnId](const QString& id) {
+    connect(this, &Room::fileTransferCancelled, d->fileTransfers[txnId].job,
+            [this, txnId](const QString& id) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {
@@ -1635,7 +1671,6 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                         d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
                         emit pendingEventDiscarded();
                     }
-                    context->deleteLater();
                 }
             });
 
@@ -1814,7 +1849,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     auto fileName = localFilename.toLocalFile();
     auto job = connection()->uploadFile(fileName, overrideContentType);
     if (isJobRunning(job)) {
-        d->fileTransfers.insert(id, { job, fileName, true });
+        d->fileTransfers[id] = { job, fileName, true };
         connect(job, &BaseJob::uploadProgress, this,
                 [this, id](qint64 sent, qint64 total) {
                     d->fileTransfers[id].update(sent, total);
@@ -1858,18 +1893,20 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     }
     const auto fileUrl = fileInfo->url;
     auto filePath = localFilename.toLocalFile();
-    if (filePath.isEmpty()) {
-        // Build our own file path, starting with temp directory and eventId.
-        filePath = eventId;
-        filePath = QDir::tempPath() % '/'
-                   % filePath.replace(QRegularExpression("[/\\<>|\"*?:]"), "_")
-                   % '#' % d->fileNameToDownload(event);
+    if (filePath.isEmpty()) { // Setup default file path
+        filePath =
+            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
+
+        if (filePath.size() > 200) // If too long, elide in the middle
+            filePath.replace(128, filePath.size() - 192, "---");
+
+        filePath = QDir::tempPath() % '/' % filePath;
+        qDebug(MAIN) << "File path:" << filePath;
     }
     auto job = connection()->downloadFile(fileUrl, filePath);
     if (isJobRunning(job)) {
-        // If there was a previous transfer (completed or failed), remove it.
-        d->fileTransfers.remove(eventId);
-        d->fileTransfers.insert(eventId, { job, job->targetFileName() });
+        // If there was a previous transfer (completed or failed), overwrite it.
+        d->fileTransfers[eventId] = { job, job->targetFileName() };
         connect(job, &BaseJob::downloadProgress, this,
                 [this, eventId](qint64 received, qint64 total) {
                     d->fileTransfers[eventId].update(received, total);
@@ -1936,22 +1973,15 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
     auto originalJson = target.originalJsonObject();
-    static const QStringList keepKeys { EventIdKey,
-                                        TypeKey,
-                                        QStringLiteral("room_id"),
-                                        QStringLiteral("sender"),
-                                        StateKeyKey,
-                                        QStringLiteral("prev_content"),
-                                        ContentKey,
-                                        QStringLiteral("hashes"),
-                                        QStringLiteral("signatures"),
-                                        QStringLiteral("depth"),
-                                        QStringLiteral("prev_events"),
-                                        QStringLiteral("prev_state"),
-                                        QStringLiteral("auth_events"),
-                                        QStringLiteral("origin"),
-                                        QStringLiteral("origin_server_ts"),
-                                        QStringLiteral("membership") };
+    // clang-format off
+    static const QStringList keepKeys { EventIdKey, TypeKey,
+        QStringLiteral("room_id"), QStringLiteral("sender"), StateKeyKey,
+        QStringLiteral("hashes"), QStringLiteral("signatures"),
+        QStringLiteral("depth"), QStringLiteral("prev_events"),
+        QStringLiteral("prev_state"), QStringLiteral("auth_events"),
+        QStringLiteral("origin"), QStringLiteral("origin_server_ts"),
+        QStringLiteral("membership") };
+    // clang-format on
 
     std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
@@ -2107,7 +2137,7 @@ inline bool isEditing(const RoomEventPtr& ep)
     if (is<RedactionEvent>(*ep))
         return true;
     if (auto* msgEvent = eventCast<RoomMessageEvent>(ep))
-        return msgEvent->replacedEvent().isEmpty();
+        return !msgEvent->replacedEvent().isEmpty();
 
     return false;
 }
@@ -2130,12 +2160,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))
                     continue;
-                auto targetIt = std::find_if(events.begin(), it,
-                                             [id = r->redactedEvent()](
-                                                 const RoomEventPtr& ep) {
-                                                 return ep->id() == id;
-                                             });
-                if (targetIt != it)
+                if (auto targetIt = std::find_if(events.begin(), events.end(),
+                        [id = r->redactedEvent()](const RoomEventPtr& ep) {
+                            return ep->id() == id;
+                        }); targetIt != events.end())
                     *targetIt = makeRedacted(**targetIt, *r);
                 else
                     qCDebug(EVENTS)
@@ -2143,25 +2171,23 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                         << r->redactedEvent() << "is not found";
                 // If the target event comes later, it comes already redacted.
             }
-            if (auto* msg = eventCast<RoomMessageEvent>(eptr)) {
-                if (!msg->replacedEvent().isEmpty()) {
-                    if (processReplacement(*msg))
-                        continue;
-                    auto targetIt = std::find_if(events.begin(), it,
-                                                 [id = msg->replacedEvent()](
-                                                     const RoomEventPtr& ep) {
-                                                     return ep->id() == id;
-                                                 });
-                    if (targetIt != it)
-                        *targetIt = makeReplaced(**targetIt, *msg);
-                    else // FIXME: don't ignore, just show it wherever it arrived
-                        qCDebug(EVENTS)
-                            << "Replacing event" << msg->id()
-                            << "ignored: replaced event" << msg->replacedEvent()
-                            << "is not found";
-                    // Same as with redactions above, the replaced event coming
-                    // later will come already with the new content.
-                }
+            if (auto* msg = eventCast<RoomMessageEvent>(eptr);
+                    msg && !msg->replacedEvent().isEmpty()) {
+                if (processReplacement(*msg))
+                    continue;
+                auto targetIt = std::find_if(events.begin(), it,
+                        [id = msg->replacedEvent()](const RoomEventPtr& ep) {
+                            return ep->id() == id;
+                        });
+                if (targetIt != it)
+                    *targetIt = makeReplaced(**targetIt, *msg);
+                else // FIXME: don't ignore, just show it wherever it arrived
+                    qCDebug(EVENTS)
+                        << "Replacing event" << msg->id()
+                        << "ignored: replaced event" << msg->replacedEvent()
+                        << "is not found";
+                // Same as with redactions above, the replaced event coming
+                // later will come already with the new content.
             }
         }
     }
@@ -2326,7 +2352,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
     if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
-        qCDebug(EVENTS) << "Room state event:" << e;
+        qCDebug(STATE) << "Room state event:" << e;
 
     // clang-format off
     return visit(e
@@ -2336,10 +2362,10 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
             // clang-format on
             if (ae.aliases().isEmpty()) {
-                qCDebug(STATE).noquote()
-                    << ae.stateKey() << "no more has aliases for room"
-                    << objectName();
-                d->aliasServers.remove(ae.stateKey());
+                if (d->aliasServers.remove(ae.stateKey()))
+                    qCDebug(STATE).noquote()
+                        << ae.stateKey() << "no more has aliases for room"
+                        << objectName();
             } else {
                 d->aliasServers.insert(ae.stateKey());
                 qCDebug(STATE).nospace().noquote()
@@ -2620,9 +2646,8 @@ QString Room::Private::calculateDisplayname() const
     const bool emptyRoom =
         membersMap.isEmpty()
         || (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
-    const bool nonEmptySummary =
-        !summary.heroes.omitted() && !summary.heroes->empty();
-    auto shortlist = nonEmptySummary ? buildShortlist(summary.heroes.value())
+    const bool nonEmptySummary = summary.heroes && !summary.heroes->empty();
+    auto shortlist = nonEmptySummary ? buildShortlist(*summary.heroes)
                                      : !emptyRoom ? buildShortlist(membersMap)
                                                   : users_shortlist_t {};
 

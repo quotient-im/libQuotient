@@ -40,6 +40,7 @@ public:
     bool isDirect = false;
     QString displayName;
     QUrl avatarUrl;
+    QString reason;
 
 protected:
     void fillJson(QJsonObject* o) const override;
@@ -56,8 +57,8 @@ public:
 
     explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
-    [[deprecated("Use RoomMemberEvent(userId, contentArgs) "
-                 "instead")]] RoomMemberEvent(MemberEventContent&& c)
+    [[deprecated("Use RoomMemberEvent(userId, contentArgs) instead")]]
+    RoomMemberEvent(MemberEventContent&& c)
         : StateEvent(typeId(), matrixTypeId(), QString(), c)
     {}
     template <typename... ArgTs>
@@ -85,6 +86,8 @@ public:
     bool isDirect() const { return content().isDirect; }
     QString displayName() const { return content().displayName; }
     QUrl avatarUrl() const { return content().avatarUrl; }
+    QString reason() const { return content().reason; }
+    bool changesMembership() const;
     bool isInvite() const;
     bool isJoin() const;
     bool isLeave() const;

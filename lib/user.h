@@ -107,9 +107,10 @@ public:
     qreal hueF() const;
 
     const Avatar& avatarObject(const Room* room = nullptr) const;
-    Q_INVOKABLE QImage avatar(int dimension, const Room* room = nullptr);
+    Q_INVOKABLE QImage avatar(int dimension,
+                              const Quotient::Room* room = nullptr);
     Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
-                              const Room* room = nullptr);
+                              const Quotient::Room* room = nullptr);
     QImage avatar(int width, int height, const Room* room,
                   const Avatar::get_callback_t& callback);
 
@@ -145,9 +146,10 @@ public slots:
 
 signals:
     void nameAboutToChange(QString newName, QString oldName,
-                           const Room* roomContext);
-    void nameChanged(QString newName, QString oldName, const Room* roomContext);
-    void avatarChanged(User* user, const Room* roomContext);
+                           const Quotient::Room* roomContext);
+    void nameChanged(QString newName, QString oldName,
+                     const Quotient::Room* roomContext);
+    void avatarChanged(Quotient::User* user, const Quotient::Room* roomContext);
 
 private slots:
     void updateName(const QString& newName, const Room* room = nullptr);
@@ -161,4 +163,3 @@ private:
     QScopedPointer<Private> d;
 };
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::User*)

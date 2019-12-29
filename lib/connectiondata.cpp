@@ -42,6 +42,7 @@ public:
     QString lastEvent;
     QString userId;
     QString deviceId;
+    std::vector<QString> needToken;
 
     mutable unsigned int txnCounter = 0;
     const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
@@ -67,7 +68,6 @@ ConnectionData::ConnectionData(QUrl baseUrl)
         for (auto& q : d->jobs)
             while (!q.empty()) {
                 auto& job = q.front();
-                q.pop();
                 if (!job || job->error() == BaseJob::Abandoned)
                     continue;
                 if (job->error() != BaseJob::Pending) {
@@ -79,19 +79,24 @@ ConnectionData::ConnectionData(QUrl baseUrl)
                 }
                 job->sendRequest();
                 d->rateLimiter.start();
+                q.pop();
                 return;
             }
         qCDebug(MAIN) << d->id() << "job queues are empty";
     });
 }
 
-ConnectionData::~ConnectionData() = default;
+ConnectionData::~ConnectionData()
+{
+    d->rateLimiter.disconnect();
+    d->rateLimiter.stop();
+}
 
 void ConnectionData::submit(BaseJob* job)
 {
-    Q_ASSERT(job->error() == BaseJob::Pending);
+    job->setStatus(BaseJob::Pending);
     if (!d->rateLimiter.isActive()) {
-        job->sendRequest();
+        QTimer::singleShot(0, job, &BaseJob::sendRequest);
         return;
     }
     d->jobs[size_t(job->isBackground())].emplace(job);
@@ -143,12 +148,23 @@ const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 const QString& ConnectionData::userId() const { return d->userId; }
 
+bool ConnectionData::needsToken(const QString& requestName) const
+{
+    return std::find(d->needToken.cbegin(), d->needToken.cend(), requestName)
+           != d->needToken.cend();
+}
+
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
     d->deviceId = deviceId;
 }
 
 void ConnectionData::setUserId(const QString& userId) { d->userId = userId; }
+
+void ConnectionData::setNeedsToken(const QString& requestName)
+{
+    d->needToken.push_back(requestName);
+}
 
 QString ConnectionData::lastEvent() const { return d->lastEvent; }
 

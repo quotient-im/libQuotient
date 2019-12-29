@@ -138,8 +138,7 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     connect(&d->retryTimer, &QTimer::timeout, this, [this] {
-        setStatus(Pending);
-        sendRequest();
+        d->connection->submit(this);
     });
 }
 
@@ -226,8 +225,9 @@ void BaseJob::Private::sendRequest()
                                          requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    req.setRawHeader("Authorization",
-                     QByteArray("Bearer ") + connection->accessToken());
+    if (needsToken)
+        req.setRawHeader("Authorization",
+                         QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
@@ -258,14 +258,27 @@ void BaseJob::onSentRequest(QNetworkReply*) {}
 
 void BaseJob::beforeAbandon(QNetworkReply*) {}
 
-void BaseJob::prepare(ConnectionData* connData, bool inBackground)
+void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
+    Q_ASSERT(connData != nullptr);
+
     d->inBackground = inBackground;
     d->connection = connData;
     doPrepare();
-    if (status().code != Unprepared && status().code != Pending)
+
+    if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
+        && d->requestData.source() && !d->requestData.source()->isReadable()) {
+        setStatus(FileError, "Request data not ready");
+    }
+    Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
+    if (status().code == Unprepared) {
+        d->connection->submit(this);
+    } else {
+        qDebug(d->logCat).noquote()
+            << "Request failed preparation and won't be sent:"
+            << d->dumpRequest();
         QTimer::singleShot(0, this, &BaseJob::finishJob);
-    setStatus(Pending);
+    }
 }
 
 void BaseJob::sendRequest()
@@ -274,6 +287,7 @@ void BaseJob::sendRequest()
         return;
     Q_ASSERT(d->connection && status().code == Pending);
     qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
+    d->needsToken |= d->connection->needsToken(objectName());
     emit aboutToSendRequest();
     d->sendRequest();
     Q_ASSERT(d->reply);
@@ -290,7 +304,7 @@ void BaseJob::sendRequest()
         onSentRequest(d->reply.data());
         emit sentRequest();
     } else
-        qCWarning(d->logCat).noquote()
+        qCCritical(d->logCat).noquote()
             << "Request could not start:" << d->dumpRequest();
 }
 
@@ -341,32 +355,32 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
-BaseJob::Status BaseJob::Status::fromHttpCode(int httpCode, QString msg)
+BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
 {
+    if (httpCode / 10 == 41) // 41x errors
+        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+    switch (httpCode) {
+    case 401:
+        return Unauthorised;
     // clang-format off
-    return { [httpCode]() -> StatusCode {
-            if (httpCode / 10 == 41) // 41x errors
-                return httpCode == 410 ? IncorrectRequestError : NotFoundError;
-            switch (httpCode) {
-            case 401: case 403: case 407:
-                return ContentAccessError;
-            case 404:
-                return NotFoundError;
-            case 400: case 405: case 406: case 426: case 428: case 505:
-            case 494: // Unofficial nginx "Request header too large"
-            case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-                return IncorrectRequestError;
-            case 429:
-                return TooManyRequestsError;
-            case 501: case 510:
-                return RequestNotImplementedError;
-            case 511:
-                return NetworkAuthRequiredError;
-            default:
-                return NetworkError;
-            }
-        }(), std::move(msg) };
-    // clang-format on
+    case 403: case 407: // clang-format on
+        return ContentAccessError;
+    case 404:
+        return NotFoundError;
+    // clang-format off
+    case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
+    case 494: // Unofficial nginx "Request header too large"
+    case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+        return IncorrectRequestError;
+    case 429:
+        return TooManyRequestsError;
+    case 501: case 510:
+        return RequestNotImplementedError;
+    case 511:
+        return NetworkAuthRequiredError;
+    default:
+        return NetworkError;
+    }
 }
 
 QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
@@ -492,9 +506,17 @@ void BaseJob::finishJob()
     stop();
     if (error() == TooManyRequests) {
         emit rateLimited();
-        setStatus(Pending);
         d->connection->submit(this);
         return;
+    }
+    if (error() == Unauthorised && !d->needsToken
+        && !d->connection->accessToken().isEmpty()) {
+        // Rerun with access token (extension of the spec while
+        // https://github.com/matrix-org/matrix-doc/issues/701 is pending)
+        d->connection->setNeedsToken(objectName());
+        qCWarning(d->logCat) << this << "re-running with authentication";
+        emit retryScheduled(d->retriesTaken, 0);
+        d->connection->submit(this);
     }
     if ((error() == NetworkError || error() == Timeout)
         && d->retriesTaken < d->maxRetries) {
@@ -596,6 +618,8 @@ QString BaseJob::statusCaption() const
         return tr("Network problems");
     case TimeoutError:
         return tr("Request timed out");
+    case Unauthorised:
+        return tr("Unauthorised request");
     case ContentAccessError:
         return tr("Access error");
     case NotFoundError:

@@ -1,0 +1,68 @@
+{
+   libc_dirty_free_on_exit
+   Memcheck:Free
+   fun:free
+   fun:__libc_freeres
+   fun:_vgnU_freeres
+   fun:__run_exit_handlers
+   fun:exit
+}
+
+{
+   QAuthenticator
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN14QAuthenticator6detachEv
+}
+
+{
+   QTimer
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   fun:_ZN7QObjectC1EPS_
+   fun:_ZN6QTimerC1EP7QObject
+}
+
+{
+   QSslConfiguration
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   ...
+   fun:_ZN17QSslConfigurationC1Ev
+}
+
+{
+   libcrypto_ASN1
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:ASN1_item_ex_d2i
+}
+
+{
+   malloc_from_libcrypto
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:CRYPTO_malloc
+   ...
+   obj:/lib/x86_64-linux-gnu/libcrypto.so.*
+}
+
+{
+   Slot_activation_from_QtNetwork
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:inflateInit2_
+   obj:/*/*/*/libQt5Network.so.*
+   ...
+   fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
+   ...
+   fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
+   obj:/*/*/*/libQt5Network.so.*
+}

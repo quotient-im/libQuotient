@@ -1,5 +1,3 @@
-#include <utility>
-
 /******************************************************************************
  * Copyright (C) 2018 Kitsune Ral <kitsune-ral@users.sf.net>
  *
@@ -34,13 +32,13 @@ struct TagRecord {
 
     order_type order;
 
-    TagRecord(order_type order = none) : order(order) {}
+    TagRecord(order_type order = none) : order(std::move(order)) {}
 
     bool operator<(const TagRecord& other) const
     {
-        // Per The Spec, rooms with no order should be after those with order
-        return !order.omitted()
-               && (other.order.omitted() || order.value() < other.order.value());
+        // Per The Spec, rooms with no order should be after those with order,
+        // against optional<>::operator<() convention.
+        return order && (!other.order || *order < *other.order);
     }
 };
 

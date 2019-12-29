@@ -99,7 +99,8 @@ public:
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
     UnorderedMap<QString, EventPtr> accountData;
-    int syncLoopTimeout = -1;
+    QMetaObject::Connection syncLoopConnection {};
+    int syncTimeout = -1;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
@@ -259,8 +260,6 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
     });
 }
 
-void Connection::syncLoopIteration() { sync(d->syncLoopTimeout); }
-
 void Connection::connectWithToken(const QString& userId,
                                   const QString& accessToken,
                                   const QString& deviceId)
@@ -278,16 +277,16 @@ void Connection::reloadCapabilities()
         else if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
             qCDebug(MAIN) << "Server doesn't support /capabilities";
 
-        if (d->capabilities.roomVersions.omitted()) {
+        if (!d->capabilities.roomVersions) {
             qCWarning(MAIN) << "Pinning supported room version to 1";
             d->capabilities.roomVersions = { "1", { { "1", "stable" } } };
         } else {
             qCDebug(MAIN) << "Room versions:" << defaultRoomVersion()
                           << "is default, full list:" << availableRoomVersions();
         }
-        Q_ASSERT(!d->capabilities.roomVersions.omitted());
+        Q_ASSERT(d->capabilities.roomVersions.has_value());
         emit capabilitiesLoaded();
-        for (auto* r : d->roomMap)
+        for (auto* r : qAsConst(d->roomMap))
             r->checkVersion();
     });
 }
@@ -296,7 +295,7 @@ bool Connection::loadingCapabilities() const
 {
     // (Ab)use the fact that room versions cannot be omitted after
     // the capabilities have been loaded (see reloadCapabilities() above).
-    return d->capabilities.roomVersions.omitted();
+    return !d->capabilities.roomVersions;
 }
 
 void Connection::Private::connectWithToken(const QString& userId,
@@ -335,25 +334,38 @@ void Connection::checkAndConnect(const QString& userId,
 
 void Connection::logout()
 {
-    auto job = callApi<LogoutJob>();
-    connect(job, &LogoutJob::finished, this, [job, this] {
-        if (job->status().good() || job->error() == BaseJob::ContentAccessError) {
-            stopSync();
+    // If there's an ongoing sync job, stop it but don't break the sync loop yet
+    const auto syncWasRunning = bool(d->syncJob);
+    if (syncWasRunning)
+    {
+        d->syncJob->abandon();
+        d->syncJob = nullptr;
+    }
+    const auto* job = callApi<LogoutJob>();
+    connect(job, &LogoutJob::finished, this, [this, job, syncWasRunning] {
+        if (job->status().good() || job->error() == BaseJob::Unauthorised
+            || job->error() == BaseJob::ContentAccessError) {
+            if (d->syncLoopConnection)
+                disconnect(d->syncLoopConnection);
             d->data->setToken({});
             emit stateChanged();
             emit loggedOut();
-        }
+        } else if (syncWasRunning)
+            syncLoopIteration(); // Resume sync loop (or a single sync)
     });
 }
 
 void Connection::sync(int timeout)
 {
-    if (d->syncJob)
+    if (d->syncJob) {
+        qCInfo(MAIN) << d->syncJob << "is already running";
         return;
+    }
 
+    d->syncTimeout = timeout;
     Filter filter;
-    filter.room->timeline->limit = 100;
-    filter.room->state->lazyLoadMembers = d->lazyLoading;
+    filter.room.edit().timeline.edit().limit.emplace(100);
+    filter.room.edit().state.edit().lazyLoadMembers.emplace(d->lazyLoading);
     auto job = d->syncJob =
         callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
                          timeout);
@@ -369,9 +381,9 @@ void Connection::sync(int timeout)
             });
     connect(job, &SyncJob::failure, this, [this, job] {
         d->syncJob = nullptr;
-        if (job->error() == BaseJob::ContentAccessError) {
-            qCWarning(SYNCJOB) << "Sync job failed with ContentAccessError - "
-                                  "login expired?";
+        if (job->error() == BaseJob::Unauthorised) {
+            qCWarning(SYNCJOB)
+                << "Sync job failed with Unauthorised - login expired?";
             emit loginError(job->errorString(), job->rawDataSample());
         } else
             emit syncError(job->errorString(), job->rawDataSample());
@@ -380,12 +392,26 @@ void Connection::sync(int timeout)
 
 void Connection::syncLoop(int timeout)
 {
-    d->syncLoopTimeout = timeout;
-    connect(this, &Connection::syncDone, this, &Connection::syncLoopIteration);
-    syncLoopIteration(); // initial sync to start the loop
+    if (d->syncLoopConnection && d->syncTimeout == timeout) {
+        qCInfo(MAIN) << "Attempt to run sync loop but there's one already "
+                        "running; nothing will be done";
+        return;
+    }
+    std::swap(d->syncTimeout, timeout);
+    if (d->syncLoopConnection) {
+        qCInfo(MAIN) << "Timeout for next syncs changed from"
+                        << timeout << "to" << d->syncTimeout;
+    } else {
+        d->syncLoopConnection = connect(this, &Connection::syncDone,
+                                        this, &Connection::syncLoopIteration,
+                                        Qt::QueuedConnection);
+        syncLoopIteration(); // initial sync to start the loop
+    }
 }
 
-QJsonObject toJson(const Connection::DirectChatsMap& directChats)
+void Connection::syncLoopIteration() { sync(d->syncTimeout); }
+
+QJsonObject toJson(const DirectChatsMap& directChats)
 {
     QJsonObject json;
     for (auto it = directChats.begin(); it != directChats.end();) {
@@ -421,7 +447,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
             r->updateData(std::move(roomData), fromCache);
             if (d->firstTimeRooms.removeOne(r)) {
                 emit loadedRoomState(r);
-                if (!d->capabilities.roomVersions.omitted())
+                if (d->capabilities.roomVersions)
                     r->checkVersion();
                 // Otherwise, the version will be checked in reloadCapabilities()
             }
@@ -514,8 +540,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 void Connection::stopSync()
 {
     // If there's a sync loop, break it
-    disconnect(this, &Connection::syncDone, this,
-               &Connection::syncLoopIteration);
+    disconnect(d->syncLoopConnection);
     if (d->syncJob) // If there's an ongoing sync job, stop it too
     {
         d->syncJob->abandon();
@@ -534,10 +559,14 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
     auto job = callApi<JoinRoomJob>(roomAlias, serverNames);
-    // Upon completion, ensure a room object in Join state is created but only
-    // if it's not already there due to a sync completing earlier.
-    connect(job, &JoinRoomJob::success, this,
-            [this, job] { provideRoom(job->roomId()); });
+    // Upon completion, ensure a room object in Join state is created
+    // (or it might already be there due to a sync completing earlier).
+    // finished() is used here instead of success() to overtake clients
+    // that may add their own slots to finished().
+    connect(job, &BaseJob::finished, this, [this, job] {
+        if (job->status().good())
+            provideRoom(job->roomId());
+    });
     return job;
 }
 
@@ -595,12 +624,17 @@ UploadContentJob*
 Connection::uploadContent(QIODevice* contentSource, const QString& filename,
                           const QString& overrideContentType) const
 {
+    Q_ASSERT(contentSource != nullptr);
     auto contentType = overrideContentType;
     if (contentType.isEmpty()) {
         contentType = QMimeDatabase()
                           .mimeTypeForFileNameAndData(filename, contentSource)
                           .name();
-        contentSource->open(QIODevice::ReadOnly);
+        if (!contentSource->open(QIODevice::ReadOnly)) {
+            qCWarning(MAIN) << "Couldn't open content source" << filename
+                            << "for reading:" << contentSource->errorString();
+            return nullptr;
+        }
     }
     return callApi<UploadContentJob>(contentSource, filename, contentType);
 }
@@ -609,11 +643,6 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
                                          const QString& overrideContentType)
 {
     auto sourceFile = new QFile(fileName);
-    if (!sourceFile->open(QIODevice::ReadOnly)) {
-        qCWarning(MAIN) << "Couldn't open" << sourceFile->fileName()
-                        << "for reading";
-        return nullptr;
-    }
     return uploadContent(sourceFile, QFileInfo(*sourceFile).fileName(),
                          overrideContentType);
 }
@@ -775,7 +804,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     if (!room)
         room = d->roomMap.value({ id, true });
     if (room && room->joinState() != JoinState::Leave) {
-        auto leaveJob = room->leaveRoom();
+        auto leaveJob = leaveRoom(room);
         connect(leaveJob, &BaseJob::result, this,
                 [this, leaveJob, forgetJob, room] {
                     if (leaveJob->error() == BaseJob::Success
@@ -1046,7 +1075,7 @@ QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
     return rooms;
 }
 
-Connection::DirectChatsMap Connection::directChats() const
+DirectChatsMap Connection::directChats() const
 {
     return d->directChats;
 }
@@ -1113,7 +1142,7 @@ bool Connection::isIgnored(const User* user) const
     return ignoredUsers().contains(user->id());
 }
 
-Connection::IgnoredUsersList Connection::ignoredUsers() const
+IgnoredUsersList Connection::ignoredUsers() const
 {
     const auto* event = d->unpackAccountData<IgnoredUsersEvent>();
     return event ? event->ignored_users() : IgnoredUsersList();
@@ -1154,7 +1183,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
-    // If joinState.omitted(), all joinState == comparisons below are false.
+    // If joinState is empty, all joinState == comparisons below are false.
     const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room) {
@@ -1163,7 +1192,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
         // and emit a signal. For Invite and Join, there's no such problem.
         if (room->joinState() == joinState && joinState != JoinState::Leave)
             return room;
-    } else if (joinState.omitted()) {
+    } else if (!joinState) {
         // No Join and Leave, maybe Invite?
         room = d->roomMap.value({ id, true }, nullptr);
         if (room)
@@ -1172,9 +1201,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     }
 
     if (!room) {
-        room = roomFactory()(this, id,
-                             joinState.omitted() ? JoinState::Join
-                                                 : joinState.value());
+        room = roomFactory()(this, id, joinState.value_or(JoinState::Join));
         if (!room) {
             qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
@@ -1185,20 +1212,20 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
                 &Connection::aboutToDeleteRoom);
         emit newRoom(room);
     }
-    if (joinState.omitted())
+    if (!joinState)
         return room;
 
-    if (joinState == JoinState::Invite) {
+    if (*joinState == JoinState::Invite) {
         // prev is either Leave or nullptr
         auto* prev = d->roomMap.value({ id, false }, nullptr);
         emit invitedRoom(room, prev);
     } else {
-        room->setJoinState(joinState.value());
+        room->setJoinState(*joinState);
         // Preempt the Invite room (if any) with a room in Join/Leave state.
         auto* prevInvite = d->roomMap.take({ id, true });
-        if (joinState == JoinState::Join)
+        if (*joinState == JoinState::Join)
             emit joinedRoom(room, prevInvite);
-        else if (joinState == JoinState::Leave)
+        else if (*joinState == JoinState::Leave)
             emit leftRoom(room, prevInvite);
         if (prevInvite) {
             const auto dcUsers = prevInvite->directChatUsers();
@@ -1387,8 +1414,7 @@ void Connection::setLazyLoading(bool newValue)
 void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
 {
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-    job->prepare(d->data.get(), runningPolicy & BackgroundRequest);
-    d->data->submit(job);
+    job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
 }
 
 void Connection::getTurnServers()
@@ -1403,13 +1429,13 @@ const QString Connection::SupportedRoomVersion::StableTag =
 
 QString Connection::defaultRoomVersion() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     return d->capabilities.roomVersions->defaultVersion;
 }
 
 QStringList Connection::stableRoomVersions() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QStringList l;
     const auto& allVersions = d->capabilities.roomVersions->available;
     for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
@@ -1429,7 +1455,7 @@ inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
 
 QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() const
 {
-    Q_ASSERT(!d->capabilities.roomVersions.omitted());
+    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QVector<SupportedRoomVersion> result;
     result.reserve(d->capabilities.roomVersions->available.size());
     for (auto it = d->capabilities.roomVersions->available.begin();

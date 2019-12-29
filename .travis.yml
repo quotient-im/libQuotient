@@ -4,13 +4,6 @@ dist: bionic
 git:
   depth: false
 
-before_cache:
-- brew cleanup
-
-cache:
-  directories:
-  - $HOME/Library/Caches/Homebrew
-
 addons:
   apt:
     packages:
@@ -18,6 +11,12 @@ addons:
     - qt5-default
     - qtmultimedia5-dev
     - valgrind
+
+env:
+  global:
+  - DESTDIR="$TRAVIS_BUILD_DIR/install"
+  - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=$DESTDIR/usr"
+  - VALGRIND="valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp $VALGRIND_OPTIONS"
 
 matrix:
   include:
@@ -27,51 +26,53 @@ matrix:
     compiler: clang
   - os: osx
     osx_image: xcode10.1
-    env: [ 'PATH=/usr/local/opt/qt/bin:$PATH' ]
+    env: [ 'PATH=/usr/local/opt/qt/bin:$PATH', 'VALGRIND=' ]
     addons:
       homebrew:
         update: true
         packages:
         - qt5
+    before_cache:
+    - brew cleanup
+    cache:
+      directories:
+      - $HOME/Library/Caches/Homebrew
 
 before_install:
-- eval "${ENV_EVAL}"
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then USE_NINJA="-GNinja"; fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then VALGRIND="valgrind $VALGRIND_OPTIONS"; fi
+- if [ -f "$(which ninja)" ]; then export CMAKE_ARGS="$CMAKE_ARGS -GNinja"; fi
+# RPM spec-style: swallow a command with default parameters into an alias
+# and add/override parameters further in the code if/as necessary
+- shopt -s expand_aliases
+- alias _cmake_config='cmake $CMAKE_ARGS . -Bbuild'
+- alias _cmake_build='cmake --build build'
 
 install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
-- cmake . -Bbuild -DBUILD_SHARED_LIBS=NO -DCMAKE_INSTALL_PREFIX=install
-- cmake --build build
-- cmake --build build --target install
+- _cmake_config
+- _cmake_build # TODO: add --target install when the patch lands in olm
 - popd
 - git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
 - pushd gtad
-- cmake $USE_NINJA -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} .
+- cmake $CMAKE_ARGS .
 - cmake --build .
 - popd
 
 before_script:
-- mkdir build && pushd build
-- cmake $USE_NINJA -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}  -DCMAKE_INSTALL_PREFIX=../install -DOlm_DIR=../olm/install/lib/cmake/Olm ..
-- cmake --build . --target update-api
-- popd
+- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build
+- _cmake_build --target update-api
 
 script:
-- cmake --build build --target all
-- cmake --build build --target install
-# Build qmc-example with the installed library
-- mkdir build-example && pushd build-example
-- cmake -DCMAKE_PREFIX_PATH=../install -DOlm_DIR=../olm/install/lib/cmake/Olm ../examples
-- cmake --build . --target all
-- popd
+- _cmake_build --target install
+# Build quotest with the installed libQuotient
+- cmake $CMAKE_ARGS tests -Bbuild-test -DOlm_DIR=olm/build
+- cmake --build build-test --target all
 # Build with qmake
-- qmake qmc-example.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/install/lib"
+- qmake quotest.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
 - make all
-# Run the qmake-compiled qmc-example under valgrind
-- if [ "$QMC_TEST_USER" != "" ]; then LD_LIBRARY_PATH="build/lib" $VALGRIND ./qmc-example "$QMC_TEST_USER" "$QMC_TEST_PWD" qmc-example-travis '#qmc-test:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
+# Run the qmake-compiled quotest under valgrind
+- if [ "$TEST_USER" != "" ]; then LD_LIBRARY_PATH="olm/build" $VALGRIND ./quotest "$TEST_USER" "$TEST_PWD" quotest-travis '#quotest:matrix.org' "Travis CI job $TRAVIS_JOB_NUMBER"; fi
 
 notifications:
   webhooks:

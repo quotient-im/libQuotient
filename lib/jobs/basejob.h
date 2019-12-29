@@ -57,9 +57,10 @@ public:
         Unprepared = 25, //< Initial job state is incomplete, hence warning level
         Abandoned = 50, //< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //< Errors have codes starting from this
-        NetworkError = 100,
+        NetworkError = 101,
         Timeout,
         TimeoutError = Timeout,
+        Unauthorised,
         ContentAccessError,
         NotFoundError,
         IncorrectRequest,
@@ -81,6 +82,7 @@ public:
         UserConsentRequiredError = UserConsentRequired,
         CannotLeaveRoom,
         UserDeactivated,
+        FileError,
         UserDefinedError = 256
     };
     Q_ENUM(StatusCode)
@@ -113,7 +115,12 @@ public:
     struct Status {
         Status(StatusCode c) : code(c) {}
         Status(int c, QString m) : code(c), message(std::move(m)) {}
-        static Status fromHttpCode(int httpCode, QString msg = {});
+
+        static StatusCode fromHttpCode(int httpCode);
+        static Status fromHttpCode(int httpCode, QString msg)
+        {
+            return { fromHttpCode(httpCode), std::move(msg) };
+        }
 
         bool good() const { return code < ErrorLevel; }
         QDebug dumpToLog(QDebug dbg) const;
@@ -184,11 +191,11 @@ public:
     using duration_ms_t = std::chrono::milliseconds::rep; // normally int64_t
 
     std::chrono::seconds getCurrentTimeout() const;
-    Q_INVOKABLE duration_ms_t getCurrentTimeoutMs() const;
+    Q_INVOKABLE Quotient::BaseJob::duration_ms_t getCurrentTimeoutMs() const;
     std::chrono::seconds getNextRetryInterval() const;
-    Q_INVOKABLE duration_ms_t getNextRetryMs() const;
+    Q_INVOKABLE Quotient::BaseJob::duration_ms_t getNextRetryMs() const;
     std::chrono::milliseconds timeToRetry() const;
-    Q_INVOKABLE duration_ms_t millisToRetry() const;
+    Q_INVOKABLE Quotient::BaseJob::duration_ms_t millisToRetry() const;
 
     friend QDebug operator<<(QDebug dbg, const BaseJob* j)
     {
@@ -196,7 +203,7 @@ public:
     }
 
 public slots:
-    void prepare(ConnectionData* connData, bool inBackground);
+    void initiate(ConnectionData* connData, bool inBackground);
 
     /**
      * Abandons the result of this job, arrived or unarrived.
@@ -215,7 +222,7 @@ signals:
     void sentRequest();
 
     /** The job has changed its status */
-    void statusChanged(Status newStatus);
+    void statusChanged(Quotient::BaseJob::Status newStatus);
 
     /**
      * The previous network request has failed; the next attempt will
@@ -225,7 +232,8 @@ signals:
      * @param inMilliseconds the interval after which the next attempt will be
      * taken
      */
-    void retryScheduled(int nextAttempt, duration_ms_t inMilliseconds);
+    void retryScheduled(int nextAttempt,
+                        Quotient::BaseJob::duration_ms_t inMilliseconds);
 
     /**
      * The previous network request has been rate-limited; the next attempt
@@ -251,7 +259,7 @@ signals:
      *
      * @see result, success, failure
      */
-    void finished(BaseJob* job);
+    void finished(Quotient::BaseJob* job);
 
     /**
      * Emitted when the job is finished (except when abandoned).
@@ -262,14 +270,14 @@ signals:
      *
      * @see success, failure
      */
-    void result(BaseJob* job);
+    void result(Quotient::BaseJob* job);
 
     /**
      * Emitted together with result() in case there's no error.
      *
      * @see result, failure
      */
-    void success(BaseJob*);
+    void success(Quotient::BaseJob*);
 
     /**
      * Emitted together with result() if there's an error.
@@ -277,7 +285,7 @@ signals:
      *
      * @see result, success
      */
-    void failure(BaseJob*);
+    void failure(Quotient::BaseJob*);
 
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);

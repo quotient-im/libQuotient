@@ -52,6 +52,7 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
     , isDirect(json["is_direct"_ls].toBool())
     , displayName(sanitized(json["displayname"_ls].toString()))
     , avatarUrl(json["avatar_url"_ls].toString())
+    , reason(json["reason"_ls].toString())
 {}
 
 void MemberEventContent::fillJson(QJsonObject* o) const
@@ -64,18 +65,23 @@ void MemberEventContent::fillJson(QJsonObject* o) const
     o->insert(QStringLiteral("displayname"), displayName);
     if (avatarUrl.isValid())
         o->insert(QStringLiteral("avatar_url"), avatarUrl.toString());
+    if (!reason.isEmpty())
+        o->insert(QStringLiteral("reason"), reason);
+}
+
+bool RoomMemberEvent::changesMembership() const
+{
+    return !prevContent() || prevContent()->membership != membership();
 }
 
 bool RoomMemberEvent::isInvite() const
 {
-    return membership() == MembershipType::Invite
-           && (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Invite && changesMembership();
 }
 
 bool RoomMemberEvent::isJoin() const
 {
-    return membership() == MembershipType::Join
-           && (!prevContent() || prevContent()->membership != membership());
+    return membership() == MembershipType::Join && changesMembership();
 }
 
 bool RoomMemberEvent::isLeave() const

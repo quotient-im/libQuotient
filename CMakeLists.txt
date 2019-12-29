@@ -6,7 +6,7 @@ endif()
 set(API_VERSION "0.6")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
-option(QUOTIENT_INSTALL_EXAMPLE "install qmc-example application" ON)
+option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
 
 include(CheckCXXCompilerFlag)
 if (NOT WIN32)
@@ -52,7 +52,7 @@ else()
     endforeach ()
 endif()
 
-find_package(Qt5 5.9 REQUIRED Network Gui Multimedia)
+find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
@@ -194,6 +194,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         ${ABS_GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
+            search.yaml- # current GTAD is limited in handling move-only data
             sync.yaml- # we have a better handcrafted implementation
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
         SOURCES ${FULL_CSAPI_DIR}/gtad.yaml
@@ -219,7 +220,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
     endif()
 endif()
 
-set(example_SRCS examples/qmc-example.cpp)
+set(tests_SRCS tests/quotest.cpp)
 
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -238,8 +239,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} QtOlm Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
-add_executable(qmc-example ${example_SRCS})
-target_link_libraries(qmc-example Qt5::Core Quotient)
+set(TEST_BINARY quotest)
+add_executable(${TEST_BINARY} ${tests_SRCS})
+target_link_libraries(${TEST_BINARY} Qt5::Core Qt5::Test Quotient)
+
 configure_file(Quotient.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Quotient.pc @ONLY NEWLINE_STYLE UNIX)
 
 # Installation
@@ -282,9 +285,9 @@ if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
 
-if (QUOTIENT_INSTALL_EXAMPLE)
-    install(TARGETS qmc-example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif (QUOTIENT_INSTALL_EXAMPLE)
+if (QUOTIENT_INSTALL_TESTS)
+    install(TARGETS ${TEST_BINARY} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif ()
 
 if (UNIX AND NOT APPLE)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Quotient.pc

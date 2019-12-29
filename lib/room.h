@@ -27,6 +27,8 @@
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
 #include "events/roommessageevent.h"
+#include "events/roomcreateevent.h"
+#include "events/roomtombstoneevent.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -167,7 +169,22 @@ public:
     QString version() const;
     bool isUnstable() const;
     QString predecessorId() const;
+    /// Room predecessor
+    /** This function validates that the predecessor has a tombstone and
+     * the tombstone refers to the current room. If that's not the case,
+     * or if the predecessor is in a join state not matching \p stateFilter,
+     * the function returns nullptr.
+     */
+    Room* predecessor(JoinStates statesFilter = JoinState::Invite
+                                                | JoinState::Join) const;
     QString successorId() const;
+    /// Room successor
+    /** This function validates that the successor room's creation event
+     * refers to the current room. If that's not the case, or if the successor
+     * is in a join state not matching \p stateFilter, it returns nullptr.
+     */
+    Room* successor(JoinStates statesFilter = JoinState::Invite
+                                              | JoinState::Join) const;
     QString name() const;
     /// Room aliases defined on the current user's server
     /// \sa remoteAliases, setLocalAliases
@@ -182,10 +199,10 @@ public:
     QUrl avatarUrl() const;
     const Avatar& avatarObject() const;
     Q_INVOKABLE JoinState joinState() const;
-    Q_INVOKABLE QList<User*> usersTyping() const;
+    Q_INVOKABLE QList<Quotient::User*> usersTyping() const;
     QList<User*> membersLeft() const;
 
-    Q_INVOKABLE QList<User*> users() const;
+    Q_INVOKABLE QList<Quotient::User*> users() const;
     QStringList memberNames() const;
     [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
     int memberCount() const;
@@ -228,7 +245,7 @@ public:
      * \note The method will return a valid user regardless of
      *       the membership.
      */
-    Q_INVOKABLE User* user(const QString& userId) const;
+    Q_INVOKABLE Quotient::User* user(const QString& userId) const;
 
     /**
      * \brief Check the join state of a given user in this room
@@ -236,16 +253,15 @@ public:
      * \note Banned and invited users are not tracked for now (Leave
      *       will be returned for them).
      *
-     * \return either of Join, Leave, depending on the given
-     *         user's state in the room
+     * \return Join if the user is a room member; Leave otherwise
      */
-    Q_INVOKABLE JoinState memberJoinState(User* user) const;
+    Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
 
     /**
      * Get a disambiguated name for a given user in
      * the context of the room
      */
-    Q_INVOKABLE QString roomMembername(const User* u) const;
+    Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
     /**
      * Get a disambiguated name for a user with this id in
      * the context of the room
@@ -274,9 +290,10 @@ public:
     Timeline::const_iterator syncEdge() const;
     /// \deprecated Use historyEdge instead
     rev_iter_t timelineEdge() const;
-    Q_INVOKABLE TimelineItem::index_t minTimelineIndex() const;
-    Q_INVOKABLE TimelineItem::index_t maxTimelineIndex() const;
-    Q_INVOKABLE bool isValidIndex(TimelineItem::index_t timelineIndex) const;
+    Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
+    Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;
+    Q_INVOKABLE bool
+    isValidIndex(Quotient::TimelineItem::index_t timelineIndex) const;
 
     rev_iter_t findInTimeline(TimelineItem::index_t index) const;
     rev_iter_t findInTimeline(const QString& evtId) const;
@@ -287,6 +304,11 @@ public:
                                       const char* relType) const;
     const RelatedEvents relatedEvents(const RoomEvent& evt,
                                       const char* relType) const;
+
+    const RoomCreateEvent* creation() const
+    { return getCurrentState<RoomCreateEvent>(); }
+    const RoomTombstoneEvent* tombstone() const
+    { return getCurrentState<RoomTombstoneEvent>(); }
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -374,6 +396,19 @@ public:
     /// Remove a tag from the room
     Q_INVOKABLE void removeTag(const QString& name);
 
+    /// The scope to apply an action on
+    /*! This enumeration is used to pick a strategy to propagate certain
+     * actions on the room to its predecessors and successors.
+     */
+    enum ActionScope {
+        ThisRoomOnly,    //< Do not apply to predecessors and successors
+        WithinSameState, //< Apply to predecessors and successors in the same
+                         //< state as the current one
+        OmitLeftState,   //< Apply to all reachable predecessors and successors
+                         //< except those in Leave state
+        WholeSequence    //< Apply to all reachable predecessors and successors
+    };
+
     /** Overwrite the room's tags
      * This completely replaces the existing room's tags with a set
      * of new ones and updates the new set on the server. Unlike
@@ -381,8 +416,11 @@ public:
      * immediately, not waiting for confirmation from the server
      * (because tags are saved in account data rather than in shared
      * room state).
+     * \param applyOn setting this to Room::OnAllConversations will set tags
+     *                on this and all _known_ predecessors and successors;
+     *                by default only the current room is changed
      */
-    void setTags(TagsMap newTags);
+    void setTags(TagsMap newTags, ActionScope applyOn = ThisRoomOnly);
 
     /// Check whether the list of tags has m.favourite
     bool isFavourite() const;
@@ -414,7 +452,8 @@ public:
      *           the event is even sent), while downloads are using
      *           the normal event id for identifier.
      */
-    Q_INVOKABLE FileTransferInfo fileTransferInfo(const QString& id) const;
+    Q_INVOKABLE Quotient::FileTransferInfo
+    fileTransferInfo(const QString& id) const;
 
     /// Get the URL to the actual file source in a unified way
     /*!
@@ -438,9 +477,13 @@ public:
     /*! This method returns a (potentially empty) state event corresponding
      * to the pair of event type \p evtType and state key \p stateKey.
      */
-    Q_INVOKABLE const StateEventBase*
+    Q_INVOKABLE const Quotient::StateEventBase*
     getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
 
+    /// Get a state event with the given event type and state key
+    /*! This is a typesafe overload that accepts a C++ event type instead of
+     * its Matrix name.
+     */
     template <typename EvT>
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
@@ -452,6 +495,14 @@ public:
         return evt;
     }
 
+    /// Set a state event of the given type with the given arguments
+    /*! This typesafe overload attempts to send a state event with the type
+     * \p EvT and the content defined by \p args. Specifically, the function
+     * creates a temporary object of type \p EvT passing \p args to
+     * the constructor, and sends a request to the homeserver using
+     * the Matrix event type defined by \p EvT and the event content produced
+     * via EvT::contentJson().
+     */
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args) const
     {
@@ -549,7 +600,8 @@ signals:
     /// The remote echo has arrived with the sync and will be merged
     /// with its local counterpart
     /** NB: Requires a sync loop to be emitted */
-    void pendingEventAboutToMerge(RoomEvent* serverEvent, int pendingEventIndex);
+    void pendingEventAboutToMerge(Quotient::RoomEvent* serverEvent,
+                                  int pendingEventIndex);
     /// The remote and local copies of the event have been merged
     /** NB: Requires a sync loop to be emitted */
     void pendingEventMerged();
@@ -577,21 +629,21 @@ signals:
      *                upon the last sync
      * \sa Changes
      */
-    void changed(Changes changes);
+    void changed(Quotient::Room::Changes changes);
     /**
      * \brief The room name, the canonical alias or other aliases changed
      *
      * Not triggered when display name changes.
      */
-    void namesChanged(Room* room);
-    void displaynameAboutToChange(Room* room);
-    void displaynameChanged(Room* room, QString oldName);
+    void namesChanged(Quotient::Room* room);
+    void displaynameAboutToChange(Quotient::Room* room);
+    void displaynameChanged(Quotient::Room* room, QString oldName);
     void topicChanged();
     void avatarChanged();
-    void userAdded(User* user);
-    void userRemoved(User* user);
-    void memberAboutToRename(User* user, QString newName);
-    void memberRenamed(User* user);
+    void userAdded(Quotient::User* user);
+    void userRemoved(Quotient::User* user);
+    void memberAboutToRename(Quotient::User* user, QString newName);
+    void memberRenamed(Quotient::User* user);
     /// The list of members has changed
     /** Emitted no more than once per sync, this is a good signal to
      * for cases when some action should be done upon any change in
@@ -605,7 +657,8 @@ signals:
     void allMembersLoaded();
     void encryption();
 
-    void joinStateChanged(JoinState oldState, JoinState newState);
+    void joinStateChanged(Quotient::JoinState oldState,
+                          Quotient::JoinState newState);
     void typingChanged();
 
     void highlightCountChanged();
@@ -614,11 +667,11 @@ signals:
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
-    void lastReadEventChanged(User* user);
+    void lastReadEventChanged(Quotient::User* user);
     void readMarkerMoved(QString fromEventId, QString toEventId);
-    void readMarkerForUserMoved(User* user, QString fromEventId,
+    void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
                                 QString toEventId);
-    void unreadMessagesChanged(Room* room);
+    void unreadMessagesChanged(Quotient::Room* room);
 
     void accountDataAboutToChange(QString type);
     void accountDataChanged(QString type);
@@ -626,7 +679,8 @@ signals:
     void tagsChanged();
 
     void updatedEvent(QString eventId);
-    void replacedEvent(const RoomEvent* newEvent, const RoomEvent* oldEvent);
+    void replacedEvent(const Quotient::RoomEvent* newEvent,
+                       const Quotient::RoomEvent* oldEvent);
 
     void newFileTransfer(QString id, QUrl localFile);
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
@@ -634,18 +688,18 @@ signals:
     void fileTransferFailed(QString id, QString errorMessage = {});
     void fileTransferCancelled(QString id);
 
-    void callEvent(Room* room, const RoomEvent* event);
+    void callEvent(Quotient::Room* room, const Quotient::RoomEvent* event);
 
     /// The room's version stability may have changed
     void stabilityUpdated(QString recommendedDefault,
                           QStringList stableVersions);
     /// This room has been upgraded and won't receive updates any more
-    void upgraded(QString serverMessage, Room* successor);
+    void upgraded(QString serverMessage, Quotient::Room* successor);
     /// An attempted room upgrade has failed
     void upgradeFailed(QString errorMessage);
 
     /// The room is about to be deleted
-    void beforeDestruction(Room*);
+    void beforeDestruction(Quotient::Room*);
 
 protected:
     virtual Changes processStateEvent(const RoomEvent& e);

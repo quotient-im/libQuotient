@@ -36,17 +36,15 @@ RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
     const auto unsignedData = json[UnsignedKeyL].toObject();
     const auto redaction = unsignedData[RedactedCauseKeyL];
-    if (redaction.isObject()) {
+    if (redaction.isObject())
         _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
-        return;
-    }
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
 QString RoomEvent::id() const { return fullJson()[EventIdKeyL].toString(); }
 
-QDateTime RoomEvent::timestamp() const
+QDateTime RoomEvent::originTimestamp() const
 {
     return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
 }
