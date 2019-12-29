@@ -148,6 +148,7 @@ set(lib_SRCS
     lib/events/roomtombstoneevent.cpp
     lib/events/roommessageevent.cpp
     lib/events/roommemberevent.cpp
+    lib/events/roompowerlevelsevent.cpp
     lib/events/typingevent.cpp
     lib/events/receiptevent.cpp
     lib/events/reactionevent.cpp
