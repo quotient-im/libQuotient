@@ -14,7 +14,7 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
     stateDefault(json["state_default"_ls].toInt(0)),
     users(fromJson<QHash<QString, int>>(json["users"_ls])),
     usersDefault(json["users_default"_ls].toInt(0)),
-    notifications(Notifications{json["notifications"_ls]["room"_ls].toInt(50)})
+    notifications(Notifications{json["notifications"_ls].toObject()["room"_ls].toInt(50)})
 {
 }
 
