@@ -41,6 +41,16 @@ int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {
     return eventsDefault();
 }
 
+int RoomPowerLevelsEvent::powerLevelForState(const QString &eventId) const {
+    auto e = events();
+
+    if (e.contains(eventId)) {
+        return e[eventId];
+    }
+
+    return stateDefault();
+}
+
 int RoomPowerLevelsEvent::powerLevelForUser(const QString &userId) const {
     auto u = users();
 

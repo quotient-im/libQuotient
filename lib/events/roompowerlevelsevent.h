@@ -56,6 +56,7 @@ public:
     int roomNotification() const { return content().notifications.room; }
 
     int powerLevelForEvent(const QString& eventId) const;
+    int powerLevelForState(const QString& eventId) const;
     int powerLevelForUser(const QString& userId) const;
 
 private:
