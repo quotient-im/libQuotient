@@ -31,7 +31,7 @@ void PowerLevelsEventContent::fillJson(QJsonObject* o) const {
     o->insert(QStringLiteral("notifications"), {{"room", notifications.room}});
 }
 
-int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) {
+int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {
     auto e = events();
 
     if (e.contains(eventId)) {
@@ -41,7 +41,7 @@ int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) {
     return eventsDefault();
 }
 
-int RoomPowerLevelsEvent::powerLevelForUser(const QString &userId) {
+int RoomPowerLevelsEvent::powerLevelForUser(const QString &userId) const {
     auto u = users();
 
     if (u.contains(userId)) {

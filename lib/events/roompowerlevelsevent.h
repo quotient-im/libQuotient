@@ -40,23 +40,23 @@ public:
         : StateEvent(typeId(), obj)
     {}
 
-    int invite() { return content().invite; }
-    int kick() { return content().kick; }
-    int ban() { return content().ban; }
+    int invite() const { return content().invite; }
+    int kick() const { return content().kick; }
+    int ban() const { return content().ban; }
 
-    int redact() { return content().redact; }
+    int redact() const { return content().redact; }
 
-    QHash<QString, int> events() { return content().events; }
-    int eventsDefault() { return content().eventsDefault; }
-    int stateDefault() { return content().stateDefault; }
+    QHash<QString, int> events() const { return content().events; }
+    int eventsDefault() const { return content().eventsDefault; }
+    int stateDefault() const { return content().stateDefault; }
 
-    QHash<QString, int> users() { return content().users; }
-    int usersDefault() { return content().usersDefault; }
+    QHash<QString, int> users() const { return content().users; }
+    int usersDefault() const { return content().usersDefault; }
 
-    int roomNotification() { return content().notifications.room; }
+    int roomNotification() const { return content().notifications.room; }
 
-    int powerLevelForEvent(const QString& eventId);
-    int powerLevelForUser(const QString& userId);
+    int powerLevelForEvent(const QString& eventId) const;
+    int powerLevelForUser(const QString& userId) const;
 
 private:
 };
