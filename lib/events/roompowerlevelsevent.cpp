@@ -28,7 +28,7 @@ void PowerLevelsEventContent::fillJson(QJsonObject* o) const {
     o->insert(QStringLiteral("state_default"), stateDefault);
     o->insert(QStringLiteral("users"), Quotient::toJson(users));
     o->insert(QStringLiteral("users_default"), usersDefault);
-    o->insert(QStringLiteral("notifications"), {{"room", notifications.room}});
+    o->insert(QStringLiteral("notifications"), QJsonObject{{"room", notifications.room}});
 }
 
 int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {
