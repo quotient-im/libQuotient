@@ -2086,7 +2086,8 @@ RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
     auto originalJson = target.originalJsonObject();
-    originalJson[ContentKeyL] = replacement.contentJson();
+    originalJson[ContentKeyL] = replacement.originalJsonObject().
+            take(ContentKeyL).toObject().take("m.new_content"_ls).toObject();
 
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
     auto relations = unsignedData.take("m.relations"_ls).toObject();
