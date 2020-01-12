@@ -52,6 +52,7 @@
 #include "events/roomtombstoneevent.h"
 #include "events/simplestateevents.h"
 #include "events/typingevent.h"
+#include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/postreadmarkersjob.h"
@@ -656,21 +657,12 @@ bool Room::canSwitchVersions() const
 
     // TODO, #276: m.room.power_levels
     const auto* plEvt =
-        d->currentState.value({ QStringLiteral("m.room.power_levels"), {} });
+        d->getCurrentState<RoomPowerLevelsEvent>();
     if (!plEvt)
         return true;
 
-    const auto plJson = plEvt->contentJson();
-    const auto currentUserLevel =
-        plJson.value("users"_ls)
-            .toObject()
-            .value(localUser()->id())
-            .toInt(plJson.value("users_default"_ls).toInt());
-    const auto tombstonePowerLevel =
-        plJson.value("events"_ls)
-            .toObject()
-            .value("m.room.tombstone"_ls)
-            .toInt(plJson.value("state_default"_ls).toInt());
+    const auto currentUserLevel = plEvt->powerLevelForUser(localUser()->id());
+    const auto tombstonePowerLevel = plEvt->powerLevelForState("m.room.tombstone"_ls);
     return currentUserLevel >= tombstonePowerLevel;
 }
 
