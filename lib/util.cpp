@@ -104,7 +104,7 @@ qreal Quotient::stringToHueF(const QString& s)
     Q_ASSERT(!s.isEmpty());
     QByteArray hash = QCryptographicHash::hash(s.toUtf8(),
                                                QCryptographicHash::Sha1);
-    QDataStream dataStream(qToLittleEndian(hash).left(2));
+    QDataStream dataStream(hash.left(2));
     dataStream.setByteOrder(QDataStream::LittleEndian);
     quint16 hashValue;
     dataStream >> hashValue;
