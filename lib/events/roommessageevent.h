@@ -105,6 +105,10 @@ namespace EventContent {
     {
         return { RelatesTo::ReplyTypeId(), std::move(eventId) };
     }
+    inline RelatesTo replacementOf(QString eventId)
+    {
+        return { RelatesTo::ReplacementTypeId(), std::move(eventId) };
+    }
 
     /**
      * Rich text content for m.text, m.emote, m.notice
