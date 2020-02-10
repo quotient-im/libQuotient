@@ -122,7 +122,9 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                 newContentJson.insert(BodyKey, plainBody);
                 newContentJson.insert(MsgTypeKeyL, jsonMsgType);
                 json.insert(QStringLiteral("m.new_content"), newContentJson);
+                json[MsgTypeKeyL] = jsonMsgType;
                 json[BodyKeyL] = "* " + plainBody;
+                return json;
             }
         }
     }
