@@ -120,7 +120,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
             if (textContent->relatesTo->type == RelatesTo::ReplacementTypeId()) {
                 auto newContentJson = json.take("m.new_content"_ls).toObject();
                 newContentJson.insert(BodyKey, plainBody);
-                newContentJson.insert(TypeKey, jsonMsgType);
+                newContentJson.insert(MsgTypeKeyL, jsonMsgType);
                 json.insert(QStringLiteral("m.new_content"), newContentJson);
                 json[BodyKeyL] = "* " + plainBody;
             }
