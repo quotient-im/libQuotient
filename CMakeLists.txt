@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -204,11 +204,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         VERBATIM
     )
     if (ABS_CLANG_FORMAT)
-        # TODO: list(TRANSFORM) is available from CMake 3.12
-        foreach (S ${api_SRCS})
-            string (REGEX REPLACE ".cpp$" ".h" H ${S})
-            list(APPEND api_HDRS ${H})
-        endforeach()
+        list(TRANSFORM api_SRCS REPLACE ".cpp$" ".h" OUTPUT_VARIABLE api_HDRS)
         set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
         add_custom_command(TARGET update-api POST_BUILD
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
