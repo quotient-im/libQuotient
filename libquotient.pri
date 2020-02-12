@@ -47,6 +47,7 @@ HEADERS += \
     $$SRCPATH/events/encryptedevent.h \
     $$SRCPATH/events/redactionevent.h \
     $$SRCPATH/events/eventloader.h \
+    $$SRCPATH/events/roompowerlevelsevent.h \
     $$SRCPATH/jobs/requestdata.h \
     $$SRCPATH/jobs/basejob.h \
     $$SRCPATH/jobs/syncjob.h \
@@ -92,6 +93,7 @@ SOURCES += \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/events/encryptionevent.cpp \
     $$SRCPATH/events/encryptedevent.cpp \
+    $$SRCPATH/events/roompowerlevelsevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \
     $$SRCPATH/jobs/syncjob.cpp \
