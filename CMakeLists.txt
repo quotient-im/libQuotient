@@ -241,9 +241,9 @@ target_link_libraries(${PROJECT_NAME} QtOlm Qt5::Core Qt5::Network Qt5::Gui Qt5:
 
 set(TEST_BINARY quotest)
 add_executable(${TEST_BINARY} ${tests_SRCS})
-target_link_libraries(${TEST_BINARY} Qt5::Core Qt5::Test Quotient)
+target_link_libraries(${TEST_BINARY} Qt5::Core Qt5::Test ${PROJECT_NAME})
 
-configure_file(Quotient.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Quotient.pc @ONLY NEWLINE_STYLE UNIX)
+configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
 # Installation
 
@@ -259,15 +259,15 @@ include(CMakePackageConfigHelpers)
 # NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
 # Maybe consider jumping the gun and releasing 1.0, as semver advises?
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/QuotientConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
     COMPATIBILITY SameMajorVersion
 )
 
 export(PACKAGE ${PROJECT_NAME})
 export(EXPORT ${PROJECT_NAME}Targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
-configure_file(cmake/QuotientConfig.cmake
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/QuotientConfig.cmake"
+configure_file(cmake/${PROJECT_NAME}Config.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
     COPYONLY
 )
 
@@ -275,21 +275,21 @@ set(ConfigFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 install(EXPORT ${PROJECT_NAME}Targets
         FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${ConfigFilesLocation})
 
-install(FILES cmake/QuotientConfig.cmake
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/QuotientConfigVersion.cmake"
+install(FILES cmake/${PROJECT_NAME}Config.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION ${ConfigFilesLocation}
 )
-install(EXPORT_ANDROID_MK QuotientTargets DESTINATION share/ndk-modules)
+install(EXPORT_ANDROID_MK ${PROJECT_NAME}Targets DESTINATION share/ndk-modules)
 
 if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
 
-if (QUOTIENT_INSTALL_TESTS)
+if (${PROJECT_NAME}_INSTALL_TESTS)
     install(TARGETS ${TEST_BINARY} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()
 
 if (UNIX AND NOT APPLE)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Quotient.pc
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
