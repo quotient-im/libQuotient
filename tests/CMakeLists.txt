@@ -48,7 +48,9 @@ endforeach ()
 find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
-find_package(Quotient REQUIRED)
+set(LIBRARY_NAME "Quotient")
+
+find_package(${LIBRARY_NAME} REQUIRED)
 get_filename_component(Quotient_Prefix "${Quotient_DIR}/../.." ABSOLUTE)
 
 message( STATUS "${PROJECT_NAME} configuration:" )
@@ -57,12 +59,12 @@ if (CMAKE_BUILD_TYPE)
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "  Qt: ${Qt5_VERSION} at ${Qt5_Prefix}" )
-message( STATUS "  Quotient: ${Quotient_VERSION} at ${Quotient_Prefix}" )
+message( STATUS "  ${LIBRARY_NAME}: ${${LIBRARY_NAME}_VERSION} at ${${LIBRARY_NAME}_Prefix}" )
 
 set(example_SRCS quotest.cpp)
 
 add_executable(${PROJECT_NAME} ${example_SRCS})
-target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Test Quotient)
+target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Test ${LIBRARY_NAME})
 
 # Installation
 

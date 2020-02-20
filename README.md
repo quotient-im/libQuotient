@@ -77,13 +77,12 @@ Static linkage is the default on Windows/macOS; feel free to experiment
 with dynamic linking and submit PRs if you get reusable results.
 
 The example/test application that comes with libQuotient,
-[qmc-example](https://github.com/quotient-im/libQuotient/tree/master/examples)
-includes most common use cases such as sending messages, uploading files,
+[quotest](tests) includes most common use cases such as sending messages, uploading files,
 setting room state etc.; for more extensive usage check out the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion)
 (the reference client of Quotient) or [Spectral](https://gitlab.com/b0/spectral).
 
-To ease the first step, `examples/CMakeLists.txt` is a good starting point
+To ease the first step, `tests/CMakeLists.txt` is a good starting point
 for your own CMake-based project using libQuotient.
 
 ## Building the library
@@ -115,18 +114,18 @@ You can install the library with CMake:
 cmake --build . --target install
 ```
 This will also install cmake package config files; once this is done, you
-should be able to use `examples/CMakeLists.txt` to compile qmc-example
-with the _installed_ library. Installation of the `qmc-example` binary
+should be able to use [`tests/CMakeLists.txt`](tests/CMakeLists.txt) to compile quotest
+with the _installed_ library. Installation of the `quotest` binary
 along with the rest of the library can be skipped
-by setting `QMATRIXCLIENT_INSTALL_EXAMPLE` to `OFF`.
+by setting `Quotient_INSTALL_TESTS` to `OFF`.
 
 ### qmake-based
-The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `qmc-example.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
+The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `quotest.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
 ```shell script
-qmake qmc-example.pro
+qmake quotest.pro
 make all
 ```
-This will get you `debug/qmc-example` and `release/qmc-example`
+This will get you `debug/quotest` and `release/quotest`
 console executables that login to the Matrix server at matrix.org with
 credentials of your choosing (pass the username and password as arguments),
 run a sync long-polling loop and do some tests of the library API. Note that
