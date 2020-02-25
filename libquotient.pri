@@ -8,7 +8,14 @@ win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 }
 
-include(3rdparty/libQtOlm/libQtOlm.pri)
+contains(DEFINES, Quotient_E2EE_ENABLED=.) {
+    contains(DEFINES, USE_INTREE_LIBQOLM=.) {
+        include(3rdparty/libQtOlm/libQtOlm.pri)
+    } else {
+        CONFIG += link_pkgconfig
+        PKGCONFIG += QtOlm
+    }
+}
 
 SRCPATH = $$PWD/lib
 INCLUDEPATH += $$SRCPATH
@@ -45,6 +52,7 @@ HEADERS += \
     $$SRCPATH/events/directchatevent.h \
     $$SRCPATH/events/encryptionevent.h \
     $$SRCPATH/events/encryptedevent.h \
+    $$SRCPATH/events/roomkeyevent.h \
     $$SRCPATH/events/redactionevent.h \
     $$SRCPATH/events/eventloader.h \
     $$SRCPATH/events/roompowerlevelsevent.h \
@@ -93,6 +101,7 @@ SOURCES += \
     $$SRCPATH/events/directchatevent.cpp \
     $$SRCPATH/events/encryptionevent.cpp \
     $$SRCPATH/events/encryptedevent.cpp \
+    $$SRCPATH/events/roomkeyevent.cpp \
     $$SRCPATH/events/roompowerlevelsevent.cpp \
     $$SRCPATH/jobs/requestdata.cpp \
     $$SRCPATH/jobs/basejob.cpp \

@@ -69,9 +69,11 @@
 #include <cmath>
 #include <functional>
 
+#ifdef Quotient_E2EE_ENABLED
 #include <account.h> // QtOlm
 #include <errors.h> // QtOlm
 #include <groupsession.h> // QtOlm
+#endif // Quotient_E2EE_ENABLED
 
 using namespace Quotient;
 using namespace QtOlm;
@@ -342,6 +344,7 @@ public:
 
     QJsonObject toJson() const;
 
+#ifdef Quotient_E2EE_ENABLED
     // A map from <sessionId, messageIndex> to <event_id, origin_server_ts>
     QHash<QPair<QString, uint32_t>, QPair<QString, QDateTime>>
         groupSessionIndexRecord; // TODO: cache
@@ -424,6 +427,7 @@ public:
 
         return decrypted.first;
     }
+#endif // Quotient_E2EE_ENABLED
 
 private:
     using users_shortlist_t = std::array<User*, 3>;
@@ -1238,6 +1242,11 @@ const StateEventBase* Room::getCurrentState(const QString& evtType,
 
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
+#ifndef Quotient_E2EE_ENABLED
+    Q_UNUSED(encryptedEvent);
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+    return {};
+#else // Quotient_E2EE_ENABLED
     if (encryptedEvent.algorithm() == MegolmV1AesSha2AlgoKey) {
         QString decrypted = d->groupSessionDecryptMessage(
             encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
@@ -1252,10 +1261,17 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     qCDebug(E2EE) << "Algorithm of the encrypted event with id"
                   << encryptedEvent.id() << "is not for the current device";
     return {};
+#endif // Quotient_E2EE_ENABLED
 }
 
 void Room::handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey)
 {
+#ifndef Quotient_E2EE_ENABLED
+    Q_UNUSED(roomKeyEvent);
+    Q_UNUSED(senderKey);
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+    return;
+#else // Quotient_E2EE_ENABLED
     if (roomKeyEvent->algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
                         << roomKeyEvent->algorithm() << "in m.room_key event";
@@ -1265,6 +1281,7 @@ void Room::handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey)
         qCDebug(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.count();
     }
+#endif // Quotient_E2EE_ENABLED
 }
 
 int Room::joinedCount() const

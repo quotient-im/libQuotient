@@ -7,6 +7,8 @@ set(API_VERSION "0.6")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
+# https://github.com/quotient-im/libQuotient/issues/369
+option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
 
 include(CheckCXXCompilerFlag)
 if (NOT WIN32)
@@ -55,22 +57,26 @@ endif()
 find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
-if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
-        AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
-    add_subdirectory(3rdparty/libQtOlm EXCLUDE_FROM_ALL)
-    include_directories(3rdparty/libQtOlm)
-    if (NOT DEFINED USE_INTREE_LIBQOLM)
-        set (USE_INTREE_LIBQOLM 1)
+if (${PROJECT_NAME}_ENABLE_E2EE)
+    if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
+            AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
+        add_subdirectory(3rdparty/libQtOlm EXCLUDE_FROM_ALL)
+        include_directories(3rdparty/libQtOlm)
+        if (NOT DEFINED USE_INTREE_LIBQOLM)
+            set (USE_INTREE_LIBQOLM 1)
+        endif ()
     endif ()
-endif ()
-if (NOT USE_INTREE_LIBQOLM)
-    find_package(QtOlm 0.1.0 REQUIRED)
-    if (NOT QtOlm_FOUND)
-        message( WARNING "libQtOlm not found; configuration will most likely fail.")
-        message( WARNING "Make sure you have installed libQtOlm development files")
-        message( WARNING "as a package or checked out the library sources in lib/.")
-        message( WARNING "See also BUILDING.md")
+    if (NOT USE_INTREE_LIBQOLM)
+        find_package(QtOlm 0.1.0 REQUIRED)
+        if (NOT QtOlm_FOUND)
+            message( WARNING "libQtOlm not found; configuration will most likely fail.")
+            message( WARNING "Make sure you have installed libQtOlm development files")
+            message( WARNING "as a package or checked out the library sources in lib/.")
+            message( WARNING "See also BUILDING.md")
+        endif ()
     endif ()
+else ()
+    message( WARNING "End-to-end encryption (E2EE) support is turned off.")
 endif ()
 
 if (GTAD_PATH)
@@ -108,18 +114,20 @@ if (ABS_API_DEF_PATH AND ABS_GTAD_PATH)
     endif ()
 endif ()
 find_package(Git)
-if (USE_INTREE_LIBQOLM)
-    message( STATUS "Using in-tree libQtOlm")
-    if (GIT_FOUND)
-        execute_process(COMMAND
-            "${GIT_EXECUTABLE}" rev-parse -q HEAD
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
-            OUTPUT_VARIABLE QTOLM_GIT_SHA1
-            OUTPUT_STRIP_TRAILING_WHITESPACE)
-        message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
-    endif (GIT_FOUND)
-else ()
-    message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
+if (${PROJECT_NAME}_ENABLE_E2EE)
+    if (USE_INTREE_LIBQOLM)
+        message( STATUS "Using in-tree libQtOlm")
+        if (GIT_FOUND)
+            execute_process(COMMAND
+                "${GIT_EXECUTABLE}" rev-parse -q HEAD
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
+                OUTPUT_VARIABLE QTOLM_GIT_SHA1
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+            message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
+        endif (GIT_FOUND)
+    else ()
+        message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
+    endif ()
 endif ()
 message( STATUS "=============================================================================" )
 message( STATUS )
@@ -224,6 +232,9 @@ endif()
 set(tests_SRCS tests/quotest.cpp)
 
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
+if (${PROJECT_NAME}_ENABLE_E2EE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
+endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     VERSION "${PROJECT_VERSION}"
     SOVERSION ${API_VERSION}
@@ -238,7 +249,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(${PROJECT_NAME} QtOlm Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
+if (${PROJECT_NAME}_ENABLE_E2EE)
+    target_link_libraries(${PROJECT_NAME} QtOlm)
+endif()
+target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
 set(TEST_BINARY quotest)
 add_executable(${TEST_BINARY} ${tests_SRCS})
