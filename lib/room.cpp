@@ -56,6 +56,7 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/postreadmarkersjob.h"
+#include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -107,6 +108,7 @@ public:
     QHash<StateEventKey, const StateEventBase*> currentState;
     /// Servers with aliases for this room except the one of the local user
     /// \sa Room::remoteAliases
+    // This may not be required anymore
     QSet<QString> aliasServers;
 
     Timeline timeline;
@@ -432,12 +434,13 @@ QString Room::name() const
 
 QStringList Room::localAliases() const
 {
-    return d
-        ->getCurrentState<RoomAliasesEvent>(
-            connection()->domain())
-        ->aliases();
+    QStringList result(d
+        ->getCurrentState<RoomCanonicalAliasEvent>()->alias());
+    result += d->getCurrentState<RoomCanonicalAliasEvent>()->alt_aliases();
+    return result;
 }
 
+// Not sure about this function, maybe it is no more required
 QStringList Room::remoteAliases() const
 {
     QStringList result;
@@ -1697,8 +1700,7 @@ void Room::setCanonicalAlias(const QString& newAlias)
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState<RoomAliasesEvent>(connection()->homeserver().authority(),
-                                         aliases);
+    d->requestSetState<RoomCanonicalAliasEvent>(aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -2368,14 +2370,40 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 oldStateEvent
                     ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
                     : QStringList();
-            connection()->updateRoomAliases(id(), ae.stateKey(),
-                                            previousAliases, ae.aliases());
+            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
             return OtherChange;
             // clang-format off
         }
-        , [this] (const RoomCanonicalAliasEvent& evt) {
-            setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
+        , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
+            // clang-format on
+            setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
+            QString previousCanonicalAlias =
+                oldStateEvent
+                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
+                          ->alias()
+                    : QString();
+
+            auto previousAltAliases =
+                oldStateEvent
+                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
+                          ->alt_aliases()
+                    : QStringList();
+
+            if (!previousCanonicalAlias.isEmpty()) {
+                previousAltAliases.push_back(previousCanonicalAlias);
+            }
+
+            const auto previousAliases = std::move(previousAltAliases);
+
+            auto newAliases = cae.alt_aliases();
+
+            if (!cae.alias().isEmpty()) {
+                newAliases.push_front(cae.alias());
+            }
+
+            connection()->updateRoomAliases(id(), previousAliases, newAliases);
             return CanonicalAliasChange;
+            // clang-format off
         }
         , [] (const RoomTopicEvent&) {
             return TopicChange;
