@@ -79,6 +79,12 @@ bool RoomMemberEvent::isInvite() const
     return membership() == MembershipType::Invite && changesMembership();
 }
 
+bool RoomMemberEvent::isRejectedInvite() const
+{
+    return membership() == MembershipType::Leave && prevContent()
+           && prevContent()->membership == MembershipType::Invite;
+}
+
 bool RoomMemberEvent::isJoin() const
 {
     return membership() == MembershipType::Join && changesMembership();
@@ -88,7 +94,19 @@ bool RoomMemberEvent::isLeave() const
 {
     return membership() == MembershipType::Leave && prevContent()
            && prevContent()->membership != membership()
-           && prevContent()->membership != MembershipType::Ban;
+           && prevContent()->membership != MembershipType::Ban
+           && prevContent()->membership != MembershipType::Invite;
+}
+
+bool RoomMemberEvent::isBan() const
+{
+    return membership() == MembershipType::Ban && changesMembership();
+}
+
+bool RoomMemberEvent::isUnban() const
+{
+    return membership() == MembershipType::Leave && prevContent()
+           && prevContent()->membership == MembershipType::Ban;
 }
 
 bool RoomMemberEvent::isRename() const
