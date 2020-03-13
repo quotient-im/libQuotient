@@ -21,6 +21,7 @@
 #include "joinstate.h"
 #include "qt_connection_util.h"
 
+#include "csapi/login.h"
 #include "csapi/create_room.h"
 
 #include "events/accountdataevents.h"
@@ -35,6 +36,8 @@
 namespace QtOlm {
 class Account;
 }
+
+Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
 Q_NAMESPACE
@@ -57,6 +60,28 @@ class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
+
+// To simplify comparisons of LoginFlows
+
+inline bool operator==(const GetLoginFlowsJob::LoginFlow& lhs,
+                       const GetLoginFlowsJob::LoginFlow& rhs)
+{
+    return lhs.type == rhs.type;
+}
+
+inline bool operator!=(const GetLoginFlowsJob::LoginFlow& lhs,
+                       const GetLoginFlowsJob::LoginFlow& rhs)
+{
+    return !(lhs == rhs);
+}
+
+/// Predefined login flows
+struct LoginFlows {
+    using LoginFlow = GetLoginFlowsJob::LoginFlow;
+    static inline const LoginFlow Password { "m.login.password" };
+    static inline const LoginFlow SSO { "m.login.sso" };
+    static inline const LoginFlow Token { "m.login.token" };
+};
 
 class Connection;
 
@@ -117,6 +142,9 @@ class Connection : public QObject {
     Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY
                    homeserverChanged)
     Q_PROPERTY(QString domain READ domain NOTIFY homeserverChanged)
+    Q_PROPERTY(QVector<Quotient::GetLoginFlowsJob::LoginFlow> loginFlows READ loginFlows NOTIFY loginFlowsChanged)
+    Q_PROPERTY(bool supportsSso READ supportsSso NOTIFY loginFlowsChanged)
+    Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY
                    cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY
@@ -281,6 +309,12 @@ public:
     QUrl homeserver() const;
     /** Get the domain name used for ids/aliases on the server */
     QString domain() const;
+    /** Get the list of supported login flows */
+    QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
+    /** Check whether the current homeserver supports password auth */
+    bool supportsPasswordAuth() const;
+    /** Check whether the current homeserver supports SSO */
+    bool supportsSso() const;
     /** Find a room by its id and a mask of applicable states */
     Q_INVOKABLE Quotient::Room*
     room(const QString& roomId,
@@ -419,6 +453,18 @@ public:
     {
         return callApi<JobT>(ForegroundRequest,
                              std::forward<JobArgTs>(jobArgs)...);
+    }
+
+    /*! Get a request URL for a job with specified type and arguments
+     *
+     * This calls JobT::makeRequestUrl() prepending the connection's homeserver
+     * to the list of arguments.
+     */
+    template <typename JobT, typename... JobArgTs>
+    QUrl getUrlForApi(JobArgTs&&... jobArgs) const
+    {
+        return JobT::makeRequestUrl(homeserver(),
+                                    std::forward<JobArgTs>(jobArgs)...);
     }
 
     /** Generate a new transaction id. Transaction id's are unique within
@@ -609,6 +655,7 @@ signals:
     void resolveError(QString error);
 
     void homeserverChanged(QUrl baseUrl);
+    void loginFlowsChanged();
     void capabilitiesLoaded();
 
     void connected();

@@ -30,7 +30,6 @@
 #include "csapi/capabilities.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
-#include "csapi/login.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
 #include "csapi/room_send.h"
@@ -110,6 +109,8 @@ public:
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
+
+    QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
 #ifdef Quotient_E2EE_ENABLED
     QScopedPointer<EncryptionManager> encryptionManager;
@@ -1004,6 +1005,21 @@ QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
 QString Connection::domain() const { return userId().section(':', 1); }
 
+QVector<GetLoginFlowsJob::LoginFlow> Connection::loginFlows() const
+{
+    return d->loginFlows;
+}
+
+bool Connection::supportsPasswordAuth() const
+{
+    return d->loginFlows.contains(LoginFlows::Password);
+}
+
+bool Connection::supportsSso() const
+{
+    return d->loginFlows.contains(LoginFlows::SSO);
+}
+
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
     Room* room = d->roomMap.value({ roomId, false }, nullptr);
@@ -1400,11 +1416,21 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (homeserver() == url)
-        return;
+    if (homeserver() != url) {
+        d->data->setBaseUrl(url);
+        d->loginFlows.clear();
+        emit homeserverChanged(homeserver());
+    }
 
-    d->data->setBaseUrl(url);
-    emit homeserverChanged(homeserver());
+    // Whenever a homeserver is updated, retrieve available login flows from it
+    auto* j = callApi<GetLoginFlowsJob>(BackgroundRequest);
+    connect(j, &BaseJob::finished, this, [this, j] {
+        if (j->status().good())
+            d->loginFlows = j->flows();
+        else
+            d->loginFlows.clear();
+        emit loginFlowsChanged();
+    });
 }
 
 void Connection::saveRoomState(Room* r) const
