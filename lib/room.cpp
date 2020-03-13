@@ -68,11 +68,15 @@
 #include <array>
 #include <cmath>
 #include <functional>
+
+#ifdef Quotient_E2EE_ENABLED
+#include <account.h> // QtOlm
+#include <errors.h> // QtOlm
 #include <groupsession.h> // QtOlm
-#include <message.h> // QtOlm
-#include <session.h> // QtOlm
+#endif // Quotient_E2EE_ENABLED
 
 using namespace Quotient;
+using namespace QtOlm;
 using namespace std::placeholders;
 using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
@@ -340,6 +344,91 @@ public:
 
     QJsonObject toJson() const;
 
+#ifdef Quotient_E2EE_ENABLED
+    // A map from <sessionId, messageIndex> to <event_id, origin_server_ts>
+    QHash<QPair<QString, uint32_t>, QPair<QString, QDateTime>>
+        groupSessionIndexRecord; // TODO: cache
+    // A map from senderKey to a map of sessionId to InboundGroupSession
+    // Not using QMultiHash, because we want to quickly return
+    // a number of relations for a given event without enumerating them.
+    QHash<QPair<QString, QString>, InboundGroupSession*> groupSessions; // TODO:
+                                                                        // cache
+    bool addInboundGroupSession(QString senderKey, QString sessionId,
+                                QString sessionKey)
+    {
+        if (groupSessions.contains({ senderKey, sessionId })) {
+            qCDebug(E2EE) << "Inbound Megolm session" << sessionId
+                          << "with senderKey" << senderKey << "already exists";
+            return false;
+        }
+
+        InboundGroupSession* megolmSession;
+        try {
+            megolmSession = new InboundGroupSession(sessionKey.toLatin1(),
+                                                    InboundGroupSession::Init,
+                                                    q);
+        } catch (OlmError* e) {
+            qCDebug(E2EE) << "Unable to create new InboundGroupSession"
+                          << e->what();
+            return false;
+        }
+        if (megolmSession->id() != sessionId) {
+            qCDebug(E2EE) << "Session ID mismatch in m.room_key event sent "
+                             "from sender with key"
+                          << senderKey;
+            return false;
+        }
+        groupSessions.insert({ senderKey, sessionId }, megolmSession);
+        return true;
+    }
+
+    QString groupSessionDecryptMessage(QByteArray cipher,
+                                       const QString& senderKey,
+                                       const QString& sessionId,
+                                       const QString& eventId,
+                                       QDateTime timestamp)
+    {
+        std::pair<QString, uint32_t> decrypted;
+        QPair<QString, QString> senderSessionPairKey =
+            qMakePair(senderKey, sessionId);
+        if (!groupSessions.contains(senderSessionPairKey)) {
+            qCDebug(E2EE) << "Unable to decrypt event" << eventId
+                          << "The sender's device has not sent us the keys for "
+                             "this message";
+            return QString();
+        }
+        InboundGroupSession* senderSession =
+            groupSessions.value(senderSessionPairKey);
+        if (!senderSession) {
+            qCDebug(E2EE) << "Unable to decrypt event" << eventId
+                          << "senderSessionPairKey:" << senderSessionPairKey;
+            return QString();
+        }
+        try {
+            decrypted = senderSession->decrypt(cipher);
+        } catch (OlmError* e) {
+            qCDebug(E2EE) << "Unable to decrypt event" << eventId
+                          << "with matching megolm session:" << e->what();
+            return QString();
+        }
+        QPair<QString, QDateTime> properties = groupSessionIndexRecord.value(
+            qMakePair(senderSession->id(), decrypted.second));
+        if (properties.first.isEmpty()) {
+            groupSessionIndexRecord.insert(qMakePair(senderSession->id(),
+                                                     decrypted.second),
+                                           qMakePair(eventId, timestamp));
+        } else {
+            if ((properties.first != eventId)
+                || (properties.second != timestamp)) {
+                qCDebug(E2EE) << "Detected a replay attack on event" << eventId;
+                return QString();
+            }
+        }
+
+        return decrypted.first;
+    }
+#endif // Quotient_E2EE_ENABLED
+
 private:
     using users_shortlist_t = std::array<User*, 3>;
     template <typename ContT>
@@ -364,7 +453,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
-    qCDebug(MAIN) << "New" << toCString(initialJoinState) << "Room:" << id;
+    qCDebug(STATE) << "New" << toCString(initialJoinState) << "Room:" << id;
 }
 
 Room::~Room() { delete d; }
@@ -1151,86 +1240,48 @@ const StateEventBase* Room::getCurrentState(const QString& evtType,
     return d->getCurrentState({ evtType, stateKey });
 }
 
-RoomEventPtr Room::decryptMessage(EncryptedEvent* encryptedEvent)
+RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
-    if (encryptedEvent->algorithm() == OlmV1Curve25519AesSha2AlgoKey) {
-        QString identityKey =
-            connection()->olmAccount()->curve25519IdentityKey();
-        QJsonObject personalCipherObject =
-            encryptedEvent->ciphertext(identityKey);
-        if (personalCipherObject.isEmpty()) {
-            qCDebug(E2EE) << "Encrypted event is not for the current device";
+#ifndef Quotient_E2EE_ENABLED
+    Q_UNUSED(encryptedEvent);
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+    return {};
+#else // Quotient_E2EE_ENABLED
+    if (encryptedEvent.algorithm() == MegolmV1AesSha2AlgoKey) {
+        QString decrypted = d->groupSessionDecryptMessage(
+            encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
+            encryptedEvent.sessionId(), encryptedEvent.id(),
+            encryptedEvent.timestamp());
+        if (decrypted.isEmpty()) {
             return {};
         }
-        return makeEvent<RoomMessageEvent>(decryptMessage(
-            personalCipherObject, encryptedEvent->senderKey().toLatin1()));
+        return makeEvent<RoomMessageEvent>(
+            QJsonDocument::fromJson(decrypted.toUtf8()).object());
     }
-    if (encryptedEvent->algorithm() == MegolmV1AesSha2AlgoKey) {
-        return makeEvent<RoomMessageEvent>(decryptMessage(
-            encryptedEvent->ciphertext(), encryptedEvent->senderKey(),
-            encryptedEvent->deviceId(), encryptedEvent->sessionId()));
-    }
+    qCDebug(E2EE) << "Algorithm of the encrypted event with id"
+                  << encryptedEvent.id() << "is not for the current device";
     return {};
+#endif // Quotient_E2EE_ENABLED
 }
 
-QString Room::decryptMessage(QJsonObject personalCipherObject,
-                             QByteArray senderKey)
+void Room::handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey)
 {
-    QString decrypted;
-
-    using namespace QtOlm;
-    // TODO: new objects to private fields:
-    InboundSession* session;
-
-    int type = personalCipherObject.value(TypeKeyL).toInt(-1);
-    QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
-
-    PreKeyMessage preKeyMessage { body };
-    session =
-        new InboundSession(connection()->olmAccount(), &preKeyMessage, senderKey, this);
-    if (type == 0) {
-        if (!session->matches(&preKeyMessage, senderKey)) {
-            connection()->olmAccount()->removeOneTimeKeys(session);
-        }
-        try {
-            decrypted = session->decrypt(&preKeyMessage);
-        } catch (std::runtime_error& e) {
-            qCWarning(EVENTS) << "Decrypt failed:" << e.what();
-        }
+#ifndef Quotient_E2EE_ENABLED
+    Q_UNUSED(roomKeyEvent);
+    Q_UNUSED(senderKey);
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+    return;
+#else // Quotient_E2EE_ENABLED
+    if (roomKeyEvent->algorithm() != MegolmV1AesSha2AlgoKey) {
+        qCWarning(E2EE) << "Ignoring unsupported algorithm"
+                        << roomKeyEvent->algorithm() << "in m.room_key event";
     }
-    else if (type == 1) {
-        Message message { body };
-        if (!session->matches(&preKeyMessage, senderKey)) {
-            qCWarning(EVENTS) << "Invalid encrypted message";
-        }
-        try {
-            decrypted = session->decrypt(&message);
-        } catch (std::runtime_error& e) {
-            qCWarning(EVENTS) << "Decrypt failed:" << e.what();
-        }
+    if (d->addInboundGroupSession(senderKey, roomKeyEvent->sessionId(),
+                                  roomKeyEvent->sessionKey())) {
+        qCDebug(E2EE) << "added new inboundGroupSession:"
+                      << d->groupSessions.count();
     }
-
-    return decrypted;
-}
-
-QString Room::sessionKey(const QString& senderKey, const QString& deviceId,
-                         const QString& sessionId) const
-{
-    // TODO: handling an m.room_key event
-    return "";
-}
-
-QString Room::decryptMessage(QByteArray cipher, const QString& senderKey,
-                             const QString& deviceId, const QString& sessionId)
-{
-    QString decrypted;
-    using namespace QtOlm;
-    InboundGroupSession* groupSession;
-    groupSession = new InboundGroupSession(
-        sessionKey(senderKey, deviceId, sessionId).toLatin1());
-    groupSession->decrypt(cipher);
-    // TODO:  avoid replay attacks
-    return decrypted;
+#endif // Quotient_E2EE_ENABLED
 }
 
 int Room::joinedCount() const
@@ -1253,7 +1304,7 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
     if (!summary.merge(newSummary))
         return Change::NoChange;
-    qCDebug(MAIN).nospace().noquote()
+    qCDebug(STATE).nospace().noquote()
         << "Updated room summary for " << q->objectName() << ": " << summary;
     emit q->memberListChanged();
     return Change::SummaryChange;
@@ -1425,18 +1476,15 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages) {
         qCDebug(MESSAGES) << "Setting unread_count to" << data.unreadCount;
         d->unreadMessages = data.unreadCount;
-        roomChanges |= Change::UnreadNotifsChange;
         emit unreadMessagesChanged(this);
     }
 
     if (data.highlightCount != d->highlightCount) {
         d->highlightCount = data.highlightCount;
-        roomChanges |= Change::UnreadNotifsChange;
         emit highlightCountChanged();
     }
     if (data.notificationCount != d->notificationCount) {
         d->notificationCount = data.notificationCount;
-        roomChanges |= Change::UnreadNotifsChange;
         emit notificationCountChanged();
     }
     if (roomChanges != Change::NoChange) {
@@ -1737,10 +1785,11 @@ void Room::checkVersion()
     // or the server capabilities have been loaded.
     emit stabilityUpdated(defaultVersion, stableVersions);
     if (!stableVersions.contains(version())) {
-        qCDebug(MAIN) << this << "version is" << version()
-                      << "which the server doesn't count as stable";
+        qCDebug(STATE) << this << "version is" << version()
+                       << "which the server doesn't count as stable";
         if (canSwitchVersions())
-            qCDebug(MAIN) << "The current user has enough privileges to fix it";
+            qCDebug(STATE)
+                << "The current user has enough privileges to fix it";
     }
 }
 
@@ -2047,7 +2096,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
         if (currentState.value(evtKey) == oldEvent.get()) {
             Q_ASSERT(ti.index() >= 0); // Historical states can't be in
                                        // currentState
-            qCDebug(EVENTS).nospace()
+            qCDebug(STATE).nospace()
                 << "Redacting state " << oldEvent->matrixType() << "/"
                 << oldEvent->stateKey();
             // Retarget the current state to the newly made event.
@@ -2101,15 +2150,15 @@ bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
 
     auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
     if (ti->replacedBy() == newEvent.id()) {
-        qCDebug(EVENTS) << "Event" << ti->id() << "is already replaced with"
-                      << newEvent.id();
+        qCDebug(STATE) << "Event" << ti->id() << "is already replaced with"
+                       << newEvent.id();
         return true;
     }
 
     // Make a new event from the redacted JSON and put it in the timeline
     // instead of the redacted one. oldEvent will be deleted on return.
     auto oldEvent = ti.replaceEvent(makeReplaced(*ti, newEvent));
-    qCDebug(EVENTS) << "Replaced" << oldEvent->id() << "with" << newEvent.id();
+    qCDebug(STATE) << "Replaced" << oldEvent->id() << "with" << newEvent.id();
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
     return true;
 }
@@ -2158,7 +2207,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                         }); targetIt != events.end())
                     *targetIt = makeRedacted(**targetIt, *r);
                 else
-                    qCDebug(EVENTS)
+                    qCDebug(STATE)
                         << "Redaction" << r->id() << "ignored: target event"
                         << r->redactedEvent() << "is not found";
                 // If the target event comes later, it comes already redacted.
@@ -2197,10 +2246,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     size_t totalInserted = 0;
     for (auto it = events.begin(); it != events.end();) {
         auto nextPendingPair =
-            findFirstOf(it, events.end(), unsyncedEvents.begin(),
-                        unsyncedEvents.end(), isEchoEvent);
-        const auto& remoteEcho = nextPendingPair.first;
-        const auto& localEcho = nextPendingPair.second;
+                    findFirstOf(it, events.end(), unsyncedEvents.begin(),
+                                unsyncedEvents.end(), isEchoEvent);
+                const auto& remoteEcho = nextPendingPair.first;
+                const auto& localEcho = nextPendingPair.second;
 
         if (it != remoteEcho) {
             RoomEventsRange eventsSpan { it, remoteEcho };
@@ -2258,9 +2307,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
         }
 
-        qCDebug(MESSAGES) << "Room" << q->objectName() << "received"
-                          << totalInserted << "new events; the last event is now"
-                          << timeline.back();
+        qCDebug(STATE) << "Room" << q->objectName() << "received"
+                       << totalInserted << "new events; the last event is now"
+                       << timeline.back();
 
         // The first event in the just-added batch (referred to by `from`)
         // defines whose read marker can possibly be promoted any further over
@@ -2271,9 +2320,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         auto firstWriter = q->user((*from)->senderId());
         if (q->readMarker(firstWriter) != timeline.crend()) {
             roomChanges |= promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
-            qCDebug(MESSAGES)
-                << "Auto-promoted read marker for" << firstWriter->id() << "to"
-                << *q->readMarker(firstWriter);
+            qCDebug(STATE) << "Auto-promoted read marker for"
+                           << firstWriter->id() << "to"
+                           << *q->readMarker(firstWriter);
         }
 
         updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
@@ -2310,9 +2359,8 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     const auto insertedSize = moveEventsToTimeline(events, Older);
     const auto from = timeline.crend() - insertedSize;
 
-    qCDebug(MESSAGES) << "Room" << displayname << "received" << insertedSize
-                      << "past events; the oldest event is now"
-                      << timeline.front();
+    qCDebug(STATE) << "Room" << displayname << "received" << insertedSize
+                   << "past events; the oldest event is now" << timeline.front();
     q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages(timeline.front().index(), from->index());
 
@@ -2407,7 +2455,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 break;
             case MembershipType::Join:
                 if (evt.membership() == MembershipType::Invite)
-                    qCWarning(STATE) << "Invalid membership change from "
+                    qCWarning(MAIN) << "Invalid membership change from "
                                        "Join to Invite:"
                                     << evt;
                 if (evt.membership() != prevMembership) {
@@ -2569,7 +2617,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         emit accountDataAboutToChange(event->matrixType());
         currentData = move(event);
         qCDebug(STATE) << "Updated account data of type"
-                      << currentData->matrixType();
+                       << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
         return Change::AccountDataChange;
     }

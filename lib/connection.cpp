@@ -19,7 +19,9 @@
 #include "connection.h"
 
 #include "connectiondata.h"
+#ifdef Quotient_E2EE_ENABLED
 #include "encryptionmanager.h"
+#endif // Quotient_E2EE_ENABLED
 #include "room.h"
 #include "settings.h"
 #include "user.h"
@@ -42,6 +44,10 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+
+#ifdef Quotient_E2EE_ENABLED
+#include "account.h" // QtOlm
+#endif // Quotient_E2EE_ENABLED
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -105,7 +111,9 @@ public:
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
 
+#ifdef Quotient_E2EE_ENABLED
     QScopedPointer<EncryptionManager> encryptionManager;
+#endif // Quotient_E2EE_ENABLED
 
     SyncJob* syncJob = nullptr;
 
@@ -147,6 +155,70 @@ public:
     QString topLevelStatePath() const
     {
         return q->stateCacheDir().filePath("state.json");
+    }
+
+    RoomEventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
+    {
+#ifndef Quotient_E2EE_ENABLED
+        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+        return {};
+#else // Quotient_E2EE_ENABLED
+        if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
+        {
+            return {};
+        }
+        QString identityKey =
+            encryptionManager->account()->curve25519IdentityKey();
+        QJsonObject personalCipherObject =
+            encryptedEvent.ciphertext(identityKey);
+        if (personalCipherObject.isEmpty()) {
+            qCDebug(E2EE) << "Encrypted event is not for the current device";
+            return {};
+        }
+        QString decrypted = encryptionManager->sessionDecryptMessage(
+            personalCipherObject, encryptedEvent.senderKey().toLatin1());
+        if (decrypted.isEmpty()) {
+            qCDebug(E2EE) << "Problem with new session from senderKey:"
+                          << encryptedEvent.senderKey()
+                          << encryptionManager->account()->oneTimeKeys();
+            return {};
+        }
+
+        RoomEventPtr decryptedEvent = makeEvent<RoomMessageEvent>(
+            QJsonDocument::fromJson(decrypted.toUtf8()).object());
+
+        if (decryptedEvent->senderId() != encryptedEvent.senderId()) {
+            qCDebug(E2EE) << "Found user" << decryptedEvent->senderId()
+                          << "instead of sender" << encryptedEvent.senderId()
+                          << "in Olm plaintext";
+            return {};
+        }
+
+        // TODO: keys to constants
+        QJsonObject decryptedEventObject = decryptedEvent->fullJson();
+        QString recipient =
+            decryptedEventObject.value("recipient"_ls).toString();
+        if (recipient != data->userId()) {
+            qCDebug(E2EE) << "Found user" << recipient << "instead of us"
+                          << data->userId() << "in Olm plaintext";
+            return {};
+        }
+        QString ourKey = decryptedEventObject.value("recipient_keys"_ls)
+                             .toObject()
+                             .value(Ed25519Key)
+                             .toString();
+        if (ourKey
+            != QString::fromUtf8(
+                encryptionManager->account()->ed25519IdentityKey())) {
+            qCDebug(E2EE) << "Found key" << ourKey
+                          << "instead of ours own ed25519 key"
+                          << encryptionManager->account()->ed25519IdentityKey()
+                          << "in Olm plaintext";
+            return {};
+        }
+
+        return decryptedEvent;
+#endif // Quotient_E2EE_ENABLED
     }
 };
 
@@ -243,17 +315,12 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
     connect(loginJob, &BaseJob::success, this, [this, loginJob] {
         d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                             loginJob->deviceId());
-
-        AccountSettings accountSettings(loginJob->userId());
-        d->encryptionManager.reset(
-            new EncryptionManager(accountSettings.encryptionAccountPickle()));
-        if (accountSettings.encryptionAccountPickle().isEmpty()) {
-            accountSettings.setEncryptionAccountPickle(
-                d->encryptionManager->olmAccountPickle());
-        }
-
+#ifndef Quotient_E2EE_ENABLED
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+#else // Quotient_E2EE_ENABLED
         d->encryptionManager->uploadIdentityKeys(this);
         d->encryptionManager->uploadOneTimeKeys(this);
+#endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, this, [this, loginJob] {
         emit loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -309,6 +376,17 @@ void Connection::Private::connectWithToken(const QString& userId,
     q->setObjectName(userId % '/' % deviceId);
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << userId << "from device" << deviceId;
+    AccountSettings accountSettings(userId);
+#ifndef Quotient_E2EE_ENABLED
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+#else // Quotient_E2EE_ENABLED
+    encryptionManager.reset(
+        new EncryptionManager(accountSettings.encryptionAccountPickle()));
+    if (accountSettings.encryptionAccountPickle().isEmpty()) {
+        accountSettings.setEncryptionAccountPickle(
+            encryptionManager->olmAccountPickle());
+    }
+#endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
     emit q->connected();
     q->reloadCapabilities();
@@ -535,6 +613,61 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         d->dcLocalAdditions.clear();
         d->dcLocalRemovals.clear();
     }
+#ifndef Quotient_E2EE_ENABLED
+    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+#else // Quotient_E2EE_ENABLED
+    // handling m.room_key to-device encrypted event
+    for (auto&& toDeviceEvent : data.takeToDeviceEvents()) {
+        if (toDeviceEvent->type() == EncryptedEvent::typeId()) {
+            event_ptr_tt<EncryptedEvent> encryptedEvent =
+                makeEvent<EncryptedEvent>(toDeviceEvent->fullJson());
+            if (encryptedEvent->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                qCDebug(E2EE)
+                    << "Encrypted event" << encryptedEvent->id() << "algorithm"
+                    << encryptedEvent->algorithm() << "is not supported";
+                return;
+            }
+
+            // TODO: full maintaining of the device keys
+            // with device_lists sync extention and /keys/query
+            qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
+                          << encryptedEvent->senderId();
+            // d->encryptionManager->updateDeviceKeys();
+
+            RoomEventPtr decryptedEvent =
+                d->sessionDecryptMessage(*encryptedEvent.get());
+            // since we are waiting for the RoomKeyEvent:
+            event_ptr_tt<RoomKeyEvent> roomKeyEvent =
+                makeEvent<RoomKeyEvent>(decryptedEvent->fullJson());
+            if (!roomKeyEvent) {
+                qCDebug(E2EE) << "Failed to decrypt olm event from user"
+                              << encryptedEvent->senderId();
+                return;
+            }
+            Room* detectedRoom = room(roomKeyEvent->roomId());
+            if (!detectedRoom) {
+                qCDebug(E2EE)
+                    << "Encrypted event room id" << encryptedEvent->roomId()
+                    << "is not found at the connection";
+                return;
+            }
+            detectedRoom->handleRoomKeyEvent(roomKeyEvent.get(),
+                                             encryptedEvent->senderKey());
+        }
+    }
+    // handling device_one_time_keys_count
+    auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
+    if (!d->encryptionManager)
+    {
+        qCDebug(E2EE) << "Encryption manager is not there yet";
+        return;
+    }
+    if (!deviceOneTimeKeysCount.isEmpty())
+    {
+        d->encryptionManager->updateOneTimeKeyCounts(this,
+                                                     deviceOneTimeKeysCount);
+    }
+#endif // Quotient_E2EE_ENABLED
 }
 
 void Connection::stopSync()
@@ -958,10 +1091,12 @@ QString Connection::deviceId() const { return d->data->deviceId(); }
 
 QByteArray Connection::accessToken() const { return d->data->accessToken(); }
 
+#ifdef Quotient_E2EE_ENABLED
 QtOlm::Account* Connection::olmAccount() const
 {
     return d->encryptionManager->account();
 }
+#endif // Quotient_E2EE_ENABLED
 
 SyncJob* Connection::syncJob() const { return d->syncJob; }
 

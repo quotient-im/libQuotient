@@ -1,3 +1,4 @@
+#ifdef Quotient_E2EE_ENABLED
 #pragma once
 
 #include <QtCore/QObject>
@@ -26,6 +27,13 @@ public:
 
     void uploadIdentityKeys(Connection* connection);
     void uploadOneTimeKeys(Connection* connection, bool forceUpdate = false);
+    void
+    updateOneTimeKeyCounts(Connection* connection,
+                           const QHash<QString, int>& deviceOneTimeKeysCount);
+    void updateDeviceKeys(Connection* connection,
+                          const QHash<QString, QStringList>& deviceKeys);
+    QString sessionDecryptMessage(const QJsonObject& personalCipherObject,
+                                  const QByteArray& senderKey);
     QByteArray olmAccountPickle();
 
     QtOlm::Account* account() const;
@@ -36,3 +44,4 @@ private:
 };
 
 } // namespace Quotient
+#endif // Quotient_E2EE_ENABLED

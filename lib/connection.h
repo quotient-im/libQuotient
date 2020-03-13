@@ -304,7 +304,9 @@ public:
     QString userId() const;
     QString deviceId() const;
     QByteArray accessToken() const;
+#ifdef Quotient_E2EE_ENABLED
     QtOlm::Account* olmAccount() const;
+#endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
 

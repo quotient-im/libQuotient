@@ -92,6 +92,10 @@ public:
     Events&& takePresenceData();
     Events&& takeAccountData();
     Events&& takeToDeviceEvents();
+    const QHash<QString, int>& deviceOneTimeKeysCount() const
+    {
+        return deviceOneTimeKeysCount_;
+    }
     SyncDataList&& takeRoomData();
 
     QString nextBatch() const { return nextBatch_; }
@@ -108,6 +112,7 @@ private:
     Events toDeviceEvents;
     SyncDataList roomData;
     QStringList unresolvedRoomIds;
+    QHash<QString, int> deviceOneTimeKeysCount_;
 
     static QJsonObject loadJson(const QString& fileName);
 };

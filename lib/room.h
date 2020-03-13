@@ -26,6 +26,7 @@
 
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
+#include "events/roomkeyevent.h"
 #include "events/roommessageevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
@@ -208,13 +209,8 @@ public:
     int memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
-    RoomEventPtr decryptMessage(EncryptedEvent* encryptedEvent);
-    QString decryptMessage(QJsonObject personalCipherObject,
-                           QByteArray senderKey);
-    QString sessionKey(const QString& senderKey, const QString& deviceId,
-                       const QString& sessionId) const;
-    QString decryptMessage(QByteArray cipher, const QString& senderKey,
-                           const QString& deviceId, const QString& sessionId);
+    RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
+    void handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
