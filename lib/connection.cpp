@@ -317,7 +317,7 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
         d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
                             loginJob->deviceId());
 #ifndef Quotient_E2EE_ENABLED
-    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
         d->encryptionManager->uploadIdentityKeys(this);
         d->encryptionManager->uploadOneTimeKeys(this);
@@ -377,10 +377,10 @@ void Connection::Private::connectWithToken(const QString& userId,
     q->setObjectName(userId % '/' % deviceId);
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << userId << "from device" << deviceId;
-    AccountSettings accountSettings(userId);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
+    AccountSettings accountSettings(userId);
     encryptionManager.reset(
         new EncryptionManager(accountSettings.encryptionAccountPickle()));
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
