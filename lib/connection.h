@@ -505,11 +505,23 @@ public slots:
     /** Determine and set the homeserver from MXID */
     void resolveServer(const QString& mxid);
 
-    void connectToServer(const QString& user, const QString& password,
+    void connectToServer(const QString& userId, const QString& password,
                          const QString& initialDeviceName,
                          const QString& deviceId = {});
+    void loginWithToken(const QByteArray& loginToken,
+                        const QString& initialDeviceName,
+                        const QString& deviceId = {});
+    void assumeIdentity(const QString& userId, const QString& accessToken,
+                        const QString& deviceId);
+    /*! @deprecated
+     * Use assumeIdentity() if you have an access token or
+     * loginWithToken() if you have a login token.
+     */
     void connectWithToken(const QString& userId, const QString& accessToken,
-                          const QString& deviceId);
+                          const QString& deviceId)
+    {
+        assumeIdentity(userId, accessToken, deviceId);
+    }
     /// Explicitly request capabilities from the server
     void reloadCapabilities();
 
@@ -856,9 +868,6 @@ private:
      * @param connectFn - a function to execute once the HS URL is good
      */
     void checkAndConnect(const QString& userId, std::function<void()> connectFn);
-    void doConnectToServer(const QString& user, const QString& password,
-                           const QString& initialDeviceName,
-                           const QString& deviceId = {});
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;
