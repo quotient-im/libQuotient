@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "ssosession.h"
 #include "joinstate.h"
 #include "qt_connection_util.h"
 
@@ -466,6 +467,9 @@ public:
         return JobT::makeRequestUrl(homeserver(),
                                     std::forward<JobArgTs>(jobArgs)...);
     }
+
+    Q_INVOKABLE SsoSession* prepareForSso(const QString& initialDeviceName,
+                                          const QString& deviceId = {});
 
     /** Generate a new transaction id. Transaction id's are unique within
      * a single Connection object
