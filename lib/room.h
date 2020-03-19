@@ -188,11 +188,14 @@ public:
     QString name() const;
     /// Room aliases defined on the current user's server
     /// \sa remoteAliases, setLocalAliases
+    [[deprecated("Use aliases()")]]
     QStringList localAliases() const;
     /// Room aliases defined on other servers
     /// \sa localAliases
+    [[deprecated("Use aliases()")]]
     QStringList remoteAliases() const;
     QString canonicalAlias() const;
+    QStringList aliases() const;
     QString displayName() const;
     QString topic() const;
     QString avatarMediaId() const;

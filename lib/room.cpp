@@ -108,7 +108,7 @@ public:
     QHash<StateEventKey, const StateEventBase*> currentState;
     /// Servers with aliases for this room except the one of the local user
     /// \sa Room::remoteAliases
-    // This may not be required anymore
+
     QSet<QString> aliasServers;
 
     Timeline timeline;
@@ -432,15 +432,20 @@ QString Room::name() const
     return d->getCurrentState<RoomNameEvent>()->name();
 }
 
-QStringList Room::localAliases() const
+QStringList Room::aliases() const
 {
-    QStringList result(d
-        ->getCurrentState<RoomCanonicalAliasEvent>()->alias());
-    result += d->getCurrentState<RoomCanonicalAliasEvent>()->alt_aliases();
+    QStringList result(d->getCurrentState<RoomCanonicalAliasEvent>()->alias());
+    result += d->getCurrentState<RoomCanonicalAliasEvent>()->altAliases();
     return result;
 }
 
-// Not sure about this function, maybe it is no more required
+QStringList Room::localAliases() const
+{
+    return d->getCurrentState<RoomAliasesEvent>(
+        connection()->domain())
+        ->aliases();
+}
+
 QStringList Room::remoteAliases() const
 {
     QStringList result;
@@ -1693,6 +1698,8 @@ void Room::setName(const QString& newName)
     d->requestSetState<RoomNameEvent>(newName);
 }
 
+// Change might be required here as well. 
+// Not sure what will be best
 void Room::setCanonicalAlias(const QString& newAlias)
 {
     d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
@@ -1700,7 +1707,7 @@ void Room::setCanonicalAlias(const QString& newAlias)
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(aliases);
+    d->requestSetState<RoomCanonicalAliasEvent>(this->canonicalAlias(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -2355,23 +2362,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         }
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
             // clang-format on
-            if (ae.aliases().isEmpty()) {
-                if (d->aliasServers.remove(ae.stateKey()))
-                    qCDebug(STATE).noquote()
-                        << ae.stateKey() << "no more has aliases for room"
-                        << objectName();
-            } else {
-                d->aliasServers.insert(ae.stateKey());
-                qCDebug(STATE).nospace().noquote()
-                    << "New server with aliases for room " << objectName()
-                    << ": " << ae.stateKey();
-            }
-            const auto previousAliases =
-                oldStateEvent
-                    ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
-                    : QStringList();
-            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
-            return OtherChange;
+            // This event has been removed by MSC-2432
+            return NoChange;
             // clang-format off
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
@@ -2386,7 +2378,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             auto previousAltAliases =
                 oldStateEvent
                     ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
-                          ->alt_aliases()
+                          ->altAliases()
                     : QStringList();
 
             if (!previousCanonicalAlias.isEmpty()) {
@@ -2395,7 +2387,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
 
             const auto previousAliases = std::move(previousAltAliases);
 
-            auto newAliases = cae.alt_aliases();
+            auto newAliases = cae.altAliases();
 
             if (!cae.alias().isEmpty()) {
                 newAliases.push_front(cae.alias());
@@ -2651,7 +2643,7 @@ QString Room::Private::calculateDisplayname() const
         return dispName;
 
     // 3. m.room.aliases - only local aliases, subject for further removal
-    const auto aliases = q->localAliases();
+    const auto aliases = q->aliases();
     if (!aliases.isEmpty())
         return aliases.front();
 
