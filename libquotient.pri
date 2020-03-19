@@ -30,6 +30,7 @@ HEADERS += \
     $$SRCPATH/events/eventcontent.h \
     $$SRCPATH/events/roommessageevent.h \
     $$SRCPATH/events/simplestateevents.h \
+    $$SRCPATH/events/roomcanonicalaliasevent.h \
     $$SRCPATH/events/roomcreateevent.h \
     $$SRCPATH/events/roomtombstoneevent.h \
     $$SRCPATH/events/roommemberevent.h \
