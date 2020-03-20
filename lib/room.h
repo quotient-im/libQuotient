@@ -141,7 +141,8 @@ public:
     enum Change : uint {
         NoChange = 0x0,
         NameChange = 0x1,
-        CanonicalAliasChange = 0x2,
+        AliasesChange = 0x2,
+        CanonicalAliasChange = AliasesChange,
         TopicChange = 0x4,
         UnreadNotifsChange = 0x8,
         AvatarChange = 0x10,
@@ -195,6 +196,7 @@ public:
     [[deprecated("Use aliases()")]]
     QStringList remoteAliases() const;
     QString canonicalAlias() const;
+    QStringList altAliases() const;
     QStringList aliases() const;
     QString displayName() const;
     QString topic() const;

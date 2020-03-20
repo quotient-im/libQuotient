@@ -439,6 +439,11 @@ QStringList Room::aliases() const
     return result;
 }
 
+QStringList Room::altAliases() const
+{
+    return d->getCurrentState<RoomCanonicalAliasEvent>()->altAliases();
+}
+
 QStringList Room::localAliases() const
 {
     return d->getCurrentState<RoomAliasesEvent>(
@@ -1702,7 +1707,7 @@ void Room::setName(const QString& newName)
 // Not sure what will be best
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
+    d->requestSetState<RoomCanonicalAliasEvent>(newAlias, this->altAliases());
 }
 
 void Room::setLocalAliases(const QStringList& aliases)
@@ -2394,7 +2399,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             }
 
             connection()->updateRoomAliases(id(), previousAliases, newAliases);
-            return CanonicalAliasChange;
+            return AliasesChange;
             // clang-format off
         }
         , [] (const RoomTopicEvent&) {
