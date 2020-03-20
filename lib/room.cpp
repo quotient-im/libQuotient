@@ -108,7 +108,6 @@ public:
     QHash<StateEventKey, const StateEventBase*> currentState;
     /// Servers with aliases for this room except the one of the local user
     /// \sa Room::remoteAliases
-
     QSet<QString> aliasServers;
 
     Timeline timeline;
@@ -1423,7 +1422,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges & TopicChange)
         emit topicChanged();
 
-    if (roomChanges & NameChange)
+    if (roomChanges & (NameChange | AliasesChange))
         emit namesChanged(this);
 
     if (roomChanges & MembersChange)
@@ -1703,8 +1702,6 @@ void Room::setName(const QString& newName)
     d->requestSetState<RoomNameEvent>(newName);
 }
 
-// Change might be required here as well. 
-// Not sure what will be best
 void Room::setCanonicalAlias(const QString& newAlias)
 {
     d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
