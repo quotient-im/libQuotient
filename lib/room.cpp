@@ -1707,12 +1707,12 @@ void Room::setName(const QString& newName)
 // Not sure what will be best
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(newAlias, this->altAliases());
+    d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(this->canonicalAlias(), aliases);
+    d->requestSetState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
