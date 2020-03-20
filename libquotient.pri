@@ -23,6 +23,7 @@ INCLUDEPATH += $$SRCPATH
 HEADERS += \
     $$SRCPATH/connectiondata.h \
     $$SRCPATH/connection.h \
+    $$SRCPATH/ssosession.h \
     $$SRCPATH/encryptionmanager.h \
     $$SRCPATH/eventitem.h \
     $$SRCPATH/room.h \
@@ -76,6 +77,7 @@ HEADERS += \
 SOURCES += \
     $$SRCPATH/connectiondata.cpp \
     $$SRCPATH/connection.cpp \
+    $$SRCPATH/ssosession.cpp \
     $$SRCPATH/encryptionmanager.cpp \
     $$SRCPATH/eventitem.cpp \
     $$SRCPATH/room.cpp \

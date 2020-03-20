@@ -30,7 +30,6 @@
 #include "csapi/capabilities.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
-#include "csapi/login.h"
 #include "csapi/logout.h"
 #include "csapi/receipts.h"
 #include "csapi/room_send.h"
@@ -111,6 +110,8 @@ public:
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
 
+    QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
+
 #ifdef Quotient_E2EE_ENABLED
     QScopedPointer<EncryptionManager> encryptionManager;
 #endif // Quotient_E2EE_ENABLED
@@ -124,8 +125,10 @@ public:
         != "json";
     bool lazyLoading = false;
 
-    void connectWithToken(const QString& userId, const QString& accessToken,
-                          const QString& deviceId);
+    template <typename... LoginArgTs>
+    void loginToServer(LoginArgTs&&... loginArgs);
+    void assumeIdentity(const QString& userId, const QString& accessToken,
+                        const QString& deviceId);
     void removeRoom(const QString& roomId);
 
     template <typename EventT>
@@ -295,44 +298,50 @@ void Connection::resolveServer(const QString& mxid)
         });
 }
 
-void Connection::connectToServer(const QString& user, const QString& password,
+inline UserIdentifier makeUserIdentifier(const QString& id)
+{
+    return { QStringLiteral("m.id.user"), { { QStringLiteral("user"), id } } };
+}
+
+inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
+                                             const QString& address)
+{
+    return { QStringLiteral("m.id.thirdparty"),
+             { { QStringLiteral("medium"), medium },
+               { QStringLiteral("address"), address } } };
+}
+
+void Connection::connectToServer(const QString& userId, const QString& password,
                                  const QString& initialDeviceName,
                                  const QString& deviceId)
 {
-    checkAndConnect(user, [=] {
-        doConnectToServer(user, password, initialDeviceName, deviceId);
-    });
-}
-void Connection::doConnectToServer(const QString& user, const QString& password,
-                                   const QString& initialDeviceName,
-                                   const QString& deviceId)
-{
-    auto loginJob =
-        callApi<LoginJob>(QStringLiteral("m.login.password"),
-                          UserIdentifier { QStringLiteral("m.id.user"),
-                                           { { QStringLiteral("user"), user } } },
-                          password, /*token*/ "", deviceId, initialDeviceName);
-    connect(loginJob, &BaseJob::success, this, [this, loginJob] {
-        d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
-                            loginJob->deviceId());
-#ifndef Quotient_E2EE_ENABLED
-    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
-        d->encryptionManager->uploadIdentityKeys(this);
-        d->encryptionManager->uploadOneTimeKeys(this);
-#endif // Quotient_E2EE_ENABLED
-    });
-    connect(loginJob, &BaseJob::failure, this, [this, loginJob] {
-        emit loginError(loginJob->errorString(), loginJob->rawDataSample());
+    checkAndConnect(userId, [=] {
+        d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
+                         password, /*token*/ "", deviceId, initialDeviceName);
     });
 }
 
-void Connection::connectWithToken(const QString& userId,
-                                  const QString& accessToken,
-                                  const QString& deviceId)
+SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
+                                      const QString& deviceId)
+{
+    return new SsoSession(this, initialDeviceName, deviceId);
+}
+
+void Connection::loginWithToken(const QByteArray& loginToken,
+                                const QString& initialDeviceName,
+                                const QString& deviceId)
+{
+    d->loginToServer(LoginFlows::Token.type,
+                     makeUserIdentifier(/*user is encoded in loginToken*/ {}),
+                     /*password*/ "", loginToken, deviceId, initialDeviceName);
+}
+
+void Connection::assumeIdentity(const QString& userId,
+                                const QString& accessToken,
+                                const QString& deviceId)
 {
     checkAndConnect(userId,
-                    [=] { d->connectWithToken(userId, accessToken, deviceId); });
+                    [=] { d->assumeIdentity(userId, accessToken, deviceId); });
 }
 
 void Connection::reloadCapabilities()
@@ -365,9 +374,29 @@ bool Connection::loadingCapabilities() const
     return !d->capabilities.roomVersions;
 }
 
-void Connection::Private::connectWithToken(const QString& userId,
-                                           const QString& accessToken,
-                                           const QString& deviceId)
+template <typename... LoginArgTs>
+void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
+{
+    auto loginJob =
+            q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
+    connect(loginJob, &BaseJob::success, q, [this, loginJob] {
+        assumeIdentity(loginJob->userId(), loginJob->accessToken(),
+                       loginJob->deviceId());
+#ifndef Quotient_E2EE_ENABLED
+        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+#else // Quotient_E2EE_ENABLED
+        encryptionManager->uploadIdentityKeys(this);
+        encryptionManager->uploadOneTimeKeys(this);
+#endif // Quotient_E2EE_ENABLED
+    });
+    connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
+        emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
+    });
+}
+
+void Connection::Private::assumeIdentity(const QString& userId,
+                                         const QString& accessToken,
+                                         const QString& deviceId)
 {
     data->setUserId(userId);
     q->user(); // Creates a User object for the local user
@@ -376,10 +405,10 @@ void Connection::Private::connectWithToken(const QString& userId,
     q->setObjectName(userId % '/' % deviceId);
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << userId << "from device" << deviceId;
-    AccountSettings accountSettings(userId);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
+    AccountSettings accountSettings(userId);
     encryptionManager.reset(
         new EncryptionManager(accountSettings.encryptionAccountPickle()));
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
@@ -1004,6 +1033,21 @@ QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
 QString Connection::domain() const { return userId().section(':', 1); }
 
+QVector<GetLoginFlowsJob::LoginFlow> Connection::loginFlows() const
+{
+    return d->loginFlows;
+}
+
+bool Connection::supportsPasswordAuth() const
+{
+    return d->loginFlows.contains(LoginFlows::Password);
+}
+
+bool Connection::supportsSso() const
+{
+    return d->loginFlows.contains(LoginFlows::SSO);
+}
+
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
     Room* room = d->roomMap.value({ roomId, false }, nullptr);
@@ -1400,11 +1444,21 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (homeserver() == url)
-        return;
+    if (homeserver() != url) {
+        d->data->setBaseUrl(url);
+        d->loginFlows.clear();
+        emit homeserverChanged(homeserver());
+    }
 
-    d->data->setBaseUrl(url);
-    emit homeserverChanged(homeserver());
+    // Whenever a homeserver is updated, retrieve available login flows from it
+    auto* j = callApi<GetLoginFlowsJob>(BackgroundRequest);
+    connect(j, &BaseJob::finished, this, [this, j] {
+        if (j->status().good())
+            d->loginFlows = j->flows();
+        else
+            d->loginFlows.clear();
+        emit loginFlowsChanged();
+    });
 }
 
 void Connection::saveRoomState(Room* r) const

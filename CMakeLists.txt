@@ -137,6 +137,7 @@ set(lib_SRCS
     lib/networkaccessmanager.cpp
     lib/connectiondata.cpp
     lib/connection.cpp
+    lib/ssosession.cpp
     lib/logging.cpp
     lib/room.cpp
     lib/user.cpp
