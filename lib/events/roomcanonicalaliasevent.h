@@ -57,7 +57,7 @@ public:
         : StateEvent(typeId(), obj)
     { }
 
-    RoomCanonicalAliasEvent(const QString& canonicalAlias, const QStringList& altAliases = {})
+    explicit RoomCanonicalAliasEvent(const QString& canonicalAlias, const QStringList& altAliases = {})
         : StateEvent(typeId(), matrixTypeId(), QString(),
                 canonicalAlias, altAliases)
     { }
