@@ -329,7 +329,7 @@ public:
     /// This is used to maintain the internal index of room aliases.
     /// It does NOT change aliases on the server,
     /// \sa Room::setLocalAliases
-    void updateRoomAliases(const QString& roomId, const QString& aliasServer,
+    void updateRoomAliases(const QString& roomId,
                            const QStringList& previousRoomAliases,
                            const QStringList& roomAliases);
     Q_INVOKABLE Quotient::Room* invitation(const QString& roomId) const;

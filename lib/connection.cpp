@@ -92,7 +92,7 @@ public:
     QHash<QPair<QString, bool>, Room*> roomMap;
     /// Mapping from serverparts to alias/room id mappings,
     /// as of the last sync
-    QHash<QString, QHash<QString, QString>> roomAliasMap;
+    QHash<QString, QString> roomAliasMap;
     QVector<QString> roomIdsToForget;
     QVector<Room*> firstTimeRooms;
     QVector<QString> pendingStateRoomIds;
@@ -1068,7 +1068,7 @@ Room* Connection::room(const QString& roomId, JoinStates states) const
 
 Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
 {
-    const auto id = d->roomAliasMap.value(serverPart(roomAlias)).value(roomAlias);
+    const auto id = d->roomAliasMap.value(roomAlias);
     if (!id.isEmpty())
         return room(id, states);
 
@@ -1078,17 +1078,15 @@ Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
 }
 
 void Connection::updateRoomAliases(const QString& roomId,
-                                   const QString& aliasServer,
                                    const QStringList& previousRoomAliases,
                                    const QStringList& roomAliases)
 {
-    auto& aliasMap = d->roomAliasMap[aliasServer]; // Allocate if necessary
     for (const auto& a : previousRoomAliases)
-        if (aliasMap.remove(a) == 0)
+        if (d->roomAliasMap.remove(a) == 0)
             qCWarning(MAIN) << "Alias" << a << "is not found (already deleted?)";
 
     for (const auto& a : roomAliases) {
-        auto& mappedId = aliasMap[a];
+        auto& mappedId = d->roomAliasMap[a];
         if (!mappedId.isEmpty()) {
             if (mappedId == roomId)
                 qCDebug(MAIN)

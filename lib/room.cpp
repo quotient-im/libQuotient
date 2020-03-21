@@ -56,6 +56,7 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/postreadmarkersjob.h"
+#include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -519,11 +520,21 @@ QString Room::name() const
     return d->getCurrentState<RoomNameEvent>()->name();
 }
 
+QStringList Room::aliases() const
+{
+    const auto* evt = d->getCurrentState<RoomCanonicalAliasEvent>();
+    return QStringList(evt->altAliases()) << evt->alias();
+}
+
+QStringList Room::altAliases() const
+{
+    return d->getCurrentState<RoomCanonicalAliasEvent>()->altAliases();
+}
+
 QStringList Room::localAliases() const
 {
-    return d
-        ->getCurrentState<RoomAliasesEvent>(
-            connection()->domain())
+    return d->getCurrentState<RoomAliasesEvent>(
+        connection()->domain())
         ->aliases();
 }
 
@@ -1461,7 +1472,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges & TopicChange)
         emit topicChanged();
 
-    if (roomChanges & NameChange)
+    if (roomChanges & (NameChange | AliasesChange))
         emit namesChanged(this);
 
     if (roomChanges & MembersChange)
@@ -1740,13 +1751,12 @@ void Room::setName(const QString& newName)
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(newAlias);
+    d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState<RoomAliasesEvent>(connection()->homeserver().authority(),
-                                         aliases);
+    d->requestSetState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -2401,29 +2411,40 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         }
         , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
             // clang-format on
-            if (ae.aliases().isEmpty()) {
-                if (d->aliasServers.remove(ae.stateKey()))
-                    qCDebug(STATE).noquote()
-                        << ae.stateKey() << "no more has aliases for room"
-                        << objectName();
-            } else {
-                d->aliasServers.insert(ae.stateKey());
-                qCDebug(STATE).nospace().noquote()
-                    << "New server with aliases for room " << objectName()
-                    << ": " << ae.stateKey();
-            }
-            const auto previousAliases =
-                oldStateEvent
-                    ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
-                    : QStringList();
-            connection()->updateRoomAliases(id(), ae.stateKey(),
-                                            previousAliases, ae.aliases());
-            return OtherChange;
+            // This event has been removed by MSC-2432
+            return NoChange;
             // clang-format off
         }
-        , [this] (const RoomCanonicalAliasEvent& evt) {
-            setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
-            return CanonicalAliasChange;
+        , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
+            // clang-format on
+            setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
+            QString previousCanonicalAlias =
+                oldStateEvent
+                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
+                          ->alias()
+                    : QString();
+
+            auto previousAltAliases =
+                oldStateEvent
+                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
+                          ->altAliases()
+                    : QStringList();
+
+            if (!previousCanonicalAlias.isEmpty()) {
+                previousAltAliases.push_back(previousCanonicalAlias);
+            }
+
+            const auto previousAliases = std::move(previousAltAliases);
+
+            auto newAliases = cae.altAliases();
+
+            if (!cae.alias().isEmpty()) {
+                newAliases.push_front(cae.alias());
+            }
+
+            connection()->updateRoomAliases(id(), previousAliases, newAliases);
+            return AliasesChange;
+            // clang-format off
         }
         , [] (const RoomTopicEvent&) {
             return TopicChange;
@@ -2671,7 +2692,7 @@ QString Room::Private::calculateDisplayname() const
         return dispName;
 
     // 3. m.room.aliases - only local aliases, subject for further removal
-    const auto aliases = q->localAliases();
+    const auto aliases = q->aliases();
     if (!aliases.isEmpty())
         return aliases.front();
 
