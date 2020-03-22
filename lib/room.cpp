@@ -377,7 +377,17 @@ QString Room::name() const
 
 QStringList Room::aliases() const
 {
-    return d->getCurrentState<RoomAliasesEvent>()->aliases();
+    const auto* evt = d->getCurrentState<RoomCanonicalAliasEvent>();
+    auto aliases = fromJson<QStringList>(evt->contentJson()["alt_aliases"]);
+    if (!evt->alias().isEmpty())
+        aliases << evt->alias();
+    return aliases;
+}
+
+QStringList Room::altAliases() const
+{
+    const auto* evt = d->getCurrentState<RoomCanonicalAliasEvent>();
+    return fromJson<QStringList>(evt->contentJson()["alt_aliases"]);
 }
 
 QString Room::canonicalAlias() const
@@ -1331,7 +1341,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (roomChanges&TopicChange)
         emit topicChanged();
 
-    if (roomChanges&NameChange)
+    if (roomChanges&(NameChange|CanonicalAliasChange))
         emit namesChanged(this);
 
     if (roomChanges&MembersChange)
@@ -1608,12 +1618,18 @@ void Room::setName(const QString& newName)
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState(RoomCanonicalAliasEvent(newAlias));
+    connection()->callApi<SetRoomStateJob>(
+        id(), RoomCanonicalAliasEvent::matrixTypeId(),
+        QJsonObject { { "alias", newAlias },
+                      { "alt_aliases", QMatrixClient::toJson(altAliases()) } });
 }
 
 void Room::setAliases(const QStringList& aliases)
 {
-    d->requestSetState(RoomAliasesEvent(aliases));
+    connection()->callApi<SetRoomStateJob>(
+        id(), RoomCanonicalAliasEvent::matrixTypeId(),
+        QJsonObject { { "alias", canonicalAlias() },
+                      { "alt_aliases", QMatrixClient::toJson(aliases) } });
 }
 
 void Room::setTopic(const QString& newTopic)
@@ -2183,15 +2199,31 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [] (const RoomNameEvent&) {
             return NameChange;
         }
-        , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
-            const auto previousAliases = oldStateEvent
-                ? static_cast<const RoomAliasesEvent*>(oldStateEvent)->aliases()
-                : QStringList();
-            connection()->updateRoomAliases(id(), previousAliases, ae.aliases());
-            return OtherChange;
+        , [] (const RoomAliasesEvent&) {
+            // This event has been removed by MSC-2432
+            return NoChange;
         }
-        , [this] (const RoomCanonicalAliasEvent& evt) {
+        , [this, oldStateEvent] (const RoomCanonicalAliasEvent& evt) {
             setObjectName(evt.alias().isEmpty() ? d->id : evt.alias());
+
+            auto prevAliases = oldStateEvent ? fromJson<QStringList>(
+                                   oldStateEvent->contentJson()["alt_aliases"])
+                                             : QStringList();
+            if (oldStateEvent) {
+                const auto prevCanonicalAlias =
+                    static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
+                        ->alias();
+                if (!prevCanonicalAlias.isEmpty())
+                    prevAliases.push_back(prevCanonicalAlias);
+            }
+
+            auto newAliases =
+                fromJson<QStringList>(evt.contentJson()["alt_aliases"]);
+            if (!evt.alias().isEmpty())
+                newAliases.push_back(evt.alias());
+
+            connection()->updateRoomAliases(id(), prevAliases, newAliases);
+
             return CanonicalAliasChange;
         }
         , [] (const RoomTopicEvent&) {

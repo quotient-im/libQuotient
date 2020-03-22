@@ -154,6 +154,7 @@ namespace QMatrixClient
             QString successorId() const;
             QString name() const;
             QStringList aliases() const;
+            QStringList altAliases() const;
             QString canonicalAlias() const;
             QString displayName() const;
             QString topic() const;
