@@ -183,7 +183,7 @@ void QMCTest::loadMembers()
     // The dedicated qmc-test room is too small to test
     // lazy-loading-then-full-loading; use #qmatrixclient:matrix.org instead.
     // TODO: #264
-    auto* r = c->room(QStringLiteral("!PCzUtxtOjUySxSelof:matrix.org"));
+    auto* r = c->roomByAlias(QStringLiteral("#qmatrixclient:matrix.org"));
     if (!r)
     {
         cout << "#test:matrix.org is not found in the test user's rooms" << endl;
@@ -344,8 +344,9 @@ void QMCTest::setTopic()
     const auto newTopic = c->generateTxnId();
     targetRoom->setTopic(newTopic); // Sets the state by proper means
     const auto fakeTopic = c->generateTxnId();
-    targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
-                         RoomTopicEvent(fakeTopic).contentJson());
+    auto fakeTxnId =
+        targetRoom->postJson(RoomTopicEvent::matrixTypeId(), // Fake state event
+                             RoomTopicEvent(fakeTopic).contentJson());
 
     connectUntil(targetRoom, &Room::topicChanged, this,
         [this,newTopic,fakeTopic,initialTopic] {
@@ -353,22 +354,25 @@ void QMCTest::setTopic()
             {
                 QMC_CHECK(stateTestName, true);
                 // Don't reset the topic yet if the negative test still runs
-                if (!running.contains(fakeStateTestName))
-                    targetRoom->setTopic(initialTopic);
+                targetRoom->setTopic(initialTopic);
 
                 return true;
             }
             return false;
         });
 
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this,fakeTopic,initialTopic] (const RoomEvent* e, int) {
-            if (e->contentJson().value("topic").toString() != fakeTopic)
-                return false; // Wait on for the right event
+    connectUntil(targetRoom, &Room::pendingEventChanged, this,
+        [this, fakeTxnId](int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
 
-            QMC_CHECK(fakeStateTestName, !e->isStateEvent());
-            if (!running.contains(fakeStateTestName))
-                targetRoom->setTopic(initialTopic);
+            const auto& pendingItem = pendingEvents[pendingIdx];
+            if (pendingItem->transactionId() != fakeTxnId
+                || pendingItem.deliveryStatus() <= EventStatus::Departed)
+                return false;
+
+            QMC_CHECK(fakeStateTestName, pendingItem.deliveryStatus()
+                                             == EventStatus::SendingFailed);
             return true;
         });
 }
