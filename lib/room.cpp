@@ -971,6 +971,11 @@ bool Room::isLowPriority() const
     return d->tags.contains(LowPriorityTag);
 }
 
+bool Room::isServerNoticeRoom() const
+{
+    return d->tags.contains(ServerNoticeTag);
+}
+
 bool Room::isDirectChat() const
 {
     return connection()->isDirectChat(id());

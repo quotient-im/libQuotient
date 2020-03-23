@@ -333,7 +333,11 @@ void BaseJob::gotReply()
                     d->status.message =
                         tr("Requested room version: %1")
                         .arg(json.value("room_version").toString());
-            } else if (!json.isEmpty()) // Not localisable on the client side
+            }
+            else if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM")
+                setStatus(IncorrectRequestError,
+			  tr("It's not allowed to leave a server notices room"));
+            else if (!json.isEmpty()) // Not localisable on the client side
                 setStatus(d->status.code, json.value("error"_ls).toString());
         }
     }

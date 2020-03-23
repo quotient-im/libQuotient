@@ -348,6 +348,8 @@ namespace QMatrixClient
             bool isFavourite() const;
             /// Check whether the list of tags has m.lowpriority
             bool isLowPriority() const;
+            /// Check whether this room is for server notices (MSC1452)
+            bool isServerNoticeRoom() const;
 
             /// Check whether this room is a direct chat
             Q_INVOKABLE bool isDirectChat() const;
