@@ -32,12 +32,13 @@
 #include "csapi/joining.h"
 #include "csapi/to_device.h"
 #include "csapi/room_send.h"
+#include "csapi/wellknown.h"
+#include "csapi/versions.h"
 #include "jobs/syncjob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/downloadfilejob.h"
 #include "csapi/voip.h"
 
-#include <QtNetwork/QDnsLookup>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
@@ -177,37 +178,45 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     }
 
     setHomeserver(maybeBaseUrl);
-    emit resolved();
-    return;
 
-    // FIXME, #178: The below code is incorrect and is no more executed. The
-    // correct server resolution should be done from .well-known/matrix/client
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
-    // Check if the Matrix server has a dedicated service record.
-    auto* dns = new QDnsLookup();
-    dns->setType(QDnsLookup::SRV);
-    dns->setName("_matrix._tcp." + domain);
 
-    connect(dns, &QDnsLookup::finished, [this,dns,maybeBaseUrl]() {
-        QUrl baseUrl { maybeBaseUrl };
-        if (dns->error() == QDnsLookup::NoError &&
-                dns->serviceRecords().isEmpty())
-        {
-            auto record = dns->serviceRecords().front();
-            baseUrl.setHost(record.target());
-            baseUrl.setPort(record.port());
-            qCDebug(MAIN) << "SRV record for" << maybeBaseUrl.host()
-                          << "is" << baseUrl.authority();
+    auto getWellKnownJob = callApi<GetWellknownJob>();
+    connect(getWellKnownJob, &BaseJob::finished, [this, getWellKnownJob, maybeBaseUrl] {
+        if (getWellKnownJob->status() == BaseJob::NotFoundError) {
+            qCDebug(MAIN) << "No .well-known file, IGNORE";
+        } else if (getWellKnownJob->status() != BaseJob::Success) {
+            qCDebug(MAIN) << "Fetching .well-known file failed, FAIL_PROMPT";
+            emit resolveError(tr("Fetching .well-known file failed"));
+            return;
+        } else if (getWellKnownJob->data().homeserver.baseUrl.isEmpty()) {
+            qCDebug(MAIN) << "base_url not provided, FAIL_PROMPT";
+            emit resolveError(tr("base_url not provided"));
+            return;
+        } else if (!QUrl(getWellKnownJob->data().homeserver.baseUrl).isValid()) {
+            qCDebug(MAIN) << "base_url invalid, FAIL_ERROR";
+            emit resolveError(tr("base_url invalid"));
+            return;
         } else {
-            qCDebug(MAIN) << baseUrl.host() << "doesn't have SRV record"
-                          << dns->name() << "- using the hostname as is";
+            QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
+
+            qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host() << "is" << baseUrl.authority();
+            setHomeserver(baseUrl);
         }
-        setHomeserver(baseUrl);
-        emit resolved();
-        dns->deleteLater();
+
+        auto getVersionsJob = callApi<GetVersionsJob>();
+
+        connect(getVersionsJob, &BaseJob::finished, [this, getVersionsJob] {
+            if (getVersionsJob->status() == BaseJob::Success) {
+                qCDebug(MAIN) << "homeserver url is valid";
+                emit resolved();
+            } else {
+                qCDebug(MAIN) << "homeserver url invalid";
+                emit resolveError(tr("homeserver url invalid"));
+            }
+        });
     });
-    dns->lookup();
 }
 
 void Connection::connectToServer(const QString& user, const QString& password,
