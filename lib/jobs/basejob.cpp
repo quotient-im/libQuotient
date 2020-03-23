@@ -197,8 +197,9 @@ void BaseJob::Private::sendRequest(bool inBackground)
         { makeRequestUrl(connection->baseUrl(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    req.setRawHeader("Authorization",
-                     QByteArray("Bearer ") + connection->accessToken());
+    if (needsToken)
+        req.setRawHeader("Authorization",
+                         QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
