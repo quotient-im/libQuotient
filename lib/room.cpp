@@ -1925,7 +1925,6 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     static const QStringList keepKeys {
         EventIdKey, TypeKey, QStringLiteral("room_id"),
         QStringLiteral("sender"), QStringLiteral("state_key"),
-        QStringLiteral("prev_content"), ContentKey,
         QStringLiteral("hashes"), QStringLiteral("signatures"),
         QStringLiteral("depth"), QStringLiteral("prev_events"),
         QStringLiteral("prev_state"), QStringLiteral("auth_events"),
@@ -1942,7 +1941,6 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
 //              QStringLiteral("events_default"), QStringLiteral("kick"),
 //              QStringLiteral("redact"), QStringLiteral("state_default"),
 //              QStringLiteral("users"), QStringLiteral("users_default") } }
-        , { RoomAliasesEvent::typeId(), { QStringLiteral("aliases") } }
 //        , { RoomHistoryVisibility::typeId(),
 //                { QStringLiteral("history_visibility") } }
         };
