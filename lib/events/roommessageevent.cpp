@@ -30,12 +30,13 @@ using namespace EventContent;
 
 using MsgType = RoomMessageEvent::MsgType;
 
-static const auto RelatesToKey = "m.relates_to"_ls;
-static const auto MsgTypeKey = "msgtype"_ls;
-static const auto BodyKey = "body"_ls;
-static const auto FormattedBodyKey = "formatted_body"_ls;
+static const auto RelatesToKeyL = "m.relates_to"_ls;
+static const auto MsgTypeKeyL = "msgtype"_ls;
+static const auto BodyKeyL = "body"_ls;
+static const auto FormattedBodyKeyL = "formatted_body"_ls;
 
 static const auto TextTypeKey = "m.text";
+static const auto EmoteTypeKey = "m.emote";
 static const auto NoticeTypeKey = "m.notice";
 
 static const auto HtmlContentTypeId = QStringLiteral("org.matrix.custom.html");
@@ -49,7 +50,7 @@ TypedBase* make(const QJsonObject& json)
 template <>
 TypedBase* make<TextContent>(const QJsonObject& json)
 {
-    return json.contains(FormattedBodyKey) || json.contains(RelatesToKey)
+    return json.contains(FormattedBodyKeyL) || json.contains(RelatesToKeyL)
             ? new TextContent(json) : nullptr;
 }
 
@@ -62,7 +63,7 @@ struct MsgTypeDesc
 
 const std::vector<MsgTypeDesc> msgTypes =
     { { TextTypeKey, MsgType::Text, make<TextContent> }
-    , { QStringLiteral("m.emote"), MsgType::Emote, make<TextContent> }
+    , { EmoteTypeKey, MsgType::Emote, make<TextContent> }
     , { NoticeTypeKey, MsgType::Notice, make<TextContent> }
     , { QStringLiteral("m.image"), MsgType::Image, make<ImageContent> }
     , { QStringLiteral("m.file"), MsgType::File, make<FileContent> }
@@ -95,12 +96,27 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                 const QString& jsonMsgType, TypedBase* content)
 {
     auto json = content ? content->toJson() : QJsonObject();
-    if (jsonMsgType != TextTypeKey && jsonMsgType != NoticeTypeKey &&
-            json.contains(RelatesToKey))
-    {
-        json.remove(RelatesToKey);
-        qCWarning(EVENTS) << RelatesToKey << "cannot be used in" << jsonMsgType
-                          << "messages; the relation has been stripped off";
+    if (json.contains(RelatesToKeyL)) {
+        if (jsonMsgType != TextTypeKey && jsonMsgType != NoticeTypeKey
+            && jsonMsgType != EmoteTypeKey) {
+            json.remove(RelatesToKeyL);
+            qCWarning(EVENTS)
+                << RelatesToKeyL << "cannot be used in" << jsonMsgType
+                << "messages; the relation has been stripped off";
+        } else {
+            // After the above, we know for sure that the content is TextContent
+            // and that its RelatesTo structure is not omitted
+            auto* textContent = static_cast<const TextContent*>(content);
+            if (textContent->relatesTo->type == RelatesTo::ReplacementTypeId()) {
+                auto newContentJson = json.take("m.new_content"_ls).toObject();
+                newContentJson.insert(BodyKeyL, plainBody);
+                newContentJson.insert(MsgTypeKeyL, jsonMsgType);
+                json.insert(QStringLiteral("m.new_content"), newContentJson);
+                json[MsgTypeKeyL] = jsonMsgType;
+                json[BodyKeyL] = "* " + plainBody;
+                return json;
+            }
+        }
     }
     json.insert(QStringLiteral("msgtype"), jsonMsgType);
     json.insert(QStringLiteral("body"), plainBody);
@@ -159,9 +175,9 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if ( content.contains(MsgTypeKey) && content.contains(BodyKey) )
+    if ( content.contains(MsgTypeKeyL) && content.contains(BodyKeyL) )
     {
-        auto msgtype = content[MsgTypeKey].toString();
+        auto msgtype = content[MsgTypeKeyL].toString();
         bool msgTypeFound = false;
         for (const auto& mt: msgTypes)
             if (mt.matrixType == msgtype)
@@ -191,12 +207,12 @@ RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 
 QString RoomMessageEvent::rawMsgtype() const
 {
-    return contentJson()[MsgTypeKey].toString();
+    return contentJson()[MsgTypeKeyL].toString();
 }
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentJson()[BodyKey].toString();
+    return contentJson()[BodyKeyL].toString();
 }
 
 QMimeType RoomMessageEvent::mimeType() const
@@ -221,6 +237,16 @@ bool RoomMessageEvent::hasFileContent() const
 bool RoomMessageEvent::hasThumbnail() const
 {
     return content() && content()->thumbnailInfo();
+}
+
+QString RoomMessageEvent::replacedEvent() const
+{
+    if (!content() || !hasTextContent())
+        return {};
+
+    const auto& rel = static_cast<const TextContent*>(content())->relatesTo;
+    return !rel.omitted() && rel->type == RelatesTo::ReplacementTypeId()
+               ? rel->eventId : QString();
 }
 
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
@@ -251,41 +277,69 @@ TextContent::TextContent(const QString& text, const QString& contentType,
         mimeType = QMimeDatabase().mimeTypeForName("text/html");
 }
 
+namespace QMatrixClient
+{
+Omittable<RelatesTo> relationFromJson(const QJsonValue& jv)
+{
+    const auto jo = jv.toObject();
+    if (jo.isEmpty())
+        return none;
+    const auto replyJson = jo.value(RelatesTo::ReplyTypeId()).toObject();
+    if (!replyJson.isEmpty())
+        return replyTo(fromJson<QString>(replyJson[EventIdKeyL]));
+
+    return RelatesTo { jo.value("rel_type"_ls).toString(),
+                       jo.value(EventIdKeyL).toString() };
+}
+}
+
 TextContent::TextContent(const QJsonObject& json)
+    : relatesTo(relationFromJson(json[RelatesToKeyL]))
 {
     QMimeDatabase db;
     static const auto PlainTextMimeType = db.mimeTypeForName("text/plain");
     static const auto HtmlMimeType = db.mimeTypeForName("text/html");
 
+    const auto actualJson =
+        relatesTo.omitted() || relatesTo->type != RelatesTo::ReplacementTypeId()
+        ? json : json.value("m.new_content"_ls).toObject();
     // Special-casing the custom matrix.org's (actually, Riot's) way
     // of sending HTML messages.
-    if (json["format"_ls].toString() == HtmlContentTypeId)
+    if (actualJson["format"_ls].toString() == HtmlContentTypeId)
     {
         mimeType = HtmlMimeType;
-        body = json[FormattedBodyKey].toString();
+        body = actualJson[FormattedBodyKeyL].toString();
     } else {
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
         mimeType = PlainTextMimeType;
-        body = json[BodyKey].toString();
+        body = actualJson[BodyKeyL].toString();
     }
-    const auto replyJson = json[RelatesToKey].toObject()
-                           .value(RelatesTo::ReplyTypeId()).toObject();
-    if (!replyJson.isEmpty())
-        relatesTo = replyTo(fromJson<QString>(replyJson[EventIdKeyL]));
 }
 
 void TextContent::fillJson(QJsonObject* json) const
 {
+    static const auto FormatKey = QStringLiteral("format");
+    static const auto RichBodyKey = QStringLiteral("formatted_body");
+
     Q_ASSERT(json);
     if (mimeType.inherits("text/html"))
     {
-        json->insert(QStringLiteral("format"), HtmlContentTypeId);
-        json->insert(QStringLiteral("formatted_body"), body);
+        json->insert(FormatKey, HtmlContentTypeId);
+        json->insert(RichBodyKey, body);
     }
-    if (!relatesTo.omitted())
+    if (!relatesTo.omitted()) {
         json->insert(QStringLiteral("m.relates_to"),
-            QJsonObject { { relatesTo->type, relatesTo->eventId } });
+                     QJsonObject { { relatesTo->type, relatesTo->eventId } });
+        if (relatesTo->type == RelatesTo::ReplacementTypeId()) {
+            QJsonObject newContentJson;
+            if (mimeType.inherits("text/html")) {
+                json->insert(FormatKey, HtmlContentTypeId);
+                json->insert(RichBodyKey, body);
+            }
+            json->insert(QStringLiteral("m.new_content"), newContentJson);
+        }
+    }
 }
 
 LocationContent::LocationContent(const QString& geoUri,

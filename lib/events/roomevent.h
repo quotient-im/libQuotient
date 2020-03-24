@@ -51,6 +51,8 @@ namespace QMatrixClient
             QDateTime timestamp() const;
             QString roomId() const;
             QString senderId() const;
+            bool isReplaced() const;
+            QString replacedBy() const;
             bool isRedacted() const { return bool(_redactedBecause); }
             const event_ptr_tt<RedactionEvent>& redactedBecause() const
             {

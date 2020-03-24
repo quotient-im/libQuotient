@@ -66,6 +66,20 @@ QString RoomEvent::senderId() const
     return fullJson()["sender"_ls].toString();
 }
 
+bool RoomEvent::isReplaced() const
+{
+    return unsignedJson()["m.relations"_ls].toObject().contains("m.replace");
+}
+
+QString RoomEvent::replacedBy() const
+{
+    // clang-format off
+    return unsignedJson()["m.relations"_ls].toObject()
+            .value("m.replace").toObject()
+            .value(EventIdKeyL).toString();
+    // clang-format on
+}
+
 QString RoomEvent::redactionReason() const
 {
     return isRedacted() ? _redactedBecause->reason() : QString{};
