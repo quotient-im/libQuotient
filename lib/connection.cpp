@@ -619,7 +619,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                 if (is<IgnoredUsersEvent>(accountEvent))
                     qCDebug(MAIN)
                         << "Users ignored by" << userId() << "updated:"
-                        << QStringList::fromSet(ignoredUsers()).join(',');
+                        << QStringList(ignoredUsers().values()).join(',');
 
                 auto& currentData = d->accountData[accountEvent.matrixType()];
                 // A polymorphic event-specific comparison might be a bit
