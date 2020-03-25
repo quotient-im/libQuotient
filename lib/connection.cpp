@@ -80,10 +80,10 @@ class Connection::Private
         std::unique_ptr<ConnectionData> data;
         // A complex key below is a pair of room name and whether its
         // state is Invited. The spec mandates to keep Invited room state
-        // separately so we should, e.g., keep objects for Invite and
-        // Leave state of the same room.
+        // separately; specifically, we should keep objects for Invite and
+	    // Leave state of the same room if the two happen to co-exist.
         QHash<QPair<QString, bool>, Room*> roomMap;
-        // Mapping from aliases to room ids, as per the last sync
+        /// Mapping from aliases to room ids, as of the last sync
         QHash<QString, QString> roomAliasMap;
         QVector<QString> roomIdsToForget;
         QVector<Room*> firstTimeRooms;
@@ -102,6 +102,8 @@ class Connection::Private
         GetCapabilitiesJob* capabilitiesJob = nullptr;
         GetCapabilitiesJob::Capabilities capabilities;
 
+        QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
+
         SyncJob* syncJob = nullptr;
 
         bool cacheState = true;
@@ -109,7 +111,7 @@ class Connection::Private
                              .value("cache_type").toString() != "json";
         bool lazyLoading = false;
 
-        void connectWithToken(const QString& user, const QString& accessToken,
+        void connectWithToken(const QString& userId, const QString& accessToken,
                               const QString& deviceId);
 
         template <typename EventT>
@@ -859,6 +861,21 @@ QString Connection::domain() const
     return d->userId.section(':', 1);
 }
 
+QVector<GetLoginFlowsJob::LoginFlow> Connection::loginFlows() const
+{
+    return d->loginFlows;
+}
+
+bool Connection::supportsPasswordAuth() const
+{
+    return d->loginFlows.contains(LoginFlows::Password);
+}
+
+bool Connection::supportsSso() const
+{
+    return d->loginFlows.contains(LoginFlows::SSO);
+}
+
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
     Room* room = d->roomMap.value({roomId, false}, nullptr);
@@ -1253,11 +1270,21 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (homeserver() == url)
-        return;
+    if (homeserver() != url) {
+        d->data->setBaseUrl(url);
+        d->loginFlows.clear();
+        emit homeserverChanged(homeserver());
+    }
 
-    d->data->setBaseUrl(url);
-    emit homeserverChanged(homeserver());
+    // Whenever a homeserver is updated, retrieve available login flows from it
+    auto* j = callApi<GetLoginFlowsJob>(BackgroundRequest);
+    connect(j, &BaseJob::finished, this, [this, j] {
+        if (j->status().good())
+            d->loginFlows = j->flows();
+        else
+            d->loginFlows.clear();
+        emit loginFlowsChanged();
+    });
 }
 
 void Connection::saveRoomState(Room* r) const
