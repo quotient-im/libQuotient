@@ -6,6 +6,7 @@
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "events/simplestateevents.h"
+#include "events/reactionevent.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
@@ -26,12 +27,14 @@ class QMCTest : public QObject
         QMCTest(Connection* conn, QString testRoomName, QString source);
 
     private slots:
+        // clang-format off
         void setupAndRun();
         void onNewRoom(Room* r);
         void run();
         void doTests();
             void loadMembers();
             void sendMessage();
+                void sendReaction(const QString& targetEvtId);
             void sendFile();
                 void checkFileSendingOutcome(const QString& txnId,
                                              const QString& fileName);
@@ -44,6 +47,7 @@ class QMCTest : public QObject
                         const Connection::DirectChatsMap& added);
         void conclude();
         void finalize();
+        // clang-format on
 
     private:
         QScopedPointer<Connection, QScopedPointerDeleteLater> c;
@@ -230,8 +234,48 @@ void QMCTest::sendMessage()
                 is<RoomMessageEvent>(*evt) && !evt->id().isEmpty() &&
                 pendingEvents[size_t(pendingIdx)]->transactionId()
                     == evt->transactionId());
+            sendReaction(evt->id());
             return true;
-        });
+    });
+}
+
+void QMCTest::sendReaction(const QString& targetEvtId)
+{
+    running.push_back("Reaction sending");
+    cout << "Reacting to the newest message in the room" << endl;
+    Q_ASSERT(targetRoom->timelineSize() > 0);
+    const auto key = QStringLiteral("+1");
+    auto txnId = targetRoom->postReaction(targetEvtId, key);
+    if (!validatePendingEvent(txnId)) {
+        cout << "Invalid pending event right after submitting" << endl;
+        QMC_CHECK("Reaction sending", false);
+        return;
+    }
+
+    // TODO: Check that it came back as a reaction event and that it attached to
+    // the right event
+    connectUntil(targetRoom, &Room::updatedEvent, this,
+                 [this, txnId, key,
+                  targetEvtId](const QString& actualTargetEvtId) {
+                     if (actualTargetEvtId != targetEvtId)
+                         return false;
+                     const auto reactions = targetRoom->relatedEvents(
+                         targetEvtId, EventRelation::Annotation());
+                     // It's a test room, assuming no interference there should
+                     // be exactly one reaction
+                     if (reactions.size() != 1) {
+                         QMC_CHECK("Reaction sending", false);
+                     } else {
+                         const auto* evt =
+                             eventCast<const ReactionEvent>(reactions.back());
+                         QMC_CHECK("Reaction sending",
+                                   is<ReactionEvent>(*evt)
+                                       && !evt->id().isEmpty()
+                                       && evt->relation().key == key
+                                       && evt->transactionId() == txnId);
+                     }
+                     return true;
+                 });
 }
 
 void QMCTest::sendFile()
