@@ -111,8 +111,10 @@ class Connection::Private
                              .value("cache_type").toString() != "json";
         bool lazyLoading = false;
 
-        void connectWithToken(const QString& userId, const QString& accessToken,
-                              const QString& deviceId);
+        template <typename... LoginArgTs>
+        void loginToServer(LoginArgTs&&... loginArgs);
+        void assumeIdentity(const QString& newUserId, const QString& accessToken,
+                            const QString& deviceId);
 
         template <typename EventT>
         EventT* unpackAccountData() const
@@ -221,6 +223,19 @@ void Connection::resolveServer(const QString& mxidOrDomain)
     });
 }
 
+inline UserIdentifier makeUserIdentifier(const QString& id)
+{
+    return { QStringLiteral("m.id.user"), { { QStringLiteral("user"), id } } };
+}
+
+inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
+                                             const QString& address)
+{
+    return { QStringLiteral("m.id.thirdparty"),
+             { { QStringLiteral("medium"), medium },
+               { QStringLiteral("address"), address } } };
+}
+
 void Connection::connectToServer(const QString& user, const QString& password,
                                  const QString& initialDeviceName,
                                  const QString& deviceId)
@@ -230,23 +245,22 @@ void Connection::connectToServer(const QString& user, const QString& password,
             doConnectToServer(user, password, initialDeviceName, deviceId);
         });
 }
+
 void Connection::doConnectToServer(const QString& user, const QString& password,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    auto loginJob = callApi<LoginJob>(QStringLiteral("m.login.password"),
-            UserIdentifier { QStringLiteral("m.id.user"),
-                             {{ QStringLiteral("user"), user }} },
-            password, /*token*/ "", deviceId, initialDeviceName);
-    connect(loginJob, &BaseJob::success, this,
-        [this, loginJob] {
-            d->connectWithToken(loginJob->userId(), loginJob->accessToken(),
-                                loginJob->deviceId());
-        });
-    connect(loginJob, &BaseJob::failure, this,
-        [this, loginJob] {
-            emit loginError(loginJob->errorString(), loginJob->rawDataSample());
-        });
+    d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(user),
+                     password, /*token*/ "", deviceId, initialDeviceName);
+}
+
+void Connection::loginWithToken(const QByteArray& loginToken,
+                                const QString& initialDeviceName,
+                                const QString& deviceId)
+{
+    d->loginToServer(LoginFlows::Token.type,
+                     makeUserIdentifier(/*user is encoded in loginToken*/ {}),
+                     /*password*/ "", loginToken, deviceId, initialDeviceName);
 }
 
 void Connection::syncLoopIteration()
@@ -258,8 +272,15 @@ void Connection::connectWithToken(const QString& userId,
                                   const QString& accessToken,
                                   const QString& deviceId)
 {
+	assumeIdentity(userId, accessToken, deviceId);
+}
+
+void Connection::assumeIdentity(const QString& userId,
+                                const QString& accessToken,
+                                const QString& deviceId)
+{
     checkAndConnect(userId,
-        [=] { d->connectWithToken(userId, accessToken, deviceId); });
+                    [=] { d->assumeIdentity(userId, accessToken, deviceId); });
 }
 
 void Connection::reloadCapabilities()
@@ -294,11 +315,25 @@ bool Connection::loadingCapabilities() const
     return d->capabilities.roomVersions.omitted();
 }
 
-void Connection::Private::connectWithToken(const QString& user,
-                                           const QString& accessToken,
-                                           const QString& deviceId)
+template <typename... LoginArgTs>
+void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 {
-    userId = user;
+    auto loginJob =
+            q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
+    connect(loginJob, &BaseJob::success, q, [this, loginJob] {
+        assumeIdentity(loginJob->userId(), loginJob->accessToken(),
+                       loginJob->deviceId());
+    });
+    connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
+        emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
+    });
+}
+
+void Connection::Private::assumeIdentity(const QString& newUserId,
+                                         const QString& accessToken,
+                                         const QString& deviceId)
+{
+    userId = newUserId;
     q->user(); // Creates a User object for the local user
     data->setToken(accessToken.toLatin1());
     data->setDeviceId(deviceId);

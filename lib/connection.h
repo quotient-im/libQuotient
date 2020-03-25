@@ -403,6 +403,18 @@ namespace QMatrixClient
                                      std::forward<JobArgTs>(jobArgs)...);
             }
 
+            /** Get a request URL for a job with specified type and arguments
+             *
+             * This calls JobT::makeRequestUrl() prepending the connection's
+             * homeserver to the list of arguments.
+             */
+            template <typename JobT, typename... JobArgTs>
+            QUrl getUrlForApi(JobArgTs&&... jobArgs) const
+            {
+                return JobT::makeRequestUrl(homeserver(),
+                                            std::forward<JobArgTs>(jobArgs)...);
+            }
+
             /** Generate a new transaction id. Transaction id's are unique within
              * a single Connection object
              */
@@ -438,7 +450,16 @@ namespace QMatrixClient
             void connectToServer(const QString& user, const QString& password,
                                  const QString& initialDeviceName,
                                  const QString& deviceId = {});
-            void connectWithToken(const QString& userId, const QString& accessToken,
+            void loginWithToken(const QByteArray& loginToken,
+                                const QString& initialDeviceName,
+                                const QString& deviceId = {});
+            void assumeIdentity(const QString& userId, const QString& accessToken,
+                                const QString& deviceId);
+            /*! @deprecated
+             * Use assumeIdentity() if you have an access token or
+             * loginWithToken() if you have a login token.
+             */
+		    void connectWithToken(const QString& userId, const QString& accessToken,
                                   const QString& deviceId);
             /// Explicitly request capabilities from the server
             void reloadCapabilities();
