@@ -23,6 +23,9 @@ matrix:
   - os: linux
     compiler: gcc
   - os: linux
+    compiler: gcc
+    env: [ 'E2EE="-DQuotient_ENABLE_E2EE"' ]
+  - os: linux
     compiler: clang
   - os: osx
     osx_image: xcode10.1
@@ -60,7 +63,7 @@ install:
 - popd
 
 before_script:
-- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build
+- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build $E2EE
 - _cmake_build --target update-api
 
 script:
