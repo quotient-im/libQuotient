@@ -37,10 +37,12 @@ namespace EventContent{
             , altAliases(fromJson<QStringList>(json["alt_aliases"]))
         { }
 
-        QJsonObject toJson() const
+        auto toJson() const
         {
-            return { { "alias", Quotient::toJson(canonicalAlias) },
-                     { "alt_aliases", Quotient::toJson(altAliases) } };
+            QJsonObject jo;
+            addParam<IfNotEmpty>(jo, QStringLiteral("alias"), canonicalAlias);
+            addParam<IfNotEmpty>(jo, QStringLiteral("alt_aliases"), altAliases);
+            return jo;
         }
 
         QString canonicalAlias;
@@ -68,7 +70,6 @@ public:
     { }
 
     QString alias() const { return content().canonicalAlias; }
-
     QStringList altAliases() const { return content().altAliases; }
 };
 REGISTER_EVENT_TYPE(RoomCanonicalAliasEvent)
