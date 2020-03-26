@@ -523,7 +523,10 @@ QString Room::name() const
 QStringList Room::aliases() const
 {
     const auto* evt = d->getCurrentState<RoomCanonicalAliasEvent>();
-    return QStringList(evt->altAliases()) << evt->alias();
+    auto result = evt->altAliases();
+    if (!evt->alias().isEmpty())
+        result << evt->alias();
+    return result;
 }
 
 QStringList Room::altAliases() const
