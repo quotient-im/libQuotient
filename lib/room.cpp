@@ -1278,7 +1278,8 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 #endif // Quotient_E2EE_ENABLED
 }
 
-void Room::handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey)
+void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
+                              const QString& senderKey)
 {
 #ifndef Quotient_E2EE_ENABLED
     Q_UNUSED(roomKeyEvent);
@@ -1286,12 +1287,12 @@ void Room::handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return;
 #else // Quotient_E2EE_ENABLED
-    if (roomKeyEvent->algorithm() != MegolmV1AesSha2AlgoKey) {
+    if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
-                        << roomKeyEvent->algorithm() << "in m.room_key event";
+                        << roomKeyEvent.algorithm() << "in m.room_key event";
     }
-    if (d->addInboundGroupSession(senderKey, roomKeyEvent->sessionId(),
-                                  roomKeyEvent->sessionKey())) {
+    if (d->addInboundGroupSession(senderKey, roomKeyEvent.sessionId(),
+                                  roomKeyEvent.sessionKey())) {
         qCDebug(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.count();
     }

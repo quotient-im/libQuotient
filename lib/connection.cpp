@@ -131,6 +131,11 @@ public:
                         const QString& deviceId);
     void removeRoom(const QString& roomId);
 
+    void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);
+    void consumeAccountData(Events&& accountDataEvents);
+    void consumePresenceData(Events&& presenceData);
+    void consumeToDeviceEvents(Events&& toDeviceEvents);
+
     template <typename EventT>
     EventT* unpackAccountData() const
     {
@@ -534,10 +539,32 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
     d->data->setLastEvent(data.nextBatch());
-    for (auto&& roomData : data.takeRoomData()) {
-        const auto forgetIdx = d->roomIdsToForget.indexOf(roomData.roomId);
+    d->consumeRoomData(data.takeRoomData(), fromCache);
+    d->consumeAccountData(data.takeAccountData());
+    d->consumePresenceData(data.takePresenceData());
+    d->consumeToDeviceEvents(data.takeToDeviceEvents());
+#ifdef Quotient_E2EE_ENABLED
+    // handling device_one_time_keys_count
+    if (!d->encryptionManager)
+    {
+        qCDebug(E2EE) << "Encryption manager is not there yet, updating "
+                         "one-time key counts will be skipped";
+        return;
+    }
+    if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
+            !deviceOneTimeKeysCount.isEmpty())
+        d->encryptionManager->updateOneTimeKeyCounts(this,
+                                                     deviceOneTimeKeysCount);
+#endif // Quotient_E2EE_ENABLED
+}
+
+void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
+                                          bool fromCache)
+{
+    for (auto&& roomData: roomDataList) {
+        const auto forgetIdx = roomIdsToForget.indexOf(roomData.roomId);
         if (forgetIdx != -1) {
-            d->roomIdsToForget.removeAt(forgetIdx);
+            roomIdsToForget.removeAt(forgetIdx);
             if (roomData.joinState == JoinState::Leave) {
                 qDebug(MAIN)
                     << "Room" << roomData.roomId
@@ -549,12 +576,12 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                            << toCString(roomData.joinState)
                            << "state - suspiciously fast turnaround";
         }
-        if (auto* r = provideRoom(roomData.roomId, roomData.joinState)) {
-            d->pendingStateRoomIds.removeOne(roomData.roomId);
+        if (auto* r = q->provideRoom(roomData.roomId, roomData.joinState)) {
+            pendingStateRoomIds.removeOne(roomData.roomId);
             r->updateData(std::move(roomData), fromCache);
-            if (d->firstTimeRooms.removeOne(r)) {
-                emit loadedRoomState(r);
-                if (d->capabilities.roomVersions)
+            if (firstTimeRooms.removeOne(r)) {
+                emit q->loadedRoomState(r);
+                if (capabilities.roomVersions)
                     r->checkVersion();
                 // Otherwise, the version will be checked in reloadCapabilities()
             }
@@ -562,25 +589,28 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         // Let UI update itself after updating each room
         QCoreApplication::processEvents();
     }
+}
+
+void Connection::Private::consumeAccountData(Events&& accountDataEvents)
+{
     // After running this loop, the account data events not saved in
-    // d->accountData (see the end of the loop body) are auto-cleaned away
-    for (auto& eventPtr : data.takeAccountData()) {
-        visit(
-            *eventPtr,
+    // accountData (see the end of the loop body) are auto-cleaned away
+    for (auto&& eventPtr: accountDataEvents) {
+        visit(*eventPtr,
             [this](const DirectChatEvent& dce) {
                 // https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
                 DirectChatsMap remoteRemovals =
-                    erase_if(d->directChats, [&usersToDCs, this](auto it) {
-                        return !(usersToDCs.contains(it.key()->id(), it.value())
-                                 || d->dcLocalAdditions.contains(it.key(),
-                                                                 it.value()));
+                    erase_if(directChats, [&usersToDCs, this](auto it) {
+                        return !(
+                            usersToDCs.contains(it.key()->id(), it.value())
+                            || dcLocalAdditions.contains(it.key(), it.value()));
                     });
-                erase_if(d->directChatUsers, [&remoteRemovals](auto it) {
+                erase_if(directChatUsers, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.value(), it.key());
                 });
                 // Remove from dcLocalRemovals what the server already has.
-                erase_if(d->dcLocalRemovals, [&remoteRemovals](auto it) {
+                erase_if(dcLocalRemovals, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.key(), it.value());
                 });
                 if (MAIN().isDebugEnabled())
@@ -593,13 +623,13 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 
                 DirectChatsMap remoteAdditions;
                 for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it) {
-                    if (auto* u = user(it.key())) {
-                        if (!d->directChats.contains(u, it.value())
-                            && !d->dcLocalRemovals.contains(u, it.value())) {
-                            Q_ASSERT(!d->directChatUsers.contains(it.value(), u));
+                    if (auto* u = q->user(it.key())) {
+                        if (!directChats.contains(u, it.value())
+                            && !dcLocalRemovals.contains(u, it.value())) {
+                            Q_ASSERT(!directChatUsers.contains(it.value(), u));
                             remoteAdditions.insert(u, it.value());
-                            d->directChats.insert(u, it.value());
-                            d->directChatUsers.insert(it.value(), u);
+                            directChats.insert(u, it.value());
+                            directChatUsers.insert(it.value(), u);
                             qCDebug(MAIN) << "Marked room" << it.value()
                                           << "as a direct chat with" << u->id();
                         }
@@ -608,20 +638,21 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                             << "Couldn't get a user object for" << it.key();
                 }
                 // Remove from dcLocalAdditions what the server already has.
-                erase_if(d->dcLocalAdditions, [&remoteAdditions](auto it) {
+                erase_if(dcLocalAdditions, [&remoteAdditions](auto it) {
                     return remoteAdditions.contains(it.key(), it.value());
                 });
                 if (!remoteAdditions.isEmpty() || !remoteRemovals.isEmpty())
-                    emit directChatsListChanged(remoteAdditions, remoteRemovals);
+                    emit q->directChatsListChanged(remoteAdditions,
+                                                   remoteRemovals);
             },
             // catch-all, passing eventPtr for a possible take-over
             [this, &eventPtr](const Event& accountEvent) {
                 if (is<IgnoredUsersEvent>(accountEvent))
                     qCDebug(MAIN)
-                        << "Users ignored by" << userId() << "updated:"
-                        << QStringList(ignoredUsers().values()).join(',');
+                        << "Users ignored by" << data->userId() << "updated:"
+                        << QStringList(q->ignoredUsers().values()).join(',');
 
-                auto& currentData = d->accountData[accountEvent.matrixType()];
+                auto& currentData = accountData[accountEvent.matrixType()];
                 // A polymorphic event-specific comparison might be a bit
                 // more efficient; maaybe do it another day
                 if (!currentData
@@ -629,74 +660,58 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
                     currentData = std::move(eventPtr);
                     qCDebug(MAIN) << "Updated account data of type"
                                   << currentData->matrixType();
-                    emit accountDataChanged(currentData->matrixType());
+                    emit q->accountDataChanged(currentData->matrixType());
                 }
             });
     }
-    if (!d->dcLocalAdditions.isEmpty() || !d->dcLocalRemovals.isEmpty()) {
+    if (!dcLocalAdditions.isEmpty() || !dcLocalRemovals.isEmpty()) {
         qDebug(MAIN) << "Sending updated direct chats to the server:"
-                     << d->dcLocalRemovals.size() << "removal(s),"
-                     << d->dcLocalAdditions.size() << "addition(s)";
-        callApi<SetAccountDataJob>(userId(), QStringLiteral("m.direct"),
-                                   toJson(d->directChats));
-        d->dcLocalAdditions.clear();
-        d->dcLocalRemovals.clear();
+                     << dcLocalRemovals.size() << "removal(s),"
+                     << dcLocalAdditions.size() << "addition(s)";
+        q->callApi<SetAccountDataJob>(data->userId(), QStringLiteral("m.direct"),
+                                      toJson(directChats));
+        dcLocalAdditions.clear();
+        dcLocalRemovals.clear();
     }
-#ifndef Quotient_E2EE_ENABLED
-    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
+}
+
+void Connection::Private::consumePresenceData(Events&& presenceData)
+{
+    // To be implemented
+}
+
+void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
+{
+#ifdef Quotient_E2EE_ENABLED
     // handling m.room_key to-device encrypted event
-    for (auto&& toDeviceEvent : data.takeToDeviceEvents()) {
-        if (toDeviceEvent->type() == EncryptedEvent::typeId()) {
-            event_ptr_tt<EncryptedEvent> encryptedEvent =
-                makeEvent<EncryptedEvent>(toDeviceEvent->fullJson());
-            if (encryptedEvent->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-                qCDebug(E2EE)
-                    << "Encrypted event" << encryptedEvent->id() << "algorithm"
-                    << encryptedEvent->algorithm() << "is not supported";
-                return;
-            }
-
-            // TODO: full maintaining of the device keys
-            // with device_lists sync extention and /keys/query
-            qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
-                          << encryptedEvent->senderId();
-            // d->encryptionManager->updateDeviceKeys();
-
-            RoomEventPtr decryptedEvent =
-                d->sessionDecryptMessage(*encryptedEvent.get());
-            // since we are waiting for the RoomKeyEvent:
-            event_ptr_tt<RoomKeyEvent> roomKeyEvent =
-                makeEvent<RoomKeyEvent>(decryptedEvent->fullJson());
-            if (!roomKeyEvent) {
-                qCDebug(E2EE) << "Failed to decrypt olm event from user"
-                              << encryptedEvent->senderId();
-                return;
-            }
-            Room* detectedRoom = room(roomKeyEvent->roomId());
-            if (!detectedRoom) {
-                qCDebug(E2EE)
-                    << "Encrypted event room id" << encryptedEvent->roomId()
-                    << "is not found at the connection";
-                return;
-            }
-            detectedRoom->handleRoomKeyEvent(roomKeyEvent.get(),
-                                             encryptedEvent->senderKey());
+    visitEach(toDeviceEvents, [this](const EncryptedEvent& ee) {
+        if (ee.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+            qCDebug(E2EE) << "Encrypted event" << ee.id() << "algorithm"
+                          << ee.algorithm() << "is not supported";
+            return;
         }
-    }
-    // handling device_one_time_keys_count
-    auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
-    if (!d->encryptionManager)
-    {
-        qCDebug(E2EE) << "Encryption manager is not there yet";
-        return;
-    }
-    if (!deviceOneTimeKeysCount.isEmpty())
-    {
-        d->encryptionManager->updateOneTimeKeyCounts(this,
-                                                     deviceOneTimeKeysCount);
-    }
-#endif // Quotient_E2EE_ENABLED
+
+        // TODO: full maintaining of the device keys
+        // with device_lists sync extention and /keys/query
+        qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
+                      << ee.senderId();
+        // encryptionManager->updateDeviceKeys();
+
+        visit(*sessionDecryptMessage(ee),
+            [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+                if (auto* detectedRoom = q->room(roomKeyEvent.roomId()))
+                    detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
+                else
+                    qCDebug(E2EE)
+                        << "Encrypted event room id" << roomKeyEvent.roomId()
+                        << "is not found at the connection" << q->objectName();
+            },
+            [](const Event& evt) {
+                qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+                              << evt.matrixType();
+            });
+    });
+#endif
 }
 
 void Connection::stopSync()

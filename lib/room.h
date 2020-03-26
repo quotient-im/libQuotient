@@ -215,7 +215,7 @@ public:
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
-    void handleRoomKeyEvent(RoomKeyEvent* roomKeyEvent, QString senderKey);
+    void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent, const QString& senderKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;

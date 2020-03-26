@@ -377,6 +377,17 @@ inline fn_return_t<FnT1> visit(const BaseEventT& event, FnT1&& visitor1,
     return visit(event, std::forward<FnT2>(visitor2),
                  std::forward<FnTs>(visitors)...);
 }
+
+// A facility overload that calls void-returning visit() on each event
+// over a range of event pointers
+template <typename RangeT, typename... FnTs>
+inline auto visitEach(RangeT&& events, FnTs&&... visitors)
+    -> std::enable_if_t<std::is_convertible_v<
+                            std::decay_t<decltype(**events.begin())>, Event>>
+{
+    for (auto&& evtPtr: events)
+        visit(*evtPtr, std::forward<FnTs>(visitors)...);
+}
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::Event*)
 Q_DECLARE_METATYPE(const Quotient::Event*)
