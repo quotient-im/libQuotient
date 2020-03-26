@@ -254,6 +254,12 @@ void Connection::doConnectToServer(const QString& user, const QString& password,
                      password, /*token*/ "", deviceId, initialDeviceName);
 }
 
+SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
+                                      const QString& deviceId)
+{
+    return new SsoSession(this, initialDeviceName, deviceId);
+}
+
 void Connection::loginWithToken(const QByteArray& loginToken,
                                 const QString& initialDeviceName,
                                 const QString& deviceId)

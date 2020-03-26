@@ -13,6 +13,7 @@ INCLUDEPATH += $$SRCPATH
 HEADERS += \
     $$SRCPATH/connectiondata.h \
     $$SRCPATH/connection.h \
+    $$SRCPATH/ssosession.h \
     $$SRCPATH/eventitem.h \
     $$SRCPATH/room.h \
     $$SRCPATH/user.h \
@@ -61,6 +62,7 @@ HEADERS += \
 SOURCES += \
     $$SRCPATH/connectiondata.cpp \
     $$SRCPATH/connection.cpp \
+    $$SRCPATH/ssosession.cpp \
     $$SRCPATH/eventitem.cpp \
     $$SRCPATH/room.cpp \
     $$SRCPATH/user.cpp \

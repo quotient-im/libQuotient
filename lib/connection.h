@@ -19,6 +19,7 @@
 #pragma once
 
 #include "csapi/login.h"
+#include "ssosession.h"
 #include "csapi/create_room.h"
 #include "joinstate.h"
 #include "events/accountdataevents.h"
@@ -414,6 +415,9 @@ namespace QMatrixClient
                 return JobT::makeRequestUrl(homeserver(),
                                             std::forward<JobArgTs>(jobArgs)...);
             }
+
+            Q_INVOKABLE SsoSession* prepareForSso(
+                const QString& initialDeviceName, const QString& deviceId = {});
 
             /** Generate a new transaction id. Transaction id's are unique within
              * a single Connection object
