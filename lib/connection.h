@@ -154,10 +154,37 @@ namespace QMatrixClient
             virtual ~Connection();
 
             /** Get all Invited and Joined rooms
+             *
+             * \deprecated
+             * Use allRooms(), roomsWithTag(), or rooms(JoinStates) instead
              * \return a hashmap from a composite key - room name and whether
              *         it's an Invite rather than Join - to room pointers
              */
             QHash<QPair<QString, bool>, Room*> roomMap() const;
+
+            /** Get all rooms known within this Connection
+             *
+             * This includes Invite, Join and Leave rooms, in no particular order.
+             * \note Leave rooms will only show up in the list if they have been left
+             *       in the same running session. The library doesn't cache left rooms
+             *       between runs and it doesn't retrieve the full list of left rooms
+             *       from the server.
+             * \sa rooms, room, roomsWithTag
+             */
+            Q_INVOKABLE QVector<Room*> allRooms() const;
+
+            /** Get rooms that have either of the given join state(s)
+             *
+             * This method returns, in no particular order, rooms which join state
+             * matches the mask passed in \p joinStates.
+             * \note Similar to allRooms(), this won't retrieve the full list of
+             *       Leave rooms from the server.
+             * \sa allRooms, room, roomsWithTag
+             */
+            Q_INVOKABLE QVector<Room*> rooms(JoinStates joinStates) const;
+
+            /** Get the total number of rooms in the given join state(s) */
+            Q_INVOKABLE int roomsCount(JoinStates joinStates) const;
 
             /** Check whether the account has data of the given type
              * Direct chats map is not supported by this method _yet_.

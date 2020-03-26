@@ -1046,6 +1046,33 @@ QHash< QPair<QString, bool>, Room* > Connection::roomMap() const
     return roomMap;
 }
 
+QVector<Room*> Connection::allRooms() const
+{
+    QVector<Room*> result;
+    result.resize(d->roomMap.size());
+    std::copy(d->roomMap.cbegin(), d->roomMap.cend(), result.begin());
+    return result;
+}
+
+QVector<Room*> Connection::rooms(JoinStates joinStates) const
+{
+    QVector<Room*> result;
+    for (auto* r: qAsConst(d->roomMap))
+        if (joinStates.testFlag(r->joinState()))
+            result.push_back(r);
+    return result;
+}
+
+int Connection::roomsCount(JoinStates joinStates) const
+{
+    // Using int to maintain compatibility with QML
+    // (consider also that QHash<>::size() returns int anyway).
+    return int(std::count_if(d->roomMap.begin(), d->roomMap.end(),
+                             [joinStates](Room* r) {
+                                 return joinStates.testFlag(r->joinState());
+                             }));
+}
+
 bool Connection::hasAccountData(const QString& type) const
 {
     return d->accountData.find(type) != d->accountData.cend();
@@ -1371,18 +1398,20 @@ void Connection::saveState() const
             { QStringLiteral("minor"), SyncData::cacheVersion().second }
     }}};
     {
-        QJsonObject rooms;
-        QJsonObject inviteRooms;
-        const auto& rs = roomMap(); // Pass on rooms in Leave state
-        for (const auto* i : rs)
-            (i->joinState() == JoinState::Invite ? inviteRooms : rooms)
-            .insert(i->id(), QJsonValue::Null);
+        QJsonObject roomsJson;
+        QJsonObject inviteRoomsJson;
+        for (const auto* r: qAsConst(d->roomMap)) {
+            if (r->joinState() == JoinState::Leave)
+                continue;
+            (r->joinState() == JoinState::Invite ? inviteRoomsJson : roomsJson)
+                .insert(r->id(), QJsonValue::Null);
+        }
 
         QJsonObject roomObj;
-        if (!rooms.isEmpty())
-            roomObj.insert(QStringLiteral("join"), rooms);
-        if (!inviteRooms.isEmpty())
-            roomObj.insert(QStringLiteral("invite"), inviteRooms);
+        if (!roomsJson.isEmpty())
+            roomObj.insert(QStringLiteral("join"), roomsJson);
+        if (!inviteRoomsJson.isEmpty())
+            roomObj.insert(QStringLiteral("invite"), inviteRoomsJson);
 
         rootObj.insert(QStringLiteral("next_batch"), d->data->lastEvent());
         rootObj.insert(QStringLiteral("rooms"), roomObj);
