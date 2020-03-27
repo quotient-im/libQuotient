@@ -22,8 +22,11 @@
 
 namespace QMatrixClient {
 
-struct EventRelation
-{
+struct EventRelation {
+    // To please MSVC 2015 that doesn't handle initialiser lists like proper
+    EventRelation(QString type = {}, QString eventId = {}, QString key = {})
+        : type(std::move(type)), eventId(std::move(eventId)), key(std::move(key))
+    {}
     using reltypeid_t = const char*;
     static constexpr reltypeid_t Reply() { return "m.in_reply_to"; }
     static constexpr reltypeid_t Annotation() { return "m.annotation"; }
@@ -35,15 +38,15 @@ struct EventRelation
 
     static EventRelation replyTo(QString eventId)
     {
-        return EventRelation { Reply(), std::move(eventId) };
+        return EventRelation(Reply(), std::move(eventId));
     }
     static EventRelation annotate(QString eventId, QString key)
     {
-        return EventRelation { Annotation(), std::move(eventId), std::move(key) };
+        return EventRelation(Annotation(), std::move(eventId), std::move(key));
     }
     static EventRelation replace(QString eventId)
     {
-        return EventRelation { Replacement(), std::move(eventId) };
+        return EventRelation(Replacement(), std::move(eventId));
     }
 };
 template <>
@@ -70,8 +73,8 @@ public:
         return content<EventRelation>(QStringLiteral("m.relates_to"));
     }
 
-private:
-    EventRelation _relation;
+//private:
+//    EventRelation _relation;
 };
 REGISTER_EVENT_TYPE(ReactionEvent)
 
