@@ -24,7 +24,7 @@ matrix:
     compiler: gcc
   - os: linux
     compiler: gcc
-    env: [ 'E2EE="-DQuotient_ENABLE_E2EE"' ]
+    env: [ 'E2EE="-DQuotient_ENABLE_E2EE=ON"' ]
   - os: linux
     compiler: clang
   - os: osx
