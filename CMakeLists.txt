@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 set(API_VERSION "0.5.1") # Normally it should just include major.minor
-project(qmatrixclient VERSION "0.5.2" LANGUAGES CXX)
+project(qmatrixclient VERSION "0.5.3" LANGUAGES CXX)
 
 option(QMATRIXCLIENT_INSTALL_EXAMPLE "install qmc-example application" ON)
 
