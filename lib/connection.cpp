@@ -390,8 +390,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        encryptionManager->uploadIdentityKeys(this);
-        encryptionManager->uploadOneTimeKeys(this);
+        encryptionManager->uploadIdentityKeys(q);
+        encryptionManager->uploadOneTimeKeys(q);
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -697,7 +697,21 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                       << ee.senderId();
         // encryptionManager->updateDeviceKeys();
 
-        visit(*sessionDecryptMessage(ee),
+        RoomEventPtr decryptedEvent = sessionDecryptMessage(ee);
+        if (!decryptedEvent) {
+            qCWarning(E2EE)
+                << "Couldn't decrypt event from sender:" << ee.senderId();
+            return;
+        }
+
+        event_ptr_tt<RoomKeyEvent> roomKeyEvent =
+            makeEvent<RoomKeyEvent>(decryptedEvent->fullJson());
+        if (!roomKeyEvent) {
+            qCWarning(E2EE) << "Invalid room key event from:" << ee.senderId();
+            return;
+        }
+
+        visit(*roomKeyEvent,
             [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId()))
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);

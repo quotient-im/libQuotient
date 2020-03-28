@@ -46,7 +46,7 @@ private:
 };
 
 using TestToken = QByteArray; // return value of QMetaMethod::name
-Q_DECLARE_METATYPE(TestToken);
+Q_DECLARE_METATYPE(TestToken)
 // For now, the token itself is the test name but that may change.
 const char* testName(const TestToken& token) { return token.constData(); }
 
