@@ -53,7 +53,7 @@ install:
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
 - _cmake_config
-- _cmake_build # TODO: add --target install when the patch lands in olm
+- _cmake_build --target install
 - popd
 - git clone https://github.com/quotient-im/matrix-doc.git
 - git clone --recursive https://github.com/KitsuneRal/gtad.git
@@ -63,13 +63,13 @@ install:
 - popd
 
 before_script:
-- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" -DOlm_DIR=olm/build $E2EE
+- _cmake_config -DMATRIX_DOC_PATH="matrix-doc" -DGTAD_PATH="gtad/gtad" $E2EE
 - _cmake_build --target update-api
 
 script:
 - _cmake_build --target install
 # Build quotest with the installed libQuotient
-- cmake $CMAKE_ARGS tests -Bbuild-test -DOlm_DIR=olm/build
+- cmake $CMAKE_ARGS tests -Bbuild-test
 - cmake --build build-test --target all
 # Build with qmake
 - qmake quotest.pro "CONFIG += debug" "CONFIG -= app_bundle" "QMAKE_CC = $CC" "QMAKE_CXX = $CXX" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/lib" "LIBS += -Lolm/build"
