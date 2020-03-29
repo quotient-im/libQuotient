@@ -60,7 +60,7 @@ get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 if (${PROJECT_NAME}_ENABLE_E2EE)
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
             AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
-        add_subdirectory(3rdparty/libQtOlm EXCLUDE_FROM_ALL)
+        add_subdirectory(3rdparty/libQtOlm)
         include_directories(3rdparty/libQtOlm)
         if (NOT DEFINED USE_INTREE_LIBQOLM)
             set (USE_INTREE_LIBQOLM 1)
@@ -252,6 +252,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} QtOlm)
+    set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
@@ -282,16 +283,17 @@ write_basic_package_version_file(
 export(PACKAGE ${PROJECT_NAME})
 export(EXPORT ${PROJECT_NAME}Targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
-configure_file(cmake/${PROJECT_NAME}Config.cmake
+configure_file(cmake/${PROJECT_NAME}Config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-    COPYONLY
+    @ONLY
 )
 
 set(ConfigFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 install(EXPORT ${PROJECT_NAME}Targets
         FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${ConfigFilesLocation})
 
-install(FILES cmake/${PROJECT_NAME}Config.cmake
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION ${ConfigFilesLocation}
 )

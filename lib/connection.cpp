@@ -165,25 +165,24 @@ public:
         return q->stateCacheDir().filePath("state.json");
     }
 
-    RoomEventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
+    EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
 #else // Quotient_E2EE_ENABLED
         if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
-        {
             return {};
-        }
-        QString identityKey =
+
+        const auto identityKey =
             encryptionManager->account()->curve25519IdentityKey();
-        QJsonObject personalCipherObject =
+        const auto personalCipherObject =
             encryptedEvent.ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
             qCDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
         }
-        QString decrypted = encryptionManager->sessionDecryptMessage(
+        const auto decrypted = encryptionManager->sessionDecryptMessage(
             personalCipherObject, encryptedEvent.senderKey().toLatin1());
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
@@ -192,29 +191,29 @@ public:
             return {};
         }
 
-        RoomEventPtr decryptedEvent = makeEvent<RoomMessageEvent>(
-            QJsonDocument::fromJson(decrypted.toUtf8()).object());
+        auto&& decryptedEvent =
+            fromJson<EventPtr>(QJsonDocument::fromJson(decrypted.toUtf8()));
 
-        if (decryptedEvent->senderId() != encryptedEvent.senderId()) {
-            qCDebug(E2EE) << "Found user" << decryptedEvent->senderId()
+        if (auto sender = decryptedEvent->fullJson()["sender"_ls].toString();
+                sender != encryptedEvent.senderId()) {
+            qCWarning(E2EE) << "Found user" << sender
                           << "instead of sender" << encryptedEvent.senderId()
                           << "in Olm plaintext";
             return {};
         }
 
         // TODO: keys to constants
-        QJsonObject decryptedEventObject = decryptedEvent->fullJson();
-        QString recipient =
+        const auto decryptedEventObject = decryptedEvent->fullJson();
+        const auto recipient =
             decryptedEventObject.value("recipient"_ls).toString();
         if (recipient != data->userId()) {
             qCDebug(E2EE) << "Found user" << recipient << "instead of us"
                           << data->userId() << "in Olm plaintext";
             return {};
         }
-        QString ourKey = decryptedEventObject.value("recipient_keys"_ls)
-                             .toObject()
-                             .value(Ed25519Key)
-                             .toString();
+        const auto ourKey =
+            decryptedEventObject.value("recipient_keys"_ls).toObject()
+                .value(Ed25519Key).toString();
         if (ourKey
             != QString::fromUtf8(
                 encryptionManager->account()->ed25519IdentityKey())) {
@@ -225,7 +224,7 @@ public:
             return {};
         }
 
-        return decryptedEvent;
+        return std::move(decryptedEvent);
 #endif // Quotient_E2EE_ENABLED
     }
 };
@@ -390,8 +389,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        encryptionManager->uploadIdentityKeys(this);
-        encryptionManager->uploadOneTimeKeys(this);
+        encryptionManager->uploadIdentityKeys(q);
+        encryptionManager->uploadOneTimeKeys(q);
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {

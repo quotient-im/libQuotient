@@ -1,6 +1,5 @@
 include(CMakeFindDependencyMacro)
 
-if (Quotient_ENABLE_E2EE)
-    find_dependency(QtOlm)
-endif()
+@FIND_DEPS@
+
 include("${CMAKE_CURRENT_LIST_DIR}/QuotientTargets.cmake")
