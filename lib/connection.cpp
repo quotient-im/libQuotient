@@ -185,6 +185,10 @@ void Connection::resolveServer(const QString& mxidOrDomain)
 
     d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
     auto getWellKnownJob = callApi<GetWellknownJob>();
+    // This is a workaround for 0.5.x; due to the way Quaternion's login dialog
+    // operates, Connection can disappear any moment during server resolution.
+    // Quotient 0.6 will reparent all jobs to enforce lifetimes. See also #398.
+    getWellKnownJob->setParent(this);
     connect(getWellKnownJob, &BaseJob::finished, this,
         [this, getWellKnownJob, maybeBaseUrl] {
             if (getWellKnownJob->status() != BaseJob::NotFoundError) {
@@ -216,6 +220,7 @@ void Connection::resolveServer(const QString& mxidOrDomain)
             }
 
             auto getVersionsJob = callApi<GetVersionsJob>();
+            getVersionsJob->setParent(this); // Same workaround as above
             connect(getVersionsJob, &BaseJob::success, this,
                     &Connection::resolved);
             connect(getVersionsJob, &BaseJob::failure, this, [this] {
