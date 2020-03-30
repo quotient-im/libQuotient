@@ -211,6 +211,7 @@ void BaseJob::Private::sendRequest(bool inBackground)
     // some sources claim that there are issues with QT 5.8
     req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
 #endif
+    Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
     switch( verb )
@@ -241,16 +242,23 @@ void BaseJob::beforeAbandon(QNetworkReply*)
 
 void BaseJob::start(const ConnectionData* connData, bool inBackground)
 {
-    d->connection = connData;
-    d->retryTimer.setSingleShot(true);
-    connect (&d->retryTimer, &QTimer::timeout,
-             this, [this,inBackground] { sendRequest(inBackground); });
+    if (connData && connData->baseUrl().isValid()) {
+        d->connection = connData;
+        d->retryTimer.setSingleShot(true);
+        connect(&d->retryTimer, &QTimer::timeout, this,
+                [this, inBackground] { sendRequest(inBackground); });
 
-    beforeStart(connData);
-    if (status().good())
-        sendRequest(inBackground);
-    if (status().good())
-        afterStart(connData, d->reply.data());
+        beforeStart(connData);
+        if (status().good())
+            sendRequest(inBackground);
+        if (status().good())
+            afterStart(connData, d->reply.data());
+    } else {
+        qCCritical(d->logCat)
+            << "Developers, ensure the Connection is valid before using it";
+        Q_ASSERT(false);
+        setStatus(IncorrectRequestError, tr("Invalid server connection"));
+    }
     if (!status().good())
         QTimer::singleShot(0, this, &BaseJob::finishJob);
 }
