@@ -234,6 +234,7 @@ void BaseJob::Private::sendRequest()
     req.setMaximumRedirectsAllowed(10);
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
+    Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
 
@@ -261,25 +262,31 @@ void BaseJob::beforeAbandon(QNetworkReply*) {}
 
 void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
-    Q_ASSERT(connData != nullptr);
+    if (connData && connData->baseUrl().isValid()) {
+        d->inBackground = inBackground;
+        d->connection = connData;
+        doPrepare();
 
-    d->inBackground = inBackground;
-    d->connection = connData;
-    doPrepare();
-
-    if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
-        && d->requestData.source() && !d->requestData.source()->isReadable()) {
-        setStatus(FileError, "Request data not ready");
-    }
-    Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
-    if (status().code == Unprepared) {
-        d->connection->submit(this);
-    } else {
-        qDebug(d->logCat).noquote()
+        if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
+            && d->requestData.source() && !d->requestData.source()->isReadable()) {
+            setStatus(FileError, "Request data not ready");
+        }
+        Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
+        if (status().code == Unprepared) {
+            d->connection->submit(this);
+            return;
+        }
+        qCWarning(d->logCat).noquote()
             << "Request failed preparation and won't be sent:"
             << d->dumpRequest();
-        QTimer::singleShot(0, this, &BaseJob::finishJob);
+    } else {
+        qCCritical(d->logCat)
+            << "Developers, ensure the Connection is valid before using it";
+        Q_ASSERT(false);
+        setStatus(IncorrectRequestError, tr("Invalid server connection"));
     }
+    // The status is no good, finalise
+    QTimer::singleShot(0, this, &BaseJob::finishJob);
 }
 
 void BaseJob::sendRequest()
@@ -338,7 +345,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     // ignore possible appendixes of the content type
     const auto ctype = type.split(';').front();
 
-    for (const auto& pattern : patterns) {
+    for (const auto& pattern: patterns) {
         if (pattern.startsWith('*') || ctype == pattern) // Fast lane
             return true;
 
