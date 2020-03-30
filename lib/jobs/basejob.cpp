@@ -104,6 +104,7 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
 BaseJob::~BaseJob()
 {
     stop();
+    d->retryTimer.stop(); // See #398
     qCDebug(d->logCat) << this << "destroyed";
 }
 
@@ -641,6 +642,8 @@ void BaseJob::setStatus(int code, QString message)
 void BaseJob::abandon()
 {
     beforeAbandon(d->reply ? d->reply.data() : nullptr);
+    d->timer.stop();
+    d->retryTimer.stop(); // In case abandon() was called between retries
     setStatus(Abandoned);
     if (d->reply)
         d->reply->disconnect(this);
