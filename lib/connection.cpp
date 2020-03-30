@@ -723,7 +723,7 @@ void Connection::stopSync()
 
 QString Connection::nextBatchToken() const { return d->data->lastEvent(); }
 
-PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
+PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event)
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
 }
@@ -773,7 +773,7 @@ inline auto splitMediaId(const QString& mediaId)
 
 MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
                                             QSize requestedSize,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     auto idParts = splitMediaId(mediaId);
     return callApi<MediaThumbnailJob>(policy, idParts.front(), idParts.back(),
@@ -781,21 +781,21 @@ MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, QSize requestedSize,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     return getThumbnail(url.authority() + url.path(), requestedSize, policy);
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     return getThumbnail(url, QSize(requestedWidth, requestedHeight), policy);
 }
 
 UploadContentJob*
 Connection::uploadContent(QIODevice* contentSource, const QString& filename,
-                          const QString& overrideContentType) const
+                          const QString& overrideContentType)
 {
     Q_ASSERT(contentSource != nullptr);
     auto contentType = overrideContentType;
@@ -820,19 +820,19 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
                          overrideContentType);
 }
 
-GetContentJob* Connection::getContent(const QString& mediaId) const
+GetContentJob* Connection::getContent(const QString& mediaId)
 {
     auto idParts = splitMediaId(mediaId);
     return callApi<GetContentJob>(idParts.front(), idParts.back());
 }
 
-GetContentJob* Connection::getContent(const QUrl& url) const
+GetContentJob* Connection::getContent(const QUrl& url)
 {
     return getContent(url.authority() + url.path());
 }
 
 DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const QString& localFilename) const
+                                          const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
@@ -1011,7 +1011,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
 
 SendToDeviceJob*
 Connection::sendToDevices(const QString& eventType,
-                          const UsersToDevicesToEvents& eventsMap) const
+                          const UsersToDevicesToEvents& eventsMap)
 {
     QHash<QString, QHash<QString, QJsonObject>> json;
     json.reserve(int(eventsMap.size()));
@@ -1032,7 +1032,7 @@ Connection::sendToDevices(const QString& eventType,
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
-                                        const RoomEvent& event) const
+                                        const RoomEvent& event)
 {
     const auto txnId = event.transactionId().isEmpty() ? generateTxnId()
                                                        : event.transactionId();
@@ -1609,8 +1609,9 @@ void Connection::setLazyLoading(bool newValue)
     }
 }
 
-void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
+void Connection::run(BaseJob* job, RunningPolicy runningPolicy)
 {
+    job->setParent(this); // Protects from #397, #398
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
     job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
 }
