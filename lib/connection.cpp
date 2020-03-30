@@ -253,51 +253,48 @@ void Connection::resolveServer(const QString& mxid)
         return;
     }
 
-    setHomeserver(maybeBaseUrl);
-
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
 
+    d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
     auto getWellKnownJob = callApi<GetWellknownJob>();
-    connect(
-        getWellKnownJob, &BaseJob::finished,
+    connect(getWellKnownJob, &BaseJob::finished, this,
         [this, getWellKnownJob, maybeBaseUrl] {
-            if (getWellKnownJob->status() == BaseJob::NotFoundError)
-                qCDebug(MAIN) << "No .well-known file, IGNORE";
-            else {
+            if (getWellKnownJob->status() != BaseJob::NotFoundError) {
                 if (getWellKnownJob->status() != BaseJob::Success) {
-                    qCDebug(MAIN)
+                    qCWarning(MAIN)
                         << "Fetching .well-known file failed, FAIL_PROMPT";
-                    emit resolveError(tr("Fetching .well-known file failed"));
+                    emit resolveError(tr("Failed resolving the homeserver"));
                     return;
                 }
-                QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
+                QUrl baseUrl { getWellKnownJob->data().homeserver.baseUrl };
                 if (baseUrl.isEmpty()) {
-                    qCDebug(MAIN) << "base_url not provided, FAIL_PROMPT";
-                    emit resolveError(tr("base_url not provided"));
+                    qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
+                    emit resolveError(
+                        tr("The homeserver base URL is not provided"));
                     return;
                 }
                 if (!baseUrl.isValid()) {
-                    qCDebug(MAIN) << "base_url invalid, FAIL_ERROR";
-                    emit resolveError(tr("base_url invalid"));
+                    qCWarning(MAIN) << "base_url invalid, FAIL_ERROR";
+                    emit resolveError(tr("The homeserver base URL is invalid"));
                     return;
                 }
-
-                qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host()
-                              << "is" << baseUrl.toString();
+                qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host()
+                             << "is" << baseUrl.authority();
                 setHomeserver(baseUrl);
+            } else {
+                qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl
+                             << "for base URL";
+                setHomeserver(maybeBaseUrl);
             }
 
             auto getVersionsJob = callApi<GetVersionsJob>();
-
-            connect(getVersionsJob, &BaseJob::finished, [this, getVersionsJob] {
-                if (getVersionsJob->status() == BaseJob::Success) {
-                    qCDebug(MAIN) << "homeserver url is valid";
-                    emit resolved();
-                } else {
-                    qCDebug(MAIN) << "homeserver url invalid";
-                    emit resolveError(tr("homeserver url invalid"));
-                }
+            connect(getVersionsJob, &BaseJob::success, this,
+                    &Connection::resolved);
+            connect(getVersionsJob, &BaseJob::failure, this, [this] {
+                qCWarning(MAIN) << "Homeserver base URL invalid";
+                emit resolveError(tr("The homeserver base URL "
+                                     "doesn't seem to work"));
             });
         });
 }
