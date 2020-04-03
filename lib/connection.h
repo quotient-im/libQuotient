@@ -423,7 +423,7 @@ public:
     void setLazyLoading(bool newValue);
 
     /*! Start a pre-created job object on this connection */
-    void run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest) const;
+    void run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest);
 
     /*! Start a job of a specified type with specified arguments and policy
      *
@@ -438,7 +438,7 @@ public:
      * \sa BaseJob::isBackground. QNetworkRequest::BackgroundRequestAttribute
      */
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs) const
+    JobT* callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
     {
         auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
         run(job, runningPolicy);
@@ -450,7 +450,7 @@ public:
      * This is an overload that runs the job with "foreground" policy.
      */
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(JobArgTs&&... jobArgs) const
+    JobT* callApi(JobArgTs&&... jobArgs)
     {
         return callApi<JobT>(ForegroundRequest,
                              std::forward<JobArgTs>(jobArgs)...);
@@ -544,25 +544,24 @@ public slots:
 
     virtual MediaThumbnailJob*
     getThumbnail(const QString& mediaId, QSize requestedSize,
-                 RunningPolicy policy = BackgroundRequest) const;
-    MediaThumbnailJob*
-    getThumbnail(const QUrl& url, QSize requestedSize,
-                 RunningPolicy policy = BackgroundRequest) const;
-    MediaThumbnailJob*
-    getThumbnail(const QUrl& url, int requestedWidth, int requestedHeight,
-                 RunningPolicy policy = BackgroundRequest) const;
+                 RunningPolicy policy = BackgroundRequest);
+    MediaThumbnailJob* getThumbnail(const QUrl& url, QSize requestedSize,
+                                    RunningPolicy policy = BackgroundRequest);
+    MediaThumbnailJob* getThumbnail(const QUrl& url, int requestedWidth,
+                                    int requestedHeight,
+                                    RunningPolicy policy = BackgroundRequest);
 
     // QIODevice* should already be open
-    UploadContentJob*
-    uploadContent(QIODevice* contentSource, const QString& filename = {},
-                  const QString& overrideContentType = {}) const;
+    UploadContentJob* uploadContent(QIODevice* contentSource,
+                                    const QString& filename = {},
+                                    const QString& overrideContentType = {});
     UploadContentJob* uploadFile(const QString& fileName,
                                  const QString& overrideContentType = {});
-    GetContentJob* getContent(const QString& mediaId) const;
-    GetContentJob* getContent(const QUrl& url) const;
+    GetContentJob* getContent(const QString& mediaId);
+    GetContentJob* getContent(const QUrl& url);
     // If localFilename is empty, a temporary file will be created
     DownloadFileJob* downloadFile(const QUrl& url,
-                                  const QString& localFilename = {}) const;
+                                  const QString& localFilename = {});
 
     /**
      * \brief Create a room (generic method)
@@ -641,11 +640,10 @@ public slots:
     ForgetRoomJob* forgetRoom(const QString& id);
 
     SendToDeviceJob* sendToDevices(const QString& eventType,
-                                   const UsersToDevicesToEvents& eventsMap) const;
+                                   const UsersToDevicesToEvents& eventsMap);
 
     /** \deprecated This method is experimental and may be removed any time */
-    SendMessageJob* sendMessage(const QString& roomId,
-                                const RoomEvent& event) const;
+    SendMessageJob* sendMessage(const QString& roomId, const RoomEvent& event);
 
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
@@ -654,7 +652,7 @@ public slots:
 
     /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead
      */
-    virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event) const;
+    virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
 
 signals:
     /**

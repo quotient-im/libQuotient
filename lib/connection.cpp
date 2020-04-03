@@ -253,51 +253,48 @@ void Connection::resolveServer(const QString& mxid)
         return;
     }
 
-    setHomeserver(maybeBaseUrl);
-
     auto domain = maybeBaseUrl.host();
     qCDebug(MAIN) << "Finding the server" << domain;
 
+    d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
     auto getWellKnownJob = callApi<GetWellknownJob>();
-    connect(
-        getWellKnownJob, &BaseJob::finished,
+    connect(getWellKnownJob, &BaseJob::finished, this,
         [this, getWellKnownJob, maybeBaseUrl] {
-            if (getWellKnownJob->status() == BaseJob::NotFoundError)
-                qCDebug(MAIN) << "No .well-known file, IGNORE";
-            else {
+            if (getWellKnownJob->status() != BaseJob::NotFoundError) {
                 if (getWellKnownJob->status() != BaseJob::Success) {
-                    qCDebug(MAIN)
+                    qCWarning(MAIN)
                         << "Fetching .well-known file failed, FAIL_PROMPT";
-                    emit resolveError(tr("Fetching .well-known file failed"));
+                    emit resolveError(tr("Failed resolving the homeserver"));
                     return;
                 }
-                QUrl baseUrl(getWellKnownJob->data().homeserver.baseUrl);
+                QUrl baseUrl { getWellKnownJob->data().homeserver.baseUrl };
                 if (baseUrl.isEmpty()) {
-                    qCDebug(MAIN) << "base_url not provided, FAIL_PROMPT";
-                    emit resolveError(tr("base_url not provided"));
+                    qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
+                    emit resolveError(
+                        tr("The homeserver base URL is not provided"));
                     return;
                 }
                 if (!baseUrl.isValid()) {
-                    qCDebug(MAIN) << "base_url invalid, FAIL_ERROR";
-                    emit resolveError(tr("base_url invalid"));
+                    qCWarning(MAIN) << "base_url invalid, FAIL_ERROR";
+                    emit resolveError(tr("The homeserver base URL is invalid"));
                     return;
                 }
-
-                qCDebug(MAIN) << ".well-known for" << maybeBaseUrl.host()
-                              << "is" << baseUrl.toString();
+                qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host()
+                             << "is" << baseUrl.authority();
                 setHomeserver(baseUrl);
+            } else {
+                qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl
+                             << "for base URL";
+                setHomeserver(maybeBaseUrl);
             }
 
             auto getVersionsJob = callApi<GetVersionsJob>();
-
-            connect(getVersionsJob, &BaseJob::finished, [this, getVersionsJob] {
-                if (getVersionsJob->status() == BaseJob::Success) {
-                    qCDebug(MAIN) << "homeserver url is valid";
-                    emit resolved();
-                } else {
-                    qCDebug(MAIN) << "homeserver url invalid";
-                    emit resolveError(tr("homeserver url invalid"));
-                }
+            connect(getVersionsJob, &BaseJob::success, this,
+                    &Connection::resolved);
+            connect(getVersionsJob, &BaseJob::failure, this, [this] {
+                qCWarning(MAIN) << "Homeserver base URL invalid";
+                emit resolveError(tr("The homeserver base URL "
+                                     "doesn't seem to work"));
             });
         });
 }
@@ -726,7 +723,7 @@ void Connection::stopSync()
 
 QString Connection::nextBatchToken() const { return d->data->lastEvent(); }
 
-PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event) const
+PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event)
 {
     return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
 }
@@ -776,7 +773,7 @@ inline auto splitMediaId(const QString& mediaId)
 
 MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
                                             QSize requestedSize,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     auto idParts = splitMediaId(mediaId);
     return callApi<MediaThumbnailJob>(policy, idParts.front(), idParts.back(),
@@ -784,21 +781,21 @@ MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, QSize requestedSize,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     return getThumbnail(url.authority() + url.path(), requestedSize, policy);
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
                                             int requestedHeight,
-                                            RunningPolicy policy) const
+                                            RunningPolicy policy)
 {
     return getThumbnail(url, QSize(requestedWidth, requestedHeight), policy);
 }
 
 UploadContentJob*
 Connection::uploadContent(QIODevice* contentSource, const QString& filename,
-                          const QString& overrideContentType) const
+                          const QString& overrideContentType)
 {
     Q_ASSERT(contentSource != nullptr);
     auto contentType = overrideContentType;
@@ -823,19 +820,19 @@ UploadContentJob* Connection::uploadFile(const QString& fileName,
                          overrideContentType);
 }
 
-GetContentJob* Connection::getContent(const QString& mediaId) const
+GetContentJob* Connection::getContent(const QString& mediaId)
 {
     auto idParts = splitMediaId(mediaId);
     return callApi<GetContentJob>(idParts.front(), idParts.back());
 }
 
-GetContentJob* Connection::getContent(const QUrl& url) const
+GetContentJob* Connection::getContent(const QUrl& url)
 {
     return getContent(url.authority() + url.path());
 }
 
 DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const QString& localFilename) const
+                                          const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
@@ -1014,7 +1011,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
 
 SendToDeviceJob*
 Connection::sendToDevices(const QString& eventType,
-                          const UsersToDevicesToEvents& eventsMap) const
+                          const UsersToDevicesToEvents& eventsMap)
 {
     QHash<QString, QHash<QString, QJsonObject>> json;
     json.reserve(int(eventsMap.size()));
@@ -1035,7 +1032,7 @@ Connection::sendToDevices(const QString& eventType,
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
-                                        const RoomEvent& event) const
+                                        const RoomEvent& event)
 {
     const auto txnId = event.transactionId().isEmpty() ? generateTxnId()
                                                        : event.transactionId();
@@ -1612,8 +1609,9 @@ void Connection::setLazyLoading(bool newValue)
     }
 }
 
-void Connection::run(BaseJob* job, RunningPolicy runningPolicy) const
+void Connection::run(BaseJob* job, RunningPolicy runningPolicy)
 {
+    job->setParent(this); // Protects from #397, #398
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
     job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
 }
