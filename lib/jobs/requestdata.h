@@ -18,9 +18,10 @@
 
 #pragma once
 
+#include <QtCore/QByteArray>
+
 #include <memory>
 
-class QByteArray;
 class QJsonObject;
 class QJsonArray;
 class QJsonDocument;
@@ -35,14 +36,11 @@ namespace Quotient {
  */
 class RequestData {
 public:
-    RequestData() = default;
-    RequestData(const QByteArray& a);
+    RequestData(const QByteArray& a = {});
     RequestData(const QJsonObject& jo);
     RequestData(const QJsonArray& ja);
     RequestData(QIODevice* source) : _source(std::unique_ptr<QIODevice>(source))
     {}
-    RequestData(const RequestData&) = delete;
-    RequestData& operator=(const RequestData&) = delete;
     RequestData(RequestData&&) = default;
     RequestData& operator=(RequestData&&) = default;
     ~RequestData();
