@@ -232,7 +232,7 @@ void BaseJob::Private::sendRequest()
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     req.setMaximumRedirectsAllowed(10);
-//    req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
+    req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
     Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
