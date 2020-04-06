@@ -11,9 +11,25 @@ option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) appli
 option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
 
 include(CheckCXXCompilerFlag)
-if (NOT WIN32)
+if (WIN32)
+    if (NOT CMAKE_INSTALL_LIBDIR)
+        set(CMAKE_INSTALL_LIBDIR ".")
+    endif ()
+
+    if (NOT CMAKE_INSTALL_BINDIR)
+        set(CMAKE_INSTALL_BINDIR ".")
+    endif ()
+
+    if (NOT CMAKE_INSTALL_INCLUDEDIR)
+        set(CMAKE_INSTALL_INCLUDEDIR "include")
+    endif ()
+else()
     include(GNUInstallDirs)
-endif(NOT WIN32)
+    set(INCLUDEDIR_INIT ${PROJECT_NAME})
+endif(WIN32)
+set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
+        "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
+        "directory to install ${PROJECT_NAME} include files to")
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
@@ -25,18 +41,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
     "MinSizeRel" "RelWithDebInfo")
-endif()
-
-if (NOT CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR ".")
-endif()
-
-if (NOT CMAKE_INSTALL_BINDIR)
-    set(CMAKE_INSTALL_BINDIR ".")
-endif()
-
-if (NOT CMAKE_INSTALL_INCLUDEDIR)
-    set(CMAKE_INSTALL_INCLUDEDIR "include")
 endif()
 
 if (MSVC)
@@ -67,6 +71,8 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         endif ()
     endif ()
     if (NOT USE_INTREE_LIBQOLM)
+        set(SAVED_CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
+        set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
         find_package(QtOlm 0.1.0 REQUIRED)
         if (NOT QtOlm_FOUND)
             message( WARNING "libQtOlm not found; configuration will most likely fail.")
@@ -76,7 +82,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         endif ()
     endif ()
 else ()
-    message( WARNING "End-to-end encryption (E2EE) support is turned off.")
+    message( STATUS "End-to-end encryption (E2EE) support is turned off.")
 endif ()
 
 if (GTAD_PATH)
@@ -102,6 +108,7 @@ if (CMAKE_BUILD_TYPE)
 endif(CMAKE_BUILD_TYPE)
 message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
+message( STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}" )
 message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
 if (ABS_API_DEF_PATH AND ABS_GTAD_PATH)
     message( STATUS "Generating API stubs enabled (use --target update-api)" )
@@ -248,7 +255,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} QtOlm)
@@ -267,9 +274,9 @@ configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        INCLUDES DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY lib/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+install(DIRECTORY lib/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
