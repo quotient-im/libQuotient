@@ -527,6 +527,7 @@ void BaseJob::finishJob()
         qCWarning(d->logCat) << this << "re-running with authentication";
         emit retryScheduled(d->retriesTaken, 0);
         d->connection->submit(this);
+        return;
     }
     if ((error() == NetworkError || error() == Timeout)
         && d->retriesTaken < d->maxRetries) {
@@ -541,6 +542,8 @@ void BaseJob::finishJob()
         emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
         return;
     }
+
+    Q_ASSERT(status().code != Pending);
 
     // Notify those interested in any completion of the job including abandon()
     emit finished(this);
