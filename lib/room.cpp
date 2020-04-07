@@ -2309,7 +2309,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (q->supportsCalls())
         for (auto it = from; it != timeline.cend(); ++it)
-            if (auto* evt = it->viewAs<CallEventBase>())
+            if (const auto* evt = it->viewAs<CallEventBase>())
                 emit q->callEvent(q, evt);
 
     if (totalInserted > 0) {
@@ -2331,12 +2331,15 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         // read receipts from the server (or, for the local user,
         // markMessagesAsRead() invocation) to promote their read markers over
         // the new message events.
-        auto firstWriter = q->user((*from)->senderId());
-        if (q->readMarker(firstWriter) != timeline.crend()) {
-            roomChanges |= promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
-            qCDebug(STATE) << "Auto-promoted read marker for"
-                           << firstWriter->id() << "to"
-                           << *q->readMarker(firstWriter);
+        if (const auto senderId = (*from)->senderId(); !senderId.isEmpty()) {
+            auto* const firstWriter = q->user(senderId);
+            if (q->readMarker(firstWriter) != timeline.crend()) {
+                roomChanges |=
+                    promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
+                qCDebug(STATE)
+                    << "Auto-promoted read marker for" << senderId
+                    << "to" << *q->readMarker(firstWriter);
+            }
         }
 
         updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
