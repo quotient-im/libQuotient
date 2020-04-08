@@ -42,7 +42,8 @@ public:
         ReachedServer = 0x04, //< The server has received the event
         SendingFailed = 0x05, //< The server could not receive the event
         Redacted = 0x08, //< The event has been redacted
-        Hidden = 0x10, //< The event should not be shown in the timeline
+        Replaced = 0x10, //< The event has been replaced
+        Hidden = 0x100, //< The event should not be shown in the timeline
     };
     Q_DECLARE_FLAGS(Status, Code)
     Q_FLAG(Status)
