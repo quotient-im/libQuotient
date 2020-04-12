@@ -474,6 +474,9 @@ public:
 
     Q_INVOKABLE bool supportsCalls() const;
 
+    /// Whether the current user is allowed to upgrade the room
+    Q_INVOKABLE bool canSwitchVersions() const;
+
     /// Get a state event with the given event type and state key
     /*! This method returns a (potentially empty) state event corresponding
      * to the pair of event type \p evtType and state key \p stateKey.
@@ -565,9 +568,6 @@ public slots:
 
     /// Mark all messages in the room as read
     void markAllMessagesAsRead();
-
-    /// Whether the current user is allowed to upgrade the room
-    bool canSwitchVersions() const;
 
     /// Switch the room's version (aka upgrade)
     void switchVersion(QString newVersion);

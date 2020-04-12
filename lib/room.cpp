@@ -758,15 +758,13 @@ bool Room::canSwitchVersions() const
     if (!successorId().isEmpty())
         return false; // No one can upgrade a room that's already upgraded
 
-    // TODO, #276: m.room.power_levels
-    const auto* plEvt =
-        d->getCurrentState<RoomPowerLevelsEvent>();
-    if (!plEvt)
-        return true;
-
-    const auto currentUserLevel = plEvt->powerLevelForUser(localUser()->id());
-    const auto tombstonePowerLevel = plEvt->powerLevelForState("m.room.tombstone"_ls);
-    return currentUserLevel >= tombstonePowerLevel;
+    if (const auto* plEvt = d->getCurrentState<RoomPowerLevelsEvent>()) {
+        const auto currentUserLevel = plEvt->powerLevelForUser(localUser()->id());
+        const auto tombstonePowerLevel =
+            plEvt->powerLevelForState("m.room.tombstone"_ls);
+        return currentUserLevel >= tombstonePowerLevel;
+    }
+    return true;
 }
 
 bool Room::hasUnreadMessages() const { return unreadCount() >= 0; }
