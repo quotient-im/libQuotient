@@ -269,6 +269,13 @@ public:
      */
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
+    /** Get a display-safe member name in the context of this room
+     *
+     * Display-safe means HTML-safe + without RLO/LRO markers
+     * (see https://github.com/quotient-im/Quaternion/issues/545).
+     */
+    Q_INVOKABLE QString safeMemberName(const QString& userId) const;
+
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;
 

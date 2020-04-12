@@ -1449,6 +1449,11 @@ QString Room::roomMembername(const QString& userId) const
     return roomMembername(user(userId));
 }
 
+QString Room::safeMemberName(const QString& userId) const
+{
+    return sanitized(roomMembername(userId));
+}
+
 void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
     if (d->prevBatch.isEmpty())
