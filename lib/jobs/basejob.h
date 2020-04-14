@@ -308,9 +308,9 @@ protected:
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
 
     /** Construct a URL out of baseUrl, path and query
-     * The function automatically adds '/' between baseUrl's path and
-     * \p path if necessary. The query component of \p baseUrl
-     * is ignored.
+     *
+     * The function ensures exactly one '/' between the path component of
+     * \p baseUrl and \p path. The query component of \p baseUrl is ignored.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
                                const QUrlQuery& query = {});

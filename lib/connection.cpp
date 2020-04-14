@@ -280,7 +280,7 @@ void Connection::resolveServer(const QString& mxid)
                     return;
                 }
                 qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host()
-                             << "is" << baseUrl.authority();
+                             << "is" << baseUrl.toString();
                 setHomeserver(baseUrl);
             } else {
                 qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl

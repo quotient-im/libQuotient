@@ -212,8 +212,11 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
                              const QUrlQuery& query)
 {
     auto pathBase = baseUrl.path();
-    if (!pathBase.endsWith('/') && !path.startsWith('/'))
-        pathBase.push_back('/');
+    // QUrl::adjusted(QUrl::StripTrailingSlashes) doesn't help with root '/'
+    while (pathBase.endsWith('/'))
+        pathBase.chop(1);
+    if (!path.startsWith('/'))   // Normally API files do start with '/'
+        pathBase.push_back('/'); // so this shouldn't be needed these days
 
     baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
     baseUrl.setQuery(query);
