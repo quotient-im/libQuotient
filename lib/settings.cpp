@@ -16,6 +16,11 @@ void Settings::setLegacyNames(const QString& organizationName,
     legacyApplicationName = applicationName;
 }
 
+Settings::Settings(QObject* parent) : QSettings(parent)
+{
+    setIniCodec("UTF-8");
+}
+
 void Settings::setValue(const QString& key, const QVariant& value)
 {
     QSettings::setValue(key, value);

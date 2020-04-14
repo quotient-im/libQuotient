@@ -39,7 +39,7 @@ public:
     static void setLegacyNames(const QString& organizationName,
                                const QString& applicationName = {});
 
-    using QSettings::QSettings;
+    explicit Settings(QObject* parent = nullptr);
 
     /// Set the value for a given key
     /*! If the key exists in the legacy location, it is removed. */
