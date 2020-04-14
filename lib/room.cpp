@@ -2128,6 +2128,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
             qMakePair(targetEvtId, EventRelation::Annotation());
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
+            emit q->updatedEvent(targetEvtId);
         }
     }
     q->onRedaction(*oldEvent, *ti);
