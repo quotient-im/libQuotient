@@ -36,13 +36,13 @@ on Windows or macOS, your best bet is to build the library from the source
 and bundle it with your application.
 
 ### Pre-requisites
-- A recent Linux, macOS or Windows system (desktop versions tried; Ubuntu Touch
-  is known to work; mobile Windows and iOS might work too but never tried)
+- A recent Linux, macOS or Windows system (desktop versions are known to work;
+  mobile operating systems where Qt is available might work too)
   - Recent enough Linux examples: Debian Buster; Fedora 28; openSUSE Leap 15;
     Ubuntu Bionic Beaver.
 - Qt 5 (either Open Source or Commercial), 5.9 or higher;
   5.12 is recommended, especially if you use qmake
-- A build configuration tool (CMake is recommended, qmake is yet supported):
+- A build configuration tool (CMake is recommended, qmake is supported):
   - CMake 3.10 or newer (from your package management system or
     [the official website](https://cmake.org/download/))
   - or qmake (comes with Qt)
@@ -103,11 +103,43 @@ In the root directory of the project sources:
 ```shell script
 mkdir build_dir
 cd build_dir
-cmake .. # Pass -DCMAKE_PREFIX_PATH and -DCMAKE_INSTALL_PREFIX here if needed
+cmake .. # [-D<cmake-variable>=<value>...], see below
 cmake --build . --target all
 ```
 This will get you the compiled library in `build_dir` inside your project
-sources. Static builds are tested on all supported platforms. 
+sources. Static builds are tested on all supported platforms, building
+the library as a shared object (aka dynamic library) is supported on Linux
+and macOS but is very likely to be broken on Windows.
+
+The first CMake invocation configures the build. You can pass CMake variables,
+such as `-DCMAKE_PREFIX_PATH="path1;path2;..."` and
+`-DCMAKE_INSTALL_PREFIX=path` here if needed.
+[CMake documentation](https://cmake.org/cmake/help/latest/index.html)
+(pick the CMake version at the top of the page that you use) describes
+the standard variables coming with CMake. On top of them, Quotient introduces:
+- `Quotient_INSTALL_TESTS=<ON/OFF>`, `ON` by default - install `quotest` along
+  with the library files when `install` target is invoked. `quotest` is a small
+  command-line program that (assuming correct parameters, see `quotest --help`)
+  that tries to connect to a given room as a given user and perform some basic
+  Matrix operations, such as sending messages and small files, redaction,
+  setting room tags etc. This is useful to check the sanity of your library
+  installation. As of now, `quotest` expects the used homeserver to be able
+  to get the contents of `#quotient:matrix.org`; this is being fixed in
+  [#401](https://github.com/quotient-im/libQuotient/issues/401).
+- `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default - enable work-in-progress
+  E2EE code in the library. As of 0.6, this code is very incomplete and leaks
+  memory; only set this to `ON` if you want to help making this code work.
+  Switching this on will define `Quotient_E2EE_ENABLED` macro (note
+  the difference from the CMake switch) for compiler invocations on all
+  Quotient and Quotient-dependent (if it uses `find_package(Quotient 0.6)`)
+  code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code using
+  E2EE parts of Quotient.
+- `MATRIX_DOC_PATH` and `GTAD_PATH` - these two variables are used to point
+  CMake to the directory with the matrix-doc repository containing API files
+  and to a GTAD binary. These two are used to generate C++ files from Matrix
+  Client-Server API description made in OpenAPI notation. This is not needed
+  if you just need to build the library; if you're really into hacking on it,
+  CONTRIBUTING.md elaborates on what these two variables are for.
 
 You can install the library with CMake:
 ```shell script
