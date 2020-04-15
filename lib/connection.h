@@ -509,15 +509,22 @@ public slots:
     /** Determine and set the homeserver from MXID */
     void resolveServer(const QString& mxid);
 
-    void connectToServer(const QString& userId, const QString& password,
-                         const QString& initialDeviceName,
-                         const QString& deviceId = {});
+    void loginWithPassword(const QString& userId, const QString& password,
+                           const QString& initialDeviceName,
+                           const QString& deviceId = {});
     void loginWithToken(const QByteArray& loginToken,
                         const QString& initialDeviceName,
                         const QString& deviceId = {});
     void assumeIdentity(const QString& userId, const QString& accessToken,
                         const QString& deviceId);
-    /*! @deprecated
+    /*! \deprecated Use loginWithPassword instead */
+    void connectToServer(const QString& userId, const QString& password,
+                         const QString& initialDeviceName,
+                         const QString& deviceId = {})
+    {
+        loginWithPassword(userId, password, initialDeviceName, deviceId);
+    }
+    /*! \deprecated
      * Use assumeIdentity() if you have an access token or
      * loginWithToken() if you have a login token.
      */

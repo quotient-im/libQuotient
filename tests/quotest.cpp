@@ -169,7 +169,7 @@ TestManager::TestManager(int& argc, char** argv)
 {
     Q_ASSERT(argc >= 5);
     clog << "Connecting to Matrix as " << argv[1] << endl;
-    c->connectToServer(argv[1], argv[2], argv[3]);
+    c->loginWithPassword(argv[1], argv[2], argv[3]);
     targetRoomName = argv[4];
     clog << "Test room name: " << argv[4] << endl;
     if (argc > 5) {

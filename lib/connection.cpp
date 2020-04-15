@@ -312,9 +312,10 @@ inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
                { QStringLiteral("address"), address } } };
 }
 
-void Connection::connectToServer(const QString& userId, const QString& password,
-                                 const QString& initialDeviceName,
-                                 const QString& deviceId)
+void Connection::loginWithPassword(const QString& userId,
+                                   const QString& password,
+                                   const QString& initialDeviceName,
+                                   const QString& deviceId)
 {
     checkAndConnect(userId, [=] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
