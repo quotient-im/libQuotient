@@ -116,6 +116,9 @@ public:
     QScopedPointer<EncryptionManager> encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
+    QPointer<GetWellknownJob> resolverJob = nullptr;
+    QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
+
     SyncJob* syncJob = nullptr;
 
     bool cacheState = true;
@@ -245,6 +248,9 @@ Connection::~Connection()
 
 void Connection::resolveServer(const QString& mxid)
 {
+    if (isJobRunning(d->resolverJob))
+        d->resolverJob->abandon();
+
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
     maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
     if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid()) {
@@ -257,46 +263,43 @@ void Connection::resolveServer(const QString& mxid)
     qCDebug(MAIN) << "Finding the server" << domain;
 
     d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
-    auto getWellKnownJob = callApi<GetWellknownJob>();
-    connect(getWellKnownJob, &BaseJob::finished, this,
-        [this, getWellKnownJob, maybeBaseUrl] {
-            if (getWellKnownJob->status() != BaseJob::NotFoundError) {
-                if (getWellKnownJob->status() != BaseJob::Success) {
-                    qCWarning(MAIN)
-                        << "Fetching .well-known file failed, FAIL_PROMPT";
-                    emit resolveError(tr("Failed resolving the homeserver"));
-                    return;
-                }
-                QUrl baseUrl { getWellKnownJob->data().homeserver.baseUrl };
-                if (baseUrl.isEmpty()) {
-                    qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
-                    emit resolveError(
-                        tr("The homeserver base URL is not provided"));
-                    return;
-                }
-                if (!baseUrl.isValid()) {
-                    qCWarning(MAIN) << "base_url invalid, FAIL_ERROR";
-                    emit resolveError(tr("The homeserver base URL is invalid"));
-                    return;
-                }
-                qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host()
-                             << "is" << baseUrl.toString();
-                setHomeserver(baseUrl);
-            } else {
-                qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl
-                             << "for base URL";
-                setHomeserver(maybeBaseUrl);
+    d->resolverJob = callApi<GetWellknownJob>();
+    connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl] {
+        if (d->resolverJob->status() != BaseJob::NotFoundError) {
+            if (d->resolverJob->status() != BaseJob::Success) {
+                qCWarning(MAIN)
+                    << "Fetching .well-known file failed, FAIL_PROMPT";
+                emit resolveError(tr("Failed resolving the homeserver"));
+                return;
             }
-
-            auto getVersionsJob = callApi<GetVersionsJob>();
-            connect(getVersionsJob, &BaseJob::success, this,
-                    &Connection::resolved);
-            connect(getVersionsJob, &BaseJob::failure, this, [this] {
-                qCWarning(MAIN) << "Homeserver base URL invalid";
-                emit resolveError(tr("The homeserver base URL "
-                                     "doesn't seem to work"));
-            });
+            QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
+            if (baseUrl.isEmpty()) {
+                qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
+                emit resolveError(
+                    tr("The homeserver base URL is not provided"));
+                return;
+            }
+            if (!baseUrl.isValid()) {
+                qCWarning(MAIN) << "base_url invalid, FAIL_ERROR";
+                emit resolveError(tr("The homeserver base URL is invalid"));
+                return;
+            }
+            qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host() << "is"
+                         << baseUrl.toString();
+            setHomeserver(baseUrl);
+        } else {
+            qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl
+                         << "for base URL";
+            setHomeserver(maybeBaseUrl);
+        }
+        connect(d->loginFlowsJob, &BaseJob::success, this,
+                &Connection::resolved);
+        connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
+            qCWarning(MAIN) << "Homeserver base URL sanity check failed";
+            emit resolveError(
+                tr("The homeserver base URL doesn't seem to work"));
         });
+    });
 }
 
 inline UserIdentifier makeUserIdentifier(const QString& id)
@@ -1045,6 +1048,8 @@ QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
 QString Connection::domain() const { return userId().section(':', 1); }
 
+bool Connection::isUsable() const { return !loginFlows().isEmpty(); }
+
 QVector<GetLoginFlowsJob::LoginFlow> Connection::loginFlows() const
 {
     return d->loginFlows;
@@ -1454,17 +1459,24 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
+    if (isJobRunning(d->resolverJob))
+        d->resolverJob->abandon();
+    d->resolverJob = nullptr;
+    if (isJobRunning(d->loginFlowsJob))
+        d->loginFlowsJob->abandon();
+    d->loginFlowsJob = nullptr;
+    d->loginFlows.clear();
+
     if (homeserver() != url) {
         d->data->setBaseUrl(url);
-        d->loginFlows.clear();
         emit homeserverChanged(homeserver());
     }
 
     // Whenever a homeserver is updated, retrieve available login flows from it
-    auto* j = callApi<GetLoginFlowsJob>(BackgroundRequest);
-    connect(j, &BaseJob::finished, this, [this, j] {
-        if (j->status().good())
-            d->loginFlows = j->flows();
+    d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest);
+    connect(d->loginFlowsJob, &BaseJob::finished, this, [this] {
+        if (d->loginFlowsJob->status().good())
+            d->loginFlows = d->loginFlowsJob->flows();
         else
             d->loginFlows.clear();
         emit loginFlowsChanged();
