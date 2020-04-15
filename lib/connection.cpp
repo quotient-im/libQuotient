@@ -334,8 +334,8 @@ void Connection::loginWithToken(const QByteArray& loginToken,
                                 const QString& deviceId)
 {
     d->loginToServer(LoginFlows::Token.type,
-                     makeUserIdentifier(/*user is encoded in loginToken*/ {}),
-                     /*password*/ "", loginToken, deviceId, initialDeviceName);
+                     none /*user is encoded in loginToken*/, "" /*password*/,
+                     loginToken, deviceId, initialDeviceName);
 }
 
 void Connection::assumeIdentity(const QString& userId,
