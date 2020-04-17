@@ -91,7 +91,7 @@ IndentPPDirectives: AfterHash
 #JavaScriptQuotes: Leave
 #JavaScriptWrapImports: true
 #KeepLineBreaksForNonEmptyLines: false
-#KeepEmptyLinesAtTheStartOfBlocks: true
+KeepEmptyLinesAtTheStartOfBlocks: false
 #MacroBlockBegin: ''
 #MacroBlockEnd:   ''
 #MaxEmptyLinesToKeep: 1
