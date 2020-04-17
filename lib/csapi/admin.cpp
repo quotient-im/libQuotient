@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo>
-{
+struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
     static void fillFrom(const QJsonObject& jo,
                          GetWhoIsJob::ConnectionInfo& result)
     {
@@ -29,8 +27,7 @@ struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo>
 };
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::SessionInfo>
-{
+struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
     {
         fromJson(jo.value("connections"_ls), result.connections);
@@ -38,8 +35,7 @@ struct JsonObjectConverter<GetWhoIsJob::SessionInfo>
 };
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::DeviceInfo>
-{
+struct JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
     {
         fromJson(jo.value("sessions"_ls), result.sessions);
@@ -48,8 +44,7 @@ struct JsonObjectConverter<GetWhoIsJob::DeviceInfo>
 
 } // namespace Quotient
 
-class GetWhoIsJob::Private
-{
+class GetWhoIsJob::Private {
 public:
     QString userId;
     QHash<QString, DeviceInfo> devices;
@@ -61,10 +56,8 @@ QUrl GetWhoIsJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
                                    basePath % "/admin/whois/" % userId);
 }
 
-static const auto GetWhoIsJobName = QStringLiteral("GetWhoIsJob");
-
 GetWhoIsJob::GetWhoIsJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, GetWhoIsJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetWhoIsJob"),
               basePath % "/admin/whois/" % userId)
     , d(new Private)
 {}

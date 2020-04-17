@@ -12,12 +12,10 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto UpdateAppserviceRoomDirectoryVsibilityJobName =
-    QStringLiteral("UpdateAppserviceRoomDirectoryVsibilityJob");
-
 UpdateAppserviceRoomDirectoryVsibilityJob::UpdateAppserviceRoomDirectoryVsibilityJob(
     const QString& networkId, const QString& roomId, const QString& visibility)
-    : BaseJob(HttpVerb::Put, UpdateAppserviceRoomDirectoryVsibilityJobName,
+    : BaseJob(HttpVerb::Put,
+              QStringLiteral("UpdateAppserviceRoomDirectoryVsibilityJob"),
               basePath % "/directory/list/appservice/" % networkId % "/" % roomId)
 {
     QJsonObject _data;

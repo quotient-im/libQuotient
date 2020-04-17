@@ -10,13 +10,12 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Get an OpenID token object to verify the requester's identity.
-/*!
+/*! \brief Get an OpenID token object to verify the requester's identity.
+ *
  * Gets an OpenID token object that the requester may supply to another
  * service to verify their identity in Matrix. The generated token is only
  * valid for exchanging for user information from the federation API for
@@ -26,10 +25,10 @@ namespace Quotient
  * be used to request another OpenID access token or call ``/sync``, for
  * example.
  */
-class RequestOpenIdTokenJob : public BaseJob
-{
+class RequestOpenIdTokenJob : public BaseJob {
 public:
-    /*! Get an OpenID token object to verify the requester's identity.
+    /*! \brief Get an OpenID token object to verify the requester's identity.
+     *
      * \param userId
      *   The user to request and OpenID token for. Should be the user who
      *   is authenticated for the request.
@@ -47,11 +46,14 @@ public:
     /// the person who generated the token. This is given to the federation
     /// API ``GET /openid/userinfo``.
     const QString& accessToken() const;
+
     /// The string ``Bearer``.
     const QString& tokenType() const;
+
     /// The homeserver domain the consumer should use when attempting to
     /// verify the user's identity.
     const QString& matrixServerName() const;
+
     /// The number of seconds before this token expires and a new one must
     /// be generated.
     int expiresIn() const;

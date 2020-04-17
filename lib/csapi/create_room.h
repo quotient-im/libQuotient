@@ -11,13 +11,12 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Create a new room
-/*!
+/*! \brief Create a new room
+ *
  * Create a new room with various configuration options.
  *
  * The server MUST apply the normal state resolution rules when creating
@@ -60,40 +59,55 @@ namespace Quotient
  * requesting user as the creator, alongside other keys provided in the
  * ``creation_content``.
  */
-class CreateRoomJob : public BaseJob
-{
+class CreateRoomJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// Create a new room with various configuration options.The server MUST
-    /// apply the normal state resolution rules when creatingthe new room,
-    /// including checking power levels for each event. It MUSTapply the events
-    /// implied by the request in the following order:0. A default
-    /// ``m.room.power_levels`` event, giving the room creator   (and not other
-    /// members) permission to send state events. Overridden   by the
-    /// ``power_level_content_override`` parameter.1. Events set by the
-    /// ``preset``. Currently these are the ``m.room.join_rules``,
-    /// ``m.room.history_visibility``, and ``m.room.guest_access`` state
-    /// events.2. Events listed in ``initial_state``, in the order that they are
-    /// listed.3. Events implied by ``name`` and ``topic`` (``m.room.name`` and
-    /// ``m.room.topic``   state events).4. Invite events implied by ``invite``
-    /// and ``invite_3pid`` (``m.room.member`` with   ``membership: invite`` and
-    /// ``m.room.third_party_invite``).The available presets do the following
-    /// with respect to room state:========================  ==============
-    /// ======================  ================  =========         Preset
-    /// ``join_rules``  ``history_visibility``  ``guest_access``
-    /// Other========================  ==============  ======================
-    /// ================  =========``private_chat``          ``invite``
-    /// ``shared``              ``can_join````trusted_private_chat``  ``invite``
-    /// ``shared``              ``can_join``      All invitees are given the
-    /// same power level as the room creator.``public_chat`` ``public``
-    /// ``shared``              ``forbidden``========================
-    /// ==============  ======================  ================  =========The
-    /// server will create a ``m.room.create`` event in the room with
-    /// therequesting user as the creator, alongside other keys provided in
-    /// the``creation_content``.
-    struct Invite3pid
-    {
+    /// Create a new room with various configuration options.
+    ///
+    /// The server MUST apply the normal state resolution rules when creating
+    /// the new room, including checking power levels for each event. It MUST
+    /// apply the events implied by the request in the following order:
+    ///
+    /// 0. A default ``m.room.power_levels`` event, giving the room creator
+    ///    (and not other members) permission to send state events. Overridden
+    ///    by the ``power_level_content_override`` parameter.
+    ///
+    /// 1. Events set by the ``preset``. Currently these are the
+    /// ``m.room.join_rules``,
+    ///    ``m.room.history_visibility``, and ``m.room.guest_access`` state
+    ///    events.
+    ///
+    /// 2. Events listed in ``initial_state``, in the order that they are
+    ///    listed.
+    ///
+    /// 3. Events implied by ``name`` and ``topic`` (``m.room.name`` and
+    /// ``m.room.topic``
+    ///    state events).
+    ///
+    /// 4. Invite events implied by ``invite`` and ``invite_3pid``
+    /// (``m.room.member`` with
+    ///    ``membership: invite`` and ``m.room.third_party_invite``).
+    ///
+    /// The available presets do the following with respect to room state:
+    ///
+    /// ========================  ==============  ======================
+    /// ================  =========
+    ///          Preset           ``join_rules``  ``history_visibility``
+    ///          ``guest_access``  Other
+    /// ========================  ==============  ======================
+    /// ================  =========
+    /// ``private_chat``          ``invite``      ``shared`` ``can_join``
+    /// ``trusted_private_chat``  ``invite``      ``shared`` ``can_join`` All
+    /// invitees are given the same power level as the room creator.
+    /// ``public_chat``           ``public``      ``shared`` ``forbidden``
+    /// ========================  ==============  ======================
+    /// ================  =========
+    ///
+    /// The server will create a ``m.room.create`` event in the room with the
+    /// requesting user as the creator, alongside other keys provided in the
+    /// ``creation_content``.
+    struct Invite3pid {
         /// The hostname+port of the identity server which should be used for
         /// third party identifier lookups.
         QString idServer;
@@ -104,35 +118,51 @@ public:
         QString address;
     };
 
-    /// Create a new room with various configuration options.The server MUST
-    /// apply the normal state resolution rules when creatingthe new room,
-    /// including checking power levels for each event. It MUSTapply the events
-    /// implied by the request in the following order:0. A default
-    /// ``m.room.power_levels`` event, giving the room creator   (and not other
-    /// members) permission to send state events. Overridden   by the
-    /// ``power_level_content_override`` parameter.1. Events set by the
-    /// ``preset``. Currently these are the ``m.room.join_rules``,
-    /// ``m.room.history_visibility``, and ``m.room.guest_access`` state
-    /// events.2. Events listed in ``initial_state``, in the order that they are
-    /// listed.3. Events implied by ``name`` and ``topic`` (``m.room.name`` and
-    /// ``m.room.topic``   state events).4. Invite events implied by ``invite``
-    /// and ``invite_3pid`` (``m.room.member`` with   ``membership: invite`` and
-    /// ``m.room.third_party_invite``).The available presets do the following
-    /// with respect to room state:========================  ==============
-    /// ======================  ================  =========         Preset
-    /// ``join_rules``  ``history_visibility``  ``guest_access``
-    /// Other========================  ==============  ======================
-    /// ================  =========``private_chat``          ``invite``
-    /// ``shared``              ``can_join````trusted_private_chat``  ``invite``
-    /// ``shared``              ``can_join``      All invitees are given the
-    /// same power level as the room creator.``public_chat`` ``public``
-    /// ``shared``              ``forbidden``========================
-    /// ==============  ======================  ================  =========The
-    /// server will create a ``m.room.create`` event in the room with
-    /// therequesting user as the creator, alongside other keys provided in
-    /// the``creation_content``.
-    struct StateEvent
-    {
+    /// Create a new room with various configuration options.
+    ///
+    /// The server MUST apply the normal state resolution rules when creating
+    /// the new room, including checking power levels for each event. It MUST
+    /// apply the events implied by the request in the following order:
+    ///
+    /// 0. A default ``m.room.power_levels`` event, giving the room creator
+    ///    (and not other members) permission to send state events. Overridden
+    ///    by the ``power_level_content_override`` parameter.
+    ///
+    /// 1. Events set by the ``preset``. Currently these are the
+    /// ``m.room.join_rules``,
+    ///    ``m.room.history_visibility``, and ``m.room.guest_access`` state
+    ///    events.
+    ///
+    /// 2. Events listed in ``initial_state``, in the order that they are
+    ///    listed.
+    ///
+    /// 3. Events implied by ``name`` and ``topic`` (``m.room.name`` and
+    /// ``m.room.topic``
+    ///    state events).
+    ///
+    /// 4. Invite events implied by ``invite`` and ``invite_3pid``
+    /// (``m.room.member`` with
+    ///    ``membership: invite`` and ``m.room.third_party_invite``).
+    ///
+    /// The available presets do the following with respect to room state:
+    ///
+    /// ========================  ==============  ======================
+    /// ================  =========
+    ///          Preset           ``join_rules``  ``history_visibility``
+    ///          ``guest_access``  Other
+    /// ========================  ==============  ======================
+    /// ================  =========
+    /// ``private_chat``          ``invite``      ``shared`` ``can_join``
+    /// ``trusted_private_chat``  ``invite``      ``shared`` ``can_join`` All
+    /// invitees are given the same power level as the room creator.
+    /// ``public_chat``           ``public``      ``shared`` ``forbidden``
+    /// ========================  ==============  ======================
+    /// ================  =========
+    ///
+    /// The server will create a ``m.room.create`` event in the room with the
+    /// requesting user as the creator, alongside other keys provided in the
+    /// ``creation_content``.
+    struct StateEvent {
         /// The type of event to send.
         QString type;
         /// The state_key of the state event. Defaults to an empty string.
@@ -143,7 +173,8 @@ public:
 
     // Construction/destruction
 
-    /*! Create a new room
+    /*! \brief Create a new room
+     *
      * \param visibility
      *   A ``public`` visibility indicates that the room will be shown
      *   in the published room list. A ``private`` visibility will hide

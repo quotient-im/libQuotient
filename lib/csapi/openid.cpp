@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class RequestOpenIdTokenJob::Private
-{
+class RequestOpenIdTokenJob::Private {
 public:
     QString accessToken;
     QString tokenType;
@@ -21,12 +20,9 @@ public:
     int expiresIn;
 };
 
-static const auto RequestOpenIdTokenJobName =
-    QStringLiteral("RequestOpenIdTokenJob");
-
 RequestOpenIdTokenJob::RequestOpenIdTokenJob(const QString& userId,
                                              const QJsonObject& body)
-    : BaseJob(HttpVerb::Post, RequestOpenIdTokenJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestOpenIdTokenJob"),
               basePath % "/user/" % userId % "/openid/request_token")
     , d(new Private)
 {

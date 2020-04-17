@@ -14,19 +14,18 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QVariant>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Upload end-to-end encryption keys.
-/*!
+/*! \brief Upload end-to-end encryption keys.
+ *
  * Publishes end-to-end encryption keys for the device.
  */
-class UploadKeysJob : public BaseJob
-{
+class UploadKeysJob : public BaseJob {
 public:
-    /*! Upload end-to-end encryption keys.
+    /*! \brief Upload end-to-end encryption keys.
+     *
      * \param deviceKeys
      *   Identity keys for the device. May be absent if no new
      *   identity keys are required.
@@ -57,34 +56,34 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Download device identity keys.
-/*!
+/*! \brief Download device identity keys.
+ *
  * Returns the current devices and identity keys for the given users.
  */
-class QueryKeysJob : public BaseJob
-{
+class QueryKeysJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// Additional data added to the device key informationby intermediate
-    /// servers, and not covered by thesignatures.
-    struct UnsignedDeviceInfo
-    {
+    /// Additional data added to the device key information
+    /// by intermediate servers, and not covered by the
+    /// signatures.
+    struct UnsignedDeviceInfo {
         /// The display name which the user set on the device.
         QString deviceDisplayName;
     };
 
     /// Returns the current devices and identity keys for the given users.
-    struct DeviceInformation : DeviceKeys
-    {
-        /// Additional data added to the device key informationby intermediate
-        /// servers, and not covered by thesignatures.
+    struct DeviceInformation : DeviceKeys {
+        /// Additional data added to the device key information
+        /// by intermediate servers, and not covered by the
+        /// signatures.
         Omittable<UnsignedDeviceInfo> unsignedData;
     };
 
     // Construction/destruction
 
-    /*! Download device identity keys.
+    /*! \brief Download device identity keys.
+     *
      * \param deviceKeys
      *   The keys to be downloaded. A map from user ID, to a list of
      *   device IDs, or to an empty list to indicate all devices for the
@@ -114,6 +113,7 @@ public:
     /// was unknown, no failure is recorded. Instead, the corresponding
     /// user or device is missing from the ``device_keys`` result.
     const QHash<QString, QJsonObject>& failures() const;
+
     /// Information on the queried devices. A map from user ID, to a
     /// map from device ID to device information.  For each device,
     /// the information returned will be the same as uploaded via
@@ -129,14 +129,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Claim one-time encryption keys.
-/*!
+/*! \brief Claim one-time encryption keys.
+ *
  * Claims one-time keys for use in pre-key messages.
  */
-class ClaimKeysJob : public BaseJob
-{
+class ClaimKeysJob : public BaseJob {
 public:
-    /*! Claim one-time encryption keys.
+    /*! \brief Claim one-time encryption keys.
+     *
      * \param oneTimeKeys
      *   The keys to be claimed. A map from user ID, to a map from
      *   device ID to algorithm name.
@@ -160,6 +160,7 @@ public:
     /// was unknown, no failure is recorded. Instead, the corresponding
     /// user or device is missing from the ``one_time_keys`` result.
     const QHash<QString, QJsonObject>& failures() const;
+
     /// One-time keys for the queried devices. A map from user ID, to a
     /// map from devices to a map from ``<algorithm>:<key_id>`` to the key object.
     const QHash<QString, QHash<QString, QVariant>>& oneTimeKeys() const;
@@ -172,8 +173,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Query users with recent device key updates.
-/*!
+/*! \brief Query users with recent device key updates.
+ *
  * Gets a list of users who have updated their device identity keys since a
  * previous sync token.
  *
@@ -184,10 +185,10 @@ private:
  * * added new device identity keys or removed an existing device with
  *   identity keys, between ``from`` and ``to``.
  */
-class GetKeysChangesJob : public BaseJob
-{
+class GetKeysChangesJob : public BaseJob {
 public:
-    /*! Query users with recent device key updates.
+    /*! \brief Query users with recent device key updates.
+     *
      * \param from
      *   The desired start point of the list. Should be the ``next_batch`` field
      *   from a response to an earlier call to |/sync|. Users who have not
@@ -202,15 +203,13 @@ public:
      */
     explicit GetKeysChangesJob(const QString& from, const QString& to);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetKeysChangesJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetKeysChangesJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& from,
                                const QString& to);
-
     ~GetKeysChangesJob() override;
 
     // Result properties
@@ -218,6 +217,7 @@ public:
     /// The Matrix User IDs of all users who updated their device
     /// identity keys.
     const QStringList& changed() const;
+
     /// The Matrix User IDs of all users who may have left all
     /// the end-to-end encrypted rooms they previously shared
     /// with the user.

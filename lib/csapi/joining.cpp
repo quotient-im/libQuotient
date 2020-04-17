@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<JoinRoomByIdJob::ThirdPartySigned>
-{
+struct JsonObjectConverter<JoinRoomByIdJob::ThirdPartySigned> {
     static void dumpTo(QJsonObject& jo,
                        const JoinRoomByIdJob::ThirdPartySigned& pod)
     {
@@ -31,17 +29,14 @@ struct JsonObjectConverter<JoinRoomByIdJob::ThirdPartySigned>
 
 } // namespace Quotient
 
-class JoinRoomByIdJob::Private
-{
+class JoinRoomByIdJob::Private {
 public:
     QString roomId;
 };
 
-static const auto JoinRoomByIdJobName = QStringLiteral("JoinRoomByIdJob");
-
 JoinRoomByIdJob::JoinRoomByIdJob(
     const QString& roomId, const Omittable<ThirdPartySigned>& thirdPartySigned)
-    : BaseJob(HttpVerb::Post, JoinRoomByIdJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomByIdJob"),
               basePath % "/rooms/" % roomId % "/join")
     , d(new Private)
 {
@@ -67,12 +62,10 @@ BaseJob::Status JoinRoomByIdJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<JoinRoomJob::Signed>
-{
+struct JsonObjectConverter<JoinRoomJob::Signed> {
     static void dumpTo(QJsonObject& jo, const JoinRoomJob::Signed& pod)
     {
         addParam<>(jo, QStringLiteral("sender"), pod.sender);
@@ -83,8 +76,7 @@ struct JsonObjectConverter<JoinRoomJob::Signed>
 };
 
 template <>
-struct JsonObjectConverter<JoinRoomJob::ThirdPartySigned>
-{
+struct JsonObjectConverter<JoinRoomJob::ThirdPartySigned> {
     static void dumpTo(QJsonObject& jo, const JoinRoomJob::ThirdPartySigned& pod)
     {
         addParam<>(jo, QStringLiteral("signed"), pod.signedData);
@@ -93,8 +85,7 @@ struct JsonObjectConverter<JoinRoomJob::ThirdPartySigned>
 
 } // namespace Quotient
 
-class JoinRoomJob::Private
-{
+class JoinRoomJob::Private {
 public:
     QString roomId;
 };
@@ -106,12 +97,10 @@ BaseJob::Query queryToJoinRoom(const QStringList& serverName)
     return _q;
 }
 
-static const auto JoinRoomJobName = QStringLiteral("JoinRoomJob");
-
 JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias,
                          const QStringList& serverName,
                          const Omittable<ThirdPartySigned>& thirdPartySigned)
-    : BaseJob(HttpVerb::Post, JoinRoomJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomJob"),
               basePath % "/join/" % roomIdOrAlias, queryToJoinRoom(serverName))
     , d(new Private)
 {

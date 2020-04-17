@@ -12,16 +12,13 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class DefineFilterJob::Private
-{
+class DefineFilterJob::Private {
 public:
     QString filterId;
 };
 
-static const auto DefineFilterJobName = QStringLiteral("DefineFilterJob");
-
 DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
-    : BaseJob(HttpVerb::Post, DefineFilterJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("DefineFilterJob"),
               basePath % "/user/" % userId % "/filter")
     , d(new Private)
 {
@@ -43,8 +40,7 @@ BaseJob::Status DefineFilterJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class GetFilterJob::Private
-{
+class GetFilterJob::Private {
 public:
     Filter data;
 };
@@ -57,10 +53,8 @@ QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
                                                            % filterId);
 }
 
-static const auto GetFilterJobName = QStringLiteral("GetFilterJob");
-
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
-    : BaseJob(HttpVerb::Get, GetFilterJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetFilterJob"),
               basePath % "/user/" % userId % "/filter/" % filterId)
     , d(new Private)
 {}
@@ -72,5 +66,6 @@ const Filter& GetFilterJob::data() const { return d->data; }
 BaseJob::Status GetFilterJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }

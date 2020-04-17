@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client");
 
-class GetVersionsJob::Private
-{
+class GetVersionsJob::Private {
 public:
     QStringList versions;
     QHash<QString, bool> unstableFeatures;
@@ -24,10 +23,9 @@ QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
     return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/versions");
 }
 
-static const auto GetVersionsJobName = QStringLiteral("GetVersionsJob");
-
 GetVersionsJob::GetVersionsJob()
-    : BaseJob(HttpVerb::Get, GetVersionsJobName, basePath % "/versions", false)
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetVersionsJob"),
+              basePath % "/versions", false)
     , d(new Private)
 {}
 

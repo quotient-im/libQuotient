@@ -10,69 +10,69 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Gets the current pushers for the authenticated user
-/*!
+/*! \brief Gets the current pushers for the authenticated user
+ *
  * Gets all currently active pushers for the authenticated user.
  */
-class GetPushersJob : public BaseJob
-{
+class GetPushersJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// A dictionary of information for the pusher implementationitself.
-    struct PusherData
-    {
-        /// Required if ``kind`` is ``http``. The URL to use to
-        /// sendnotifications to.
+    /// A dictionary of information for the pusher implementation
+    /// itself.
+    struct PusherData {
+        /// Required if ``kind`` is ``http``. The URL to use to send
+        /// notifications to.
         QString url;
-        /// The format to use when sending notifications to the PushGateway.
+        /// The format to use when sending notifications to the Push
+        /// Gateway.
         QString format;
     };
 
     /// Gets all currently active pushers for the authenticated user.
-    struct Pusher
-    {
-        /// This is a unique identifier for this pusher. See ``/set`` formore
-        /// detail.Max length, 512 bytes.
+    struct Pusher {
+        /// This is a unique identifier for this pusher. See ``/set`` for
+        /// more detail.
+        /// Max length, 512 bytes.
         QString pushkey;
-        /// The kind of pusher. ``"http"`` is a pusher thatsends HTTP pokes.
+        /// The kind of pusher. ``"http"`` is a pusher that
+        /// sends HTTP pokes.
         QString kind;
-        /// This is a reverse-DNS style identifier for the application.Max
-        /// length, 64 chars.
+        /// This is a reverse-DNS style identifier for the application.
+        /// Max length, 64 chars.
         QString appId;
-        /// A string that will allow the user to identify what applicationowns
-        /// this pusher.
+        /// A string that will allow the user to identify what application
+        /// owns this pusher.
         QString appDisplayName;
-        /// A string that will allow the user to identify what device ownsthis
-        /// pusher.
+        /// A string that will allow the user to identify what device owns
+        /// this pusher.
         QString deviceDisplayName;
-        /// This string determines which set of device specific rules thispusher
-        /// executes.
+        /// This string determines which set of device specific rules this
+        /// pusher executes.
         QString profileTag;
-        /// The preferred language for receiving notifications (e.g. 'en'or
-        /// 'en-US')
+        /// The preferred language for receiving notifications (e.g. 'en'
+        /// or 'en-US')
         QString lang;
-        /// A dictionary of information for the pusher implementationitself.
+        /// A dictionary of information for the pusher implementation
+        /// itself.
         PusherData data;
     };
 
     // Construction/destruction
 
+    /// Gets the current pushers for the authenticated user
     explicit GetPushersJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPushersJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPushersJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetPushersJob() override;
 
     // Result properties
@@ -88,35 +88,36 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Modify a pusher for this user on the homeserver.
-/*!
+/*! \brief Modify a pusher for this user on the homeserver.
+ *
  * This endpoint allows the creation, modification and deletion of `pushers`_
  * for this user ID. The behaviour of this endpoint varies depending on the
  * values in the JSON body.
  */
-class PostPusherJob : public BaseJob
-{
+class PostPusherJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// A dictionary of information for the pusher implementationitself. If
-    /// ``kind`` is ``http``, this should contain ``url``which is the URL to use
-    /// to send notifications to.
-    struct PusherData
-    {
-        /// Required if ``kind`` is ``http``. The URL to use to sendnotifications
-        /// to. MUST be an HTTPS URL with a path of ``/_matrix/push/v1/notify``.
+    /// A dictionary of information for the pusher implementation
+    /// itself. If ``kind`` is ``http``, this should contain ``url``
+    /// which is the URL to use to send notifications to.
+    struct PusherData {
+        /// Required if ``kind`` is ``http``. The URL to use to send
+        /// notifications to. MUST be an HTTPS URL with a path of
+        /// ``/_matrix/push/v1/notify``.
         QString url;
-        /// The format to send notifications in to Push Gateways if the``kind``
-        /// is ``http``. The details about what fields thehomeserver should send
-        /// to the push gateway are defined in the`Push Gateway Specification`_.
-        /// Currently the only formatavailable is 'event_id_only'.
+        /// The format to send notifications in to Push Gateways if the
+        /// ``kind`` is ``http``. The details about what fields the
+        /// homeserver should send to the push gateway are defined in the
+        /// `Push Gateway Specification`_. Currently the only format
+        /// available is 'event_id_only'.
         QString format;
     };
 
     // Construction/destruction
 
-    /*! Modify a pusher for this user on the homeserver.
+    /*! \brief Modify a pusher for this user on the homeserver.
+     *
      * \param pushkey
      *   This is a unique identifier for this pusher. The value you
      *   should use for this is the routing or destination address

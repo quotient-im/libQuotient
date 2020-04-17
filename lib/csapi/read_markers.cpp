@@ -12,12 +12,10 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto SetReadMarkerJobName = QStringLiteral("SetReadMarkerJob");
-
 SetReadMarkerJob::SetReadMarkerJob(const QString& roomId,
                                    const QString& mFullyRead,
                                    const QString& mRead)
-    : BaseJob(HttpVerb::Post, SetReadMarkerJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("SetReadMarkerJob"),
               basePath % "/rooms/" % roomId % "/read_markers")
 {
     QJsonObject _data;

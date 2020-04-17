@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetRoomVisibilityOnDirectoryJob::Private
-{
+class GetRoomVisibilityOnDirectoryJob::Private {
 public:
     QString visibility;
 };
@@ -25,12 +24,9 @@ QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(QUrl baseUrl,
                                    basePath % "/directory/list/room/" % roomId);
 }
 
-static const auto GetRoomVisibilityOnDirectoryJobName =
-    QStringLiteral("GetRoomVisibilityOnDirectoryJob");
-
 GetRoomVisibilityOnDirectoryJob::GetRoomVisibilityOnDirectoryJob(
     const QString& roomId)
-    : BaseJob(HttpVerb::Get, GetRoomVisibilityOnDirectoryJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomVisibilityOnDirectoryJob"),
               basePath % "/directory/list/room/" % roomId, false)
     , d(new Private)
 {}
@@ -51,12 +47,9 @@ GetRoomVisibilityOnDirectoryJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto SetRoomVisibilityOnDirectoryJobName =
-    QStringLiteral("SetRoomVisibilityOnDirectoryJob");
-
 SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(
     const QString& roomId, const QString& visibility)
-    : BaseJob(HttpVerb::Put, SetRoomVisibilityOnDirectoryJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomVisibilityOnDirectoryJob"),
               basePath % "/directory/list/room/" % roomId)
 {
     QJsonObject _data;
@@ -64,8 +57,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(
     setRequestData(_data);
 }
 
-class GetPublicRoomsJob::Private
-{
+class GetPublicRoomsJob::Private {
 public:
     PublicRoomsResponse data;
 };
@@ -88,11 +80,10 @@ QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, Omittable<int> limit,
                                    queryToGetPublicRooms(limit, since, server));
 }
 
-static const auto GetPublicRoomsJobName = QStringLiteral("GetPublicRoomsJob");
-
 GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
                                      const QString& server)
-    : BaseJob(HttpVerb::Get, GetPublicRoomsJobName, basePath % "/publicRooms",
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPublicRoomsJob"),
+              basePath % "/publicRooms",
               queryToGetPublicRooms(limit, since, server), {}, false)
     , d(new Private)
 {}
@@ -104,16 +95,15 @@ const PublicRoomsResponse& GetPublicRoomsJob::data() const { return d->data; }
 BaseJob::Status GetPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<QueryPublicRoomsJob::Filter>
-{
+struct JsonObjectConverter<QueryPublicRoomsJob::Filter> {
     static void dumpTo(QJsonObject& jo, const QueryPublicRoomsJob::Filter& pod)
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"),
@@ -123,8 +113,7 @@ struct JsonObjectConverter<QueryPublicRoomsJob::Filter>
 
 } // namespace Quotient
 
-class QueryPublicRoomsJob::Private
-{
+class QueryPublicRoomsJob::Private {
 public:
     PublicRoomsResponse data;
 };
@@ -136,16 +125,13 @@ BaseJob::Query queryToQueryPublicRooms(const QString& server)
     return _q;
 }
 
-static const auto QueryPublicRoomsJobName =
-    QStringLiteral("QueryPublicRoomsJob");
-
 QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server,
                                          Omittable<int> limit,
                                          const QString& since,
                                          const Omittable<Filter>& filter,
                                          Omittable<bool> includeAllNetworks,
                                          const QString& thirdPartyInstanceId)
-    : BaseJob(HttpVerb::Post, QueryPublicRoomsJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("QueryPublicRoomsJob"),
               basePath % "/publicRooms", queryToQueryPublicRooms(server))
     , d(new Private)
 {
@@ -167,5 +153,6 @@ const PublicRoomsResponse& QueryPublicRoomsJob::data() const { return d->data; }
 BaseJob::Status QueryPublicRoomsJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }

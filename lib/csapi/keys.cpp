@@ -12,17 +12,15 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class UploadKeysJob::Private
-{
+class UploadKeysJob::Private {
 public:
     QHash<QString, int> oneTimeKeyCounts;
 };
 
-static const auto UploadKeysJobName = QStringLiteral("UploadKeysJob");
-
 UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
                              const QHash<QString, QVariant>& oneTimeKeys)
-    : BaseJob(HttpVerb::Post, UploadKeysJobName, basePath % "/keys/upload")
+    : BaseJob(HttpVerb::Post, QStringLiteral("UploadKeysJob"),
+              basePath % "/keys/upload")
     , d(new Private)
 {
     QJsonObject _data;
@@ -50,12 +48,10 @@ BaseJob::Status UploadKeysJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo>
-{
+struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
     static void fillFrom(const QJsonObject& jo,
                          QueryKeysJob::UnsignedDeviceInfo& result)
     {
@@ -64,8 +60,7 @@ struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo>
 };
 
 template <>
-struct JsonObjectConverter<QueryKeysJob::DeviceInformation>
-{
+struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
     static void fillFrom(const QJsonObject& jo,
                          QueryKeysJob::DeviceInformation& result)
     {
@@ -76,18 +71,16 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation>
 
 } // namespace Quotient
 
-class QueryKeysJob::Private
-{
+class QueryKeysJob::Private {
 public:
     QHash<QString, QJsonObject> failures;
     QHash<QString, QHash<QString, DeviceInformation>> deviceKeys;
 };
 
-static const auto QueryKeysJobName = QStringLiteral("QueryKeysJob");
-
 QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
                            Omittable<int> timeout, const QString& token)
-    : BaseJob(HttpVerb::Post, QueryKeysJobName, basePath % "/keys/query")
+    : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
+              basePath % "/keys/query")
     , d(new Private)
 {
     QJsonObject _data;
@@ -119,19 +112,17 @@ BaseJob::Status QueryKeysJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class ClaimKeysJob::Private
-{
+class ClaimKeysJob::Private {
 public:
     QHash<QString, QJsonObject> failures;
     QHash<QString, QHash<QString, QVariant>> oneTimeKeys;
 };
 
-static const auto ClaimKeysJobName = QStringLiteral("ClaimKeysJob");
-
 ClaimKeysJob::ClaimKeysJob(
     const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
     Omittable<int> timeout)
-    : BaseJob(HttpVerb::Post, ClaimKeysJobName, basePath % "/keys/claim")
+    : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
+              basePath % "/keys/claim")
     , d(new Private)
 {
     QJsonObject _data;
@@ -161,8 +152,7 @@ BaseJob::Status ClaimKeysJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class GetKeysChangesJob::Private
-{
+class GetKeysChangesJob::Private {
 public:
     QStringList changed;
     QStringList left;
@@ -184,11 +174,9 @@ QUrl GetKeysChangesJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                    queryToGetKeysChanges(from, to));
 }
 
-static const auto GetKeysChangesJobName = QStringLiteral("GetKeysChangesJob");
-
 GetKeysChangesJob::GetKeysChangesJob(const QString& from, const QString& to)
-    : BaseJob(HttpVerb::Get, GetKeysChangesJobName, basePath % "/keys/changes",
-              queryToGetKeysChanges(from, to))
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetKeysChangesJob"),
+              basePath % "/keys/changes", queryToGetKeysChanges(from, to))
     , d(new Private)
 {}
 

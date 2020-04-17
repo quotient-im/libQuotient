@@ -12,17 +12,14 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class SendMessageJob::Private
-{
+class SendMessageJob::Private {
 public:
     QString eventId;
 };
 
-static const auto SendMessageJobName = QStringLiteral("SendMessageJob");
-
 SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType,
                                const QString& txnId, const QJsonObject& body)
-    : BaseJob(HttpVerb::Put, SendMessageJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SendMessageJob"),
               basePath % "/rooms/" % roomId % "/send/" % eventType % "/" % txnId)
     , d(new Private)
 {

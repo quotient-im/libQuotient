@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Gets information about the owner of an access token.
-/*!
+/*! \brief Gets information about the owner of an access token.
+ *
  * Gets information about the owner of a given access token.
  *
  * Note that, as with the rest of the Client-Server API,
@@ -22,19 +21,17 @@ namespace Quotient
  * is registered by the appservice, and return it in the response
  * body.
  */
-class GetTokenOwnerJob : public BaseJob
-{
+class GetTokenOwnerJob : public BaseJob {
 public:
+    /// Gets information about the owner of an access token.
     explicit GetTokenOwnerJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetTokenOwnerJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetTokenOwnerJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetTokenOwnerJob() override;
 
     // Result properties

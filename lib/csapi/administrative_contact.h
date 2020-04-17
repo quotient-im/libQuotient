@@ -12,13 +12,12 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Gets a list of a user's third party identifiers.
-/*!
+/*! \brief Gets a list of a user's third party identifiers.
+ *
  * Gets a list of the third party identifiers that the homeserver has
  * associated with the user's account.
  *
@@ -28,25 +27,25 @@ namespace Quotient
  * Identifiers in this list may be used by the homeserver as, for example,
  * identifiers that it will accept to reset the user's account password.
  */
-class GetAccount3PIDsJob : public BaseJob
-{
+class GetAccount3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// Gets a list of the third party identifiers that the homeserver
-    /// hasassociated with the user's account.This is *not* the same as the list
-    /// of third party identifiers bound tothe user's Matrix ID in identity
-    /// servers.Identifiers in this list may be used by the homeserver as, for
-    /// example,identifiers that it will accept to reset the user's account
-    /// password.
-    struct ThirdPartyIdentifier
-    {
+    /// Gets a list of the third party identifiers that the homeserver has
+    /// associated with the user's account.
+    ///
+    /// This is *not* the same as the list of third party identifiers bound to
+    /// the user's Matrix ID in identity servers.
+    ///
+    /// Identifiers in this list may be used by the homeserver as, for example,
+    /// identifiers that it will accept to reset the user's account password.
+    struct ThirdPartyIdentifier {
         /// The medium of the third party identifier.
         QString medium;
         /// The third party identifier address.
         QString address;
-        /// The timestamp, in milliseconds, when the identifier wasvalidated by
-        /// the identity server.
+        /// The timestamp, in milliseconds, when the identifier was
+        /// validated by the identity server.
         qint64 validatedAt;
         /// The timestamp, in milliseconds, when the homeserver associated the
         /// third party identifier with the user.
@@ -55,16 +54,15 @@ public:
 
     // Construction/destruction
 
+    /// Gets a list of a user's third party identifiers.
     explicit GetAccount3PIDsJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetAccount3PIDsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetAccount3PIDsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetAccount3PIDsJob() override;
 
     // Result properties
@@ -87,18 +85,16 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Adds contact information to the user's account.
-/*!
+/*! \brief Adds contact information to the user's account.
+ *
  * Adds contact information to the user's account.
  */
-class Post3PIDsJob : public BaseJob
-{
+class Post3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
     /// The third party credentials to associate with the account.
-    struct ThreePidCredentials
-    {
+    struct ThreePidCredentials {
         /// The client secret used in the session with the identity server.
         QString clientSecret;
         /// The identity server to use.
@@ -109,7 +105,8 @@ public:
 
     // Construction/destruction
 
-    /*! Adds contact information to the user's account.
+    /*! \brief Adds contact information to the user's account.
+     *
      * \param threePidCreds
      *   The third party credentials to associate with the account.
      * \param bind
@@ -121,15 +118,15 @@ public:
                           Omittable<bool> bind = none);
 };
 
-/// Deletes a third party identifier from the user's account
-/*!
+/*! \brief Deletes a third party identifier from the user's account
+ *
  * Removes a third party identifier from the user's account. This might not
  * cause an unbind of the identifier from the identity server.
  */
-class Delete3pidFromAccountJob : public BaseJob
-{
+class Delete3pidFromAccountJob : public BaseJob {
 public:
-    /*! Deletes a third party identifier from the user's account
+    /*! \brief Deletes a third party identifier from the user's account
+     *
      * \param medium
      *   The medium of the third party identifier being removed.
      * \param address
@@ -139,9 +136,9 @@ public:
                                       const QString& address);
 };
 
-/// Begins the validation process for an email address for association with the
-/// user's account.
-/*!
+/*! \brief Begins the validation process for an email address for association
+ * with the user's account.
+ *
  * Proxies the Identity Service API ``validate/email/requestToken``, but
  * first checks that the given email address is **not** already associated
  * with an account on this homeserver. This API should be used to request
@@ -149,13 +146,14 @@ public:
  * parameters and response are identical to that of the
  * |/register/email/requestToken|_ endpoint.
  */
-class RequestTokenTo3PIDEmailJob : public BaseJob
-{
+class RequestTokenTo3PIDEmailJob : public BaseJob {
 public:
-    /*! Begins the validation process for an email address for association with
-     * the user's account. \param clientSecret A unique string generated by the
-     * client, and used to identify the validation attempt. It must be a string
-     * consisting of the characters
+    /*! \brief Begins the validation process for an email address for
+     * association with the user's account.
+     *
+     * \param clientSecret
+     *   A unique string generated by the client, and used to identify the
+     *   validation attempt. It must be a string consisting of the characters
      *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
      *   must not be empty.
      * \param email
@@ -195,9 +193,9 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Begins the validation process for a phone number for association with the
-/// user's account.
-/*!
+/*! \brief Begins the validation process for a phone number for association with
+ * the user's account.
+ *
  * Proxies the Identity Service API ``validate/msisdn/requestToken``, but
  * first checks that the given phone number is **not** already associated
  * with an account on this homeserver. This API should be used to request
@@ -205,13 +203,14 @@ private:
  * parameters and response are identical to that of the
  * |/register/msisdn/requestToken|_ endpoint.
  */
-class RequestTokenTo3PIDMSISDNJob : public BaseJob
-{
+class RequestTokenTo3PIDMSISDNJob : public BaseJob {
 public:
-    /*! Begins the validation process for a phone number for association with
-     * the user's account. \param clientSecret A unique string generated by the
-     * client, and used to identify the validation attempt. It must be a string
-     * consisting of the characters
+    /*! \brief Begins the validation process for a phone number for association
+     * with the user's account.
+     *
+     * \param clientSecret
+     *   A unique string generated by the client, and used to identify the
+     *   validation attempt. It must be a string consisting of the characters
      *   ``[0-9a-zA-Z.=_-]``. Its length must not exceed 255 characters and it
      *   must not be empty.
      * \param country

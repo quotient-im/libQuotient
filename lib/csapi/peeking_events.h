@@ -9,13 +9,12 @@
 #include "events/eventloader.h"
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Listen on the event stream.
-/*!
+/*! \brief Listen on the event stream.
+ *
  * This will listen for new events related to a particular room and return
  * them to the caller. This will block until an event is received, or until
  * the ``timeout`` is reached.
@@ -27,10 +26,10 @@ namespace Quotient
  * API will also be deprecated at some point, but its replacement is not
  * yet known.
  */
-class PeekEventsJob : public BaseJob
-{
+class PeekEventsJob : public BaseJob {
 public:
-    /*! Listen on the event stream.
+    /*! \brief Listen on the event stream.
+     *
      * \param from
      *   The token to stream from. This token is either from a previous
      *   request to this API or from the initial sync API.
@@ -43,16 +42,14 @@ public:
                            Omittable<int> timeout = none,
                            const QString& roomId = {});
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * PeekEventsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for PeekEventsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
                                Omittable<int> timeout = none,
                                const QString& roomId = {});
-
     ~PeekEventsJob() override;
 
     // Result properties
@@ -60,9 +57,11 @@ public:
     /// A token which correlates to the first value in ``chunk``. This
     /// is usually the same token supplied to ``from=``.
     const QString& begin() const;
+
     /// A token which correlates to the last value in ``chunk``. This
     /// token should be used in the next request to ``/events``.
     const QString& end() const;
+
     /// An array of events.
     RoomEvents&& chunk();
 

@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetTokenOwnerJob::Private
-{
+class GetTokenOwnerJob::Private {
 public:
     QString userId;
 };
@@ -24,10 +23,9 @@ QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/account/whoami");
 }
 
-static const auto GetTokenOwnerJobName = QStringLiteral("GetTokenOwnerJob");
-
 GetTokenOwnerJob::GetTokenOwnerJob()
-    : BaseJob(HttpVerb::Get, GetTokenOwnerJobName, basePath % "/account/whoami")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetTokenOwnerJob"),
+              basePath % "/account/whoami")
     , d(new Private)
 {}
 

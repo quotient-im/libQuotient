@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Ban a user in the room.
-/*!
+/*! \brief Ban a user in the room.
+ *
  * Ban a user in the room. If the user is currently in the room, also kick them.
  *
  * When a user is banned from a room, they may not join it or be invited to it
@@ -21,10 +20,10 @@ namespace Quotient
  * The caller must have the required power level in order to perform this
  * operation.
  */
-class BanJob : public BaseJob
-{
+class BanJob : public BaseJob {
 public:
-    /*! Ban a user in the room.
+    /*! \brief Ban a user in the room.
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be banned.
      * \param userId
@@ -37,8 +36,8 @@ public:
                     const QString& reason = {});
 };
 
-/// Unban a user from the room.
-/*!
+/*! \brief Unban a user from the room.
+ *
  * Unban a user from the room. This allows them to be invited to the room,
  * and join if they would otherwise be allowed to join according to its join
  * rules.
@@ -46,10 +45,10 @@ public:
  * The caller must have the required power level in order to perform this
  * operation.
  */
-class UnbanJob : public BaseJob
-{
+class UnbanJob : public BaseJob {
 public:
-    /*! Unban a user from the room.
+    /*! \brief Unban a user from the room.
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be unbanned.
      * \param userId

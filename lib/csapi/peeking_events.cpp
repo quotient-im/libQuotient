@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class PeekEventsJob::Private
-{
+class PeekEventsJob::Private {
 public:
     QString begin;
     QString end;
@@ -37,12 +36,10 @@ QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                    queryToPeekEvents(from, timeout, roomId));
 }
 
-static const auto PeekEventsJobName = QStringLiteral("PeekEventsJob");
-
 PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout,
                              const QString& roomId)
-    : BaseJob(HttpVerb::Get, PeekEventsJobName, basePath % "/events",
-              queryToPeekEvents(from, timeout, roomId))
+    : BaseJob(HttpVerb::Get, QStringLiteral("PeekEventsJob"),
+              basePath % "/events", queryToPeekEvents(from, timeout, roomId))
     , d(new Private)
 {}
 

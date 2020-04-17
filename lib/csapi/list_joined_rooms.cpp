@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetJoinedRoomsJob::Private
-{
+class GetJoinedRoomsJob::Private {
 public:
     QStringList joinedRooms;
 };
@@ -24,10 +23,9 @@ QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/joined_rooms");
 }
 
-static const auto GetJoinedRoomsJobName = QStringLiteral("GetJoinedRoomsJob");
-
 GetJoinedRoomsJob::GetJoinedRoomsJob()
-    : BaseJob(HttpVerb::Get, GetJoinedRoomsJobName, basePath % "/joined_rooms")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetJoinedRoomsJob"),
+              basePath % "/joined_rooms")
     , d(new Private)
 {}
 

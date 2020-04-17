@@ -6,20 +6,19 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Set the position of the read marker for a room.
-/*!
+/*! \brief Set the position of the read marker for a room.
+ *
  * Sets the position of the read marker for a given room, and optionally
  * the read receipt's location.
  */
-class SetReadMarkerJob : public BaseJob
-{
+class SetReadMarkerJob : public BaseJob {
 public:
-    /*! Set the position of the read marker for a room.
+    /*! \brief Set the position of the read marker for a room.
+     *
      * \param roomId
      *   The room ID to set the read marker in for the user.
      * \param mFullyRead

@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability>
-{
+struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
     static void fillFrom(const QJsonObject& jo,
                          GetCapabilitiesJob::ChangePasswordCapability& result)
     {
@@ -27,8 +25,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability>
 };
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability>
-{
+struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
     static void fillFrom(const QJsonObject& jo,
                          GetCapabilitiesJob::RoomVersionsCapability& result)
     {
@@ -38,8 +35,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability>
 };
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::Capabilities>
-{
+struct JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
     static void fillFrom(QJsonObject jo,
                          GetCapabilitiesJob::Capabilities& result)
     {
@@ -51,8 +47,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::Capabilities>
 
 } // namespace Quotient
 
-class GetCapabilitiesJob::Private
-{
+class GetCapabilitiesJob::Private {
 public:
     Capabilities capabilities;
 };
@@ -63,10 +58,9 @@ QUrl GetCapabilitiesJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/capabilities");
 }
 
-static const auto GetCapabilitiesJobName = QStringLiteral("GetCapabilitiesJob");
-
 GetCapabilitiesJob::GetCapabilitiesJob()
-    : BaseJob(HttpVerb::Get, GetCapabilitiesJobName, basePath % "/capabilities")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetCapabilitiesJob"),
+              basePath % "/capabilities")
     , d(new Private)
 {}
 

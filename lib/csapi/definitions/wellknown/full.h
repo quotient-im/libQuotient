@@ -12,20 +12,19 @@
 #include <QtCore/QHash>
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Data structures
 
-/// Used by clients to determine the homeserver, identity server, and other///
+/// Used by clients to determine the homeserver, identity server, and other
 /// optional components they should be interacting with.
-struct DiscoveryInformation
-{
-    /// Used by clients to determine the homeserver, identity server, and
-    /// otheroptional components they should be interacting with.
+struct DiscoveryInformation {
+    /// Used by clients to determine the homeserver, identity server, and other
+    /// optional components they should be interacting with.
     HomeserverInformation homeserver;
-    /// Used by clients to determine the homeserver, identity server, and
-    /// otheroptional components they should be interacting with.
+
+    /// Used by clients to determine the homeserver, identity server, and other
+    /// optional components they should be interacting with.
     Omittable<IdentityServerInformation> identityServer;
 
     /// Application-dependent keys using Java package naming convention.
@@ -33,8 +32,7 @@ struct DiscoveryInformation
 };
 
 template <>
-struct JsonObjectConverter<DiscoveryInformation>
-{
+struct JsonObjectConverter<DiscoveryInformation> {
     static void dumpTo(QJsonObject& jo, const DiscoveryInformation& pod);
     static void fillFrom(QJsonObject jo, DiscoveryInformation& pod);
 };

@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetNotificationsJob::Notification>
-{
+struct JsonObjectConverter<GetNotificationsJob::Notification> {
     static void fillFrom(const QJsonObject& jo,
                          GetNotificationsJob::Notification& result)
     {
@@ -33,8 +31,7 @@ struct JsonObjectConverter<GetNotificationsJob::Notification>
 
 } // namespace Quotient
 
-class GetNotificationsJob::Private
-{
+class GetNotificationsJob::Private {
 public:
     QString nextToken;
     std::vector<Notification> notifications;
@@ -59,13 +56,10 @@ QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                    queryToGetNotifications(from, limit, only));
 }
 
-static const auto GetNotificationsJobName =
-    QStringLiteral("GetNotificationsJob");
-
 GetNotificationsJob::GetNotificationsJob(const QString& from,
                                          Omittable<int> limit,
                                          const QString& only)
-    : BaseJob(HttpVerb::Get, GetNotificationsJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
               basePath % "/notifications",
               queryToGetNotifications(from, limit, only))
     , d(new Private)

@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
-{
+struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo,
                          GetLoginFlowsJob::LoginFlow& result)
     {
@@ -28,8 +26,7 @@ struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
 
 } // namespace Quotient
 
-class GetLoginFlowsJob::Private
-{
+class GetLoginFlowsJob::Private {
 public:
     QVector<LoginFlow> flows;
 };
@@ -39,10 +36,9 @@ QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
     return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/login");
 }
 
-static const auto GetLoginFlowsJobName = QStringLiteral("GetLoginFlowsJob");
-
 GetLoginFlowsJob::GetLoginFlowsJob()
-    : BaseJob(HttpVerb::Get, GetLoginFlowsJobName, basePath % "/login", false)
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetLoginFlowsJob"),
+              basePath % "/login", false)
     , d(new Private)
 {}
 
@@ -61,8 +57,7 @@ BaseJob::Status GetLoginFlowsJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class LoginJob::Private
-{
+class LoginJob::Private {
 public:
     QString userId;
     QString accessToken;
@@ -71,15 +66,14 @@ public:
     Omittable<DiscoveryInformation> wellKnown;
 };
 
-static const auto LoginJobName = QStringLiteral("LoginJob");
-
 LoginJob::LoginJob(const QString& type,
                    const Omittable<UserIdentifier>& identifier,
                    const QString& password, const QString& token,
                    const QString& deviceId,
                    const QString& initialDeviceDisplayName, const QString& user,
                    const QString& medium, const QString& address)
-    : BaseJob(HttpVerb::Post, LoginJobName, basePath % "/login", false)
+    : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"), basePath % "/login",
+              false)
     , d(new Private)
 {
     QJsonObject _data;

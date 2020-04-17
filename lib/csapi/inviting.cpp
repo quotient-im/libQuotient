@@ -12,10 +12,8 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto InviteUserJobName = QStringLiteral("InviteUserJob");
-
 InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
-    : BaseJob(HttpVerb::Post, InviteUserJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("InviteUserJob"),
               basePath % "/rooms/" % roomId % "/invite")
 {
     QJsonObject _data;

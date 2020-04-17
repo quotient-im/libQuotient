@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetPushRulesJob::Private
-{
+class GetPushRulesJob::Private {
 public:
     PushRuleset global;
 };
@@ -23,10 +22,9 @@ QUrl GetPushRulesJob::makeRequestUrl(QUrl baseUrl)
     return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/pushrules");
 }
 
-static const auto GetPushRulesJobName = QStringLiteral("GetPushRulesJob");
-
 GetPushRulesJob::GetPushRulesJob()
-    : BaseJob(HttpVerb::Get, GetPushRulesJobName, basePath % "/pushrules")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPushRulesJob"),
+              basePath % "/pushrules")
     , d(new Private)
 {}
 
@@ -45,8 +43,7 @@ BaseJob::Status GetPushRulesJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class GetPushRuleJob::Private
-{
+class GetPushRuleJob::Private {
 public:
     PushRule data;
 };
@@ -59,11 +56,9 @@ QUrl GetPushRuleJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
                                                            % "/" % ruleId);
 }
 
-static const auto GetPushRuleJobName = QStringLiteral("GetPushRuleJob");
-
 GetPushRuleJob::GetPushRuleJob(const QString& scope, const QString& kind,
                                const QString& ruleId)
-    : BaseJob(HttpVerb::Get, GetPushRuleJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPushRuleJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId)
     , d(new Private)
 {}
@@ -75,6 +70,7 @@ const PushRule& GetPushRuleJob::data() const { return d->data; }
 BaseJob::Status GetPushRuleJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
@@ -87,11 +83,9 @@ QUrl DeletePushRuleJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
                                                            % "/" % ruleId);
 }
 
-static const auto DeletePushRuleJobName = QStringLiteral("DeletePushRuleJob");
-
 DeletePushRuleJob::DeletePushRuleJob(const QString& scope, const QString& kind,
                                      const QString& ruleId)
-    : BaseJob(HttpVerb::Delete, DeletePushRuleJobName,
+    : BaseJob(HttpVerb::Delete, QStringLiteral("DeletePushRuleJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId)
 {}
 
@@ -103,14 +97,12 @@ BaseJob::Query queryToSetPushRule(const QString& before, const QString& after)
     return _q;
 }
 
-static const auto SetPushRuleJobName = QStringLiteral("SetPushRuleJob");
-
 SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind,
                                const QString& ruleId, const QStringList& actions,
                                const QString& before, const QString& after,
                                const QVector<PushCondition>& conditions,
                                const QString& pattern)
-    : BaseJob(HttpVerb::Put, SetPushRuleJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetPushRuleJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId,
               queryToSetPushRule(before, after))
 {
@@ -121,8 +113,7 @@ SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind,
     setRequestData(_data);
 }
 
-class IsPushRuleEnabledJob::Private
-{
+class IsPushRuleEnabledJob::Private {
 public:
     bool enabled;
 };
@@ -136,13 +127,10 @@ QUrl IsPushRuleEnabledJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
                                        % "/" % ruleId % "/enabled");
 }
 
-static const auto IsPushRuleEnabledJobName =
-    QStringLiteral("IsPushRuleEnabledJob");
-
 IsPushRuleEnabledJob::IsPushRuleEnabledJob(const QString& scope,
                                            const QString& kind,
                                            const QString& ruleId)
-    : BaseJob(HttpVerb::Get, IsPushRuleEnabledJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("IsPushRuleEnabledJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId
                   % "/enabled")
     , d(new Private)
@@ -163,13 +151,10 @@ BaseJob::Status IsPushRuleEnabledJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto SetPushRuleEnabledJobName =
-    QStringLiteral("SetPushRuleEnabledJob");
-
 SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope,
                                              const QString& kind,
                                              const QString& ruleId, bool enabled)
-    : BaseJob(HttpVerb::Put, SetPushRuleEnabledJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetPushRuleEnabledJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId
                   % "/enabled")
 {
@@ -178,8 +163,7 @@ SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope,
     setRequestData(_data);
 }
 
-class GetPushRuleActionsJob::Private
-{
+class GetPushRuleActionsJob::Private {
 public:
     QStringList actions;
 };
@@ -193,13 +177,10 @@ QUrl GetPushRuleActionsJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
                                        % "/" % ruleId % "/actions");
 }
 
-static const auto GetPushRuleActionsJobName =
-    QStringLiteral("GetPushRuleActionsJob");
-
 GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& scope,
                                              const QString& kind,
                                              const QString& ruleId)
-    : BaseJob(HttpVerb::Get, GetPushRuleActionsJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPushRuleActionsJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId
                   % "/actions")
     , d(new Private)
@@ -220,14 +201,11 @@ BaseJob::Status GetPushRuleActionsJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto SetPushRuleActionsJobName =
-    QStringLiteral("SetPushRuleActionsJob");
-
 SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope,
                                              const QString& kind,
                                              const QString& ruleId,
                                              const QStringList& actions)
-    : BaseJob(HttpVerb::Put, SetPushRuleActionsJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetPushRuleActionsJob"),
               basePath % "/pushrules/" % scope % "/" % kind % "/" % ruleId
                   % "/actions")
 {

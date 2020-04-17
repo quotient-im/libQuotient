@@ -6,30 +6,31 @@
 
 #include "converters.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Data structures
 
 /// A client device
-struct Device
-{
+struct Device {
     /// Identifier of this device.
     QString deviceId;
-    /// Display name set by the user for this device. Absent if no name has
-    /// beenset.
+
+    /// Display name set by the user for this device. Absent if no name has been
+    /// set.
     QString displayName;
+
     /// The IP address where this device was last seen. (May be a few minutes
-    /// outof date, for efficiency reasons).
+    /// out of date, for efficiency reasons).
     QString lastSeenIp;
-    /// The timestamp (in milliseconds since the unix epoch) when this deviceswas
-    /// last seen. (May be a few minutes out of date, for efficiencyreasons).
+
+    /// The timestamp (in milliseconds since the unix epoch) when this devices
+    /// was last seen. (May be a few minutes out of date, for efficiency
+    /// reasons).
     Omittable<qint64> lastSeenTs;
 };
 
 template <>
-struct JsonObjectConverter<Device>
-{
+struct JsonObjectConverter<Device> {
     static void dumpTo(QJsonObject& jo, const Device& pod);
     static void fillFrom(const QJsonObject& jo, Device& pod);
 };

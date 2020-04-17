@@ -8,13 +8,12 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Send a message event to the given room.
-/*!
+/*! \brief Send a message event to the given room.
+ *
  * This endpoint is used to send a message event to a room. Message events
  * allow access to historical events and pagination, making them suited
  * for "once-off" activity in a room.
@@ -23,10 +22,10 @@ namespace Quotient
  * fields in this object will vary depending on the type of event. See
  * `Room Events`_ for the m. event specification.
  */
-class SendMessageJob : public BaseJob
-{
+class SendMessageJob : public BaseJob {
 public:
-    /*! Send a message event to the given room.
+    /*! \brief Send a message event to the given room.
+     *
      * \param roomId
      *   The room to send the event to.
      * \param eventType

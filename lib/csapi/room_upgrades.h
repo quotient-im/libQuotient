@@ -6,19 +6,18 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Upgrades a room to a new room version.
-/*!
+/*! \brief Upgrades a room to a new room version.
+ *
  * Upgrades the given room to a particular room version.
  */
-class UpgradeRoomJob : public BaseJob
-{
+class UpgradeRoomJob : public BaseJob {
 public:
-    /*! Upgrades a room to a new room version.
+    /*! \brief Upgrades a room to a new room version.
+     *
      * \param roomId
      *   The ID of the room to upgrade.
      * \param newVersion

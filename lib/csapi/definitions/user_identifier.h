@@ -8,14 +8,12 @@
 
 #include <QtCore/QVariant>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Data structures
 
 /// Identification information for a user
-struct UserIdentifier
-{
+struct UserIdentifier {
     /// The type of identification.  See `Identifier types`_ for supported
     /// values and additional property descriptions.
     QString type;
@@ -25,8 +23,7 @@ struct UserIdentifier
 };
 
 template <>
-struct JsonObjectConverter<UserIdentifier>
-{
+struct JsonObjectConverter<UserIdentifier> {
     static void dumpTo(QJsonObject& jo, const UserIdentifier& pod);
     static void fillFrom(QJsonObject jo, UserIdentifier& pod);
 };

@@ -9,20 +9,19 @@
 #include "events/eventloader.h"
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Get a list of events for this room
-/*!
+/*! \brief Get a list of events for this room
+ *
  * This API returns a list of message and state events for a room. It uses
  * pagination query parameters to paginate history in the room.
  */
-class GetRoomEventsJob : public BaseJob
-{
+class GetRoomEventsJob : public BaseJob {
 public:
-    /*! Get a list of events for this room
+    /*! \brief Get a list of events for this room
+     *
      * \param roomId
      *   The room to get events from.
      * \param from
@@ -47,18 +46,16 @@ public:
                               Omittable<int> limit = none,
                               const QString& filter = {});
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetRoomEventsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetRoomEventsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& from, const QString& dir,
                                const QString& to = {},
                                Omittable<int> limit = none,
                                const QString& filter = {});
-
     ~GetRoomEventsJob() override;
 
     // Result properties
@@ -66,9 +63,11 @@ public:
     /// The token the pagination starts from. If ``dir=b`` this will be
     /// the token supplied in ``from``.
     const QString& begin() const;
+
     /// The token the pagination ends at. If ``dir=b`` this token should
     /// be used again to request even earlier events.
     const QString& end() const;
+
     /// A list of room events.
     RoomEvents&& chunk();
 

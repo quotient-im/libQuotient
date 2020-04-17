@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetRoomTagsJob::Tag>
-{
+struct JsonObjectConverter<GetRoomTagsJob::Tag> {
     static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
     {
         fromJson(jo.take("order"_ls), result.order);
@@ -28,8 +26,7 @@ struct JsonObjectConverter<GetRoomTagsJob::Tag>
 
 } // namespace Quotient
 
-class GetRoomTagsJob::Private
-{
+class GetRoomTagsJob::Private {
 public:
     QHash<QString, Tag> tags;
 };
@@ -42,10 +39,8 @@ QUrl GetRoomTagsJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
                                                            % roomId % "/tags");
 }
 
-static const auto GetRoomTagsJobName = QStringLiteral("GetRoomTagsJob");
-
 GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
-    : BaseJob(HttpVerb::Get, GetRoomTagsJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomTagsJob"),
               basePath % "/user/" % userId % "/rooms/" % roomId % "/tags")
     , d(new Private)
 {}
@@ -65,11 +60,9 @@ BaseJob::Status GetRoomTagsJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto SetRoomTagJobName = QStringLiteral("SetRoomTagJob");
-
 SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId,
                              const QString& tag, Omittable<float> order)
-    : BaseJob(HttpVerb::Put, SetRoomTagJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomTagJob"),
               basePath % "/user/" % userId % "/rooms/" % roomId % "/tags/" % tag)
 {
     QJsonObject _data;
@@ -85,10 +78,8 @@ QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
                                        % roomId % "/tags/" % tag);
 }
 
-static const auto DeleteRoomTagJobName = QStringLiteral("DeleteRoomTagJob");
-
 DeleteRoomTagJob::DeleteRoomTagJob(const QString& userId, const QString& roomId,
                                    const QString& tag)
-    : BaseJob(HttpVerb::Delete, DeleteRoomTagJobName,
+    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomTagJob"),
               basePath % "/user/" % userId % "/rooms/" % roomId % "/tags/" % tag)
 {}

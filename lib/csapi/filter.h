@@ -10,21 +10,20 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Upload a new filter.
-/*!
+/*! \brief Upload a new filter.
+ *
  * Uploads a new filter definition to the homeserver.
  * Returns a filter ID that may be used in future requests to
  * restrict which events are returned to the client.
  */
-class DefineFilterJob : public BaseJob
-{
+class DefineFilterJob : public BaseJob {
 public:
-    /*! Upload a new filter.
+    /*! \brief Upload a new filter.
+     *
      * \param userId
      *   The id of the user uploading the filter. The access token must be
      * authorized to make requests for this user id. \param filter Uploads a new
@@ -51,12 +50,13 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Download a filter
-
-class GetFilterJob : public BaseJob
-{
+/*! \brief Download a filter
+ *
+ */
+class GetFilterJob : public BaseJob {
 public:
-    /*! Download a filter
+    /*! \brief Download a filter
+     *
      * \param userId
      *   The user ID to download a filter for.
      * \param filterId
@@ -64,15 +64,13 @@ public:
      */
     explicit GetFilterJob(const QString& userId, const QString& filterId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetFilterJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetFilterJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& filterId);
-
     ~GetFilterJob() override;
 
     // Result properties

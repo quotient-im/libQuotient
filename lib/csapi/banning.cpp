@@ -12,11 +12,10 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto BanJobName = QStringLiteral("BanJob");
-
 BanJob::BanJob(const QString& roomId, const QString& userId,
                const QString& reason)
-    : BaseJob(HttpVerb::Post, BanJobName, basePath % "/rooms/" % roomId % "/ban")
+    : BaseJob(HttpVerb::Post, QStringLiteral("BanJob"),
+              basePath % "/rooms/" % roomId % "/ban")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);
@@ -24,10 +23,8 @@ BanJob::BanJob(const QString& roomId, const QString& userId,
     setRequestData(_data);
 }
 
-static const auto UnbanJobName = QStringLiteral("UnbanJob");
-
 UnbanJob::UnbanJob(const QString& roomId, const QString& userId)
-    : BaseJob(HttpVerb::Post, UnbanJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("UnbanJob"),
               basePath % "/rooms/" % roomId % "/unban")
 {
     QJsonObject _data;

@@ -8,21 +8,20 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Set some account_data for the user.
-/*!
+/*! \brief Set some account_data for the user.
+ *
  * Set some account_data for the client. This config is only visible to the user
  * that set the account_data. The config will be synced to clients in the
  * top-level ``account_data``.
  */
-class SetAccountDataJob : public BaseJob
-{
+class SetAccountDataJob : public BaseJob {
 public:
-    /*! Set some account_data for the user.
+    /*! \brief Set some account_data for the user.
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -36,15 +35,15 @@ public:
                                const QJsonObject& content = {});
 };
 
-/// Get some account_data for the user.
-/*!
+/*! \brief Get some account_data for the user.
+ *
  * Get some account_data for the client. This config is only visible to the user
  * that set the account_data.
  */
-class GetAccountDataJob : public BaseJob
-{
+class GetAccountDataJob : public BaseJob {
 public:
-    /*! Get some account_data for the user.
+    /*! \brief Get some account_data for the user.
+     *
      * \param userId
      *   The ID of the user to get account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -54,26 +53,25 @@ public:
      */
     explicit GetAccountDataJob(const QString& userId, const QString& type);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetAccountDataJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetAccountDataJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& type);
 };
 
-/// Set some account_data for the user.
-/*!
+/*! \brief Set some account_data for the user.
+ *
  * Set some account_data for the client on a given room. This config is only
  * visible to the user that set the account_data. The config will be synced to
  * clients in the per-room ``account_data``.
  */
-class SetAccountDataPerRoomJob : public BaseJob
-{
+class SetAccountDataPerRoomJob : public BaseJob {
 public:
-    /*! Set some account_data for the user.
+    /*! \brief Set some account_data for the user.
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -90,15 +88,15 @@ public:
                                       const QJsonObject& content = {});
 };
 
-/// Get some account_data for the user.
-/*!
+/*! \brief Get some account_data for the user.
+ *
  * Get some account_data for the client on a given room. This config is only
  * visible to the user that set the account_data.
  */
-class GetAccountDataPerRoomJob : public BaseJob
-{
+class GetAccountDataPerRoomJob : public BaseJob {
 public:
-    /*! Get some account_data for the user.
+    /*! \brief Get some account_data for the user.
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -112,11 +110,10 @@ public:
                                       const QString& roomId,
                                       const QString& type);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetAccountDataPerRoomJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetAccountDataPerRoomJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& roomId, const QString& type);

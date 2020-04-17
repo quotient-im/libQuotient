@@ -12,16 +12,13 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class UpgradeRoomJob::Private
-{
+class UpgradeRoomJob::Private {
 public:
     QString replacementRoom;
 };
 
-static const auto UpgradeRoomJobName = QStringLiteral("UpgradeRoomJob");
-
 UpgradeRoomJob::UpgradeRoomJob(const QString& roomId, const QString& newVersion)
-    : BaseJob(HttpVerb::Post, UpgradeRoomJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("UpgradeRoomJob"),
               basePath % "/rooms/" % roomId % "/upgrade")
     , d(new Private)
 {

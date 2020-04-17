@@ -18,10 +18,8 @@ QUrl LeaveRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
                                    basePath % "/rooms/" % roomId % "/leave");
 }
 
-static const auto LeaveRoomJobName = QStringLiteral("LeaveRoomJob");
-
 LeaveRoomJob::LeaveRoomJob(const QString& roomId)
-    : BaseJob(HttpVerb::Post, LeaveRoomJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("LeaveRoomJob"),
               basePath % "/rooms/" % roomId % "/leave")
 {}
 
@@ -31,9 +29,7 @@ QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
                                    basePath % "/rooms/" % roomId % "/forget");
 }
 
-static const auto ForgetRoomJobName = QStringLiteral("ForgetRoomJob");
-
 ForgetRoomJob::ForgetRoomJob(const QString& roomId)
-    : BaseJob(HttpVerb::Post, ForgetRoomJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("ForgetRoomJob"),
               basePath % "/rooms/" % roomId % "/forget")
 {}

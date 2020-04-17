@@ -12,20 +12,19 @@
 
 #include <QtCore/QHash>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Get a single event by event ID.
-/*!
+/*! \brief Get a single event by event ID.
+ *
  * Get a single event based on ``roomId/eventId``. You must have permission to
  * retrieve this event e.g. by being a member in the room for this event.
  */
-class GetOneRoomEventJob : public BaseJob
-{
+class GetOneRoomEventJob : public BaseJob {
 public:
-    /*! Get a single event by event ID.
+    /*! \brief Get a single event by event ID.
+     *
      * \param roomId
      *   The ID of the room the event is in.
      * \param eventId
@@ -33,15 +32,13 @@ public:
      */
     explicit GetOneRoomEventJob(const QString& roomId, const QString& eventId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetOneRoomEventJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetOneRoomEventJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventId);
-
     ~GetOneRoomEventJob() override;
 
     // Result properties
@@ -57,17 +54,17 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Get the state identified by the type and key.
-/*!
+/*! \brief Get the state identified by the type and key.
+ *
  * Looks up the contents of a state event in a room. If the user is
  * joined to the room then the state is taken from the current
  * state of the room. If the user has left the room then the state is
  * taken from the state of the room when they left.
  */
-class GetRoomStateWithKeyJob : public BaseJob
-{
+class GetRoomStateWithKeyJob : public BaseJob {
 public:
-    /*! Get the state identified by the type and key.
+    /*! \brief Get the state identified by the type and key.
+     *
      * \param roomId
      *   The room to look up the state in.
      * \param eventType
@@ -79,19 +76,18 @@ public:
                                     const QString& eventType,
                                     const QString& stateKey);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetRoomStateWithKeyJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetRoomStateWithKeyJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventType,
                                const QString& stateKey);
 };
 
-/// Get the state identified by the type, with the empty state key.
-/*!
+/*! \brief Get the state identified by the type, with the empty state key.
+ *
  * Looks up the contents of a state event in a room. If the user is
  * joined to the room then the state is taken from the current
  * state of the room. If the user has left the room then the state is
@@ -99,10 +95,10 @@ public:
  *
  * This looks up the state event with the empty state key.
  */
-class GetRoomStateByTypeJob : public BaseJob
-{
+class GetRoomStateByTypeJob : public BaseJob {
 public:
-    /*! Get the state identified by the type, with the empty state key.
+    /*! \brief Get the state identified by the type, with the empty state key.
+     *
      * \param roomId
      *   The room to look up the state in.
      * \param eventType
@@ -111,37 +107,34 @@ public:
     explicit GetRoomStateByTypeJob(const QString& roomId,
                                    const QString& eventType);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetRoomStateByTypeJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetRoomStateByTypeJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventType);
 };
 
-/// Get all state events in the current state of a room.
-/*!
+/*! \brief Get all state events in the current state of a room.
+ *
  * Get the state events for the current state of a room.
  */
-class GetRoomStateJob : public BaseJob
-{
+class GetRoomStateJob : public BaseJob {
 public:
-    /*! Get all state events in the current state of a room.
+    /*! \brief Get all state events in the current state of a room.
+     *
      * \param roomId
      *   The room to look up the state for.
      */
     explicit GetRoomStateJob(const QString& roomId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetRoomStateJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetRoomStateJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-
     ~GetRoomStateJob() override;
 
     // Result properties
@@ -160,14 +153,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Get the m.room.member events for the room.
-/*!
+/*! \brief Get the m.room.member events for the room.
+ *
  * Get the list of members for this room.
  */
-class GetMembersByRoomJob : public BaseJob
-{
+class GetMembersByRoomJob : public BaseJob {
 public:
-    /*! Get the m.room.member events for the room.
+    /*! \brief Get the m.room.member events for the room.
+     *
      * \param roomId
      *   The room to get the member events for.
      * \param at
@@ -184,17 +177,15 @@ public:
                                  const QString& membership = {},
                                  const QString& notMembership = {});
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetMembersByRoomJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetMembersByRoomJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& at = {},
                                const QString& membership = {},
                                const QString& notMembership = {});
-
     ~GetMembersByRoomJob() override;
 
     // Result properties
@@ -210,8 +201,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Gets the list of currently joined users and their profile data.
-/*!
+/*! \brief Gets the list of currently joined users and their profile data.
+ *
  * This API returns a map of MXIDs to member info objects for members of the
  * room. The current user must be in the room for it to work, unless it is an
  * Application Service in which case any of the AS's users must be in the room.
@@ -219,8 +210,7 @@ private:
  * respond than ``/members`` as it can be implemented more efficiently on the
  * server.
  */
-class GetJoinedMembersByRoomJob : public BaseJob
-{
+class GetJoinedMembersByRoomJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -230,8 +220,7 @@ public:
     /// the room. This API is primarily for Application Services and should be
     /// faster to respond than ``/members`` as it can be implemented more
     /// efficiently on the server.
-    struct RoomMember
-    {
+    struct RoomMember {
         /// The display name of the user this object is representing.
         QString displayName;
         /// The mxc avatar url of the user this object is representing.
@@ -240,20 +229,19 @@ public:
 
     // Construction/destruction
 
-    /*! Gets the list of currently joined users and their profile data.
+    /*! \brief Gets the list of currently joined users and their profile data.
+     *
      * \param roomId
      *   The room to get the members of.
      */
     explicit GetJoinedMembersByRoomJob(const QString& roomId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetJoinedMembersByRoomJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetJoinedMembersByRoomJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-
     ~GetJoinedMembersByRoomJob() override;
 
     // Result properties

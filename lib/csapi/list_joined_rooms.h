@@ -6,28 +6,25 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Lists the user's current rooms.
-/*!
+/*! \brief Lists the user's current rooms.
+ *
  * This API returns a list of the user's current rooms.
  */
-class GetJoinedRoomsJob : public BaseJob
-{
+class GetJoinedRoomsJob : public BaseJob {
 public:
+    /// Lists the user's current rooms.
     explicit GetJoinedRoomsJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetJoinedRoomsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetJoinedRoomsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetJoinedRoomsJob() override;
 
     // Result properties

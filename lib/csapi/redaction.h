@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Strips all non-integrity-critical information out of an event.
-/*!
+/*! \brief Strips all non-integrity-critical information out of an event.
+ *
  * Strips all information out of an event which isn't critical to the
  * integrity of the server-side representation of the room.
  *
@@ -22,10 +21,10 @@ namespace Quotient
  * greater than or equal to the `redact` power level of the room may
  * redact events there.
  */
-class RedactEventJob : public BaseJob
-{
+class RedactEventJob : public BaseJob {
 public:
-    /*! Strips all non-integrity-critical information out of an event.
+    /*! \brief Strips all non-integrity-critical information out of an event.
+     *
      * \param roomId
      *   The room from which to redact the event.
      * \param eventId

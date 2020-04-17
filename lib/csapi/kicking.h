@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Kick a user from the room.
-/*!
+/*! \brief Kick a user from the room.
+ *
  * Kick a user from the room.
  *
  * The caller must have the required power level in order to perform this
@@ -23,10 +22,10 @@ namespace Quotient
  * directly adjust the target member's state by making a request to
  * ``/rooms/<room id>/state/m.room.member/<user id>``.
  */
-class KickJob : public BaseJob
-{
+class KickJob : public BaseJob {
 public:
-    /*! Kick a user from the room.
+    /*! \brief Kick a user from the room.
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be kicked.
      * \param userId

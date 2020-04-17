@@ -12,11 +12,9 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto SetPresenceJobName = QStringLiteral("SetPresenceJob");
-
 SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
                                const QString& statusMsg)
-    : BaseJob(HttpVerb::Put, SetPresenceJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetPresenceJob"),
               basePath % "/presence/" % userId % "/status")
 {
     QJsonObject _data;
@@ -25,8 +23,7 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
     setRequestData(_data);
 }
 
-class GetPresenceJob::Private
-{
+class GetPresenceJob::Private {
 public:
     QString presence;
     Omittable<int> lastActiveAgo;
@@ -40,10 +37,8 @@ QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
                                    basePath % "/presence/" % userId % "/status");
 }
 
-static const auto GetPresenceJobName = QStringLiteral("GetPresenceJob");
-
 GetPresenceJob::GetPresenceJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, GetPresenceJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPresenceJob"),
               basePath % "/presence/" % userId % "/status")
     , d(new Private)
 {}

@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/.well-known");
 
-class GetWellknownJob::Private
-{
+class GetWellknownJob::Private {
 public:
     DiscoveryInformation data;
 };
@@ -24,11 +23,9 @@ QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/matrix/client");
 }
 
-static const auto GetWellknownJobName = QStringLiteral("GetWellknownJob");
-
 GetWellknownJob::GetWellknownJob()
-    : BaseJob(HttpVerb::Get, GetWellknownJobName, basePath % "/matrix/client",
-              false)
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetWellknownJob"),
+              basePath % "/matrix/client", false)
     , d(new Private)
 {}
 
@@ -39,5 +36,6 @@ const DiscoveryInformation& GetWellknownJob::data() const { return d->data; }
 BaseJob::Status GetWellknownJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }

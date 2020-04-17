@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<CreateRoomJob::Invite3pid>
-{
+struct JsonObjectConverter<CreateRoomJob::Invite3pid> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)
     {
         addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
@@ -28,8 +26,7 @@ struct JsonObjectConverter<CreateRoomJob::Invite3pid>
 };
 
 template <>
-struct JsonObjectConverter<CreateRoomJob::StateEvent>
-{
+struct JsonObjectConverter<CreateRoomJob::StateEvent> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
     {
         addParam<>(jo, QStringLiteral("type"), pod.type);
@@ -40,13 +37,10 @@ struct JsonObjectConverter<CreateRoomJob::StateEvent>
 
 } // namespace Quotient
 
-class CreateRoomJob::Private
-{
+class CreateRoomJob::Private {
 public:
     QString roomId;
 };
-
-static const auto CreateRoomJobName = QStringLiteral("CreateRoomJob");
 
 CreateRoomJob::CreateRoomJob(const QString& visibility,
                              const QString& roomAliasName, const QString& name,
@@ -57,7 +51,8 @@ CreateRoomJob::CreateRoomJob(const QString& visibility,
                              const QVector<StateEvent>& initialState,
                              const QString& preset, Omittable<bool> isDirect,
                              const QJsonObject& powerLevelContentOverride)
-    : BaseJob(HttpVerb::Post, CreateRoomJobName, basePath % "/createRoom")
+    : BaseJob(HttpVerb::Post, QStringLiteral("CreateRoomJob"),
+              basePath % "/createRoom")
     , d(new Private)
 {
     QJsonObject _data;

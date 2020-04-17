@@ -8,24 +8,23 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Data structures
 
-struct ThirdPartyUser
-{
+struct ThirdPartyUser {
     /// A Matrix User ID represting a third party user.
     QString userid;
+
     /// The protocol ID that the third party location is a part of.
     QString protocol;
+
     /// Information used to identify this third party location.
     QJsonObject fields;
 };
 
 template <>
-struct JsonObjectConverter<ThirdPartyUser>
-{
+struct JsonObjectConverter<ThirdPartyUser> {
     static void dumpTo(QJsonObject& jo, const ThirdPartyUser& pod);
     static void fillFrom(const QJsonObject& jo, ThirdPartyUser& pod);
 };

@@ -6,32 +6,30 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Invalidates a user access token
-/*!
+/*! \brief Invalidates a user access token
+ *
  * Invalidates an existing access token, so that it can no longer be used for
  * authorization.
  */
-class LogoutJob : public BaseJob
-{
+class LogoutJob : public BaseJob {
 public:
+    /// Invalidates a user access token
     explicit LogoutJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * LogoutJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for LogoutJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
 };
 
-/// Invalidates all access tokens for a user
-/*!
+/*! \brief Invalidates all access tokens for a user
+ *
  * Invalidates all access tokens for a user, so that they can no longer be used
  * for authorization. This includes the access token that made this request.
  *
@@ -41,16 +39,15 @@ public:
  * access tokens for the user, including the token used in the request, and
  * therefore the attacker is unable to take over the account in this way.
  */
-class LogoutAllJob : public BaseJob
-{
+class LogoutAllJob : public BaseJob {
 public:
+    /// Invalidates all access tokens for a user
     explicit LogoutAllJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * LogoutAllJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for LogoutAllJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
 };

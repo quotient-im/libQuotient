@@ -14,31 +14,28 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Retrieve all push rulesets.
-/*!
+/*! \brief Retrieve all push rulesets.
+ *
  * Retrieve all push rulesets for this user. Clients can "drill-down" on
  * the rulesets by suffixing a ``scope`` to this path e.g.
  * ``/pushrules/global/``. This will return a subset of this data under the
  * specified key e.g. the ``global`` key.
  */
-class GetPushRulesJob : public BaseJob
-{
+class GetPushRulesJob : public BaseJob {
 public:
+    /// Retrieve all push rulesets.
     explicit GetPushRulesJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPushRulesJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPushRulesJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetPushRulesJob() override;
 
     // Result properties
@@ -54,14 +51,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Retrieve a push rule.
-/*!
+/*! \brief Retrieve a push rule.
+ *
  * Retrieve a single specified push rule.
  */
-class GetPushRuleJob : public BaseJob
-{
+class GetPushRuleJob : public BaseJob {
 public:
-    /*! Retrieve a push rule.
+    /*! \brief Retrieve a push rule.
+     *
      * \param scope
      *   ``global`` to specify global rules.
      * \param kind
@@ -72,15 +69,13 @@ public:
     explicit GetPushRuleJob(const QString& scope, const QString& kind,
                             const QString& ruleId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPushRuleJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPushRuleJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-
     ~GetPushRuleJob() override;
 
     // Result properties
@@ -96,14 +91,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Delete a push rule.
-/*!
+/*! \brief Delete a push rule.
+ *
  * This endpoint removes the push rule defined in the path.
  */
-class DeletePushRuleJob : public BaseJob
-{
+class DeletePushRuleJob : public BaseJob {
 public:
-    /*! Delete a push rule.
+    /*! \brief Delete a push rule.
+     *
      * \param scope
      *   ``global`` to specify global rules.
      * \param kind
@@ -114,28 +109,27 @@ public:
     explicit DeletePushRuleJob(const QString& scope, const QString& kind,
                                const QString& ruleId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * DeletePushRuleJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for DeletePushRuleJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
 };
 
-/// Add or change a push rule.
-/*!
+/*! \brief Add or change a push rule.
+ *
  * This endpoint allows the creation, modification and deletion of pushers
  * for this user ID. The behaviour of this endpoint varies depending on the
  * values in the JSON body.
  *
  * When creating push rules, they MUST be enabled by default.
  */
-class SetPushRuleJob : public BaseJob
-{
+class SetPushRuleJob : public BaseJob {
 public:
-    /*! Add or change a push rule.
+    /*! \brief Add or change a push rule.
+     *
      * \param scope
      *   ``global`` to specify global rules.
      * \param kind
@@ -167,14 +161,14 @@ public:
                             const QString& pattern = {});
 };
 
-/// Get whether a push rule is enabled
-/*!
+/*! \brief Get whether a push rule is enabled
+ *
  * This endpoint gets whether the specified push rule is enabled.
  */
-class IsPushRuleEnabledJob : public BaseJob
-{
+class IsPushRuleEnabledJob : public BaseJob {
 public:
-    /*! Get whether a push rule is enabled
+    /*! \brief Get whether a push rule is enabled
+     *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
      *   rules or device rules for the given ``profile_tag``.
@@ -186,15 +180,13 @@ public:
     explicit IsPushRuleEnabledJob(const QString& scope, const QString& kind,
                                   const QString& ruleId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * IsPushRuleEnabledJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for IsPushRuleEnabledJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-
     ~IsPushRuleEnabledJob() override;
 
     // Result properties
@@ -210,14 +202,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Enable or disable a push rule.
-/*!
+/*! \brief Enable or disable a push rule.
+ *
  * This endpoint allows clients to enable or disable the specified push rule.
  */
-class SetPushRuleEnabledJob : public BaseJob
-{
+class SetPushRuleEnabledJob : public BaseJob {
 public:
-    /*! Enable or disable a push rule.
+    /*! \brief Enable or disable a push rule.
+     *
      * \param scope
      *   ``global`` to specify global rules.
      * \param kind
@@ -231,14 +223,14 @@ public:
                                    const QString& ruleId, bool enabled);
 };
 
-/// The actions for a push rule
-/*!
+/*! \brief The actions for a push rule
+ *
  * This endpoint get the actions for the specified push rule.
  */
-class GetPushRuleActionsJob : public BaseJob
-{
+class GetPushRuleActionsJob : public BaseJob {
 public:
-    /*! The actions for a push rule
+    /*! \brief The actions for a push rule
+     *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
      *   rules or device rules for the given ``profile_tag``.
@@ -250,15 +242,13 @@ public:
     explicit GetPushRuleActionsJob(const QString& scope, const QString& kind,
                                    const QString& ruleId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPushRuleActionsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPushRuleActionsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-
     ~GetPushRuleActionsJob() override;
 
     // Result properties
@@ -274,15 +264,15 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Set the actions for a push rule.
-/*!
+/*! \brief Set the actions for a push rule.
+ *
  * This endpoint allows clients to change the actions of a push rule.
  * This can be used to change the actions of builtin rules.
  */
-class SetPushRuleActionsJob : public BaseJob
-{
+class SetPushRuleActionsJob : public BaseJob {
 public:
-    /*! Set the actions for a push rule.
+    /*! \brief Set the actions for a push rule.
+     *
      * \param scope
      *   ``global`` to specify global rules.
      * \param kind

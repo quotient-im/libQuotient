@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetPushersJob::PusherData>
-{
+struct JsonObjectConverter<GetPushersJob::PusherData> {
     static void fillFrom(const QJsonObject& jo,
                          GetPushersJob::PusherData& result)
     {
@@ -28,8 +26,7 @@ struct JsonObjectConverter<GetPushersJob::PusherData>
 };
 
 template <>
-struct JsonObjectConverter<GetPushersJob::Pusher>
-{
+struct JsonObjectConverter<GetPushersJob::Pusher> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
     {
         fromJson(jo.value("pushkey"_ls), result.pushkey);
@@ -45,8 +42,7 @@ struct JsonObjectConverter<GetPushersJob::Pusher>
 
 } // namespace Quotient
 
-class GetPushersJob::Private
-{
+class GetPushersJob::Private {
 public:
     QVector<Pusher> pushers;
 };
@@ -56,10 +52,9 @@ QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
     return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/pushers");
 }
 
-static const auto GetPushersJobName = QStringLiteral("GetPushersJob");
-
 GetPushersJob::GetPushersJob()
-    : BaseJob(HttpVerb::Get, GetPushersJobName, basePath % "/pushers")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetPushersJob"),
+              basePath % "/pushers")
     , d(new Private)
 {}
 
@@ -79,12 +74,10 @@ BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<PostPusherJob::PusherData>
-{
+struct JsonObjectConverter<PostPusherJob::PusherData> {
     static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
@@ -94,14 +87,13 @@ struct JsonObjectConverter<PostPusherJob::PusherData>
 
 } // namespace Quotient
 
-static const auto PostPusherJobName = QStringLiteral("PostPusherJob");
-
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& appId, const QString& appDisplayName,
                              const QString& deviceDisplayName,
                              const QString& lang, const PusherData& data,
                              const QString& profileTag, Omittable<bool> append)
-    : BaseJob(HttpVerb::Post, PostPusherJobName, basePath % "/pushers/set")
+    : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
+              basePath % "/pushers/set")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("pushkey"), pushkey);

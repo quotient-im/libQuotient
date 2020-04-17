@@ -8,13 +8,12 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Send a state event to the given room.
-/*!
+/*! \brief Send a state event to the given room.
+ *
  * State events can be sent using this endpoint.  These events will be
  * overwritten if ``<room id>``, ``<event type>`` and ``<state key>`` all
  * match.
@@ -27,10 +26,10 @@ namespace Quotient
  * fields in this object will vary depending on the type of event. See
  * `Room Events`_ for the ``m.`` event specification.
  */
-class SetRoomStateWithKeyJob : public BaseJob
-{
+class SetRoomStateWithKeyJob : public BaseJob {
 public:
-    /*! Send a state event to the given room.
+    /*! \brief Send a state event to the given room.
+     *
      * \param roomId
      *   The room to set the state in
      * \param eventType
@@ -70,8 +69,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Send a state event to the given room.
-/*!
+/*! \brief Send a state event to the given room.
+ *
  * State events can be sent using this endpoint. This endpoint is
  * equivalent to calling `/rooms/{roomId}/state/{eventType}/{stateKey}`
  * with an empty `stateKey`. Previous state events with matching
@@ -85,10 +84,10 @@ private:
  * fields in this object will vary depending on the type of event. See
  * `Room Events`_ for the ``m.`` event specification.
  */
-class SetRoomStateJob : public BaseJob
-{
+class SetRoomStateJob : public BaseJob {
 public:
-    /*! Send a state event to the given room.
+    /*! \brief Send a state event to the given room.
+     *
      * \param roomId
      *   The room to set the state in
      * \param eventType

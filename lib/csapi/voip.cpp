@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetTurnServerJob::Private
-{
+class GetTurnServerJob::Private {
 public:
     QJsonObject data;
 };
@@ -24,10 +23,9 @@ QUrl GetTurnServerJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/voip/turnServer");
 }
 
-static const auto GetTurnServerJobName = QStringLiteral("GetTurnServerJob");
-
 GetTurnServerJob::GetTurnServerJob()
-    : BaseJob(HttpVerb::Get, GetTurnServerJobName, basePath % "/voip/turnServer")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetTurnServerJob"),
+              basePath % "/voip/turnServer")
     , d(new Private)
 {}
 
@@ -38,5 +36,6 @@ const QJsonObject& GetTurnServerJob::data() const { return d->data; }
 BaseJob::Status GetTurnServerJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }

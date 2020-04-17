@@ -12,11 +12,9 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto SetTypingJobName = QStringLiteral("SetTypingJob");
-
 SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId,
                            bool typing, Omittable<int> timeout)
-    : BaseJob(HttpVerb::Put, SetTypingJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetTypingJob"),
               basePath % "/rooms/" % roomId % "/typing/" % userId)
 {
     QJsonObject _data;

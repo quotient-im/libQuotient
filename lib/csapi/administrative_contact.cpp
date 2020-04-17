@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier>
-{
+struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
     static void fillFrom(const QJsonObject& jo,
                          GetAccount3PIDsJob::ThirdPartyIdentifier& result)
     {
@@ -31,8 +29,7 @@ struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier>
 
 } // namespace Quotient
 
-class GetAccount3PIDsJob::Private
-{
+class GetAccount3PIDsJob::Private {
 public:
     QVector<ThirdPartyIdentifier> threepids;
 };
@@ -43,10 +40,9 @@ QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
                                    basePath % "/account/3pid");
 }
 
-static const auto GetAccount3PIDsJobName = QStringLiteral("GetAccount3PIDsJob");
-
 GetAccount3PIDsJob::GetAccount3PIDsJob()
-    : BaseJob(HttpVerb::Get, GetAccount3PIDsJobName, basePath % "/account/3pid")
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetAccount3PIDsJob"),
+              basePath % "/account/3pid")
     , d(new Private)
 {}
 
@@ -67,12 +63,10 @@ BaseJob::Status GetAccount3PIDsJob::parseJson(const QJsonDocument& data)
 }
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials>
-{
+struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
     static void dumpTo(QJsonObject& jo,
                        const Post3PIDsJob::ThreePidCredentials& pod)
     {
@@ -84,11 +78,10 @@ struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials>
 
 } // namespace Quotient
 
-static const auto Post3PIDsJobName = QStringLiteral("Post3PIDsJob");
-
 Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds,
                            Omittable<bool> bind)
-    : BaseJob(HttpVerb::Post, Post3PIDsJobName, basePath % "/account/3pid")
+    : BaseJob(HttpVerb::Post, QStringLiteral("Post3PIDsJob"),
+              basePath % "/account/3pid")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("three_pid_creds"), threePidCreds);
@@ -96,12 +89,9 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds,
     setRequestData(_data);
 }
 
-static const auto Delete3pidFromAccountJobName =
-    QStringLiteral("Delete3pidFromAccountJob");
-
 Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
                                                    const QString& address)
-    : BaseJob(HttpVerb::Post, Delete3pidFromAccountJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("Delete3pidFromAccountJob"),
               basePath % "/account/3pid/delete")
 {
     QJsonObject _data;
@@ -110,19 +100,15 @@ Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
     setRequestData(_data);
 }
 
-class RequestTokenTo3PIDEmailJob::Private
-{
+class RequestTokenTo3PIDEmailJob::Private {
 public:
     Sid data;
 };
 
-static const auto RequestTokenTo3PIDEmailJobName =
-    QStringLiteral("RequestTokenTo3PIDEmailJob");
-
 RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(
     const QString& clientSecret, const QString& email, int sendAttempt,
     const QString& idServer, const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDEmailJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDEmailJob"),
               basePath % "/account/3pid/email/requestToken", false)
     , d(new Private)
 {
@@ -142,23 +128,20 @@ const Sid& RequestTokenTo3PIDEmailJob::data() const { return d->data; }
 BaseJob::Status RequestTokenTo3PIDEmailJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
-class RequestTokenTo3PIDMSISDNJob::Private
-{
+class RequestTokenTo3PIDMSISDNJob::Private {
 public:
     Sid data;
 };
-
-static const auto RequestTokenTo3PIDMSISDNJobName =
-    QStringLiteral("RequestTokenTo3PIDMSISDNJob");
 
 RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
     const QString& clientSecret, const QString& country,
     const QString& phoneNumber, int sendAttempt, const QString& idServer,
     const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenTo3PIDMSISDNJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDMSISDNJob"),
               basePath % "/account/3pid/msisdn/requestToken", false)
     , d(new Private)
 {
@@ -179,5 +162,6 @@ const Sid& RequestTokenTo3PIDMSISDNJob::data() const { return d->data; }
 BaseJob::Status RequestTokenTo3PIDMSISDNJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }

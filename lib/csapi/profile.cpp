@@ -12,11 +12,9 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto SetDisplayNameJobName = QStringLiteral("SetDisplayNameJob");
-
 SetDisplayNameJob::SetDisplayNameJob(const QString& userId,
                                      const QString& displayname)
-    : BaseJob(HttpVerb::Put, SetDisplayNameJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetDisplayNameJob"),
               basePath % "/profile/" % userId % "/displayname")
 {
     QJsonObject _data;
@@ -24,22 +22,20 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId,
     setRequestData(_data);
 }
 
-class GetDisplayNameJob::Private
-{
+class GetDisplayNameJob::Private {
 public:
     QString displayname;
 };
 
 QUrl GetDisplayNameJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(
-        std::move(baseUrl), basePath % "/profile/" % userId % "/displayname");
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/profile/"
+                                                           % userId
+                                                           % "/displayname");
 }
 
-static const auto GetDisplayNameJobName = QStringLiteral("GetDisplayNameJob");
-
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, GetDisplayNameJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetDisplayNameJob"),
               basePath % "/profile/" % userId % "/displayname", false)
     , d(new Private)
 {}
@@ -56,10 +52,8 @@ BaseJob::Status GetDisplayNameJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-static const auto SetAvatarUrlJobName = QStringLiteral("SetAvatarUrlJob");
-
 SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl)
-    : BaseJob(HttpVerb::Put, SetAvatarUrlJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetAvatarUrlJob"),
               basePath % "/profile/" % userId % "/avatar_url")
 {
     QJsonObject _data;
@@ -67,22 +61,20 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl
     setRequestData(_data);
 }
 
-class GetAvatarUrlJob::Private
-{
+class GetAvatarUrlJob::Private {
 public:
     QString avatarUrl;
 };
 
 QUrl GetAvatarUrlJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(
-        std::move(baseUrl), basePath % "/profile/" % userId % "/avatar_url");
+    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/profile/"
+                                                           % userId
+                                                           % "/avatar_url");
 }
 
-static const auto GetAvatarUrlJobName = QStringLiteral("GetAvatarUrlJob");
-
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, GetAvatarUrlJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetAvatarUrlJob"),
               basePath % "/profile/" % userId % "/avatar_url", false)
     , d(new Private)
 {}
@@ -99,8 +91,7 @@ BaseJob::Status GetAvatarUrlJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class GetUserProfileJob::Private
-{
+class GetUserProfileJob::Private {
 public:
     QString avatarUrl;
     QString displayname;
@@ -112,10 +103,8 @@ QUrl GetUserProfileJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
                                    basePath % "/profile/" % userId);
 }
 
-static const auto GetUserProfileJobName = QStringLiteral("GetUserProfileJob");
-
 GetUserProfileJob::GetUserProfileJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, GetUserProfileJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetUserProfileJob"),
               basePath % "/profile/" % userId, false)
     , d(new Private)
 {}

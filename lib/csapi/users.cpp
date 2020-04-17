@@ -13,12 +13,10 @@ using namespace Quotient;
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
 // Converters
-namespace Quotient
-{
+namespace Quotient {
 
 template <>
-struct JsonObjectConverter<SearchUserDirectoryJob::User>
-{
+struct JsonObjectConverter<SearchUserDirectoryJob::User> {
     static void fillFrom(const QJsonObject& jo,
                          SearchUserDirectoryJob::User& result)
     {
@@ -30,19 +28,15 @@ struct JsonObjectConverter<SearchUserDirectoryJob::User>
 
 } // namespace Quotient
 
-class SearchUserDirectoryJob::Private
-{
+class SearchUserDirectoryJob::Private {
 public:
     QVector<User> results;
     bool limited;
 };
 
-static const auto SearchUserDirectoryJobName =
-    QStringLiteral("SearchUserDirectoryJob");
-
 SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm,
                                                Omittable<int> limit)
-    : BaseJob(HttpVerb::Post, SearchUserDirectoryJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("SearchUserDirectoryJob"),
               basePath % "/user_directory/search")
     , d(new Private)
 {

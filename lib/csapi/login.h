@@ -13,42 +13,39 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Get the supported login types to authenticate users
-/*!
+/*! \brief Get the supported login types to authenticate users
+ *
  * Gets the homeserver's supported login types to authenticate users. Clients
  * should pick one of these and supply it as the ``type`` when logging in.
  */
-class GetLoginFlowsJob : public BaseJob
-{
+class GetLoginFlowsJob : public BaseJob {
 public:
     // Inner data structures
 
     /// Gets the homeserver's supported login types to authenticate users.
-    /// Clientsshould pick one of these and supply it as the ``type`` when
+    /// Clients should pick one of these and supply it as the ``type`` when
     /// logging in.
-    struct LoginFlow
-    {
-        /// The login type. This is supplied as the ``type`` whenlogging in.
+    struct LoginFlow {
+        /// The login type. This is supplied as the ``type`` when
+        /// logging in.
         QString type;
     };
 
     // Construction/destruction
 
+    /// Get the supported login types to authenticate users
     explicit GetLoginFlowsJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetLoginFlowsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetLoginFlowsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetLoginFlowsJob() override;
 
     // Result properties
@@ -64,8 +61,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Authenticates the user.
-/*!
+/*! \brief Authenticates the user.
+ *
  * Authenticates the user, and issues an access token they can
  * use to authorize themself in subsequent requests.
  *
@@ -77,10 +74,10 @@ private:
  * invalidate any access token previously associated with that device. See
  * `Relationship between access tokens and devices`_.
  */
-class LoginJob : public BaseJob
-{
+class LoginJob : public BaseJob {
 public:
-    /*! Authenticates the user.
+    /*! \brief Authenticates the user.
+     *
      * \param type
      *   The login type being used.
      * \param identifier
@@ -116,9 +113,11 @@ public:
 
     /// The fully-qualified Matrix ID that has been registered.
     const QString& userId() const;
+
     /// An access token for the account.
     /// This access token can then be used to authorize other requests.
     const QString& accessToken() const;
+
     /// The server_name of the homeserver on which the account has
     /// been registered.
     ///
@@ -126,9 +125,11 @@ public:
     /// ``user_id`` (by splitting at the first colon) if they require
     /// it. Note also that ``homeserver`` is not spelt this way.
     const QString& homeServer() const;
+
     /// ID of the logged-in device. Will be the same as the
     /// corresponding parameter in the request, if one was specified.
     const QString& deviceId() const;
+
     /// Optional client configuration provided by the server. If present,
     /// clients SHOULD use the provided object to reconfigure themselves,
     /// optionally validating the URLs within. This object takes the same

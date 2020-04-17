@@ -8,22 +8,21 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Informs the server that the user has started or stopped typing.
-/*!
+/*! \brief Informs the server that the user has started or stopped typing.
+ *
  * This tells the server that the user is typing for the next N
  * milliseconds where N is the value specified in the ``timeout`` key.
  * Alternatively, if ``typing`` is ``false``, it tells the server that the
  * user has stopped typing.
  */
-class SetTypingJob : public BaseJob
-{
+class SetTypingJob : public BaseJob {
 public:
-    /*! Informs the server that the user has started or stopped typing.
+    /*! \brief Informs the server that the user has started or stopped typing.
+     *
      * \param userId
      *   The user who has started to type.
      * \param roomId

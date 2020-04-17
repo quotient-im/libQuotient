@@ -8,22 +8,21 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Update this user's presence state.
-/*!
+/*! \brief Update this user's presence state.
+ *
  * This API sets the given user's presence state. When setting the status,
  * the activity time is updated to reflect that activity; the client does
  * not need to specify the ``last_active_ago`` field. You cannot set the
  * presence state of another user.
  */
-class SetPresenceJob : public BaseJob
-{
+class SetPresenceJob : public BaseJob {
 public:
-    /*! Update this user's presence state.
+    /*! \brief Update this user's presence state.
+     *
      * \param userId
      *   The user whose presence state to update.
      * \param presence
@@ -35,38 +34,39 @@ public:
                             const QString& statusMsg = {});
 };
 
-/// Get this user's presence state.
-/*!
+/*! \brief Get this user's presence state.
+ *
  * Get the given user's presence state.
  */
-class GetPresenceJob : public BaseJob
-{
+class GetPresenceJob : public BaseJob {
 public:
-    /*! Get this user's presence state.
+    /*! \brief Get this user's presence state.
+     *
      * \param userId
      *   The user whose presence state to get.
      */
     explicit GetPresenceJob(const QString& userId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPresenceJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPresenceJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-
     ~GetPresenceJob() override;
 
     // Result properties
 
     /// This user's presence.
     const QString& presence() const;
+
     /// The length of time in milliseconds since an action was performed
     /// by this user.
     Omittable<int> lastActiveAgo() const;
+
     /// The state message for this user if one was set.
     const QString& statusMsg() const;
+
     /// Whether the user is currently active
     Omittable<bool> currentlyActive() const;
 

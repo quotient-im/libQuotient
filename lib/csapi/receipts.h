@@ -8,20 +8,19 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Send a receipt for the given event ID.
-/*!
+/*! \brief Send a receipt for the given event ID.
+ *
  * This API updates the marker for the given receipt type to the event ID
  * specified.
  */
-class PostReceiptJob : public BaseJob
-{
+class PostReceiptJob : public BaseJob {
 public:
-    /*! Send a receipt for the given event ID.
+    /*! \brief Send a receipt for the given event ID.
+     *
      * \param roomId
      *   The room in which to send the event.
      * \param receiptType

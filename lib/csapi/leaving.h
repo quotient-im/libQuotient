@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Stop the requesting user participating in a particular room.
-/*!
+/*! \brief Stop the requesting user participating in a particular room.
+ *
  * This API stops a user participating in a particular room.
  *
  * If the user was already in the room, they will no longer be able to see
@@ -25,26 +24,25 @@ namespace Quotient
  * The user will still be allowed to retrieve history from the room which
  * they were previously allowed to see.
  */
-class LeaveRoomJob : public BaseJob
-{
+class LeaveRoomJob : public BaseJob {
 public:
-    /*! Stop the requesting user participating in a particular room.
+    /*! \brief Stop the requesting user participating in a particular room.
+     *
      * \param roomId
      *   The room identifier to leave.
      */
     explicit LeaveRoomJob(const QString& roomId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * LeaveRoomJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for LeaveRoomJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
 };
 
-/// Stop the requesting user remembering about a particular room.
-/*!
+/*! \brief Stop the requesting user remembering about a particular room.
+ *
  * This API stops a user remembering about a particular room.
  *
  * In general, history is a first class citizen in Matrix. After this API
@@ -55,20 +53,19 @@ public:
  * If the user is currently joined to the room, they must leave the room
  * before calling this API.
  */
-class ForgetRoomJob : public BaseJob
-{
+class ForgetRoomJob : public BaseJob {
 public:
-    /*! Stop the requesting user remembering about a particular room.
+    /*! \brief Stop the requesting user remembering about a particular room.
+     *
      * \param roomId
      *   The room identifier to forget.
      */
     explicit ForgetRoomJob(const QString& roomId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * ForgetRoomJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for ForgetRoomJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
 };

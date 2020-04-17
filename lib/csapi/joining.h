@@ -10,13 +10,12 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Start the requesting user participating in a particular room.
-/*!
+/*! \brief Start the requesting user participating in a particular room.
+ *
  * *Note that this API requires a room ID, not alias.* ``/join/{roomIdOrAlias}``
  * *exists if you have a room alias.*
  *
@@ -32,15 +31,13 @@ namespace Quotient
  * that it matches a pending ``m.room.third_party_invite`` event in the
  * room, and perform key validity checking if required by the event.
  */
-class JoinRoomByIdJob : public BaseJob
-{
+class JoinRoomByIdJob : public BaseJob {
 public:
     // Inner data structures
 
     /// A signature of an ``m.third_party_invite`` token to prove that this user
     /// owns a third party identity which has been invited to the room.
-    struct ThirdPartySigned
-    {
+    struct ThirdPartySigned {
         /// The Matrix ID of the user who issued the invite.
         QString sender;
         /// The Matrix ID of the invitee.
@@ -54,7 +51,8 @@ public:
 
     // Construction/destruction
 
-    /*! Start the requesting user participating in a particular room.
+    /*! \brief Start the requesting user participating in a particular room.
+     *
      * \param roomId
      *   The room identifier (not alias) to join.
      * \param thirdPartySigned
@@ -80,8 +78,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Start the requesting user participating in a particular room.
-/*!
+/*! \brief Start the requesting user participating in a particular room.
+ *
  * *Note that this API takes either a room ID or alias, unlike*
  * ``/room/{roomId}/join``.
  *
@@ -97,23 +95,25 @@ private:
  * that it matches a pending ``m.room.third_party_invite`` event in the
  * room, and perform key validity checking if required by the event.
  */
-class JoinRoomJob : public BaseJob
-{
+class JoinRoomJob : public BaseJob {
 public:
     // Inner data structures
 
     /// *Note that this API takes either a room ID or alias, unlike*
-    /// ``/room/{roomId}/join``.This API starts a user participating in a
-    /// particular room, if that useris allowed to participate in that room.
-    /// After this call, the client isallowed to see all current state events in
-    /// the room, and all subsequentevents associated with the room until the
-    /// user leaves the room.After a user has joined a room, the room will
-    /// appear as an entry in theresponse of the |/initialSync|_ and |/sync|_
-    /// APIs.If a ``third_party_signed`` was supplied, the homeserver must
-    /// verifythat it matches a pending ``m.room.third_party_invite`` event in
-    /// theroom, and perform key validity checking if required by the event.
-    struct Signed
-    {
+    /// ``/room/{roomId}/join``.
+    ///
+    /// This API starts a user participating in a particular room, if that user
+    /// is allowed to participate in that room. After this call, the client is
+    /// allowed to see all current state events in the room, and all subsequent
+    /// events associated with the room until the user leaves the room.
+    ///
+    /// After a user has joined a room, the room will appear as an entry in the
+    /// response of the |/initialSync|_ and |/sync|_ APIs.
+    ///
+    /// If a ``third_party_signed`` was supplied, the homeserver must verify
+    /// that it matches a pending ``m.room.third_party_invite`` event in the
+    /// room, and perform key validity checking if required by the event.
+    struct Signed {
         /// The Matrix ID of the user who issued the invite.
         QString sender;
         /// The Matrix ID of the invitee.
@@ -127,8 +127,7 @@ public:
 
     /// A signature of an ``m.third_party_invite`` token to prove that this user
     /// owns a third party identity which has been invited to the room.
-    struct ThirdPartySigned
-    {
+    struct ThirdPartySigned {
         /// A signature of an ``m.third_party_invite`` token to prove that this
         /// user owns a third party identity which has been invited to the room.
         Signed signedData;
@@ -136,7 +135,8 @@ public:
 
     // Construction/destruction
 
-    /*! Start the requesting user participating in a particular room.
+    /*! \brief Start the requesting user participating in a particular room.
+     *
      * \param roomIdOrAlias
      *   The room identifier or alias to join.
      * \param serverName

@@ -9,20 +9,19 @@
 #include <QtCore/QHash>
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Send an event to a given set of devices.
-/*!
+/*! \brief Send an event to a given set of devices.
+ *
  * This endpoint is used to send send-to-device events to a set of
  * client devices.
  */
-class SendToDeviceJob : public BaseJob
-{
+class SendToDeviceJob : public BaseJob {
 public:
-    /*! Send an event to a given set of devices.
+    /*! \brief Send an event to a given set of devices.
+     *
      * \param eventType
      *   The type of event to send.
      * \param txnId

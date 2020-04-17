@@ -10,13 +10,12 @@
 
 #include <QtCore/QHash>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Gets the versions of the specification supported by the server.
-/*!
+/*! \brief Gets the versions of the specification supported by the server.
+ *
  * Gets the versions of the specification supported by the server.
  *
  * Values will take the form ``rX.Y.Z``.
@@ -38,25 +37,24 @@ namespace Quotient
  * upgrade appropriately. Additionally, clients should avoid using unstable
  * features in their stable releases.
  */
-class GetVersionsJob : public BaseJob
-{
+class GetVersionsJob : public BaseJob {
 public:
+    /// Gets the versions of the specification supported by the server.
     explicit GetVersionsJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetVersionsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetVersionsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetVersionsJob() override;
 
     // Result properties
 
     /// The supported versions.
     const QStringList& versions() const;
+
     /// Experimental features the server supports. Features not listed here,
     /// or the lack of this property all together, indicate that a feature is
     /// not supported.

@@ -12,11 +12,9 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-static const auto KickJobName = QStringLiteral("KickJob");
-
 KickJob::KickJob(const QString& roomId, const QString& userId,
                  const QString& reason)
-    : BaseJob(HttpVerb::Post, KickJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("KickJob"),
               basePath % "/rooms/" % roomId % "/kick")
 {
     QJsonObject _data;

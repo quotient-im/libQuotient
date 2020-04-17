@@ -26,10 +26,9 @@ QUrl RedirectToSSOJob::makeRequestUrl(QUrl baseUrl, const QString& redirectUrl)
                                    queryToRedirectToSSO(redirectUrl));
 }
 
-static const auto RedirectToSSOJobName = QStringLiteral("RedirectToSSOJob");
-
 RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
-    : BaseJob(HttpVerb::Get, RedirectToSSOJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("RedirectToSSOJob"),
               basePath % "/login/sso/redirect",
               queryToRedirectToSSO(redirectUrl), {}, false)
+
 {}

@@ -12,10 +12,8 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0/directory");
 
-static const auto SetRoomAliasJobName = QStringLiteral("SetRoomAliasJob");
-
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
-    : BaseJob(HttpVerb::Put, SetRoomAliasJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomAliasJob"),
               basePath % "/room/" % roomAlias)
 {
     QJsonObject _data;
@@ -23,8 +21,7 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
     setRequestData(_data);
 }
 
-class GetRoomIdByAliasJob::Private
-{
+class GetRoomIdByAliasJob::Private {
 public:
     QString roomId;
     QStringList servers;
@@ -36,11 +33,8 @@ QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
                                    basePath % "/room/" % roomAlias);
 }
 
-static const auto GetRoomIdByAliasJobName =
-    QStringLiteral("GetRoomIdByAliasJob");
-
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Get, GetRoomIdByAliasJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomIdByAliasJob"),
               basePath % "/room/" % roomAlias, false)
     , d(new Private)
 {}
@@ -66,9 +60,7 @@ QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
                                    basePath % "/room/" % roomAlias);
 }
 
-static const auto DeleteRoomAliasJobName = QStringLiteral("DeleteRoomAliasJob");
-
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Delete, DeleteRoomAliasJobName,
+    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomAliasJob"),
               basePath % "/room/" % roomAlias)
 {}

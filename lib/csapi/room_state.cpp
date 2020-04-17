@@ -12,20 +12,16 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class SetRoomStateWithKeyJob::Private
-{
+class SetRoomStateWithKeyJob::Private {
 public:
     QString eventId;
 };
-
-static const auto SetRoomStateWithKeyJobName =
-    QStringLiteral("SetRoomStateWithKeyJob");
 
 SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
                                                const QString& eventType,
                                                const QString& stateKey,
                                                const QJsonObject& body)
-    : BaseJob(HttpVerb::Put, SetRoomStateWithKeyJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomStateWithKeyJob"),
               basePath % "/rooms/" % roomId % "/state/" % eventType % "/"
                   % stateKey)
     , d(new Private)
@@ -45,17 +41,14 @@ BaseJob::Status SetRoomStateWithKeyJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class SetRoomStateJob::Private
-{
+class SetRoomStateJob::Private {
 public:
     QString eventId;
 };
 
-static const auto SetRoomStateJobName = QStringLiteral("SetRoomStateJob");
-
 SetRoomStateJob::SetRoomStateJob(const QString& roomId, const QString& eventType,
                                  const QJsonObject& body)
-    : BaseJob(HttpVerb::Put, SetRoomStateJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomStateJob"),
               basePath % "/rooms/" % roomId % "/state/" % eventType)
     , d(new Private)
 {

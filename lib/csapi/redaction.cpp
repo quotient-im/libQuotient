@@ -12,17 +12,14 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class RedactEventJob::Private
-{
+class RedactEventJob::Private {
 public:
     QString eventId;
 };
 
-static const auto RedactEventJobName = QStringLiteral("RedactEventJob");
-
 RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId,
                                const QString& txnId, const QString& reason)
-    : BaseJob(HttpVerb::Put, RedactEventJobName,
+    : BaseJob(HttpVerb::Put, QStringLiteral("RedactEventJob"),
               basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
     , d(new Private)
 {

@@ -6,13 +6,12 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Invite a user to participate in a particular room.
-/*!
+/*! \brief Invite a user to participate in a particular room.
+ *
  * .. _invite-by-user-id-endpoint:
  *
  * *Note that there are two forms of this API, which are documented separately.
@@ -32,10 +31,10 @@ namespace Quotient
  *
  * .. _third party invites section: `invite-by-third-party-id-endpoint`_
  */
-class InviteUserJob : public BaseJob
-{
+class InviteUserJob : public BaseJob {
 public:
-    /*! Invite a user to participate in a particular room.
+    /*! \brief Invite a user to participate in a particular room.
+     *
      * \param roomId
      *   The room identifier (not alias) to which to invite the user.
      * \param userId

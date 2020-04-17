@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class GetEventContextJob::Private
-{
+class GetEventContextJob::Private {
 public:
     QString begin;
     QString end;
@@ -40,12 +39,10 @@ QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                    queryToGetEventContext(limit));
 }
 
-static const auto GetEventContextJobName = QStringLiteral("GetEventContextJob");
-
 GetEventContextJob::GetEventContextJob(const QString& roomId,
                                        const QString& eventId,
                                        Omittable<int> limit)
-    : BaseJob(HttpVerb::Get, GetEventContextJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetEventContextJob"),
               basePath % "/rooms/" % roomId % "/context/" % eventId,
               queryToGetEventContext(limit))
     , d(new Private)

@@ -8,20 +8,19 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Reports an event as inappropriate.
-/*!
+/*! \brief Reports an event as inappropriate.
+ *
  * Reports an event as inappropriate to the server, which may then notify
  * the appropriate people.
  */
-class ReportContentJob : public BaseJob
-{
+class ReportContentJob : public BaseJob {
 public:
-    /*! Reports an event as inappropriate.
+    /*! \brief Reports an event as inappropriate.
+     *
      * \param roomId
      *   The room in which the event being reported is located.
      * \param eventId

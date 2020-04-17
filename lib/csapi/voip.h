@@ -8,29 +8,26 @@
 
 #include <QtCore/QJsonObject>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Obtain TURN server credentials.
-/*!
+/*! \brief Obtain TURN server credentials.
+ *
  * This API provides credentials for the client to use when initiating
  * calls.
  */
-class GetTurnServerJob : public BaseJob
-{
+class GetTurnServerJob : public BaseJob {
 public:
+    /// Obtain TURN server credentials.
     explicit GetTurnServerJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetTurnServerJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetTurnServerJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetTurnServerJob() override;
 
     // Result properties

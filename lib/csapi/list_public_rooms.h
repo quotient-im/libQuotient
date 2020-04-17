@@ -10,32 +10,29 @@
 
 #include "jobs/basejob.h"
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// Gets the visibility of a room in the directory
-/*!
+/*! \brief Gets the visibility of a room in the directory
+ *
  * Gets the visibility of a given room on the server's public room directory.
  */
-class GetRoomVisibilityOnDirectoryJob : public BaseJob
-{
+class GetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
-    /*! Gets the visibility of a room in the directory
+    /*! \brief Gets the visibility of a room in the directory
+     *
      * \param roomId
      *   The room ID.
      */
     explicit GetRoomVisibilityOnDirectoryJob(const QString& roomId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetRoomVisibilityOnDirectoryJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetRoomVisibilityOnDirectoryJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-
     ~GetRoomVisibilityOnDirectoryJob() override;
 
     // Result properties
@@ -51,8 +48,8 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Sets the visibility of a room in the room directory
-/*!
+/*! \brief Sets the visibility of a room in the room directory
+ *
  * Sets the visibility of a given room in the server's public room
  * directory.
  *
@@ -60,10 +57,10 @@ private:
  * here, for instance that room visibility can only be changed by
  * the room creator or a server administrator.
  */
-class SetRoomVisibilityOnDirectoryJob : public BaseJob
-{
+class SetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
-    /*! Sets the visibility of a room in the room directory
+    /*! \brief Sets the visibility of a room in the room directory
+     *
      * \param roomId
      *   The room ID.
      * \param visibility
@@ -74,17 +71,17 @@ public:
                                              const QString& visibility = {});
 };
 
-/// Lists the public rooms on the server.
-/*!
+/*! \brief Lists the public rooms on the server.
+ *
  * Lists the public rooms on the server.
  *
  * This API returns paginated responses. The rooms are ordered by the number
  * of joined members, with the largest rooms first.
  */
-class GetPublicRoomsJob : public BaseJob
-{
+class GetPublicRoomsJob : public BaseJob {
 public:
-    /*! Lists the public rooms on the server.
+    /*! \brief Lists the public rooms on the server.
+     *
      * \param limit
      *   Limit the number of results returned.
      * \param since
@@ -100,16 +97,14 @@ public:
                                const QString& since = {},
                                const QString& server = {});
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetPublicRoomsJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetPublicRoomsJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, Omittable<int> limit = none,
                                const QString& since = {},
                                const QString& server = {});
-
     ~GetPublicRoomsJob() override;
 
     // Result properties
@@ -125,29 +120,28 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Lists the public rooms on the server with optional filter.
-/*!
+/*! \brief Lists the public rooms on the server with optional filter.
+ *
  * Lists the public rooms on the server, with optional filter.
  *
  * This API returns paginated responses. The rooms are ordered by the number
  * of joined members, with the largest rooms first.
  */
-class QueryPublicRoomsJob : public BaseJob
-{
+class QueryPublicRoomsJob : public BaseJob {
 public:
     // Inner data structures
 
     /// Filter to apply to the results.
-    struct Filter
-    {
-        /// A string to search for in the room metadata, e.g. name,topic,
-        /// canonical alias etc. (Optional).
+    struct Filter {
+        /// A string to search for in the room metadata, e.g. name,
+        /// topic, canonical alias etc. (Optional).
         QString genericSearchTerm;
     };
 
     // Construction/destruction
 
-    /*! Lists the public rooms on the server with optional filter.
+    /*! \brief Lists the public rooms on the server with optional filter.
+     *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
      *   local server.

@@ -12,8 +12,7 @@ using namespace Quotient;
 
 static const auto basePath = QStringLiteral("/_matrix/client/r0");
 
-class RegisterJob::Private
-{
+class RegisterJob::Private {
 public:
     QString userId;
     QString accessToken;
@@ -28,16 +27,14 @@ BaseJob::Query queryToRegister(const QString& kind)
     return _q;
 }
 
-static const auto RegisterJobName = QStringLiteral("RegisterJob");
-
 RegisterJob::RegisterJob(const QString& kind,
                          const Omittable<AuthenticationData>& auth,
                          Omittable<bool> bindEmail, const QString& username,
                          const QString& password, const QString& deviceId,
                          const QString& initialDeviceDisplayName,
                          Omittable<bool> inhibitLogin)
-    : BaseJob(HttpVerb::Post, RegisterJobName, basePath % "/register",
-              queryToRegister(kind), {}, false)
+    : BaseJob(HttpVerb::Post, QStringLiteral("RegisterJob"),
+              basePath % "/register", queryToRegister(kind), {}, false)
     , d(new Private)
 {
     QJsonObject _data;
@@ -76,19 +73,15 @@ BaseJob::Status RegisterJob::parseJson(const QJsonDocument& data)
     return Success;
 }
 
-class RequestTokenToRegisterEmailJob::Private
-{
+class RequestTokenToRegisterEmailJob::Private {
 public:
     Sid data;
 };
 
-static const auto RequestTokenToRegisterEmailJobName =
-    QStringLiteral("RequestTokenToRegisterEmailJob");
-
 RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(
     const QString& clientSecret, const QString& email, int sendAttempt,
     const QString& idServer, const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenToRegisterEmailJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterEmailJob"),
               basePath % "/register/email/requestToken", false)
     , d(new Private)
 {
@@ -109,23 +102,20 @@ BaseJob::Status
 RequestTokenToRegisterEmailJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
-class RequestTokenToRegisterMSISDNJob::Private
-{
+class RequestTokenToRegisterMSISDNJob::Private {
 public:
     Sid data;
 };
-
-static const auto RequestTokenToRegisterMSISDNJobName =
-    QStringLiteral("RequestTokenToRegisterMSISDNJob");
 
 RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
     const QString& clientSecret, const QString& country,
     const QString& phoneNumber, int sendAttempt, const QString& idServer,
     const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenToRegisterMSISDNJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterMSISDNJob"),
               basePath % "/register/msisdn/requestToken", false)
     , d(new Private)
 {
@@ -147,14 +137,13 @@ BaseJob::Status
 RequestTokenToRegisterMSISDNJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
-static const auto ChangePasswordJobName = QStringLiteral("ChangePasswordJob");
-
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
                                      const Omittable<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Post, ChangePasswordJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("ChangePasswordJob"),
               basePath % "/account/password")
 {
     QJsonObject _data;
@@ -163,19 +152,16 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
     setRequestData(_data);
 }
 
-class RequestTokenToResetPasswordEmailJob::Private
-{
+class RequestTokenToResetPasswordEmailJob::Private {
 public:
     Sid data;
 };
 
-static const auto RequestTokenToResetPasswordEmailJobName =
-    QStringLiteral("RequestTokenToResetPasswordEmailJob");
-
 RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
     const QString& clientSecret, const QString& email, int sendAttempt,
     const QString& idServer, const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordEmailJobName,
+    : BaseJob(HttpVerb::Post,
+              QStringLiteral("RequestTokenToResetPasswordEmailJob"),
               basePath % "/account/password/email/requestToken", false)
     , d(new Private)
 {
@@ -197,23 +183,21 @@ BaseJob::Status
 RequestTokenToResetPasswordEmailJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
-class RequestTokenToResetPasswordMSISDNJob::Private
-{
+class RequestTokenToResetPasswordMSISDNJob::Private {
 public:
     Sid data;
 };
-
-static const auto RequestTokenToResetPasswordMSISDNJobName =
-    QStringLiteral("RequestTokenToResetPasswordMSISDNJob");
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
     const QString& clientSecret, const QString& country,
     const QString& phoneNumber, int sendAttempt, const QString& idServer,
     const QString& nextLink)
-    : BaseJob(HttpVerb::Post, RequestTokenToResetPasswordMSISDNJobName,
+    : BaseJob(HttpVerb::Post,
+              QStringLiteral("RequestTokenToResetPasswordMSISDNJob"),
               basePath % "/account/password/msisdn/requestToken", false)
     , d(new Private)
 {
@@ -239,15 +223,13 @@ BaseJob::Status
 RequestTokenToResetPasswordMSISDNJob::parseJson(const QJsonDocument& data)
 {
     fromJson(data, d->data);
+
     return Success;
 }
 
-static const auto DeactivateAccountJobName =
-    QStringLiteral("DeactivateAccountJob");
-
 DeactivateAccountJob::DeactivateAccountJob(
     const Omittable<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Post, DeactivateAccountJobName,
+    : BaseJob(HttpVerb::Post, QStringLiteral("DeactivateAccountJob"),
               basePath % "/account/deactivate")
 {
     QJsonObject _data;
@@ -255,8 +237,7 @@ DeactivateAccountJob::DeactivateAccountJob(
     setRequestData(_data);
 }
 
-class CheckUsernameAvailabilityJob::Private
-{
+class CheckUsernameAvailabilityJob::Private {
 public:
     Omittable<bool> available;
 };
@@ -276,11 +257,8 @@ QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl,
                                    queryToCheckUsernameAvailability(username));
 }
 
-static const auto CheckUsernameAvailabilityJobName =
-    QStringLiteral("CheckUsernameAvailabilityJob");
-
 CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(const QString& username)
-    : BaseJob(HttpVerb::Get, CheckUsernameAvailabilityJobName,
+    : BaseJob(HttpVerb::Get, QStringLiteral("CheckUsernameAvailabilityJob"),
               basePath % "/register/available",
               queryToCheckUsernameAvailability(username), {}, false)
     , d(new Private)

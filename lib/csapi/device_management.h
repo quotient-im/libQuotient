@@ -13,28 +13,25 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Operations
 
-/// List registered devices for the current user
-/*!
+/*! \brief List registered devices for the current user
+ *
  * Gets information about all devices for the current user.
  */
-class GetDevicesJob : public BaseJob
-{
+class GetDevicesJob : public BaseJob {
 public:
+    /// List registered devices for the current user
     explicit GetDevicesJob();
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetDevicesJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetDevicesJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-
     ~GetDevicesJob() override;
 
     // Result properties
@@ -50,27 +47,25 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Get a single device
-/*!
+/*! \brief Get a single device
+ *
  * Gets information on a single device, by device id.
  */
-class GetDeviceJob : public BaseJob
-{
+class GetDeviceJob : public BaseJob {
 public:
-    /*! Get a single device
+    /*! \brief Get a single device
+     *
      * \param deviceId
      *   The device to retrieve.
      */
     explicit GetDeviceJob(const QString& deviceId);
 
-    /*! Construct a URL without creating a full-fledged job object
+    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for
-     * GetDeviceJob is necessary but the job
-     * itself isn't.
+     * This function can be used when a URL for GetDeviceJob
+     * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& deviceId);
-
     ~GetDeviceJob() override;
 
     // Result properties
@@ -86,14 +81,14 @@ private:
     QScopedPointer<Private> d;
 };
 
-/// Update a device
-/*!
+/*! \brief Update a device
+ *
  * Updates the metadata on the given device.
  */
-class UpdateDeviceJob : public BaseJob
-{
+class UpdateDeviceJob : public BaseJob {
 public:
-    /*! Update a device
+    /*! \brief Update a device
+     *
      * \param deviceId
      *   The device to update.
      * \param displayName
@@ -104,16 +99,16 @@ public:
                              const QString& displayName = {});
 };
 
-/// Delete a device
-/*!
+/*! \brief Delete a device
+ *
  * This API endpoint uses the `User-Interactive Authentication API`_.
  *
  * Deletes the given device, and invalidates any access token associated with it.
  */
-class DeleteDeviceJob : public BaseJob
-{
+class DeleteDeviceJob : public BaseJob {
 public:
-    /*! Delete a device
+    /*! \brief Delete a device
+     *
      * \param deviceId
      *   The device to delete.
      * \param auth
@@ -124,17 +119,17 @@ public:
                              const Omittable<AuthenticationData>& auth = none);
 };
 
-/// Bulk deletion of devices
-/*!
+/*! \brief Bulk deletion of devices
+ *
  * This API endpoint uses the `User-Interactive Authentication API`_.
  *
  * Deletes the given devices, and invalidates any access token associated with
  * them.
  */
-class DeleteDevicesJob : public BaseJob
-{
+class DeleteDevicesJob : public BaseJob {
 public:
-    /*! Bulk deletion of devices
+    /*! \brief Bulk deletion of devices
+     *
      * \param devices
      *   The list of device IDs to delete.
      * \param auth

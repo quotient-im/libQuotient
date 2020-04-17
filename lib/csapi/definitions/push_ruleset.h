@@ -10,14 +10,11 @@
 
 #include <QtCore/QVector>
 
-namespace Quotient
-{
+namespace Quotient {
 
 // Data structures
 
-struct PushRuleset
-{
-
+struct PushRuleset {
     QVector<PushRule> content;
 
     QVector<PushRule> override;
@@ -30,8 +27,7 @@ struct PushRuleset
 };
 
 template <>
-struct JsonObjectConverter<PushRuleset>
-{
+struct JsonObjectConverter<PushRuleset> {
     static void dumpTo(QJsonObject& jo, const PushRuleset& pod);
     static void fillFrom(const QJsonObject& jo, PushRuleset& pod);
 };
