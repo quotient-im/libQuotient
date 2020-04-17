@@ -8,88 +8,112 @@
 {{#imports}}
 #include {{_}}{{/imports}}
 
-namespace Quotient
-{
+namespace Quotient {
 {{#models}}
+
 // Data structures
-{{#    model}}
-{{#description}}/// {{_}}{{/description}}
+
+    {{#model}}
+{{>docCommentShort}}
 struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
-{
-{{#    vars}}{{#description?}}    /// {{#description}}{{_}}{{/description}}{{/description?}}
+{       {{#vars}}
+
+    {{>docCommentShort}}
     {{>maybeOmittableType}} {{nameCamelCase}};
-{{/    vars}}
-{{#    propertyMap}}
-{{#description?}}    /// {{#description}}{{_}}{{/description}}{{/description?}}
+        {{/vars}}{{#propertyMap}}
+
+    {{>docCommentShort}}
     {{>maybeOmittableType}} {{nameCamelCase}};
-{{/    propertyMap}}
+        {{/propertyMap}}
 };
 
 template <> struct JsonObjectConverter<{{name}}>
 {
-    {{#in?}}static void dumpTo(QJsonObject& jo, const {{name}}& pod);{{/in?}}
-    {{#out?}}static void fillFrom({{>maybeCrefJsonObject}} jo, {{name}}& pod);{{/out?}}};
-{{/    model}}
+        {{#in?}}
+    static void dumpTo(QJsonObject& jo, const {{name}}& pod);
+        {{/in?}}
+        {{#out?}}
+    static void fillFrom({{>maybeCrefJsonObject}} jo, {{name}}& pod);
+        {{/out?}}
+};
+    {{/model}}
 {{/models}}
-{{#operations}}// Operations
-{{#    operation}}
-{{#summary}}/// {{summary}}{{/summary}}
-{{#description?}}/*!{{#description}}
- * {{_}}{{/description}}
- */{{/description?}}
-class {{camelCaseOperationId}}Job : public BaseJob
-{
-public:{{#models}}
-    // Inner data structures
-{{#            model}}
-{{#description?}}    /// {{#description}}{{_}}{{/description}}{{/description?}}
-    struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
-    {
-{{#                vars}}{{#description?}}        /// {{#description}}{{_}}{{/description}}{{/description?}}
-        {{>maybeOmittableType}} {{nameCamelCase}};
-{{/                vars}}
-{{#                propertyMap}}
-{{#description?}}        /// {{#description}}{{_}}{{/description}}{{/description?}}
-        {{>maybeOmittableType}} {{nameCamelCase}};
-{{/                propertyMap}}
-    };
-{{/            model}}
-    // Construction/destruction
-{{/        models}}{{#allParams?}}
-    /*! {{summary}}{{#allParams}}
-     * \param {{nameCamelCase}}{{#description}}
-     *   {{_}}{{/description}}{{/allParams}}
-     */{{/allParams?}}
-    explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});
-{{^        bodyParams}}
+{{#operations}}
 
-    /*! Construct a URL without creating a full-fledged job object
-     *
-     * This function can be used when a URL for
-     * {{camelCaseOperationId}}Job is necessary but the job
-     * itself isn't.
+// Operations
+    {{#operation}}
+
+/*!{{>docCommentSummary}}{{#description}}
+ * {{_}}{{/description}}
+ */
+class {{camelCaseOperationId}}Job : public BaseJob {
+public: {{#models}}
+    // Inner data structures
+            {{#model}}
+
+    {{>docCommentShort}}
+    struct {{name}}{{#parents?}} :
+        {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+    {
+                {{#vars}}
+        {{>docCommentShort}}
+        {{>maybeOmittableType}} {{nameCamelCase}};
+                {{/vars}}
+                {{#propertyMap}}
+        {{>docCommentShort}}
+        {{>maybeOmittableType}} {{nameCamelCase}};
+                {{/propertyMap}}
+    };
+            {{/model}}
+
+    // Construction/destruction
+
+        {{/models}}
+        {{^allParams?}}
+            {{#summary}}
+    /// {{summary}}
+            {{/summary}}
+        {{/allParams?}}{{#allParams?}}
+    /*!{{>docCommentSummary}}
+            {{#allParams}}
+     * \param {{nameCamelCase}}{{#description}}
+     *   {{_}}{{/description}}
+            {{/allParams}}
      */
-    static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}}, {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
-{{/        bodyParams}}
-{{#        responses}}{{#normalResponse?}}{{#allProperties?}}
+        {{/allParams?}}
+    explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});
+        {{^bodyParams}}
+
+    /*! \brief Construct a URL without creating a full-fledged job object
+     *
+     * This function can be used when a URL for {{camelCaseOperationId}}Job
+     * is necessary but the job itself isn't.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}},
+                    {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
+        {{/bodyParams}}
+        {{#responses}}{{#normalResponse?}}{{#allProperties?}}
     ~{{camelCaseOperationId}}Job() override;
 
     // Result properties
-{{#allProperties}}{{#description}}
-    /// {{_}}{{/description}}
-    {{>maybeCrefType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}};{{/allProperties}}
+            {{#allProperties}}
 
-protected:{{#producesNonJson?}}
+    {{>docCommentShort}}
+    {{>maybeCrefType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}};
+            {{/allProperties}}
+
+protected:  {{#producesNonJson?}}
     Status parseReply(QNetworkReply* reply) override;
-{{/producesNonJson?}}{{^producesNonJson?}}
+            {{/producesNonJson?}}{{^producesNonJson?}}
     Status parseJson(const QJsonDocument& data) override;
-{{/producesNonJson?}}
+            {{/producesNonJson?}}
 
 private:
     class Private;
     QScopedPointer<Private> d;
-{{/        allProperties?}}{{/normalResponse?}}{{/responses}}
+        {{/allProperties?}}{{/normalResponse?}}{{/responses}}
 };
-{{/    operation}}
+    {{/operation}}
 {{/operations}}
+
 } // namespace Quotient

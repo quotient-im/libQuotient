@@ -145,6 +145,18 @@ mustache:
     joinedParamDef: '{{>maybeCrefType}} {{paramName}}{{>cjoin}}'
     passQueryParams: '{{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}'
 
+    # Doc-comment blocks. Comment indent is managed by clang-format
+    # (without clang-format there'd have to be a separate partial definition
+    # for each indent...)
+
+    # For structures that are not supposed to have a summary (e.g., JSON schema)
+    docCommentShort: |-
+      {{#description}}
+      /// {{_}}{{/description}}
+    docCommentSummary: |-
+      {{#summary}} \brief {{summary}}
+       *{{/summary}}
+
   templates:
   - "{{base}}.h.mustache"
   - "{{base}}.cpp.mustache"
