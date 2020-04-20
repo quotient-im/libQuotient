@@ -1,8 +1,12 @@
+# usual build directory names
 build
-.kdev4
+build_dir
 
-# Qt Creator project file
-*.user*
+# IDE project files/directories
+.kdev4
+.directory
+CMakeLists.txt.user*
+.idea
 
 # qmake derivatives
 Makefile*
@@ -10,3 +14,11 @@ object_script.*
 .qmake*
 debug/
 release/
+
+# CMake derivatives
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+Quotient_autogen/
+.cmake/
+tests/.cmake/
