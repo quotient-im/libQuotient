@@ -4,16 +4,16 @@ environment:
   CMAKE_ARGS: '-G "NMake Makefiles JOM" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo'
   matrix:
   - QTDIR: C:\Qt\5.13\msvc2017_64
-    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+    VCVARS: "vcvars64.bat"
     PLATFORM:
   - QTDIR: C:\Qt\5.13\msvc2017
-    VCVARS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat"
+    VCVARS: "vcvars32.bat"
     PLATFORM: x86
 
 init:
 - call "%QTDIR%\bin\qtenv2.bat"
 - set PATH=C:\Qt\Tools\QtCreator\bin;%PATH%
-- call "%VCVARS%" %PLATFORM%
+- call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\%VCVARS%" %PLATFORM%
 - cd /D "%APPVEYOR_BUILD_FOLDER%"
 
 before_build:
