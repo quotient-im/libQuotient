@@ -1,0 +1,166 @@
+From e13b52da2cf27503a19fcfb8e580f022866b6a3d Mon Sep 17 00:00:00 2001
+From: Alexey Andreyev <aa13q@ya.ru>
+Date: Tue, 17 Dec 2019 17:01:10 +0300
+Subject: [PATCH] [mer] [packaging] Add legacy Qt5.6 hacks for Sailfish OS
+
+---
+ CMakeLists.txt         |  6 ++-
+ lib/connection.h       |  4 ++
+ lib/connectiondata.cpp |  4 ++
+ lib/jobs/basejob.cpp   | 18 ++++++++
+ lib/jobs/basejob.h     |  4 ++
+ lib/util.h             |  9 ++++
+ 6 files changed, 44 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 10258942..629a008b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -54,7 +54,7 @@ else()
+     endforeach ()
+ endif()
+ 
+-find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
++find_package(Qt5 5.6 REQUIRED Network Gui Multimedia Test)
+ get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
+ 
+ if (${PROJECT_NAME}_ENABLE_E2EE)
+@@ -93,6 +93,10 @@ if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
+     get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
+ endif()
+ 
++set(CMAKE_CXX_STANDARD 11)
++set(CMAKE_CXX_STANDARD_REQUIRED ON)
++set(CMAKE_CXX_EXTENSIONS OFF)
++
+ message( STATUS )
+ message( STATUS "=============================================================================" )
+ message( STATUS "                       ${PROJECT_NAME} Build Information" )
+diff --git a/lib/connection.h b/lib/connection.h
+index e4109fd4..06dc98e0 100644
+--- a/lib/connection.h
++++ b/lib/connection.h
+@@ -37,7 +37,9 @@ class Account;
+ }
+ 
+ namespace Quotient {
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+ Q_NAMESPACE
++#endif // QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+ 
+ class Room;
+ class User;
+@@ -95,7 +97,9 @@ static inline user_factory_t defaultUserFactory()
+  */
+ enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
+ 
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+ Q_ENUM_NS(RunningPolicy)
++#endif
+ 
+ // Room ids, rather than room pointers, are used in the direct chat
+ // map types because the library keeps Invite rooms separate from
+diff --git a/lib/connectiondata.cpp b/lib/connectiondata.cpp
+index e806f952..6c24c5d9 100644
+--- a/lib/connectiondata.cpp
++++ b/lib/connectiondata.cpp
+@@ -109,7 +109,11 @@ void ConnectionData::limitRate(std::chrono::milliseconds nextCallAfter)
+ {
+     qCDebug(MAIN) << "Jobs for" << (d->userId + "/" + d->deviceId)
+                   << "suspended for" << nextCallAfter.count() << "ms";
++#if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
++    d->rateLimiter.start(int(nextCallAfter.count()));
++#else
+     d->rateLimiter.start(nextCallAfter);
++#endif // QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
+ }
+ 
+ QByteArray ConnectionData::accessToken() const { return d->accessToken; }
+diff --git a/lib/jobs/basejob.cpp b/lib/jobs/basejob.cpp
+index 68adeaf6..e82d84ca 100644
+--- a/lib/jobs/basejob.cpp
++++ b/lib/jobs/basejob.cpp
+@@ -235,7 +235,9 @@ void BaseJob::Private::sendRequest()
+     // Pipelining doesn't fly quite well with SSL, occasionally crashing at
+     // what seems like an attempt to write to a closed channel.
+ //    req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+     req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
++#endif // QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+     Q_ASSERT(req.url().isValid());
+     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
+         req.setRawHeader(it.key(), it.value());
+@@ -301,7 +304,12 @@ void BaseJob::sendRequest()
+                 &BaseJob::uploadProgress);
+         connect(d->reply.data(), &QNetworkReply::downloadProgress, this,
+                 &BaseJob::downloadProgress);
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+         d->timer.start(getCurrentTimeout());
++#else
++        qCDebug(MAIN) << "Using hacks for Qt<5.8. Update your Qt!";
++        d->timer.start(int(getCurrentTimeout().count())*1000);
++#endif // QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+         qCInfo(d->logCat).noquote() << "Sent" << d->dumpRequest();
+         onSentRequest(d->reply.data());
+         emit sentRequest();
+@@ -530,7 +537,12 @@ void BaseJob::finishJob()
+         ++d->retriesTaken;
+         qCWarning(d->logCat).nospace() << this << ": retry #" << d->retriesTaken
+                                        << " in " << retryIn.count() << " s";
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+         d->retryTimer.start(retryIn);
++#else
++        qCDebug(MAIN) << "Using hacks for Qt<5.8. Update your Qt!";
++        d->retryTimer.start(int(retryIn.count())*1000);
++#endif // QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+         emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
+         return;
+     }
+@@ -569,8 +581,14 @@ BaseJob::duration_ms_t BaseJob::getNextRetryMs() const
+ 
+ milliseconds BaseJob::timeToRetry() const
+ {
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+     return d->retryTimer.isActive() ? d->retryTimer.remainingTimeAsDuration()
+                                     : 0s;
++#else
++    qCDebug(MAIN) << "Using hacks for Qt<5.8. Update your Qt!";
++    return d->retryTimer.isActive() ? milliseconds(d->retryTimer.remainingTime())
++                                    : 0s;
++#endif // QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+ }
+ 
+ BaseJob::duration_ms_t BaseJob::millisToRetry() const
+diff --git a/lib/jobs/basejob.h b/lib/jobs/basejob.h
+index c8046e9e..489f4b79 100644
+--- a/lib/jobs/basejob.h
++++ b/lib/jobs/basejob.h
+@@ -26,6 +26,10 @@
+ #include <QtCore/QUrlQuery>
+ #include <QtCore/QMetaEnum>
+ 
++#if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
++#include <chrono>
++#endif // QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
++
+ class QNetworkReply;
+ class QSslError;
+ 
+diff --git a/lib/util.h b/lib/util.h
+index 902b4bfc..fe711925 100644
+--- a/lib/util.h
++++ b/lib/util.h
+@@ -296,3 +296,12 @@ QString serverPart(const QString& mxId);
+ } // namespace Quotient
+ /// \deprecated Use namespace Quotient instead
+ namespace QMatrixClient = Quotient;
++
++#if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
++
++template <class T>
++constexpr std::add_const_t<T>& qAsConst(T& t) noexcept
++{
++    return t;
++}
++#endif // QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
+\ No newline at end of file
