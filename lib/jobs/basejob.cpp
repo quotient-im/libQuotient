@@ -149,15 +149,9 @@ BaseJob::~BaseJob()
     qCDebug(d->logCat) << this << "destroyed";
 }
 
-QUrl BaseJob::requestUrl() const
-{
-    return d->reply ? d->reply->url() : QUrl();
-}
+QUrl BaseJob::requestUrl() const { return d->reply ? d->reply->url() : QUrl(); }
 
-bool BaseJob::isBackground() const
-{
-    return d->inBackground;
-}
+bool BaseJob::isBackground() const { return d->inBackground; }
 
 const QString& BaseJob::apiEndpoint() const { return d->apiEndpoint; }
 
@@ -215,7 +209,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
     // QUrl::adjusted(QUrl::StripTrailingSlashes) doesn't help with root '/'
     while (pathBase.endsWith('/'))
         pathBase.chop(1);
-    if (!path.startsWith('/'))   // Normally API files do start with '/'
+    if (!path.startsWith('/')) // Normally API files do start with '/'
         pathBase.push_back('/'); // so this shouldn't be needed these days
 
     baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
@@ -259,11 +253,11 @@ void BaseJob::Private::sendRequest()
     }
 }
 
-void BaseJob::doPrepare() {}
+void BaseJob::doPrepare() { }
 
-void BaseJob::onSentRequest(QNetworkReply*) {}
+void BaseJob::onSentRequest(QNetworkReply*) { }
 
-void BaseJob::beforeAbandon(QNetworkReply*) {}
+void BaseJob::beforeAbandon(QNetworkReply*) { }
 
 void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
@@ -273,7 +267,8 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         doPrepare();
 
         if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
-            && d->requestData.source() && !d->requestData.source()->isReadable()) {
+            && d->requestData.source()
+            && !d->requestData.source()->isReadable()) {
             setStatus(FileError, "Request data not ready");
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
