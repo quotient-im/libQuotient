@@ -2420,7 +2420,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [] (const RoomNameEvent&) {
             return NameChange;
         }
-        , [this,oldStateEvent] (const RoomAliasesEvent& ae) {
+        , [] (const RoomAliasesEvent&) {
             // clang-format on
             // This event has been removed by MSC-2432
             return NoChange;
