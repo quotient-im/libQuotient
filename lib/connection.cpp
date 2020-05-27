@@ -20,7 +20,7 @@
 
 #include "connectiondata.h"
 #ifdef Quotient_E2EE_ENABLED
-#include "encryptionmanager.h"
+#    include "encryptionmanager.h"
 #endif // Quotient_E2EE_ENABLED
 #include "room.h"
 #include "settings.h"
@@ -45,7 +45,7 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#include "account.h" // QtOlm
+#    include "account.h" // QtOlm
 #endif // Quotient_E2EE_ENABLED
 
 #include <QtCore/QCoreApplication>

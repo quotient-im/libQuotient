@@ -35,6 +35,47 @@ using namespace Quotient;
 using std::chrono::seconds, std::chrono::milliseconds;
 using namespace std::chrono_literals;
 
+BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
+{
+    if (httpCode / 10 == 41) // 41x errors
+        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+    switch (httpCode) {
+    case 401:
+        return Unauthorised;
+        // clang-format off
+    case 403: case 407: // clang-format on
+        return ContentAccessError;
+    case 404:
+        return NotFoundError;
+        // clang-format off
+    case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
+    case 494: // Unofficial nginx "Request header too large"
+    case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
+        return IncorrectRequestError;
+    case 429:
+        return TooManyRequestsError;
+    case 501:
+    case 510:
+        return RequestNotImplementedError;
+    case 511:
+        return NetworkAuthRequiredError;
+    default:
+        return NetworkError;
+    }
+}
+
+QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
+{
+    QDebugStateSaver _s(dbg);
+    dbg.noquote().nospace();
+    if (auto* const k = QMetaEnum::fromType<StatusCode>().valueToKey(code)) {
+        const QByteArray b = k;
+        dbg << b.mid(b.lastIndexOf(':'));
+    } else
+        dbg << code;
+    return dbg << ": " << message;
+}
+
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
     {
@@ -316,7 +357,15 @@ void BaseJob::sendRequest()
             << "Request could not start:" << d->dumpRequest();
 }
 
-void BaseJob::checkReply() { setStatus(doCheckReply(d->reply.data())); }
+BaseJob::Status BaseJob::Private::parseJsonDocument()
+{
+    QJsonParseError error { 0, QJsonParseError::MissingObject };
+    jsonResponse = QJsonDocument::fromJson(d->rawResponse, &error);
+    return { error.error == QJsonParseError::NoError
+                 ? BaseJob::NoError
+                 : BaseJob::IncorrectResponse,
+             error.errorString() };
+}
 
 void BaseJob::gotReply()
 {
@@ -363,47 +412,6 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
-BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
-{
-    if (httpCode / 10 == 41) // 41x errors
-        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
-    switch (httpCode) {
-    case 401:
-        return Unauthorised;
-    // clang-format off
-    case 403: case 407: // clang-format on
-        return ContentAccessError;
-    case 404:
-        return NotFoundError;
-    // clang-format off
-    case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
-    case 494: // Unofficial nginx "Request header too large"
-    case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-        return IncorrectRequestError;
-    case 429:
-        return TooManyRequestsError;
-    case 501: case 510:
-        return RequestNotImplementedError;
-    case 511:
-        return NetworkAuthRequiredError;
-    default:
-        return NetworkError;
-    }
-}
-
-QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
-{
-    QDebugStateSaver _s(dbg);
-    dbg.noquote().nospace();
-    if (auto* const k = QMetaEnum::fromType<StatusCode>().valueToKey(code)) {
-        const QByteArray b = k;
-        dbg << b.mid(b.lastIndexOf(':'));
-    } else
-        dbg << code;
-    return dbg << ": " << message;
-
-}
-
 BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 {
     // QNetworkReply error codes seem to be flawed when it comes to HTTP;
@@ -439,6 +447,8 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
 
     return Status::fromHttpCode(httpCode, message);
 }
+
+void BaseJob::checkReply() { setStatus(doCheckReply(d->reply.data())); }
 
 BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
 {

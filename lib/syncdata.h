@@ -75,7 +75,7 @@ public:
     static const QString UnreadCountKey;
 };
 
-// QVector cannot work with non-copiable objects, std::vector can.
+// QVector cannot work with non-copyable objects, std::vector can.
 using SyncDataList = std::vector<SyncRoomData>;
 
 class SyncData {

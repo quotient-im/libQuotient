@@ -170,6 +170,8 @@ public:
      * recommended to present a sample of raw data as "details" next to
      * error messages. Note that the default \p bytesAtMost value is
      * also tailored to UI cases.
+     *
+     * \sa rawData
      */
     QString rawDataSample(int bytesAtMost = 65535) const;
 
@@ -322,6 +324,7 @@ protected:
      * on retries.
      */
     virtual void doPrepare();
+
     /*! Postprocessing after the network request has been sent
      *
      * This method is called every time the job receives a running
@@ -331,13 +334,15 @@ protected:
     virtual void onSentRequest(QNetworkReply*);
     virtual void beforeAbandon(QNetworkReply*);
 
-    /**
-     * Used by gotReply() to check the received reply for general
-     * issues such as network errors or access denial.
-     * Returning anything except NoError/Success prevents
-     * further parseReply()/parseJson() invocation.
+    /*! \brief Check the pending or received reply for upfront issues
      *
-     * @param reply the reply received from the server
+     * This is invoked when headers are first received and also once
+     * the complete reply is obtained; the base implementation checks the HTTP
+     * headers to detect general issues such as network errors or access denial.
+     * It cannot read the response body (use parseReply/parseError to check
+     * for problems in the body). Returning anything except NoError/Success
+     * prevents further processing of the reply.
+     *
      * @return the result of checking the reply
      *
      * @see gotReply
