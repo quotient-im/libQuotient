@@ -273,7 +273,13 @@ void BaseJob::Private::sendRequest()
     // Pipelining doesn't fly quite well with SSL, occasionally crashing at
     // what seems like an attempt to write to a closed channel.
 //    req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-    req.setAttribute(QNetworkRequest::HTTP2AllowedAttribute, true);
+    req.setAttribute(
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+        QNetworkRequest::Http2AllowedAttribute
+#else
+        QNetworkRequest::HTTP2AllowedAttribute
+#endif
+        , true);
     Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
