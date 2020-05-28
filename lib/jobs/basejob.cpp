@@ -612,6 +612,8 @@ QByteArray BaseJob::rawData(int bytesAtMost) const
                : d->rawResponse;
 }
 
+const QByteArray& BaseJob::rawData() const { return d->rawResponse; }
+
 QString BaseJob::rawDataSample(int bytesAtMost) const
 {
     auto data = rawData(bytesAtMost);

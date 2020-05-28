@@ -157,11 +157,16 @@ public:
     /** Short human-friendly message on the job status */
     QString statusCaption() const;
 
-    /** Get raw response body as received from the server
-     * \param bytesAtMost return this number of leftmost bytes, or -1
-     *                    to return the entire response
+    /*! Get first bytes of the raw response body as received from the server
+     *
+     * \param bytesAtMost the number of leftmost bytes to return
+     *
+     * \sa rawDataSample
      */
-    QByteArray rawData(int bytesAtMost = -1) const;
+    QByteArray rawData(int bytesAtMost) const;
+
+    /*! Access the whole response body as received from the server */
+    const QByteArray& rawData() const;
 
     /** Get UI-friendly sample of raw data
      *
