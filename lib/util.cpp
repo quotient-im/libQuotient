@@ -28,7 +28,9 @@
 
 static const auto RegExpOptions =
     QRegularExpression::CaseInsensitiveOption
-    | QRegularExpression::OptimizeOnFirstUsageOption
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
+    | QRegularExpression::OptimizeOnFirstUsageOption // Default since 5.12
+#endif
     | QRegularExpression::UseUnicodePropertiesOption;
 
 // Converts all that looks like a URL into HTML links
