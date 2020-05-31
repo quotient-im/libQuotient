@@ -149,6 +149,7 @@ set(lib_SRCS
     lib/room.cpp
     lib/user.cpp
     lib/avatar.cpp
+    lib/resourceresolver.cpp
     lib/syncdata.cpp
     lib/settings.cpp
     lib/networksettings.cpp

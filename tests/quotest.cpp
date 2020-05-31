@@ -2,6 +2,7 @@
 #include "connection.h"
 #include "room.h"
 #include "user.h"
+#include "resourceresolver.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
@@ -98,6 +99,7 @@ private slots:
     TEST_DECL(sendAndRedact)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
+    TEST_DECL(visitResources)
     // Add more tests above here
 
 public:
@@ -610,6 +612,92 @@ TEST_IMPL(markDirectChat)
     const auto& removedDCs = spy.back().back().value<DirectChatsMap>();
     FINISH_TEST(removedDCs.size() == 1
                 && removedDCs.contains(connection()->user(), targetRoom->id()));
+}
+
+TEST_IMPL(visitResources)
+{
+    // Same as the two tests above, ResourceResolver emits signals
+    // synchronously so we use signal spies to intercept them instead of
+    // connecting lambdas before calling openResource(). NB: this test
+    // assumes that ResourceResolver::openResource is implemented in terms
+    // of ResourceResolver::visitResource, so the latter doesn't need a
+    // separate test.
+    static ResourceResolver rr;
+
+    // This lambda returns true in case of error, false if it's fine so far
+    auto testResourceResolver = [this, thisTest](const QStringList& uris,
+                                                 auto signal, auto* target,
+                                                 const QString& eventId = {}) {
+        int r = qRegisterMetaType<decltype(target)>();
+        Q_ASSERT(r != 0);
+        QSignalSpy spy(&rr, signal);
+        for (const auto& uri: uris) {
+            clog << "Resolving uri " << uri.toStdString() << endl;
+            rr.openResource(connection(), uri, "action");
+            if (spy.count() != 1) {
+                clog << "Wrong number of signal emissions (" << spy.count()
+                     << ')' << endl;
+                FAIL_TEST();
+            }
+            const auto& emission = spy.front();
+            Q_ASSERT(emission.count() >= 2);
+            if (emission.front().value<decltype(target)>() != target) {
+                clog << "Action on an incorrect target called" << endl;
+                FAIL_TEST();
+            }
+            if (emission.back() != "action") {
+                clog << "Action wasn't passed" << endl;
+                FAIL_TEST();
+            }
+            if (!eventId.isEmpty()) {
+                const auto passedEvtId = (emission.cend() - 2)->toString();
+                if (passedEvtId != eventId) {
+                    clog << "Event passed incorrectly (received "
+                         << passedEvtId.toStdString() << " instead of "
+                         << eventId.toStdString() << ')' << endl;
+                    FAIL_TEST();
+                }
+            }
+            spy.clear();
+        }
+        return false;
+    };
+
+    // Matrix identifiers used throughout all URI tests
+    const auto& roomId = room()->id();
+    const auto& roomAlias = room()->canonicalAlias();
+    const auto& userId = connection()->userId();
+    const auto& eventId = room()->messageEvents().back()->id();
+    Q_ASSERT(!roomId.isEmpty());
+    Q_ASSERT(!roomAlias.isEmpty());
+    Q_ASSERT(!userId.isEmpty());
+    Q_ASSERT(!eventId.isEmpty());
+
+    const QStringList roomUris {
+        roomId,
+        "matrix:roomid/" + roomId.mid(1),
+        "https://matrix.to/#/" + roomId,
+        roomAlias,
+        "matrix:room/" + roomAlias.mid(1),
+        "https://matrix.to/#/" + roomAlias,
+        "https://matrix.to#/" + roomAlias, // Just in case
+    };
+    const QStringList userUris { userId, "matrix:user/" + userId.mid(1),
+                                 "https://matrix.to/#/" + userId };
+    const QStringList eventUris {
+        "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
+        "https://matrix.to/#/" + roomId + '/' + eventId
+    };
+    // If any test breaks, the breaking call will return true, and further
+    // execution will be cut by ||'s short-circuiting
+    if (testResourceResolver(roomUris, &ResourceResolver::roomAction, room())
+        || testResourceResolver(userUris, &ResourceResolver::userAction,
+                                connection()->user())
+        || testResourceResolver(eventUris, &ResourceResolver::roomAction,
+                                room(), eventId))
+        return true;
+    // TODO: negative cases
+    FINISH_TEST(true);
 }
 
 void TestManager::conclude()
