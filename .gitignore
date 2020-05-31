@@ -5,7 +5,7 @@ build_dir
 # IDE project files/directories
 .kdev4
 .directory
-CMakeLists.txt.user*
+*.user*
 .idea
 
 # qmake derivatives
