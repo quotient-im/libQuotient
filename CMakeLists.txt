@@ -200,7 +200,6 @@ endforeach()
 # new files you have to re-run cmake.
 # TODO: check `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` (from CMake 3.14)
 if (MATRIX_DOC_PATH AND GTAD_PATH)
-    set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${FULL_CSAPI_SRC_DIR}/*.yaml
@@ -208,15 +207,15 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         ${ABS_API_DEF_PATH}/${ISAPI_DEF_DIR}/*.yaml
     )
     add_custom_target(update-api
-        ${ABS_GTAD_PATH} --config ${CSAPI_DIR}/gtad.yaml --out ${CSAPI_DIR}
+        ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
             search.yaml- # current GTAD is limited in handling move-only data
             sync.yaml- # we have a better handcrafted implementation
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
-        SOURCES ${FULL_CSAPI_DIR}/gtad.yaml
-                ${FULL_CSAPI_DIR}/{{base}}.h.mustache
-                ${FULL_CSAPI_DIR}/{{base}}.cpp.mustache
+        SOURCES gtad/gtad.yaml
+                gtad/template.h.mustache
+                gtad/template.cpp.mustache
                 ${API_DEFS}
         VERBATIM
     )
@@ -232,7 +231,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_HDRS}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             VERBATIM
-            COMMENT Formatting files
+            COMMENT "Formatting files"
         )
     endif()
 endif()

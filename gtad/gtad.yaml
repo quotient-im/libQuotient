@@ -158,8 +158,12 @@ mustache:
        *{{/summary}}
 
   templates:
-  - "{{base}}.h.mustache"
-  - "{{base}}.cpp.mustache"
+    data:
+      .h: "{{>template.h.mustache}}"
+      .cpp: "{{>template.cpp.mustache}}"
+    api:
+      .h: "{{>template.h.mustache}}"
+      .cpp: "{{>template.cpp.mustache}}"
 
   #outFilesList: apifiles.txt
 
