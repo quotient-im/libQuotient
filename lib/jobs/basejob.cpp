@@ -363,16 +363,6 @@ void BaseJob::sendRequest()
             << "Request could not start:" << d->dumpRequest();
 }
 
-BaseJob::Status BaseJob::Private::parseJsonDocument()
-{
-    QJsonParseError error { 0, QJsonParseError::MissingObject };
-    jsonResponse = QJsonDocument::fromJson(d->rawResponse, &error);
-    return { error.error == QJsonParseError::NoError
-                 ? BaseJob::NoError
-                 : BaseJob::IncorrectResponse,
-             error.errorString() };
-}
-
 void BaseJob::gotReply()
 {
     checkReply();
