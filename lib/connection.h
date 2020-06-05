@@ -422,7 +422,8 @@ public:
     void setLazyLoading(bool newValue);
 
     /*! Start a pre-created job object on this connection */
-    void run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest);
+    Q_INVOKABLE BaseJob* run(BaseJob* job,
+                         RunningPolicy runningPolicy = ForegroundRequest);
 
     /*! Start a job of a specified type with specified arguments and policy
      *
