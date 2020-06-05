@@ -1425,8 +1425,8 @@ QString Room::roomMembername(const User* u) const
     if (namesakesIt == d->membersMap.cend())
         return u->fullName(this);
 
-    auto nextUserIt = namesakesIt + 1;
-    if (nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
+    auto nextUserIt = namesakesIt;
+    if (++nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
         return username; // No disambiguation necessary
 
     // Check if we can get away just attaching the bridge postfix
