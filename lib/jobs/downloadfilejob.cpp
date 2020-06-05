@@ -86,14 +86,14 @@ void DownloadFileJob::onSentRequest(QNetworkReply* reply)
     });
 }
 
-void DownloadFileJob::beforeAbandon(QNetworkReply*)
+void DownloadFileJob::beforeAbandon()
 {
     if (d->targetFile)
         d->targetFile->remove();
     d->tempFile->remove();
 }
 
-BaseJob::Status DownloadFileJob::parseReply(QNetworkReply*)
+BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
         d->targetFile->close();

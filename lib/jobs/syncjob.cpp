@@ -49,9 +49,9 @@ SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
               timeout, presence)
 {}
 
-BaseJob::Status SyncJob::parseJson(const QJsonDocument& data)
+BaseJob::Status SyncJob::prepareResult()
 {
-    d.parseJson(data.object());
+    d.parseJson(jsonData());
     if (d.unresolvedRooms().isEmpty())
         return BaseJob::Success;
 

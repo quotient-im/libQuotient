@@ -19,12 +19,11 @@
 #include "basejob.h"
 
 #include "connectiondata.h"
-#include "util.h"
 
-#include <QtCore/QJsonObject>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QStringBuilder>
+#include <QtCore/QMetaEnum>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -37,6 +36,7 @@ using namespace std::chrono_literals;
 
 BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
 {
+    // Based on https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     if (httpCode / 10 == 41) // 41x errors
         return httpCode == 410 ? IncorrectRequestError : NotFoundError;
     switch (httpCode) {
@@ -113,6 +113,13 @@ public:
     }
 
     void sendRequest();
+    /*! \brief Parse the response byte array into JSON
+     *
+     * This calls QJsonDocument::fromJson() on rawResponse, converts
+     * the QJsonParseError result to BaseJob::Status and stores the resulting
+     * JSON in jsonResponse.
+     */
+    Status parseJson();
 
     ConnectionData* connection = nullptr;
 
@@ -131,9 +138,17 @@ public:
     // type QMimeType is of little help with MIME type globs (`text/*` etc.)
     QByteArrayList expectedContentTypes { "application/json" };
 
+    QByteArrayList expectedKeys;
+
     QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
     Status status = Unprepared;
     QByteArray rawResponse;
+    /// Contains a null document in case of non-JSON body (for a successful
+    /// or unsuccessful response); a document with QJsonObject or QJsonArray
+    /// in case of a successful response with JSON payload, as per the API
+    /// definition (including an empty JSON object - QJsonObject{});
+    /// and QJsonObject in case of an API error.
+    QJsonDocument jsonResponse;
     QUrl errorUrl; //< May contain a URL to help with some errors
 
     LoggingCategory logCat = JOBS;
@@ -243,6 +258,19 @@ void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
     d->expectedContentTypes = contentTypes;
 }
 
+const QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
+
+void BaseJob::addExpectedKey(const QByteArray& key) { d->expectedKeys << key; }
+
+void BaseJob::setExpectedKeys(const QByteArrayList& keys)
+{
+    d->expectedKeys = keys;
+}
+
+const QNetworkReply* BaseJob::reply() const { return d->reply.data(); }
+
+QNetworkReply* BaseJob::reply() { return d->reply.data(); }
+
 QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
                              const QUrlQuery& query)
 {
@@ -304,7 +332,7 @@ void BaseJob::doPrepare() { }
 
 void BaseJob::onSentRequest(QNetworkReply*) { }
 
-void BaseJob::beforeAbandon(QNetworkReply*) { }
+void BaseJob::beforeAbandon() { }
 
 void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
@@ -346,40 +374,74 @@ void BaseJob::sendRequest()
     emit aboutToSendRequest();
     d->sendRequest();
     Q_ASSERT(d->reply);
-    connect(d->reply.data(), &QNetworkReply::finished, this, &BaseJob::gotReply);
+    connect(reply(), &QNetworkReply::finished, this, [this] {
+        gotReply();
+        finishJob();
+    });
     if (d->reply->isRunning()) {
-        connect(d->reply.data(), &QNetworkReply::metaDataChanged, this,
-                &BaseJob::checkReply);
-        connect(d->reply.data(), &QNetworkReply::uploadProgress, this,
+        connect(reply(), &QNetworkReply::metaDataChanged, this,
+                [this] { checkReply(reply()); });
+        connect(reply(), &QNetworkReply::uploadProgress, this,
                 &BaseJob::uploadProgress);
-        connect(d->reply.data(), &QNetworkReply::downloadProgress, this,
+        connect(reply(), &QNetworkReply::downloadProgress, this,
                 &BaseJob::downloadProgress);
         d->timer.start(getCurrentTimeout());
         qCInfo(d->logCat).noquote() << "Sent" << d->dumpRequest();
-        onSentRequest(d->reply.data());
+        onSentRequest(reply());
         emit sentRequest();
     } else
         qCCritical(d->logCat).noquote()
             << "Request could not start:" << d->dumpRequest();
 }
 
+BaseJob::Status BaseJob::Private::parseJson()
+{
+    QJsonParseError error { 0, QJsonParseError::MissingObject };
+    jsonResponse = QJsonDocument::fromJson(rawResponse, &error);
+    return { error.error == QJsonParseError::NoError
+                 ? BaseJob::NoError
+                 : BaseJob::IncorrectResponse,
+             error.errorString() };
+}
+
 void BaseJob::gotReply()
 {
-    checkReply();
+    setStatus(checkReply(reply()));
+
+    if (status().good()
+        && d->expectedContentTypes == QByteArrayList { "application/json" }) {
+        d->rawResponse = reply()->readAll();
+        setStatus(d->parseJson());
+        if (status().good() && !expectedKeys().empty()) {
+            const auto& responseObject = jsonData();
+            QByteArrayList missingKeys;
+            for (const auto& k: expectedKeys())
+                if (!responseObject.contains(k))
+                    missingKeys.push_back(k);
+            if (!missingKeys.empty())
+                setStatus(IncorrectResponse, tr("Required JSON keys missing: ")
+                                                 + missingKeys.join());
+        }
+        if (!status().good()) // Bad JSON in a "good" reply: bail out
+            return;
+    } // else {
+    // If the endpoint expects anything else than just (API-related) JSON
+    // reply()->readAll() is not performed and the whole reply processing
+    // is left to derived job classes: they may read it piecemeal or customise
+    // per content type in prepareResult(), or even have read it already
+    // (see, e.g., DownloadFileJob).
+    // }
+
     if (status().good())
-        setStatus(parseReply(d->reply.data()));
+        setStatus(prepareResult());
     else {
-        d->rawResponse = d->reply->readAll();
-        const auto jsonBody = d->reply->rawHeader("Content-Type")
-                              == "application/json";
+        d->rawResponse = reply()->readAll();
         qCDebug(d->logCat).noquote()
-            << "Error body (truncated if long):" << d->rawResponse.left(500);
-        if (jsonBody)
-            setStatus(
-                parseError(d->reply.data(),
-                           QJsonDocument::fromJson(d->rawResponse).object()));
+            << "Error body (truncated if long):" << rawDataSample(500);
+        // Parse the error payload and update the status if needed
+        if (const auto newStatus = prepareError(); !newStatus.good())
+            setStatus(newStatus);
     }
-    finishJob();
 }
 
 bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
@@ -408,12 +470,10 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
     return false;
 }
 
-BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
+BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
 {
-    // QNetworkReply error codes seem to be flawed when it comes to HTTP;
-    // see, e.g., https://github.com/quotient-im/libQuotient/issues/200
-    // so check genuine HTTP codes. The below processing is based on
-    // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+    // QNetworkReply error codes are insufficient for our purposes (e.g. they
+    // don't allow to discern HTTP code 429) so check the original code instead
     const auto httpCodeHeader =
         reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (!httpCodeHeader.isValid()) {
@@ -444,24 +504,23 @@ BaseJob::Status BaseJob::doCheckReply(QNetworkReply* reply) const
     return Status::fromHttpCode(httpCode, message);
 }
 
-void BaseJob::checkReply() { setStatus(doCheckReply(d->reply.data())); }
+BaseJob::Status BaseJob::prepareResult() { return Success; }
 
-BaseJob::Status BaseJob::parseReply(QNetworkReply* reply)
+BaseJob::Status BaseJob::prepareError()
 {
-    d->rawResponse = reply->readAll();
-    QJsonParseError error { 0, QJsonParseError::MissingObject };
-    const auto& json = QJsonDocument::fromJson(d->rawResponse, &error);
-    if (error.error == QJsonParseError::NoError)
-        return parseJson(json);
+    // Since it's an error, the expected content type is of no help;
+    // check the actually advertised content type instead
+    if (reply()->rawHeader("Content-Type") != "application/json")
+        return NoError; // Retain the status if the error payload is not JSON
 
-    return { IncorrectResponseError, error.errorString() };
-}
+    if (const auto status = d->parseJson(); !status.good())
+        return status;
 
-BaseJob::Status BaseJob::parseJson(const QJsonDocument&) { return Success; }
+    if (d->jsonResponse.isArray())
+        return { IncorrectResponse,
+                 tr("Malformed error JSON: an array instead of an object") };
 
-BaseJob::Status BaseJob::parseError(QNetworkReply*  /*reply*/,
-                                    const QJsonObject& errorJson)
-{
+    const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
     if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
         QString msg = tr("Too many requests");
@@ -497,6 +556,16 @@ BaseJob::Status BaseJob::parseError(QNetworkReply*  /*reply*/,
         d->status.message = errorJson.value("error"_ls).toString();
 
     return d->status;
+}
+
+QJsonValue BaseJob::takeValueFromJson(const QString& key)
+{
+    if (!d->jsonResponse.isObject())
+        return QJsonValue::Undefined;
+    auto o = d->jsonResponse.object();
+    auto v = o.take(key);
+    d->jsonResponse.setObject(o);
+    return v;
 }
 
 void BaseJob::stop()
@@ -616,10 +685,19 @@ QString BaseJob::rawDataSample(int bytesAtMost) const
     Q_ASSERT(data.size() <= d->rawResponse.size());
     return data.size() == d->rawResponse.size()
                ? data
-               : data
-                     + tr("...(truncated, %Ln bytes in total)",
-                          "Comes after trimmed raw network response",
-                          d->rawResponse.size());
+               : data + tr("...(truncated, %Ln bytes in total)",
+                           "Comes after trimmed raw network response",
+                           d->rawResponse.size());
+}
+
+QJsonObject BaseJob::jsonData() const
+{
+    return d->jsonResponse.object();
+}
+
+QJsonArray BaseJob::jsonItems() const
+{
+    return d->jsonResponse.array();
 }
 
 QString BaseJob::statusCaption() const
@@ -704,7 +782,7 @@ void BaseJob::setStatus(int code, QString message)
 
 void BaseJob::abandon()
 {
-    beforeAbandon(d->reply ? d->reply.data() : nullptr);
+    beforeAbandon();
     d->timer.stop();
     d->retryTimer.stop(); // In case abandon() was called between retries
     setStatus(Abandoned);

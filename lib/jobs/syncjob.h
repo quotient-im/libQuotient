@@ -33,7 +33,7 @@ public:
     SyncData&& takeData() { return std::move(d); }
 
 protected:
-    Status parseJson(const QJsonDocument& data) override;
+    Status prepareResult() override;
 
 private:
     SyncData d;

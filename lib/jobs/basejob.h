@@ -18,13 +18,11 @@
 
 #pragma once
 
-#include "../logging.h"
 #include "requestdata.h"
+#include "../logging.h"
+#include "../converters.h"
 
-#include <QtCore/QJsonDocument>
 #include <QtCore/QObject>
-#include <QtCore/QUrlQuery>
-#include <QtCore/QMetaEnum>
 
 class QNetworkReply;
 class QSslError;
@@ -181,6 +179,49 @@ public:
      */
     QString rawDataSample(int bytesAtMost = 65535) const;
 
+    /** Get the response body as a JSON object
+     *
+     * If the job's returned content type is not `application/json`
+     * or if the top-level JSON entity is not an object, an empty object
+     * is returned.
+     */
+    QJsonObject jsonData() const;
+
+    /** Get the response body as a JSON array
+     *
+     * If the job's returned content type is not `application/json`
+     * or if the top-level JSON entity is not an array, an empty array
+     * is returned.
+     */
+    QJsonArray jsonItems() const;
+
+    /** Load the property from the JSON response assuming a given C++ type
+     *
+     * If there's no top-level JSON object in the response or if there's
+     * no node with the key \p keyName, \p defaultValue is returned.
+     */
+    template <typename T, typename StrT> // Waiting for QStringViews...
+    T loadFromJson(const StrT& keyName, T&& defaultValue = {}) const
+    {
+        const auto& jv = jsonData().value(keyName);
+        return jv.isUndefined() ? std::forward<T>(defaultValue)
+                                : fromJson<T>(jv);
+    }
+
+    /** Load the property from the JSON response and delete it from JSON
+     *
+     * If there's no top-level JSON object in the response or if there's
+     * no node with the key \p keyName, \p defaultValue is returned.
+     */
+    template <typename T>
+    T takeFromJson(const QString& key, T&& defaultValue = {})
+    {
+        if (const auto& jv = takeValueFromJson(key); !jv.isUndefined())
+            return fromJson<T>(jv);
+
+        return std::forward<T>(defaultValue);
+    }
+
     /** Error (more generally, status) code
      * Equivalent to status().code
      * \sa status
@@ -314,6 +355,12 @@ protected:
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
+    const QByteArrayList expectedKeys() const;
+    void addExpectedKey(const QByteArray &key);
+    void setExpectedKeys(const QByteArrayList &keys);
+
+    const QNetworkReply* reply() const;
+    QNetworkReply* reply();
 
     /** Construct a URL out of baseUrl, path and query
      *
@@ -338,50 +385,42 @@ protected:
      * successfully sending a network request (including retries).
      */
     virtual void onSentRequest(QNetworkReply*);
-    virtual void beforeAbandon(QNetworkReply*);
+    virtual void beforeAbandon();
 
-    /*! \brief Check the pending or received reply for upfront issues
+    /*! \brief An extension point for additional reply processing.
      *
-     * This is invoked when headers are first received and also once
-     * the complete reply is obtained; the base implementation checks the HTTP
-     * headers to detect general issues such as network errors or access denial.
-     * It cannot read the response body (use parseReply/parseError to check
-     * for problems in the body). Returning anything except NoError/Success
-     * prevents further processing of the reply.
+     * The base implementation does nothing and returns Success.
      *
-     * @return the result of checking the reply
-     *
-     * @see gotReply
+     * \sa gotReply
      */
-    virtual Status doCheckReply(QNetworkReply* reply) const;
+    virtual Status prepareResult();
 
-    /**
-     * Processes the reply. By default, parses the reply into
-     * a QJsonDocument and calls parseJson() if it's a valid JSON.
+    /*! \brief Process details of the error
      *
-     * @param reply raw contents of a HTTP reply from the server
-     *
-     * @see gotReply, parseJson
+     * The function processes the reply in case when status from checkReply()
+     * was not good (usually because of an unsuccessful HTTP code).
+     * The base implementation assumes Matrix JSON error object in the body;
+     * overrides are strongly recommended to call it for all stock Matrix
+     * responses as early as possible but in addition can process custom errors,
+     * with JSON or non-JSON payload.
      */
-    virtual Status parseReply(QNetworkReply* reply);
+    virtual Status prepareError();
 
-    /**
-     * Processes the JSON document received from the Matrix server.
-     * By default returns successful status without analysing the JSON.
+    /*! \brief Get direct access to the JSON response object in the job
      *
-     * @param json valid JSON document received from the server
+     * This allows to implement deserialisation with "move" semantics for parts
+     * of the response. Assuming that the response body is a valid JSON object,
+     * the function calls QJsonObject::take(key) on it and returns the result.
      *
-     * @see parseReply
+     * \return QJsonValue::Null, if the response content type is not
+     *                           advertised as `application/json`;
+     *         QJsonValue::Undefined, if the response is a JSON object but
+     *                                doesn't have \p key;
+     *         the value for \p key otherwise.
+     *
+     * \sa takeFromJson
      */
-    virtual Status parseJson(const QJsonDocument&);
-
-    /**
-     * Processes the reply in case of unsuccessful HTTP code.
-     * The body is already loaded from the reply object to errorJson.
-     * @param reply the HTTP reply from the server
-     * @param errorJson the JSON payload describing the error
-     */
-    virtual Status parseError(QNetworkReply*, const QJsonObject& errorJson);
+    QJsonValue takeValueFromJson(const QString& key);
 
     void setStatus(Status s);
     void setStatus(int code, QString message);
@@ -397,9 +436,28 @@ protected:
 protected slots:
     void timeout();
 
+    /*! \brief Check the pending or received reply for upfront issues
+     *
+     * This is invoked when headers are first received and also once
+     * the complete reply is obtained; the base implementation checks the HTTP
+     * headers to detect general issues such as network errors or access denial
+     * and it's strongly recommended to call it from overrides,
+     * as early as possible.
+     * This slot is const and cannot read the response body. If you need to read
+     * the body on the fly, override onSentRequest() and connect in it
+     * to reply->readyRead(); and if you only need to validate the body after
+     * it fully arrived, use prepareResult() for that). Returning anything
+     * except NoError/Success switches further processing from prepareResult()
+     * to prepareError().
+     *
+     * @return the result of checking the reply
+     *
+     * @see gotReply
+     */
+    virtual Status checkReply(const QNetworkReply *reply) const;
+
 private slots:
     void sendRequest();
-    void checkReply();
     void gotReply();
 
     friend class ConnectionData; // to provide access to sendRequest()

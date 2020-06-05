@@ -48,12 +48,8 @@ QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
                              Qt::SmoothTransformation);
 }
 
-BaseJob::Status MediaThumbnailJob::parseReply(QNetworkReply* reply)
+BaseJob::Status MediaThumbnailJob::prepareResult()
 {
-    auto result = GetContentThumbnailJob::parseReply(reply);
-    if (!result.good())
-        return result;
-
     if (_thumbnail.loadFromData(data()->readAll()))
         return Success;
 

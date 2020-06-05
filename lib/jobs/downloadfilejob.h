@@ -19,7 +19,7 @@ private:
 
     void doPrepare() override;
     void onSentRequest(QNetworkReply* reply) override;
-    void beforeAbandon(QNetworkReply*) override;
-    Status parseReply(QNetworkReply*) override;
+    void beforeAbandon() override;
+    Status prepareResult() override;
 };
 } // namespace Quotient
