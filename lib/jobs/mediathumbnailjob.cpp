@@ -31,7 +31,7 @@ QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
 MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
                                      const QString& mediaId, QSize requestedSize)
     : GetContentThumbnailJob(serverName, mediaId, requestedSize.width(),
-                             requestedSize.height())
+                             requestedSize.height(), "scale")
 {}
 
 MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
