@@ -102,7 +102,7 @@ public:
 
     QStringList unresolvedRooms() const { return unresolvedRoomIds; }
 
-    static std::pair<int, int> cacheVersion() { return { 10, 0 }; }
+    static std::pair<int, int> cacheVersion() { return { 11, 0 }; }
     static QString fileNameForRoom(QString roomId);
 
 private:

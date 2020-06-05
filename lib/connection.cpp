@@ -48,6 +48,10 @@
 #    include "account.h" // QtOlm
 #endif // Quotient_E2EE_ENABLED
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+#    include <QtCore/QCborValue>
+#endif
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
@@ -1492,9 +1496,16 @@ void Connection::saveRoomState(Room* r) const
     QFile outRoomFile { stateCacheDir().filePath(
         SyncData::fileNameForRoom(r->id())) };
     if (outRoomFile.open(QFile::WriteOnly)) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        const auto data =
+            d->cacheToBinary
+                ? QCborValue::fromJsonValue(r->toJson()).toCbor()
+                : QJsonDocument(r->toJson()).toJson(QJsonDocument::Compact);
+#else
         QJsonDocument json { r->toJson() };
-        auto data = d->cacheToBinary ? json.toBinaryData()
-                                     : json.toJson(QJsonDocument::Compact);
+        const auto data = d->cacheToBinary ? json.toBinaryData()
+                                           : json.toJson(QJsonDocument::Compact);
+#endif
         outRoomFile.write(data.data(), data.size());
         qCDebug(MAIN) << "Room state cache saved to" << outRoomFile.fileName();
     } else {
@@ -1558,9 +1569,15 @@ void Connection::saveState() const
                            { QStringLiteral("events"), accountDataEvents } });
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    const auto data =
+        d->cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
+                         : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+#else
     QJsonDocument json { rootObj };
-    auto data = d->cacheToBinary ? json.toBinaryData()
-                                 : json.toJson(QJsonDocument::Compact);
+    const auto data = d->cacheToBinary ? json.toBinaryData()
+                                       : json.toJson(QJsonDocument::Compact);
+#endif
     qCDebug(PROFILER) << "Cache for" << userId() << "generated in" << et;
 
     outFile.write(data.data(), data.size());

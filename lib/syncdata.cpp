@@ -157,10 +157,14 @@ QJsonObject SyncData::loadJson(const QString& fileName)
     }
     auto data = roomFile.readAll();
 
-    const auto json = (data.startsWith('{')
-                           ? QJsonDocument::fromJson(data)
-                           : QJsonDocument::fromBinaryData(data))
-                          .object();
+    const auto json = data.startsWith('{')
+                          ? QJsonDocument::fromJson(data).object()
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                          : QCborValue::fromCbor(data).toJsonValue().toObject()
+#else
+                          : QJsonDocument::fromBinaryData(data).object()
+#endif
+        ;
     if (json.isEmpty()) {
         qCWarning(MAIN) << "State cache in" << fileName
                         << "is broken or empty, discarding";
