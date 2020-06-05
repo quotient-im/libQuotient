@@ -38,6 +38,7 @@ class BaseJob : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
+    Q_PROPERTY(int statusCode READ error NOTIFY statusChanged)
 public:
     /*! The status code of a job
      *
