@@ -184,21 +184,21 @@ set(lib_SRCS
 )
 
 set(CSAPI_DIR csapi)
+set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
-foreach (D ${CSAPI_DIR} ${CSAPI_DIR}/definitions
-         ${CSAPI_DIR}/definitions/wellknown ${ASAPI_DEF_DIR} ${ISAPI_DEF_DIR})
-    aux_source_directory(lib/${D} api_SRCS)
-endforeach()
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12.0")
+    set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
+endif()
+file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
 
 # Make no mistake: CMake cannot run gtad first and then populate the list of
-# resulting api_SRCS files. In other words, placing the above foreach after
-# the custom targets definition won't bring the desired result:
+# resulting api_SRCS files. In other words, placing the above statement after
+# the add_custom_target() call below won't bring the desired result:
 # CMake will execute it at cmake invocation and gtad will only run later
 # when building the update-api target. If you see that gtad has created
-# new files you have to re-run cmake.
-# TODO: check `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` (from CMake 3.14)
+# new files you have to re-run cmake. CONFIGURE_DEPENDS somewhat helps that.
 if (MATRIX_DOC_PATH AND GTAD_PATH)
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
@@ -206,7 +206,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         ${ABS_API_DEF_PATH}/${ASAPI_DEF_DIR}/*.yaml
         ${ABS_API_DEF_PATH}/${ISAPI_DEF_DIR}/*.yaml
     )
-    add_custom_target(update-api
+    add_custom_target(generate-unformatted-api
         ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
@@ -214,25 +214,30 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
             sync.yaml- # we have a better handcrafted implementation
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
         SOURCES gtad/gtad.yaml
-                gtad/template.h.mustache
-                gtad/template.cpp.mustache
+                gtad/data.h.mustache
+                gtad/operation.h.mustache
+                gtad/operation.cpp.mustache
                 ${API_DEFS}
         VERBATIM
     )
     if (ABS_CLANG_FORMAT)
-        # TODO: list(TRANSFORM) is available from CMake 3.12
-        foreach (S ${api_SRCS})
-            string (REGEX REPLACE ".cpp$" ".h" H ${S})
-            list(APPEND api_HDRS ${H})
-        endforeach()
         set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
-        add_custom_command(TARGET update-api POST_BUILD
-            COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_SRCS}
-            COMMAND ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_HDRS}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            VERBATIM
-            COMMENT "Formatting files"
-        )
+        # FIXME: the list of files should be produced after GTAD has run.
+        # For now it's produced at CMake invocation; and if file() doesn't file
+        # any files clang-format chokes; also,
+        file(GLOB_RECURSE api_ALL_SRCS ${add_CONFIGURE_DEPENDS}
+             ${FULL_CSAPI_DIR}/*.*
+             lib/${ASAPI_DEF_DIR}/*.*
+             lib/${ISAPI_DEF_DIR}/*.*)
+        if (api_ALL_SRCS)
+            add_custom_target(format-api
+                ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_ALL_SRCS}
+                DEPENDS generate-unformatted-api
+                VERBATIM)
+            add_custom_target(update-api DEPENDS format-api)
+        else()
+            add_custom_target(update-api DEPENDS generate-unformatted-api)
+        endif()
     endif()
 endif()
 

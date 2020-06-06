@@ -1,0 +1,53 @@
+{{>preamble}}
+#pragma once
+
+#include "converters.h"
+{{#imports}}
+#include {{_}}{{/imports}}
+
+namespace Quotient {
+{{#models}}
+    {{#model}}
+{{>docCommentShort}}
+struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+{       {{#vars}}
+
+    {{>docCommentShort}}
+    {{>maybeOmittableType}} {{nameCamelCase}};
+        {{/vars}}{{#propertyMap}}
+
+    {{>docCommentShort}}
+    {{>maybeOmittableType}} {{nameCamelCase}};
+        {{/propertyMap}}
+};
+
+template <> struct JsonObjectConverter<{{name}}>
+{
+        {{#in?}}
+    static void dumpTo(QJsonObject& jo, const {{name}}& pod)
+    {       {{#propertyMap}}
+        fillJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}{{#parents}}
+        fillJson<{{name}}>(jo, pod);
+            {{/parents}}{{#vars}}
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo,
+                QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+            {{/vars}}
+        }
+        {{/in?}}
+        {{#out?}}
+    static void fillFrom({{>maybeCrefJsonObject}} jo, {{name}}& pod)
+    {       {{#parents}}
+        fillFromJson<{{qualifiedName}}>(jo, pod);
+            {{/parents}}{{#vars}}
+        fromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls), pod.{{nameCamelCase}});
+            {{/vars}}{{#propertyMap}}
+        fromJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}
+    }
+        {{/out?}}
+};
+
+    {{/model}}
+{{/models}}
+} // namespace Quotient

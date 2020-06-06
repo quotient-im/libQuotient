@@ -112,10 +112,6 @@ SOURCES += \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/csapi/*.cpp, false) \
-    $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
-    $$files($$SRCPATH/csapi/definitions/wellknown/*.cpp, false) \
-    $$files($$SRCPATH/application-service/definitions/*.cpp, false) \
-    $$files($$SRCPATH/identity/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/converters.cpp \
     $$SRCPATH/settings.cpp \
