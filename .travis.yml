@@ -48,7 +48,7 @@ before_install:
 - |
   if [ -n "$UPDATE_API" ]; then
     export CC=gcc-8 CXX=g++-8
-    export CMAKE_UPDATE_API_ARGS="-DMATRIX_DOC_PATH=matrix-doc -DGTAD_PATH=gtad/gtad"
+    export CMAKE_UPDATE_API_ARGS="-DMATRIX_DOC_PATH=../matrix-doc -DGTAD_PATH=../gtad/gtad"
   fi
 # RPM spec-style: swallow a command with default parameters into an alias
 # and add/override parameters further in the code if/as necessary
@@ -57,6 +57,7 @@ before_install:
 - alias _cmake_build='cmake --build build'
 
 install:
+- pushd .. # Go out of libQuotient source tree
 - git clone https://gitlab.matrix.org/matrix-org/olm.git
 - pushd olm
 - _cmake_config
@@ -65,13 +66,14 @@ install:
 
 - |
   if [ -n "$UPDATE_API" ]; then
-    git clone https://github.com/quotient-im/matrix-doc.git
+    git clone https://github.com/matrix.org/matrix-doc.git
     git clone --recursive https://github.com/KitsuneRal/gtad.git
     pushd gtad
     cmake $CMAKE_ARGS .
     cmake --build .
     popd
   fi
+- popd # back to libQuotient source tree
 
 before_script:
 - _cmake_config $CMAKE_UPDATE_API_ARGS $E2EE
