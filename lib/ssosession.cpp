@@ -10,7 +10,8 @@
 
 using namespace Quotient;
 
-struct SsoSession::Private {
+class SsoSession::Private {
+public:
     Private(SsoSession* q, const QString& initialDeviceName = {},
             const QString& deviceId = {}, Connection* connection = nullptr)
         : initialDeviceName(initialDeviceName)
@@ -38,7 +39,7 @@ struct SsoSession::Private {
                 processCallback();
             });
             QObject::connect(socket, &QTcpSocket::disconnected, socket,
-                             [this] { socket->deleteLater(); });
+                             &QTcpSocket::deleteLater);
         });
     }
     void processCallback();
