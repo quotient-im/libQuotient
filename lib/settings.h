@@ -25,6 +25,7 @@
 class QVariant;
 
 namespace Quotient {
+
 class Settings : public QSettings {
     Q_OBJECT
 public:
@@ -151,8 +152,9 @@ class AccountSettings : public SettingsGroup {
                    WRITE setEncryptionAccountPickle)
 public:
     template <typename... ArgTs>
-    explicit AccountSettings(const QString& accountId, ArgTs... qsettingsArgs)
-        : SettingsGroup("Accounts/" + accountId, qsettingsArgs...)
+    explicit AccountSettings(const QString& accountId, ArgTs&&... qsettingsArgs)
+        : SettingsGroup("Accounts/" + accountId,
+                        std::forward<ArgTs>(qsettingsArgs)...)
     {}
 
     QString userId() const;
