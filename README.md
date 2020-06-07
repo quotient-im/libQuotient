@@ -211,7 +211,7 @@ QT_LOGGING_RULES="libqmatrixclient.*.debug=true;libqmatrixclient.jobs.debug=fals
 In case of troubles with room state and caching it may be useful to switch
 cache format from binary to JSON. To do that, set the following value in
 your client's configuration file/registry key (you might need to create
-the libqmatrixclient key for that): `libqmatrixclient/cache_type` to `json`.
+the libQuotient key for that): `libQuotient/cache_type` to `json`.
 This will make cache saving and loading work slightly slower but the cache
-will be in a text JSON file (very long and unindented so prepare a good
+will be in text JSON files (possibly very long and unindented so prepare a good
 JSON viewer or text editor with JSON formatting capabilities).
