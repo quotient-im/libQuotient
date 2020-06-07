@@ -4,13 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Informs the server that the user has started or stopped typing.
  *
@@ -23,13 +19,17 @@ class SetTypingJob : public BaseJob {
 public:
     /*! \brief Informs the server that the user has started or stopped typing.
      *
+     *
      * \param userId
      *   The user who has started to type.
+     *
      * \param roomId
      *   The room in which the user is typing.
+     *
      * \param typing
      *   Whether the user is typing or not. If ``false``, the ``timeout``
      *   key can be omitted.
+     *
      * \param timeout
      *   The length of time in milliseconds to mark this user as typing.
      */

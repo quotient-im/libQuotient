@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Updates a room's visibility in the application service's room
  * directory.
  *
@@ -28,12 +26,15 @@ public:
     /*! \brief Updates a room's visibility in the application service's room
      * directory.
      *
+     *
      * \param networkId
      *   The protocol (network) ID to update the room list for. This would
      *   have been provided by the application service as being listed as
      *   a supported protocol.
+     *
      * \param roomId
      *   The room ID to add to the directory.
+     *
      * \param visibility
      *   Whether the room should be visible (public) in the directory
      *   or not (private).

@@ -4,19 +4,11 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/device_keys.h"
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QJsonObject>
-#include <QtCore/QVariant>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Upload end-to-end encryption keys.
  *
@@ -26,34 +18,30 @@ class UploadKeysJob : public BaseJob {
 public:
     /*! \brief Upload end-to-end encryption keys.
      *
+     *
      * \param deviceKeys
      *   Identity keys for the device. May be absent if no new
      *   identity keys are required.
+     *
      * \param oneTimeKeys
      *   One-time public keys for "pre-key" messages.  The names of
      *   the properties should be in the format
      *   ``<algorithm>:<key_id>``. The format of the key is determined
-     *   by the key algorithm.
+     *   by the `key algorithm <#key-algorithms>`_.
      *
      *   May be absent if no new one-time keys are required.
      */
     explicit UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys = none,
                            const QHash<QString, QVariant>& oneTimeKeys = {});
 
-    ~UploadKeysJob() override;
-
     // Result properties
 
     /// For each key algorithm, the number of unclaimed one-time keys
     /// of that type currently held on the server for this device.
-    const QHash<QString, int>& oneTimeKeyCounts() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QHash<QString, int> oneTimeKeyCounts() const
+    {
+        return loadFromJson<QHash<QString, int>>("one_time_key_counts"_ls);
+    }
 };
 
 /*! \brief Download device identity keys.
@@ -73,7 +61,9 @@ public:
     };
 
     /// Returns the current devices and identity keys for the given users.
-    struct DeviceInformation : DeviceKeys {
+    struct DeviceKeys :
+
+        Quotient::DeviceKeys {
         /// Additional data added to the device key information
         /// by intermediate servers, and not covered by the
         /// signatures.
@@ -84,13 +74,16 @@ public:
 
     /*! \brief Download device identity keys.
      *
+     *
      * \param deviceKeys
      *   The keys to be downloaded. A map from user ID, to a list of
      *   device IDs, or to an empty list to indicate all devices for the
      *   corresponding user.
+     *
      * \param timeout
      *   The time (in milliseconds) to wait when downloading keys from
      *   remote servers. 10 seconds is the recommended default.
+     *
      * \param token
      *   If the client is fetching keys as a result of a device update received
      *   in a sync request, this should be the 'since' token of that sync
@@ -101,8 +94,6 @@ public:
                           Omittable<int> timeout = none,
                           const QString& token = {});
 
-    ~QueryKeysJob() override;
-
     // Result properties
 
     /// If any remote homeservers could not be reached, they are
@@ -112,21 +103,39 @@ public:
     /// If the homeserver could be reached, but the user or device
     /// was unknown, no failure is recorded. Instead, the corresponding
     /// user or device is missing from the ``device_keys`` result.
-    const QHash<QString, QJsonObject>& failures() const;
+    QHash<QString, QJsonObject> failures() const
+    {
+        return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
+    }
 
     /// Information on the queried devices. A map from user ID, to a
     /// map from device ID to device information.  For each device,
     /// the information returned will be the same as uploaded via
     /// ``/keys/upload``, with the addition of an ``unsigned``
     /// property.
-    const QHash<QString, QHash<QString, DeviceInformation>>& deviceKeys() const;
+    QHash<QString, QHash<QString, DeviceKeys>> deviceKeys() const
+    {
+        return loadFromJson<QHash<QString, QHash<QString, DeviceKeys>>>(
+            "device_keys"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
+template <>
+struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
+    static void fillFrom(const QJsonObject& jo,
+                         QueryKeysJob::UnsignedDeviceInfo& result)
+    {
+        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+    }
+};
 
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<QueryKeysJob::DeviceKeys> {
+    static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceKeys& result)
+    {
+        fillFromJson<DeviceKeys>(jo, result);
+        fromJson(jo.value("unsigned"_ls), result.unsignedData);
+    }
 };
 
 /*! \brief Claim one-time encryption keys.
@@ -137,9 +146,11 @@ class ClaimKeysJob : public BaseJob {
 public:
     /*! \brief Claim one-time encryption keys.
      *
+     *
      * \param oneTimeKeys
      *   The keys to be claimed. A map from user ID, to a map from
      *   device ID to algorithm name.
+     *
      * \param timeout
      *   The time (in milliseconds) to wait when downloading keys from
      *   remote servers. 10 seconds is the recommended default.
@@ -147,8 +158,6 @@ public:
     explicit ClaimKeysJob(
         const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
         Omittable<int> timeout = none);
-
-    ~ClaimKeysJob() override;
 
     // Result properties
 
@@ -159,18 +168,22 @@ public:
     /// If the homeserver could be reached, but the user or device
     /// was unknown, no failure is recorded. Instead, the corresponding
     /// user or device is missing from the ``one_time_keys`` result.
-    const QHash<QString, QJsonObject>& failures() const;
+    QHash<QString, QJsonObject> failures() const
+    {
+        return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
+    }
 
     /// One-time keys for the queried devices. A map from user ID, to a
-    /// map from devices to a map from ``<algorithm>:<key_id>`` to the key object.
-    const QHash<QString, QHash<QString, QVariant>>& oneTimeKeys() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// map from devices to a map from ``<algorithm>:<key_id>`` to the key
+    /// object.
+    ///
+    /// See the `key algorithms <#key-algorithms>`_ section for information
+    /// on the Key Object format.
+    QHash<QString, QHash<QString, QVariant>> oneTimeKeys() const
+    {
+        return loadFromJson<QHash<QString, QHash<QString, QVariant>>>(
+            "one_time_keys"_ls);
+    }
 };
 
 /*! \brief Query users with recent device key updates.
@@ -189,12 +202,14 @@ class GetKeysChangesJob : public BaseJob {
 public:
     /*! \brief Query users with recent device key updates.
      *
+     *
      * \param from
      *   The desired start point of the list. Should be the ``next_batch`` field
      *   from a response to an earlier call to |/sync|. Users who have not
      *   uploaded new device identity keys since this point, nor deleted
      *   existing devices with identity keys since then, will be excluded
      *   from the results.
+     *
      * \param to
      *   The desired end point of the list. Should be the ``next_batch``
      *   field from a recent call to |/sync| - typically the most recent
@@ -210,25 +225,20 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& from,
                                const QString& to);
-    ~GetKeysChangesJob() override;
 
     // Result properties
 
     /// The Matrix User IDs of all users who updated their device
     /// identity keys.
-    const QStringList& changed() const;
+    QStringList changed() const
+    {
+        return loadFromJson<QStringList>("changed"_ls);
+    }
 
     /// The Matrix User IDs of all users who may have left all
     /// the end-to-end encrypted rooms they previously shared
     /// with the user.
-    const QStringList& left() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QStringList left() const { return loadFromJson<QStringList>("left"_ls); }
 };
 
 } // namespace Quotient

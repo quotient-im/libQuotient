@@ -4,15 +4,12 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
 #include <QtCore/QIODevice>
+#include <QtNetwork/QNetworkReply>
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Upload some content to the content repository.
  *
@@ -21,28 +18,26 @@ class UploadContentJob : public BaseJob {
 public:
     /*! \brief Upload some content to the content repository.
      *
+     *
      * \param content
+     *   The content to be uploaded.
+     *
      * \param filename
      *   The name of the file being uploaded
+     *
      * \param contentType
      *   The content type of the file being uploaded
      */
     explicit UploadContentJob(QIODevice* content, const QString& filename = {},
                               const QString& contentType = {});
 
-    ~UploadContentJob() override;
-
     // Result properties
 
-    /// The MXC URI to the uploaded content.
-    const QString& contentUri() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// The `MXC URI`_ to the uploaded content.
+    QString contentUri() const
+    {
+        return loadFromJson<QString>("content_uri"_ls);
+    }
 };
 
 /*! \brief Download content from the content repository.
@@ -52,10 +47,13 @@ class GetContentJob : public BaseJob {
 public:
     /*! \brief Download content from the content repository.
      *
+     *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
+     *
      * \param mediaId
      *   The media ID from the ``mxc://`` URI (the path component)
+     *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
      * if it is deemed remote. This is to prevent routing loops where the server
@@ -71,44 +69,47 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName,
                                const QString& mediaId, bool allowRemote = true);
-    ~GetContentJob() override;
 
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    const QString& contentType() const;
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// The name of the file that was previously uploaded, if set.
-    const QString& contentDisposition() const;
+    QString contentDisposition() const
+    {
+        return reply()->rawHeader("Content-Disposition");
+    }
 
     /// The content that was previously uploaded.
-    QIODevice* data() const;
-
-protected:
-    Status parseReply(QNetworkReply* reply) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QIODevice* data() { return reply(); }
 };
 
-/*! \brief Download content from the content repository as a given filename.
+/*! \brief Download content from the content repository. This is the same as
+the download endpoint above, except permitting a desired file name.
  *
  */
 class GetContentOverrideNameJob : public BaseJob {
 public:
-    /*! \brief Download content from the content repository as a given filename.
+    /*! \brief Download content from the content repository. This is the same as
+the download endpoint above, except permitting a desired file name.
+ *
      *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
+     *
      * \param mediaId
      *   The media ID from the ``mxc://`` URI (the path component)
+     *
      * \param fileName
-     *   The filename to give in the Content-Disposition
+     *   A filename to give in the ``Content-Disposition`` header.
+     *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
-     * if it is deemed remote. This is to prevent routing loops where the server
-     * contacts itself. Defaults to true if not provided.
+if it is deemed
+     *   remote. This is to prevent routing loops where the server contacts
+itself. Defaults to
+     *   true if not provided.
      */
     explicit GetContentOverrideNameJob(const QString& serverName,
                                        const QString& mediaId,
@@ -123,50 +124,57 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName,
                                const QString& mediaId, const QString& fileName,
                                bool allowRemote = true);
-    ~GetContentOverrideNameJob() override;
 
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    const QString& contentType() const;
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
-    /// The name of file given in the request
-    const QString& contentDisposition() const;
+    /// The ``fileName`` requested or the name of the file that was previously
+    /// uploaded, if set.
+    QString contentDisposition() const
+    {
+        return reply()->rawHeader("Content-Disposition");
+    }
 
     /// The content that was previously uploaded.
-    QIODevice* data() const;
-
-protected:
-    Status parseReply(QNetworkReply* reply) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QIODevice* data() { return reply(); }
 };
 
-/*! \brief Download a thumbnail of the content from the content repository.
+/*! \brief Download a thumbnail of content from the content repository. See the
+`thumbnailing <#thumbnails>`_ section for more information.
  *
  */
 class GetContentThumbnailJob : public BaseJob {
 public:
-    /*! \brief Download a thumbnail of the content from the content repository.
+    /*! \brief Download a thumbnail of content from the content repository. See
+the `thumbnailing <#thumbnails>`_ section for more information.
+ *
      *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
+     *
      * \param mediaId
      *   The media ID from the ``mxc://`` URI (the path component)
+     *
      * \param width
-     *   The *desired* width of the thumbnail. The actual thumbnail may not
-     *   match the size specified.
+     *   The *desired* width of the thumbnail. The actual thumbnail may be
+     *   larger than the size specified.
+     *
      * \param height
-     *   The *desired* height of the thumbnail. The actual thumbnail may not
-     *   match the size specified.
+     *   The *desired* height of the thumbnail. The actual thumbnail may be
+     *   larger than the size specified.
+     *
      * \param method
-     *   The desired resizing method.
+     *   The desired resizing method. See the `thumbnailing <#thumbnails>`_
+     *   section for more information.
+     *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
-     * if it is deemed remote. This is to prevent routing loops where the server
-     * contacts itself. Defaults to true if not provided.
+if it is deemed
+     *   remote. This is to prevent routing loops where the server contacts
+itself. Defaults to
+     *   true if not provided.
      */
     explicit GetContentThumbnailJob(const QString& serverName,
                                     const QString& mediaId, int width,
@@ -182,33 +190,35 @@ public:
                                const QString& mediaId, int width, int height,
                                const QString& method = {},
                                bool allowRemote = true);
-    ~GetContentThumbnailJob() override;
 
     // Result properties
 
     /// The content type of the thumbnail.
-    const QString& contentType() const;
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// A thumbnail of the requested content.
-    QIODevice* data() const;
-
-protected:
-    Status parseReply(QNetworkReply* reply) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Get information about a URL for a client
  *
+ * Get information about a URL for the client. Typically this is called when a
+ * client sees a URL in a message and wants to render a preview for the user.
+ *
+ * .. Note::
+ *   Clients should consider avoiding this endpoint for URLs posted in encrypted
+ *   rooms. Encrypted rooms often contain more sensitive information the users
+ *   do not want to share with the homeserver, and this can mean that the URLs
+ *   being shared should also not be shared with the homeserver.
  */
 class GetUrlPreviewJob : public BaseJob {
 public:
     /*! \brief Get information about a URL for a client
      *
+     *
      * \param url
-     *   The URL to get a preview of
+     *   The URL to get a preview of.
+     *
      * \param ts
      *   The preferred point in time to return a preview for. The server may
      *   return a newer version if it does not have the requested version
@@ -223,22 +233,17 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& url,
                                Omittable<qint64> ts = none);
-    ~GetUrlPreviewJob() override;
 
     // Result properties
 
     /// The byte-size of the image. Omitted if there is no image attached.
-    Omittable<qint64> matrixImageSize() const;
+    Omittable<qint64> matrixImageSize() const
+    {
+        return loadFromJson<Omittable<qint64>>("matrix:image:size"_ls);
+    }
 
-    /// An MXC URI to the image. Omitted if there is no image.
-    const QString& ogImage() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// An `MXC URI`_ to the image. Omitted if there is no image.
+    QString ogImage() const { return loadFromJson<QString>("og:image"_ls); }
 };
 
 /*! \brief Get the configuration for the content repository.
@@ -265,21 +270,16 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetConfigJob() override;
 
     // Result properties
 
     /// The maximum size an upload can be in bytes.
     /// Clients SHOULD use this as a guide when uploading content.
     /// If not listed or null, the size limit should be treated as unknown.
-    Omittable<qint64> uploadSize() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    Omittable<qint64> uploadSize() const
+    {
+        return loadFromJson<Omittable<qint64>>("m.upload.size"_ls);
+    }
 };
 
 } // namespace Quotient

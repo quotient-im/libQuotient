@@ -8,13 +8,7 @@
 
 #include "csapi/definitions/push_condition.h"
 
-#include <QtCore/QJsonObject>
-#include <QtCore/QVariant>
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Data structures
 
 struct PushRule {
     /// The actions to perform when this rule is matched.
@@ -41,8 +35,24 @@ struct PushRule {
 
 template <>
 struct JsonObjectConverter<PushRule> {
-    static void dumpTo(QJsonObject& jo, const PushRule& pod);
-    static void fillFrom(const QJsonObject& jo, PushRule& pod);
+    static void dumpTo(QJsonObject& jo, const PushRule& pod)
+    {
+        addParam<>(jo, QStringLiteral("actions"), pod.actions);
+        addParam<>(jo, QStringLiteral("default"), pod.isDefault);
+        addParam<>(jo, QStringLiteral("enabled"), pod.enabled);
+        addParam<>(jo, QStringLiteral("rule_id"), pod.ruleId);
+        addParam<IfNotEmpty>(jo, QStringLiteral("conditions"), pod.conditions);
+        addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
+    }
+    static void fillFrom(const QJsonObject& jo, PushRule& pod)
+    {
+        fromJson(jo.value("actions"_ls), pod.actions);
+        fromJson(jo.value("default"_ls), pod.isDefault);
+        fromJson(jo.value("enabled"_ls), pod.enabled);
+        fromJson(jo.value("rule_id"_ls), pod.ruleId);
+        fromJson(jo.value("conditions"_ls), pod.conditions);
+        fromJson(jo.value("pattern"_ls), pod.pattern);
+    }
 };
 
 } // namespace Quotient

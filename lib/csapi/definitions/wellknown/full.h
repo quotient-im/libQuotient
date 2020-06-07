@@ -9,13 +9,7 @@
 #include "csapi/definitions/wellknown/homeserver.h"
 #include "csapi/definitions/wellknown/identity_server.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Data structures
-
 /// Used by clients to determine the homeserver, identity server, and other
 /// optional components they should be interacting with.
 struct DiscoveryInformation {
@@ -33,8 +27,19 @@ struct DiscoveryInformation {
 
 template <>
 struct JsonObjectConverter<DiscoveryInformation> {
-    static void dumpTo(QJsonObject& jo, const DiscoveryInformation& pod);
-    static void fillFrom(QJsonObject jo, DiscoveryInformation& pod);
+    static void dumpTo(QJsonObject& jo, const DiscoveryInformation& pod)
+    {
+        fillJson(jo, pod.additionalProperties);
+        addParam<>(jo, QStringLiteral("m.homeserver"), pod.homeserver);
+        addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"),
+                             pod.identityServer);
+    }
+    static void fillFrom(QJsonObject jo, DiscoveryInformation& pod)
+    {
+        fromJson(jo.take("m.homeserver"_ls), pod.homeserver);
+        fromJson(jo.take("m.identity_server"_ls), pod.identityServer);
+        fromJson(jo, pod.additionalProperties);
+    }
 };
 
 } // namespace Quotient

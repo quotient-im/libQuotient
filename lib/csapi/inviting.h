@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Invite a user to participate in a particular room.
  *
  * .. _invite-by-user-id-endpoint:
@@ -35,8 +33,10 @@ class InviteUserJob : public BaseJob {
 public:
     /*! \brief Invite a user to participate in a particular room.
      *
+     *
      * \param roomId
      *   The room identifier (not alias) to which to invite the user.
+     *
      * \param userId
      *   The fully qualified user ID of the invitee.
      */

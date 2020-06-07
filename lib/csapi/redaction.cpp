@@ -4,38 +4,17 @@
 
 #include "redaction.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-class RedactEventJob::Private {
-public:
-    QString eventId;
-};
-
 RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId,
                                const QString& txnId, const QString& reason)
     : BaseJob(HttpVerb::Put, QStringLiteral("RedactEventJob"),
-              basePath % "/rooms/" % roomId % "/redact/" % eventId % "/" % txnId)
-    , d(new Private)
+              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
+                  % "/redact/" % eventId % "/" % txnId)
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(_data);
-}
-
-RedactEventJob::~RedactEventJob() = default;
-
-const QString& RedactEventJob::eventId() const { return d->eventId; }
-
-BaseJob::Status RedactEventJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    fromJson(json.value("event_id"_ls), d->eventId);
-
-    return Success;
+    setRequestData(std::move(_data));
 }

@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Gets information about the owner of an access token.
  *
  * Gets information about the owner of a given access token.
@@ -32,19 +30,11 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetTokenOwnerJob() override;
 
     // Result properties
 
     /// The user id that owns the access token.
-    const QString& userId() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 };
 
 } // namespace Quotient

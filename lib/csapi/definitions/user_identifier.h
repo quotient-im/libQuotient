@@ -6,12 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QVariant>
-
 namespace Quotient {
-
-// Data structures
-
 /// Identification information for a user
 struct UserIdentifier {
     /// The type of identification.  See `Identifier types`_ for supported
@@ -24,8 +19,16 @@ struct UserIdentifier {
 
 template <>
 struct JsonObjectConverter<UserIdentifier> {
-    static void dumpTo(QJsonObject& jo, const UserIdentifier& pod);
-    static void fillFrom(QJsonObject jo, UserIdentifier& pod);
+    static void dumpTo(QJsonObject& jo, const UserIdentifier& pod)
+    {
+        fillJson(jo, pod.additionalProperties);
+        addParam<>(jo, QStringLiteral("type"), pod.type);
+    }
+    static void fillFrom(QJsonObject jo, UserIdentifier& pod)
+    {
+        fromJson(jo.take("type"_ls), pod.type);
+        fromJson(jo, pod.additionalProperties);
+    }
 };
 
 } // namespace Quotient

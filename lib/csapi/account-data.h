@@ -6,11 +6,7 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Set some account_data for the user.
  *
@@ -22,12 +18,15 @@ class SetAccountDataJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param type
      *   The event type of the account_data to set. Custom types should be
      *   namespaced to avoid clashes.
+     *
      * \param content
      *   The content of the account_data
      */
@@ -44,9 +43,11 @@ class GetAccountDataJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
      *
+     *
      * \param userId
      *   The ID of the user to get account_data for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param type
      *   The event type of the account_data to get. Custom types should be
      *   namespaced to avoid clashes.
@@ -72,14 +73,18 @@ class SetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param roomId
      *   The ID of the room to set account_data on.
+     *
      * \param type
      *   The event type of the account_data to set. Custom types should be
      *   namespaced to avoid clashes.
+     *
      * \param content
      *   The content of the account_data
      */
@@ -97,11 +102,14 @@ class GetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
      *
+     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param roomId
      *   The ID of the room to get account_data for.
+     *
      * \param type
      *   The event type of the account_data to get. Custom types should be
      *   namespaced to avoid clashes.

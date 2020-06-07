@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Lists the user's current rooms.
  *
  * This API returns a list of the user's current rooms.
@@ -25,19 +23,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetJoinedRoomsJob() override;
 
     // Result properties
 
     /// The ID of each room in which the user has ``joined`` membership.
-    const QStringList& joinedRooms() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QStringList joinedRooms() const
+    {
+        return loadFromJson<QStringList>("joined_rooms"_ls);
+    }
 };
 
 } // namespace Quotient

@@ -6,11 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Data structures
 
 struct ThirdPartyUser {
     /// A Matrix User ID represting a third party user.
@@ -25,8 +21,18 @@ struct ThirdPartyUser {
 
 template <>
 struct JsonObjectConverter<ThirdPartyUser> {
-    static void dumpTo(QJsonObject& jo, const ThirdPartyUser& pod);
-    static void fillFrom(const QJsonObject& jo, ThirdPartyUser& pod);
+    static void dumpTo(QJsonObject& jo, const ThirdPartyUser& pod)
+    {
+        addParam<>(jo, QStringLiteral("userid"), pod.userid);
+        addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
+        addParam<>(jo, QStringLiteral("fields"), pod.fields);
+    }
+    static void fillFrom(const QJsonObject& jo, ThirdPartyUser& pod)
+    {
+        fromJson(jo.value("userid"_ls), pod.userid);
+        fromJson(jo.value("protocol"_ls), pod.protocol);
+        fromJson(jo.value("fields"_ls), pod.fields);
+    }
 };
 
 } // namespace Quotient

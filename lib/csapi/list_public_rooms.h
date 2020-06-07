@@ -4,15 +4,11 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/public_rooms_response.h"
 
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets the visibility of a room in the directory
  *
@@ -21,6 +17,7 @@ namespace Quotient {
 class GetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Gets the visibility of a room in the directory
+     *
      *
      * \param roomId
      *   The room ID.
@@ -33,19 +30,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-    ~GetRoomVisibilityOnDirectoryJob() override;
 
     // Result properties
 
     /// The visibility of the room in the directory.
-    const QString& visibility() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QString visibility() const
+    {
+        return loadFromJson<QString>("visibility"_ls);
+    }
 };
 
 /*! \brief Sets the visibility of a room in the room directory
@@ -61,8 +53,10 @@ class SetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Sets the visibility of a room in the room directory
      *
+     *
      * \param roomId
      *   The room ID.
+     *
      * \param visibility
      *   The new visibility setting for the room.
      *   Defaults to 'public'.
@@ -82,13 +76,16 @@ class GetPublicRoomsJob : public BaseJob {
 public:
     /*! \brief Lists the public rooms on the server.
      *
+     *
      * \param limit
      *   Limit the number of results returned.
+     *
      * \param since
      *   A pagination token from a previous request, allowing clients to
      *   get the next (or previous) batch of rooms.
      *   The direction of pagination is specified solely by which token
      *   is supplied, rather than via an explicit flag.
+     *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
      *   local server.
@@ -105,19 +102,14 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, Omittable<int> limit = none,
                                const QString& since = {},
                                const QString& server = {});
-    ~GetPublicRoomsJob() override;
 
     // Result properties
 
     /// A list of the rooms on the server.
-    const PublicRoomsResponse& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    PublicRoomsResponse data() const
+    {
+        return fromJson<PublicRoomsResponse>(jsonData());
+    }
 };
 
 /*! \brief Lists the public rooms on the server with optional filter.
@@ -138,25 +130,58 @@ public:
         QString genericSearchTerm;
     };
 
+    /// Lists the public rooms on the server, with optional filter.
+    ///
+    /// This API returns paginated responses. The rooms are ordered by the
+    /// number of joined members, with the largest rooms first.
+    struct PublicRoomsChunk {
+        /// Aliases of the room. May be empty.
+        QStringList aliases;
+        /// The canonical alias of the room, if any.
+        QString canonicalAlias;
+        /// The name of the room, if any.
+        QString name;
+        /// The number of members joined to the room.
+        int numJoinedMembers;
+        /// The ID of the room.
+        QString roomId;
+        /// The topic of the room, if any.
+        QString topic;
+        /// Whether the room may be viewed by guest users without joining.
+        bool worldReadable;
+        /// Whether guest users may join the room and participate in it.
+        /// If they can, they will be subject to ordinary power level
+        /// rules like any other user.
+        bool guestCanJoin;
+        /// The URL for the room's avatar, if one is set.
+        QString avatarUrl;
+    };
+
     // Construction/destruction
 
     /*! \brief Lists the public rooms on the server with optional filter.
      *
+     *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
      *   local server.
+     *
      * \param limit
      *   Limit the number of results returned.
+     *
      * \param since
      *   A pagination token from a previous request, allowing clients
      *   to get the next (or previous) batch of rooms.  The direction
      *   of pagination is specified solely by which token is supplied,
      *   rather than via an explicit flag.
+     *
      * \param filter
      *   Filter to apply to the results.
+     *
      * \param includeAllNetworks
      *   Whether or not to include all known networks/protocols from
      *   application services on the homeserver. Defaults to false.
+     *
      * \param thirdPartyInstanceId
      *   The specific third party network/protocol to request from the
      *   homeserver. Can only be used if ``include_all_networks`` is false.
@@ -168,19 +193,56 @@ public:
                                  Omittable<bool> includeAllNetworks = none,
                                  const QString& thirdPartyInstanceId = {});
 
-    ~QueryPublicRoomsJob() override;
-
     // Result properties
 
-    /// A list of the rooms on the server.
-    const PublicRoomsResponse& data() const;
+    /// A paginated chunk of public rooms.
+    QVector<PublicRoomsChunk> chunk() const
+    {
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
+    }
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
+    /// A pagination token for the response. The absence of this token
+    /// means there are no more results to fetch and the client should
+    /// stop paginating.
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
 
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// A pagination token that allows fetching previous results. The
+    /// absence of this token means there are no results before this
+    /// batch, i.e. this is the first batch.
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+
+    /// An estimate on the total number of public rooms, if the
+    /// server has an estimate.
+    Omittable<int> totalRoomCountEstimate() const
+    {
+        return loadFromJson<Omittable<int>>("total_room_count_estimate"_ls);
+    }
+};
+
+template <>
+struct JsonObjectConverter<QueryPublicRoomsJob::Filter> {
+    static void dumpTo(QJsonObject& jo, const QueryPublicRoomsJob::Filter& pod)
+    {
+        addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"),
+                             pod.genericSearchTerm);
+    }
+};
+
+template <>
+struct JsonObjectConverter<QueryPublicRoomsJob::PublicRoomsChunk> {
+    static void fillFrom(const QJsonObject& jo,
+                         QueryPublicRoomsJob::PublicRoomsChunk& result)
+    {
+        fromJson(jo.value("aliases"_ls), result.aliases);
+        fromJson(jo.value("canonical_alias"_ls), result.canonicalAlias);
+        fromJson(jo.value("name"_ls), result.name);
+        fromJson(jo.value("num_joined_members"_ls), result.numJoinedMembers);
+        fromJson(jo.value("room_id"_ls), result.roomId);
+        fromJson(jo.value("topic"_ls), result.topic);
+        fromJson(jo.value("world_readable"_ls), result.worldReadable);
+        fromJson(jo.value("guest_can_join"_ls), result.guestCanJoin);
+        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+    }
 };
 
 } // namespace Quotient

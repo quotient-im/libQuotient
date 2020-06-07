@@ -7,9 +7,6 @@
 #include "converters.h"
 
 namespace Quotient {
-
-// Data structures
-
 /// A client device
 struct Device {
     /// Identifier of this device.
@@ -31,8 +28,21 @@ struct Device {
 
 template <>
 struct JsonObjectConverter<Device> {
-    static void dumpTo(QJsonObject& jo, const Device& pod);
-    static void fillFrom(const QJsonObject& jo, Device& pod);
+    static void dumpTo(QJsonObject& jo, const Device& pod)
+    {
+        addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
+        addParam<IfNotEmpty>(jo, QStringLiteral("display_name"),
+                             pod.displayName);
+        addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ip"), pod.lastSeenIp);
+        addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ts"), pod.lastSeenTs);
+    }
+    static void fillFrom(const QJsonObject& jo, Device& pod)
+    {
+        fromJson(jo.value("device_id"_ls), pod.deviceId);
+        fromJson(jo.value("display_name"_ls), pod.displayName);
+        fromJson(jo.value("last_seen_ip"_ls), pod.lastSeenIp);
+        fromJson(jo.value("last_seen_ts"_ls), pod.lastSeenTs);
+    }
 };
 
 } // namespace Quotient

@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Ban a user in the room.
  *
  * Ban a user in the room. If the user is currently in the room, also kick them.
@@ -24,10 +22,13 @@ class BanJob : public BaseJob {
 public:
     /*! \brief Ban a user in the room.
      *
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be banned.
+     *
      * \param userId
      *   The fully qualified user ID of the user being banned.
+     *
      * \param reason
      *   The reason the user has been banned. This will be supplied as the
      * ``reason`` on the target's updated `m.room.member`_ event.
@@ -49,8 +50,10 @@ class UnbanJob : public BaseJob {
 public:
     /*! \brief Unban a user from the room.
      *
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be unbanned.
+     *
      * \param userId
      *   The fully qualified user ID of the user being unbanned.
      */

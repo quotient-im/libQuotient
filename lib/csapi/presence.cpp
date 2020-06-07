@@ -4,71 +4,33 @@
 
 #include "presence.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
 SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
                                const QString& statusMsg)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetPresenceJob"),
-              basePath % "/presence/" % userId % "/status")
+              QStringLiteral("/_matrix/client/r0") % "/presence/" % userId
+                  % "/status")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("presence"), presence);
     addParam<IfNotEmpty>(_data, QStringLiteral("status_msg"), statusMsg);
-    setRequestData(_data);
+    setRequestData(std::move(_data));
 }
-
-class GetPresenceJob::Private {
-public:
-    QString presence;
-    Omittable<int> lastActiveAgo;
-    QString statusMsg;
-    Omittable<bool> currentlyActive;
-};
 
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/presence/" % userId % "/status");
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/presence/" % userId % "/status");
 }
 
 GetPresenceJob::GetPresenceJob(const QString& userId)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPresenceJob"),
-              basePath % "/presence/" % userId % "/status")
-    , d(new Private)
-{}
-
-GetPresenceJob::~GetPresenceJob() = default;
-
-const QString& GetPresenceJob::presence() const { return d->presence; }
-
-Omittable<int> GetPresenceJob::lastActiveAgo() const
+              QStringLiteral("/_matrix/client/r0") % "/presence/" % userId
+                  % "/status")
 {
-    return d->lastActiveAgo;
-}
-
-const QString& GetPresenceJob::statusMsg() const { return d->statusMsg; }
-
-Omittable<bool> GetPresenceJob::currentlyActive() const
-{
-    return d->currentlyActive;
-}
-
-BaseJob::Status GetPresenceJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    if (!json.contains("presence"_ls))
-        return { IncorrectResponse,
-                 "The key 'presence' not found in the response" };
-    fromJson(json.value("presence"_ls), d->presence);
-    fromJson(json.value("last_active_ago"_ls), d->lastActiveAgo);
-    fromJson(json.value("status_msg"_ls), d->statusMsg);
-    fromJson(json.value("currently_active"_ls), d->currentlyActive);
-
-    return Success;
+    addExpectedKey("presence");
 }

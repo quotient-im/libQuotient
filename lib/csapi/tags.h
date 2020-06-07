@@ -4,16 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QVariant>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief List the tags for a room.
  *
@@ -36,9 +29,11 @@ public:
 
     /*! \brief List the tags for a room.
      *
+     *
      * \param userId
      *   The id of the user to get tags for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param roomId
      *   The ID of the room to get tags for.
      */
@@ -51,19 +46,23 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& roomId);
-    ~GetRoomTagsJob() override;
 
     // Result properties
 
     /// List the tags set by a user on a room.
-    const QHash<QString, Tag>& tags() const;
+    QHash<QString, Tag> tags() const
+    {
+        return loadFromJson<QHash<QString, Tag>>("tags"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetRoomTagsJob::Tag> {
+    static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
+    {
+        fromJson(jo.take("order"_ls), result.order);
+        fromJson(jo, result.additionalProperties);
+    }
 };
 
 /*! \brief Add a tag to a room.
@@ -74,19 +73,27 @@ class SetRoomTagJob : public BaseJob {
 public:
     /*! \brief Add a tag to a room.
      *
+     *
      * \param userId
      *   The id of the user to add a tag for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param roomId
      *   The ID of the room to add a tag to.
+     *
      * \param tag
      *   The tag to add.
+     *
      * \param order
      *   A number in a range ``[0,1]`` describing a relative
      *   position of the room under the given tag.
+     *
+     * \param additionalProperties
+     *   Add a tag to the room.
      */
     explicit SetRoomTagJob(const QString& userId, const QString& roomId,
-                           const QString& tag, Omittable<float> order = none);
+                           const QString& tag, Omittable<float> order = none,
+                           const QVariantHash& additionalProperties = {});
 };
 
 /*! \brief Remove a tag from the room.
@@ -97,11 +104,14 @@ class DeleteRoomTagJob : public BaseJob {
 public:
     /*! \brief Remove a tag from the room.
      *
+     *
      * \param userId
      *   The id of the user to remove a tag for. The access token must be
      *   authorized to make requests for this user ID.
+     *
      * \param roomId
      *   The ID of the room to remove a tag from.
+     *
      * \param tag
      *   The tag to remove.
      */

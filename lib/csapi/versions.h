@@ -4,15 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets the versions of the specification supported by the server.
  *
@@ -48,24 +42,22 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetVersionsJob() override;
 
     // Result properties
 
     /// The supported versions.
-    const QStringList& versions() const;
+    QStringList versions() const
+    {
+        return loadFromJson<QStringList>("versions"_ls);
+    }
 
     /// Experimental features the server supports. Features not listed here,
     /// or the lack of this property all together, indicate that a feature is
     /// not supported.
-    const QHash<QString, bool>& unstableFeatures() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QHash<QString, bool> unstableFeatures() const
+    {
+        return loadFromJson<QHash<QString, bool>>("unstable_features"_ls);
+    }
 };
 
 } // namespace Quotient

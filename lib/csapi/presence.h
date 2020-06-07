@@ -4,13 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Update this user's presence state.
  *
@@ -23,10 +19,13 @@ class SetPresenceJob : public BaseJob {
 public:
     /*! \brief Update this user's presence state.
      *
+     *
      * \param userId
      *   The user whose presence state to update.
+     *
      * \param presence
      *   The new presence state.
+     *
      * \param statusMsg
      *   The status message to attach to this state.
      */
@@ -42,6 +41,7 @@ class GetPresenceJob : public BaseJob {
 public:
     /*! \brief Get this user's presence state.
      *
+     *
      * \param userId
      *   The user whose presence state to get.
      */
@@ -53,29 +53,27 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-    ~GetPresenceJob() override;
 
     // Result properties
 
     /// This user's presence.
-    const QString& presence() const;
+    QString presence() const { return loadFromJson<QString>("presence"_ls); }
 
     /// The length of time in milliseconds since an action was performed
     /// by this user.
-    Omittable<int> lastActiveAgo() const;
+    Omittable<int> lastActiveAgo() const
+    {
+        return loadFromJson<Omittable<int>>("last_active_ago"_ls);
+    }
 
     /// The state message for this user if one was set.
-    const QString& statusMsg() const;
+    QString statusMsg() const { return loadFromJson<QString>("status_msg"_ls); }
 
     /// Whether the user is currently active
-    Omittable<bool> currentlyActive() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    Omittable<bool> currentlyActive() const
+    {
+        return loadFromJson<Omittable<bool>>("currently_active"_ls);
+    }
 };
 
 } // namespace Quotient

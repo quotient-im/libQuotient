@@ -4,42 +4,20 @@
 
 #include "whoami.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-class GetTokenOwnerJob::Private {
-public:
-    QString userId;
-};
-
 QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/account/whoami");
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/account/whoami");
 }
 
 GetTokenOwnerJob::GetTokenOwnerJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetTokenOwnerJob"),
-              basePath % "/account/whoami")
-    , d(new Private)
-{}
-
-GetTokenOwnerJob::~GetTokenOwnerJob() = default;
-
-const QString& GetTokenOwnerJob::userId() const { return d->userId; }
-
-BaseJob::Status GetTokenOwnerJob::parseJson(const QJsonDocument& data)
+              QStringLiteral("/_matrix/client/r0") % "/account/whoami")
 {
-    auto json = data.object();
-    if (!json.contains("user_id"_ls))
-        return { IncorrectResponse,
-                 "The key 'user_id' not found in the response" };
-    fromJson(json.value("user_id"_ls), d->userId);
-
-    return Success;
+    addExpectedKey("user_id");
 }

@@ -6,14 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QJsonObject>
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Data structures
-
 /// Definition of valid values for a field.
 struct FieldType {
     /// A regular expression for validation of a field's value. This may be
@@ -27,8 +20,16 @@ struct FieldType {
 
 template <>
 struct JsonObjectConverter<FieldType> {
-    static void dumpTo(QJsonObject& jo, const FieldType& pod);
-    static void fillFrom(const QJsonObject& jo, FieldType& pod);
+    static void dumpTo(QJsonObject& jo, const FieldType& pod)
+    {
+        addParam<>(jo, QStringLiteral("regexp"), pod.regexp);
+        addParam<>(jo, QStringLiteral("placeholder"), pod.placeholder);
+    }
+    static void fillFrom(const QJsonObject& jo, FieldType& pod)
+    {
+        fromJson(jo.value("regexp"_ls), pod.regexp);
+        fromJson(jo.value("placeholder"_ls), pod.placeholder);
+    }
 };
 
 struct ProtocolInstance {
@@ -48,8 +49,20 @@ struct ProtocolInstance {
 
 template <>
 struct JsonObjectConverter<ProtocolInstance> {
-    static void dumpTo(QJsonObject& jo, const ProtocolInstance& pod);
-    static void fillFrom(const QJsonObject& jo, ProtocolInstance& pod);
+    static void dumpTo(QJsonObject& jo, const ProtocolInstance& pod)
+    {
+        addParam<>(jo, QStringLiteral("desc"), pod.desc);
+        addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
+        addParam<>(jo, QStringLiteral("fields"), pod.fields);
+        addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
+    }
+    static void fillFrom(const QJsonObject& jo, ProtocolInstance& pod)
+    {
+        fromJson(jo.value("desc"_ls), pod.desc);
+        fromJson(jo.value("icon"_ls), pod.icon);
+        fromJson(jo.value("fields"_ls), pod.fields);
+        fromJson(jo.value("network_id"_ls), pod.networkId);
+    }
 };
 
 struct ThirdPartyProtocol {
@@ -84,8 +97,22 @@ struct ThirdPartyProtocol {
 
 template <>
 struct JsonObjectConverter<ThirdPartyProtocol> {
-    static void dumpTo(QJsonObject& jo, const ThirdPartyProtocol& pod);
-    static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod);
+    static void dumpTo(QJsonObject& jo, const ThirdPartyProtocol& pod)
+    {
+        addParam<>(jo, QStringLiteral("user_fields"), pod.userFields);
+        addParam<>(jo, QStringLiteral("location_fields"), pod.locationFields);
+        addParam<>(jo, QStringLiteral("icon"), pod.icon);
+        addParam<>(jo, QStringLiteral("field_types"), pod.fieldTypes);
+        addParam<>(jo, QStringLiteral("instances"), pod.instances);
+    }
+    static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod)
+    {
+        fromJson(jo.value("user_fields"_ls), pod.userFields);
+        fromJson(jo.value("location_fields"_ls), pod.locationFields);
+        fromJson(jo.value("icon"_ls), pod.icon);
+        fromJson(jo.value("field_types"_ls), pod.fieldTypes);
+        fromJson(jo.value("instances"_ls), pod.instances);
+    }
 };
 
 } // namespace Quotient

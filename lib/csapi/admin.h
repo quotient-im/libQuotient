@@ -4,16 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets information about a particular user.
  *
@@ -66,6 +59,7 @@ public:
 
     /*! \brief Gets information about a particular user.
      *
+     *
      * \param userId
      *   The user to look up.
      */
@@ -77,22 +71,44 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-    ~GetWhoIsJob() override;
 
     // Result properties
 
     /// The Matrix user ID of the user.
-    const QString& userId() const;
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 
-    /// Each key is an identitfier for one of the user's devices.
-    const QHash<QString, DeviceInfo>& devices() const;
+    /// Each key is an identifier for one of the user's devices.
+    QHash<QString, DeviceInfo> devices() const
+    {
+        return loadFromJson<QHash<QString, DeviceInfo>>("devices"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
+template <>
+struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetWhoIsJob::ConnectionInfo& result)
+    {
+        fromJson(jo.value("ip"_ls), result.ip);
+        fromJson(jo.value("last_seen"_ls), result.lastSeen);
+        fromJson(jo.value("user_agent"_ls), result.userAgent);
+    }
+};
 
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
+    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
+    {
+        fromJson(jo.value("connections"_ls), result.connections);
+    }
+};
+
+template <>
+struct JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
+    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
+    {
+        fromJson(jo.value("sessions"_ls), result.sessions);
+    }
 };
 
 } // namespace Quotient

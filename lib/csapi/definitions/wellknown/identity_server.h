@@ -7,9 +7,6 @@
 #include "converters.h"
 
 namespace Quotient {
-
-// Data structures
-
 /// Used by clients to discover identity server information.
 struct IdentityServerInformation {
     /// The base URL for the identity server for client-server connections.
@@ -18,8 +15,14 @@ struct IdentityServerInformation {
 
 template <>
 struct JsonObjectConverter<IdentityServerInformation> {
-    static void dumpTo(QJsonObject& jo, const IdentityServerInformation& pod);
-    static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod);
+    static void dumpTo(QJsonObject& jo, const IdentityServerInformation& pod)
+    {
+        addParam<>(jo, QStringLiteral("base_url"), pod.baseUrl);
+    }
+    static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod)
+    {
+        fromJson(jo.value("base_url"_ls), pod.baseUrl);
+    }
 };
 
 } // namespace Quotient

@@ -6,12 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QHash>
-
 namespace Quotient {
-
-// Data structures
-
 /// Device identity keys
 struct DeviceKeys {
     /// The ID of the user the device belongs to. Must match the user ID used
@@ -40,8 +35,22 @@ struct DeviceKeys {
 
 template <>
 struct JsonObjectConverter<DeviceKeys> {
-    static void dumpTo(QJsonObject& jo, const DeviceKeys& pod);
-    static void fillFrom(const QJsonObject& jo, DeviceKeys& pod);
+    static void dumpTo(QJsonObject& jo, const DeviceKeys& pod)
+    {
+        addParam<>(jo, QStringLiteral("user_id"), pod.userId);
+        addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
+        addParam<>(jo, QStringLiteral("algorithms"), pod.algorithms);
+        addParam<>(jo, QStringLiteral("keys"), pod.keys);
+        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+    }
+    static void fillFrom(const QJsonObject& jo, DeviceKeys& pod)
+    {
+        fromJson(jo.value("user_id"_ls), pod.userId);
+        fromJson(jo.value("device_id"_ls), pod.deviceId);
+        fromJson(jo.value("algorithms"_ls), pod.algorithms);
+        fromJson(jo.value("keys"_ls), pod.keys);
+        fromJson(jo.value("signatures"_ls), pod.signatures);
+    }
 };
 
 } // namespace Quotient

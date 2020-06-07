@@ -6,11 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Data structures
 
 struct ThirdPartyLocation {
     /// An alias for a matrix room.
@@ -25,8 +21,18 @@ struct ThirdPartyLocation {
 
 template <>
 struct JsonObjectConverter<ThirdPartyLocation> {
-    static void dumpTo(QJsonObject& jo, const ThirdPartyLocation& pod);
-    static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod);
+    static void dumpTo(QJsonObject& jo, const ThirdPartyLocation& pod)
+    {
+        addParam<>(jo, QStringLiteral("alias"), pod.alias);
+        addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
+        addParam<>(jo, QStringLiteral("fields"), pod.fields);
+    }
+    static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod)
+    {
+        fromJson(jo.value("alias"_ls), pod.alias);
+        fromJson(jo.value("protocol"_ls), pod.protocol);
+        fromJson(jo.value("fields"_ls), pod.fields);
+    }
 };
 
 } // namespace Quotient

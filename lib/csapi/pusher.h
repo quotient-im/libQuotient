@@ -4,15 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets the current pushers for the authenticated user
  *
@@ -73,19 +67,39 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetPushersJob() override;
 
     // Result properties
 
     /// An array containing the current pushers for the user
-    const QVector<Pusher>& pushers() const;
+    QVector<Pusher> pushers() const
+    {
+        return loadFromJson<QVector<Pusher>>("pushers"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
+template <>
+struct JsonObjectConverter<GetPushersJob::PusherData> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetPushersJob::PusherData& result)
+    {
+        fromJson(jo.value("url"_ls), result.url);
+        fromJson(jo.value("format"_ls), result.format);
+    }
+};
 
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetPushersJob::Pusher> {
+    static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
+    {
+        fromJson(jo.value("pushkey"_ls), result.pushkey);
+        fromJson(jo.value("kind"_ls), result.kind);
+        fromJson(jo.value("app_id"_ls), result.appId);
+        fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
+        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+        fromJson(jo.value("profile_tag"_ls), result.profileTag);
+        fromJson(jo.value("lang"_ls), result.lang);
+        fromJson(jo.value("data"_ls), result.data);
+    }
 };
 
 /*! \brief Modify a pusher for this user on the homeserver.
@@ -118,6 +132,7 @@ public:
 
     /*! \brief Modify a pusher for this user on the homeserver.
      *
+     *
      * \param pushkey
      *   This is a unique identifier for this pusher. The value you
      *   should use for this is the routing or destination address
@@ -128,10 +143,12 @@ public:
      *
      *   If the ``kind`` is ``"email"``, this is the email address to
      *   send notifications to.
+     *
      * \param kind
      *   The kind of pusher to configure. ``"http"`` makes a pusher that
      *   sends HTTP pokes. ``"email"`` makes a pusher that emails the
      *   user with unread notifications. ``null`` deletes the pusher.
+     *
      * \param appId
      *   This is a reverse-DNS style identifier for the application.
      *   It is recommended that this end with the platform, such that
@@ -139,22 +156,28 @@ public:
      *   Max length, 64 chars.
      *
      *   If the ``kind`` is ``"email"``, this is ``"m.email"``.
+     *
      * \param appDisplayName
      *   A string that will allow the user to identify what application
      *   owns this pusher.
+     *
      * \param deviceDisplayName
      *   A string that will allow the user to identify what device owns
      *   this pusher.
+     *
      * \param lang
      *   The preferred language for receiving notifications (e.g. 'en'
      *   or 'en-US').
+     *
      * \param data
      *   A dictionary of information for the pusher implementation
      *   itself. If ``kind`` is ``http``, this should contain ``url``
      *   which is the URL to use to send notifications to.
+     *
      * \param profileTag
      *   This string determines which set of device specific rules this
      *   pusher executes.
+     *
      * \param append
      *   If true, the homeserver should add another pusher with the
      *   given pushkey and App ID in addition to any others with
@@ -168,6 +191,15 @@ public:
                            const QString& lang, const PusherData& data,
                            const QString& profileTag = {},
                            Omittable<bool> append = none);
+};
+
+template <>
+struct JsonObjectConverter<PostPusherJob::PusherData> {
+    static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
+    {
+        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
+        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
+    }
 };
 
 } // namespace Quotient

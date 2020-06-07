@@ -8,12 +8,11 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Invalidates a user access token
  *
  * Invalidates an existing access token, so that it can no longer be used for
- * authorization.
+ * authorization. The device associated with the access token is also deleted.
+ * `Device keys <#device-keys>`_ for the device are deleted alongside the device.
  */
 class LogoutJob : public BaseJob {
 public:
@@ -31,7 +30,9 @@ public:
 /*! \brief Invalidates all access tokens for a user
  *
  * Invalidates all access tokens for a user, so that they can no longer be used
- * for authorization. This includes the access token that made this request.
+ * for authorization. This includes the access token that made this request. All
+ * devices for the user are also deleted. `Device keys <#device-keys>`_ for the
+ * device are deleted alongside the device.
  *
  * This endpoint does not require UI authorization because UI authorization is
  * designed to protect against attacks where the someone gets hold of a single

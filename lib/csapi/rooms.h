@@ -4,17 +4,11 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "events/eventloader.h"
 #include "events/roommemberevent.h"
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Get a single event by event ID.
  *
@@ -25,8 +19,10 @@ class GetOneRoomEventJob : public BaseJob {
 public:
     /*! \brief Get a single event by event ID.
      *
+     *
      * \param roomId
      *   The ID of the room the event is in.
+     *
      * \param eventId
      *   The event ID to get.
      */
@@ -39,22 +35,17 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventId);
-    ~GetOneRoomEventJob() override;
 
     // Result properties
 
     /// The full event.
-    EventPtr&& data();
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    EventPtr data() { return fromJson<EventPtr>(jsonData()); }
 };
 
 /*! \brief Get the state identified by the type and key.
+ *
+ * .. For backwards compatibility with older links...
+ * .. _`get-matrix-client-r0-rooms-roomid-state-eventtype`:
  *
  * Looks up the contents of a state event in a room. If the user is
  * joined to the room then the state is taken from the current
@@ -65,12 +56,16 @@ class GetRoomStateWithKeyJob : public BaseJob {
 public:
     /*! \brief Get the state identified by the type and key.
      *
+     *
      * \param roomId
      *   The room to look up the state in.
+     *
      * \param eventType
      *   The type of state to look up.
+     *
      * \param stateKey
-     *   The key of the state to look up.
+     *   The key of the state to look up. Defaults to an empty string. When
+     *   an empty string, the trailing slash on this endpoint is optional.
      */
     explicit GetRoomStateWithKeyJob(const QString& roomId,
                                     const QString& eventType,
@@ -86,36 +81,6 @@ public:
                                const QString& stateKey);
 };
 
-/*! \brief Get the state identified by the type, with the empty state key.
- *
- * Looks up the contents of a state event in a room. If the user is
- * joined to the room then the state is taken from the current
- * state of the room. If the user has left the room then the state is
- * taken from the state of the room when they left.
- *
- * This looks up the state event with the empty state key.
- */
-class GetRoomStateByTypeJob : public BaseJob {
-public:
-    /*! \brief Get the state identified by the type, with the empty state key.
-     *
-     * \param roomId
-     *   The room to look up the state in.
-     * \param eventType
-     *   The type of state to look up.
-     */
-    explicit GetRoomStateByTypeJob(const QString& roomId,
-                                   const QString& eventType);
-
-    /*! \brief Construct a URL without creating a full-fledged job object
-     *
-     * This function can be used when a URL for GetRoomStateByTypeJob
-     * is necessary but the job itself isn't.
-     */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
-                               const QString& eventType);
-};
-
 /*! \brief Get all state events in the current state of a room.
  *
  * Get the state events for the current state of a room.
@@ -123,6 +88,7 @@ public:
 class GetRoomStateJob : public BaseJob {
 public:
     /*! \brief Get all state events in the current state of a room.
+     *
      *
      * \param roomId
      *   The room to look up the state for.
@@ -135,22 +101,11 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-    ~GetRoomStateJob() override;
 
     // Result properties
 
-    /// If the user is a member of the room this will be the
-    /// current state of the room as a list of events. If the user
-    /// has left the room then this will be the state of the room
-    /// when they left as a list of events.
-    StateEvents&& data();
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// The current state of the room
+    StateEvents data() { return fromJson<StateEvents>(jsonData()); }
 };
 
 /*! \brief Get the m.room.member events for the room.
@@ -161,17 +116,26 @@ class GetMembersByRoomJob : public BaseJob {
 public:
     /*! \brief Get the m.room.member events for the room.
      *
+     *
      * \param roomId
      *   The room to get the member events for.
+     *
      * \param at
-     *   The token defining the timeline position as-of which to return
-     *   the list of members. This token can be obtained from a batch token
-     *   returned for each room by the sync API, or from
-     *   a ``start``/``end`` token returned by a ``/messages`` request.
+     *   The point in time (pagination token) to return members for in the room.
+     *   This token can be obtained from a ``prev_batch`` token returned for
+     *   each room by the sync API. Defaults to the current state of the room,
+     *   as determined by the server.
+     *
      * \param membership
-     *   Only return users with the specified membership
+     *   The kind of membership to filter for. Defaults to no filtering if
+     *   unspecified. When specified alongside ``not_membership``, the two
+     *   parameters create an 'or' condition: either the membership *is*
+     *   the same as ``membership`` **or** *is not* the same as
+     * ``not_membership``.
+     *
      * \param notMembership
-     *   Only return users with membership state other than specified
+     *   The kind of membership to exclude from the results. Defaults to no
+     *   filtering if unspecified.
      */
     explicit GetMembersByRoomJob(const QString& roomId, const QString& at = {},
                                  const QString& membership = {},
@@ -186,19 +150,14 @@ public:
                                const QString& at = {},
                                const QString& membership = {},
                                const QString& notMembership = {});
-    ~GetMembersByRoomJob() override;
 
     // Result properties
 
     /// Get the list of members for this room.
-    EventsArray<RoomMemberEvent>&& chunk();
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    EventsArray<RoomMemberEvent> chunk()
+    {
+        return takeFromJson<EventsArray<RoomMemberEvent>>("chunk"_ls);
+    }
 };
 
 /*! \brief Gets the list of currently joined users and their profile data.
@@ -231,6 +190,7 @@ public:
 
     /*! \brief Gets the list of currently joined users and their profile data.
      *
+     *
      * \param roomId
      *   The room to get the members of.
      */
@@ -242,19 +202,24 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
-    ~GetJoinedMembersByRoomJob() override;
 
     // Result properties
 
     /// A map from user ID to a RoomMember object.
-    const QHash<QString, RoomMember>& joined() const;
+    QHash<QString, RoomMember> joined() const
+    {
+        return loadFromJson<QHash<QString, RoomMember>>("joined"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetJoinedMembersByRoomJob::RoomMember& result)
+    {
+        fromJson(jo.value("display_name"_ls), result.displayName);
+        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+    }
 };
 
 } // namespace Quotient

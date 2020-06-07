@@ -6,13 +6,7 @@
 
 #include "converters.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Data structures
-
 /// Used by clients to submit authentication information to the
 /// interactive-authentication API
 struct AuthenticationData {
@@ -28,8 +22,18 @@ struct AuthenticationData {
 
 template <>
 struct JsonObjectConverter<AuthenticationData> {
-    static void dumpTo(QJsonObject& jo, const AuthenticationData& pod);
-    static void fillFrom(QJsonObject jo, AuthenticationData& pod);
+    static void dumpTo(QJsonObject& jo, const AuthenticationData& pod)
+    {
+        fillJson(jo, pod.authInfo);
+        addParam<>(jo, QStringLiteral("type"), pod.type);
+        addParam<IfNotEmpty>(jo, QStringLiteral("session"), pod.session);
+    }
+    static void fillFrom(QJsonObject jo, AuthenticationData& pod)
+    {
+        fromJson(jo.take("type"_ls), pod.type);
+        fromJson(jo.take("session"_ls), pod.session);
+        fromJson(jo, pod.authInfo);
+    }
 };
 
 } // namespace Quotient

@@ -4,41 +4,12 @@
 
 #include "notifications.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-// Converters
-namespace Quotient {
-
-template <>
-struct JsonObjectConverter<GetNotificationsJob::Notification> {
-    static void fillFrom(const QJsonObject& jo,
-                         GetNotificationsJob::Notification& result)
-    {
-        fromJson(jo.value("actions"_ls), result.actions);
-        fromJson(jo.value("event"_ls), result.event);
-        fromJson(jo.value("profile_tag"_ls), result.profileTag);
-        fromJson(jo.value("read"_ls), result.read);
-        fromJson(jo.value("room_id"_ls), result.roomId);
-        fromJson(jo.value("ts"_ls), result.ts);
-    }
-};
-
-} // namespace Quotient
-
-class GetNotificationsJob::Private {
-public:
-    QString nextToken;
-    std::vector<Notification> notifications;
-};
-
-BaseJob::Query queryToGetNotifications(const QString& from,
-                                       Omittable<int> limit, const QString& only)
+auto queryToGetNotifications(const QString& from, Omittable<int> limit,
+                             const QString& only)
 {
     BaseJob::Query _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -52,7 +23,8 @@ QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                          const QString& only)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/notifications",
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/notifications",
                                    queryToGetNotifications(from, limit, only));
 }
 
@@ -60,29 +32,8 @@ GetNotificationsJob::GetNotificationsJob(const QString& from,
                                          Omittable<int> limit,
                                          const QString& only)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
-              basePath % "/notifications",
+              QStringLiteral("/_matrix/client/r0") % "/notifications",
               queryToGetNotifications(from, limit, only))
-    , d(new Private)
-{}
-
-GetNotificationsJob::~GetNotificationsJob() = default;
-
-const QString& GetNotificationsJob::nextToken() const { return d->nextToken; }
-
-std::vector<GetNotificationsJob::Notification>&&
-GetNotificationsJob::notifications()
 {
-    return std::move(d->notifications);
-}
-
-BaseJob::Status GetNotificationsJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    fromJson(json.value("next_token"_ls), d->nextToken);
-    if (!json.contains("notifications"_ls))
-        return { IncorrectResponse,
-                 "The key 'notifications' not found in the response" };
-    fromJson(json.value("notifications"_ls), d->notifications);
-
-    return Success;
+    addExpectedKey("notifications");
 }
