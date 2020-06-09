@@ -4,13 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Reports an event as inappropriate.
  *
@@ -21,13 +17,17 @@ class ReportContentJob : public BaseJob {
 public:
     /*! \brief Reports an event as inappropriate.
      *
+     *
      * \param roomId
      *   The room in which the event being reported is located.
+     *
      * \param eventId
      *   The event to report.
+     *
      * \param score
      *   The score to rate this content as where -100 is most offensive
      *   and 0 is inoffensive.
+     *
      * \param reason
      *   The reason the content is being reported. May be blank.
      */

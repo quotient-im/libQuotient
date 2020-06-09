@@ -37,7 +37,7 @@ public:
     QImage scaledThumbnail(QSize toSize) const;
 
 protected:
-    Status parseReply(QNetworkReply* reply) override;
+    Status prepareResult() override;
 
 private:
     QImage _thumbnail;

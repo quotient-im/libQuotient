@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Set the user's display name.
  *
  * This API sets the given user's display name. You must have permission to
@@ -19,8 +17,10 @@ class SetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Set the user's display name.
      *
+     *
      * \param userId
      *   The user whose display name to set.
+     *
      * \param displayname
      *   The new display name for this user.
      */
@@ -38,6 +38,7 @@ class GetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Get the user's display name.
      *
+     *
      * \param userId
      *   The user whose display name to get.
      */
@@ -49,19 +50,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-    ~GetDisplayNameJob() override;
 
     // Result properties
 
     /// The user's display name if they have set one, otherwise not present.
-    const QString& displayname() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QString displayname() const
+    {
+        return loadFromJson<QString>("displayname"_ls);
+    }
 };
 
 /*! \brief Set the user's avatar URL.
@@ -73,8 +69,10 @@ class SetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Set the user's avatar URL.
      *
+     *
      * \param userId
      *   The user whose avatar URL to set.
+     *
      * \param avatarUrl
      *   The new avatar URL for this user.
      */
@@ -92,6 +90,7 @@ class GetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Get the user's avatar URL.
      *
+     *
      * \param userId
      *   The user whose avatar URL to get.
      */
@@ -103,19 +102,11 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-    ~GetAvatarUrlJob() override;
 
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    const QString& avatarUrl() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QString avatarUrl() const { return loadFromJson<QString>("avatar_url"_ls); }
 };
 
 /*! \brief Get this user's profile information.
@@ -129,6 +120,7 @@ class GetUserProfileJob : public BaseJob {
 public:
     /*! \brief Get this user's profile information.
      *
+     *
      * \param userId
      *   The user whose profile information to get.
      */
@@ -140,22 +132,17 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
-    ~GetUserProfileJob() override;
 
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    const QString& avatarUrl() const;
+    QString avatarUrl() const { return loadFromJson<QString>("avatar_url"_ls); }
 
     /// The user's display name if they have set one, otherwise not present.
-    const QString& displayname() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QString displayname() const
+    {
+        return loadFromJson<QString>("displayname"_ls);
+    }
 };
 
 } // namespace Quotient

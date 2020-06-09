@@ -6,11 +6,7 @@
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Obtain TURN server credentials.
  *
@@ -28,19 +24,11 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetTurnServerJob() override;
 
     // Result properties
 
     /// The TURN server credentials.
-    const QJsonObject& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
 } // namespace Quotient

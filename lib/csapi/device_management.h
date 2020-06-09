@@ -4,18 +4,12 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/auth_data.h"
 #include "csapi/definitions/client_device.h"
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief List registered devices for the current user
  *
@@ -32,19 +26,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetDevicesJob() override;
 
     // Result properties
 
     /// A list of all registered devices for this user.
-    const QVector<Device>& devices() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QVector<Device> devices() const
+    {
+        return loadFromJson<QVector<Device>>("devices"_ls);
+    }
 };
 
 /*! \brief Get a single device
@@ -54,6 +43,7 @@ private:
 class GetDeviceJob : public BaseJob {
 public:
     /*! \brief Get a single device
+     *
      *
      * \param deviceId
      *   The device to retrieve.
@@ -66,19 +56,11 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& deviceId);
-    ~GetDeviceJob() override;
 
     // Result properties
 
     /// Device information
-    const Device& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    Device data() const { return fromJson<Device>(jsonData()); }
 };
 
 /*! \brief Update a device
@@ -89,8 +71,10 @@ class UpdateDeviceJob : public BaseJob {
 public:
     /*! \brief Update a device
      *
+     *
      * \param deviceId
      *   The device to update.
+     *
      * \param displayName
      *   The new display name for this device. If not given, the
      *   display name is unchanged.
@@ -109,8 +93,10 @@ class DeleteDeviceJob : public BaseJob {
 public:
     /*! \brief Delete a device
      *
+     *
      * \param deviceId
      *   The device to delete.
+     *
      * \param auth
      *   Additional authentication information for the
      *   user-interactive authentication API.
@@ -130,8 +116,10 @@ class DeleteDevicesJob : public BaseJob {
 public:
     /*! \brief Bulk deletion of devices
      *
+     *
      * \param devices
      *   The list of device IDs to delete.
+     *
      * \param auth
      *   Additional authentication information for the
      *   user-interactive authentication API.

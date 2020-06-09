@@ -1,0 +1,128 @@
+{{>preamble}}
+#pragma once
+
+#include "jobs/basejob.h"
+{{#imports}}
+#include {{_}}{{/imports}}
+{{#operations.producesNonJson?}}
+#include <QtNetwork/QNetworkReply>{{/operations.producesNonJson?}}
+
+namespace Quotient {
+{{#operations.operation}}
+
+/*!{{>docCommentSummary}}{{#description}}
+ * {{_}}{{/description}}
+ */
+class {{camelCaseOperationId}}Job : public BaseJob {
+public:
+    {{#models}}
+    // Inner data structures
+        {{#model}}
+
+    {{>docCommentShort}}
+    struct {{name}}{{#parents?}} :
+    {{!Quotient:: is a workaround for cases when the same name is used for
+            the outer and the inner structure (unfortunately very easy
+            to hit if you don't give a title to the structure that has
+            $ref and other properties)}}
+        {{#parents}}Quotient::{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+    {
+            {{#vars}}
+        {{>docCommentShort}}
+        {{>maybeOmittableType}} {{nameCamelCase}};
+            {{/vars}}
+            {{#propertyMap}}
+        {{>docCommentShort}}
+        {{>maybeOmittableType}} {{nameCamelCase}};
+            {{/propertyMap}}
+    };
+        {{/model}}
+
+    // Construction/destruction
+
+    {{/models}}
+    {{#allParams?}}
+    /*!{{>docCommentSummary}}
+        {{#allParams}}
+     *
+     * \param {{nameCamelCase}}{{#description}}
+     *   {{_}}{{/description}}
+        {{/allParams}}
+     */
+    {{/allParams?}}{{^allParams?}}
+        {{#summary}}
+    /// {{summary}}
+        {{/summary}}
+    {{/allParams?}}
+    explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});
+    {{^hasBody?}}
+
+    /*! \brief Construct a URL without creating a full-fledged job object
+     *
+     * This function can be used when a URL for {{camelCaseOperationId}}Job
+     * is necessary but the job itself isn't.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}},
+                    {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
+    {{/hasBody?}}
+    {{#responses}}{{#normalResponse?}}{{#allProperties?}}
+
+    // Result properties
+        {{#headers}}
+
+    {{>nonInlineResponseSignature}}
+    {
+        return reply()->rawHeader("{{baseName}}");
+    }
+        {{/headers}}{{#inlineResponse}}
+
+    {{>docCommentShort}}
+    {{dataType.name}} {{paramName}}(){{^moveOnly}}{{^producesNonJson?}} const{{/producesNonJson?}}{{/moveOnly}}
+    {
+        return {{#producesNonJson?}}reply(){{/producesNonJson?}}
+            {{^producesNonJson?
+                }}fromJson<{{dataType.name}}>(jsonData()){{/producesNonJson?
+            }};
+    }
+        {{/inlineResponse}}{{#properties}}
+
+    {{!there's nothing in #properties if the response is inline}}
+    {{>nonInlineResponseSignature}}
+    {
+        return {{>takeOrLoad}}FromJson<{{>maybeOmittableType}}>("{{baseName}}"_ls);
+    }
+        {{/properties}}
+    {{/allProperties?}}{{/normalResponse?}}{{/responses}}
+};
+    {{#models.model}}
+
+template <> struct JsonObjectConverter<{{qualifiedName}}> {
+        {{#in?}}
+    static void dumpTo(QJsonObject& jo, const {{qualifiedName}}& pod)
+        {   {{#propertyMap}}
+        fillJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}{{#parents}}
+        fillJson<{{name}}>(jo, pod);
+            {{/parents}}{{#vars}}
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo,
+                    QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+            {{/vars}}
+    }
+        {{/in?}}
+        {{#out?}}
+    static void fillFrom({{>maybeCrefJsonObject}} jo, {{qualifiedName}}& result)
+        {   {{#parents}}
+        fillFromJson<{{name}}{{!of the parent!}}>(jo, result);
+            {{/parents}}{{#vars}}
+        fromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls),
+                 result.{{nameCamelCase}});
+            {{/vars}}{{#propertyMap}}
+        fromJson(jo, result.{{nameCamelCase}});
+            {{/propertyMap}}
+    }
+        {{/out?}}
+};
+    {{/models.model}}
+{{/operations.operation}}
+
+} // namespace Quotient

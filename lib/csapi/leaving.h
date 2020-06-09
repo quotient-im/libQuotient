@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Stop the requesting user participating in a particular room.
  *
  * This API stops a user participating in a particular room.
@@ -27,6 +25,7 @@ namespace Quotient {
 class LeaveRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user participating in a particular room.
+     *
      *
      * \param roomId
      *   The room identifier to leave.
@@ -56,6 +55,7 @@ public:
 class ForgetRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user remembering about a particular room.
+     *
      *
      * \param roomId
      *   The room identifier to forget.

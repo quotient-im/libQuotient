@@ -4,14 +4,10 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "events/eventloader.h"
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Listen on the event stream.
  *
@@ -30,11 +26,14 @@ class PeekEventsJob : public BaseJob {
 public:
     /*! \brief Listen on the event stream.
      *
+     *
      * \param from
      *   The token to stream from. This token is either from a previous
      *   request to this API or from the initial sync API.
+     *
      * \param timeout
      *   The maximum time in milliseconds to wait for an event.
+     *
      * \param roomId
      *   The room ID for which events should be returned.
      */
@@ -50,27 +49,19 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
                                Omittable<int> timeout = none,
                                const QString& roomId = {});
-    ~PeekEventsJob() override;
 
     // Result properties
 
     /// A token which correlates to the first value in ``chunk``. This
     /// is usually the same token supplied to ``from=``.
-    const QString& begin() const;
+    QString begin() const { return loadFromJson<QString>("start"_ls); }
 
     /// A token which correlates to the last value in ``chunk``. This
     /// token should be used in the next request to ``/events``.
-    const QString& end() const;
+    QString end() const { return loadFromJson<QString>("end"_ls); }
 
     /// An array of events.
-    RoomEvents&& chunk();
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 };
 
 } // namespace Quotient

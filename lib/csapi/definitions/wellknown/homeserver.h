@@ -7,9 +7,6 @@
 #include "converters.h"
 
 namespace Quotient {
-
-// Data structures
-
 /// Used by clients to discover homeserver information.
 struct HomeserverInformation {
     /// The base URL for the homeserver for client-server connections.
@@ -18,8 +15,14 @@ struct HomeserverInformation {
 
 template <>
 struct JsonObjectConverter<HomeserverInformation> {
-    static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod);
-    static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod);
+    static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod)
+    {
+        addParam<>(jo, QStringLiteral("base_url"), pod.baseUrl);
+    }
+    static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod)
+    {
+        fromJson(jo.value("base_url"_ls), pod.baseUrl);
+    }
 };
 
 } // namespace Quotient

@@ -480,8 +480,8 @@ void Connection::sync(int timeout)
 
     d->syncTimeout = timeout;
     Filter filter;
-    filter.room.edit().timeline.edit().limit.emplace(100);
-    filter.room.edit().state.edit().lazyLoadMembers.emplace(d->lazyLoading);
+    filter.room.timeline.limit.emplace(100);
+    filter.room.state.lazyLoadMembers.emplace(d->lazyLoading);
     auto job = d->syncJob =
         callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
                          timeout);

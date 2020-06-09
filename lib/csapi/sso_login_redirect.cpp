@@ -4,15 +4,11 @@
 
 #include "sso_login_redirect.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-BaseJob::Query queryToRedirectToSSO(const QString& redirectUrl)
+auto queryToRedirectToSSO(const QString& redirectUrl)
 {
     BaseJob::Query _q;
     addParam<>(_q, QStringLiteral("redirectUrl"), redirectUrl);
@@ -22,13 +18,13 @@ BaseJob::Query queryToRedirectToSSO(const QString& redirectUrl)
 QUrl RedirectToSSOJob::makeRequestUrl(QUrl baseUrl, const QString& redirectUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/login/sso/redirect",
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/login/sso/redirect",
                                    queryToRedirectToSSO(redirectUrl));
 }
 
 RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
     : BaseJob(HttpVerb::Get, QStringLiteral("RedirectToSSOJob"),
-              basePath % "/login/sso/redirect",
+              QStringLiteral("/_matrix/client/r0") % "/login/sso/redirect",
               queryToRedirectToSSO(redirectUrl), {}, false)
-
 {}

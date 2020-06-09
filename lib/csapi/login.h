@@ -4,18 +4,12 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/user_identifier.h"
 #include "csapi/definitions/wellknown/full.h"
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Get the supported login types to authenticate users
  *
@@ -46,19 +40,23 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetLoginFlowsJob() override;
 
     // Result properties
 
     /// The homeserver's supported login types
-    const QVector<LoginFlow>& flows() const;
+    QVector<LoginFlow> flows() const
+    {
+        return loadFromJson<QVector<LoginFlow>>("flows"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetLoginFlowsJob::LoginFlow& result)
+    {
+        fromJson(jo.value("type"_ls), result.type);
+    }
 };
 
 /*! \brief Authenticates the user.
@@ -78,45 +76,47 @@ class LoginJob : public BaseJob {
 public:
     /*! \brief Authenticates the user.
      *
+     *
      * \param type
      *   The login type being used.
+     *
      * \param identifier
      *   Identification information for the user.
+     *
      * \param password
      *   Required when ``type`` is ``m.login.password``. The user's
      *   password.
+     *
      * \param token
      *   Required when ``type`` is ``m.login.token``. Part of `Token-based`_
-     * login. \param deviceId ID of the client device. If this does not
-     * correspond to a known client device, a new device will be created. The
-     * server will auto-generate a device_id if this is not specified. \param
-     * initialDeviceDisplayName A display name to assign to the newly-created
-     * device. Ignored if ``device_id`` corresponds to a known device. \param
-     * user The fully qualified user ID or just local part of the user ID, to
-     * log in.  Deprecated in favour of ``identifier``. \param medium When
-     * logging in using a third party identifier, the medium of the identifier.
-     * Must be 'email'.  Deprecated in favour of ``identifier``. \param address
-     *   Third party identifier for the user.  Deprecated in favour of
-     * ``identifier``.
+     * login.
+     *
+     * \param deviceId
+     *   ID of the client device. If this does not correspond to a
+     *   known client device, a new device will be created. The server
+     *   will auto-generate a device_id if this is not specified.
+     *
+     * \param initialDeviceDisplayName
+     *   A display name to assign to the newly-created device. Ignored
+     *   if ``device_id`` corresponds to a known device.
      */
     explicit LoginJob(const QString& type,
                       const Omittable<UserIdentifier>& identifier = none,
                       const QString& password = {}, const QString& token = {},
                       const QString& deviceId = {},
-                      const QString& initialDeviceDisplayName = {},
-                      const QString& user = {}, const QString& medium = {},
-                      const QString& address = {});
-
-    ~LoginJob() override;
+                      const QString& initialDeviceDisplayName = {});
 
     // Result properties
 
     /// The fully-qualified Matrix ID that has been registered.
-    const QString& userId() const;
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 
     /// An access token for the account.
     /// This access token can then be used to authorize other requests.
-    const QString& accessToken() const;
+    QString accessToken() const
+    {
+        return loadFromJson<QString>("access_token"_ls);
+    }
 
     /// The server_name of the homeserver on which the account has
     /// been registered.
@@ -124,24 +124,23 @@ public:
     /// **Deprecated**. Clients should extract the server_name from
     /// ``user_id`` (by splitting at the first colon) if they require
     /// it. Note also that ``homeserver`` is not spelt this way.
-    const QString& homeServer() const;
+    QString homeServer() const
+    {
+        return loadFromJson<QString>("home_server"_ls);
+    }
 
     /// ID of the logged-in device. Will be the same as the
     /// corresponding parameter in the request, if one was specified.
-    const QString& deviceId() const;
+    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
 
     /// Optional client configuration provided by the server. If present,
     /// clients SHOULD use the provided object to reconfigure themselves,
     /// optionally validating the URLs within. This object takes the same
     /// form as the one returned from .well-known autodiscovery.
-    const Omittable<DiscoveryInformation>& wellKnown() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    Omittable<DiscoveryInformation> wellKnown() const
+    {
+        return loadFromJson<Omittable<DiscoveryInformation>>("well_known"_ls);
+    }
 };
 
 } // namespace Quotient

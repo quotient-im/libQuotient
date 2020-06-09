@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Set the position of the read marker for a room.
  *
  * Sets the position of the read marker for a given room, and optionally
@@ -19,11 +17,14 @@ class SetReadMarkerJob : public BaseJob {
 public:
     /*! \brief Set the position of the read marker for a room.
      *
+     *
      * \param roomId
      *   The room ID to set the read marker in for the user.
+     *
      * \param mFullyRead
      *   The event ID the read marker should be located at. The
      *   event MUST belong to the room.
+     *
      * \param mRead
      *   The event ID to set the read receipt location at. This is
      *   equivalent to calling ``/receipt/m.read/$elsewhere:example.org``

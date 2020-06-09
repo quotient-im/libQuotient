@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Kick a user from the room.
  *
  * Kick a user from the room.
@@ -26,10 +24,13 @@ class KickJob : public BaseJob {
 public:
     /*! \brief Kick a user from the room.
      *
+     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be kicked.
+     *
      * \param userId
      *   The fully qualified user ID of the user being kicked.
+     *
      * \param reason
      *   The reason the user has been kicked. This will be supplied as the
      *   ``reason`` on the target's updated `m.room.member`_ event.

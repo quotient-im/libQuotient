@@ -4,38 +4,18 @@
 
 #include "wellknown.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/.well-known");
-
-class GetWellknownJob::Private {
-public:
-    DiscoveryInformation data;
-};
-
 QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/matrix/client");
+                                   QStringLiteral("/.well-known")
+                                       % "/matrix/client");
 }
 
 GetWellknownJob::GetWellknownJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetWellknownJob"),
-              basePath % "/matrix/client", false)
-    , d(new Private)
+              QStringLiteral("/.well-known") % "/matrix/client", false)
 {}
-
-GetWellknownJob::~GetWellknownJob() = default;
-
-const DiscoveryInformation& GetWellknownJob::data() const { return d->data; }
-
-BaseJob::Status GetWellknownJob::parseJson(const QJsonDocument& data)
-{
-    fromJson(data, d->data);
-
-    return Success;
-}

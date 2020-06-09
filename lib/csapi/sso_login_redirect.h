@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Operations
-
 /*! \brief Redirect the user's browser to the SSO interface.
  *
  * A web-based Matrix client should instruct the user's browser to
@@ -20,6 +18,7 @@ namespace Quotient {
 class RedirectToSSOJob : public BaseJob {
 public:
     /*! \brief Redirect the user's browser to the SSO interface.
+     *
      *
      * \param redirectUrl
      *   URI to which the user will be redirected after the homeserver has

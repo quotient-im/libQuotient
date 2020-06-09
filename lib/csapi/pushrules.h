@@ -4,19 +4,13 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/push_condition.h"
 #include "csapi/definitions/push_rule.h"
 #include "csapi/definitions/push_ruleset.h"
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Retrieve all push rulesets.
  *
@@ -36,19 +30,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetPushRulesJob() override;
 
     // Result properties
 
     /// The global ruleset.
-    const PushRuleset& global() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    PushRuleset global() const
+    {
+        return loadFromJson<PushRuleset>("global"_ls);
+    }
 };
 
 /*! \brief Retrieve a push rule.
@@ -59,10 +48,13 @@ class GetPushRuleJob : public BaseJob {
 public:
     /*! \brief Retrieve a push rule.
      *
+     *
      * \param scope
      *   ``global`` to specify global rules.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
      */
@@ -76,19 +68,12 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-    ~GetPushRuleJob() override;
 
     // Result properties
 
-    /// The push rule.
-    const PushRule& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    /// The specific push rule. This will also include keys specific to the
+    /// rule itself such as the rule's ``actions`` and ``conditions`` if set.
+    PushRule data() const { return fromJson<PushRule>(jsonData()); }
 };
 
 /*! \brief Delete a push rule.
@@ -99,10 +84,13 @@ class DeletePushRuleJob : public BaseJob {
 public:
     /*! \brief Delete a push rule.
      *
+     *
      * \param scope
      *   ``global`` to specify global rules.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
      */
@@ -130,28 +118,37 @@ class SetPushRuleJob : public BaseJob {
 public:
     /*! \brief Add or change a push rule.
      *
+     *
      * \param scope
      *   ``global`` to specify global rules.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
+     *
      * \param actions
      *   The action(s) to perform when the conditions for this rule are met.
+     *
      * \param before
      *   Use 'before' with a ``rule_id`` as its value to make the new rule the
      *   next-most important rule with respect to the given user defined rule.
      *   It is not possible to add a rule relative to a predefined server rule.
+     *
      * \param after
      *   This makes the new rule the next-less important rule relative to the
      *   given user defined rule. It is not possible to add a rule relative
      *   to a predefined server rule.
+     *
      * \param conditions
      *   The conditions that must hold true for an event in order for a
      *   rule to be applied to an event. A rule with no conditions
-     *   always matches. Only applicable to ``underride`` and ``override``
-     * rules. \param pattern Only applicable to ``content`` rules. The
-     * glob-style pattern to match against.
+     *   always matches. Only applicable to ``underride`` and ``override`` rules.
+     *
+     * \param pattern
+     *   Only applicable to ``content`` rules. The glob-style pattern to match
+     * against.
      */
     explicit SetPushRuleJob(const QString& scope, const QString& kind,
                             const QString& ruleId, const QStringList& actions,
@@ -169,11 +166,14 @@ class IsPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Get whether a push rule is enabled
      *
+     *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
      *   rules or device rules for the given ``profile_tag``.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
      */
@@ -187,19 +187,11 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-    ~IsPushRuleEnabledJob() override;
 
     // Result properties
 
     /// Whether the push rule is enabled or not.
-    bool enabled() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    bool enabled() const { return loadFromJson<bool>("enabled"_ls); }
 };
 
 /*! \brief Enable or disable a push rule.
@@ -210,12 +202,16 @@ class SetPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Enable or disable a push rule.
      *
+     *
      * \param scope
      *   ``global`` to specify global rules.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
+     *
      * \param enabled
      *   Whether the push rule is enabled or not.
      */
@@ -231,11 +227,14 @@ class GetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief The actions for a push rule
      *
+     *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
      *   rules or device rules for the given ``profile_tag``.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
      */
@@ -249,19 +248,14 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope,
                                const QString& kind, const QString& ruleId);
-    ~GetPushRuleActionsJob() override;
 
     // Result properties
 
     /// The action(s) to perform for this rule.
-    const QStringList& actions() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QStringList actions() const
+    {
+        return loadFromJson<QStringList>("actions"_ls);
+    }
 };
 
 /*! \brief Set the actions for a push rule.
@@ -273,12 +267,16 @@ class SetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief Set the actions for a push rule.
      *
+     *
      * \param scope
      *   ``global`` to specify global rules.
+     *
      * \param kind
      *   The kind of rule
+     *
      * \param ruleId
      *   The identifier for the rule.
+     *
      * \param actions
      *   The action(s) to perform for this rule.
      */

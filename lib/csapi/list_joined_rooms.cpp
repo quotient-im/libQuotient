@@ -4,45 +4,20 @@
 
 #include "list_joined_rooms.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-class GetJoinedRoomsJob::Private {
-public:
-    QStringList joinedRooms;
-};
-
 QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/joined_rooms");
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/joined_rooms");
 }
 
 GetJoinedRoomsJob::GetJoinedRoomsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetJoinedRoomsJob"),
-              basePath % "/joined_rooms")
-    , d(new Private)
-{}
-
-GetJoinedRoomsJob::~GetJoinedRoomsJob() = default;
-
-const QStringList& GetJoinedRoomsJob::joinedRooms() const
+              QStringLiteral("/_matrix/client/r0") % "/joined_rooms")
 {
-    return d->joinedRooms;
-}
-
-BaseJob::Status GetJoinedRoomsJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    if (!json.contains("joined_rooms"_ls))
-        return { IncorrectResponse,
-                 "The key 'joined_rooms' not found in the response" };
-    fromJson(json.value("joined_rooms"_ls), d->joinedRooms);
-
-    return Success;
+    addExpectedKey("joined_rooms");
 }

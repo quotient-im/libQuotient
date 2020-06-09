@@ -4,36 +4,16 @@
 
 #include "room_send.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-class SendMessageJob::Private {
-public:
-    QString eventId;
-};
-
 SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType,
                                const QString& txnId, const QJsonObject& body)
     : BaseJob(HttpVerb::Put, QStringLiteral("SendMessageJob"),
-              basePath % "/rooms/" % roomId % "/send/" % eventType % "/" % txnId)
-    , d(new Private)
+              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
+                  % "/send/" % eventType % "/" % txnId)
 {
     setRequestData(Data(toJson(body)));
-}
-
-SendMessageJob::~SendMessageJob() = default;
-
-const QString& SendMessageJob::eventId() const { return d->eventId; }
-
-BaseJob::Status SendMessageJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    fromJson(json.value("event_id"_ls), d->eventId);
-
-    return Success;
+    addExpectedKey("event_id");
 }

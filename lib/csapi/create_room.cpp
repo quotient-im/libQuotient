@@ -4,43 +4,9 @@
 
 #include "create_room.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
-
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-// Converters
-namespace Quotient {
-
-template <>
-struct JsonObjectConverter<CreateRoomJob::Invite3pid> {
-    static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)
-    {
-        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<>(jo, QStringLiteral("medium"), pod.medium);
-        addParam<>(jo, QStringLiteral("address"), pod.address);
-    }
-};
-
-template <>
-struct JsonObjectConverter<CreateRoomJob::StateEvent> {
-    static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
-    {
-        addParam<>(jo, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
-        addParam<>(jo, QStringLiteral("content"), pod.content);
-    }
-};
-
-} // namespace Quotient
-
-class CreateRoomJob::Private {
-public:
-    QString roomId;
-};
 
 CreateRoomJob::CreateRoomJob(const QString& visibility,
                              const QString& roomAliasName, const QString& name,
@@ -52,8 +18,7 @@ CreateRoomJob::CreateRoomJob(const QString& visibility,
                              const QString& preset, Omittable<bool> isDirect,
                              const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, QStringLiteral("CreateRoomJob"),
-              basePath % "/createRoom")
-    , d(new Private)
+              QStringLiteral("/_matrix/client/r0") % "/createRoom")
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("visibility"), visibility);
@@ -71,20 +36,6 @@ CreateRoomJob::CreateRoomJob(const QString& visibility,
     addParam<IfNotEmpty>(_data, QStringLiteral("is_direct"), isDirect);
     addParam<IfNotEmpty>(_data, QStringLiteral("power_level_content_override"),
                          powerLevelContentOverride);
-    setRequestData(_data);
-}
-
-CreateRoomJob::~CreateRoomJob() = default;
-
-const QString& CreateRoomJob::roomId() const { return d->roomId; }
-
-BaseJob::Status CreateRoomJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    if (!json.contains("room_id"_ls))
-        return { IncorrectResponse,
-                 "The key 'room_id' not found in the response" };
-    fromJson(json.value("room_id"_ls), d->roomId);
-
-    return Success;
+    setRequestData(std::move(_data));
+    addExpectedKey("room_id");
 }

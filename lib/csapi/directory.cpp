@@ -4,63 +4,58 @@
 
 #include "directory.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0/directory");
-
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomAliasJob"),
-              basePath % "/room/" % roomAlias)
+              QStringLiteral("/_matrix/client/r0") % "/directory/room/"
+                  % roomAlias)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("room_id"), roomId);
-    setRequestData(_data);
+    setRequestData(std::move(_data));
 }
-
-class GetRoomIdByAliasJob::Private {
-public:
-    QString roomId;
-    QStringList servers;
-};
 
 QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/room/" % roomAlias);
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/directory/room/" % roomAlias);
 }
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomIdByAliasJob"),
-              basePath % "/room/" % roomAlias, false)
-    , d(new Private)
+              QStringLiteral("/_matrix/client/r0") % "/directory/room/"
+                  % roomAlias,
+              false)
 {}
-
-GetRoomIdByAliasJob::~GetRoomIdByAliasJob() = default;
-
-const QString& GetRoomIdByAliasJob::roomId() const { return d->roomId; }
-
-const QStringList& GetRoomIdByAliasJob::servers() const { return d->servers; }
-
-BaseJob::Status GetRoomIdByAliasJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    fromJson(json.value("room_id"_ls), d->roomId);
-    fromJson(json.value("servers"_ls), d->servers);
-
-    return Success;
-}
 
 QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   basePath % "/room/" % roomAlias);
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/directory/room/" % roomAlias);
 }
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomAliasJob"),
-              basePath % "/room/" % roomAlias)
+              QStringLiteral("/_matrix/client/r0") % "/directory/room/"
+                  % roomAlias)
 {}
+
+QUrl GetLocalAliasesJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+{
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/rooms/" % roomId % "/aliases");
+}
+
+GetLocalAliasesJob::GetLocalAliasesJob(const QString& roomId)
+    : BaseJob(HttpVerb::Get, QStringLiteral("GetLocalAliasesJob"),
+              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
+                  % "/aliases")
+{
+    addExpectedKey("aliases");
+}

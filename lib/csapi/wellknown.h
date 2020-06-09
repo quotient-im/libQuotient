@@ -4,15 +4,11 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/definitions/wellknown/full.h"
 
 #include "jobs/basejob.h"
 
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets Matrix server discovery information about the domain.
  *
@@ -36,19 +32,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetWellknownJob() override;
 
     // Result properties
 
     /// Server discovery information.
-    const DiscoveryInformation& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    DiscoveryInformation data() const
+    {
+        return fromJson<DiscoveryInformation>(jsonData());
+    }
 };
 
 } // namespace Quotient

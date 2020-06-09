@@ -4,20 +4,13 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "csapi/../application-service/definitions/location.h"
 #include "csapi/../application-service/definitions/protocol.h"
 #include "csapi/../application-service/definitions/user.h"
 
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Retrieve metadata about all protocols that a homeserver supports.
  *
@@ -36,19 +29,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetProtocolsJob() override;
 
     // Result properties
 
     /// The protocols supported by the homeserver.
-    const QHash<QString, ThirdPartyProtocol>& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QHash<QString, ThirdPartyProtocol> data() const
+    {
+        return fromJson<QHash<QString, ThirdPartyProtocol>>(jsonData());
+    }
 };
 
 /*! \brief Retrieve metadata about a specific protocol that the homeserver
@@ -62,6 +50,7 @@ public:
     /*! \brief Retrieve metadata about a specific protocol that the homeserver
      * supports.
      *
+     *
      * \param protocol
      *   The name of the protocol.
      */
@@ -73,19 +62,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol);
-    ~GetProtocolMetadataJob() override;
 
     // Result properties
 
     /// The protocol was found and metadata returned.
-    const ThirdPartyProtocol& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    ThirdPartyProtocol data() const
+    {
+        return fromJson<ThirdPartyProtocol>(jsonData());
+    }
 };
 
 /*! \brief Retrieve Matrix-side portals rooms leading to a third party location.
@@ -104,8 +88,10 @@ public:
     /*! \brief Retrieve Matrix-side portals rooms leading to a third party
      * location.
      *
+     *
      * \param protocol
      *   The protocol used to communicate to the third party network.
+     *
      * \param searchFields
      *   One or more custom fields to help identify the third party
      *   location.
@@ -120,19 +106,14 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol,
                                const QString& searchFields = {});
-    ~QueryLocationByProtocolJob() override;
 
     // Result properties
 
     /// At least one portal room was found.
-    const QVector<ThirdPartyLocation>& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QVector<ThirdPartyLocation> data() const
+    {
+        return fromJson<QVector<ThirdPartyLocation>>(jsonData());
+    }
 };
 
 /*! \brief Retrieve the Matrix User ID of a corresponding third party user.
@@ -144,8 +125,10 @@ class QueryUserByProtocolJob : public BaseJob {
 public:
     /*! \brief Retrieve the Matrix User ID of a corresponding third party user.
      *
+     *
      * \param protocol
      *   The name of the protocol.
+     *
      * \param fields
      *   One or more custom fields that are passed to the AS to help identify
      * the user.
@@ -160,19 +143,14 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol,
                                const QString& fields = {});
-    ~QueryUserByProtocolJob() override;
 
     // Result properties
 
     /// The Matrix User IDs found with the given parameters.
-    const QVector<ThirdPartyUser>& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QVector<ThirdPartyUser> data() const
+    {
+        return fromJson<QVector<ThirdPartyUser>>(jsonData());
+    }
 };
 
 /*! \brief Reverse-lookup third party locations given a Matrix room alias.
@@ -183,6 +161,7 @@ private:
 class QueryLocationByAliasJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party locations given a Matrix room alias.
+     *
      *
      * \param alias
      *   The Matrix room alias to look up.
@@ -195,19 +174,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& alias);
-    ~QueryLocationByAliasJob() override;
 
     // Result properties
 
     /// All found third party locations.
-    const QVector<ThirdPartyLocation>& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QVector<ThirdPartyLocation> data() const
+    {
+        return fromJson<QVector<ThirdPartyLocation>>(jsonData());
+    }
 };
 
 /*! \brief Reverse-lookup third party users given a Matrix User ID.
@@ -217,6 +191,7 @@ private:
 class QueryUserByIDJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party users given a Matrix User ID.
+     *
      *
      * \param userid
      *   The Matrix User ID to look up.
@@ -229,19 +204,14 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userid);
-    ~QueryUserByIDJob() override;
 
     // Result properties
 
     /// An array of third party users.
-    const QVector<ThirdPartyUser>& data() const;
-
-protected:
-    Status parseJson(const QJsonDocument& data) override;
-
-private:
-    class Private;
-    QScopedPointer<Private> d;
+    QVector<ThirdPartyUser> data() const
+    {
+        return fromJson<QVector<ThirdPartyUser>>(jsonData());
+    }
 };
 
 } // namespace Quotient

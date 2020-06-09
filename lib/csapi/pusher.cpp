@@ -4,88 +4,21 @@
 
 #include "pusher.h"
 
-#include "converters.h"
-
 #include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 
-static const auto basePath = QStringLiteral("/_matrix/client/r0");
-
-// Converters
-namespace Quotient {
-
-template <>
-struct JsonObjectConverter<GetPushersJob::PusherData> {
-    static void fillFrom(const QJsonObject& jo,
-                         GetPushersJob::PusherData& result)
-    {
-        fromJson(jo.value("url"_ls), result.url);
-        fromJson(jo.value("format"_ls), result.format);
-    }
-};
-
-template <>
-struct JsonObjectConverter<GetPushersJob::Pusher> {
-    static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
-    {
-        fromJson(jo.value("pushkey"_ls), result.pushkey);
-        fromJson(jo.value("kind"_ls), result.kind);
-        fromJson(jo.value("app_id"_ls), result.appId);
-        fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
-        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
-        fromJson(jo.value("profile_tag"_ls), result.profileTag);
-        fromJson(jo.value("lang"_ls), result.lang);
-        fromJson(jo.value("data"_ls), result.data);
-    }
-};
-
-} // namespace Quotient
-
-class GetPushersJob::Private {
-public:
-    QVector<Pusher> pushers;
-};
-
 QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), basePath % "/pushers");
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   QStringLiteral("/_matrix/client/r0")
+                                       % "/pushers");
 }
 
 GetPushersJob::GetPushersJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPushersJob"),
-              basePath % "/pushers")
-    , d(new Private)
+              QStringLiteral("/_matrix/client/r0") % "/pushers")
 {}
-
-GetPushersJob::~GetPushersJob() = default;
-
-const QVector<GetPushersJob::Pusher>& GetPushersJob::pushers() const
-{
-    return d->pushers;
-}
-
-BaseJob::Status GetPushersJob::parseJson(const QJsonDocument& data)
-{
-    auto json = data.object();
-    fromJson(json.value("pushers"_ls), d->pushers);
-
-    return Success;
-}
-
-// Converters
-namespace Quotient {
-
-template <>
-struct JsonObjectConverter<PostPusherJob::PusherData> {
-    static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
-    {
-        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
-        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
-    }
-};
-
-} // namespace Quotient
 
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& appId, const QString& appDisplayName,
@@ -93,7 +26,7 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& lang, const PusherData& data,
                              const QString& profileTag, Omittable<bool> append)
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
-              basePath % "/pushers/set")
+              QStringLiteral("/_matrix/client/r0") % "/pushers/set")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("pushkey"), pushkey);
@@ -105,5 +38,5 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
     addParam<>(_data, QStringLiteral("lang"), lang);
     addParam<>(_data, QStringLiteral("data"), data);
     addParam<IfNotEmpty>(_data, QStringLiteral("append"), append);
-    setRequestData(_data);
+    setRequestData(std::move(_data));
 }

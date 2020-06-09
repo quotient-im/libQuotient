@@ -4,16 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
 #include "jobs/basejob.h"
 
-#include <QtCore/QHash>
-#include <QtCore/QJsonObject>
-
 namespace Quotient {
-
-// Operations
 
 /*! \brief Gets information about the server's capabilities.
  *
@@ -61,20 +54,45 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl);
-    ~GetCapabilitiesJob() override;
 
     // Result properties
 
     /// The custom capabilities the server supports, using the
     /// Java package naming convention.
-    const Capabilities& capabilities() const;
+    Capabilities capabilities() const
+    {
+        return loadFromJson<Capabilities>("capabilities"_ls);
+    }
+};
 
-protected:
-    Status parseJson(const QJsonDocument& data) override;
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetCapabilitiesJob::ChangePasswordCapability& result)
+    {
+        fromJson(jo.value("enabled"_ls), result.enabled);
+    }
+};
 
-private:
-    class Private;
-    QScopedPointer<Private> d;
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetCapabilitiesJob::RoomVersionsCapability& result)
+    {
+        fromJson(jo.value("default"_ls), result.defaultVersion);
+        fromJson(jo.value("available"_ls), result.available);
+    }
+};
+
+template <>
+struct JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
+    static void fillFrom(QJsonObject jo,
+                         GetCapabilitiesJob::Capabilities& result)
+    {
+        fromJson(jo.take("m.change_password"_ls), result.changePassword);
+        fromJson(jo.take("m.room_versions"_ls), result.roomVersions);
+        fromJson(jo, result.additionalProperties);
+    }
 };
 
 } // namespace Quotient

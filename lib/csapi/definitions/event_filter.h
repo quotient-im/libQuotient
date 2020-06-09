@@ -8,8 +8,6 @@
 
 namespace Quotient {
 
-// Data structures
-
 struct EventFilter {
     /// The maximum number of events to return.
     Omittable<int> limit;
@@ -37,8 +35,22 @@ struct EventFilter {
 
 template <>
 struct JsonObjectConverter<EventFilter> {
-    static void dumpTo(QJsonObject& jo, const EventFilter& pod);
-    static void fillFrom(const QJsonObject& jo, EventFilter& pod);
+    static void dumpTo(QJsonObject& jo, const EventFilter& pod)
+    {
+        addParam<IfNotEmpty>(jo, QStringLiteral("limit"), pod.limit);
+        addParam<IfNotEmpty>(jo, QStringLiteral("not_senders"), pod.notSenders);
+        addParam<IfNotEmpty>(jo, QStringLiteral("not_types"), pod.notTypes);
+        addParam<IfNotEmpty>(jo, QStringLiteral("senders"), pod.senders);
+        addParam<IfNotEmpty>(jo, QStringLiteral("types"), pod.types);
+    }
+    static void fillFrom(const QJsonObject& jo, EventFilter& pod)
+    {
+        fromJson(jo.value("limit"_ls), pod.limit);
+        fromJson(jo.value("not_senders"_ls), pod.notSenders);
+        fromJson(jo.value("not_types"_ls), pod.notTypes);
+        fromJson(jo.value("senders"_ls), pod.senders);
+        fromJson(jo.value("types"_ls), pod.types);
+    }
 };
 
 } // namespace Quotient

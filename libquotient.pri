@@ -5,6 +5,8 @@ QT -= gui
 CONFIG *= c++1z warn_on rtti_off create_prl object_parallel_to_source
 
 win32-msvc* {
+    # Quotient code base does not play well with NMake inference rules
+    CONFIG *= no_batch
     QMAKE_CXXFLAGS_WARN_ON += -wd4100 -wd4267
 } else {
     QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
@@ -114,10 +116,6 @@ SOURCES += \
     $$SRCPATH/jobs/mediathumbnailjob.cpp \
     $$SRCPATH/jobs/downloadfilejob.cpp \
     $$files($$SRCPATH/csapi/*.cpp, false) \
-    $$files($$SRCPATH/csapi/definitions/*.cpp, false) \
-    $$files($$SRCPATH/csapi/definitions/wellknown/*.cpp, false) \
-    $$files($$SRCPATH/application-service/definitions/*.cpp, false) \
-    $$files($$SRCPATH/identity/definitions/*.cpp, false) \
     $$SRCPATH/logging.cpp \
     $$SRCPATH/converters.cpp \
     $$SRCPATH/settings.cpp \
