@@ -199,7 +199,7 @@ using fn_arg_t =
     std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
 
 // TODO: get rid of it as soon as Apple Clang gets proper deduction guides
-// for std::function<>
+//       for std::function<>
 template <typename FnT>
 inline auto wrap_in_function(FnT&& f)
 {
@@ -217,7 +217,7 @@ inline auto operator"" _ls(const char* s, std::size_t size)
  */
 template <typename ArrayT>
 class Range {
-    // Looking forward for Ranges TS to produce something (in C++23?..)
+    // Looking forward to C++23 ranges
     using iterator = typename ArrayT::iterator;
     using const_iterator = typename ArrayT::const_iterator;
     using size_type = typename ArrayT::size_type;
