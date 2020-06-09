@@ -639,18 +639,24 @@ void TestManager::conclude()
     //            .then([this] { finalize(); }); // STL-style
     auto* room = testSuite->room();
     auto txnId = room->postHtmlText(plainReport, htmlReport);
-    connect(room, &Room::messageSent, this,
-            [this, room, txnId](const QString& serverTxnId) {
-                if (txnId != serverTxnId)
-                    return;
+    // Now just wait until all the pending events reach the server
+    connectUntil(room, &Room::messageSent, this, [this, room] {
+        const auto& pendingEvents = room->pendingEvents();
+        if (std::any_of(pendingEvents.begin(), pendingEvents.end(),
+                        [](const PendingEventItem& pe) {
+                            return pe.deliveryStatus()
+                                   < EventStatus::ReachedServer;
+                        }))
+            return false;
 
-                clog << "Leaving the room" << endl;
-                auto* job = room->leaveRoom();
-                connect(job, &BaseJob::finished, this, [this, job] {
-                    Q_ASSERT(job->status().good());
-                    finalize();
-                });
-            });
+        clog << "Leaving the room" << endl;
+        auto* job = room->leaveRoom();
+        connect(job, &BaseJob::finished, this, [this, job] {
+            Q_ASSERT(job->status().good());
+            finalize();
+        });
+        return true;
+    });
 }
 
 void TestManager::finalize()
