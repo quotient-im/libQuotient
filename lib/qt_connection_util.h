@@ -90,8 +90,9 @@ namespace _impl {
     }
 } // namespace _impl
 
-/// Create a connection that self-disconnects when its "slot" returns true
-/*! A slot accepted by connectUntil() is different from classic Qt slots
+/*! \brief Create a connection that self-disconnects when its "slot" returns true
+ *
+ *  A slot accepted by connectUntil() is different from classic Qt slots
  * in that its return value must be bool, not void. The slot's return value
  * controls whether the connection should be kept; if the slot returns false,
  * the connection remains; upon returning true, the slot is disconnected from
@@ -135,8 +136,9 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                                     connType);
 }
 
-/// A guard pointer that disconnects an interested object upon destruction
-/*! It's almost QPointer<> except that you have to initialise it with one
+/*! \brief A guard pointer that disconnects an interested object upon destruction
+ *
+ * It's almost QPointer<> except that you have to initialise it with one
  * more additional parameter - a pointer to a QObject that will be
  * disconnected from signals of the underlying pointer upon the guard's
  * destruction. Note that destructing the guide doesn't destruct either QObject.
