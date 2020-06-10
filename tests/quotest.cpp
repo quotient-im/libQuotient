@@ -357,10 +357,7 @@ TEST_IMPL(sendReaction)
         FAIL_TEST();
     }
 
-    // TODO: Check that it came back as a reaction event and that it attached to
-    // the right event
-    connectUntil(
-        targetRoom, &Room::updatedEvent, this,
+    connectUntil(targetRoom, &Room::updatedEvent, this,
         [this, thisTest, txnId, key, targetEvtId](const QString& actualTargetEvtId) {
             if (actualTargetEvtId != targetEvtId)
                 return false;
@@ -376,6 +373,7 @@ TEST_IMPL(sendReaction)
             FINISH_TEST(is<ReactionEvent>(*evt) && !evt->id().isEmpty()
                         && evt->relation().key == key
                         && evt->transactionId() == txnId);
+            // TODO: Test removing the reaction
         });
     return false;
 }
