@@ -66,7 +66,7 @@ install:
 
 - |
   if [ -n "$UPDATE_API" ]; then
-    git clone https://github.com/matrix.org/matrix-doc.git
+    git clone https://github.com/matrix-org/matrix-doc.git
     git clone --recursive https://github.com/KitsuneRal/gtad.git
     pushd gtad
     cmake $CMAKE_ARGS .
