@@ -41,9 +41,9 @@ struct RoomSummary {
     /// Merge the contents of another RoomSummary object into this one
     /// \return true, if the current object has changed; false otherwise
     bool merge(const RoomSummary& other);
-
-    friend QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 };
+QDebug operator<<(QDebug dbg, const RoomSummary& rs);
+
 
 template <>
 struct JsonObjectConverter<RoomSummary> {
