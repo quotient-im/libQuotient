@@ -1565,18 +1565,17 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                       std::bind(&Room::Private::onEventSendingFailure, this,
                                 txnId, call));
         Room::connect(call, &BaseJob::success, q, [this, call, txnId] {
-            emit q->messageSent(txnId, call->eventId());
             auto it = q->findPendingEvent(txnId);
-            if (it == unsyncedEvents.end()) {
+            if (it != unsyncedEvents.end()) {
+                if (it->deliveryStatus() != EventStatus::ReachedServer) {
+                    it->setReachedServer(call->eventId());
+                    emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+                }
+            } else
                 qCDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
-                return;
-            }
 
-            if (it->deliveryStatus() != EventStatus::ReachedServer) {
-                it->setReachedServer(call->eventId());
-                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-            }
+            emit q->messageSent(txnId, call->eventId());
         });
     } else
         onEventSendingFailure(txnId);

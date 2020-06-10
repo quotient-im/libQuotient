@@ -493,18 +493,28 @@ TEST_IMPL(sendAndRedact)
     if (txnId.isEmpty())
         FAIL_TEST();
 
-    connect(targetRoom, &Room::messageSent, this,
+    connectUntil(targetRoom, &Room::messageSent, this,
             [this, thisTest, txnId](const QString& tId, const QString& evtId) {
                 if (tId != txnId)
-                    return;
+                    return false;
+
+                // The event may end up having been merged, and that's ok;
+                // but if it's not, it has to be in the ReachedServer state.
+                if (auto it = room()->findPendingEvent(tId);
+                    it != room()->pendingEvents().cend()
+                    && it->deliveryStatus() != EventStatus::ReachedServer) {
+                    clog << "Incorrect sent event status ("
+                         << it->deliveryStatus() << ')' << endl;
+                    FAIL_TEST();
+                }
 
                 clog << "Redacting the message" << endl;
                 targetRoom->redactEvent(evtId, origin);
-
                 connectUntil(targetRoom, &Room::addedMessages, this,
                              [this, thisTest, evtId] {
                                  return checkRedactionOutcome(thisTest, evtId);
                              });
+                return false;
             });
     return false;
 }
@@ -640,12 +650,16 @@ void TestManager::conclude()
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this, [this, room] {
         const auto& pendingEvents = room->pendingEvents();
-        if (std::any_of(pendingEvents.begin(), pendingEvents.end(),
-                        [](const PendingEventItem& pe) {
-                            return pe.deliveryStatus()
-                                   < EventStatus::ReachedServer;
-                        }))
+        if (auto c = std::count_if(pendingEvents.begin(), pendingEvents.end(),
+                                   [](const PendingEventItem& pe) {
+                                       return pe.deliveryStatus()
+                                              < EventStatus::ReachedServer;
+                                   });
+            c > 0) {
+            clog << "Events to reach the server: " << c << ", not leaving yet"
+                 << endl;
             return false;
+        }
 
         clog << "Leaving the room" << endl;
         auto* job = room->leaveRoom();
