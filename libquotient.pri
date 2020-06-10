@@ -7,9 +7,10 @@ CONFIG *= c++1z warn_on rtti_off create_prl object_parallel_to_source
 win32-msvc* {
     # Quotient code base does not play well with NMake inference rules
     CONFIG *= no_batch
-    QMAKE_CXXFLAGS_WARN_ON += -wd4100 -wd4267
+    QMAKE_CXXFLAGS_WARN_ON *= -wd4100 -wd4267
+    QMAKE_CXXFLAGS *= /std:c++17 # Older Qt doesn't understand c++1z above
 } else {
-    QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
+    QMAKE_CXXFLAGS_WARN_ON *= -Wno-unused-parameter
 }
 
 contains(DEFINES, Quotient_E2EE_ENABLED=.) {
