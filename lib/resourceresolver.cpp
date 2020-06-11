@@ -81,7 +81,7 @@ ResourceResolver::parseIdentifier(const QString& identifier)
         return { char(-1) };
 
     const auto sigil = dissectedId.captured("sigil");
-    return { sigil.size() != 1 ? char(-1) : sigil.front().toLatin1(),
+    return { sigil.size() != 1 ? char(-1) : sigil[0].toLatin1(),
                 dissectedId.captured("main"), dissectedId.captured("sec") };
 }
 
