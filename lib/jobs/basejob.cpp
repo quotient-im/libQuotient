@@ -508,17 +508,13 @@ BaseJob::Status BaseJob::prepareResult() { return Success; }
 
 BaseJob::Status BaseJob::prepareError()
 {
-    // Since it's an error, the expected content type is of no help;
-    // check the actually advertised content type instead
-    if (reply()->rawHeader("Content-Type") != "application/json")
-        return NoError; // Retain the status if the error payload is not JSON
-
-    if (const auto status = d->parseJson(); !status.good())
-        return status;
-
-    if (d->jsonResponse.isArray())
-        return { IncorrectResponse,
-                 tr("Malformed error JSON: an array instead of an object") };
+    if (!d->rawResponse.isEmpty()) {
+        if (const auto status = d->parseJson(); !status.good())
+            return status; // If there's anything there, it should be JSON
+        if (d->jsonResponse.isArray()) // ...specifically, a JSON object
+            return { IncorrectResponse,
+                     tr("Malformed error JSON: an array instead of an object") };
+    }
 
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
@@ -534,6 +530,7 @@ BaseJob::Status BaseJob::prepareError()
 
         return { TooManyRequestsError, msg };
     }
+
     if (errCode == "M_CONSENT_NOT_GIVEN") {
         d->errorUrl = errorJson.value("consent_uri"_ls).toString();
         return { UserConsentRequiredError };
@@ -552,10 +549,10 @@ BaseJob::Status BaseJob::prepareError()
         return { UserDeactivated };
 
     // Not localisable on the client side
-    if (errorJson.contains("error"_ls))
-        d->status.message = errorJson.value("error"_ls).toString();
+    if (errorJson.contains("error"_ls)) // Keep the code, update the message
+        return { d->status.code, errorJson.value("error"_ls).toString() };
 
-    return d->status;
+    return NoError; // Retain the status if the error payload is not recognised
 }
 
 QJsonValue BaseJob::takeValueFromJson(const QString& key)
