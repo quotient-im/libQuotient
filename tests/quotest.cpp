@@ -357,10 +357,7 @@ TEST_IMPL(sendReaction)
         FAIL_TEST();
     }
 
-    // TODO: Check that it came back as a reaction event and that it attached to
-    // the right event
-    connectUntil(
-        targetRoom, &Room::updatedEvent, this,
+    connectUntil(targetRoom, &Room::updatedEvent, this,
         [this, thisTest, txnId, key, targetEvtId](const QString& actualTargetEvtId) {
             if (actualTargetEvtId != targetEvtId)
                 return false;
@@ -376,6 +373,7 @@ TEST_IMPL(sendReaction)
             FINISH_TEST(is<ReactionEvent>(*evt) && !evt->id().isEmpty()
                         && evt->relation().key == key
                         && evt->transactionId() == txnId);
+            // TODO: Test removing the reaction
         });
     return false;
 }
@@ -495,18 +493,28 @@ TEST_IMPL(sendAndRedact)
     if (txnId.isEmpty())
         FAIL_TEST();
 
-    connect(targetRoom, &Room::messageSent, this,
+    connectUntil(targetRoom, &Room::messageSent, this,
             [this, thisTest, txnId](const QString& tId, const QString& evtId) {
                 if (tId != txnId)
-                    return;
+                    return false;
+
+                // The event may end up having been merged, and that's ok;
+                // but if it's not, it has to be in the ReachedServer state.
+                if (auto it = room()->findPendingEvent(tId);
+                    it != room()->pendingEvents().cend()
+                    && it->deliveryStatus() != EventStatus::ReachedServer) {
+                    clog << "Incorrect sent event status ("
+                         << it->deliveryStatus() << ')' << endl;
+                    FAIL_TEST();
+                }
 
                 clog << "Redacting the message" << endl;
                 targetRoom->redactEvent(evtId, origin);
-
                 connectUntil(targetRoom, &Room::addedMessages, this,
                              [this, thisTest, evtId] {
                                  return checkRedactionOutcome(thisTest, evtId);
                              });
+                return false;
             });
     return false;
 }
@@ -639,18 +647,28 @@ void TestManager::conclude()
     //            .then([this] { finalize(); }); // STL-style
     auto* room = testSuite->room();
     auto txnId = room->postHtmlText(plainReport, htmlReport);
-    connect(room, &Room::messageSent, this,
-            [this, room, txnId](const QString& serverTxnId) {
-                if (txnId != serverTxnId)
-                    return;
+    // Now just wait until all the pending events reach the server
+    connectUntil(room, &Room::messageSent, this, [this, room] {
+        const auto& pendingEvents = room->pendingEvents();
+        if (auto c = std::count_if(pendingEvents.begin(), pendingEvents.end(),
+                                   [](const PendingEventItem& pe) {
+                                       return pe.deliveryStatus()
+                                              < EventStatus::ReachedServer;
+                                   });
+            c > 0) {
+            clog << "Events to reach the server: " << c << ", not leaving yet"
+                 << endl;
+            return false;
+        }
 
-                clog << "Leaving the room" << endl;
-                auto* job = room->leaveRoom();
-                connect(job, &BaseJob::finished, this, [this, job] {
-                    Q_ASSERT(job->status().good());
-                    finalize();
-                });
-            });
+        clog << "Leaving the room" << endl;
+        auto* job = room->leaveRoom();
+        connect(job, &BaseJob::finished, this, [this, job] {
+            Q_ASSERT(job->status().good());
+            finalize();
+        });
+        return true;
+    });
 }
 
 void TestManager::finalize()
