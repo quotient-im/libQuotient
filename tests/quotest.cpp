@@ -217,22 +217,20 @@ void TestManager::setupAndRun()
     clog << "Access token: " << c->accessToken().toStdString() << endl;
 
     c->setLazyLoading(true);
-    c->syncLoop();
 
     clog << "Joining " << targetRoomName.toStdString() << endl;
     auto joinJob = c->joinRoom(targetRoomName);
-    // Ensure, before this test is completed, that the room has been joined
-    // and filled with some events so that other tests could use that
+    // Ensure that the room has been joined and filled with some events
+    // so that other tests could use that
     connect(joinJob, &BaseJob::success, this, [this, joinJob] {
         testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
+        // Only start the sync after joining, to make sure the room just
+        // joined is in it
+        c->syncLoop();
         connectSingleShot(c, &Connection::syncDone, this, [this] {
-            if (testSuite->room()->timelineSize() > 0)
-                doTests();
-            else {
-                testSuite->room()->getPreviousContent();
-                connectSingleShot(testSuite->room(), &Room::addedMessages, this,
-                                  &TestManager::doTests);
-            }
+            testSuite->room()->getPreviousContent();
+            connectSingleShot(testSuite->room(), &Room::addedMessages, this,
+                              &TestManager::doTests);
         });
     });
     connect(joinJob, &BaseJob::failure, this, [this] {
