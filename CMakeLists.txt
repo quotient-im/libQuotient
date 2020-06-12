@@ -188,18 +188,16 @@ set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12.0")
-    set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
-endif()
-file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
-
-# Make no mistake: CMake cannot run gtad first and then populate the list of
-# resulting api_SRCS files. In other words, placing the above statement after
-# the add_custom_target() call below won't bring the desired result:
-# CMake will execute it at cmake invocation and gtad will only run later
-# when building the update-api target. If you see that gtad has created
-# new files you have to re-run cmake. CONFIGURE_DEPENDS somewhat helps that.
 if (MATRIX_DOC_PATH AND GTAD_PATH)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12.0")
+        # We use globbing with CONFIGURE_DEPENDS to produce two file lists:
+        # one of all API files for clang-format and another of just .cpp
+        # files to supply for library source files. Since we expect these
+        # file lists to only change due to GTAD invocation, we only use
+        # CONFIGURE_DEPENDS when pre-requisites to update API are met.
+        # Read comments next to each file(GLOB_RECURSE) for caveats.
+        set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
+    endif()
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${FULL_CSAPI_SRC_DIR}/*.yaml
@@ -225,8 +223,12 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
     if (ABS_CLANG_FORMAT)
         set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
         # FIXME: the list of files should be produced after GTAD has run.
-        # For now it's produced at CMake invocation; and if file() doesn't file
-        # any files clang-format chokes; also,
+        # For now it's produced at CMake invocation. If file() hasn't found
+        # any files at that moment, clang-format will be called with an empty
+        # list of files and choke. Taking outfiles.txt from GTAD could be
+        # an option but this, too, must be done during the build stage, and
+        # there's no crossplatform way to use the contents of a file as
+        # input for a build target command.
         file(GLOB_RECURSE api_ALL_SRCS ${add_CONFIGURE_DEPENDS}
              ${FULL_CSAPI_DIR}/*.*
              lib/${ASAPI_DEF_DIR}/*.*
@@ -240,6 +242,15 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         endif()
     endif()
 endif()
+
+# Make no mistake: CMake cannot run gtad first and then populate the list of
+# resulting api_SRCS files. In other words, placing the below statement after
+# the block above will not lead to CMake magically reconfiguring the build
+# after building the update-api target. CONFIGURE_DEPENDS somewhat helps,
+# at least forcing the build system to reevaluate the glob before building
+# the next target. Otherwise, you have to watch out if gtad has created
+# new files and if it has, re-run cmake.
+file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
 
 set(tests_SRCS tests/quotest.cpp)
 
