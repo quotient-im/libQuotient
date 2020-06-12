@@ -136,15 +136,15 @@ class Connection : public QObject {
 
     Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)
     Q_PROPERTY(QString localUserId READ userId NOTIFY stateChanged)
+    Q_PROPERTY(QString domain READ domain NOTIFY stateChanged STORED false)
     Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
     Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
     Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
     Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
-    Q_PROPERTY(QString domain READ domain NOTIFY homeserverChanged)
     Q_PROPERTY(QVector<GetLoginFlowsJob::LoginFlow> loginFlows READ loginFlows NOTIFY loginFlowsChanged)
-    Q_PROPERTY(bool isUsable READ isUsable NOTIFY loginFlowsChanged)
-    Q_PROPERTY(bool supportsSso READ supportsSso NOTIFY loginFlowsChanged)
-    Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged)
+    Q_PROPERTY(bool isUsable READ isUsable NOTIFY loginFlowsChanged STORED false)
+    Q_PROPERTY(bool supportsSso READ supportsSso NOTIFY loginFlowsChanged STORED false)
+    Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
 
@@ -307,7 +307,7 @@ public:
     QUrl homeserver() const;
     /** Get the domain name used for ids/aliases on the server */
     QString domain() const;
-    /** Whether the configured homeserver is known to be reachable and working */
+    /** Check if the homeserver is known to be reachable and working */
     bool isUsable() const;
     /** Get the list of supported login flows */
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
