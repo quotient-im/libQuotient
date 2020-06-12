@@ -57,6 +57,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QFile>
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
@@ -506,21 +507,23 @@ void Connection::sync(int timeout)
     });
 }
 
-void Connection::syncLoop(int timeout)
+void Connection::syncLoop(int timeout, int msecBetween)
 {
     if (d->syncLoopConnection && d->syncTimeout == timeout) {
         qCInfo(MAIN) << "Attempt to run sync loop but there's one already "
                         "running; nothing will be done";
         return;
     }
-    std::swap(d->syncTimeout, timeout);
+    std::swap(d->syncTimeout, timeout); // swap() is for the nice log below
     if (d->syncLoopConnection) {
         qCInfo(MAIN) << "Timeout for next syncs changed from"
                         << timeout << "to" << d->syncTimeout;
     } else {
-        d->syncLoopConnection = connect(this, &Connection::syncDone,
-                                        this, &Connection::syncLoopIteration,
-                                        Qt::QueuedConnection);
+        d->syncLoopConnection =
+            connect(this, &Connection::syncDone, this, [this, msecBetween] {
+                QTimer::singleShot(msecBetween, this,
+                                   &Connection::syncLoopIteration);
+            });
         syncLoopIteration(); // initial sync to start the loop
     }
 }
