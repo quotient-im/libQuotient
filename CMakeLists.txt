@@ -236,7 +236,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
                 ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_ALL_SRCS}
                 DEPENDS generate-unformatted-api
                 VERBATIM)
-            add_dependencies(update-api DEPENDS format-api)
+            add_dependencies(update-api format-api)
         endif()
     endif()
 endif()
