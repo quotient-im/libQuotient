@@ -125,6 +125,7 @@ public:
     QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
+    QPointer<LogoutJob> logoutJob = nullptr;
 
     bool cacheState = true;
     bool cacheToBinary =
@@ -451,24 +452,30 @@ void Connection::checkAndConnect(const QString& userId,
 
 void Connection::logout()
 {
-    // If there's an ongoing sync job, stop it but don't break the sync loop yet
-    const auto syncWasRunning = bool(d->syncJob);
-    if (syncWasRunning)
+    // If there's an ongoing sync job, stop it (this also suspends sync loop)
+    const auto wasSyncing = bool(d->syncJob);
+    if (wasSyncing)
     {
         d->syncJob->abandon();
         d->syncJob = nullptr;
     }
-    const auto* job = callApi<LogoutJob>();
-    connect(job, &LogoutJob::finished, this, [this, job, syncWasRunning] {
-        if (job->status().good() || job->error() == BaseJob::Unauthorised
-            || job->error() == BaseJob::ContentAccessError) {
+
+    d->logoutJob = callApi<LogoutJob>();
+    emit stateChanged(); // isLoggedIn() == false from now
+
+    connect(d->logoutJob, &LogoutJob::finished, this, [this, wasSyncing] {
+        if (d->logoutJob->status().good()
+            || d->logoutJob->error() == BaseJob::Unauthorised
+            || d->logoutJob->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
             d->data->setToken({});
-            emit stateChanged();
             emit loggedOut();
-        } else if (syncWasRunning)
-            syncLoopIteration(); // Resume sync loop (or a single sync)
+        } else { // logout() somehow didn't proceed - restore the session state
+            emit stateChanged();
+            if (wasSyncing)
+                syncLoopIteration(); // Resume sync loop (or a single sync)
+        }
     });
 }
 
@@ -476,6 +483,10 @@ void Connection::sync(int timeout)
 {
     if (d->syncJob) {
         qCInfo(MAIN) << d->syncJob << "is already running";
+        return;
+    }
+    if (!isLoggedIn()) {
+        qCWarning(MAIN) << "Not logged in, not going to sync";
         return;
     }
 
@@ -528,7 +539,13 @@ void Connection::syncLoop(int timeout, int msecBetween)
     }
 }
 
-void Connection::syncLoopIteration() { sync(d->syncTimeout); }
+void Connection::syncLoopIteration()
+{
+    if (isLoggedIn())
+        sync(d->syncTimeout);
+    else
+        qCInfo(MAIN) << "Logged out, sync loop will stop now";
+}
 
 QJsonObject toJson(const DirectChatsMap& directChats)
 {
@@ -1155,7 +1172,14 @@ QString Connection::userId() const { return d->data->userId(); }
 
 QString Connection::deviceId() const { return d->data->deviceId(); }
 
-QByteArray Connection::accessToken() const { return d->data->accessToken(); }
+QByteArray Connection::accessToken() const
+{
+    // The logout job needs access token to do its job; so the token is
+    // kept inside d->data but no more exposed to the outside world.
+    return isJobRunning(d->logoutJob) ? QByteArray() : d->data->accessToken();
+}
+
+bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
 #ifdef Quotient_E2EE_ENABLED
 QtOlm::Account* Connection::olmAccount() const
