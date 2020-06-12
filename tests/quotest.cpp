@@ -227,10 +227,26 @@ void TestManager::setupAndRun()
         // Only start the sync after joining, to make sure the room just
         // joined is in it
         c->syncLoop();
-        connectSingleShot(c, &Connection::syncDone, this, [this] {
-            testSuite->room()->getPreviousContent();
-            connectSingleShot(testSuite->room(), &Room::addedMessages, this,
-                              &TestManager::doTests);
+        connect(c, &Connection::syncDone, this, [this] {
+            static int i = 0;
+            clog << "Sync " << ++i << " complete" << endl;
+            if (auto* r = testSuite->room()) {
+                clog << "Test room timeline size = " << r->timelineSize();
+                if (r->pendingEvents().empty())
+                    clog << ", pending size = " << r->pendingEvents().size();
+                clog << endl;
+            }
+            if (!running.empty()) {
+                clog << running.size() << " test(s) in the air:";
+                for (const auto& test: qAsConst(running))
+                    clog << " " << testName(test);
+                clog << endl;
+            }
+            if (i == 1) {
+                testSuite->room()->getPreviousContent();
+                connectSingleShot(testSuite->room(), &Room::addedMessages, this,
+                                  &TestManager::doTests);
+            }
         });
     });
     connect(joinJob, &BaseJob::failure, this, [this] {
@@ -262,8 +278,8 @@ void TestManager::doTests()
 
         const auto testName = metaMethod.name();
         running.push_back(testName);
-        // Some tests return the result immediately, so queue everything
-        // so that we could process all tests asynchronously.
+        // Some tests return the result immediately but we queue everything
+        // and process all tests asynchronously.
         QMetaObject::invokeMethod(testSuite, "doTest", Qt::QueuedConnection,
                                   Q_ARG(QByteArray, testName));
     }
@@ -283,20 +299,6 @@ void TestManager::doTests()
                     conclude();
                 }
             });
-
-    connect(c, &Connection::syncDone, this, [this] {
-        static int i = 0;
-        clog << "Sync " << ++i << " complete" << endl;
-        if (auto* r = testSuite->room())
-            clog << "Test room timeline size = " << r->timelineSize()
-                 << ", pending size = " << r->pendingEvents().size() << endl;
-        if (!running.empty()) {
-            clog << running.size() << " test(s) in the air:";
-            for (const auto& test: qAsConst(running))
-                clog << " " << testName(test);
-            clog << endl;
-        }
-    });
 }
 
 TEST_IMPL(loadMembers)
