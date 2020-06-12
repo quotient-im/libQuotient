@@ -221,6 +221,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
                 ${API_DEFS}
         VERBATIM
     )
+    add_custom_target(update-api DEPENDS generate-unformatted-api)
     if (ABS_CLANG_FORMAT)
         set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
         # FIXME: the list of files should be produced after GTAD has run.
@@ -235,9 +236,7 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
                 ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_ALL_SRCS}
                 DEPENDS generate-unformatted-api
                 VERBATIM)
-            add_custom_target(update-api DEPENDS format-api)
-        else()
-            add_custom_target(update-api DEPENDS generate-unformatted-api)
+            add_dependencies(update-api DEPENDS format-api)
         endif()
     endif()
 endif()
