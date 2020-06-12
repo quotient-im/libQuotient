@@ -341,7 +341,9 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         d->connection = connData;
         doPrepare();
 
-        if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
+        if (d->needsToken && d->connection->accessToken().isEmpty())
+            setStatus(Unauthorised);
+        else if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
             && d->requestData.source()
             && !d->requestData.source()->isReadable()) {
             setStatus(FileError, "Request data not ready");
