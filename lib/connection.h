@@ -139,6 +139,7 @@ class Connection : public QObject {
     Q_PROPERTY(QString domain READ domain NOTIFY stateChanged STORED false)
     Q_PROPERTY(QString deviceId READ deviceId NOTIFY stateChanged)
     Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
+    Q_PROPERTY(bool isLoggedIn READ isLoggedIn NOTIFY stateChanged STORED false)
     Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
     Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
     Q_PROPERTY(QVector<GetLoginFlowsJob::LoginFlow> loginFlows READ loginFlows NOTIFY loginFlowsChanged)
@@ -338,6 +339,7 @@ public:
     QString userId() const;
     QString deviceId() const;
     QByteArray accessToken() const;
+    bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
     QtOlm::Account* olmAccount() const;
 #endif // Quotient_E2EE_ENABLED
