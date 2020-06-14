@@ -21,6 +21,7 @@
 #include "ssosession.h"
 #include "joinstate.h"
 #include "qt_connection_util.h"
+#include "quotient_common.h"
 
 #include "csapi/login.h"
 #include "csapi/create_room.h"
@@ -41,7 +42,6 @@ class Account;
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
-Q_NAMESPACE
 
 class Room;
 class User;
@@ -113,15 +113,6 @@ static inline user_factory_t defaultUserFactory()
 {
     return [](Connection* c, const QString& id) { return new T(id, c); };
 }
-
-/** Enumeration with flags defining the network job running policy
- * So far only background/foreground flags are available.
- *
- * \sa Connection::callApi, Connection::run
- */
-enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
-
-Q_ENUM_NS(RunningPolicy)
 
 // Room ids, rather than room pointers, are used in the direct chat
 // map types because the library keeps Invite rooms separate from

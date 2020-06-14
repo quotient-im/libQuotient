@@ -294,5 +294,3 @@ qreal stringToHueF(const QString& s);
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;

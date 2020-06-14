@@ -35,6 +35,7 @@ HEADERS += \
     $$SRCPATH/user.h \
     $$SRCPATH/avatar.h \
     $$SRCPATH/syncdata.h \
+    $$SRCPATH/quotient_common.h
     $$SRCPATH/util.h \
     $$SRCPATH/qt_connection_util.h \
     $$SRCPATH/events/event.h \
