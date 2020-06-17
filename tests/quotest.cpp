@@ -627,13 +627,15 @@ TEST_IMPL(visitResources)
     // This lambda returns true in case of error, false if it's fine so far
     auto testResourceResolver = [this, thisTest](const QStringList& uris,
                                                  auto signal, auto* target,
-                                                 const QString& eventId = {}) {
+                                                 QVariantList otherArgs = {}) {
         int r = qRegisterMetaType<decltype(target)>();
         Q_ASSERT(r != 0);
         QSignalSpy spy(&rr, signal);
-        for (const auto& uri: uris) {
-            clog << "Resolving uri " << uri.toStdString() << endl;
-            rr.openResource(connection(), uri, "action");
+        for (const auto& uriString: uris) {
+            MatrixUri uri { uriString };
+            clog << "Checking " << uriString.toStdString()
+                 << " -> " << uri.toDisplayString().toStdString() << endl;
+            rr.openResource(connection(), uri);
             if (spy.count() != 1) {
                 clog << "Wrong number of signal emissions (" << spy.count()
                      << ')' << endl;
@@ -642,21 +644,19 @@ TEST_IMPL(visitResources)
             const auto& emission = spy.front();
             Q_ASSERT(emission.count() >= 2);
             if (emission.front().value<decltype(target)>() != target) {
-                clog << "Action on an incorrect target called" << endl;
+                clog << "Signal emitted with an incorrect target" << endl;
                 FAIL_TEST();
             }
-            if (emission.back() != "action") {
-                clog << "Action wasn't passed" << endl;
-                FAIL_TEST();
-            }
-            if (!eventId.isEmpty()) {
-                const auto passedEvtId = (emission.cend() - 2)->toString();
-                if (passedEvtId != eventId) {
-                    clog << "Event passed incorrectly (received "
-                         << passedEvtId.toStdString() << " instead of "
-                         << eventId.toStdString() << ')' << endl;
+            if (!otherArgs.empty()) {
+                if (emission.size() < otherArgs.size() + 1) {
+                    clog << "Emission doesn't include all arguments" << endl;
                     FAIL_TEST();
                 }
+                for (auto i = 0; i < otherArgs.size(); ++i)
+                    if (otherArgs[i] != emission[i + 1]) {
+                        clog << "Mismatch in argument #" << i + 1 << endl;
+                        FAIL_TEST();
+                    }
             }
             spy.clear();
         }
@@ -674,13 +674,10 @@ TEST_IMPL(visitResources)
     Q_ASSERT(!eventId.isEmpty());
 
     const QStringList roomUris {
-        roomId,
-        "matrix:roomid/" + roomId.mid(1),
-        "https://matrix.to/#/" + roomId,
-        roomAlias,
-        "matrix:room/" + roomAlias.mid(1),
+        roomId, "matrix:roomid/" + roomId.mid(1),
+        "https://matrix.to/#/%21" + roomId.mid(1),
+        roomAlias, "matrix:room/" + roomAlias.mid(1),
         "https://matrix.to/#/" + roomAlias,
-        "https://matrix.to#/" + roomAlias, // Just in case
     };
     const QStringList userUris { userId, "matrix:user/" + userId.mid(1),
                                  "https://matrix.to/#/" + userId };
@@ -688,13 +685,37 @@ TEST_IMPL(visitResources)
         "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
         "https://matrix.to/#/" + roomId + '/' + eventId
     };
+    // The following URIs are not supposed to be actually joined (and even
+    // exist, as yet) - only to be syntactically correct
+    static const auto& joinRoomAlias =
+        QStringLiteral("unjoined:example.org"); // # will be added below
+    QString joinQuery { "?action=join" };
+    static const QStringList joinByAliasUris {
+        "matrix:room/" + joinRoomAlias + joinQuery,
+        "https://matrix.to/#/%23"/*`#`*/ + joinRoomAlias + joinQuery
+    };
+    static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
+    static const QStringList viaServers { "matrix.org", "example.org" };
+    static const auto viaQuery =
+        std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
+                        [](QString q, const QString& s) {
+                            return q + "&via=" + s;
+                        });
+    static const QStringList joinByIdUris {
+        "matrix:roomid/" + joinRoomId.mid(1) + viaQuery,
+        "https://matrix.to/#/" + joinRoomId + viaQuery
+    };
     // If any test breaks, the breaking call will return true, and further
     // execution will be cut by ||'s short-circuiting
     if (testResourceResolver(roomUris, &ResourceResolver::roomAction, room())
         || testResourceResolver(userUris, &ResourceResolver::userAction,
                                 connection()->user())
         || testResourceResolver(eventUris, &ResourceResolver::roomAction,
-                                room(), eventId))
+                                room(), { eventId })
+        || testResourceResolver(joinByAliasUris, &ResourceResolver::joinAction,
+                                connection(), { '#' + joinRoomAlias })
+        || testResourceResolver(joinByIdUris, &ResourceResolver::joinAction,
+                                connection(), { joinRoomId, viaServers }))
         return true;
     // TODO: negative cases
     FINISH_TEST(true);

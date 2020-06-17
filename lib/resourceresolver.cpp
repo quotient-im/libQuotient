@@ -1,97 +1,236 @@
 #include "resourceresolver.h"
 
-#include "settings.h"
+#include "connection.h"
+#include "logging.h"
 
 #include <QtCore/QRegularExpression>
 
 using namespace Quotient;
 
-QString ResourceResolver::toMatrixId(const QString& uriOrId,
-                                     QStringList uriServers)
+struct ReplacePair { QByteArray uriString; char sigil; };
+static const auto replacePairs = { ReplacePair { "user/", '@' },
+                                   { "roomid/", '!' },
+                                   { "room/", '#' } };
+
+MatrixUri::MatrixUri(QByteArray primaryId, QByteArray secondaryId, QString query)
 {
-    auto id = QUrl::fromPercentEncoding(uriOrId.toUtf8());
-    const auto MatrixScheme = "matrix:"_ls;
-    if (id.startsWith(MatrixScheme)) {
-        id.remove(0, MatrixScheme.size());
-        for (const auto& p: { std::pair { "user/"_ls, '@' },
-                              { "roomid/"_ls, '!' },
-                              { "room/"_ls, '#' } })
-            if (id.startsWith(p.first)) {
-                id.replace(0, p.first.size(), p.second);
+    if (primaryId.isEmpty())
+        primaryType_ = Empty;
+    else {
+        setScheme("matrix");
+        QString pathToBe;
+        primaryType_ = Invalid;
+        for (const auto& p: replacePairs)
+            if (primaryId[0] == p.sigil) {
+                primaryType_ = Type(p.sigil);
+                pathToBe = p.uriString + primaryId.mid(1);
                 break;
             }
-        // The below assumes that /event/ cannot show up in normal Matrix ids.
-        id.replace("/event/"_ls, "/$"_ls);
-    } else {
-        const auto MatrixTo_ServerName = QStringLiteral("matrix.to");
-        if (!uriServers.contains(MatrixTo_ServerName))
-            uriServers.push_back(MatrixTo_ServerName);
-        id.remove(
-            QRegularExpression("^https://(" + uriServers.join('|') + ")/?#/"));
+        if (!secondaryId.isEmpty())
+            pathToBe += "/event/" + secondaryId.mid(1);
+        setPath(pathToBe);
     }
-    return id;
+    setQuery(std::move(query));
 }
 
-ResourceResolver::Result ResourceResolver::visitResource(
-    Connection* account, const QString& identifier,
-    std::function<void(User*)> userHandler,
-    std::function<void(Room*, QString)> roomEventHandler)
+MatrixUri::MatrixUri(QUrl url) : QUrl(std::move(url))
 {
-    const auto& normalizedId = toMatrixId(identifier);
-    auto&& [sigil, mainId, secondaryId] = parseIdentifier(normalizedId);
-            Room* room = nullptr;
-            switch (sigil) {
-        case char(-1):
-            return MalformedMatrixId;
-        case char(0):
-            return EmptyMatrixId;
-        case '@':
-            if (auto* user = account->user(mainId)) {
-                userHandler(user);
-                return Success;
-            }
-            return MalformedMatrixId;
-        case '!':
-            if ((room = account->room(mainId)))
-                break;
-            return UnknownMatrixId;
-        case '#':
-            if ((room = account->roomByAlias(mainId)))
+    // NB: url is moved from and empty by now
+    if (isEmpty())
+        return; // primaryType_ == None
+
+    primaryType_ = Invalid;
+    if (!QUrl::isValid()) // MatrixUri::isValid() checks primaryType_
+        return;
+
+    if (scheme() == "matrix") {
+        // Check sanity as per https://github.com/matrix-org/matrix-doc/pull/2312
+        const auto& urlPath = path();
+        const auto& splitPath = urlPath.splitRef('/');
+        switch (splitPath.size()) {
+        case 2:
+            break;
+        case 4:
+            if (splitPath[2] == "event")
                 break;
             [[fallthrough]];
         default:
-            return UnknownMatrixId;
+            return; // Invalid
+        }
+
+        for (const auto& p: replacePairs)
+            if (urlPath.startsWith(p.uriString)) {
+                primaryType_ = Type(p.sigil);
+                return; // The only valid return path for matrix: URIs
+            }
+        qCWarning(MAIN) << "Invalid matrix: URI passed to MatrixUri";
     }
-    roomEventHandler(room, secondaryId);
-    return Success;
+    if (scheme() == "https" && authority() == "matrix.to") {
+        // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
+        static const QRegularExpression MatrixToUrlRE {
+            R"(^/(?<main>[^/?]+)(/(?<sec>[^?]+))?(\?(?<query>.+))?$)"
+        };
+        // matrix.to accepts both literal sigils (as well as & and ? used in
+        // its "query" substitute) and their %-encoded forms;
+        // so force QUrl to decode everything.
+        auto f = fragment(QUrl::FullyDecoded);
+        if (auto&& m = MatrixToUrlRE.match(f); m.hasMatch())
+            *this = MatrixUri { m.captured("main").toUtf8(),
+                                m.captured("sec").toUtf8(),
+                                m.captured("query") };
+    }
 }
 
-ResourceResolver::IdentifierParts
-ResourceResolver::parseIdentifier(const QString& identifier)
+MatrixUri::MatrixUri(const QString &uriOrId)
+    : MatrixUri(fromUserInput(uriOrId))
+{ }
+
+MatrixUri MatrixUri::fromUserInput(const QString& uriOrId)
 {
-    if (identifier.isEmpty())
-        return {};
-    
-    // The regex is quick and dirty, only intending to triage the id.
-    static const QRegularExpression IdRE {
-        "^(?<main>(?<sigil>.)([^/]+))(/(?<sec>[^?]+))?"
-    };
-    auto dissectedId = IdRE.match(identifier);
-    if (!dissectedId.hasMatch())
-        return { char(-1) };
+    if (uriOrId.isEmpty())
+        return {}; // type() == None
 
-    const auto sigil = dissectedId.captured("sigil");
-    return { sigil.size() != 1 ? char(-1) : sigil[0].toLatin1(),
-                dissectedId.captured("main"), dissectedId.captured("sec") };
+    // A quick check if uriOrId is a plain Matrix id
+    if (QStringLiteral("!@#+").contains(uriOrId[0]))
+        return MatrixUri { uriOrId.toUtf8() };
+
+    // Bare event ids cannot be resolved without a room scope but are treated as
+    // valid anyway; in the future we might expose them as, say,
+    // matrix:event/eventid
+    if (uriOrId[0] == '$')
+        return MatrixUri { "", uriOrId.toUtf8() };
+
+    return MatrixUri { QUrl::fromUserInput(uriOrId) };
 }
 
-ResourceResolver::Result
+MatrixUri::Type MatrixUri::type() const { return primaryType_; }
+
+MatrixUri::SecondaryType MatrixUri::secondaryType() const
+{
+    return path().section('/', 2, 2) == "event" ? EventId : NoSecondaryId;
+}
+
+QUrl MatrixUri::toUrl(UriForm form) const
+{
+    if (!isValid())
+        return {};
+
+    if (form == CanonicalUri)
+        return *this;
+
+    QUrl url;
+    url.setScheme("https");
+    url.setHost("matrix.to");
+    url.setPath("/");
+    auto fragment = primaryId();
+    if (const auto& secId = secondaryId(); !secId.isEmpty())
+        fragment += '/' + secId;
+    if (const auto& q = query(); !q.isEmpty())
+        fragment += '?' + q;
+    url.setFragment(fragment);
+    return url;
+}
+
+QString MatrixUri::toDisplayString(MatrixUri::UriForm form) const
+{
+    return toUrl(form).toDisplayString();
+}
+
+QString MatrixUri::primaryId() const
+{
+    if (primaryType_ == Empty || primaryType_ == Invalid)
+        return {};
+
+    const auto& idStem = path().section('/', 1, 1);
+    return idStem.isEmpty() ? idStem : primaryType_ + idStem;
+}
+
+QString MatrixUri::secondaryId() const
+{
+    const auto& idStem = path().section('/', 3);
+    return idStem.isEmpty() ? idStem : secondaryType() + idStem;
+}
+
+QString MatrixUri::action() const
+{
+    return QUrlQuery { query() }.queryItemValue("action");
+}
+
+QStringList MatrixUri::viaServers() const
+{
+    return QUrlQuery { query() }.allQueryItemValues(QStringLiteral("via"),
+                                                    QUrl::EncodeReserved);
+}
+
+bool MatrixUri::isValid() const
+{
+    return primaryType_ != Empty && primaryType_ != Invalid;
+}
+
+UriResolveResult Quotient::visitResource(
+    Connection* account, const MatrixUri& uri,
+    std::function<void(User*)> userHandler,
+    std::function<void(Room*, QString)> roomEventHandler,
+    std::function<void(Connection*, QString, QStringList)> joinHandler)
+{
+    Q_ASSERT_X(account != nullptr, __FUNCTION__,
+               "The Connection argument passed to visit/openResource must not "
+               "be nullptr");
+    if (uri.action() == "join") {
+        if (uri.type() != MatrixUri::RoomAlias
+            && uri.type() != MatrixUri::RoomId)
+            return MalformedUri;
+
+        joinHandler(account, uri.primaryId(), uri.viaServers());
+        return UriResolved;
+    }
+
+    Room* room = nullptr;
+    switch (uri.type()) {
+    case MatrixUri::Invalid:
+        return MalformedUri;
+    case MatrixUri::Empty:
+        return EmptyMatrixId;
+    case MatrixUri::UserId:
+        if (auto* user = account->user(uri.primaryId())) {
+            userHandler(user);
+            return UriResolved;
+        }
+        return MalformedUri;
+    case MatrixUri::RoomId:
+        if ((room = account->room(uri.primaryId())))
+            break;
+        return UnknownMatrixId;
+    case MatrixUri::RoomAlias:
+        if ((room = account->roomByAlias(uri.primaryId())))
+            break;
+        [[fallthrough]];
+    default:
+        return UnknownMatrixId;
+    }
+    roomEventHandler(room, uri.secondaryId());
+    return UriResolved;
+}
+
+UriResolveResult
 ResourceResolver::openResource(Connection* account, const QString& identifier,
                                const QString& action)
 {
-    return visitResource(account, identifier,
-        [this, &action](User* u) { emit userAction(u, action); },
-        [this, &action](Room* room, const QString& eventId) {
-            emit roomAction(room, eventId, action);
+    return openResource(account, MatrixUri(identifier), action);
+}
+
+UriResolveResult ResourceResolver::openResource(Connection* account,
+                                                const MatrixUri& uri,
+                                                const QString& overrideAction)
+{
+    return visitResource(
+        account, uri,
+        [this, &overrideAction](User* u) { emit userAction(u, overrideAction); },
+        [this, &overrideAction](Room* room, const QString& eventId) {
+            emit roomAction(room, eventId, overrideAction);
+        },
+        [this](Connection* account, const QString& roomAliasOrId,
+               const QStringList& viaServers) {
+            emit joinAction(account, roomAliasOrId, viaServers);
         });
 }

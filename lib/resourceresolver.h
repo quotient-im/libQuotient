@@ -1,10 +1,118 @@
 #pragma once
 
-#include "connection.h"
+#include "quotient_common.h"
+
+#include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
+#include <QtCore/QObject>
 
 #include <functional>
 
 namespace Quotient {
+class Connection;
+class Room;
+class User;
+
+/*! \brief A wrapper around a Matrix URI or identifier
+ *
+ * This class encapsulates a Matrix resource identifier, passed in either of
+ * 3 forms: a plain Matrix identifier (sigil, localpart, serverpart or, for
+ * modern event ids, sigil and base64 hash); an MSC2312 URI (aka matrix: URI);
+ * or a matrix.to URL. The input can be either encoded (serverparts with
+ * punycode, the rest with percent-encoding) or unencoded (in this case it is
+ * the caller's responsibility to resolve all possible ambiguities).
+ *
+ * The class provides functions to check the validity of the identifier,
+ * its type, and obtain components, also in either unencoded (for displaying)
+ * or encoded (for APIs) form.
+ */
+class MatrixUri : private QUrl {
+    Q_GADGET
+    Q_PROPERTY(QString primaryId READ primaryId CONSTANT)
+    Q_PROPERTY(QString secondaryId READ secondaryId CONSTANT)
+//    Q_PROPERTY(QUrlQuery query READ query CONSTANT)
+    Q_PROPERTY(QString action READ action CONSTANT)
+//    Q_PROPERTY(QStringList viaServers READ viaServers CONSTANT)
+public:
+    enum Type : char {
+        Invalid = char(-1),
+        Empty = 0x0,
+        UserId = '@',
+        RoomId = '!',
+        RoomAlias = '#',
+        Group = '+'
+    };
+    Q_ENUM(Type)
+    enum SecondaryType : char {
+        NoSecondaryId = 0x0,
+        EventId = '$'
+    };
+
+    enum UriForm : short { CanonicalUri, MatrixToUri };
+    Q_ENUM(UriForm)
+
+    /// Construct an empty Matrix URI
+    MatrixUri() = default;
+    /*! \brief Decode a user input string to a Matrix identifier
+     *
+     * Accepts plain Matrix ids, MSC2312 URIs (aka matrix: URIs) and
+     * matrix.to URLs. In case of URIs/URLs, it uses QUrl's TolerantMode
+     * parser to decode common mistakes/irregularities (see QUrl documentation
+     * for more details).
+     */
+    MatrixUri(const QString& uriOrId);
+
+    /// Construct a Matrix URI from components
+    explicit MatrixUri(QByteArray primaryId, QByteArray secondaryId = {},
+                       QString query = {});
+    /// Construct a Matrix URI from matrix.to or MSC2312 (matrix:) URI
+    explicit MatrixUri(QUrl url);
+
+    static MatrixUri fromUserInput(const QString& uriOrId);
+    static MatrixUri fromUrl(QUrl url);
+
+    /// Get the primary type of the Matrix URI (user id, room id or alias)
+    /*! Note that this does not include an event as a separate type, since
+     * events can only be addressed inside of rooms, which, in turn, are
+     * addressed either by id or alias. If you need to check whether the URI
+     * is specifically an event URI, use secondaryType() instead.
+     */
+    Type type() const;
+    SecondaryType secondaryType() const;
+    QUrl toUrl(UriForm form = CanonicalUri) const;
+    QString toDisplayString(UriForm form = CanonicalUri) const;
+    QString primaryId() const;
+    QString secondaryId() const;
+    QString action() const;
+    QStringList viaServers() const;
+    bool isValid() const;
+    using QUrl::isEmpty, QUrl::path, QUrl::query, QUrl::fragment;
+
+private:
+
+    Type primaryType_ = Empty;
+};
+
+/*! \brief Resolve the resource and invoke an action on it, visitor style
+ *
+ * This template function encapsulates the logic of resolving a Matrix
+ * identifier or URI into a Quotient object (or objects) and applying an
+ * appropriate action handler from the set provided by the caller to it.
+ * A typical use case for that is opening a room or mentioning a user in
+ * response to clicking on a Matrix URI or identifier.
+ *
+ * \param account The connection used as a context to resolve the identifier
+ *
+ * \param uri The Matrix identifier or URI; MSC2312 URIs and classic Matrix IDs
+ *            are supported
+ *
+ * \sa ResourceResolver
+ */
+UriResolveResult
+visitResource(Connection* account, const MatrixUri& uri,
+              std::function<void(User*)> userHandler,
+              std::function<void(Room*, QString)> roomEventHandler,
+              std::function<void(Connection*, QString, QStringList)> joinHandler);
 
 /*! \brief Matrix resource resolver
  * TODO: rewrite
@@ -22,50 +130,8 @@ namespace Quotient {
 class ResourceResolver : public QObject {
     Q_OBJECT
 public:
-    enum Result : short {
-        StillResolving = -1,
-        Success = 0,
-        UnknownMatrixId,
-        MalformedMatrixId,
-        NoAccount,
-        EmptyMatrixId
-    };
-    Q_ENUM(Result)
-
     explicit ResourceResolver(QObject* parent = nullptr) : QObject(parent)
     { }
-
-    /*! \brief Decode a URI to a Matrix identifier (or a room/event pair)
-     *
-     * This accepts plain Matrix ids, MSC2312 URIs (aka matrix: URIs) and
-     * matrix.to URIs.
-     *
-     * \return a Matrix identifier as defined by the common identifier grammars
-     *         or a slash separated pair of Matrix identifiers if the original
-     *         uri/id pointed to an event in a room
-     */
-    static QString toMatrixId(const QString& uriOrId,
-                                 QStringList uriServers = {});
-
-    /*! \brief Resolve the resource and invoke an action on it, visitor style
-     *
-     * This template function encapsulates the logic of resolving a Matrix
-     * identifier or URI into a Quotient object (or objects) and applying an
-     * appropriate action handler from the set provided by the caller to it.
-     * A typical use case for that is opening a room or mentioning a user in
-     * response to clicking on a Matrix URI or identifier.
-     *
-     * \param account The connection used as a context to resolve the identifier
-     *
-     * \param identifier The Matrix identifier or URI. MSC2312 URIs and classic
-     *                   Matrix ID scheme are supported.
-     *
-     * \sa ResourceResolver
-     */
-    static Result
-    visitResource(Connection* account, const QString& identifier,
-                  std::function<void(User*)> userHandler,
-                  std::function<void(Room*, QString)> roomEventHandler);
 
     /*! \brief Resolve the resource and request an action on it, signal style
      *
@@ -91,9 +157,12 @@ public:
      * and also connect to ResourceFuture::ready() signal in order to process
      * the result of resolving and action.
      */
-    Q_INVOKABLE Result openResource(Connection* account,
-                                    const QString& identifier,
-                                    const QString& action = {});
+    Q_INVOKABLE UriResolveResult openResource(Connection* account,
+                                                   const QString& identifier,
+                                                   const QString& action = {});
+    Q_INVOKABLE UriResolveResult
+    openResource(Connection* account, const MatrixUri& uri,
+                 const QString& overrideAction = {});
 
 signals:
     /// An action on a user has been requested
@@ -102,14 +171,9 @@ signals:
     /// An action on a room has been requested, with optional event id
     void roomAction(Quotient::Room* room, QString eventId, QString action);
 
-private:
-    struct IdentifierParts {
-        char sigil;
-        QString mainId {};
-        QString secondaryId = {};
-    };
-
-    static IdentifierParts parseIdentifier(const QString& identifier);
+    /// A join action has been requested, with optional 'via' servers
+    void joinAction(Quotient::Connection* account, QString roomAliasOrId,
+                    QStringList viaServers);
 };
 
 } // namespace Quotient
