@@ -16,6 +16,15 @@ analyzer:
     m.room_versions: roomVersions
     AuthenticationData/additionalProperties: authInfo
     /^/(Location|Protocol|User)$/: 'ThirdParty$1'
+    # Change some response names
+    /requestTokenTo.*</data/: response
+    requestOpenIdToken</data: tokenData
+    getDevice</data: device
+    getFilter</data: filter
+    getProtocols</data: protocols
+    getOneRoomEvent</data: event
+    getRoomState</data: events
+    getPushRule</data: pushRule
     # These parameters are deprecated and unused in Quotient; so drop them
     login>/user: ""
     login>/medium: ""
@@ -71,21 +80,27 @@ analyzer:
       - +set: { moveOnly: }
         +on:
         - /state_event.yaml$/:
-            { type: StateEventPtr, imports: '"events/eventloader.h"' }
+            { type: StateEventPtr, imports: "events/eventloader.h" }
         - /room_event.yaml$/:
-            { type: RoomEventPtr, imports: '"events/eventloader.h"' }
+            { type: RoomEventPtr, imports: "events/eventloader.h" }
         - /event.yaml$/:
-            { type: EventPtr, imports: '"events/eventloader.h"' }
+            { type: EventPtr, imports: "events/eventloader.h" }
       - /m\.room\.member$/: void # Skip resolving; see EventsArray<> below
       - '/^(\./)?definitions/request_email_validation.yaml$/':
           title: EmailValidationData
       - '/^(\./)?definitions/request_msisdn_validation.yaml$/':
           title: MsisdnValidationData
       - /_filter.yaml$/: # Event/RoomEventFilters do NOT need Omittable<>
+      - /public_rooms_response.yaml$/: { _inline: true }
       - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - schema:
       - getTurnServer<: *QJsonObject # It's used as an opaque JSON object
-      - RoomFilter: # A structure inside Filter, same story as with other filters
+      - PublicRoomResponse: { _inline: true }
+#      - defineFilter>: &Filter # Force folding into a structure
+#          type: Filter
+#          imports: "csapi/definitions/sync_filter.h"
+#      - getFilter<: *Filter
+      - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - //: *UseOmittable
     - array:
       - string: QStringList
@@ -93,10 +108,10 @@ analyzer:
         +on:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
-            imports: '"events/eventloader.h"'
+            imports: "events/eventloader.h"
         - /m\.room\.member$/: # Only used in an array (see also above)
             type: "EventsArray<RoomMemberEvent>"
-            imports: '"events/roommemberevent.h"'
+            imports: "events/roommemberevent.h"
         - /state_event.yaml$/: StateEvents
         - /room_event.yaml$/: RoomEvents
         - /event.yaml$/: Events
@@ -105,8 +120,7 @@ analyzer:
       - RoomState:
           type: "UnorderedMap<QString, {{1}}>"
           moveOnly:
-      - /.+/:
-          type: "QHash<QString, {{1}}>"
+      - /.+/: "QHash<QString, {{1}}>"
       - //: QVariantHash
     - variant: # A sequence `type` (multitype) in OpenAPI
       - /^string,null|null,string$/: *QString
