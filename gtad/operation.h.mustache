@@ -21,11 +21,7 @@ public:
 
     {{>docCommentShort}}
     struct {{name}}{{#parents?}} :
-    {{!Quotient:: is a workaround for cases when the same name is used for
-            the outer and the inner structure (unfortunately very easy
-            to hit if you don't give a title to the structure that has
-            $ref and other properties)}}
-        {{#parents}}Quotient::{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+        {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
     {
             {{#vars}}
         {{>docCommentShort}}
@@ -44,9 +40,9 @@ public:
     {{#allParams?}}
     /*!{{>docCommentSummary}}
         {{#allParams}}
-     *
      * \param {{nameCamelCase}}{{#description}}
-     *   {{_}}{{/description}}
+     *   {{_}}{{/description}}{{#_join}}
+     * {{/_join}}
         {{/allParams}}
      */
     {{/allParams?}}{{^allParams?}}
@@ -77,7 +73,8 @@ public:
         {{/headers}}{{#inlineResponse}}
 
     {{>docCommentShort}}
-    {{dataType.name}} {{paramName}}(){{^moveOnly}}{{^producesNonJson?}} const{{/producesNonJson?}}{{/moveOnly}}
+    {{dataType.name}} {{paramName}}()
+    {{^moveOnly}}{{^producesNonJson?}} const{{/producesNonJson?}}{{/moveOnly}}
     {
         return {{#producesNonJson?}}reply(){{/producesNonJson?}}
             {{^producesNonJson?
