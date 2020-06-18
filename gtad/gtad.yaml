@@ -15,7 +15,7 @@ analyzer:
     m.change_password: changePassword
     m.room_versions: roomVersions
     AuthenticationData/additionalProperties: authInfo
-    /\b(Location|Protocol|User)$/: 'ThirdParty$&'
+    /^/(Location|Protocol|User)$/: 'ThirdParty$1'
     # These parameters are deprecated and unused in Quotient; so drop them
     login>/user: ""
     login>/medium: ""
