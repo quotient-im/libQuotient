@@ -1263,7 +1263,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         QString decrypted = d->groupSessionDecryptMessage(
             encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
             encryptedEvent.sessionId(), encryptedEvent.id(),
-            encryptedEvent.timestamp());
+            encryptedEvent.originTimestamp());
         if (decrypted.isEmpty()) {
             return {};
         }

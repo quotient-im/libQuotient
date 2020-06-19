@@ -89,7 +89,8 @@ public:
     // A map from senderKey to InboundSession
     QMap<QString, InboundSession*> sessions; // TODO: cache
     void updateDeviceKeys(
-        const QHash<QString, QHash<QString, QueryKeysJob::DeviceKeys>>& deviceKeys)
+        const QHash<QString,
+                    QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
     {
         for (auto userId : deviceKeys.keys()) {
             for (auto deviceId : deviceKeys.value(userId).keys()) {
