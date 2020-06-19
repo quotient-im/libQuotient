@@ -537,7 +537,7 @@ public slots:
     void logout();
 
     void sync(int timeout = -1);
-    void syncLoop(int timeout = -1, int msecBetween = 500);
+    void syncLoop(int timeout = 30000);
 
     void stopSync();
     QString nextBatchToken() const;
