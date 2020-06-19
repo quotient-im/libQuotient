@@ -26,7 +26,6 @@ class PeekEventsJob : public BaseJob {
 public:
     /*! \brief Listen on the event stream.
      *
-     *
      * \param from
      *   The token to stream from. This token is either from a previous
      *   request to this API or from the initial sync API.

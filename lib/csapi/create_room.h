@@ -190,7 +190,6 @@ public:
 
     /*! \brief Create a new room
      *
-     *
      * \param visibility
      *   A ``public`` visibility indicates that the room will be shown
      *   in the published room list. A ``private`` visibility will hide

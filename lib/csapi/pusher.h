@@ -132,7 +132,6 @@ public:
 
     /*! \brief Modify a pusher for this user on the homeserver.
      *
-     *
      * \param pushkey
      *   This is a unique identifier for this pusher. The value you
      *   should use for this is the routing or destination address

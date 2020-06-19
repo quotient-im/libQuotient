@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include "csapi/../identity/definitions/request_msisdn_validation.h"
-#include "csapi/./definitions/request_email_validation.h"
-#include "csapi/./definitions/request_msisdn_validation.h"
 #include "csapi/definitions/auth_data.h"
+#include "csapi/definitions/request_email_validation.h"
+#include "csapi/definitions/request_msisdn_validation.h"
 #include "csapi/definitions/request_token_response.h"
 
 #include "jobs/basejob.h"
@@ -61,7 +60,6 @@ namespace Quotient {
 class RegisterJob : public BaseJob {
 public:
     /*! \brief Register for an account on this homeserver.
-     *
      *
      * \param kind
      *   The kind of account to register. Defaults to ``user``.
@@ -148,7 +146,6 @@ public:
     /*! \brief Begins the validation process for an email to be used during
      * registration.
      *
-     *
      * \param body
      *   The homeserver must check that the given email address is **not**
      *   already associated with an account on this homeserver. The homeserver
@@ -162,7 +159,7 @@ public:
     /// An email has been sent to the specified address. Note that this
     /// may be an email containing the validation token or it may be
     /// informing the user of an error.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }
@@ -181,7 +178,6 @@ public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of registering an account
      *
-     *
      * \param body
      *   The homeserver must check that the given phone number is **not**
      *   already associated with an account on this homeserver. The homeserver
@@ -195,7 +191,7 @@ public:
     /// An SMS message has been sent to the specified phone number. Note
     /// that this may be an SMS message containing the validation token or
     /// it may be informing the user of an error.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }
@@ -220,7 +216,6 @@ public:
 class ChangePasswordJob : public BaseJob {
 public:
     /*! \brief Changes a user's password.
-     *
      *
      * \param newPassword
      *   The new password for the account.
@@ -270,7 +265,6 @@ public:
     /*! \brief Requests a validation token be sent to the given email address
      * for the purpose of resetting a user's password
      *
-     *
      * \param body
      *   The homeserver must check that the given email address **is
      *   associated** with an account on this homeserver. This API should be
@@ -299,7 +293,7 @@ public:
     // Result properties
 
     /// An email was sent to the given address.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }
@@ -333,7 +327,6 @@ public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of resetting a user's password.
      *
-     *
      * \param body
      *   The homeserver must check that the given phone number **is
      *   associated** with an account on this homeserver. This API should be
@@ -357,12 +350,12 @@ public:
      * #post-matrix-client-r0-register-email-requesttoken
      */
     explicit RequestTokenToResetPasswordMSISDNJob(
-        const RequestMsisdnValidation& body);
+        const MsisdnValidationData& body);
 
     // Result properties
 
     /// An SMS message was sent to the given phone number.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }
@@ -388,7 +381,6 @@ public:
 class DeactivateAccountJob : public BaseJob {
 public:
     /*! \brief Deactivate a user's account.
-     *
      *
      * \param auth
      *   Additional authentication information for the user-interactive
@@ -439,7 +431,6 @@ public:
 class CheckUsernameAvailabilityJob : public BaseJob {
 public:
     /*! \brief Checks to see if a username is available on the server.
-     *
      *
      * \param username
      *   The username to check the availability of.

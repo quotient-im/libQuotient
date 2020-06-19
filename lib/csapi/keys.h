@@ -18,7 +18,6 @@ class UploadKeysJob : public BaseJob {
 public:
     /*! \brief Upload end-to-end encryption keys.
      *
-     *
      * \param deviceKeys
      *   Identity keys for the device. May be absent if no new
      *   identity keys are required.
@@ -61,9 +60,7 @@ public:
     };
 
     /// Returns the current devices and identity keys for the given users.
-    struct DeviceKeys :
-
-        Quotient::DeviceKeys {
+    struct DeviceInformation : DeviceKeys {
         /// Additional data added to the device key information
         /// by intermediate servers, and not covered by the
         /// signatures.
@@ -73,7 +70,6 @@ public:
     // Construction/destruction
 
     /*! \brief Download device identity keys.
-     *
      *
      * \param deviceKeys
      *   The keys to be downloaded. A map from user ID, to a list of
@@ -113,9 +109,9 @@ public:
     /// the information returned will be the same as uploaded via
     /// ``/keys/upload``, with the addition of an ``unsigned``
     /// property.
-    QHash<QString, QHash<QString, DeviceKeys>> deviceKeys() const
+    QHash<QString, QHash<QString, DeviceInformation>> deviceKeys() const
     {
-        return loadFromJson<QHash<QString, QHash<QString, DeviceKeys>>>(
+        return loadFromJson<QHash<QString, QHash<QString, DeviceInformation>>>(
             "device_keys"_ls);
     }
 };
@@ -130,8 +126,9 @@ struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
 };
 
 template <>
-struct JsonObjectConverter<QueryKeysJob::DeviceKeys> {
-    static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceKeys& result)
+struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
+    static void fillFrom(const QJsonObject& jo,
+                         QueryKeysJob::DeviceInformation& result)
     {
         fillFromJson<DeviceKeys>(jo, result);
         fromJson(jo.value("unsigned"_ls), result.unsignedData);
@@ -145,7 +142,6 @@ struct JsonObjectConverter<QueryKeysJob::DeviceKeys> {
 class ClaimKeysJob : public BaseJob {
 public:
     /*! \brief Claim one-time encryption keys.
-     *
      *
      * \param oneTimeKeys
      *   The keys to be claimed. A map from user ID, to a map from
@@ -201,7 +197,6 @@ public:
 class GetKeysChangesJob : public BaseJob {
 public:
     /*! \brief Query users with recent device key updates.
-     *
      *
      * \param from
      *   The desired start point of the list. Should be the ``next_batch`` field

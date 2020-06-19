@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "csapi/./definitions/request_email_validation.h"
-#include "csapi/./definitions/request_msisdn_validation.h"
 #include "csapi/definitions/auth_data.h"
+#include "csapi/definitions/request_email_validation.h"
+#include "csapi/definitions/request_msisdn_validation.h"
 #include "csapi/definitions/request_token_response.h"
 
 #include "jobs/basejob.h"
@@ -124,7 +124,6 @@ public:
 
     /*! \brief Adds contact information to the user's account.
      *
-     *
      * \param threePidCreds
      *   The third party credentials to associate with the account.
      */
@@ -158,7 +157,6 @@ class Add3PIDJob : public BaseJob {
 public:
     /*! \brief Adds contact information to the user's account.
      *
-     *
      * \param clientSecret
      *   The client secret used in the session with the homeserver.
      *
@@ -186,7 +184,6 @@ public:
 class Bind3PIDJob : public BaseJob {
 public:
     /*! \brief Binds a 3PID to the user's account through an Identity Service.
-     *
      *
      * \param clientSecret
      *   The client secret used in the session with the identity server.
@@ -216,7 +213,6 @@ public:
 class Delete3pidFromAccountJob : public BaseJob {
 public:
     /*! \brief Deletes a third party identifier from the user's account
-     *
      *
      * \param medium
      *   The medium of the third party identifier being removed.
@@ -260,7 +256,6 @@ public:
 class Unbind3pidFromAccountJob : public BaseJob {
 public:
     /*! \brief Removes a user's third party identifier from an identity server.
-     *
      *
      * \param medium
      *   The medium of the third party identifier being removed.
@@ -307,7 +302,6 @@ public:
     /*! \brief Begins the validation process for an email address for
      * association with the user's account.
      *
-     *
      * \param body
      *   The homeserver must check that the given email address is **not**
      *   already associated with an account on this homeserver. This API should
@@ -324,7 +318,7 @@ public:
     /// An email was sent to the given address. Note that this may be an
     /// email containing the validation token or it may be informing the
     /// user of an error.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }
@@ -346,7 +340,6 @@ public:
     /*! \brief Begins the validation process for a phone number for association
      * with the user's account.
      *
-     *
      * \param body
      *   The homeserver must check that the given phone number is **not**
      *   already associated with an account on this homeserver. This API should
@@ -361,7 +354,7 @@ public:
     // Result properties
 
     /// An SMS message was sent to the given phone number.
-    RequestTokenResponse data() const
+    RequestTokenResponse response() const
     {
         return fromJson<RequestTokenResponse>(jsonData());
     }

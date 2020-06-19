@@ -33,7 +33,6 @@ class InviteUserJob : public BaseJob {
 public:
     /*! \brief Invite a user to participate in a particular room.
      *
-     *
      * \param roomId
      *   The room identifier (not alias) to which to invite the user.
      *

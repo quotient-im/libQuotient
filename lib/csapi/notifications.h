@@ -42,7 +42,6 @@ public:
 
     /*! \brief Gets a list of events that the user has been notified about
      *
-     *
      * \param from
      *   Pagination token given to retrieve the next set of events.
      *

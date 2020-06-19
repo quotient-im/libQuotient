@@ -35,7 +35,7 @@ public:
     /// The search is performed case-insensitively on user IDs and display
     /// names preferably using a collation determined based upon the
     /// ``Accept-Language`` header provided in the request, if present.
-    struct SearchUserDirectory200ThirdPartyUser {
+    struct User {
         /// The user's matrix user ID.
         QString userId;
         /// The display name of the user, if one exists.
@@ -47,7 +47,6 @@ public:
     // Construction/destruction
 
     /*! \brief Searches the user directory.
-     *
      *
      * \param searchTerm
      *   The term to search for
@@ -61,10 +60,9 @@ public:
     // Result properties
 
     /// Ordered by rank and then whether or not profile info is available.
-    QVector<SearchUserDirectory200ThirdPartyUser> results() const
+    QVector<User> results() const
     {
-        return loadFromJson<QVector<SearchUserDirectory200ThirdPartyUser>>(
-            "results"_ls);
+        return loadFromJson<QVector<User>>("results"_ls);
     }
 
     /// Indicates if the result list has been truncated by the limit.
@@ -72,11 +70,9 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<
-    SearchUserDirectoryJob::SearchUserDirectory200ThirdPartyUser> {
-    static void
-    fillFrom(const QJsonObject& jo,
-             SearchUserDirectoryJob::SearchUserDirectory200ThirdPartyUser& result)
+struct JsonObjectConverter<SearchUserDirectoryJob::User> {
+    static void fillFrom(const QJsonObject& jo,
+                         SearchUserDirectoryJob::User& result)
     {
         fromJson(jo.value("user_id"_ls), result.userId);
         fromJson(jo.value("display_name"_ls), result.displayName);

@@ -22,7 +22,6 @@ class BanJob : public BaseJob {
 public:
     /*! \brief Ban a user in the room.
      *
-     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be banned.
      *
@@ -49,7 +48,6 @@ public:
 class UnbanJob : public BaseJob {
 public:
     /*! \brief Unban a user from the room.
-     *
      *
      * \param roomId
      *   The room identifier (not alias) from which the user should be unbanned.

@@ -26,7 +26,6 @@ class LeaveRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user participating in a particular room.
      *
-     *
      * \param roomId
      *   The room identifier to leave.
      */
@@ -55,7 +54,6 @@ public:
 class ForgetRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user remembering about a particular room.
-     *
      *
      * \param roomId
      *   The room identifier to forget.

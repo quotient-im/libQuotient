@@ -60,7 +60,9 @@ GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPublicRoomsJob"),
               QStringLiteral("/_matrix/client/r0") % "/publicRooms",
               queryToGetPublicRooms(limit, since, server), {}, false)
-{}
+{
+    addExpectedKey("chunk");
+}
 
 auto queryToQueryPublicRooms(const QString& server)
 {

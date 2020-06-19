@@ -17,7 +17,6 @@ class SetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Set the user's display name.
      *
-     *
      * \param userId
      *   The user whose display name to set.
      *
@@ -37,7 +36,6 @@ public:
 class GetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Get the user's display name.
-     *
      *
      * \param userId
      *   The user whose display name to get.
@@ -69,7 +67,6 @@ class SetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Set the user's avatar URL.
      *
-     *
      * \param userId
      *   The user whose avatar URL to set.
      *
@@ -89,7 +86,6 @@ public:
 class GetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Get the user's avatar URL.
-     *
      *
      * \param userId
      *   The user whose avatar URL to get.
@@ -119,7 +115,6 @@ public:
 class GetUserProfileJob : public BaseJob {
 public:
     /*! \brief Get this user's profile information.
-     *
      *
      * \param userId
      *   The user whose profile information to get.

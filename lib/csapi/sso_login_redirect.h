@@ -19,7 +19,6 @@ class RedirectToSSOJob : public BaseJob {
 public:
     /*! \brief Redirect the user's browser to the SSO interface.
      *
-     *
      * \param redirectUrl
      *   URI to which the user will be redirected after the homeserver has
      *   authenticated the user with SSO.

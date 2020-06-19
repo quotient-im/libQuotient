@@ -35,7 +35,6 @@ class SetRoomStateWithKeyJob : public BaseJob {
 public:
     /*! \brief Send a state event to the given room.
      *
-     *
      * \param roomId
      *   The room to set the state in
      *

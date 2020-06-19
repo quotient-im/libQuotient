@@ -24,7 +24,6 @@ class KickJob : public BaseJob {
 public:
     /*! \brief Kick a user from the room.
      *
-     *
      * \param roomId
      *   The room identifier (not alias) from which the user should be kicked.
      *

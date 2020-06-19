@@ -15,7 +15,6 @@ class SetRoomAliasJob : public BaseJob {
 public:
     /*! \brief Create a new mapping from room alias to room ID.
      *
-     *
      * \param roomAlias
      *   The room alias to set.
      *
@@ -36,7 +35,6 @@ public:
 class GetRoomIdByAliasJob : public BaseJob {
 public:
     /*! \brief Get the room ID corresponding to this room alias.
-     *
      *
      * \param roomAlias
      *   The room alias.
@@ -82,7 +80,6 @@ class DeleteRoomAliasJob : public BaseJob {
 public:
     /*! \brief Remove a mapping of room alias to room ID.
      *
-     *
      * \param roomAlias
      *   The room alias to remove.
      */
@@ -118,7 +115,6 @@ public:
 class GetLocalAliasesJob : public BaseJob {
 public:
     /*! \brief Get a list of local aliases on a given room.
-     *
      *
      * \param roomId
      *   The room ID to find local aliases of.

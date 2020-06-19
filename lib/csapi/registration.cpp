@@ -82,7 +82,7 @@ RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
 }
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
-    const RequestMsisdnValidation& body)
+    const MsisdnValidationData& body)
     : BaseJob(HttpVerb::Post,
               QStringLiteral("RequestTokenToResetPasswordMSISDNJob"),
               QStringLiteral("/_matrix/client/r0")

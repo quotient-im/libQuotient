@@ -19,7 +19,6 @@ class SetTypingJob : public BaseJob {
 public:
     /*! \brief Informs the server that the user has started or stopped typing.
      *
-     *
      * \param userId
      *   The user who has started to type.
      *

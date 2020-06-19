@@ -17,7 +17,6 @@ class SendToDeviceJob : public BaseJob {
 public:
     /*! \brief Send an event to a given set of devices.
      *
-     *
      * \param eventType
      *   The type of event to send.
      *

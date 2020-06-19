@@ -17,7 +17,6 @@ class SetReadMarkerJob : public BaseJob {
 public:
     /*! \brief Set the position of the read marker for a room.
      *
-     *
      * \param roomId
      *   The room ID to set the read marker in for the user.
      *

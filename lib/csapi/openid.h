@@ -25,7 +25,6 @@ class RequestOpenIdTokenJob : public BaseJob {
 public:
     /*! \brief Get an OpenID token object to verify the requester's identity.
      *
-     *
      * \param userId
      *   The user to request and OpenID token for. Should be the user who
      *   is authenticated for the request.
@@ -39,11 +38,11 @@ public:
     // Result properties
 
     /// OpenID token information. This response is nearly compatible with the
-    /// response documented in the `OpenID 1.0 Specification
+    /// response documented in the `OpenID Connect 1.0 Specification
     /// <http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse>`_
     /// with the only difference being the lack of an ``id_token``. Instead,
     /// the Matrix homeserver's name is provided.
-    OpenidToken data() const { return fromJson<OpenidToken>(jsonData()); }
+    OpenidToken tokenData() const { return fromJson<OpenidToken>(jsonData()); }
 };
 
 } // namespace Quotient

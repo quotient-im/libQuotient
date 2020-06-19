@@ -59,7 +59,6 @@ public:
 
     /*! \brief Gets information about a particular user.
      *
-     *
      * \param userId
      *   The user to look up.
      */

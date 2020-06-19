@@ -18,7 +18,6 @@ class UploadContentJob : public BaseJob {
 public:
     /*! \brief Upload some content to the content repository.
      *
-     *
      * \param content
      *   The content to be uploaded.
      *
@@ -46,7 +45,6 @@ public:
 class GetContentJob : public BaseJob {
 public:
     /*! \brief Download content from the content repository.
-     *
      *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
@@ -85,15 +83,16 @@ public:
     QIODevice* data() { return reply(); }
 };
 
-/*! \brief Download content from the content repository. This is the same as
-the download endpoint above, except permitting a desired file name.
+/*! \brief Download content from the content repository overriding the file name
  *
+ * This will download content from the content repository (same as
+ * the previous endpoint) but replace the target file name with the one
+ * provided by the caller.
  */
 class GetContentOverrideNameJob : public BaseJob {
 public:
-    /*! \brief Download content from the content repository. This is the same as
-the download endpoint above, except permitting a desired file name.
- *
+    /*! \brief Download content from the content repository overriding the file
+     * name
      *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
@@ -106,10 +105,8 @@ the download endpoint above, except permitting a desired file name.
      *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
-if it is deemed
-     *   remote. This is to prevent routing loops where the server contacts
-itself. Defaults to
-     *   true if not provided.
+     * if it is deemed remote. This is to prevent routing loops where the server
+     * contacts itself. Defaults to true if not provided.
      */
     explicit GetContentOverrideNameJob(const QString& serverName,
                                        const QString& mediaId,
@@ -141,15 +138,14 @@ itself. Defaults to
     QIODevice* data() { return reply(); }
 };
 
-/*! \brief Download a thumbnail of content from the content repository. See the
-`thumbnailing <#thumbnails>`_ section for more information.
+/*! \brief Download a thumbnail of content from the content repository
  *
+ * Download a thumbnail of content from the content repository.
+ * See the `thumbnailing <#thumbnails>`_ section for more information.
  */
 class GetContentThumbnailJob : public BaseJob {
 public:
-    /*! \brief Download a thumbnail of content from the content repository. See
-the `thumbnailing <#thumbnails>`_ section for more information.
- *
+    /*! \brief Download a thumbnail of content from the content repository
      *
      * \param serverName
      *   The server name from the ``mxc://`` URI (the authoritory component)
@@ -170,11 +166,9 @@ the `thumbnailing <#thumbnails>`_ section for more information.
      *   section for more information.
      *
      * \param allowRemote
-     *   Indicates to the server that it should not attempt to fetch the media
-if it is deemed
-     *   remote. This is to prevent routing loops where the server contacts
-itself. Defaults to
-     *   true if not provided.
+     *   Indicates to the server that it should not attempt to fetch
+     *   the media if it is deemed remote. This is to prevent routing loops
+     *   where the server contacts itself. Defaults to true if not provided.
      */
     explicit GetContentThumbnailJob(const QString& serverName,
                                     const QString& mediaId, int width,
@@ -214,7 +208,6 @@ itself. Defaults to
 class GetUrlPreviewJob : public BaseJob {
 public:
     /*! \brief Get information about a URL for a client
-     *
      *
      * \param url
      *   The URL to get a preview of.

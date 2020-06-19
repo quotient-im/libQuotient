@@ -20,7 +20,6 @@ class DefineFilterJob : public BaseJob {
 public:
     /*! \brief Upload a new filter.
      *
-     *
      * \param userId
      *   The id of the user uploading the filter. The access token must be
      * authorized to make requests for this user id.
@@ -46,7 +45,6 @@ class GetFilterJob : public BaseJob {
 public:
     /*! \brief Download a filter
      *
-     *
      * \param userId
      *   The user ID to download a filter for.
      *
@@ -65,8 +63,8 @@ public:
 
     // Result properties
 
-    /// "The filter defintion"
-    Filter data() const { return fromJson<Filter>(jsonData()); }
+    /// The filter definition.
+    Filter filter() const { return fromJson<Filter>(jsonData()); }
 };
 
 } // namespace Quotient

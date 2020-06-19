@@ -19,7 +19,6 @@ class SetPresenceJob : public BaseJob {
 public:
     /*! \brief Update this user's presence state.
      *
-     *
      * \param userId
      *   The user whose presence state to update.
      *
@@ -40,7 +39,6 @@ public:
 class GetPresenceJob : public BaseJob {
 public:
     /*! \brief Get this user's presence state.
-     *
      *
      * \param userId
      *   The user whose presence state to get.

@@ -17,7 +17,6 @@ class PostReceiptJob : public BaseJob {
 public:
     /*! \brief Send a receipt for the given event ID.
      *
-     *
      * \param roomId
      *   The room in which to send the event.
      *

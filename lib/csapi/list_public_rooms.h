@@ -18,7 +18,6 @@ class GetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Gets the visibility of a room in the directory
      *
-     *
      * \param roomId
      *   The room ID.
      */
@@ -53,7 +52,6 @@ class SetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Sets the visibility of a room in the room directory
      *
-     *
      * \param roomId
      *   The room ID.
      *
@@ -75,7 +73,6 @@ public:
 class GetPublicRoomsJob : public BaseJob {
 public:
     /*! \brief Lists the public rooms on the server.
-     *
      *
      * \param limit
      *   Limit the number of results returned.
@@ -105,10 +102,27 @@ public:
 
     // Result properties
 
-    /// A list of the rooms on the server.
-    PublicRoomsResponse data() const
+    /// A paginated chunk of public rooms.
+    QVector<PublicRoomsChunk> chunk() const
     {
-        return fromJson<PublicRoomsResponse>(jsonData());
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
+    }
+
+    /// A pagination token for the response. The absence of this token
+    /// means there are no more results to fetch and the client should
+    /// stop paginating.
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+
+    /// A pagination token that allows fetching previous results. The
+    /// absence of this token means there are no results before this
+    /// batch, i.e. this is the first batch.
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+
+    /// An estimate on the total number of public rooms, if the
+    /// server has an estimate.
+    Omittable<int> totalRoomCountEstimate() const
+    {
+        return loadFromJson<Omittable<int>>("total_room_count_estimate"_ls);
     }
 };
 
@@ -130,37 +144,9 @@ public:
         QString genericSearchTerm;
     };
 
-    /// Lists the public rooms on the server, with optional filter.
-    ///
-    /// This API returns paginated responses. The rooms are ordered by the
-    /// number of joined members, with the largest rooms first.
-    struct PublicRoomsChunk {
-        /// Aliases of the room. May be empty.
-        QStringList aliases;
-        /// The canonical alias of the room, if any.
-        QString canonicalAlias;
-        /// The name of the room, if any.
-        QString name;
-        /// The number of members joined to the room.
-        int numJoinedMembers;
-        /// The ID of the room.
-        QString roomId;
-        /// The topic of the room, if any.
-        QString topic;
-        /// Whether the room may be viewed by guest users without joining.
-        bool worldReadable;
-        /// Whether guest users may join the room and participate in it.
-        /// If they can, they will be subject to ordinary power level
-        /// rules like any other user.
-        bool guestCanJoin;
-        /// The URL for the room's avatar, if one is set.
-        QString avatarUrl;
-    };
-
     // Construction/destruction
 
     /*! \brief Lists the public rooms on the server with optional filter.
-     *
      *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
@@ -225,23 +211,6 @@ struct JsonObjectConverter<QueryPublicRoomsJob::Filter> {
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"),
                              pod.genericSearchTerm);
-    }
-};
-
-template <>
-struct JsonObjectConverter<QueryPublicRoomsJob::PublicRoomsChunk> {
-    static void fillFrom(const QJsonObject& jo,
-                         QueryPublicRoomsJob::PublicRoomsChunk& result)
-    {
-        fromJson(jo.value("aliases"_ls), result.aliases);
-        fromJson(jo.value("canonical_alias"_ls), result.canonicalAlias);
-        fromJson(jo.value("name"_ls), result.name);
-        fromJson(jo.value("num_joined_members"_ls), result.numJoinedMembers);
-        fromJson(jo.value("room_id"_ls), result.roomId);
-        fromJson(jo.value("topic"_ls), result.topic);
-        fromJson(jo.value("world_readable"_ls), result.worldReadable);
-        fromJson(jo.value("guest_can_join"_ls), result.guestCanJoin);
-        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
     }
 };
 

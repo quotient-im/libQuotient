@@ -22,7 +22,6 @@ class GetRoomEventsJob : public BaseJob {
 public:
     /*! \brief Get a list of events for this room
      *
-     *
      * \param roomId
      *   The room to get events from.
      *

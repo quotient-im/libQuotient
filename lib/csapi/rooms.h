@@ -19,7 +19,6 @@ class GetOneRoomEventJob : public BaseJob {
 public:
     /*! \brief Get a single event by event ID.
      *
-     *
      * \param roomId
      *   The ID of the room the event is in.
      *
@@ -39,7 +38,7 @@ public:
     // Result properties
 
     /// The full event.
-    EventPtr data() { return fromJson<EventPtr>(jsonData()); }
+    EventPtr event() { return fromJson<EventPtr>(jsonData()); }
 };
 
 /*! \brief Get the state identified by the type and key.
@@ -55,7 +54,6 @@ public:
 class GetRoomStateWithKeyJob : public BaseJob {
 public:
     /*! \brief Get the state identified by the type and key.
-     *
      *
      * \param roomId
      *   The room to look up the state in.
@@ -89,7 +87,6 @@ class GetRoomStateJob : public BaseJob {
 public:
     /*! \brief Get all state events in the current state of a room.
      *
-     *
      * \param roomId
      *   The room to look up the state for.
      */
@@ -105,7 +102,7 @@ public:
     // Result properties
 
     /// The current state of the room
-    StateEvents data() { return fromJson<StateEvents>(jsonData()); }
+    StateEvents events() { return fromJson<StateEvents>(jsonData()); }
 };
 
 /*! \brief Get the m.room.member events for the room.
@@ -115,7 +112,6 @@ public:
 class GetMembersByRoomJob : public BaseJob {
 public:
     /*! \brief Get the m.room.member events for the room.
-     *
      *
      * \param roomId
      *   The room to get the member events for.
@@ -189,7 +185,6 @@ public:
     // Construction/destruction
 
     /*! \brief Gets the list of currently joined users and their profile data.
-     *
      *
      * \param roomId
      *   The room to get the members of.

@@ -44,7 +44,6 @@ class GetDeviceJob : public BaseJob {
 public:
     /*! \brief Get a single device
      *
-     *
      * \param deviceId
      *   The device to retrieve.
      */
@@ -60,7 +59,7 @@ public:
     // Result properties
 
     /// Device information
-    Device data() const { return fromJson<Device>(jsonData()); }
+    Device device() const { return fromJson<Device>(jsonData()); }
 };
 
 /*! \brief Update a device
@@ -70,7 +69,6 @@ public:
 class UpdateDeviceJob : public BaseJob {
 public:
     /*! \brief Update a device
-     *
      *
      * \param deviceId
      *   The device to update.
@@ -93,7 +91,6 @@ class DeleteDeviceJob : public BaseJob {
 public:
     /*! \brief Delete a device
      *
-     *
      * \param deviceId
      *   The device to delete.
      *
@@ -115,7 +112,6 @@ public:
 class DeleteDevicesJob : public BaseJob {
 public:
     /*! \brief Bulk deletion of devices
-     *
      *
      * \param devices
      *   The list of device IDs to delete.

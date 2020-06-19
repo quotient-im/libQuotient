@@ -48,7 +48,6 @@ class GetPushRuleJob : public BaseJob {
 public:
     /*! \brief Retrieve a push rule.
      *
-     *
      * \param scope
      *   ``global`` to specify global rules.
      *
@@ -73,7 +72,7 @@ public:
 
     /// The specific push rule. This will also include keys specific to the
     /// rule itself such as the rule's ``actions`` and ``conditions`` if set.
-    PushRule data() const { return fromJson<PushRule>(jsonData()); }
+    PushRule pushRule() const { return fromJson<PushRule>(jsonData()); }
 };
 
 /*! \brief Delete a push rule.
@@ -83,7 +82,6 @@ public:
 class DeletePushRuleJob : public BaseJob {
 public:
     /*! \brief Delete a push rule.
-     *
      *
      * \param scope
      *   ``global`` to specify global rules.
@@ -117,7 +115,6 @@ public:
 class SetPushRuleJob : public BaseJob {
 public:
     /*! \brief Add or change a push rule.
-     *
      *
      * \param scope
      *   ``global`` to specify global rules.
@@ -166,7 +163,6 @@ class IsPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Get whether a push rule is enabled
      *
-     *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
      *   rules or device rules for the given ``profile_tag``.
@@ -202,7 +198,6 @@ class SetPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Enable or disable a push rule.
      *
-     *
      * \param scope
      *   ``global`` to specify global rules.
      *
@@ -226,7 +221,6 @@ public:
 class GetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief The actions for a push rule
-     *
      *
      * \param scope
      *   Either ``global`` or ``device/<profile_tag>`` to specify global
@@ -266,7 +260,6 @@ public:
 class SetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief Set the actions for a push rule.
-     *
      *
      * \param scope
      *   ``global`` to specify global rules.

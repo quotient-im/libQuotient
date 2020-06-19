@@ -22,7 +22,6 @@ class SendMessageJob : public BaseJob {
 public:
     /*! \brief Send a message event to the given room.
      *
-     *
      * \param roomId
      *   The room to send the event to.
      *

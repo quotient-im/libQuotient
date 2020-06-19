@@ -29,7 +29,6 @@ public:
 
     /*! \brief List the tags for a room.
      *
-     *
      * \param userId
      *   The id of the user to get tags for. The access token must be
      *   authorized to make requests for this user ID.
@@ -73,7 +72,6 @@ class SetRoomTagJob : public BaseJob {
 public:
     /*! \brief Add a tag to a room.
      *
-     *
      * \param userId
      *   The id of the user to add a tag for. The access token must be
      *   authorized to make requests for this user ID.
@@ -103,7 +101,6 @@ public:
 class DeleteRoomTagJob : public BaseJob {
 public:
     /*! \brief Remove a tag from the room.
-     *
      *
      * \param userId
      *   The id of the user to remove a tag for. The access token must be

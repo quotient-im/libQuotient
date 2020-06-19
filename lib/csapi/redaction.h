@@ -23,7 +23,6 @@ class RedactEventJob : public BaseJob {
 public:
     /*! \brief Strips all non-integrity-critical information out of an event.
      *
-     *
      * \param roomId
      *   The room from which to redact the event.
      *

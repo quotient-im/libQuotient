@@ -26,7 +26,6 @@ public:
     /*! \brief Updates a room's visibility in the application service's room
      * directory.
      *
-     *
      * \param networkId
      *   The protocol (network) ID to update the room list for. This would
      *   have been provided by the application service as being listed as

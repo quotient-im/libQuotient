@@ -16,7 +16,6 @@ class UpgradeRoomJob : public BaseJob {
 public:
     /*! \brief Upgrades a room to a new room version.
      *
-     *
      * \param roomId
      *   The ID of the room to upgrade.
      *

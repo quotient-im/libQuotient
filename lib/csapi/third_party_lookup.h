@@ -33,7 +33,7 @@ public:
     // Result properties
 
     /// The protocols supported by the homeserver.
-    QHash<QString, ThirdPartyProtocol> data() const
+    QHash<QString, ThirdPartyProtocol> protocols() const
     {
         return fromJson<QHash<QString, ThirdPartyProtocol>>(jsonData());
     }
@@ -49,7 +49,6 @@ class GetProtocolMetadataJob : public BaseJob {
 public:
     /*! \brief Retrieve metadata about a specific protocol that the homeserver
      * supports.
-     *
      *
      * \param protocol
      *   The name of the protocol.
@@ -88,7 +87,6 @@ public:
     /*! \brief Retrieve Matrix-side portals rooms leading to a third party
      * location.
      *
-     *
      * \param protocol
      *   The protocol used to communicate to the third party network.
      *
@@ -124,7 +122,6 @@ public:
 class QueryUserByProtocolJob : public BaseJob {
 public:
     /*! \brief Retrieve the Matrix User ID of a corresponding third party user.
-     *
      *
      * \param protocol
      *   The name of the protocol.
@@ -162,7 +159,6 @@ class QueryLocationByAliasJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party locations given a Matrix room alias.
      *
-     *
      * \param alias
      *   The Matrix room alias to look up.
      */
@@ -191,7 +187,6 @@ public:
 class QueryUserByIDJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party users given a Matrix User ID.
-     *
      *
      * \param userid
      *   The Matrix User ID to look up.

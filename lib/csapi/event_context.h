@@ -23,7 +23,6 @@ class GetEventContextJob : public BaseJob {
 public:
     /*! \brief Get events and state around the specified event.
      *
-     *
      * \param roomId
      *   The room to get events from.
      *

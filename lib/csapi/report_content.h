@@ -17,7 +17,6 @@ class ReportContentJob : public BaseJob {
 public:
     /*! \brief Reports an event as inappropriate.
      *
-     *
      * \param roomId
      *   The room in which the event being reported is located.
      *

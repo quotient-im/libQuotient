@@ -18,7 +18,6 @@ class SetAccountDataJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
-     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -42,7 +41,6 @@ public:
 class GetAccountDataJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
-     *
      *
      * \param userId
      *   The ID of the user to get account_data for. The access token must be
@@ -73,7 +71,6 @@ class SetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
-     *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
      *   authorized to make requests for this user ID.
@@ -101,7 +98,6 @@ public:
 class GetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
-     *
      *
      * \param userId
      *   The ID of the user to set account_data for. The access token must be
