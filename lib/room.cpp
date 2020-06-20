@@ -623,7 +623,8 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
     emit q->readMarkerForUserMoved(u, eventId, storedId);
     if (isLocalUser(u)) {
         if (storedId != serverReadMarker)
-            connection->callApi<PostReadMarkersJob>(id, storedId);
+            connection->callApi<PostReadMarkersJob>(BackgroundRequest, id,
+                                                    storedId);
         emit q->readMarkerMoved(eventId, storedId);
         return Change::ReadMarkerChange;
     }
