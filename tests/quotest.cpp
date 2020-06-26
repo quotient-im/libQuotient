@@ -635,7 +635,7 @@ TEST_IMPL(visitResources)
             MatrixUri uri { uriString };
             clog << "Checking " << uriString.toStdString()
                  << " -> " << uri.toDisplayString().toStdString() << endl;
-            rr.openResource(connection(), uri);
+            rr.openResource(connection(), uriString);
             if (spy.count() != 1) {
                 clog << "Wrong number of signal emissions (" << spy.count()
                      << ')' << endl;
@@ -663,6 +663,27 @@ TEST_IMPL(visitResources)
         return false;
     };
 
+    // Basic tests
+    QUrl invalidUrl { "https://" };
+    invalidUrl.setAuthority("---:@@@");
+    const MatrixUri emptyUri {}, uriFromEmptyUrl {},
+        invalidMatrixUri { QStringLiteral("matrix:&invalid@") },
+        matrixUriFromInvalidUrl { invalidUrl };
+
+    for (const auto& u: { emptyUri, uriFromEmptyUrl })
+        if (u.isValid() || !u.isEmpty()) {
+            clog << "Empty Matrix URI test failed" << endl;
+            FAIL_TEST();
+        }
+    if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
+        clog << "Invalid Matrix URI test failed" << endl;
+        FAIL_TEST();
+    }
+    if (invalidMatrixUri.isEmpty() || invalidMatrixUri.isValid()) {
+        clog << "Invalid sigil in a Matrix URI - test failed" << endl;
+        FAIL_TEST();
+    }
+
     // Matrix identifiers used throughout all URI tests
     const auto& roomId = room()->id();
     const auto& roomAlias = room()->canonicalAlias();
@@ -675,7 +696,7 @@ TEST_IMPL(visitResources)
 
     const QStringList roomUris {
         roomId, "matrix:roomid/" + roomId.mid(1),
-        "https://matrix.to/#/%21" + roomId.mid(1),
+        "https://matrix.to/#/%21"/*`!`*/ + roomId.mid(1),
         roomAlias, "matrix:room/" + roomAlias.mid(1),
         "https://matrix.to/#/" + roomAlias,
     };
