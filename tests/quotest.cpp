@@ -614,12 +614,10 @@ TEST_IMPL(markDirectChat)
 
 void TestManager::conclude()
 {
-    auto succeededRec = QString::number(succeeded.size()) + " tests succeeded";
-    if (!failed.empty() || !running.empty())
-        succeededRec +=
-            " of "
-            % QString::number(succeeded.size() + failed.size() + running.size())
-            % " total";
+    QString succeededRec { QString::number(succeeded.size()) % " of "
+                           % QString::number(succeeded.size() + failed.size()
+                                             + running.size())
+                           % " tests succeeded" };
     QString plainReport = origin % ": Testing complete, " % succeededRec;
     QString color = failed.empty() && running.empty() ? "00AA00" : "AA0000";
     QString htmlReport = origin % ": <strong><font data-mx-color='#" % color
@@ -639,7 +637,6 @@ void TestManager::conclude()
         plainReport += "\nDID NOT FINISH:" + dnfList;
         htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
     }
-    clog << plainReport.toStdString() << endl;
 
     // TODO: Waiting for proper futures to come so that it could be:
     //            targetRoom->postHtmlText(...)
@@ -648,7 +645,7 @@ void TestManager::conclude()
     auto* room = testSuite->room();
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
-    connectUntil(room, &Room::messageSent, this, [this, room] {
+    connectUntil(room, &Room::messageSent, this, [this, room, plainReport] {
         const auto& pendingEvents = room->pendingEvents();
         if (auto c = std::count_if(pendingEvents.begin(), pendingEvents.end(),
                                    [](const PendingEventItem& pe) {
@@ -663,9 +660,11 @@ void TestManager::conclude()
 
         clog << "Leaving the room" << endl;
         auto* job = room->leaveRoom();
-        connect(job, &BaseJob::finished, this, [this, job] {
+        connect(job, &BaseJob::finished, this, [this, job,plainReport] {
             Q_ASSERT(job->status().good());
             finalize();
+            // Still flying, as the exit() connection in finalize() is queued
+            clog << plainReport.toStdString() << endl;
         });
         return true;
     });
