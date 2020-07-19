@@ -17,10 +17,10 @@ Q_ENUM_NS(RunningPolicy)
 enum UriResolveResult : short {
     StillResolving = -1,
     UriResolved = 0,
-    UnknownMatrixId,
-    MalformedUri,
-    NoAccount,
-    EmptyMatrixId
+    CouldNotResolve,
+    IncorrectAction,
+    InvalidUri,
+    NoAccount
 };
 Q_ENUM_NS(UriResolveResult)
 

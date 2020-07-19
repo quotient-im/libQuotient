@@ -2,7 +2,7 @@
 #include "connection.h"
 #include "room.h"
 #include "user.h"
-#include "resourceresolver.h"
+#include "uriresolver.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
@@ -622,7 +622,7 @@ TEST_IMPL(visitResources)
     // assumes that ResourceResolver::openResource is implemented in terms
     // of ResourceResolver::visitResource, so the latter doesn't need a
     // separate test.
-    static ResourceResolver rr;
+    static UriDispatcher ud;
 
     // This lambda returns true in case of error, false if it's fine so far
     auto testResourceResolver = [this, thisTest](const QStringList& uris,
@@ -630,12 +630,12 @@ TEST_IMPL(visitResources)
                                                  QVariantList otherArgs = {}) {
         int r = qRegisterMetaType<decltype(target)>();
         Q_ASSERT(r != 0);
-        QSignalSpy spy(&rr, signal);
+        QSignalSpy spy(&ud, signal);
         for (const auto& uriString: uris) {
-            MatrixUri uri { uriString };
+            Uri uri { uriString };
             clog << "Checking " << uriString.toStdString()
                  << " -> " << uri.toDisplayString().toStdString() << endl;
-            rr.openResource(connection(), uriString);
+            ud.visitResource(connection(), uriString);
             if (spy.count() != 1) {
                 clog << "Wrong number of signal emissions (" << spy.count()
                      << ')' << endl;
@@ -666,7 +666,7 @@ TEST_IMPL(visitResources)
     // Basic tests
     QUrl invalidUrl { "https://" };
     invalidUrl.setAuthority("---:@@@");
-    const MatrixUri emptyUri {}, uriFromEmptyUrl {},
+    const Uri emptyUri {}, uriFromEmptyUrl {},
         invalidMatrixUri { QStringLiteral("matrix:&invalid@") },
         matrixUriFromInvalidUrl { invalidUrl };
 
@@ -710,7 +710,7 @@ TEST_IMPL(visitResources)
     // exist, as yet) - only to be syntactically correct
     static const auto& joinRoomAlias =
         QStringLiteral("unjoined:example.org"); // # will be added below
-    QString joinQuery { "?action=join" };
+    static const QString joinQuery { "?action=join" };
     static const QStringList joinByAliasUris {
         "matrix:room/" + joinRoomAlias + joinQuery,
         "https://matrix.to/#/%23"/*`#`*/ + joinRoomAlias + joinQuery
@@ -728,14 +728,14 @@ TEST_IMPL(visitResources)
     };
     // If any test breaks, the breaking call will return true, and further
     // execution will be cut by ||'s short-circuiting
-    if (testResourceResolver(roomUris, &ResourceResolver::roomAction, room())
-        || testResourceResolver(userUris, &ResourceResolver::userAction,
+    if (testResourceResolver(roomUris, &UriDispatcher::roomAction, room())
+        || testResourceResolver(userUris, &UriDispatcher::userAction,
                                 connection()->user())
-        || testResourceResolver(eventUris, &ResourceResolver::roomAction,
+        || testResourceResolver(eventUris, &UriDispatcher::roomAction,
                                 room(), { eventId })
-        || testResourceResolver(joinByAliasUris, &ResourceResolver::joinAction,
+        || testResourceResolver(joinByAliasUris, &UriDispatcher::joinAction,
                                 connection(), { '#' + joinRoomAlias })
-        || testResourceResolver(joinByIdUris, &ResourceResolver::joinAction,
+        || testResourceResolver(joinByIdUris, &UriDispatcher::joinAction,
                                 connection(), { joinRoomId, viaServers }))
         return true;
     // TODO: negative cases

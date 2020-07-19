@@ -34,7 +34,8 @@ HEADERS += \
     $$SRCPATH/room.h \
     $$SRCPATH/user.h \
     $$SRCPATH/avatar.h \
-    $$SRCPATH/resourceresolver.h \
+    $$SRCPATH/uri.h \
+    $$SRCPATH/uriresolver.h \
     $$SRCPATH/syncdata.h \
     $$SRCPATH/quotient_common.h \
     $$SRCPATH/util.h \
@@ -91,7 +92,8 @@ SOURCES += \
     $$SRCPATH/room.cpp \
     $$SRCPATH/user.cpp \
     $$SRCPATH/avatar.cpp \
-    $$SRCPATH/resourceresolver.cpp \
+    $$SRCPATH/uri.cpp \
+    $$SRCPATH/uriresolver.cpp \
     $$SRCPATH/syncdata.cpp \
     $$SRCPATH/util.cpp \
     $$SRCPATH/events/event.cpp \
