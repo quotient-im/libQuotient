@@ -40,7 +40,14 @@ public:
 
 protected:
     /// Called by visitResource() when the passed URI identifies a Matrix user
-    virtual void visitUser(User* user, const QString& action) {}
+    /*!
+     * \return IncorrectAction if the action is not correct or not supported;
+     *         UriResolved if it is accepted; other values are disallowed
+     */
+    virtual UriResolveResult visitUser(User* user, const QString& action)
+    {
+        return IncorrectAction;
+    }
     /// Called by visitResource() when the passed URI identifies a room or
     /// an event in a room
     virtual void visitRoom(Room* room, const QString& eventId) {}
@@ -88,17 +95,16 @@ protected:
  */
 UriResolveResult
 visitResource(Connection* account, const Uri& uri,
-              std::function<void(User*, QString)> userHandler,
+              std::function<UriResolveResult(User*, QString)> userHandler,
               std::function<void(Room*, QString)> roomEventHandler,
               std::function<void(Connection*, QString, QStringList)> joinHandler,
               std::function<bool(const QUrl&)> nonMatrixHandler);
 
 /*! \brief Check that the resource is resolvable with no action on it */
-inline UriResolveResult checkResource(Connection* account,
-                                      const Uri& uri)
+inline UriResolveResult checkResource(Connection* account, const Uri& uri)
 {
     return visitResource(
-        account, uri, [](auto, auto) {}, [](auto, auto) {},
+        account, uri, [](auto, auto) { return UriResolved; }, [](auto, auto) {},
         [](auto, auto, auto) {}, [](auto) { return false; });
 }
 
@@ -150,7 +156,7 @@ signals:
     void nonMatrixAction(QUrl url);
 
 private:
-    void visitUser(User* user, const QString& action) override;
+    UriResolveResult visitUser(User* user, const QString& action) override;
     void visitRoom(Room* room, const QString& eventId) override;
     void joinRoom(Connection* account, const QString& roomAliasOrId,
                   const QStringList& viaServers = {}) override;

@@ -6,7 +6,7 @@
 using namespace Quotient;
 
 UriResolveResult UriResolverBase::visitResource(Connection* account,
-                                                        const Uri& uri)
+                                                const Uri& uri)
 {
     switch (uri.type()) {
     case Uri::NonMatrix:
@@ -26,8 +26,7 @@ UriResolveResult UriResolverBase::visitResource(Connection* account,
             return IncorrectAction;
         auto* user = account->user(uri.primaryId());
         Q_ASSERT(user != nullptr);
-        visitUser(user, uri.action());
-        return UriResolved;
+        return visitUser(user, uri.action());
     }
     case Uri::RoomId:
     case Uri::RoomAlias: {
@@ -49,15 +48,16 @@ UriResolveResult UriResolverBase::visitResource(Connection* account,
     }
 }
 
+// This template is only instantiated once, for Quotient::visitResource()
 template <typename... FnTs>
 class StaticUriDispatcher : public UriResolverBase {
 public:
     StaticUriDispatcher(const FnTs&... fns) : fns_(fns...) {}
 
 private:
-    void visitUser(User* user, const QString& action) override
+    UriResolveResult visitUser(User* user, const QString& action) override
     {
-        std::get<0>(fns_)(user, action);
+        return std::get<0>(fns_)(user, action);
     }
     void visitRoom(Room* room, const QString& eventId) override
     {
@@ -78,7 +78,7 @@ private:
 
 UriResolveResult Quotient::visitResource(
     Connection* account, const Uri& uri,
-    std::function<void(User*, QString)> userHandler,
+    std::function<UriResolveResult(User*, QString)> userHandler,
     std::function<void(Room*, QString)> roomEventHandler,
     std::function<void(Connection*, QString, QStringList)> joinHandler,
     std::function<bool(const QUrl&)> nonMatrixHandler)
@@ -88,9 +88,10 @@ UriResolveResult Quotient::visitResource(
         .visitResource(account, uri);
 }
 
-void UriDispatcher::visitUser(User *user, const QString &action)
+UriResolveResult UriDispatcher::visitUser(User *user, const QString &action)
 {
     emit userAction(user, action);
+    return UriResolved;
 }
 
 void UriDispatcher::visitRoom(Room *room, const QString &eventId)
@@ -98,7 +99,8 @@ void UriDispatcher::visitRoom(Room *room, const QString &eventId)
     emit roomAction(room, eventId);
 }
 
-void UriDispatcher::joinRoom(Connection *account, const QString &roomAliasOrId, const QStringList &viaServers)
+void UriDispatcher::joinRoom(Connection* account, const QString& roomAliasOrId,
+                             const QStringList& viaServers)
 {
     emit joinAction(account, roomAliasOrId, viaServers);
 }
