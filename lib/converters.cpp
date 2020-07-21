@@ -32,24 +32,12 @@ QVariant JsonConverter<QVariant>::load(const QJsonValue& jv)
     return jv.toVariant();
 }
 
-QJsonObject JsonConverter<variant_map_t>::dump(const variant_map_t& map)
+QJsonObject JsonConverter<QVariantHash>::dump(const QVariantHash& map)
 {
-    return
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-        QJsonObject::fromVariantHash
-#else
-        QJsonObject::fromVariantMap
-#endif
-        (map);
+    return QJsonObject::fromVariantHash(map);
 }
 
-variant_map_t JsonConverter<QVariantHash>::load(const QJsonValue& jv)
+QVariantHash JsonConverter<QVariantHash>::load(const QJsonValue& jv)
 {
-    return jv.toObject().
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-        toVariantHash
-#else
-        toVariantMap
-#endif
-        ();
+    return jv.toObject().toVariantHash();
 }

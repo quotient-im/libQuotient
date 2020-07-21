@@ -30,21 +30,6 @@
 
 #include <vector>
 
-#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
-// Enable std::unordered_map<QString, T>
-// REMOVEME in favor of UnorderedMap, once we regenerate API files
-namespace std {
-template <>
-struct hash<QString> {
-    size_t operator()(const QString& s) const Q_DECL_NOEXCEPT
-    {
-        return qHash(s, uint(qGlobalQHashSeed())
-        );
-    }
-};
-} // namespace std
-#endif
-
 class QVariant;
 
 namespace Quotient {
@@ -296,18 +281,9 @@ template <typename T>
 struct JsonObjectConverter<QHash<QString, T>>
     : public HashMapFromJson<QHash<QString, T>> {};
 
-// We could use std::conditional<> below but QT_VERSION* macros in C++ code
-// cause (kinda valid but useless and noisy) compiler warnings about
-// bitwise operations on signed integers; so use the preprocessor for now.
-using variant_map_t =
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-    QVariantHash;
-#else
-    QVariantMap;
-#endif
 template <>
-struct JsonConverter<variant_map_t> {
-    static QJsonObject dump(const variant_map_t& vh);
+struct JsonConverter<QVariantHash> {
+    static QJsonObject dump(const QVariantHash& vh);
     static QVariantHash load(const QJsonValue& jv);
 };
 
