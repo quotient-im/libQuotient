@@ -667,6 +667,7 @@ TEST_IMPL(visitResources)
     QUrl invalidUrl { "https://" };
     invalidUrl.setAuthority("---:@@@");
     const Uri emptyUri {}, uriFromEmptyUrl {},
+        bareSigil { QStringLiteral("#") },
         invalidMatrixUri { QStringLiteral("matrix:&invalid@") },
         matrixUriFromInvalidUrl { invalidUrl };
 
@@ -675,6 +676,10 @@ TEST_IMPL(visitResources)
             clog << "Empty Matrix URI test failed" << endl;
             FAIL_TEST();
         }
+    if (bareSigil.isValid()) {
+        clog << "Bare sigil URI test failed" << endl;
+        FAIL_TEST();
+    }
     if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
         clog << "Invalid Matrix URI test failed" << endl;
         FAIL_TEST();

@@ -7,12 +7,15 @@
 using namespace Quotient;
 
 struct ReplacePair { QByteArray uriString; char sigil; };
-static const auto replacePairs = { ReplacePair { "user/", '@' },
-                                   { "roomid/", '!' },
-                                   { "room/", '#' },
-                                   // The notation for bare event ids is not
-                                   // proposed in MSC2312 (and anywhere, as yet)
-                                   { "event/", '$' } };
+/// Defines bi-directional mapping of path prefixes and sigils
+static const auto replacePairs = {
+    ReplacePair { "user/", '@' },
+    { "roomid/", '!' },
+    { "room/", '#' },
+    // The notation for bare event ids is not proposed in MSC2312 but there's
+    // https://github.com/matrix-org/matrix-doc/pull/2644
+    { "event/", '$' }
+};
 
 Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
 {
@@ -22,14 +25,21 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
         setScheme("matrix");
         QString pathToBe;
         primaryType_ = Invalid;
+        if (primaryId.size() < 2) // There should be something after sigil
+            return;
         for (const auto& p: replacePairs)
             if (primaryId[0] == p.sigil) {
                 primaryType_ = Type(p.sigil);
                 pathToBe = p.uriString + primaryId.mid(1);
                 break;
             }
-        if (!secondaryId.isEmpty())
+        if (!secondaryId.isEmpty()) {
+            if (secondaryId.size() < 2) {
+                primaryType_ = Invalid;
+                return;
+            }
             pathToBe += "/event/" + secondaryId.mid(1);
+        }
         setPath(pathToBe);
     }
     setQuery(std::move(query));
