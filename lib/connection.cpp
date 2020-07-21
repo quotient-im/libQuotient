@@ -357,23 +357,24 @@ void Connection::assumeIdentity(const QString& userId,
 void Connection::reloadCapabilities()
 {
     d->capabilitiesJob = callApi<GetCapabilitiesJob>(BackgroundRequest);
-    connect(d->capabilitiesJob, &BaseJob::finished, this, [this] {
-        if (d->capabilitiesJob->error() == BaseJob::Success)
-            d->capabilities = d->capabilitiesJob->capabilities();
-        else if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
-            qCDebug(MAIN) << "Server doesn't support /capabilities";
+    connect(d->capabilitiesJob, &BaseJob::success, this, [this] {
+        d->capabilities = d->capabilitiesJob->capabilities();
 
-        if (!d->capabilities.roomVersions) {
-            qCWarning(MAIN) << "Pinning supported room version to 1";
-            d->capabilities.roomVersions = { "1", { { "1", "stable" } } };
-        } else {
+        if (d->capabilities.roomVersions) {
             qCDebug(MAIN) << "Room versions:" << defaultRoomVersion()
                           << "is default, full list:" << availableRoomVersions();
-        }
-        Q_ASSERT(d->capabilities.roomVersions.has_value());
-        emit capabilitiesLoaded();
-        for (auto* r : qAsConst(d->roomMap))
-            r->checkVersion();
+            emit capabilitiesLoaded();
+            for (auto* r: std::as_const(d->roomMap))
+                r->checkVersion();
+        } else
+            qCWarning(MAIN)
+                << "The server returned an empty set of supported versions;"
+                   " disabling version upgrade recommendations to reduce noise";
+    });
+    connect(d->capabilitiesJob, &BaseJob::failure, this, [this] {
+        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
+            qCDebug(MAIN) << "Server doesn't support /capabilities;"
+                             " version upgrade recommendations won't be issued";
     });
 }
 
@@ -1685,18 +1686,20 @@ const QString Connection::SupportedRoomVersion::StableTag =
 
 QString Connection::defaultRoomVersion() const
 {
-    Q_ASSERT(d->capabilities.roomVersions.has_value());
-    return d->capabilities.roomVersions->defaultVersion;
+    return d->capabilities.roomVersions
+               ? d->capabilities.roomVersions->defaultVersion
+               : QString();
 }
 
 QStringList Connection::stableRoomVersions() const
 {
-    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QStringList l;
-    const auto& allVersions = d->capabilities.roomVersions->available;
-    for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
-        if (it.value() == SupportedRoomVersion::StableTag)
-            l.push_back(it.key());
+    if (d->capabilities.roomVersions) {
+        const auto& allVersions = d->capabilities.roomVersions->available;
+        for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
+            if (it.value() == SupportedRoomVersion::StableTag)
+                l.push_back(it.key());
+    }
     return l;
 }
 
@@ -1711,18 +1714,19 @@ inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
 
 QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() const
 {
-    Q_ASSERT(d->capabilities.roomVersions.has_value());
     QVector<SupportedRoomVersion> result;
-    result.reserve(d->capabilities.roomVersions->available.size());
-    for (auto it = d->capabilities.roomVersions->available.begin();
-         it != d->capabilities.roomVersions->available.end(); ++it)
-        result.push_back({ it.key(), it.value() });
-    // Put stable versions over unstable; within each group,
-    // sort numeric versions as numbers, the rest as strings.
-    const auto mid = std::partition(result.begin(), result.end(),
-                                    std::mem_fn(&SupportedRoomVersion::isStable));
-    std::sort(result.begin(), mid, roomVersionLess);
-    std::sort(mid, result.end(), roomVersionLess);
-
+    if (d->capabilities.roomVersions) {
+        const auto& allVersions = d->capabilities.roomVersions->available;
+        result.reserve(allVersions.size());
+        for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
+            result.push_back({ it.key(), it.value() });
+        // Put stable versions over unstable; within each group,
+        // sort numeric versions as numbers, the rest as strings.
+        const auto mid =
+            std::partition(result.begin(), result.end(),
+                           std::mem_fn(&SupportedRoomVersion::isStable));
+        std::sort(result.begin(), mid, roomVersionLess);
+        std::sort(mid, result.end(), roomVersionLess);
+    }
     return result;
 }
