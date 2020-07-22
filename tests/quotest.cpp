@@ -2,6 +2,7 @@
 #include "connection.h"
 #include "room.h"
 #include "user.h"
+#include "uriresolver.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
@@ -98,6 +99,7 @@ private slots:
     TEST_DECL(sendAndRedact)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
+    TEST_DECL(visitResources)
     // Add more tests above here
 
 public:
@@ -215,18 +217,32 @@ void TestManager::setupAndRun()
     clog << "Access token: " << c->accessToken().toStdString() << endl;
 
     c->setLazyLoading(true);
-    c->syncLoop();
 
     clog << "Joining " << targetRoomName.toStdString() << endl;
     auto joinJob = c->joinRoom(targetRoomName);
-    // Ensure, before this test is completed, that the room has been joined
-    // and filled with some events so that other tests could use that
+    // Ensure that the room has been joined and filled with some events
+    // so that other tests could use that
     connect(joinJob, &BaseJob::success, this, [this, joinJob] {
         testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
-        connectSingleShot(c, &Connection::syncDone, this, [this] {
-            if (testSuite->room()->timelineSize() > 0)
-                doTests();
-            else {
+        // Only start the sync after joining, to make sure the room just
+        // joined is in it
+        c->syncLoop();
+        connect(c, &Connection::syncDone, this, [this] {
+            static int i = 0;
+            clog << "Sync " << ++i << " complete" << endl;
+            if (auto* r = testSuite->room()) {
+                clog << "Test room timeline size = " << r->timelineSize();
+                if (r->pendingEvents().empty())
+                    clog << ", pending size = " << r->pendingEvents().size();
+                clog << endl;
+            }
+            if (!running.empty()) {
+                clog << running.size() << " test(s) in the air:";
+                for (const auto& test: qAsConst(running))
+                    clog << " " << testName(test);
+                clog << endl;
+            }
+            if (i == 1) {
                 testSuite->room()->getPreviousContent();
                 connectSingleShot(testSuite->room(), &Room::addedMessages, this,
                                   &TestManager::doTests);
@@ -262,8 +278,8 @@ void TestManager::doTests()
 
         const auto testName = metaMethod.name();
         running.push_back(testName);
-        // Some tests return the result immediately, so queue everything
-        // so that we could process all tests asynchronously.
+        // Some tests return the result immediately but we queue everything
+        // and process all tests asynchronously.
         QMetaObject::invokeMethod(testSuite, "doTest", Qt::QueuedConnection,
                                   Q_ARG(QByteArray, testName));
     }
@@ -283,20 +299,6 @@ void TestManager::doTests()
                     conclude();
                 }
             });
-
-    connect(c, &Connection::syncDone, this, [this] {
-        static int i = 0;
-        clog << "Sync " << ++i << " complete" << endl;
-        if (auto* r = testSuite->room())
-            clog << "Test room timeline size = " << r->timelineSize()
-                 << ", pending size = " << r->pendingEvents().size() << endl;
-        if (!running.empty()) {
-            clog << running.size() << " test(s) in the air:";
-            for (const auto& test: qAsConst(running))
-                clog << " " << testName(test);
-            clog << endl;
-        }
-    });
 }
 
 TEST_IMPL(loadMembers)
@@ -610,6 +612,136 @@ TEST_IMPL(markDirectChat)
     const auto& removedDCs = spy.back().back().value<DirectChatsMap>();
     FINISH_TEST(removedDCs.size() == 1
                 && removedDCs.contains(connection()->user(), targetRoom->id()));
+}
+
+TEST_IMPL(visitResources)
+{
+    // Same as the two tests above, ResourceResolver emits signals
+    // synchronously so we use signal spies to intercept them instead of
+    // connecting lambdas before calling openResource(). NB: this test
+    // assumes that ResourceResolver::openResource is implemented in terms
+    // of ResourceResolver::visitResource, so the latter doesn't need a
+    // separate test.
+    static UriDispatcher ud;
+
+    // This lambda returns true in case of error, false if it's fine so far
+    auto testResourceResolver = [this, thisTest](const QStringList& uris,
+                                                 auto signal, auto* target,
+                                                 QVariantList otherArgs = {}) {
+        int r = qRegisterMetaType<decltype(target)>();
+        Q_ASSERT(r != 0);
+        QSignalSpy spy(&ud, signal);
+        for (const auto& uriString: uris) {
+            Uri uri { uriString };
+            clog << "Checking " << uriString.toStdString()
+                 << " -> " << uri.toDisplayString().toStdString() << endl;
+            ud.visitResource(connection(), uriString);
+            if (spy.count() != 1) {
+                clog << "Wrong number of signal emissions (" << spy.count()
+                     << ')' << endl;
+                FAIL_TEST();
+            }
+            const auto& emission = spy.front();
+            Q_ASSERT(emission.count() >= 2);
+            if (emission.front().value<decltype(target)>() != target) {
+                clog << "Signal emitted with an incorrect target" << endl;
+                FAIL_TEST();
+            }
+            if (!otherArgs.empty()) {
+                if (emission.size() < otherArgs.size() + 1) {
+                    clog << "Emission doesn't include all arguments" << endl;
+                    FAIL_TEST();
+                }
+                for (auto i = 0; i < otherArgs.size(); ++i)
+                    if (otherArgs[i] != emission[i + 1]) {
+                        clog << "Mismatch in argument #" << i + 1 << endl;
+                        FAIL_TEST();
+                    }
+            }
+            spy.clear();
+        }
+        return false;
+    };
+
+    // Basic tests
+    for (const auto& u: { Uri {}, Uri { QUrl {} } })
+        if (u.isValid() || !u.isEmpty()) {
+            clog << "Empty Matrix URI test failed" << endl;
+            FAIL_TEST();
+        }
+    if (Uri { QStringLiteral("#") }.isValid()) {
+        clog << "Bare sigil URI test failed" << endl;
+        FAIL_TEST();
+    }
+    QUrl invalidUrl { "https://" };
+    invalidUrl.setAuthority("---:@@@");
+    const Uri matrixUriFromInvalidUrl { invalidUrl },
+        invalidMatrixUri { QStringLiteral("matrix:&invalid@") };
+    if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
+        clog << "Invalid Matrix URI test failed" << endl;
+        FAIL_TEST();
+    }
+    if (invalidMatrixUri.isEmpty() || invalidMatrixUri.isValid()) {
+        clog << "Invalid sigil in a Matrix URI - test failed" << endl;
+        FAIL_TEST();
+    }
+
+    // Matrix identifiers used throughout all URI tests
+    const auto& roomId = room()->id();
+    const auto& roomAlias = room()->canonicalAlias();
+    const auto& userId = connection()->userId();
+    const auto& eventId = room()->messageEvents().back()->id();
+    Q_ASSERT(!roomId.isEmpty());
+    Q_ASSERT(!roomAlias.isEmpty());
+    Q_ASSERT(!userId.isEmpty());
+    Q_ASSERT(!eventId.isEmpty());
+
+    const QStringList roomUris {
+        roomId, "matrix:roomid/" + roomId.mid(1),
+        "https://matrix.to/#/%21"/*`!`*/ + roomId.mid(1),
+        roomAlias, "matrix:room/" + roomAlias.mid(1),
+        "https://matrix.to/#/" + roomAlias,
+    };
+    const QStringList userUris { userId, "matrix:user/" + userId.mid(1),
+                                 "https://matrix.to/#/" + userId };
+    const QStringList eventUris {
+        "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
+        "https://matrix.to/#/" + roomId + '/' + eventId
+    };
+    // The following URIs are not supposed to be actually joined (and even
+    // exist, as yet) - only to be syntactically correct
+    static const auto& joinRoomAlias =
+        QStringLiteral("unjoined:example.org"); // # will be added below
+    static const QString joinQuery { "?action=join" };
+    static const QStringList joinByAliasUris {
+        "matrix:room/" + joinRoomAlias + joinQuery,
+        "https://matrix.to/#/%23"/*`#`*/ + joinRoomAlias + joinQuery
+    };
+    static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
+    static const QStringList viaServers { "matrix.org", "example.org" };
+    static const auto viaQuery =
+        std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
+                        [](QString q, const QString& s) {
+                            return q + "&via=" + s;
+                        });
+    static const QStringList joinByIdUris {
+        "matrix:roomid/" + joinRoomId.mid(1) + viaQuery,
+        "https://matrix.to/#/" + joinRoomId + viaQuery
+    };
+    // If any test breaks, the breaking call will return true, and further
+    // execution will be cut by ||'s short-circuiting
+    if (testResourceResolver(roomUris, &UriDispatcher::roomAction, room())
+        || testResourceResolver(userUris, &UriDispatcher::userAction,
+                                connection()->user())
+        || testResourceResolver(eventUris, &UriDispatcher::roomAction,
+                                room(), { eventId })
+        || testResourceResolver(joinByAliasUris, &UriDispatcher::joinAction,
+                                connection(), { '#' + joinRoomAlias })
+        || testResourceResolver(joinByIdUris, &UriDispatcher::joinAction,
+                                connection(), { joinRoomId, viaServers }))
+        return true;
+    // TODO: negative cases
+    FINISH_TEST(true);
 }
 
 void TestManager::conclude()

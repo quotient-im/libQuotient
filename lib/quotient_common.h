@@ -14,15 +14,15 @@ enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
 
 Q_ENUM_NS(RunningPolicy)
 
-enum ResourceResolveResult : short {
+enum UriResolveResult : short {
     StillResolving = -1,
-    Resolved = 0,
-    UnknownMatrixId,
-    MalformedMatrixId,
-    NoAccount,
-    EmptyMatrixId
+    UriResolved = 0,
+    CouldNotResolve,
+    IncorrectAction,
+    InvalidUri,
+    NoAccount
 };
-Q_ENUM_NS(ResourceResolveResult)
+Q_ENUM_NS(UriResolveResult)
 
 } // namespace Quotient
 /// \deprecated Use namespace Quotient instead
