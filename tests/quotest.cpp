@@ -664,22 +664,19 @@ TEST_IMPL(visitResources)
     };
 
     // Basic tests
-    QUrl invalidUrl { "https://" };
-    invalidUrl.setAuthority("---:@@@");
-    const Uri emptyUri {}, uriFromEmptyUrl {},
-        bareSigil { QStringLiteral("#") },
-        invalidMatrixUri { QStringLiteral("matrix:&invalid@") },
-        matrixUriFromInvalidUrl { invalidUrl };
-
-    for (const auto& u: { emptyUri, uriFromEmptyUrl })
+    for (const auto& u: { Uri {}, Uri { QUrl {} } })
         if (u.isValid() || !u.isEmpty()) {
             clog << "Empty Matrix URI test failed" << endl;
             FAIL_TEST();
         }
-    if (bareSigil.isValid()) {
+    if (Uri { QStringLiteral("#") }.isValid()) {
         clog << "Bare sigil URI test failed" << endl;
         FAIL_TEST();
     }
+    QUrl invalidUrl { "https://" };
+    invalidUrl.setAuthority("---:@@@");
+    const Uri matrixUriFromInvalidUrl { invalidUrl },
+        invalidMatrixUri { QStringLiteral("matrix:&invalid@") };
     if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
         clog << "Invalid Matrix URI test failed" << endl;
         FAIL_TEST();
