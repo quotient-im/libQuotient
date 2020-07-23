@@ -241,7 +241,8 @@ public:
     bool isEventNotable(const TimelineItem& ti) const
     {
         return !ti->isRedacted() && ti->senderId() != connection->userId()
-               && is<RoomMessageEvent>(*ti);
+               && is<RoomMessageEvent>(*ti)
+               && ti.viewAs<RoomMessageEvent>()->replacedEvent().isEmpty();
     }
 
     template <typename EventArrayT>
@@ -700,7 +701,7 @@ Room::Changes Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker,
         et.start();
         unreadMessages =
             int(count_if(eagerMarker, timeline.cend(),
-                         std::bind(&Room::Private::isEventNotable, this, _1)));
+                         [this](const auto& ti) { return isEventNotable(ti); }));
         if (et.nsecsElapsed() > profilerMinNsecs() / 10)
             qCDebug(PROFILER) << "Recounting unread messages took" << et;
 
@@ -2240,10 +2241,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                         });
                 if (targetIt != it)
                     *targetIt = makeReplaced(**targetIt, *msg);
-                else // FIXME: don't ignore, just show it wherever it arrived
+                else // FIXME: hide the replacing event when target arrives later
                     qCDebug(EVENTS)
                         << "Replacing event" << msg->id()
-                        << "ignored: replaced event" << msg->replacedEvent()
+                        << "ignored: target event" << msg->replacedEvent()
                         << "is not found";
                 // Same as with redactions above, the replaced event coming
                 // later will come already with the new content.
