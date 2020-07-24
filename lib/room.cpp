@@ -735,7 +735,8 @@ Room::Changes Room::Private::markMessagesAsRead(rev_iter_t upToMarker)
     // until the previous last-read message, whichever comes first.
     for (; upToMarker < prevMarker; ++upToMarker) {
         if ((*upToMarker)->senderId() != q->localUser()->id()) {
-            connection->callApi<PostReceiptJob>(id, QStringLiteral("m.read"),
+            connection->callApi<PostReceiptJob>(BackgroundRequest,
+                                                id, QStringLiteral("m.read"),
                                                 QUrl::toPercentEncoding(
                                                     (*upToMarker)->id()));
             break;
