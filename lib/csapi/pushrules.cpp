@@ -64,7 +64,8 @@ auto queryToSetPushRule(const QString& before, const QString& after)
 }
 
 SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind,
-                               const QString& ruleId, const QStringList& actions,
+                               const QString& ruleId,
+                               const QVector<QVariant>& actions,
                                const QString& before, const QString& after,
                                const QVector<PushCondition>& conditions,
                                const QString& pattern)
@@ -135,7 +136,7 @@ GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& scope,
 SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope,
                                              const QString& kind,
                                              const QString& ruleId,
-                                             const QStringList& actions)
+                                             const QVector<QVariant>& actions)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetPushRuleActionsJob"),
               QStringLiteral("/_matrix/client/r0") % "/pushrules/" % scope % "/"
                   % kind % "/" % ruleId % "/actions")

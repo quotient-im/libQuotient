@@ -148,7 +148,8 @@ public:
      * against.
      */
     explicit SetPushRuleJob(const QString& scope, const QString& kind,
-                            const QString& ruleId, const QStringList& actions,
+                            const QString& ruleId,
+                            const QVector<QVariant>& actions,
                             const QString& before = {},
                             const QString& after = {},
                             const QVector<PushCondition>& conditions = {},
@@ -246,9 +247,9 @@ public:
     // Result properties
 
     /// The action(s) to perform for this rule.
-    QStringList actions() const
+    QVector<QVariant> actions() const
     {
-        return loadFromJson<QStringList>("actions"_ls);
+        return loadFromJson<QVector<QVariant>>("actions"_ls);
     }
 };
 
@@ -275,7 +276,7 @@ public:
      */
     explicit SetPushRuleActionsJob(const QString& scope, const QString& kind,
                                    const QString& ruleId,
-                                   const QStringList& actions);
+                                   const QVector<QVariant>& actions);
 };
 
 } // namespace Quotient
