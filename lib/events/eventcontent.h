@@ -214,6 +214,8 @@ namespace EventContent {
     template <typename InfoT>
     class UrlWithThumbnailContent : public UrlBasedContent<InfoT> {
     public:
+        // NB: when using inherited constructors, thumbnail has to be
+        // initialised separately
         using UrlBasedContent<InfoT>::UrlBasedContent;
         explicit UrlWithThumbnailContent(const QJsonObject& json)
             : UrlBasedContent<InfoT>(json), thumbnail(InfoT::originalInfoJson)

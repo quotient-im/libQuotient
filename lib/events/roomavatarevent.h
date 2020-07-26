@@ -31,6 +31,18 @@ public:
     DEFINE_EVENT_TYPEID("m.room.avatar", RoomAvatarEvent)
     explicit RoomAvatarEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
+    explicit RoomAvatarEvent(const EventContent::ImageContent& avatar)
+        : StateEvent(typeId(), matrixTypeId(), QString(), avatar)
+    {}
+    // A replica of EventContent::ImageInfo constructor
+    explicit RoomAvatarEvent(const QUrl& u, qint64 fileSize = -1,
+                             QMimeType mimeType = {},
+                             const QSize& imageSize = {},
+                             const QString& originalFilename = {})
+        : RoomAvatarEvent(EventContent::ImageContent {
+            u, fileSize, mimeType, imageSize, originalFilename })
+    {}
+
     QUrl url() const { return content().url; }
 };
 REGISTER_EVENT_TYPE(RoomAvatarEvent)
