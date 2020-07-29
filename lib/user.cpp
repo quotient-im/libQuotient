@@ -74,12 +74,64 @@ public:
     void setAvatarOnServer(QString contentUri, User* q);
 };
 
+struct Stats {
+    const char* name;
+    qint64 min = 1'000'000;
+    qint64 max = 0;
+    qint64 sum = 0;
+    uint times = 0;
+
+    void update(qint64 newNsecs, const char* msg)
+    {
+        ++times;
+        if (newNsecs < min)
+            min = newNsecs;
+        if (newNsecs > max)
+            max = newNsecs;
+        sum += newNsecs;
+        qCDebug(PROFILER).noquote() << " " << msg << "took" << newNsecs << "ns";
+    }
+};
+
+inline void dumpStats(const std::initializer_list<const Stats*>& statsGroup)
+{
+    qint64 grandSum = 0;
+    for (const auto* s: statsGroup) {
+        qCDebug(PROFILER).nospace().noquote() << s->name << ':';
+        qCDebug(PROFILER) << "  Min/max:" << s->min << '/' << s->max << "ns";
+        qCDebug(PROFILER) << "  Sum:" << s->sum / 1000.0 << "us after "
+                          << s->times << "calls";
+        grandSum += s->sum;
+    }
+    qCDebug(PROFILER) << "Grand sum so far:" << grandSum / 1000.0 << "us";
+}
+
+static Stats getNameStatsOld { "getNameStatsOld" },
+    setNameStatsOld { "setNameStatsOld" },
+    getNameStatsNew { "getNameStatsNew" }, getAvStatsOld { "getAvStatsOld" },
+    setAvStatsOld { "setAvStatsOld" }, getAvStatsNew { "getAvStatsNew" };
+
 QString User::Private::nameForRoom(const Room* r, const QString& hint) const
 {
+    QElapsedTimer et;
+    et.start();
+    auto n = r ? r->getCurrentState<RoomMemberEvent>(userId)->displayName()
+               : mostUsedName;
+    getNameStatsNew.update(et.nsecsElapsed(), "nameForRoom, new");
+    dumpStats({ &getNameStatsNew });
+    qDebug() << n;
+    et.restart();
     // If the hint is accurate, this function is O(1) instead of O(n)
-    if (!hint.isNull() && (hint == mostUsedName || otherNames.contains(hint, r)))
+    if (!hint.isNull()
+        && (hint == mostUsedName || otherNames.contains(hint, r))) {
+        getNameStatsOld.update(et.nsecsElapsed(), "nameForRoom, old (shortcut)");
+        dumpStats({ &getNameStatsOld, &setNameStatsOld });
         return hint;
-    return otherNames.key(r, mostUsedName);
+    }
+    auto result = otherNames.key(r, mostUsedName);
+    getNameStatsOld.update(et.nsecsElapsed(), "nameForRoom, old (linear)");
+    dumpStats({ &getNameStatsOld, &setNameStatsOld });
+    return result;
 }
 
 static constexpr int MIN_JOINED_ROOMS_TO_LOG = 20;
@@ -123,11 +175,25 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
 
 QUrl User::Private::avatarUrlForRoom(const Room* r, const QUrl& hint) const
 {
+    QElapsedTimer et;
+    et.start();
+    const auto au = r ? r->getCurrentState<RoomMemberEvent>(userId)->avatarUrl()
+                      : mostUsedAvatar.url();
+    getAvStatsNew.update(et.nsecsElapsed(), "avatarUrlForRoom, new");
+    dumpStats({ &getAvStatsNew });
+    qDebug() << au;
+    et.restart();
     // If the hint is accurate, this function is O(1) instead of O(n)
-    if (hint == mostUsedAvatar.url() || avatarsToRooms.contains(hint, r))
+    if (hint == mostUsedAvatar.url() || avatarsToRooms.contains(hint, r)) {
+        getAvStatsOld.update(et.nsecsElapsed(), "avatarUrlForRoom, old (shortcut)");
+        dumpStats({ &getAvStatsOld, &setAvStatsOld });
         return hint;
-    auto it = std::find(avatarsToRooms.begin(), avatarsToRooms.end(), r);
-    return it == avatarsToRooms.end() ? mostUsedAvatar.url() : it.key();
+    }
+    const auto it = std::find(avatarsToRooms.begin(), avatarsToRooms.end(), r);
+    const auto result = it == avatarsToRooms.end() ? mostUsedAvatar.url() : it.key();
+    getAvStatsOld.update(et.nsecsElapsed(), "avatarUrlForRoom, old (linear)");
+    dumpStats({ &getAvStatsOld, &setAvStatsOld });
+    return result;
 }
 
 void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
@@ -229,7 +295,10 @@ void User::updateName(const QString& newName, const QString& oldName,
              || d->otherNames.contains(oldName, room));
     if (newName != oldName) {
         emit nameAboutToChange(newName, oldName, room);
+        QElapsedTimer et;
+        et.start();
         d->setNameForRoom(room, newName, oldName);
+        setNameStatsOld.update(et.nsecsElapsed(), "setNameForRoom");
         emit nameChanged(newName, oldName, room);
     }
 }
@@ -240,7 +309,10 @@ void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
     Q_ASSERT(oldUrl == d->mostUsedAvatar.url()
              || d->avatarsToRooms.contains(oldUrl, room));
     if (newUrl != oldUrl) {
+        QElapsedTimer et;
+        et.start();
         d->setAvatarForRoom(room, newUrl, oldUrl);
+        setAvStatsOld.update(et.nsecsElapsed(), "setAvatarForRoom");
         emit avatarChanged(this, room);
     }
 }
