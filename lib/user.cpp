@@ -295,7 +295,7 @@ bool User::isIgnored() const { return connection()->isIgnored(this); }
 
 void User::Private::setAvatarOnServer(QString contentUri, User* q)
 {
-    auto* j = connection->callApi<SetAvatarUrlJob>(userId, contentUri);
+    auto* j = q->connection()->callApi<SetAvatarUrlJob>(userId, contentUri);
     connect(j, &BaseJob::success, q,
             [=] { q->updateAvatarUrl(contentUri, avatarUrlForRoom(nullptr)); });
 }
