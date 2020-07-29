@@ -65,6 +65,7 @@ public:
      * (such as '(IRC)') to the user name. No disambiguation is done.
      * \sa name, displayName
      */
+    [[deprecated("Bridge postfixes exist no more, use name() instead")]]
     QString rawName(const Room* room = nullptr) const;
 
     /** Get the displayed user name
@@ -88,6 +89,8 @@ public:
     /**
      * Returns the name of bridge the user is connected from or empty.
      */
+    [[deprecated("Bridged status is no more supported; this always returns"
+                 " an empty string")]]
     QString bridged() const;
 
     /** Whether the user is a guest
@@ -119,7 +122,7 @@ public:
 
     /// This method is for internal use and should not be called
     /// from client code
-    // FIXME: Move it away to private in lib 0.6
+    // FIXME: Move it away to private
     void processEvent(const RoomMemberEvent& event, const Room* r,
                       bool firstMention);
 

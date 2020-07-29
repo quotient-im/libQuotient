@@ -54,7 +54,6 @@ public:
     QString userId;
     Connection* connection;
 
-    QString bridged;
     QString mostUsedName;
     QMultiHash<QString, const Room*> otherNames;
     qreal hueF;
@@ -218,11 +217,7 @@ int User::hue() const { return int(hueF() * 359); }
 
 QString User::name(const Room* room) const { return d->nameForRoom(room); }
 
-QString User::rawName(const Room* room) const
-{
-    return d->bridged.isEmpty() ? name(room)
-                                : name(room) % " (" % d->bridged % ')';
-}
+QString User::rawName(const Room* room) const { return name(room); }
 
 void User::updateName(const QString& newName, const Room* room)
 {
@@ -322,7 +317,7 @@ QString User::fullName(const Room* room) const
     return name.isEmpty() ? d->userId : name % " (" % d->userId % ')';
 }
 
-QString User::bridged() const { return d->bridged; }
+QString User::bridged() const { return {}; }
 
 const Avatar& User::avatarObject(const Room* room) const
 {
@@ -371,36 +366,16 @@ void User::processEvent(const RoomMemberEvent& event, const Room* room,
         && event.membership() != MembershipType::Join)
         return;
 
-    auto newName = event.displayName();
-    // `bridged` value uses the same notification signal as the name;
-    // it is assumed that first setting of the bridge occurs together with
-    // the first setting of the name, and further bridge updates are
-    // exceptionally rare (the only reasonable case being that the bridge
-    // changes the naming convention). For the same reason room-specific
-    // bridge tags are not supported at all.
-    QRegularExpression reSuffix(
-        QStringLiteral(" \\((IRC|Gitter|Telegram)\\)$"));
-    auto match = reSuffix.match(newName);
-    if (match.hasMatch()) {
-        if (d->bridged != match.captured(1)) {
-            if (!d->bridged.isEmpty())
-                qCWarning(MAIN)
-                    << "Bridge for user" << id() << "changed:" << d->bridged
-                    << "->" << match.captured(1);
-            d->bridged = match.captured(1);
-        }
-        newName.truncate(match.capturedStart(0));
-    }
     if (event.prevContent()) {
         // FIXME: the hint doesn't work for bridged users
         auto oldNameHint = d->nameForRoom(room,
                                           event.prevContent()->displayName);
-        updateName(newName, oldNameHint, room);
+        updateName(event.displayName(), oldNameHint, room);
         updateAvatarUrl(event.avatarUrl(),
                         d->avatarUrlForRoom(room, event.prevContent()->avatarUrl),
                         room);
     } else {
-        updateName(newName, room);
+        updateName(event.displayName(), room);
         updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
     }
 }
