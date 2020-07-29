@@ -230,7 +230,6 @@ void User::updateName(const QString& newName, const QString& oldName,
     if (newName != oldName) {
         emit nameAboutToChange(newName, oldName, room);
         d->setNameForRoom(room, newName, oldName);
-        setObjectName(displayname());
         emit nameChanged(newName, oldName, room);
     }
 }
@@ -242,7 +241,6 @@ void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
              || d->avatarsToRooms.contains(oldUrl, room));
     if (newUrl != oldUrl) {
         d->setAvatarForRoom(room, newUrl, oldUrl);
-        setObjectName(displayname());
         emit avatarChanged(this, room);
     }
 }
