@@ -45,14 +45,12 @@ class User::Private {
 public:
     static Avatar makeAvatar(QUrl url) { return Avatar(move(url)); }
 
-    Private(QString userId, Connection* connection)
+    Private(QString userId)
         : userId(move(userId))
-        , connection(connection)
         , hueF(stringToHueF(this->userId))
     {}
 
     QString userId;
-    Connection* connection;
 
     QString mostUsedName;
     QMultiHash<QString, const Room*> otherNames;
@@ -110,7 +108,7 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
                 et.start();
             }
 
-            for (auto* r1: connection->allRooms())
+            for (auto* r1: r->connection()->allRooms())
                 if (nameForRoom(r1) == mostUsedName)
                     otherNames.insert(mostUsedName, r1);
 
@@ -174,7 +172,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
                 nextMostUsedIt = otherAvatars.end() - 1;
             }
             std::swap(mostUsedAvatar, *nextMostUsedIt);
-            for (const auto* r1: connection->allRooms())
+            for (const auto* r1: r->connection()->allRooms())
                 if (avatarUrlForRoom(r1) == nextMostUsedIt->url())
                     avatarsToRooms.insert(nextMostUsedIt->url(), r1);
 
@@ -189,15 +187,15 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
 }
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(new Private(move(userId), connection))
+    : QObject(connection), d(new Private(move(userId)))
 {
     setObjectName(userId);
 }
 
 Connection* User::connection() const
 {
-    Q_ASSERT(d->connection);
-    return d->connection;
+    Q_ASSERT(parent());
+    return static_cast<Connection*>(parent());
 }
 
 User::~User() = default;
@@ -338,7 +336,7 @@ QImage User::avatar(int width, int height, const Room* room)
 QImage User::avatar(int width, int height, const Room* room,
                     const Avatar::get_callback_t& callback)
 {
-    return avatarObject(room).get(d->connection, width, height, [=] {
+    return avatarObject(room).get(connection(), width, height, [=] {
         emit avatarChanged(this, room);
         callback();
     });
