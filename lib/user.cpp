@@ -45,12 +45,9 @@ class User::Private {
 public:
     static Avatar makeAvatar(QUrl url) { return Avatar(move(url)); }
 
-    Private(QString userId)
-        : userId(move(userId))
-        , hueF(stringToHueF(this->userId))
-    {}
+    Private(QString userId) : id(move(userId)), hueF(stringToHueF(id)) { }
 
-    QString userId;
+    QString id;
 
     QString mostUsedName;
     QMultiHash<QString, const Room*> otherNames;
@@ -200,14 +197,14 @@ Connection* User::connection() const
 
 User::~User() = default;
 
-QString User::id() const { return d->userId; }
+QString User::id() const { return d->id; }
 
 bool User::isGuest() const
 {
-    Q_ASSERT(!d->userId.isEmpty() && d->userId.startsWith('@'));
-    auto it = std::find_if_not(d->userId.begin() + 1, d->userId.end(),
+    Q_ASSERT(!d->id.isEmpty() && d->id.startsWith('@'));
+    auto it = std::find_if_not(d->id.begin() + 1, d->id.end(),
                                [](QChar c) { return c.isDigit(); });
-    Q_ASSERT(it != d->userId.end());
+    Q_ASSERT(it != d->id.end());
     return *it == ':';
 }
 
@@ -293,7 +290,7 @@ bool User::isIgnored() const { return connection()->isIgnored(this); }
 
 void User::Private::setAvatarOnServer(QString contentUri, User* q)
 {
-    auto* j = q->connection()->callApi<SetAvatarUrlJob>(userId, contentUri);
+    auto* j = q->connection()->callApi<SetAvatarUrlJob>(id, contentUri);
     connect(j, &BaseJob::success, q,
             [=] { q->updateAvatarUrl(contentUri, avatarUrlForRoom(nullptr)); });
 }
@@ -304,13 +301,13 @@ QString User::displayname(const Room* room) const
         return room->roomMembername(this);
 
     const auto name = d->nameForRoom(nullptr);
-    return name.isEmpty() ? d->userId : name;
+    return name.isEmpty() ? d->id : name;
 }
 
 QString User::fullName(const Room* room) const
 {
     const auto name = d->nameForRoom(room);
-    return name.isEmpty() ? d->userId : name % " (" % d->userId % ')';
+    return name.isEmpty() ? id() : name % " (" % id() % ')';
 }
 
 QString User::bridged() const { return {}; }

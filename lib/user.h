@@ -21,7 +21,6 @@
 #include "avatar.h"
 
 #include <QtCore/QObject>
-#include <QtCore/QString>
 
 namespace Quotient {
 class Connection;
@@ -109,6 +108,10 @@ public:
     int hue() const;
     qreal hueF() const;
 
+    /// Get a reference to a user avatar object for a given room
+    /*! This reference should be considered short-lived: processing the next
+     * room member event for this user may (or may not) invalidate it.
+     */
     const Avatar& avatarObject(const Room* room = nullptr) const;
     Q_INVOKABLE QImage avatar(int dimension,
                               const Quotient::Room* room = nullptr);
@@ -135,16 +138,16 @@ public slots:
     bool setAvatar(const QString& fileName);
     /** Upload contents of the QIODevice and set that as an avatar */
     bool setAvatar(QIODevice* source);
-    /** Create or find a direct chat with this user
-     * The resulting chat is returned asynchronously via
+    /// Create or find a direct chat with this user
+    /*! The resulting chat is returned asynchronously via
      * Connection::directChatAvailable()
      */
     void requestDirectChat();
-    /** Add the user to the ignore list */
+    /// Add the user to the ignore list
     void ignore();
-    /** Remove the user from the ignore list */
+    /// Remove the user from the ignore list
     void unmarkIgnore();
-    /** Check whether the user is in ignore list */
+    /// Check whether the user is in ignore list
     bool isIgnored() const;
 
 signals:
