@@ -99,7 +99,7 @@ void User::Private::setNameForRoom(const Room* r, QString newName,
             Q_ASSERT(totalRooms > 1);
             QElapsedTimer et;
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG) {
-                qCDebug(MAIN) << "Switching the most used name of user" << userId
+                qCDebug(MAIN) << "Switching the most used name of user" << id
                               << "from" << mostUsedName << "to" << newName;
                 qCDebug(MAIN) << "The user is in" << totalRooms << "rooms";
                 et.start();
@@ -152,7 +152,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
             QElapsedTimer et;
             if (totalRooms > MIN_JOINED_ROOMS_TO_LOG) {
                 qCInfo(MAIN)
-                    << "Switching the most used avatar of user" << userId
+                    << "Switching the most used avatar of user" << id
                     << "from" << mostUsedAvatar.url().toDisplayString() << "to"
                     << newUrl.toDisplayString();
                 et.start();
@@ -161,7 +161,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
             auto nextMostUsedIt = otherAvatar(newUrl);
             if (nextMostUsedIt == otherAvatars.end()) {
                 qCCritical(MAIN)
-                    << userId << "doesn't have" << newUrl.toDisplayString()
+                    << id << "doesn't have" << newUrl.toDisplayString()
                     << "in otherAvatars though it seems to be used in"
                     << newUrlUsage << "rooms";
                 Q_ASSERT(false);
@@ -186,7 +186,7 @@ void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
 User::User(QString userId, Connection* connection)
     : QObject(connection), d(new Private(move(userId)))
 {
-    setObjectName(userId);
+    setObjectName(id());
 }
 
 Connection* User::connection() const
