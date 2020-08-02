@@ -115,6 +115,12 @@ void RoomEvent::addId(const QString& newId)
     Q_ASSERT(id() == newId);
 }
 
+void RoomEvent::dumpTo(QDebug dbg) const
+{
+    Event::dumpTo(dbg);
+    dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
+}
+
 QJsonObject makeCallContentJson(const QString& callId, int version,
                                 QJsonObject content)
 {

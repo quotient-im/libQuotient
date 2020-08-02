@@ -87,6 +87,9 @@ public:
      */
     void addId(const QString& newId);
 
+protected:
+    void dumpTo(QDebug dbg) const override;
+
 private:
     event_ptr_tt<RedactionEvent> _redactedBecause;
 };

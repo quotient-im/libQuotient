@@ -270,10 +270,10 @@ public:
 
     virtual bool isStateEvent() const { return false; }
     virtual bool isCallEvent() const { return false; }
-    virtual void dumpTo(QDebug dbg) const;
 
 protected:
     QJsonObject& editJson() { return _json; }
+    virtual void dumpTo(QDebug dbg) const;
 
 private:
     Type _type;
