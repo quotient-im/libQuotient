@@ -96,6 +96,7 @@ private slots:
     TEST_DECL(sendReaction)
     TEST_DECL(sendFile)
     TEST_DECL(setTopic)
+    TEST_DECL(changeName)
     TEST_DECL(sendAndRedact)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
@@ -485,6 +486,31 @@ TEST_IMPL(setTopic)
                  << endl;
             return false;
         });
+    return false;
+}
+
+TEST_IMPL(changeName)
+{
+    auto* const localUser = connection()->user();
+    const auto& newName = connection()->generateTxnId(); // See setTopic()
+    localUser->rename(newName);
+    connectUntil(targetRoom, &Room::memberRenamed, this,
+                 [this, thisTest, newName, localUser](const User* arrivedUser) {
+                     if (localUser != arrivedUser)
+                         return false;
+
+                     localUser->rename({});
+                     const auto& arrivedNewName = arrivedUser->name(targetRoom);
+                     // Old names may diverge e.g. because the original name
+                     // hasn't been known to Quotient
+                     if (newName == arrivedNewName)
+                         FINISH_TEST(true);
+
+                     clog << "Names mismatch: found" << newName.toStdString()
+                          << "instead of" << arrivedNewName.toStdString()
+                          << endl;
+                     FAIL_TEST();
+                 });
     return false;
 }
 
