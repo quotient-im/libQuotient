@@ -305,11 +305,11 @@ void TestManager::doTests()
 TEST_IMPL(loadMembers)
 {
     // Trying to load members from another (larger) room
-    auto* r = connection()->roomByAlias(QStringLiteral("#quotient:matrix.org"),
-                                        JoinState::Join);
+    const auto& testRoomAlias = QStringLiteral("#test:matrix.org");
+    auto* r = connection()->roomByAlias(testRoomAlias, JoinState::Join);
     if (!r) {
-        clog << "#quotient:matrix.org is not found in the test user's rooms"
-             << endl;
+        clog << testRoomAlias.toStdString()
+             << " is not found in the test user's rooms" << endl;
         FAIL_TEST();
     }
     // It's not exactly correct because an arbitrary server might not support
