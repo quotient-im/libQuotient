@@ -59,12 +59,14 @@ public:
         : StateEvent(typeId(), obj)
     { }
 
-    explicit RoomCanonicalAliasEvent(const QString& canonicalAlias, const QStringList& altAliases = {})
+    explicit RoomCanonicalAliasEvent(const QString& canonicalAlias,
+                                     const QStringList& altAliases = {})
         : StateEvent(typeId(), matrixTypeId(), QString(),
                 canonicalAlias, altAliases)
     { }
 
-    explicit RoomCanonicalAliasEvent(QString&& canonicalAlias, QStringList&& altAliases = {})
+    explicit RoomCanonicalAliasEvent(QString&& canonicalAlias,
+                                     QStringList&& altAliases = {})
         : StateEvent(typeId(), matrixTypeId(), QString(),
                 std::move(canonicalAlias), std::move(altAliases))
     { }

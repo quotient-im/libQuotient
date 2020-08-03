@@ -238,7 +238,8 @@ public:
     /** Get the list of rooms with the specified tag */
     QVector<Room*> roomsWithTag(const QString& tagName) const;
 
-    /** Mark the room as a direct chat with the user
+    /*! \brief Mark the room as a direct chat with the user
+     *
      * This function marks \p room as a direct chat with \p user.
      * Emits the signal synchronously, without waiting to complete
      * synchronisation with the server.
@@ -247,7 +248,8 @@ public:
      */
     void addToDirectChats(const Room* room, User* user);
 
-    /** Unmark the room from direct chats
+    /*! \brief Unmark the room from direct chats
+     *
      * This function removes the room id from direct chats either for
      * a specific \p user or for all users if \p user in nullptr.
      * The room id is used to allow removal of, e.g., ids of forgotten
