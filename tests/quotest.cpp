@@ -772,6 +772,11 @@ TEST_IMPL(visitResources)
 
 void TestManager::conclude()
 {
+    // Clean up the room (best effort)
+    auto* room = testSuite->room();
+    room->setTopic({});
+    room->localUser()->rename({});
+
     QString succeededRec { QString::number(succeeded.size()) % " of "
                            % QString::number(succeeded.size() + failed.size()
                                              + running.size())
@@ -800,7 +805,6 @@ void TestManager::conclude()
     //            targetRoom->postHtmlText(...)
     //            .then(this, &TestManager::finalize); // Qt-style or
     //            .then([this] { finalize(); }); // STL-style
-    auto* room = testSuite->room();
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this, [this, room, plainReport] {
