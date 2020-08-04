@@ -346,6 +346,8 @@ public:
 
     QJsonObject toJson() const;
 
+    bool isLocalUser(const User* u) const { return u == q->localUser(); }
+
 #ifdef Quotient_E2EE_ENABLED
     // A map from <sessionId, messageIndex> to <event_id, origin_server_ts>
     QHash<QPair<QString, uint32_t>, QPair<QString, QDateTime>>
@@ -436,8 +438,6 @@ private:
     template <typename ContT>
     users_shortlist_t buildShortlist(const ContT& users) const;
     users_shortlist_t buildShortlist(const QStringList& userIds) const;
-
-    bool isLocalUser(const User* u) const { return u == q->localUser(); }
 };
 
 decltype(Room::Private::baseState) Room::Private::stubbedState {};
@@ -1432,19 +1432,7 @@ QString Room::roomMembername(const User* u) const
     if (++nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
         return username; // No disambiguation necessary
 
-    // Check if we can get away just attaching the bridge postfix
-    // (extension to the spec)
-    QVector<QString> bridges;
-    for (; namesakesIt != d->membersMap.cend() && namesakesIt.key() == username;
-         ++namesakesIt) {
-        const auto bridgeName = (*namesakesIt)->bridged();
-        if (bridges.contains(bridgeName)) // Two accounts on the same bridge
-            return u->fullName(this); // Disambiguate fully
-        // Don't bother sorting, not so many bridges out there
-        bridges.push_back(bridgeName);
-    }
-
-    return u->rawName(this); // Disambiguate using the bridge postfix only
+    return u->fullName(this); // Disambiguate fully
 }
 
 QString Room::roomMembername(const QString& userId) const
@@ -2537,9 +2525,20 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return MembersChange;
             // clang-format off
         }
-        , [this] (const EncryptionEvent&) {
-            emit encryption(); // It can only be done once, so emit it here.
+        , [this, oldEncEvt = static_cast<const EncryptionEvent*>(oldStateEvent)](
+            const EncryptionEvent&) {
+            // clang-format on
+            if (oldEncEvt
+                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
+                qCWarning(STATE) << "The room is already encrypted but a new"
+                                    " room encryption event arrived - ignoring";
+                return NoChange;
+            }
+            // As encryption can only be switched on once, emit the signal here
+            // instead of aggregating and emitting in updateData()
+            emit encryption();
             return OtherChange;
+            // clang-format off
         }
         , [this] (const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
