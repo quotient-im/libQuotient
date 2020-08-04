@@ -53,9 +53,9 @@ BaseJob::Status SyncJob::prepareResult()
 {
     d.parseJson(jsonData());
     if (d.unresolvedRooms().isEmpty())
-        return BaseJob::Success;
+        return Success;
 
     qCCritical(MAIN).noquote() << "Incomplete sync response, missing rooms:"
                                << d.unresolvedRooms().join(',');
-    return BaseJob::IncorrectResponseError;
+    return IncorrectResponse;
 }
