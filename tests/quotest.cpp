@@ -499,17 +499,16 @@ TEST_IMPL(changeName)
                      if (localUser != arrivedUser)
                          return false;
 
-                     localUser->rename({});
                      const auto& arrivedNewName = arrivedUser->name(targetRoom);
                      // Old names may diverge e.g. because the original name
                      // hasn't been known to Quotient
                      if (newName == arrivedNewName)
                          FINISH_TEST(true);
 
-                     clog << "Names mismatch: found" << newName.toStdString()
-                          << "instead of" << arrivedNewName.toStdString()
-                          << endl;
-                     FAIL_TEST();
+                     clog << "Names mismatch: found " << newName.toStdString()
+                          << " instead of " << arrivedNewName.toStdString()
+                          << "; waiting for the next change" << endl;
+                     return false;
                  });
     return false;
 }
