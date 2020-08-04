@@ -506,8 +506,8 @@ TEST_IMPL(changeName)
                      if (newName == arrivedNewName)
                          FINISH_TEST(true);
 
-                     clog << "Names mismatch: found" << newName.toStdString()
-                          << "instead of" << arrivedNewName.toStdString()
+                     clog << "Names mismatch: found " << newName.toStdString()
+                          << " instead of " << arrivedNewName.toStdString()
                           << endl;
                      FAIL_TEST();
                  });
