@@ -586,33 +586,40 @@ void BaseJob::stop()
 void BaseJob::finishJob()
 {
     stop();
-    if (error() == TooManyRequests) {
+    switch(error()) {
+    case TooManyRequests:
         emit rateLimited();
         d->connection->submit(this);
         return;
-    }
-    if (error() == Unauthorised && !d->needsToken
-        && !d->connection->accessToken().isEmpty()) {
-        // Rerun with access token (extension of the spec while
-        // https://github.com/matrix-org/matrix-doc/issues/701 is pending)
-        d->connection->setNeedsToken(objectName());
-        qCWarning(d->logCat) << this << "re-running with authentication";
-        emit retryScheduled(d->retriesTaken, 0);
-        d->connection->submit(this);
-        return;
-    }
-    if ((error() == NetworkError || error() == Timeout)
-        && d->retriesTaken < d->maxRetries) {
-        // TODO: The whole retrying thing should be put to Connection(Manager)
-        // otherwise independently retrying jobs make a bit of notification
-        // storm towards the UI.
-        const seconds retryIn = error() == Timeout ? 0s : getNextRetryInterval();
-        ++d->retriesTaken;
-        qCWarning(d->logCat).nospace() << this << ": retry #" << d->retriesTaken
-                                       << " in " << retryIn.count() << " s";
-        d->retryTimer.start(retryIn);
-        emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
-        return;
+    case Unauthorised:
+        if (!d->needsToken && !d->connection->accessToken().isEmpty()) {
+            // Rerun with access token (extension of the spec while
+            // https://github.com/matrix-org/matrix-doc/issues/701 is pending)
+            d->connection->setNeedsToken(objectName());
+            qCWarning(d->logCat) << this << "re-running with authentication";
+            emit retryScheduled(d->retriesTaken, 0);
+            d->connection->submit(this);
+            return;
+        }
+        break;
+    case NetworkError:
+    case IncorrectResponse:
+    case Timeout:
+        if (d->retriesTaken < d->maxRetries) {
+            // TODO: The whole retrying thing should be put to
+            // Connection(Manager) otherwise independently retrying jobs make a
+            // bit of notification storm towards the UI.
+            const seconds retryIn = error() == Timeout ? 0s
+                                                       : getNextRetryInterval();
+            ++d->retriesTaken;
+            qCWarning(d->logCat).nospace()
+                << this << ": retry #" << d->retriesTaken << " in "
+                << retryIn.count() << " s";
+            d->retryTimer.start(retryIn);
+            emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
+            return;
+        }
+    default:;
     }
 
     Q_ASSERT(status().code != Pending);
