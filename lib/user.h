@@ -33,13 +33,12 @@ class User : public QObject {
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
-    Q_PROPERTY(QString name READ name NOTIFY nameChanged)
-    Q_PROPERTY(QString displayName READ displayname NOTIFY nameChanged STORED false)
-    Q_PROPERTY(QString fullName READ fullName NOTIFY nameChanged STORED false)
-    Q_PROPERTY(QString bridgeName READ bridged NOTIFY nameChanged STORED false)
-    Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
-                   STORED false)
-    Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
+    Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
+    Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
+    Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
+    Q_PROPERTY(QString bridgeName READ bridged NOTIFY defaultNameChanged STORED false)
+    Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY defaultAvatarChanged STORED false)
+    Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
     User(QString userId, Connection* connection);
     ~User() override;
@@ -123,20 +122,14 @@ public:
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;
 
-    /// This method is for internal use and should not be called
-    /// from client code
-    // FIXME: Move it away to private
-    void processEvent(const RoomMemberEvent& event, const Room* r,
-                      bool firstMention);
-
 public slots:
-    /** Set a new name in the global user profile */
+    /// Set a new name in the global user profile
     void rename(const QString& newName);
-    /** Set a new name for the user in one room */
+    /// Set a new name for the user in one room
     void rename(const QString& newName, const Room* r);
-    /** Upload the file and use it as an avatar */
+    /// Upload the file and use it as an avatar
     bool setAvatar(const QString& fileName);
-    /** Upload contents of the QIODevice and set that as an avatar */
+    /// Upload contents of the QIODevice and set that as an avatar
     bool setAvatar(QIODevice* source);
     /// Create or find a direct chat with this user
     /*! The resulting chat is returned asynchronously via
@@ -151,21 +144,14 @@ public slots:
     bool isIgnored() const;
 
 signals:
-    void nameAboutToChange(QString newName, QString oldName,
-                           const Quotient::Room* roomContext);
-    void nameChanged(QString newName, QString oldName,
-                     const Quotient::Room* roomContext);
-    void avatarChanged(Quotient::User* user, const Quotient::Room* roomContext);
-
-private slots:
-    void updateName(const QString& newName, const Room* room = nullptr);
-    void updateName(const QString& newName, const QString& oldName,
-                    const Room* room = nullptr);
-    void updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
-                         const Room* room = nullptr);
+    void defaultNameChanged();
+    void defaultAvatarChanged();
 
 private:
     class Private;
     QScopedPointer<Private> d;
+
+    template <typename SourceT>
+    bool doSetAvatar(SourceT&& source);
 };
 } // namespace Quotient

@@ -652,6 +652,7 @@ signals:
     void userRemoved(Quotient::User* user);
     void memberAboutToRename(Quotient::User* user, QString newName);
     void memberRenamed(Quotient::User* user);
+    void memberAvatarChanged(Quotient::User* user);
     /// The list of members has changed
     /** Emitted no more than once per sync, this is a good signal to
      * for cases when some action should be done upon any change in

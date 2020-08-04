@@ -192,7 +192,6 @@ public:
 
     // void inviteUser(User* u); // We might get it at some point in time.
     void insertMemberIntoMap(User* u);
-    void renameMember(User* u, const QString& oldName);
     void removeMemberFromMap(const QString& username, User* u);
 
     // This updates the room displayname field (which is the way a room
@@ -237,6 +236,15 @@ public:
                  && evt->matrixType() == EventT::matrixTypeId());
         return static_cast<const EventT*>(evt);
     }
+
+//    template <typename EventT>
+//    const auto& getCurrentStateContent(const QString& stateKey = {}) const
+//    {
+//        if (const auto* evt =
+//                currentState.value({ EventT::matrixTypeId(), stateKey }, nullptr))
+//            return evt->content();
+//        return EventT::content_type()
+//    }
 
     bool isEventNotable(const TimelineItem& ti) const
     {
@@ -1344,18 +1352,6 @@ void Room::Private::insertMemberIntoMap(User* u)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::renameMember(User* u, const QString& oldName)
-{
-    if (u->name(q) == oldName) {
-        qCWarning(MAIN) << "Room::Private::renameMember(): the user "
-                        << u->fullName(q)
-                        << "is already known in the room under a new name.";
-    } else if (membersMap.contains(oldName, u)) {
-        removeMemberFromMap(oldName, u);
-        insertMemberIntoMap(u);
-    }
-}
-
 void Room::Private::removeMemberFromMap(const QString& username, User* u)
 {
     User* namesake = nullptr;
@@ -2396,14 +2392,66 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!e.isStateEvent())
         return Change::NoChange;
 
-    const auto* oldStateEvent =
-        std::exchange(d->currentState[{ e.matrixType(), e.stateKey() }],
-                      static_cast<const StateEventBase*>(&e));
+    // Find a value (create empty if necessary) and get a reference to it
+    // getCurrentState<> is not used here because it (creates and) returns
+    // a stub if a value is not found, and what's needed here is a "real" event
+    // or nullptr.
+    const auto*& curStateEvent =
+        d->currentState[{ e.matrixType(), e.stateKey() }];
+    // Prepare for the state change
+    visit(e, [this, oldRme = static_cast<const RoomMemberEvent*>(curStateEvent)](
+                 const RoomMemberEvent& rme) {
+        auto* u = user(rme.userId());
+        if (!u) { // ???
+            qCCritical(MAIN)
+                << "Could not get a user object for" << rme.userId();
+            return;
+        }
+        const auto prevMembership = oldRme ? oldRme->membership()
+                                           : MembershipType::Leave;
+        switch (prevMembership) {
+        case MembershipType::Invite:
+            if (rme.membership() != prevMembership) {
+                d->usersInvited.removeOne(u);
+                Q_ASSERT(!d->usersInvited.contains(u));
+            }
+            break;
+        case MembershipType::Join:
+            switch (rme.membership()) {
+            case MembershipType::Join: // rename/avatar change or no-op
+                if (rme.displayName() != oldRme->displayName()) {
+                    emit memberAboutToRename(u, rme.displayName());
+                    d->removeMemberFromMap(u->name(this), u);
+                }
+                break;
+            case MembershipType::Invite:
+                qCWarning(MAIN) << "Membership change from Join to Invite:"
+                                << rme;
+                [[fallthrough]];
+            default: // whatever the new membership, it's no more Join
+                d->removeMemberFromMap(u->name(this), u);
+                emit userRemoved(u);
+            }
+            break;
+        default:
+            if (rme.membership() == MembershipType::Invite
+                || rme.membership() == MembershipType::Join) {
+                d->membersLeft.removeOne(u);
+                Q_ASSERT(!d->membersLeft.contains(u));
+            }
+        }
+    });
+
+    // Change the state
+    const auto* const oldStateEvent =
+        std::exchange(curStateEvent, static_cast<const StateEventBase*>(&e));
     Q_ASSERT(!oldStateEvent
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
     if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
-        qCDebug(STATE) << "Room state event:" << e;
+        qCDebug(STATE) << "Updated room state:" << e;
+
+    // Update internal structures as per the change and work out the return value
 
     // clang-format off
     return visit(e
@@ -2411,10 +2459,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             return NameChange;
         }
         , [] (const RoomAliasesEvent&) {
-            // clang-format on
-            // This event has been removed by MSC-2432
-            return NoChange;
-            // clang-format off
+            return NoChange; // This event has been removed by MSC2432
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
@@ -2460,63 +2505,28 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             auto* u = user(evt.userId());
             const auto* oldMemberEvent =
                 static_cast<const RoomMemberEvent*>(oldStateEvent);
-            u->processEvent(evt, this, oldMemberEvent == nullptr);
             const auto prevMembership = oldMemberEvent
                                             ? oldMemberEvent->membership()
                                             : MembershipType::Leave;
-            if (u == localUser() && evt.membership() == MembershipType::Invite
-                && evt.isDirect())
-                connection()->addToDirectChats(this, user(evt.senderId()));
-
-            switch (prevMembership) {
-            case MembershipType::Invite:
-                if (evt.membership() != prevMembership) {
-                    d->usersInvited.removeOne(u);
-                    Q_ASSERT(!d->usersInvited.contains(u));
-                }
-                break;
-            case MembershipType::Join:
-                if (evt.membership() == MembershipType::Invite)
-                    qCWarning(MAIN) << "Invalid membership change from "
-                                       "Join to Invite:"
-                                    << evt;
-                if (evt.membership() != prevMembership) {
-                    disconnect(u, &User::nameAboutToChange, this, nullptr);
-                    disconnect(u, &User::nameChanged, this, nullptr);
-                    d->removeMemberFromMap(u->name(this), u);
-                    emit userRemoved(u);
-                }
-                break;
-            default:
-                if (evt.membership() == MembershipType::Invite
-                    || evt.membership() == MembershipType::Join) {
-                    d->membersLeft.removeOne(u);
-                    Q_ASSERT(!d->membersLeft.contains(u));
-                }
-            }
-
             switch (evt.membership()) {
             case MembershipType::Join:
                 if (prevMembership != MembershipType::Join) {
                     d->insertMemberIntoMap(u);
-                    connect(u, &User::nameAboutToChange, this,
-                            [=](QString newName, QString, const Room* context) {
-                                if (context == this)
-                                    emit memberAboutToRename(u, newName);
-                            });
-                    connect(u, &User::nameChanged, this,
-                            [=](QString, QString oldName, const Room* context) {
-                                if (context == this) {
-                                    d->renameMember(u, oldName);
-                                    emit memberRenamed(u);
-                                }
-                            });
                     emit userAdded(u);
+                } else {
+                    if (oldMemberEvent->displayName() != evt.displayName()) {
+                        d->insertMemberIntoMap(u);
+                        emit memberRenamed(u);
+                    }
+                    if (oldMemberEvent->avatarUrl() != evt.avatarUrl())
+                        emit memberAvatarChanged(u);
                 }
                 break;
             case MembershipType::Invite:
                 if (!d->usersInvited.contains(u))
                     d->usersInvited.push_back(u);
+                if (u == localUser() && evt.isDirect())
+                    connection()->addToDirectChats(this, user(evt.senderId()));
                 break;
             default:
                 if (!d->membersLeft.contains(u))

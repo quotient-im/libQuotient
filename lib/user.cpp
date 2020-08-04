@@ -38,150 +38,26 @@
 #include <functional>
 
 using namespace Quotient;
-using namespace std::placeholders;
 using std::move;
 
 class User::Private {
 public:
-    static Avatar makeAvatar(QUrl url) { return Avatar(move(url)); }
-
     Private(QString userId) : id(move(userId)), hueF(stringToHueF(id)) { }
 
     QString id;
-
-    QString mostUsedName;
-    QMultiHash<QString, const Room*> otherNames;
     qreal hueF;
-    Avatar mostUsedAvatar { makeAvatar({}) };
-    std::vector<Avatar> otherAvatars;
-    auto otherAvatar(const QUrl& url)
-    {
-        return std::find_if(otherAvatars.begin(), otherAvatars.end(),
-                            [&url](const auto& av) { return av.url() == url; });
-    }
-    QMultiHash<QUrl, const Room*> avatarsToRooms;
 
-    mutable int totalRooms = 0;
-
-    QString nameForRoom(const Room* r, const QString& hint = {}) const;
-    void setNameForRoom(const Room* r, QString newName, const QString& oldName);
-    QUrl avatarUrlForRoom(const Room* r, const QUrl& hint = {}) const;
-    void setAvatarForRoom(const Room* r, const QUrl& newUrl, const QUrl& oldUrl);
-
-    void setAvatarOnServer(QString contentUri, User* q);
+    QString defaultName;
+    Avatar defaultAvatar;
+    // NB: This container is ever-growing. Even if the user no more scrolls
+    // the timeline that far back, historical avatars are still kept around.
+    // This is consistent with the rest of Quotient, as room timelines
+    // are never vacuumed either. This will probably change in the future.
+    /// Map of mediaId to Avatar objects
+    static UnorderedMap<QString, Avatar> otherAvatars;
 };
 
-QString User::Private::nameForRoom(const Room* r, const QString& hint) const
-{
-    // If the hint is accurate, this function is O(1) instead of O(n)
-    if (!hint.isNull() && (hint == mostUsedName || otherNames.contains(hint, r)))
-        return hint;
-    return otherNames.key(r, mostUsedName);
-}
-
-static constexpr int MIN_JOINED_ROOMS_TO_LOG = 20;
-
-void User::Private::setNameForRoom(const Room* r, QString newName,
-                                   const QString& oldName)
-{
-    Q_ASSERT(oldName != newName);
-    Q_ASSERT(oldName == mostUsedName || otherNames.contains(oldName, r));
-    if (totalRooms < 2) {
-        Q_ASSERT_X(totalRooms > 0 && otherNames.empty(), __FUNCTION__,
-                   "Internal structures inconsistency");
-        mostUsedName = move(newName);
-        return;
-    }
-    otherNames.remove(oldName, r);
-    if (newName != mostUsedName) {
-        // Check if the newName is about to become most used.
-        if (otherNames.count(newName) >= totalRooms - otherNames.size()) {
-            Q_ASSERT(totalRooms > 1);
-            QElapsedTimer et;
-            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG) {
-                qCDebug(MAIN) << "Switching the most used name of user" << id
-                              << "from" << mostUsedName << "to" << newName;
-                qCDebug(MAIN) << "The user is in" << totalRooms << "rooms";
-                et.start();
-            }
-
-            for (auto* r1: r->connection()->allRooms())
-                if (nameForRoom(r1) == mostUsedName)
-                    otherNames.insert(mostUsedName, r1);
-
-            mostUsedName = newName;
-            otherNames.remove(newName);
-            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
-                qCDebug(PROFILER) << et << "to switch the most used name";
-        } else
-            otherNames.insert(newName, r);
-    }
-}
-
-QUrl User::Private::avatarUrlForRoom(const Room* r, const QUrl& hint) const
-{
-    // If the hint is accurate, this function is O(1) instead of O(n)
-    if (hint == mostUsedAvatar.url() || avatarsToRooms.contains(hint, r))
-        return hint;
-    auto it = std::find(avatarsToRooms.begin(), avatarsToRooms.end(), r);
-    return it == avatarsToRooms.end() ? mostUsedAvatar.url() : it.key();
-}
-
-void User::Private::setAvatarForRoom(const Room* r, const QUrl& newUrl,
-                                     const QUrl& oldUrl)
-{
-    Q_ASSERT(oldUrl != newUrl);
-    Q_ASSERT(oldUrl == mostUsedAvatar.url()
-             || avatarsToRooms.contains(oldUrl, r));
-    if (totalRooms < 2) {
-        Q_ASSERT_X(totalRooms > 0 && otherAvatars.empty(), __FUNCTION__,
-                   "Internal structures inconsistency");
-        mostUsedAvatar.updateUrl(newUrl);
-        return;
-    }
-    avatarsToRooms.remove(oldUrl, r);
-    if (!avatarsToRooms.contains(oldUrl)) {
-        auto it = otherAvatar(oldUrl);
-        if (it != otherAvatars.end())
-            otherAvatars.erase(it);
-    }
-    if (newUrl != mostUsedAvatar.url()) {
-        // Check if the new avatar is about to become most used.
-        const auto newUrlUsage = avatarsToRooms.count(newUrl);
-        if (newUrlUsage >= totalRooms - avatarsToRooms.size()) {
-            QElapsedTimer et;
-            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG) {
-                qCInfo(MAIN)
-                    << "Switching the most used avatar of user" << id
-                    << "from" << mostUsedAvatar.url().toDisplayString() << "to"
-                    << newUrl.toDisplayString();
-                et.start();
-            }
-            avatarsToRooms.remove(newUrl);
-            auto nextMostUsedIt = otherAvatar(newUrl);
-            if (nextMostUsedIt == otherAvatars.end()) {
-                qCCritical(MAIN)
-                    << id << "doesn't have" << newUrl.toDisplayString()
-                    << "in otherAvatars though it seems to be used in"
-                    << newUrlUsage << "rooms";
-                Q_ASSERT(false);
-                otherAvatars.emplace_back(makeAvatar(newUrl));
-                nextMostUsedIt = otherAvatars.end() - 1;
-            }
-            std::swap(mostUsedAvatar, *nextMostUsedIt);
-            for (const auto* r1: r->connection()->allRooms())
-                if (avatarUrlForRoom(r1) == nextMostUsedIt->url())
-                    avatarsToRooms.insert(nextMostUsedIt->url(), r1);
-
-            if (totalRooms > MIN_JOINED_ROOMS_TO_LOG)
-                qCDebug(PROFILER) << et << "to switch the most used avatar";
-        } else {
-            if (otherAvatar(newUrl) == otherAvatars.end())
-                otherAvatars.emplace_back(makeAvatar(newUrl));
-            avatarsToRooms.insert(newUrl, r);
-        }
-    }
-}
+decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
 
 User::User(QString userId, Connection* connection)
     : QObject(connection), d(new Private(move(userId)))
@@ -210,43 +86,31 @@ bool User::isGuest() const
 
 int User::hue() const { return int(hueF() * 359); }
 
-QString User::name(const Room* room) const { return d->nameForRoom(room); }
+QString User::name(const Room* room) const
+{
+    return room ? room->getCurrentState<RoomMemberEvent>(id())->displayName()
+                : d->defaultName;
+}
 
 QString User::rawName(const Room* room) const { return name(room); }
-
-void User::updateName(const QString& newName, const Room* room)
-{
-    updateName(newName, d->nameForRoom(room), room);
-}
-
-void User::updateName(const QString& newName, const QString& oldName,
-                      const Room* room)
-{
-    Q_ASSERT(oldName == d->mostUsedName
-             || d->otherNames.contains(oldName, room));
-    if (newName != oldName) {
-        emit nameAboutToChange(newName, oldName, room);
-        d->setNameForRoom(room, newName, oldName);
-        emit nameChanged(newName, oldName, room);
-    }
-}
-
-void User::updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
-                           const Room* room)
-{
-    Q_ASSERT(oldUrl == d->mostUsedAvatar.url()
-             || d->avatarsToRooms.contains(oldUrl, room));
-    if (newUrl != oldUrl) {
-        d->setAvatarForRoom(room, newUrl, oldUrl);
-        emit avatarChanged(this, room);
-    }
-}
 
 void User::rename(const QString& newName)
 {
     const auto actualNewName = sanitized(newName);
+    if (actualNewName == d->defaultName)
+        return; // Nothing to do
+
     connect(connection()->callApi<SetDisplayNameJob>(id(), actualNewName),
-            &BaseJob::success, this, [=] { updateName(actualNewName); });
+            &BaseJob::success, this, [this, actualNewName] {
+                // Check again, it could have changed meanwhile
+                if (actualNewName != d->defaultName) {
+                    d->defaultName = actualNewName;
+                    emit defaultNameChanged();
+                } else
+                    qCWarning(MAIN)
+                        << "User" << id() << "already has profile name set to"
+                        << actualNewName;
+            });
 }
 
 void User::rename(const QString& newName, const Room* r)
@@ -262,22 +126,37 @@ void User::rename(const QString& newName, const Room* r)
     const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
     evtC.displayName = actualNewName;
-    connect(r->setState<RoomMemberEvent>(id(), move(evtC)), &BaseJob::success,
-            this, [=] { updateName(actualNewName, r); });
+    r->setState<RoomMemberEvent>(id(), move(evtC));
+    // The state will be updated locally after it arrives with sync
+}
+
+template <typename SourceT>
+inline bool User::doSetAvatar(SourceT&& source)
+{
+    return d->defaultAvatar.upload(
+        connection(), source, [this](const QString& contentUri) {
+            auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
+            connect(j, &BaseJob::success, this,
+                    [this, newUrl = QUrl(contentUri)] {
+                        if (newUrl == d->defaultAvatar.url()) {
+                            d->defaultAvatar.updateUrl(move(newUrl));
+                            emit defaultAvatarChanged();
+                        } else
+                            qCWarning(MAIN) << "User" << id()
+                                            << "already has avatar URL set to"
+                                            << newUrl.toDisplayString();
+                    });
+        });
 }
 
 bool User::setAvatar(const QString& fileName)
 {
-    return avatarObject().upload(connection(), fileName,
-                                 std::bind(&Private::setAvatarOnServer,
-                                           d.data(), _1, this));
+    return doSetAvatar(fileName);
 }
 
 bool User::setAvatar(QIODevice* source)
 {
-    return avatarObject().upload(connection(), source,
-                                 std::bind(&Private::setAvatarOnServer,
-                                           d.data(), _1, this));
+    return doSetAvatar(source);
 }
 
 void User::requestDirectChat() { connection()->requestDirectChat(this); }
@@ -288,34 +167,29 @@ void User::unmarkIgnore() { connection()->removeFromIgnoredUsers(this); }
 
 bool User::isIgnored() const { return connection()->isIgnored(this); }
 
-void User::Private::setAvatarOnServer(QString contentUri, User* q)
-{
-    auto* j = q->connection()->callApi<SetAvatarUrlJob>(id, contentUri);
-    connect(j, &BaseJob::success, q,
-            [=] { q->updateAvatarUrl(contentUri, avatarUrlForRoom(nullptr)); });
-}
-
 QString User::displayname(const Room* room) const
 {
-    if (room)
-        return room->roomMembername(this);
-
-    const auto name = d->nameForRoom(nullptr);
-    return name.isEmpty() ? d->id : name;
+    return room                       ? room->roomMembername(this)
+           : d->defaultName.isEmpty() ? d->id
+                                      : d->defaultName;
 }
 
 QString User::fullName(const Room* room) const
 {
-    const auto name = d->nameForRoom(room);
-    return name.isEmpty() ? id() : name % " (" % id() % ')';
+    const auto displayName = name(room);
+    return displayName.isEmpty() ? id() : (displayName % " (" % id() % ')');
 }
 
 QString User::bridged() const { return {}; }
 
 const Avatar& User::avatarObject(const Room* room) const
 {
-    auto it = d->otherAvatar(d->avatarUrlForRoom(room));
-    return it != d->otherAvatars.end() ? *it : d->mostUsedAvatar;
+    if (!room)
+        return d->defaultAvatar;
+
+    const auto& url = room->getCurrentState<RoomMemberEvent>(id())->avatarUrl();
+    const auto& mediaId = url.authority() + url.path();
+    return d->otherAvatars.try_emplace(mediaId, url).first->second;
 }
 
 QImage User::avatar(int dimension, const Room* room)
@@ -331,10 +205,7 @@ QImage User::avatar(int width, int height, const Room* room)
 QImage User::avatar(int width, int height, const Room* room,
                     const Avatar::get_callback_t& callback)
 {
-    return avatarObject(room).get(connection(), width, height, [=] {
-        emit avatarChanged(this, room);
-        callback();
-    });
+    return avatarObject(room).get(connection(), width, height, callback);
 }
 
 QString User::avatarMediaId(const Room* room) const
@@ -345,32 +216,6 @@ QString User::avatarMediaId(const Room* room) const
 QUrl User::avatarUrl(const Room* room) const
 {
     return avatarObject(room).url();
-}
-
-void User::processEvent(const RoomMemberEvent& event, const Room* room,
-                        bool firstMention)
-{
-    Q_ASSERT(room);
-
-    if (firstMention)
-        ++d->totalRooms;
-
-    if (event.membership() != MembershipType::Invite
-        && event.membership() != MembershipType::Join)
-        return;
-
-    if (event.prevContent()) {
-        // FIXME: the hint doesn't work for bridged users
-        auto oldNameHint = d->nameForRoom(room,
-                                          event.prevContent()->displayName);
-        updateName(event.displayName(), oldNameHint, room);
-        updateAvatarUrl(event.avatarUrl(),
-                        d->avatarUrlForRoom(room, event.prevContent()->avatarUrl),
-                        room);
-    } else {
-        updateName(event.displayName(), room);
-        updateAvatarUrl(event.avatarUrl(), d->avatarUrlForRoom(room), room);
-    }
 }
 
 qreal User::hueF() const { return d->hueF; }
