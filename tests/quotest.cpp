@@ -507,7 +507,7 @@ TEST_IMPL(changeName)
 
                      clog << "Names mismatch: found " << newName.toStdString()
                           << " instead of " << arrivedNewName.toStdString()
-                          << "; waiting for the next change" << endl;
+                          << "; waiting for the next event" << endl;
                      return false;
                  });
     return false;
