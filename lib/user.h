@@ -123,20 +123,21 @@ public:
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;
 
-    /// This method is for internal use and should not be called
-    /// from client code
-    // FIXME: Move it away to private
+    // TODO: This method is only there to emit obsolete signals:
+    //   nameAboutToChange(), nameChanged() and avatarChanged() - all of these
+    //   to be removed in 0.7
+    /// \deprecated
     void processEvent(const RoomMemberEvent& event, const Room* r,
                       bool firstMention);
 
 public slots:
-    /** Set a new name in the global user profile */
+    /// Set a new name in the global user profile
     void rename(const QString& newName);
-    /** Set a new name for the user in one room */
+    /// Set a new name for the user in one room
     void rename(const QString& newName, const Room* r);
-    /** Upload the file and use it as an avatar */
+    /// Upload the file and use it as an avatar
     bool setAvatar(const QString& fileName);
-    /** Upload contents of the QIODevice and set that as an avatar */
+    /// Upload contents of the QIODevice and set that as an avatar
     bool setAvatar(QIODevice* source);
     /// Create or find a direct chat with this user
     /*! The resulting chat is returned asynchronously via
@@ -151,21 +152,28 @@ public slots:
     bool isIgnored() const;
 
 signals:
+    /// \deprecated Use Room::memberListChanged() for member changes
     void nameAboutToChange(QString newName, QString oldName,
                            const Quotient::Room* roomContext);
+    /// \deprecated Use Room::memberListChanged() for member changes
     void nameChanged(QString newName, QString oldName,
                      const Quotient::Room* roomContext);
+    /// \deprecated Use Room::memberListChanged() for member changes
     void avatarChanged(Quotient::User* user, const Quotient::Room* roomContext);
 
-private slots:
-    void updateName(const QString& newName, const Room* room = nullptr);
-    void updateName(const QString& newName, const QString& oldName,
-                    const Room* room = nullptr);
-    void updateAvatarUrl(const QUrl& newUrl, const QUrl& oldUrl,
-                         const Room* room = nullptr);
+private slots: // TODO: remove in 0.7
+    /// \deprecated
+    void updateName(const QString&, const Room* = nullptr);
+    /// \deprecated
+    void updateName(const QString&, const QString&, const Room* = nullptr);
+    /// \deprecated
+    void updateAvatarUrl(const QUrl&, const QUrl&, const Room* = nullptr);
 
 private:
     class Private;
     QScopedPointer<Private> d;
+
+    template <typename SourceT>
+    bool doSetAvatar(SourceT&& source);
 };
 } // namespace Quotient
