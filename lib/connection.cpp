@@ -471,6 +471,7 @@ void Connection::logout()
                 disconnect(d->syncLoopConnection);
             d->data->setToken({});
             emit loggedOut();
+            deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
             emit stateChanged();
             if (wasSyncing)
