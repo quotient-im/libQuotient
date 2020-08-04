@@ -401,9 +401,8 @@ BaseJob::Status BaseJob::Private::parseJson()
 {
     QJsonParseError error { 0, QJsonParseError::MissingObject };
     jsonResponse = QJsonDocument::fromJson(rawResponse, &error);
-    return { error.error == QJsonParseError::NoError
-                 ? BaseJob::NoError
-                 : BaseJob::IncorrectResponse,
+    return { error.error == QJsonParseError::NoError ? NoError
+                                                     : IncorrectResponse,
              error.errorString() };
 }
 

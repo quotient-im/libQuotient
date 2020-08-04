@@ -53,6 +53,5 @@ BaseJob::Status MediaThumbnailJob::prepareResult()
     if (_thumbnail.loadFromData(data()->readAll()))
         return Success;
 
-    return { IncorrectResponseError,
-             QStringLiteral("Could not read image data") };
+    return { IncorrectResponse, QStringLiteral("Could not read image data") };
 }
