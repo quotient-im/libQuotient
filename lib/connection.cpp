@@ -508,7 +508,9 @@ void Connection::sync(int timeout)
                                   retriesTaken, nextInMilliseconds);
             });
     connect(job, &SyncJob::failure, this, [this, job] {
-        d->syncJob = nullptr;
+        // SyncJob persists with retries on transient errors; if it fails,
+        // there's likely something serious enough to stop the loop.
+        stopSync();
         if (job->error() == BaseJob::Unauthorised) {
             qCWarning(SYNCJOB)
                 << "Sync job failed with Unauthorised - login expired?";
@@ -742,7 +744,8 @@ void Connection::stopSync()
     disconnect(d->syncLoopConnection);
     if (d->syncJob) // If there's an ongoing sync job, stop it too
     {
-        d->syncJob->abandon();
+        if (d->syncJob->status().code == BaseJob::Pending)
+            d->syncJob->abandon();
         d->syncJob = nullptr;
     }
 }
