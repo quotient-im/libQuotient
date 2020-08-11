@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "converters.h"
 #include "event.h"
 #include "eventcontent.h"
 
