@@ -13,6 +13,7 @@ win32-msvc* {
     QMAKE_CXXFLAGS_WARN_ON *= -Wno-unused-parameter
 }
 
+DEFINES += QT_NO_JAVA_STYLE_ITERATORS
 contains(DEFINES, Quotient_E2EE_ENABLED=.) {
     contains(DEFINES, USE_INTREE_LIBQOLM=.) {
         include(3rdparty/libQtOlm/libQtOlm.pri)

@@ -49,11 +49,12 @@ if (MSVC)
         /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
-    foreach (FLAG all "" pedantic extra error=return-type no-unused-parameter
-                  no-gnu-zero-variadic-macro-arguments)
-        CHECK_CXX_COMPILER_FLAG("-W${FLAG}" WARN_${FLAG}_SUPPORTED)
-        if ( WARN_${FLAG}_SUPPORTED AND NOT CMAKE_CXX_FLAGS MATCHES "(^| )-W?${FLAG}($| )")
-            add_compile_options(-W${FLAG})
+    foreach (FLAG Wall W Wpedantic Wextra Werror=return-type Wno-unused-parameter
+            Wno-gnu-zero-variadic-macro-arguments fvisibility-inlines-hidden)
+        CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
+        if ( COMPILER_${FLAG}_SUPPORTED AND
+                NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
+            add_compile_options(-${FLAG})
         endif ()
     endforeach ()
 endif()
@@ -257,6 +258,11 @@ file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
 set(tests_SRCS tests/quotest.cpp)
 
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
+target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
+        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
+    target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
+endif ()
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
 endif()
