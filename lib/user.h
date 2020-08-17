@@ -163,7 +163,7 @@ signals:
 
 private slots: // TODO: remove in 0.7
     /// \deprecated
-    void updateName(const QString&, const Room* = nullptr);
+    void updateName(const QString& newName, const Room* r = nullptr);
     /// \deprecated
     void updateName(const QString&, const QString&, const Room* = nullptr);
     /// \deprecated
@@ -172,8 +172,5 @@ private slots: // TODO: remove in 0.7
 private:
     class Private;
     QScopedPointer<Private> d;
-
-    template <typename SourceT>
-    bool doSetAvatar(SourceT&& source);
 };
 } // namespace Quotient

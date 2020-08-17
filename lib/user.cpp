@@ -47,17 +47,40 @@ public:
     QString id;
     qreal hueF;
 
+    // In the following two, isNull/nullopt mean they are uninitialised;
+    // isEmpty/Avatar::url().isEmpty() mean they are initialised but empty.
     QString defaultName;
-    Avatar defaultAvatar;
+    std::optional<Avatar> defaultAvatar;
+
     // NB: This container is ever-growing. Even if the user no more scrolls
     // the timeline that far back, historical avatars are still kept around.
     // This is consistent with the rest of Quotient, as room timelines
-    // are never vacuumed either. This will probably change in the future.
+    // are never rotated either. This will probably change in the future.
     /// Map of mediaId to Avatar objects
     static UnorderedMap<QString, Avatar> otherAvatars;
+
+    void fetchProfile(const User* q);
+
+    template <typename SourceT>
+    bool doSetAvatar(SourceT&& source, User* q);
 };
 
 decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
+
+void User::Private::fetchProfile(const User* q)
+{
+    defaultAvatar.emplace(Avatar {});
+    defaultName = "";
+    auto* j = q->connection()->callApi<GetUserProfileJob>(BackgroundRequest, id);
+    // FIXME: accepting const User* and const_cast'ing it here is only
+    //        until we get a better User API in 0.7
+    QObject::connect(j, &BaseJob::success, q,
+                     [this, q = const_cast<User*>(q), j] {
+                         q->updateName(j->displayname());
+                         defaultAvatar->updateUrl(j->avatarUrl());
+                         emit q->avatarChanged(q, nullptr);
+                     });
+}
 
 User::User(QString userId, Connection* connection)
     : QObject(connection), d(new Private(move(userId)))
@@ -88,13 +111,29 @@ int User::hue() const { return int(hueF() * 359); }
 
 QString User::name(const Room* room) const
 {
-    return room ? room->getCurrentState<RoomMemberEvent>(id())->displayName()
-                : d->defaultName;
+    if (room)
+        return room->getCurrentState<RoomMemberEvent>(id())->displayName();
+
+    if (d->defaultName.isNull())
+        d->fetchProfile(this);
+
+    return d->defaultName;
 }
 
 QString User::rawName(const Room* room) const { return name(room); }
 
-void User::updateName(const QString&, const Room*) {}
+void User::updateName(const QString& newName, const Room* r)
+{
+    Q_ASSERT(r == nullptr);
+    if (newName == d->defaultName)
+        return;
+
+    emit nameAboutToChange(newName, d->defaultName, nullptr);
+    const auto& oldName =
+        std::exchange(d->defaultName, newName);
+    emit nameChanged(d->defaultName, oldName, nullptr);
+
+}
 void User::updateName(const QString&, const QString&, const Room*) {}
 void User::updateAvatarUrl(const QUrl&, const QUrl&, const Room*) {}
 
@@ -105,14 +144,9 @@ void User::rename(const QString& newName)
         return; // Nothing to do
 
     connect(connection()->callApi<SetDisplayNameJob>(id(), actualNewName),
-            &BaseJob::success, this, [this,actualNewName] {
-                if (actualNewName == d->defaultName)
-                    return; // Check again, it could have changed meanwhile
-
-                emit nameAboutToChange(actualNewName, d->defaultName, nullptr);
-                const auto& oldName =
-                    std::exchange(d->defaultName, actualNewName);
-                emit nameChanged(d->defaultName, oldName, nullptr);
+            &BaseJob::success, this, [this, actualNewName] {
+                d->fetchProfile(this);
+                updateName(actualNewName);
             });
 }
 
@@ -134,34 +168,42 @@ void User::rename(const QString& newName, const Room* r)
 }
 
 template <typename SourceT>
-inline bool User::doSetAvatar(SourceT&& source)
+bool User::Private::doSetAvatar(SourceT&& source, User* q)
 {
-    return d->defaultAvatar.upload(
-        connection(), source, [this](const QString& contentUri) {
-            auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
-            connect(j, &BaseJob::success, this,
-                    [this, newUrl = QUrl(contentUri)] {
-                        if (newUrl == d->defaultAvatar.url()) {
-                            qCWarning(MAIN) << "User" << id()
-                                            << "already has avatar URL set to"
-                                            << newUrl.toDisplayString();
-                            return;
-                        }
+    if (!defaultAvatar) {
+        defaultName = "";
+        defaultAvatar.emplace(Avatar {});
+    }
+    return defaultAvatar->upload(
+        q->connection(), source, [this, q](const QString& contentUri) {
+            auto* j =
+                q->connection()->callApi<SetAvatarUrlJob>(id, contentUri);
+            QObject::connect(j, &BaseJob::success, q,
+                             [this, q, newUrl = QUrl(contentUri)] {
+                                 // Fetch displayname to complete the profile
+                                 fetchProfile(q);
+                                 if (newUrl == defaultAvatar->url()) {
+                                     qCWarning(MAIN)
+                                         << "User" << id
+                                         << "already has avatar URL set to"
+                                         << newUrl.toDisplayString();
+                                     return;
+                                 }
 
-                        d->defaultAvatar.updateUrl(move(newUrl));
-                        emit avatarChanged(this, nullptr);
-                    });
+                                 defaultAvatar->updateUrl(move(newUrl));
+                                 emit q->avatarChanged(q, nullptr);
+                             });
         });
 }
 
 bool User::setAvatar(const QString& fileName)
 {
-    return doSetAvatar(fileName);
+    return d->doSetAvatar(fileName, this);
 }
 
 bool User::setAvatar(QIODevice* source)
 {
-    return doSetAvatar(source);
+    return d->doSetAvatar(source, this);
 }
 
 void User::requestDirectChat() { connection()->requestDirectChat(this); }
@@ -189,8 +231,12 @@ QString User::bridged() const { return {}; }
 
 const Avatar& User::avatarObject(const Room* room) const
 {
-    if (!room)
-        return d->defaultAvatar;
+    if (!room) {
+        if (!d->defaultAvatar) {
+            d->fetchProfile(this);
+        }
+        return *d->defaultAvatar;
+    }
 
     const auto& url = room->getCurrentState<RoomMemberEvent>(id())->avatarUrl();
     const auto& mediaId = url.authority() + url.path();
