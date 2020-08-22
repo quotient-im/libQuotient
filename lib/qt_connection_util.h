@@ -46,7 +46,7 @@ namespace _impl {
         // arguments are always copied (at best - COWed) to the context of
         // the slot. Therefore the slot decorator receives const ArgTs&...
         // rather than ArgTs&&...
-        // TODO: std::bind_front() instead of lambda.
+        // TODO (C++20): std::bind_front() instead of lambda.
         c = QObject::connect(sender, signal, context,
             [pc = std::move(pc),
              decoratedSlot = std::move(decoratedSlot)](const ArgTs&... args) {

@@ -200,6 +200,10 @@ using fn_arg_t =
 
 // TODO: get rid of it as soon as Apple Clang gets proper deduction guides
 //       for std::function<>
+//       ...or consider using QtPrivate magic used by QObject::connect()
+//       since wrap_in_function() is actually made for qt_connection_util.h
+//       ...for inspiration, also check a possible std::not_fn implementation at
+//       https://en.cppreference.com/w/cpp/utility/functional/not_fn
 template <typename FnT>
 inline auto wrap_in_function(FnT&& f)
 {
@@ -217,7 +221,7 @@ inline auto operator"" _ls(const char* s, std::size_t size)
  */
 template <typename ArrayT>
 class Range {
-    // Looking forward to C++23 ranges
+    // Looking forward to C++20 ranges
     using iterator = typename ArrayT::iterator;
     using const_iterator = typename ArrayT::const_iterator;
     using size_type = typename ArrayT::size_type;
