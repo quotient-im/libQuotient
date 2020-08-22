@@ -493,22 +493,14 @@ TEST_IMPL(changeName)
 {
     auto* const localUser = connection()->user();
     const auto& newName = connection()->generateTxnId(); // See setTopic()
+    clog << "Renaming the user to " << newName.toStdString() << endl;
     localUser->rename(newName);
-    connectUntil(targetRoom, &Room::memberRenamed, this,
-                 [this, thisTest, newName, localUser](const User* arrivedUser) {
-                     if (localUser != arrivedUser)
+    connectUntil(localUser, &User::nameChanged, this,
+                 [this, thisTest, newName](const QString& emittedName, QString,
+                                           const Room* r) {
+                     if (r != nullptr)
                          return false;
-
-                     const auto& arrivedNewName = arrivedUser->name(targetRoom);
-                     // Old names may diverge e.g. because the original name
-                     // hasn't been known to Quotient
-                     if (newName == arrivedNewName)
-                         FINISH_TEST(true);
-
-                     clog << "Names mismatch: found " << newName.toStdString()
-                          << " instead of " << arrivedNewName.toStdString()
-                          << "; waiting for the next event" << endl;
-                     return false;
+                     FINISH_TEST(emittedName == newName);
                  });
     return false;
 }
