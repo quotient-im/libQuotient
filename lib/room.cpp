@@ -2311,7 +2311,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
         }
 
-        qCDebug(STATE) << "Room" << q->objectName() << "received"
+        qCDebug(MESSAGES) << "Room" << q->objectName() << "received"
                        << totalInserted << "new events; the last event is now"
                        << timeline.back();
 
@@ -2326,7 +2326,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             if (q->readMarker(firstWriter) != timeline.crend()) {
                 roomChanges |=
                     promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
-                qCDebug(STATE)
+                qCDebug(MESSAGES)
                     << "Auto-promoted read marker for" << senderId
                     << "to" << *q->readMarker(firstWriter);
             }

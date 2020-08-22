@@ -132,7 +132,6 @@ void User::updateName(const QString& newName, const Room* r)
     const auto& oldName =
         std::exchange(d->defaultName, newName);
     emit nameChanged(d->defaultName, oldName, nullptr);
-
 }
 void User::updateName(const QString&, const QString&, const Room*) {}
 void User::updateAvatarUrl(const QUrl&, const QUrl&, const Room*) {}
