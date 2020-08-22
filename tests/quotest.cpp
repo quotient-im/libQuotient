@@ -495,12 +495,9 @@ TEST_IMPL(changeName)
     const auto& newName = connection()->generateTxnId(); // See setTopic()
     clog << "Renaming the user to " << newName.toStdString() << endl;
     localUser->rename(newName);
-    connectUntil(localUser, &User::nameChanged, this,
-                 [this, thisTest, newName](const QString& emittedName, QString,
-                                           const Room* r) {
-                     if (r != nullptr)
-                         return false;
-                     FINISH_TEST(emittedName == newName);
+    connectUntil(localUser, &User::defaultNameChanged, this,
+                 [this, thisTest, localUser, newName] {
+                     FINISH_TEST(localUser->name() == newName);
                  });
     return false;
 }
