@@ -126,32 +126,30 @@ QString Quotient::serverPart(const QString& mxId)
                         % ServerPartRegEx % ")$";
     static QRegularExpression parser(
         re,
-        QRegularExpression::UseUnicodePropertiesOption); // Because Asian
-                                                         // digits
+        QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
     return parser.match(mxId).captured(1);
 }
 
 // Tests for function_traits<>
 
-#ifdef Q_CC_CLANG
-#    pragma clang diagnostic push
-#    pragma ide diagnostic ignored "OCSimplifyInspection"
-#endif
 using namespace Quotient;
 
-int f();
-static_assert(std::is_same<fn_return_t<decltype(f)>, int>::value,
+int f_();
+static_assert(std::is_same<fn_return_t<decltype(f_)>, int>::value,
               "Test fn_return_t<>");
 
-void f1(int, QString);
-static_assert(std::is_same<fn_arg_t<decltype(f1), 1>, QString>::value,
+void f1_(int, QString);
+static_assert(std::is_same<fn_arg_t<decltype(f1_), 1>, QString>::value,
               "Test fn_arg_t<>");
 
 struct Fo {
     int operator()();
+    static constexpr auto l = [] { return 0.0f; };
 };
 static_assert(std::is_same<fn_return_t<Fo>, int>::value,
               "Test return type of function object");
+static_assert(std::is_same<fn_return_t<decltype(Fo::l)>, float>::value,
+              "Test return type of lambda");
 
 struct Fo1 {
     void operator()(int);
@@ -159,20 +157,10 @@ struct Fo1 {
 static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
               "Test fn_arg_t defaulting to first argument");
 
-#if (!defined(_MSC_VER) || _MSC_VER >= 1910)
-static auto l = [] { return 1; };
-static_assert(std::is_same<fn_return_t<decltype(l)>, int>::value,
-              "Test fn_return_t<> with lambda");
-#endif
-
 template <typename T>
-QString ft(T&&)
+static QString ft(T&&)
 {
     return {};
 }
 static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
               "Test function templates");
-
-#ifdef Q_CC_CLANG
-#    pragma clang diagnostic pop
-#endif
