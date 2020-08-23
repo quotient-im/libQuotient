@@ -215,9 +215,13 @@ bool User::isIgnored() const { return connection()->isIgnored(this); }
 
 QString User::displayname(const Room* room) const
 {
-    return room                       ? room->roomMembername(this)
-           : d->defaultName.isEmpty() ? d->id
-                                      : d->defaultName;
+    if (room)
+        return room->roomMembername(this);
+
+    if (auto n = name(); !n.isEmpty())
+        return n;
+
+    return d->id;
 }
 
 QString User::fullName(const Room* room) const
