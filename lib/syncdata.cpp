@@ -182,12 +182,8 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     accountData = load<Events>(json, "account_data"_ls);
     toDeviceEvents = load<Events>(json, "to_device"_ls);
 
-    auto deviceOneTimeKeysCountVariantHash =
-        json.value("device_one_time_keys_count"_ls).toObject().toVariantHash();
-    for (auto key : deviceOneTimeKeysCountVariantHash.keys()) {
-        deviceOneTimeKeysCount_.insert(
-            key, deviceOneTimeKeysCountVariantHash.value(key).toInt());
-    }
+    fromJson(json.value("device_one_time_keys_count"_ls),
+             deviceOneTimeKeysCount_);
 
     auto rooms = json.value("rooms"_ls).toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
