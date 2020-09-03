@@ -553,7 +553,7 @@ QStringList Room::localAliases() const
 QStringList Room::remoteAliases() const
 {
     QStringList result;
-    for (const auto& s : d->aliasServers)
+    for (const auto& s : std::as_const(d->aliasServers))
         result += d->getCurrentState<RoomAliasesEvent>(s)->aliases();
     return result;
 }

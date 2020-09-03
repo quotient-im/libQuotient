@@ -53,11 +53,12 @@ bool Settings::contains(const QString& key) const
 
 QStringList Settings::childGroups() const
 {
-    auto l = QSettings::childGroups();
-    for (const auto& g: legacySettings.childGroups())
-        if (!l.contains(g))
-            l.push_back(g);
-    return l;
+    auto groups = QSettings::childGroups();
+    const auto& legacyGroups = legacySettings.childGroups();
+    for (const auto& g: legacyGroups)
+        if (!groups.contains(g))
+            groups.push_back(g);
+    return groups;
 }
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
