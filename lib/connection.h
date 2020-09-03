@@ -418,7 +418,7 @@ public:
 
     /*! Start a pre-created job object on this connection */
     Q_INVOKABLE BaseJob* run(BaseJob* job,
-                         RunningPolicy runningPolicy = ForegroundRequest);
+                             RunningPolicy runningPolicy = ForegroundRequest);
 
     /*! Start a job of a specified type with specified arguments and policy
      *
