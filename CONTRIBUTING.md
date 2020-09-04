@@ -25,7 +25,7 @@ For general discussion, feel free to use our Matrix room:
 
 If you're new to the project (or FLOSS in general),
 [issues tagged as easy](https://github.com/quotient-im/libQuotient/labels/easy)
-are smaller tasks that may typically take 1-3 days.
+are smaller tasks that don't require much knowledge about the project.
 You are welcome aboard!
 
 ### Pull requests and different branches recommended
@@ -134,7 +134,8 @@ is not an option, use <tt>&lt;br&nbsp;/&gt;</tt> (an HTML break).
 
 ## End of TL;DR
 
-If you don't plan/have substantial contributions, you can end reading here. Further sections are for those who's going to actively hack on the library code.
+If you don't plan/have substantial contributions, you can stop reading here.
+Further sections are for those who's going to actively hack on the library code.
 
 ## Code changes
 
@@ -154,7 +155,7 @@ restrictions, notably:
 * enumerators and slots cannot have `[[attributes]]` because moc of Qt 5.9
   chokes on them. This will be lifted when we move on to Qt 5.12 for the oldest
   supported version.
-* things from `std::filesystem` cannot be used yet until we push the oldest
+* things from `std::filesystem` cannot be used until we push the oldest
   required g++/libc to version 8.
 
 The code style is defined by `.clang-format`, and in general, all C++ files
@@ -211,27 +212,25 @@ implementation details as much as possible. `_impl` namespace is reserved for
 definitions that should not be used by clients and are not covered by
 API guarantees.
 
-Note: As of now, all header files of libQuotient are considered public; this may change eventually.
+Note: As of now, all header files of libQuotient are considered public;
+this may change eventually.
 
 ### Comments
 
 Whenever you add a new call to the library API that you expect to be used
 from client code, you must supply a proper doc-comment along with the call.
-Doxygen style is preferred; but JavaDoc is acceptable too. Some parts are
+Doxygen style is preferred; but Javadoc is acceptable too. Some parts are
 not documented at all; adding doc-comments to them is highly encouraged.
 
-Doc-comments for summaries should be separate from those details. Either of
-the two following ways is fine, with considerable preference on the first one:
-1. Use `///` for the summary comment and `/*! ... */` for details.
-2. Use `\brief` (or `@brief`) for the summary, and follow with details after
-   an empty doc-comment line. You can use either of the delimiters in that case.
+Use `\brief` for the summary, and follow with details after
+an empty doc-comment line.
 
-In the code, the advice for commenting is as follows:
+For in-code comments, the advice is as follows:
 * Don't restate what's happening in the code unless it's not really obvious.
   We assume the readers to have at least some command of C++ and Qt. If your
   code is not obvious, consider rewriting it for clarity.
 * Both C++ and Qt still come with their arcane features and dark corners,
-  and we don't want to limit anybody who'd feels they have a case for
+  and we don't want to limit anybody who feels they have a case for
   variable templates, raw literals, or use `qAsConst` to avoid container
   detachment. Use your experience to figure what might be less well-known to
   readers and comment such cases (references to web pages, Quotient wiki etc.
@@ -266,42 +265,77 @@ tests can go async, which is the biggest hurdle for Qt Test adoption.
 
 ### Security, privacy, and performance
 
-Pay attention to security, and work *with* (not against) the usual security hardening mechanisms (however few in C++).
+Pay attention to security, and work *with*, not against, the usual security hardening practices (however few in C++).
 
-`char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers or at the very least `std::array<>` instead. Where you see fit (usually with data structures), try to use smart pointers, especially `std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing with `QObject`s, use the parent-child ownership semantics exercised by Qt (this is preferred to using smart pointers). Shared pointers are not used in the code so far; but if you find a particular use case where the strict semantic of unique pointers doesn't help and a shared pointer is necessary, feel free to step up with the working code and it will be considered for inclusion.
+`char *` and similar unchecked C-style read/write arrays are forbidden - use
+Qt containers or at the very least `std::array<>` instead. Where you see fit
+(usually with data structures), try to use smart pointers, especially
+`std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing
+with `QObject`s, use the parent-child ownership semantics exercised by Qt
+(this is preferred to using smart pointers). If you find a particular use case
+where the strict semantic of unique pointers doesn't help and a shared pointer
+is necessary, feel free to step up with the working code and it will be
+considered for inclusion.
 
 Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
 
-Protect private information, in particular passwords and email addresses. Absolutely _don't_ spill around this information in logs - use `access_token` and similar opaque ids instead, and only display those in UI where needed. Do not forget about local access to data (in particular, be very careful when storing something in temporary files, let alone permanent configuration or state). Avoid mechanisms that could be used for tracking where possible (we do need to verify people are logged in but that's pretty much it), and ensure that third parties can't use interactions for tracking. Matrix protocols evolve towards decoupling the personally identifiable information from user activity entirely - follow this trend.
+Protect private information, in particular passwords and email addresses.
+Absolutely _don't_ spill around this information in logs, and only display
+those in UI where really needed. Do not forget about local access to data
+(in particular, be very careful when storing something in temporary files,
+let alone permanent configuration or state). Avoid mechanisms that could be
+used for tracking where possible (we do need to verify people are logged in
+but that's pretty much it), and ensure that third parties can't use interactions
+for tracking. Matrix protocols evolve towards decoupling
+the personally identifiable information from user activity entirely - follow
+this trend.
 
-We want the software to have decent performance for typical users. At the same time we keep libQuotient single-threaded as much as possible, to keep the code simple. That means being cautious about operation complexity (read about big-O notation if you need a kickstart on the topic). This especially refers to operations on the whole timeline and the list of users - each of these can have tens of thousands of elements so even operations with linear complexity, if heavy enough, can produce noticeable GUI freezing. When you don't see a way to reduce algorithmic complexity, embed occasional `processEvents()` invocations in heavy loops (see `Connection::saveState()` to get the idea).
+We want the software to have decent performance for users even on weaker
+machines. At the same time we keep libQuotient single-threaded as much
+as possible, to keep the code simple. That means being cautious about operation
+complexity (read about big-O notation if you need a kickstart on the topic).
+This especially refers to operations on the whole timeline and the list of
+users - each of these can have tens of thousands of elements so even operations
+with linear complexity, if heavy enough (with I/O or complex processing),
+can produce noticeable GUI freezing or stuttering. When you don't see a way
+to reduce algorithmic complexity, embed occasional `processEvents()` invocations
+in heavy loops (see `Connection::saveState()` to get the idea).
 
 Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
 
 Speaking of profiling logs (see README.md on how to turn them on) - in order
 to reduce small timespan logging spam, there's a default limit of at least
-200 microseconds to log most operations with the PROFILER
-(aka quotient.profile.debug) logging category. You can override this
-limit by passing the new value (in microseconds) in PROFILER_LOG_USECS to
-the compiler. In the future, this parameter will be made changeable at runtime
-_if_ needed.
+200 microseconds to log most operations with the `PROFILER`
+(aka `quotient.profile.debug`) logging category. You can override this
+limit by passing the new value (in microseconds) in `PROFILER_LOG_USECS`
+definition to the compiler. If you happen to need to change it in runtime,
+let me (`@kitsune`) know.
 
 ### Generated C++ code for CS API
-The code in lib/csapi, lib/identity and lib/application-service, although
-it resides in Git, is actually generated from (a soft fork of) the official
-Matrix Swagger/OpenAPI definition files. Do not edit C++ files
-in these directories by hand!
-
-Now, if you're unhappy with something in there and want to improve the code,
-you have to understand the way these files are produced and setup
+The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
+it resides in Git, is actually generated from the official Swagger/OpenAPI
+definition files. If you're unhappy with something in there and want to improve
+the code, you have to understand the way these files are produced and setup
 some additional tooling. The shortest possible procedure resembling
 the below text can be found in .travis.yml (our Travis CI configuration
 actually regenerates those files upon every build). As described below,
 there is a handy build target for CMake; patches with a similar target
 for qmake are (you guessed it) very welcome.
+BACKUP
+ You can edit C++ files in these directories by hand but be
+aware that any `make update-api` invocation will overwrite your changes.
+If you also happen to change the API definition files, you should place the new
+revision of the generated C++ files in a separate commit.
 
 #### Why generate the code at all?
-Because before both original authors of libQuotient had to do monkey business of writing boilerplate code, with the same patterns, types etc., literally, for every single API endpoint, and one of the authors got fed up with it at some point in time. By then about 15 job classes were written; the entire API counts about 100 endpoints. Besides, the existing jobs had to be updated according to changes in CS API that have been, and will keep, coming. Other considerations can be found in [this talk about API description languages that briefly touches on GTAD](https://youtu.be/W5TmRozH-rg).
+Because otherwise we have to do monkey business of writing boilerplate code,
+with the same patterns, types etc., literally, for every single API endpoint,
+and one of libQuotient authors got fed up with it at some point in time.
+By then about 15 job classes were written; the entire API is about 100 endpoints
+and counting. Besides, the existing jobs had to be updated according to changes
+in CS API that have been, and will keep, coming. Other considerations can be
+found in [this talk about API description languages](https://youtu.be/W5TmRozH-rg)
+that also briefly touches on GTAD.
 
 #### Prerequisites for CS API code generation
 1. Get the source code of GTAD and its dependencies, e.g. using the command:
@@ -309,15 +343,16 @@ Because before both original authors of libQuotient had to do monkey business of
 2. Build GTAD: in the source code directory, do `cmake . && cmake --build .`
    (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`,
    similar to libQuotient itself).
-3. Get the Matrix CS API definitions that are included in the matrix-doc repo:
-   `git clone https://github.com/quotient-im/matrix-doc.git`.
-   The fork at `quotient-im/matrix-doc` is closely following the official
-   repo (`matrix-org/matrix-doc`), curating commits that are known to produce
-   working code for Quotient. You may want to use your own fork if you wish
-   to alter something in the API.
+3. Get the Matrix CS API definitions that are included in a matrix-doc repo.
+   You can `git clone https://github.com/matrix-org/matrix-doc.git`,
+   the official repo; it's recommended though to instead
+   `git clone https://github.com/quotient-im/matrix-doc.git` - this repo closely
+   follows the official one, with an additional guarantee that you can always
+   generate working Quotient code from its HEAD commit. And of course you
+   can use your own repository if you need to change the API definition.
 4. If you plan to submit a PR or just would like the generated code to be
-   formatted, you should either ensure you have clang-format (version 6 at least)
-   in your PATH or pass the _absolute_ path to it by adding
+   properly formatted, you should either ensure you have clang-format
+   (version 6 at least) in your PATH or pass the _absolute_ path to it by adding
    `-DCLANG_FORMAT=<absolute path>` to the CMake invocation below.
 
 #### Generating CS API contents
@@ -332,24 +367,29 @@ Because before both original authors of libQuotient had to do monkey business of
    files in `lib/csapi`, `lib/identity`, `lib/application-service` for all
    YAML files it can find in `matrix-doc/api/client-server` and other files
    in `matrix-doc/api` these depend on.
-3. Re-run CMake so that the build system knows about new files, if there are any.
+3. Re-run CMake so that the build system knows about new files, if there are any
+   (this step is unnecessary if you use CMake 3.12 or later).
 
 #### Changing generated code
 See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQuotient are described here.
 
 GTAD uses the following three kinds of sources:
-1. OpenAPI files. Each file is treated as a separate source (because this is how GTAD works now).
-2. A configuration file, in our case it's lib/csapi/gtad.yaml - this one is common for the whole API.
-3. Source code template files: lib/csapi/{{base}}.*.mustache - also common.
+1. OpenAPI files. Each file is treated as a separate source (if you worked with
+   swagger-codegen - you do _not_ need to have a single file for the whole API).
+2. A configuration file, in our case it's `gtad/gtad.yaml` - this one is common
+   for all OpenAPI files GTAD is invoked on.
+3. Source code template files: `gtad/*.mustache` - are also common.
 
-The mustache files have a templated (not in C++ sense) definition of a network
-job, deriving from BaseJob; each job class is prepended, if necessary, with
-data structure definitions used by this job. The look of those files is hideous
-for a newcomer; and the only known highlighter that can handle the combination
-of Mustache (originally a web templating language) and C++ is provided in CLion.
-To slightly simplify things some more or less generic constructs are defined
-in gtad.yaml (see its "mustache:" section). Adventurous souls that would like
-to figure what's going on in these files should speak up in the Quotient room -
+The Mustache files have a templated (not in C++ sense) definition of a network
+job, deriving from BaseJob; if necessary, data structure definitions used
+by this job are put before the job class. Bigger Mustache files look a bit
+hideous for a newcomer; and the only known highlighter that can handle
+the combination of Mustache (originally a web templating language) and C++ is
+provided in CLion IDE. Fortunately, all our Mustache files are reasonably
+concise and well-formatted these days.
+To simplify things some reusable Mustache blocks are defined in `gtad.yaml` -
+see its `mustache:` section. Adventurous souls that would like  to figure
+what's going on in these files should speak up in the Quotient room -
 I (Kitsune) will be very glad to help you out.
 
 The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
@@ -399,6 +439,39 @@ notices that are easy to overlook otherwise, such as possible unintended copying
 of a Qt container, or unguarded null pointers. You can use this time to time
 (see Analyze menu in Qt Creator) instead of hogging your machine with
 deep analysis as you type.
+
+### Submitting API changes
+
+If you changed the API definitions, the path to upstream becomes somewhat
+intricate, as you have to coordinate with two projects, making up to 4 PRs along
+the way. The recommended sequence depends on whether or not you have to
+[write an Matrix Spec Change aka MSC](https://matrix.org/docs/spec/proposals).
+Usually you have to, unless your API changes keep API semantics intact.
+In that case:
+1. Submit an MSC before submitting changes to the API definition files and
+   libQuotient.
+2. The MSC gets reviewed by the Spec Core Team. This can be a lengthy process
+   but it's necessary for the Matrix ecosystem integrity.
+3. When your MSC has at least some approvals (not necessarily a complete
+   acceptance but at least some approvals should be there) submit a PR to
+   libQuotient, referring to your `matrix-doc` repo. Make sure that generated
+   files are committed separately from non-generated ones (no need to make two
+   PRs; just separate them in different commits).
+4. If your libQuotient PR is approved and MSC is not there yet you'll be asked
+   to submit a PR with API definition files at
+   `https://github.com/quotient-im/matrix-doc`. Note that this is _not_
+   an official repo; but you can refer to your libQuotient PR as
+   an _implementation_ of the MSC - a necessary step before making a so-called
+   "spec PR".
+5. Once MSC is accepted, submit your `matrix-doc` changes as a PR to
+   `https://github.com/matrix-org/matrix-doc` (the "spec PR" mentioned above).
+   This will require that your submission meets the standards set by this
+   project (they are quite reasonable and not too hard to meet).
+
+If your changes don't need an MSC, it becomes a more straightforward combination
+of 2 PRs: one to `https://github.com/matrix-org/matrix-doc` ("spec PR") and one
+to libQuotient (with the same guidance about putting generated and non-generated
+files in different commits).
 
 ## Git commit messages
 

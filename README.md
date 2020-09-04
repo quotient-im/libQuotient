@@ -59,8 +59,18 @@ Just install things from the list above using your preferred package manager. If
 `brew install qt5` should get you a recent Qt5. If you plan to use CMake, you will need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=$(brew --prefix qt5)`
 
 #### Windows
-1. Install Qt5, using their official installer.
-1. If you plan to build with CMake, install CMake; if you're ok with qmake, you don't need to install anything on top of Qt. The commands in further sections imply that cmake/qmake is in your PATH - otherwise you have to prepend those commands with actual paths. As an option, it's a good idea to run a `qtenv2.bat` script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`); the only thing it does is adding necessary paths to PATH. You might not want to run that script on system startup but it's very handy to setup the environment before building. For CMake, setting `CMAKE_PREFIX_PATH` in the same way as for macOS (see above), also helps.
+Install Qt5, using their official installer; if you plan to build with CMake,
+make sure to tick the CMake box in the list of installed components.
+
+The commands in further sections imply that cmake/qmake is in your PATH,
+otherwise you have to prepend those commands with actual paths. As an option
+it's a good idea to run a `qtenv2.bat` script that can be found in
+`C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`);
+the only thing it does is adding necessary paths to PATH. You might not want
+to run that script on system startup but it's very handy to setup
+the environment before building. For CMake you can alternatively point
+`CMAKE_PREFIX_PATH` to your Qt installation and leave PATH unchanged; but
+in that case you'll have to supply the full path to CMake when calling it.
 
 ### Using the library
 If you use CMake, `find_package(Quotient)` sets up the client code to use
@@ -70,14 +80,13 @@ introducing a submodule in your source tree and build it along with the rest
 of the application for now. Note also that qmake is considered for phase-out
 in Qt 6 so you should probably think of moving over to CMake eventually.
 
-Building with dynamic linkage are only tested on Linux at the moment and are
+Building with dynamic linkage is only tested on Linux at the moment and is
 a recommended way of linking your application with libQuotient on this platform.
-Feel free 
 Static linkage is the default on Windows/macOS; feel free to experiment
 with dynamic linking and submit PRs if you get reusable results.
 
-The example/test application that comes with libQuotient,
-[quotest](tests) includes most common use cases such as sending messages, uploading files,
+[Quotest](tests), the test application that comes with libQuotient, includes
+most common use cases such as sending messages, uploading files,
 setting room state etc.; for more extensive usage check out the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion)
 (the reference client of Quotient) or [Spectral](https://gitlab.com/b0/spectral).
