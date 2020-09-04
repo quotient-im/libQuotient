@@ -310,9 +310,11 @@ Because before both original authors of libQuotient had to do monkey business of
    (you might need to pass `-DCMAKE_PREFIX_PATH=<path to Qt>`,
    similar to libQuotient itself).
 3. Get the Matrix CS API definitions that are included in the matrix-doc repo:
-   `git clone https://github.com/quotient-im/matrix-doc.git`
-   (quotient-im/matrix-doc is a fork that's known to produce working code;
-   you may want to use your own fork if you wish to alter something in the API).
+   `git clone https://github.com/quotient-im/matrix-doc.git`.
+   The fork at `quotient-im/matrix-doc` is closely following the official
+   repo (`matrix-org/matrix-doc`), curating commits that are known to produce
+   working code for Quotient. You may want to use your own fork if you wish
+   to alter something in the API.
 4. If you plan to submit a PR or just would like the generated code to be
    formatted, you should either ensure you have clang-format (version 6 at least)
    in your PATH or pass the _absolute_ path to it by adding
@@ -320,7 +322,7 @@ Because before both original authors of libQuotient had to do monkey business of
 
 #### Generating CS API contents
 1. Pass additional configuration to CMake when configuring libQuotient:
-   `-DMATRIX_DOC_PATH=<path you your matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`.
+   `-DMATRIX_DOC_PATH=<path to matrix-doc repo> -DGTAD_PATH=<path to gtad binary (not the repo!)>`.
    If everything's right, these two CMake variables will be mentioned in
    CMake output and will trigger configuration of an additional build target,
    see the next step.
