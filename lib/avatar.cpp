@@ -45,7 +45,7 @@ public:
 
     QImage get(Connection* connection, QSize size,
                get_callback_t callback) const;
-    bool upload(UploadContentJob* job, upload_callback_t callback);
+    bool upload(UploadContentJob* job, upload_callback_t&& callback);
 
     bool checkUrl(const QUrl& url) const;
     QString localFile() const;
@@ -154,7 +154,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
     return result;
 }
 
-bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t callback)
+bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t &&callback)
 {
     _uploadRequest = job;
     if (!isJobRunning(_uploadRequest))

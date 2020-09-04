@@ -326,7 +326,7 @@ public:
                            const QStringList& previousRoomAliases,
                            const QStringList& roomAliases);
     Q_INVOKABLE Quotient::Room* invitation(const QString& roomId) const;
-    Q_INVOKABLE Quotient::User* user(const QString& userId);
+    Q_INVOKABLE Quotient::User* user(const QString& uId);
     const User* user() const;
     User* user();
     QString userId() const;

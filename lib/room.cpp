@@ -296,8 +296,8 @@ public:
     void dropDuplicateEvents(RoomEvents& events) const;
 
     Changes setLastReadEvent(User* u, QString eventId);
-    void updateUnreadCount(rev_iter_t from, rev_iter_t to);
-    Changes promoteReadMarker(User* u, rev_iter_t newMarker, bool force = false);
+    void updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
+    Changes promoteReadMarker(User* u, const rev_iter_t& newMarker, bool force = false);
 
     Changes markMessagesAsRead(rev_iter_t upToMarker);
 
@@ -640,7 +640,8 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
     return Change::NoChange;
 }
 
-void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
+void Room::Private::updateUnreadCount(const rev_iter_t& from,
+                                      const rev_iter_t& to)
 {
     Q_ASSERT(from >= timeline.crbegin() && from <= timeline.crend());
     Q_ASSERT(to >= from && to <= timeline.crend());
@@ -682,7 +683,8 @@ void Room::Private::updateUnreadCount(rev_iter_t from, rev_iter_t to)
     }
 }
 
-Room::Changes Room::Private::promoteReadMarker(User* u, rev_iter_t newMarker,
+Room::Changes Room::Private::promoteReadMarker(User* u,
+                                               const rev_iter_t& newMarker,
                                                bool force)
 {
     Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
@@ -1242,6 +1244,7 @@ QList<User*> Room::users() const { return d->membersMap.values(); }
 QStringList Room::memberNames() const
 {
     QStringList res;
+    res.reserve(d->membersMap.size());
     for (auto u : qAsConst(d->membersMap))
         res.append(roomMembername(u));
 
@@ -1686,7 +1689,7 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     uploadFile(txnId, localPath);
     // Below, the upload job is used as a context object to clean up connections
     connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
-            [this, txnId](const QString& id, QUrl, const QUrl& mxcUri) {
+            [this, txnId](const QString& id, const QUrl&, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
                     if (it != d->unsyncedEvents.end()) {

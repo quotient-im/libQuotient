@@ -930,7 +930,7 @@ void Connection::doInDirectChat(User* u,
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.
     DirectChatsMap removals;
-    for (auto it = d->directChats.find(u);
+    for (auto it = std::as_const(d->directChats).find(u);
          it != d->directChats.end() && it.key() == u; ++it) {
         const auto& roomId = *it;
         if (auto r = room(roomId, JoinState::Join)) {
@@ -1231,7 +1231,7 @@ int Connection::roomsCount(JoinStates joinStates) const
 {
     // Using int to maintain compatibility with QML
     // (consider also that QHash<>::size() returns int anyway).
-    return int(std::count_if(d->roomMap.begin(), d->roomMap.end(),
+    return int(std::count_if(d->roomMap.cbegin(), d->roomMap.cend(),
                              [joinStates](Room* r) {
                                  return joinStates.testFlag(r->joinState());
                              }));
@@ -1296,7 +1296,8 @@ QStringList Connection::tagNames() const
 QVector<Room*> Connection::roomsWithTag(const QString& tagName) const
 {
     QVector<Room*> rooms;
-    std::copy_if(d->roomMap.begin(), d->roomMap.end(), std::back_inserter(rooms),
+    std::copy_if(d->roomMap.cbegin(), d->roomMap.cend(),
+                 std::back_inserter(rooms),
                  [&tagName](Room* r) { return r->tags().contains(tagName); });
     return rooms;
 }
