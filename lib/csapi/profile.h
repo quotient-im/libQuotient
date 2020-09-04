@@ -24,7 +24,7 @@ public:
      *   The new display name for this user.
      */
     explicit SetDisplayNameJob(const QString& userId,
-                               const QString& displayname = {});
+                               const QString& displayname);
 };
 
 /*! \brief Get the user's display name.
@@ -73,8 +73,7 @@ public:
      * \param avatarUrl
      *   The new avatar URL for this user.
      */
-    explicit SetAvatarUrlJob(const QString& userId,
-                             const QString& avatarUrl = {});
+    explicit SetAvatarUrlJob(const QString& userId, const QString& avatarUrl);
 };
 
 /*! \brief Get the user's avatar URL.

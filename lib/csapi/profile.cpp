@@ -15,7 +15,7 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId,
                   % "/displayname")
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("displayname"), displayname);
+    addParam<>(_data, QStringLiteral("displayname"), displayname);
     setRequestData(std::move(_data));
 }
 
@@ -39,7 +39,7 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl
                   % "/avatar_url")
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("avatar_url"), avatarUrl);
+    addParam<>(_data, QStringLiteral("avatar_url"), avatarUrl);
     setRequestData(std::move(_data));
 }
 
