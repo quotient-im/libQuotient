@@ -60,6 +60,8 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
         QStringLiteral(
             R"((^|[^<>/])([!#@][-a-z0-9_=#/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
         RegExpOptions);
+    Q_ASSERT(FullUrlRegExp.isValid() && EmailAddressRegExp.isValid()
+             && MxIdRegExp.isValid());
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
@@ -127,6 +129,7 @@ QString Quotient::serverPart(const QString& mxId)
     static QRegularExpression parser(
         re,
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
+    Q_ASSERT(parser.isValid());
     return parser.match(mxId).captured(1);
 }
 
