@@ -1151,7 +1151,7 @@ User* Connection::user(const QString& uId)
 {
     if (uId.isEmpty())
         return nullptr;
-    if (!uId.startsWith('@') || !uId.contains(':')) {
+    if (!uId.startsWith('@') || serverPart(uId).isEmpty()) {
         qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
