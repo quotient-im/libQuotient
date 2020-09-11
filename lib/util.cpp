@@ -116,13 +116,13 @@ qreal Quotient::stringToHueF(const QString& s)
 }
 
 static const auto ServerPartRegEx = QStringLiteral(
-    "(\\[[^]]+\\]|[^:@]+)" // Either IPv6 address or hostname/IPv4 address
+    "(\\[[^][:blank:]]+\\]|[-[:alnum:].]+)" // Either IPv6 address or hostname/IPv4 address
     "(?::(\\d{1,5}))?" // Optional port
 );
 
 QString Quotient::serverPart(const QString& mxId)
 {
-    static QString re = "^[@!#$+].+?:(" // Localpart and colon
+    static QString re = "^[@!#$+].*?:(" // Localpart and colon
                         % ServerPartRegEx % ")$";
     static QRegularExpression parser(
         re,
