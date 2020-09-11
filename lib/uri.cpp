@@ -134,7 +134,7 @@ QUrl Uri::toUrl(UriForm form) const
     url.setScheme("https");
     url.setHost("matrix.to");
     url.setPath("/");
-    auto fragment = primaryId();
+    auto fragment = '/' + primaryId();
     if (const auto& secId = secondaryId(); !secId.isEmpty())
         fragment += '/' + secId;
     if (const auto& q = query(); !q.isEmpty())

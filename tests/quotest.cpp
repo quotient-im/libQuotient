@@ -649,6 +649,11 @@ TEST_IMPL(visitResources)
             Uri uri { uriString };
             clog << "Checking " << uriString.toStdString()
                  << " -> " << uri.toDisplayString().toStdString() << endl;
+            if (auto matrixToUrl = uri.toUrl(Uri::MatrixToUri).toDisplayString();
+                !matrixToUrl.startsWith("https://matrix.to/#/")) {
+                clog << "Incorrect matrix.to representation:"
+                     << matrixToUrl.toStdString() << endl;
+            }
             ud.visitResource(connection(), uriString);
             if (spy.count() != 1) {
                 clog << "Wrong number of signal emissions (" << spy.count()
