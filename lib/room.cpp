@@ -205,7 +205,7 @@ public:
     /// A point in the timeline corresponding to baseState
     rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
 
-    void getPreviousContent(int limit = 10);
+    void getPreviousContent(int limit = 10, const QString &filter = {});
 
     const StateEventBase* getCurrentState(const StateEventKey& evtKey) const
     {
@@ -1832,15 +1832,15 @@ void Room::hangupCall(const QString& callId)
     d->sendEvent<CallHangupEvent>(callId);
 }
 
-void Room::getPreviousContent(int limit) { d->getPreviousContent(limit); }
+void Room::getPreviousContent(int limit, const QString &filter) { d->getPreviousContent(limit, filter); }
 
-void Room::Private::getPreviousContent(int limit)
+void Room::Private::getPreviousContent(int limit, const QString &filter)
 {
     if (isJobRunning(eventsHistoryJob))
         return;
 
     eventsHistoryJob =
-        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit);
+        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [=] {
         prevBatch = eventsHistoryJob->end();
