@@ -118,7 +118,7 @@ qreal Quotient::stringToHueF(const QString& s)
 }
 
 static const auto ServerPartRegEx = QStringLiteral(
-    "(\\[[^][:blank:]]+\\]|[-[:alnum:].]+)" // Either IPv6 address or hostname/IPv4 address
+    "(\\[[^][:space:]]+]|[-[:alnum:].]+)" // IPv6 address or hostname/IPv4 address
     "(?::(\\d{1,5}))?" // Optional port
 );
 
