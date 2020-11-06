@@ -222,7 +222,7 @@ public:
      *
      * \param logoutDevices
      *   Whether the user's other access tokens, and their associated devices,
-     * should be revoked if the request succeeds. Defaults to true.
+     * should be revoked if the request succeeds.
      *
      *   When ``false``, the server can still take advantage of `the soft logout
      * method <#soft-logout>`_ for the user's remaining devices.
@@ -232,7 +232,7 @@ public:
      * authentication API.
      */
     explicit ChangePasswordJob(const QString& newPassword,
-                               Omittable<bool> logoutDevices = none,
+                               bool logoutDevices = true,
                                const Omittable<AuthenticationData>& auth = none);
 };
 

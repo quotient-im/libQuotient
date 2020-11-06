@@ -58,7 +58,7 @@ RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
 }
 
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
-                                     Omittable<bool> logoutDevices,
+                                     bool logoutDevices,
                                      const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("ChangePasswordJob"),
               QStringLiteral("/_matrix/client/r0") % "/account/password")
