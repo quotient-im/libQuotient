@@ -1241,12 +1241,27 @@ QList<User*> Room::membersLeft() const { return d->membersLeft; }
 
 QList<User*> Room::users() const { return d->membersMap.values(); }
 
-QStringList Room::memberNames() const
+[[deprecated]] QStringList Room::memberNames() const
+{
+    return safeMemberNames();
+}
+
+QStringList Room::safeMemberNames() const
 {
     QStringList res;
     res.reserve(d->membersMap.size());
-    for (auto u : qAsConst(d->membersMap))
-        res.append(roomMembername(u));
+    for (auto u: std::as_const(d->membersMap))
+        res.append(safeMemberName(u->id()));
+
+    return res;
+}
+
+QStringList Room::htmlSafeMemberNames() const
+{
+    QStringList res;
+    res.reserve(d->membersMap.size());
+    for (auto u: std::as_const(d->membersMap))
+        res.append(htmlSafeMemberName(u->id()));
 
     return res;
 }
@@ -1411,37 +1426,71 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
     return insertedSize;
 }
 
+QString Room::memberName(const QString& mxId) const
+{
+    // See https://github.com/matrix-org/matrix-doc/issues/1375
+    const auto rme = getCurrentState<RoomMemberEvent>(mxId);
+    return rme->newDisplayName() ? *rme->newDisplayName()
+        : rme->prevContent() ? rme->prevContent()->displayName.value_or(QString())
+        : QString();
+}
+
 QString Room::roomMembername(const User* u) const
+{
+    Q_ASSERT(u != nullptr);
+    return disambiguatedMemberName(u->id());
+}
+
+QString Room::roomMembername(const QString& userId) const
+{
+    return disambiguatedMemberName(userId);
+}
+
+inline QString makeFullUserName(const QString& displayName, const QString& mxId)
+{
+    return displayName % " (" % mxId % ')';
+}
+
+QString Room::disambiguatedMemberName(const QString& mxId) const
 {
     // See the CS spec, section 11.2.2.3
 
-    const auto username = u->name(this);
+    const auto username = memberName(mxId);
     if (username.isEmpty())
-        return u->id();
+        return mxId;
 
     auto namesakesIt = qAsConst(d->membersMap).find(username);
 
     // We expect a user to be a member of the room - but technically it is
-    // possible to invoke roomMemberName() even for non-members. In such case
+    // possible to invoke this function even for non-members. In such case
     // we return the full name, just in case.
     if (namesakesIt == d->membersMap.cend())
-        return u->fullName(this);
+        return makeFullUserName(username, mxId);
 
     auto nextUserIt = namesakesIt;
     if (++nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
         return username; // No disambiguation necessary
 
-    return u->fullName(this); // Disambiguate fully
-}
-
-QString Room::roomMembername(const QString& userId) const
-{
-    return roomMembername(user(userId));
+    return makeFullUserName(username, mxId); // Disambiguate fully
 }
 
 QString Room::safeMemberName(const QString& userId) const
 {
     return sanitized(roomMembername(userId));
+}
+
+QString Room::htmlSafeMemberName(const QString& userId) const
+{
+    return safeMemberName(userId).toHtmlEscaped();
+}
+
+QUrl Room::memberAvatarUrl(const QString &mxId) const
+{
+    // See https://github.com/matrix-org/matrix-doc/issues/1375
+    const auto rme = getCurrentState<RoomMemberEvent>(mxId);
+    return rme->newAvatarUrl() ? *rme->newAvatarUrl()
+        : rme->prevContent() ? rme->prevContent()->avatarUrl.value_or(QUrl())
+        : QUrl();
 }
 
 void Room::updateData(SyncRoomData&& data, bool fromCache)
@@ -2422,8 +2471,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         case MembershipType::Join:
             switch (rme.membership()) {
             case MembershipType::Join: // rename/avatar change or no-op
-                if (rme.displayName() != oldRme->displayName()) {
-                    emit memberAboutToRename(u, rme.displayName());
+                if (rme.newDisplayName()) {
+                    emit memberAboutToRename(u, *rme.newDisplayName());
                     d->removeMemberFromMap(u->name(this), u);
                 }
                 break;
@@ -2517,11 +2566,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     d->insertMemberIntoMap(u);
                     emit userAdded(u);
                 } else {
-                    if (oldMemberEvent->displayName() != evt.displayName()) {
+                    if (evt.newDisplayName()) {
                         d->insertMemberIntoMap(u);
                         emit memberRenamed(u);
                     }
-                    if (oldMemberEvent->avatarUrl() != evt.avatarUrl())
+                    if (evt.newAvatarUrl())
                         emit memberAvatarChanged(u);
                 }
                 break;
@@ -2858,12 +2907,12 @@ MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
-    return operator()(u1, room->roomMembername(u2));
+    return operator()(u1, room->disambiguatedMemberName(u2->id()));
 }
 
 bool MemberSorter::operator()(User* u1, const QString& u2name) const
 {
-    auto n1 = room->roomMembername(u1);
+    auto n1 = room->disambiguatedMemberName(u1->id());
     if (n1.startsWith('@'))
         n1.remove(0, 1);
     auto n2 = u2name.midRef(u2name.startsWith('@') ? 1 : 0);

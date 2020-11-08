@@ -24,7 +24,7 @@
 namespace Quotient {
 class MemberEventContent : public EventContent::Base {
 public:
-    enum MembershipType : size_t {
+    enum MembershipType : unsigned char {
         Invite = 0,
         Join,
         Knock,
@@ -38,8 +38,8 @@ public:
 
     MembershipType membership;
     bool isDirect = false;
-    QString displayName;
-    QUrl avatarUrl;
+    Omittable<QString> displayName;
+    Omittable<QUrl> avatarUrl;
     QString reason;
 
 protected:
@@ -84,8 +84,16 @@ public:
     MembershipType membership() const { return content().membership; }
     QString userId() const { return fullJson()[StateKeyKeyL].toString(); }
     bool isDirect() const { return content().isDirect; }
-    QString displayName() const { return content().displayName; }
-    QUrl avatarUrl() const { return content().avatarUrl; }
+    Omittable<QString> newDisplayName() const { return content().displayName; }
+    Omittable<QUrl> newAvatarUrl() const { return content().avatarUrl; }
+    [[deprecated("Use newDisplayName() instead")]] QString displayName() const
+    {
+        return newDisplayName().value_or(QString());
+    }
+    [[deprecated("Use newAvatarUrl() instead")]] QUrl avatarUrl() const
+    {
+        return newAvatarUrl().value_or(QUrl());
+    }
     QString reason() const { return content().reason; }
     bool changesMembership() const;
     bool isBan() const;

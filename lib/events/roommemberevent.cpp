@@ -50,10 +50,13 @@ using namespace Quotient;
 MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"_ls]))
     , isDirect(json["is_direct"_ls].toBool())
-    , displayName(sanitized(json["displayname"_ls].toString()))
-    , avatarUrl(json["avatar_url"_ls].toString())
+    , displayName(fromJson<Omittable<QString>>(json["displayname"_ls]))
+    , avatarUrl(fromJson<Omittable<QUrl>>(json["avatar_url"_ls]))
     , reason(json["reason"_ls].toString())
-{}
+{
+    if (displayName)
+        displayName = sanitized(*displayName);
+}
 
 void MemberEventContent::fillJson(QJsonObject* o) const
 {
@@ -62,9 +65,10 @@ void MemberEventContent::fillJson(QJsonObject* o) const
                "The key 'membership' must be explicit in MemberEventContent");
     if (membership != MembershipType::Undefined)
         o->insert(QStringLiteral("membership"), membershipStrings[membership]);
-    o->insert(QStringLiteral("displayname"), displayName);
-    if (avatarUrl.isValid())
-        o->insert(QStringLiteral("avatar_url"), avatarUrl.toString());
+    if (displayName)
+        o->insert(QStringLiteral("displayname"), *displayName);
+    if (avatarUrl && avatarUrl->isValid())
+        o->insert(QStringLiteral("avatar_url"), avatarUrl->toString());
     if (!reason.isEmpty())
         o->insert(QStringLiteral("reason"), reason);
 }
@@ -111,12 +115,16 @@ bool RoomMemberEvent::isUnban() const
 
 bool RoomMemberEvent::isRename() const
 {
-    auto prevName = prevContent() ? prevContent()->displayName : QString();
-    return displayName() != prevName;
+    auto prevName = prevContent() && prevContent()->displayName
+                        ? *prevContent()->displayName
+                        : QString();
+    return newDisplayName() != prevName;
 }
 
 bool RoomMemberEvent::isAvatarUpdate() const
 {
-    auto prevAvatarUrl = prevContent() ? prevContent()->avatarUrl : QUrl();
-    return avatarUrl() != prevAvatarUrl;
+    auto prevAvatarUrl = prevContent() && prevContent()->avatarUrl
+                             ? *prevContent()->avatarUrl
+                             : QUrl();
+    return newAvatarUrl() != prevAvatarUrl;
 }

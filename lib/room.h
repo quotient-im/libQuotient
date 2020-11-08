@@ -101,7 +101,7 @@ class Room : public QObject {
     Q_PROPERTY(bool usesEncryption READ usesEncryption NOTIFY encryption)
 
     Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
-    Q_PROPERTY(QStringList memberNames READ memberNames NOTIFY memberListChanged)
+    Q_PROPERTY(QStringList memberNames READ safeMemberNames NOTIFY memberListChanged)
     Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
     Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
     Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
@@ -209,7 +209,10 @@ public:
     QList<User*> membersLeft() const;
 
     Q_INVOKABLE QList<Quotient::User*> users() const;
+    [[deprecated("Use safeMemberNames() or htmlSafeMemberNames() instead")]]
     QStringList memberNames() const;
+    QStringList safeMemberNames() const;
+    QStringList htmlSafeMemberNames() const;
     [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
     int memberCount() const;
     int timelineSize() const;
@@ -251,30 +254,54 @@ public:
     /**
      * \brief Check the join state of a given user in this room
      *
-     * \note Banned and invited users are not tracked for now (Leave
+     * \note Banned and invited users are not tracked separately for now (Leave
      *       will be returned for them).
      *
      * \return Join if the user is a room member; Leave otherwise
      */
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
 
-    /**
-     * Get a disambiguated name for a given user in
-     * the context of the room
+    //! \brief Get a display name (without disambiguation) for the given member
+    //!
+    //! \sa safeMemberName, htmlSafeMemberName
+    Q_INVOKABLE QString memberName(const QString& mxId) const;
+
+    /*!
+     * \brief Get a disambiguated name for the given user in the room context
+     *
+     * \deprecated use safeMemberName() instead
      */
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
-    /**
-     * Get a disambiguated name for a user with this id in
-     * the context of the room
+    /*!
+     * \brief Get a disambiguated name for a user with this id in the room context
+     *
+     * \deprecated use safeMemberName() instead
      */
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-    /** Get a display-safe member name in the context of this room
+    /*!
+     * \brief Get a disambiguated name for the member with the given MXID
      *
-     * Display-safe means HTML-safe + without RLO/LRO markers
+     * This function should only be used for non-UI code; consider using
+     * safeMemberName() or htmlSafeMemberName() for displayed strings.
+     */
+    Q_INVOKABLE QString disambiguatedMemberName(const QString& mxId) const;
+
+    /*! Get a display-safe member name in the context of this room
+     *
+     * Display-safe means disambiguated and without RLO/LRO markers
      * (see https://github.com/quotient-im/Quaternion/issues/545).
      */
     Q_INVOKABLE QString safeMemberName(const QString& userId) const;
+
+    /*! Get an HTML-safe member name in the context of this room
+     *
+     * This function adds HTML escaping on top of safeMemberName() safeguards.
+     */
+    Q_INVOKABLE QString htmlSafeMemberName(const QString& userId) const;
+
+    //! \brief Get an avatar for the member with the given MXID
+    QUrl memberAvatarUrl(const QString& mxId) const;
 
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;

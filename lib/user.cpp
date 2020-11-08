@@ -88,8 +88,7 @@ int User::hue() const { return int(hueF() * 359); }
 
 QString User::name(const Room* room) const
 {
-    return room ? room->getCurrentState<RoomMemberEvent>(id())->displayName()
-                : d->defaultName;
+    return room ? room->memberName(id()) : d->defaultName;
 }
 
 QString User::rawName(const Room* room) const { return name(room); }
@@ -169,9 +168,8 @@ bool User::isIgnored() const { return connection()->isIgnored(this); }
 
 QString User::displayname(const Room* room) const
 {
-    return room                       ? room->roomMembername(this)
-           : d->defaultName.isEmpty() ? d->id
-                                      : d->defaultName;
+    return room ? room->safeMemberName(id())
+                : d->defaultName.isEmpty() ? d->id : d->defaultName;
 }
 
 QString User::fullName(const Room* room) const
@@ -187,7 +185,7 @@ const Avatar& User::avatarObject(const Room* room) const
     if (!room)
         return d->defaultAvatar;
 
-    const auto& url = room->getCurrentState<RoomMemberEvent>(id())->avatarUrl();
+    const auto& url = room->memberAvatarUrl(id());
     const auto& mediaId = url.authority() + url.path();
     return d->otherAvatars.try_emplace(mediaId, url).first->second;
 }
