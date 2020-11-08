@@ -109,10 +109,24 @@ bool User::isGuest() const
 
 int User::hue() const { return int(hueF() * 359); }
 
+/// \sa https://github.com/matrix-org/matrix-doc/issues/1375
+///
+/// Relies on untrusted prevContent so can't be put to RoomMemberEvent and
+/// in general should rather be remade in terms of the room's eventual "state
+/// time machine"
+QString getBestKnownName(const RoomMemberEvent* event)
+{
+    const auto& jv = event->contentJson().value("displayname"_ls);
+    return !jv.isUndefined()
+               ? jv.toString()
+               : event->prevContent() ? event->prevContent()->displayName
+                                      : QString();
+}
+
 QString User::name(const Room* room) const
 {
     if (room)
-        return room->getCurrentState<RoomMemberEvent>(id())->displayName();
+        return getBestKnownName(room->getCurrentState<RoomMemberEvent>(id()));
 
     if (d->defaultName.isNull())
         d->fetchProfile(this);
@@ -232,6 +246,16 @@ QString User::fullName(const Room* room) const
 
 QString User::bridged() const { return {}; }
 
+/// \sa getBestKnownName, https://github.com/matrix-org/matrix-doc/issues/1375
+QUrl getBestKnownAvatarUrl(const RoomMemberEvent* event)
+{
+    const auto& jv = event->contentJson().value("avatar_url"_ls);
+    return !jv.isUndefined()
+               ? jv.toString()
+               : event->prevContent() ? event->prevContent()->avatarUrl
+                                      : QUrl();
+}
+
 const Avatar& User::avatarObject(const Room* room) const
 {
     if (!room) {
@@ -241,7 +265,8 @@ const Avatar& User::avatarObject(const Room* room) const
         return *d->defaultAvatar;
     }
 
-    const auto& url = room->getCurrentState<RoomMemberEvent>(id())->avatarUrl();
+    const auto& url =
+        getBestKnownAvatarUrl(room->getCurrentState<RoomMemberEvent>(id()));
     const auto& mediaId = url.authority() + url.path();
     return d->otherAvatars.try_emplace(mediaId, url).first->second;
 }
@@ -280,21 +305,26 @@ void User::processEvent(const RoomMemberEvent& event, const Room* room,
 {
     Q_ASSERT(room);
 
-    const auto& oldName = firstMention || !event.prevContent() ? QString()
-                          : event.prevContent()->displayName;
-    const auto& newName = event.displayName();
-    // A hacky way to find out if it's about to change or already changed
-    bool isAboutToChange = room->getCurrentState<RoomMemberEvent>(id()) != &event;
-    if (newName != oldName) {
-        if (isAboutToChange)
+    // This is prone to abuse if prevContent is forged; only here until 0.7
+    // (and the whole method, actually).
+    const auto& oldName = event.prevContent() ? event.prevContent()->displayName
+                                              : QString();
+    const auto& newName = getBestKnownName(&event);
+    // A hacky way to find out if it's about to change or already changed;
+    // making it a lambda allows to omit stub event creation when unneeded
+    const auto& isAboutToChange = [&event, room, this] {
+        return room->getCurrentState<RoomMemberEvent>(id()) != &event;
+    };
+    if (firstMention || newName != oldName) {
+        if (isAboutToChange())
             emit nameAboutToChange(newName, oldName, room);
-        else {
+        else
             emit nameChanged(newName, oldName, room);
-        }
     }
-    const auto& oldAvatarUrl = firstMention || !event.prevContent() ? QUrl()
-                               : event.prevContent()->avatarUrl;
-    if (event.avatarUrl() != oldAvatarUrl && !isAboutToChange)
+    const auto& oldAvatarUrl =
+        event.prevContent() ? event.prevContent()->avatarUrl : QUrl();
+    const auto& newAvatarUrl = getBestKnownAvatarUrl(&event);
+    if ((firstMention || newAvatarUrl != oldAvatarUrl) && !isAboutToChange())
         emit avatarChanged(this, room);
 }
 
