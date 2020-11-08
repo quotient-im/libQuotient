@@ -1910,12 +1910,6 @@ LeaveRoomJob* Room::leaveRoom()
     return connection()->leaveRoom(this);
 }
 
-SetRoomStateWithKeyJob* Room::setMemberState(const QString& memberId,
-                                             const RoomMemberEvent& event) const
-{
-    return d->requestSetState<RoomMemberEvent>(memberId, event.content());
-}
-
 void Room::kickMember(const QString& memberId, const QString& reason)
 {
     connection()->callApi<KickJob>(id(), memberId, reason);

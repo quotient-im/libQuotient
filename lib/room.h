@@ -586,9 +586,6 @@ public slots:
 
     void inviteToRoom(const QString& memberId);
     LeaveRoomJob* leaveRoom();
-    /// \deprecated - use setState() instead")
-    SetRoomStateWithKeyJob* setMemberState(const QString& memberId,
-                                           const RoomMemberEvent& event) const;
     void kickMember(const QString& memberId, const QString& reason = {});
     void ban(const QString& userId, const QString& reason = {});
     void unban(const QString& userId);
