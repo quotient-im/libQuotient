@@ -166,6 +166,14 @@ struct JsonConverter<QDate> {
 };
 
 template <>
+struct JsonConverter<QUrl> : JsonConverter<QString> {
+    static auto dump(const QUrl& url) // Override on top of that for QString
+    {
+        return JsonConverter<QString>::dump(url.toString(QUrl::FullyEncoded));
+    }
+};
+
+template <>
 struct JsonConverter<QJsonArray> : public TrivialJsonDumper<QJsonArray> {
     static auto load(const QJsonValue& jv) { return jv.toArray(); }
 };
