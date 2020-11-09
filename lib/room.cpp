@@ -1346,6 +1346,11 @@ void Room::Private::insertMemberIntoMap(User* u)
 
     // Callers should check they are not adding an existing user once more.
     Q_ASSERT(!namesakes.contains(u));
+    if (namesakes.contains(u)) { // Release version whines but continues
+        qCCritical(STATE) << "Trying to add a user" << u->id() << "to room"
+                          << q->objectName() << "but that's already in it";
+        return;
+    }
 
     if (namesakes.size() == 1)
         emit q->memberAboutToRename(namesakes.front(),
@@ -2402,8 +2407,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     const auto*& curStateEvent =
         d->currentState[{ e.matrixType(), e.stateKey() }];
     // Prepare for the state change
-    visit(e, [this, oldRme = static_cast<const RoomMemberEvent*>(curStateEvent)](
-                 const RoomMemberEvent& rme) {
+    const auto oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
+    visit(e, [this, &oldRme](const RoomMemberEvent& rme) {
         auto* u = user(rme.userId());
         if (!u) { // ???
             qCCritical(MAIN)
@@ -2506,23 +2511,20 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 emit avatarChanged();
             return AvatarChange;
         }
-        , [this,oldStateEvent] (const RoomMemberEvent& evt) {
+        , [this,oldRme] (const RoomMemberEvent& evt) {
             // clang-format on
             auto* u = user(evt.userId());
-            const auto* oldMemberEvent =
-                static_cast<const RoomMemberEvent*>(oldStateEvent);
             // TODO: remove in 0.7
-            u->processEvent(evt, this, oldMemberEvent == nullptr);
+            u->processEvent(evt, this, oldRme == nullptr);
 
-            const auto prevMembership = oldMemberEvent
-                                            ? oldMemberEvent->membership()
-                                            : MembershipType::Leave;
+            const auto prevMembership = oldRme ? oldRme->membership()
+                                               : MembershipType::Leave;
             switch (evt.membership()) {
             case MembershipType::Join:
                 if (prevMembership != MembershipType::Join) {
                     d->insertMemberIntoMap(u);
                     emit userAdded(u);
-                } else if (oldMemberEvent->displayName() != evt.displayName()) {
+                } else if (oldRme->displayName() != evt.displayName()) {
                     d->insertMemberIntoMap(u);
                     emit memberRenamed(u);
                 }
