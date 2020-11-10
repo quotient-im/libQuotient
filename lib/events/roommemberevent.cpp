@@ -39,7 +39,8 @@ struct JsonConverter<MembershipType> {
             if (membershipString == *it)
                 return MembershipType(it - membershipStrings.begin());
 
-        qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
+        if (!membershipString.isEmpty())
+            qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
         return MembershipType::Undefined;
     }
 };
