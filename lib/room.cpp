@@ -2053,16 +2053,14 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
 
     std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
-        { RoomCreateEvent::typeId(), { QStringLiteral("creator") } }
-        //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
-        //        , { RoomPowerLevels::typeId(),
-        //            { QStringLiteral("ban"), QStringLiteral("events"),
-        //              QStringLiteral("events_default"),
-        //              QStringLiteral("kick"), QStringLiteral("redact"),
-        //              QStringLiteral("state_default"), QStringLiteral("users"),
-        //              QStringLiteral("users_default") } }
-        ,
+        { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
+        { RoomPowerLevelsEvent::typeId(),
+          { QStringLiteral("ban"), QStringLiteral("events"),
+            QStringLiteral("events_default"), QStringLiteral("kick"),
+            QStringLiteral("redact"), QStringLiteral("state_default"),
+            QStringLiteral("users"), QStringLiteral("users_default") } },
         { RoomAliasesEvent::typeId(), { QStringLiteral("aliases") } }
+        //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
         //        , { RoomHistoryVisibility::typeId(),
         //                { QStringLiteral("history_visibility") } }
     };
