@@ -11,7 +11,7 @@ public:
     RoomKeyEvent(const QJsonObject& obj);
 
     QString algorithm() const { return content<QString>("algorithm"_ls); }
-    QString roomId() const { return content<QString>("room_id"_ls); }
+    QString roomId() const { return content<QString>(RoomIdKeyL); }
     QString sessionId() const { return content<QString>("session_id"_ls); }
     QString sessionKey() const { return content<QString>("session_key"_ls); }
 };

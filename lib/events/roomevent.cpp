@@ -51,12 +51,12 @@ QDateTime RoomEvent::originTimestamp() const
 
 QString RoomEvent::roomId() const
 {
-    return fullJson()["room_id"_ls].toString();
+    return fullJson()[RoomIdKeyL].toString();
 }
 
 QString RoomEvent::senderId() const
 {
-    return fullJson()["sender"_ls].toString();
+    return fullJson()[SenderKeyL].toString();
 }
 
 bool RoomEvent::isReplaced() const
@@ -90,12 +90,12 @@ QString RoomEvent::stateKey() const
 
 void RoomEvent::setRoomId(const QString& roomId)
 {
-    editJson().insert(QStringLiteral("room_id"), roomId);
+    editJson().insert(RoomIdKey, roomId);
 }
 
 void RoomEvent::setSender(const QString& senderId)
 {
-    editJson().insert(QStringLiteral("sender"), senderId);
+    editJson().insert(SenderKey, senderId);
 }
 
 void RoomEvent::setTransactionId(const QString& txnId)

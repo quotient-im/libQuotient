@@ -202,7 +202,7 @@ public:
         auto&& decryptedEvent =
             fromJson<EventPtr>(QJsonDocument::fromJson(decrypted.toUtf8()));
 
-        if (auto sender = decryptedEvent->fullJson()["sender"_ls].toString();
+        if (auto sender = decryptedEvent->fullJson()[SenderKeyL].toString();
                 sender != encryptedEvent.senderId()) {
             qCWarning(E2EE) << "Found user" << sender
                           << "instead of sender" << encryptedEvent.senderId()
