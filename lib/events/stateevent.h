@@ -33,6 +33,8 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
 }
 
 class StateEventBase : public RoomEvent {
+    Q_GADGET
+    Q_PROPERTY(QString stateKey READ stateKey CONSTANT)
 public:
     using factory_t = EventFactory<StateEventBase>;
 
@@ -128,3 +130,5 @@ private:
     std::unique_ptr<Prev<ContentT>> _prev;
 };
 } // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::StateEventBase*)
+Q_DECLARE_METATYPE(const Quotient::StateEventBase*)
