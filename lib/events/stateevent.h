@@ -23,12 +23,11 @@
 namespace Quotient {
 
 /// Make a minimal correct Matrix state event JSON
-template <typename StrT>
-inline QJsonObject basicStateEventJson(StrT matrixType,
+inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
                                        const QJsonObject& content,
                                        const QString& stateKey = {})
 {
-    return { { TypeKey, std::forward<StrT>(matrixType) },
+    return { { TypeKey, matrixTypeId },
              { StateKeyKey, stateKey },
              { ContentKey, content } };
 }

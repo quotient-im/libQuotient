@@ -1284,7 +1284,7 @@ const StateEventBase* Room::getCurrentState(const QString& evtType,
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
 #ifndef Quotient_E2EE_ENABLED
-    Q_UNUSED(encryptedEvent);
+    Q_UNUSED(encryptedEvent)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return {};
 #else // Quotient_E2EE_ENABLED
@@ -1309,8 +1309,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                               const QString& senderKey)
 {
 #ifndef Quotient_E2EE_ENABLED
-    Q_UNUSED(roomKeyEvent);
-    Q_UNUSED(senderKey);
+    Q_UNUSED(roomKeyEvent)
+    Q_UNUSED(senderKey)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return;
 #else // Quotient_E2EE_ENABLED
