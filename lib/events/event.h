@@ -332,7 +332,7 @@ inline auto eventCast(const BasePtrT& eptr)
 
 // A single generic catch-all visitor
 template <typename BaseEventT, typename FnT>
-inline auto visit(const BaseEventT& event, FnT&& visitor)
+inline auto visitOld(const BaseEventT& event, FnT&& visitor)
     -> decltype(visitor(event))
 {
     return visitor(event);
@@ -350,7 +350,7 @@ namespace _impl {
 template <typename BaseEventT, typename FnT>
 inline std::enable_if_t<_impl::needs_downcast<BaseEventT, FnT>()
                         && std::is_void_v<fn_return_t<FnT>>>
-visit(const BaseEventT& event, FnT&& visitor)
+visitOld(const BaseEventT& event, FnT&& visitor)
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))
@@ -361,7 +361,7 @@ visit(const BaseEventT& event, FnT&& visitor)
 // non-voidness is guarded by defaultValue type
 template <typename BaseEventT, typename FnT>
 inline std::enable_if_t<_impl::needs_downcast<BaseEventT, FnT>(), fn_return_t<FnT>>
-visit(const BaseEventT& event, FnT&& visitor,
+visitOld(const BaseEventT& event, FnT&& visitor,
       fn_return_t<FnT>&& defaultValue = {})
 {
     using event_type = fn_arg_t<FnT>;
@@ -372,14 +372,47 @@ visit(const BaseEventT& event, FnT&& visitor,
 
 // A chain of 2 or more visitors
 template <typename BaseEventT, typename FnT1, typename FnT2, typename... FnTs>
-inline fn_return_t<FnT1> visit(const BaseEventT& event, FnT1&& visitor1,
+inline fn_return_t<FnT1> visitOld(const BaseEventT& event, FnT1&& visitor1,
                                FnT2&& visitor2, FnTs&&... visitors)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
         return visitor1(static_cast<event_type1&>(event));
-    return visit(event, std::forward<FnT2>(visitor2),
+    return visitOld(event, std::forward<FnT2>(visitor2),
                  std::forward<FnTs>(visitors)...);
+}
+
+template <class BaseEventT, typename ReturnT, typename FnT>
+auto visitWrapper(FnT&& visitor)
+{
+    using event_type = fn_arg_t<FnT>;
+    static_assert(std::is_base_of_v<BaseEventT, std::decay_t<event_type>>);
+    return [&visitor](const BaseEventT& event) -> ReturnT {
+        return visitor(static_cast<event_type&>(event));
+    };
+}
+
+template <class BaseEventT, typename... FnTs>
+inline auto visitNew(const BaseEventT& event, FnTs&&... visitors)
+{
+    using namespace std;
+    using return_t = common_type_t<fn_return_t<FnTs>...>;
+    using CallMap =
+        UnorderedMap<event_type_t, function<return_t(const BaseEventT&)>>;
+    CallMap callMap { typename CallMap::value_type(
+        typeId<fn_arg_t<FnTs>>(),
+        visitWrapper<BaseEventT, return_t>(std::forward<FnTs>(visitors)))... };
+    if (auto it = callMap.find(event.type()); it != callMap.cend())
+        return it->second(event);
+    if (auto it = callMap.find(0); it != callMap.cend())
+        return it->second(event);
+    return return_t();
+}
+
+template <typename... ArgTs>
+inline auto visit(ArgTs&&... args)
+{
+    return visitOld(std::forward<ArgTs>(args)...);
 }
 
 // A facility overload that calls void-returning visit() on each event
