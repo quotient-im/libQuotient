@@ -6,9 +6,14 @@ endif()
 set(API_VERSION "0.7")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
+include(FeatureSummary)
+
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
+add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS "Install Quotest")
+
 # https://github.com/quotient-im/libQuotient/issues/369
 option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
+add_feature_info(EnableE2EE ${PROJECT_NAME}_ENABLE_E2EE "Enable end-to-end encryption (E2EE)")
 
 include(CheckCXXCompilerFlag)
 if (WIN32)
@@ -59,7 +64,7 @@ else()
     endforeach ()
 endif()
 
-find_package(Qt5 5.9 REQUIRED Network Gui Multimedia Test)
+find_package(Qt5 5.9 REQUIRED Core Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
@@ -75,15 +80,12 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         set(SAVED_CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
         set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
         find_package(QtOlm 3.0.1 REQUIRED)
-        if (NOT QtOlm_FOUND)
-            message( WARNING "libQtOlm not found; configuration will most likely fail.")
-            message( WARNING "Make sure you have installed libQtOlm development files")
-            message( WARNING "as a package or checked out the library sources in lib/.")
-            message( WARNING "See also BUILDING.md")
-        endif ()
+        set_package_properties(QtOlm PROPERTIES
+            DESCRIPTION "QtOlm is a Qt wrapper around libOlm"
+            PURPOSE "libQtOlm is required to support end-to-end encryption. See also BUILDING.md"
+            URL "https://gitlab.com/b0/libqtolm"
+            )
     endif ()
-else ()
-    message( STATUS "End-to-end encryption (E2EE) support is turned off.")
 endif ()
 
 if (GTAD_PATH)
@@ -99,11 +101,6 @@ if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
     get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
 endif()
 
-message( STATUS )
-message( STATUS "=============================================================================" )
-message( STATUS "                       ${PROJECT_NAME} Build Information" )
-message( STATUS "=============================================================================" )
-message( STATUS "Version: ${PROJECT_VERSION}, API version: ${API_VERSION}")
 if (CMAKE_BUILD_TYPE)
     message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif(CMAKE_BUILD_TYPE)
@@ -341,3 +338,5 @@ if (UNIX AND NOT APPLE)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
+
+feature_summary(WHAT ALL)
