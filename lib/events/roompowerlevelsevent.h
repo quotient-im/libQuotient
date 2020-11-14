@@ -62,15 +62,5 @@ public:
 private:
 };
 
-template <>
-class EventFactory<RoomPowerLevelsEvent> {
-public:
-    static event_ptr_tt<RoomPowerLevelsEvent> make(const QJsonObject& json,
-                                              const QString&)
-    {
-        return makeEvent<RoomPowerLevelsEvent>(json);
-    }
-};
-
 REGISTER_EVENT_TYPE(RoomPowerLevelsEvent)
 } // namespace Quotient
