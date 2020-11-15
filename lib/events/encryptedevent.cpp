@@ -1,9 +1,6 @@
 #include "encryptedevent.h"
 
-#include "room.h"
-
 using namespace Quotient;
-using namespace QtOlm;
 
 EncryptedEvent::EncryptedEvent(const QJsonObject& ciphertext,
                                const QString& senderKey)

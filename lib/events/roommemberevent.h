@@ -54,12 +54,9 @@ public:
     DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
     using MembershipType = MemberEventContent::MembershipType;
+    Q_ENUM(MembershipType)
 
     explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
-    {}
-    [[deprecated("Use RoomMemberEvent(userId, contentArgs) instead")]]
-    RoomMemberEvent(MemberEventContent&& c)
-        : StateEvent(typeId(), matrixTypeId(), QString(), c)
     {}
     template <typename... ArgTs>
     RoomMemberEvent(const QString& userId, ArgTs&&... contentArgs)
@@ -82,7 +79,7 @@ public:
     {}
 
     MembershipType membership() const { return content().membership; }
-    QString userId() const { return fullJson()[StateKeyKeyL].toString(); }
+    QString userId() const { return stateKey(); }
     bool isDirect() const { return content().isDirect; }
     Omittable<QString> newDisplayName() const { return content().displayName; }
     Omittable<QUrl> newAvatarUrl() const { return content().avatarUrl; }
@@ -104,9 +101,6 @@ public:
     bool isLeave() const;
     bool isRename() const;
     bool isAvatarUpdate() const;
-
-private:
-    Q_ENUM(MembershipType)
 };
 
 template <>

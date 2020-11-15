@@ -25,12 +25,9 @@ class TypingEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
 
-    TypingEvent(const QJsonObject& obj);
+    explicit TypingEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
 
-    const QStringList& users() const { return _users; }
-
-private:
-    QStringList _users;
+    QStringList users() const;
 };
 REGISTER_EVENT_TYPE(TypingEvent)
 } // namespace Quotient

@@ -34,9 +34,8 @@ RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
-    const auto unsignedData = json[UnsignedKeyL].toObject();
-    const auto redaction = unsignedData[RedactedCauseKeyL];
-    if (redaction.isObject())
+    if (const auto redaction = unsignedJson()[RedactedCauseKeyL];
+        redaction.isObject())
         _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
 }
 

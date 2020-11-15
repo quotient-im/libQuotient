@@ -48,6 +48,7 @@ public:
     DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
 
     using EncryptionType = EncryptionEventContent::EncryptionType;
+    Q_ENUM(EncryptionType)
 
     explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate
                                                           // default value
@@ -64,9 +65,6 @@ public:
     QString algorithm() const { return content().algorithm; }
     int rotationPeriodMs() const { return content().rotationPeriodMs; }
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
-
-private:
-    Q_ENUM(EncryptionType)
 };
 
 REGISTER_EVENT_TYPE(EncryptionEvent)

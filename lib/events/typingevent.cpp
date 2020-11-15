@@ -18,13 +18,9 @@
 
 #include "typingevent.h"
 
-#include <QtCore/QJsonArray>
-
 using namespace Quotient;
 
-TypingEvent::TypingEvent(const QJsonObject& obj) : Event(typeId(), obj)
+QStringList TypingEvent::users() const
 {
-    const auto& array = contentJson()["user_ids"_ls].toArray();
-    for (const auto& user : array)
-        _users.push_back(user.toString());
+    return fromJson<QStringList>(contentJson()["user_ids"_ls]);
 }

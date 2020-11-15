@@ -18,11 +18,6 @@
 
 #include "callinviteevent.h"
 
-#include "event.h"
-#include "logging.h"
-
-#include <QtCore/QJsonDocument>
-
 /*
 m.call.invite
 {

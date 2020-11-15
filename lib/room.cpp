@@ -2073,7 +2073,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         QStringLiteral("membership") };
     // clang-format on
 
-    std::vector<std::pair<Event::Type, QStringList>> keepContentKeysMap {
+    std::vector<std::pair<event_type_t, QStringList>> keepContentKeysMap {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
         { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
         { RoomPowerLevelsEvent::typeId(),
@@ -2621,7 +2621,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     et.start();
     if (auto* evt = eventCast<TypingEvent>(event)) {
         d->usersTyping.clear();
-        for (const QString& userId : qAsConst(evt->users())) {
+        for (const auto& userId : evt->users()) {
             auto u = user(userId);
             if (memberJoinState(u) == JoinState::Join)
                 d->usersTyping.append(u);
@@ -2633,7 +2633,8 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     }
     if (auto* evt = eventCast<ReceiptEvent>(event)) {
         int totalReceipts = 0;
-        for (const auto& p : qAsConst(evt->eventsWithReceipts())) {
+        const auto& eventsWithReceipts = evt->eventsWithReceipts();
+        for (const auto& p : eventsWithReceipts) {
             totalReceipts += p.receipts.size();
             {
                 if (p.receipts.size() == 1)
@@ -2669,11 +2670,11 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 }
             }
         }
-        if (evt->eventsWithReceipts().size() > 3 || totalReceipts > 10
+        if (eventsWithReceipts.size() > 3 || totalReceipts > 10
             || et.nsecsElapsed() >= profilerMinNsecs())
             qCDebug(PROFILER)
                 << "*** Room::processEphemeralEvent(receipts):"
-                << evt->eventsWithReceipts().size() << "event(s) with"
+                << eventsWithReceipts.size() << "event(s) with"
                 << totalReceipts << "receipt(s)," << et;
     }
     return changes;

@@ -18,11 +18,6 @@
 
 #include "callhangupevent.h"
 
-#include "event.h"
-#include "logging.h"
-
-#include <QtCore/QJsonDocument>
-
 /*
 m.call.hangup
 {

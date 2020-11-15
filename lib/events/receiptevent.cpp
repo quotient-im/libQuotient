@@ -40,10 +40,11 @@ Example of a Receipt Event:
 
 using namespace Quotient;
 
-ReceiptEvent::ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj)
+EventsWithReceipts ReceiptEvent::eventsWithReceipts() const
 {
+    EventsWithReceipts result;
     const auto& contents = contentJson();
-    _eventsWithReceipts.reserve(contents.size());
+    result.reserve(contents.size());
     for (auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt) {
         if (eventIt.key().isEmpty()) {
             qCWarning(EPHEMERAL)
@@ -51,15 +52,16 @@ ReceiptEvent::ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj)
             qCDebug(EPHEMERAL) << "ReceiptEvent content follows:\n" << contents;
             continue;
         }
-        const QJsonObject reads =
+        const auto reads =
             eventIt.value().toObject().value("m.read"_ls).toObject();
         QVector<Receipt> receipts;
         receipts.reserve(reads.size());
         for (auto userIt = reads.begin(); userIt != reads.end(); ++userIt) {
-            const QJsonObject user = userIt.value().toObject();
+            const auto user = userIt.value().toObject();
             receipts.push_back(
                 { userIt.key(), fromJson<QDateTime>(user["ts"_ls]) });
         }
-        _eventsWithReceipts.push_back({ eventIt.key(), std::move(receipts) });
+        result.push_back({ eventIt.key(), std::move(receipts) });
     }
+    return result;
 }

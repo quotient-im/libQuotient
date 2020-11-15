@@ -64,9 +64,6 @@ public:
     {
         return content<EventRelation>(QStringLiteral("m.relates_to"));
     }
-
-private:
-    EventRelation _relation;
 };
 REGISTER_EVENT_TYPE(ReactionEvent)
 
