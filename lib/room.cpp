@@ -231,9 +231,25 @@ public:
     template <typename EventT>
     const EventT* getCurrentState(const QString& stateKey = {}) const
     {
-        const auto* evt = getCurrentState({ EventT::matrixTypeId(), stateKey });
+        const StateEventKey evtKey { EventT::matrixTypeId(), stateKey };
+        const auto* evt = currentState.value(evtKey, nullptr);
+        if (!evt) {
+            if (stubbedState.find(evtKey) == stubbedState.end()) {
+                // In the absence of a real event, make a stub as-if an event
+                // with empty content has been received. Event classes should be
+                // prepared for empty/invalid/malicious content anyway.
+                stubbedState.emplace(
+                    evtKey, makeEvent<EventT>(basicStateEventJson(
+                                EventT::matrixTypeId(), {}, evtKey.second)));
+                qCDebug(STATE) << "A new stub event created for key {"
+                               << evtKey.first << evtKey.second << "}";
+            }
+            evt = stubbedState[evtKey].get();
+            Q_ASSERT(evt);
+        }
         Q_ASSERT(evt->type() == EventT::typeId()
-                 && evt->matrixType() == EventT::matrixTypeId());
+                 && evt->matrixType() == EventT::matrixTypeId()
+                 && evt->stateKey() == stateKey);
         return static_cast<const EventT*>(evt);
     }
 
