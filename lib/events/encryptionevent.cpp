@@ -1,21 +1,14 @@
-//
-// Created by rusakov on 26/09/2017.
-// Contributed by andreev on 27/06/2019.
-//
-
 #include "encryptionevent.h"
 
-#include "converters.h"
 #include "e2ee.h"
-#include "logging.h"
 
 #include <array>
 
+namespace Quotient {
 static const std::array<QString, 1> encryptionStrings = {
-    { Quotient::MegolmV1AesSha2AlgoKey }
+    { MegolmV1AesSha2AlgoKey }
 };
 
-namespace Quotient {
 template <>
 struct JsonConverter<EncryptionType> {
     static EncryptionType load(const QJsonValue& jv)
@@ -26,7 +19,8 @@ struct JsonConverter<EncryptionType> {
             if (encryptionString == *it)
                 return EncryptionType(it - encryptionStrings.begin());
 
-        qCWarning(EVENTS) << "Unknown EncryptionType: " << encryptionString;
+        if (!encryptionString.isEmpty())
+            qCWarning(EVENTS) << "Unknown EncryptionType: " << encryptionString;
         return EncryptionType::Undefined;
     }
 };
@@ -35,7 +29,7 @@ struct JsonConverter<EncryptionType> {
 using namespace Quotient;
 
 EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
-    : encryption(fromJson<EncryptionType>(json["algorithm"_ls]))
+    : encryption(fromJson<EncryptionType>(json[AlgorithmKeyL]))
     , algorithm(sanitized(json[AlgorithmKeyL].toString()))
     , rotationPeriodMs(json[RotationPeriodMsKeyL].toInt(604800000))
     , rotationPeriodMsgs(json[RotationPeriodMsgsKeyL].toInt(100))
@@ -44,9 +38,6 @@ EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
 void EncryptionEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
-    Q_ASSERT_X(
-        encryption != EncryptionType::Undefined, __FUNCTION__,
-        "The key 'algorithm' must be explicit in EncryptionEventContent");
     if (encryption != EncryptionType::Undefined)
         o->insert(AlgorithmKey, algorithm);
     o->insert(RotationPeriodMsKey, rotationPeriodMs);
