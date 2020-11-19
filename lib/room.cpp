@@ -2557,8 +2557,14 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             // clang-format off
         }
         , [this, oldEncEvt = static_cast<const EncryptionEvent*>(oldStateEvent)](
-            const EncryptionEvent&) {
+            const EncryptionEvent& ee) {
             // clang-format on
+            if (ee.algorithm().isEmpty()) {
+                qWarning(STATE)
+                    << "The encryption event for room" << objectName()
+                    << "doesn't have 'algorithm' specified - ignoring";
+                return NoChange;
+            }
             if (oldEncEvt
                 && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
                 qCWarning(STATE) << "The room is already encrypted but a new"
