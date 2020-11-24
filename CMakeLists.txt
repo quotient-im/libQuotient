@@ -211,7 +211,6 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
-            search.yaml- # current GTAD is limited in handling move-only data
             key_backup.yaml- # immature and buggy in terms of API definition
             sync.yaml- # we have a better handcrafted implementation
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
