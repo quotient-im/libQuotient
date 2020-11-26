@@ -534,7 +534,7 @@ BaseJob::Status BaseJob::prepareError()
     }
 
     if (errCode == "M_CONSENT_NOT_GIVEN") {
-        d->errorUrl = errorJson.value("consent_uri"_ls).toString();
+        d->errorUrl = QUrl(errorJson.value("consent_uri"_ls).toString());
         return { UserConsentRequiredError };
     }
     if (errCode == "M_UNSUPPORTED_ROOM_VERSION"

@@ -257,7 +257,7 @@ file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
 set(tests_SRCS tests/quotest.cpp)
 
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
-target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS QT_NO_URL_CAST_FROM_STRING QT_NO_CAST_TO_ASCII)
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
         AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
     target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
