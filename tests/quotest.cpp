@@ -797,10 +797,6 @@ void TestManager::conclude()
         htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
     }
 
-    // TODO: Waiting for proper futures to come so that it could be:
-    //            targetRoom->postHtmlText(...)
-    //            .then(this, &TestManager::finalize); // Qt-style or
-    //            .then([this] { finalize(); }); // STL-style
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this, [this, room, plainReport] {
@@ -817,6 +813,10 @@ void TestManager::conclude()
         }
 
         clog << "Leaving the room" << endl;
+        // TODO: Waiting for proper futures to come so that it could be:
+        //           room->leaveRoom()
+        //           .then(this, &TestManager::finalize); // Qt-style or
+        //           .then([this] { finalize(); }); // STL-style
         auto* job = room->leaveRoom();
         connect(job, &BaseJob::finished, this, [this, job,plainReport] {
             Q_ASSERT(job->status().good());
