@@ -192,7 +192,7 @@ public:
 
     // void inviteUser(User* u); // We might get it at some point in time.
     void insertMemberIntoMap(User* u);
-    void removeMemberFromMap(const QString& username, User* u);
+    void removeMemberFromMap(User* u);
 
     // This updates the room displayname field (which is the way a room
     // should be shown in the room list); called whenever the list of
@@ -1354,13 +1354,22 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 
 void Room::Private::insertMemberIntoMap(User* u)
 {
-    const auto userName = u->name(q);
+    const auto userName =
+        getCurrentState<RoomMemberEvent>(u->id())->displayName();
+    qDebug(STATE) << "insertMemberIntoMap(), user" << u->id() << "with name"
+                  << userName;
     // If there is exactly one namesake of the added user, signal member
     // renaming for that other one because the two should be disambiguated now.
     const auto namesakes = membersMap.values(userName);
+    qDebug(STATE) << namesakes.size() << "namesake(s) found";
 
     // Callers should check they are not adding an existing user once more.
     Q_ASSERT(!namesakes.contains(u));
+    if (namesakes.contains(u)) { // Release version whines but continues
+        qCCritical(STATE) << "Trying to add a user" << u->id() << "to room"
+                          << q->objectName() << "but that's already in it";
+        return;
+    }
 
     if (namesakes.size() == 1)
         emit q->memberAboutToRename(namesakes.front(),
@@ -1370,16 +1379,22 @@ void Room::Private::insertMemberIntoMap(User* u)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::removeMemberFromMap(const QString& username, User* u)
+void Room::Private::removeMemberFromMap(User* u)
 {
+    const auto userName =
+        getCurrentState<RoomMemberEvent>(u->id())->displayName();
+
+    qDebug(STATE) << "removeMemberFromMap(), username" << userName << "for user"
+                  << u->id();
     User* namesake = nullptr;
-    auto namesakes = membersMap.values(username);
+    auto namesakes = membersMap.values(userName);
     if (namesakes.size() == 2) {
         namesake = namesakes.front() == u ? namesakes.back() : namesakes.front();
         Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
-        emit q->memberAboutToRename(namesake, username);
+        emit q->memberAboutToRename(namesake, userName);
     }
-    membersMap.remove(username, u);
+    const auto removed = membersMap.remove(userName, u);
+    qDebug(STATE) << "Removed" << removed << "entries";
     // If there was one namesake besides the removed user, signal member
     // renaming for it because it doesn't need to be disambiguated any more.
     if (namesake)
@@ -2465,7 +2480,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             case MembershipType::Join: // rename/avatar change or no-op
                 if (rme.newDisplayName()) {
                     emit memberAboutToRename(u, *rme.newDisplayName());
-                    d->removeMemberFromMap(u->name(this), u);
+                    d->removeMemberFromMap(u);
                 }
                 break;
             case MembershipType::Invite:
@@ -2473,7 +2488,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                                 << rme;
                 [[fallthrough]];
             default: // whatever the new membership, it's no more Join
-                d->removeMemberFromMap(u->name(this), u);
+                d->removeMemberFromMap(u);
                 emit userRemoved(u);
             }
             break;
@@ -2555,11 +2570,13 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             switch (evt.membership()) {
             case MembershipType::Join:
                 if (prevMembership != MembershipType::Join) {
+                    qDebug(STATE) << "!Join -> Join";
                     d->insertMemberIntoMap(u);
                     emit userAdded(u);
                 } else {
                     if (evt.newDisplayName()) {
-                        d->insertMemberIntoMap(u);
+                    qDebug(STATE) << "After renaming";
+                    d->insertMemberIntoMap(u);
                         emit memberRenamed(u);
                     }
                     if (evt.newAvatarUrl())
@@ -2779,7 +2796,7 @@ QString Room::Private::calculateDisplayname() const
     const bool localUserIsIn = joinState == JoinState::Join;
     const bool emptyRoom =
         membersMap.isEmpty()
-        || (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
+        || (membersMap.size() == 1 && isLocalUser(*membersMap.cbegin()));
     const bool nonEmptySummary = summary.heroes && !summary.heroes->empty();
     auto shortlist = nonEmptySummary ? buildShortlist(*summary.heroes)
                                      : !emptyRoom ? buildShortlist(membersMap)
