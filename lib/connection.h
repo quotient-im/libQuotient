@@ -497,7 +497,7 @@ public:
         setUserFactory(defaultUserFactory<T>());
     }
 
-public slots:
+public Q_SLOTS:
     /** Set the homeserver base URL */
     void setHomeserver(const QUrl& baseUrl);
 
@@ -656,7 +656,7 @@ public slots:
      */
     virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
 
-signals:
+Q_SIGNALS:
     /**
      * @deprecated
      * This was a signal resulting from a successful resolveServer().
@@ -853,7 +853,7 @@ protected:
      */
     void onSyncSuccess(SyncData&& data, bool fromCache = false);
 
-protected slots:
+protected Q_SLOTS:
     void syncLoopIteration();
 
 private:

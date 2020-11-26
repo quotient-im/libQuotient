@@ -547,7 +547,7 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
-public slots:
+public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();
 
@@ -611,7 +611,7 @@ public slots:
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 
-signals:
+Q_SIGNALS:
     /// Initial set of state events has been loaded
     /**
      * The initial set is what comes from the initial sync for the room.

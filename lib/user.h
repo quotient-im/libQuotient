@@ -122,7 +122,7 @@ public:
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;
 
-public slots:
+public Q_SLOTS:
     /// Set a new name in the global user profile
     void rename(const QString& newName);
     /// Set a new name for the user in one room
@@ -143,7 +143,7 @@ public slots:
     /// Check whether the user is in ignore list
     bool isIgnored() const;
 
-signals:
+Q_SIGNALS:
     void defaultNameChanged();
     void defaultAvatarChanged();
 
