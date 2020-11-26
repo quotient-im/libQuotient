@@ -79,8 +79,10 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
 struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
     static inline void cleanup(QNetworkReply* reply)
     {
-        if (reply && reply->isRunning())
-            reply->abort();
+        if (reply && reply->isRunning()) {
+            //reply->deleteLater();
+            //reply->abort();
+        }
         QScopedPointerDeleteLater::cleanup(reply);
     }
 };
@@ -140,7 +142,7 @@ public:
 
     QByteArrayList expectedKeys;
 
-    QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
+    QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply;
     Status status = Unprepared;
     QByteArray rawResponse;
     /// Contains a null document in case of non-JSON body (for a successful
@@ -377,7 +379,9 @@ void BaseJob::sendRequest()
     emit aboutToSendRequest();
     d->sendRequest();
     Q_ASSERT(d->reply);
-    connect(reply(), &QNetworkReply::finished, this, [this] {
+    auto replyRequest = reply();
+    connect(replyRequest, &QNetworkReply::finished, this, [this, replyRequest] {
+        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> replyPtr(replyRequest);
         gotReply();
         finishJob();
     });
@@ -573,11 +577,11 @@ void BaseJob::stop()
     // stop the timeout timer but keep the retry timer running.
     d->timer.stop();
     if (d->reply) {
-        d->reply->disconnect(this); // Ignore whatever comes from the reply
+        //d->reply->disconnect(this); // Ignore whatever comes from the reply
         if (d->reply->isRunning()) {
             qCWarning(d->logCat)
                 << this << "stopped without ready network reply";
-            d->reply->abort(); // Keep the reply object in case clients need it
+            //d->reply->abort(); // Keep the reply object in case clients need it
         }
     } else
         qCWarning(d->logCat) << this << "stopped with empty network reply";
@@ -792,8 +796,6 @@ void BaseJob::abandon()
     d->timer.stop();
     d->retryTimer.stop(); // In case abandon() was called between retries
     setStatus(Abandoned);
-    if (d->reply)
-        d->reply->disconnect(this);
     emit finished(this);
 
     deleteLater();
