@@ -76,17 +76,6 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     return dbg << ": " << message;
 }
 
-struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
-    static inline void cleanup(QNetworkReply* reply)
-    {
-        if (reply && reply->isRunning()) {
-            //reply->deleteLater();
-            //reply->abort();
-        }
-        QScopedPointerDeleteLater::cleanup(reply);
-    }
-};
-
 template <typename... Ts>
 constexpr auto make_array(Ts&&... items)
 {
@@ -577,11 +566,9 @@ void BaseJob::stop()
     // stop the timeout timer but keep the retry timer running.
     d->timer.stop();
     if (d->reply) {
-        //d->reply->disconnect(this); // Ignore whatever comes from the reply
         if (d->reply->isRunning()) {
             qCWarning(d->logCat)
                 << this << "stopped without ready network reply";
-            //d->reply->abort(); // Keep the reply object in case clients need it
         }
     } else
         qCWarning(d->logCat) << this << "stopped with empty network reply";
