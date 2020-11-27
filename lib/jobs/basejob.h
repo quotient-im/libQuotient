@@ -251,7 +251,7 @@ public:
         return dbg << j->objectName();
     }
 
-public slots:
+public Q_SLOTS:
     void initiate(ConnectionData* connData, bool inBackground);
 
     /**
@@ -263,7 +263,7 @@ public slots:
      */
     void abandon();
 
-signals:
+Q_SIGNALS:
     /** The job is about to send a network request */
     void aboutToSendRequest();
 
@@ -433,7 +433,7 @@ protected:
     // Job objects should only be deleted via QObject::deleteLater
     ~BaseJob() override;
 
-protected slots:
+protected Q_SLOTS:
     void timeout();
 
     /*! \brief Check the pending or received reply for upfront issues
@@ -456,7 +456,7 @@ protected slots:
      */
     virtual Status checkReply(const QNetworkReply *reply) const;
 
-private slots:
+private Q_SLOTS:
     void sendRequest();
     void gotReply();
 
