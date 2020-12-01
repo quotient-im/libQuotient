@@ -2848,6 +2848,23 @@ QJsonObject Room::Private::toJson() const
                       QJsonObject { { QStringLiteral("events"), stateEvents } });
     }
 
+    {
+        QJsonArray events;
+        const int LIMIT = 20;
+        int index = 0;
+        for (const auto& timelineItem : q->messageEvents()) {
+            if (index > LIMIT) {
+                break;
+            }
+            index++;
+            const auto& event = timelineItem.get()->fullJson();
+            events.append(event);
+        }
+
+        result.insert(QStringLiteral("timeline"), QJsonObject {
+                { "limited", true }, { "events", events } });
+    }
+
     if (!accountData.empty()) {
         QJsonArray accountDataEvents;
         for (const auto& e : accountData) {
