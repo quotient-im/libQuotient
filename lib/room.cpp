@@ -2854,15 +2854,19 @@ QJsonObject Room::Private::toJson() const
         int index = 0;
         for (const auto& timelineItem : q->messageEvents()) {
             if (index > LIMIT) {
-                break;
+                //break;
             }
             index++;
             const auto& event = timelineItem.get()->fullJson();
+            qDebug() << event;
             events.append(event);
         }
 
         result.insert(QStringLiteral("timeline"), QJsonObject {
-                { "limited", true }, { "events", events } });
+                { "limited", true },
+                { "events", events },
+                { "prev_batch", prevBatch }
+            });
     }
 
     if (!accountData.empty()) {
