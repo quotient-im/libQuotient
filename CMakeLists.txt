@@ -6,16 +6,50 @@ endif()
 set(API_VERSION "0.7")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
+message(STATUS)
+message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
+
 include(FeatureSummary)
 
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
-add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS "Install Quotest")
+add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS
+                 "the library functional test suite")
 
 # https://github.com/quotient-im/libQuotient/issues/369
 option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
-add_feature_info(EnableE2EE ${PROJECT_NAME}_ENABLE_E2EE "Enable end-to-end encryption (E2EE)")
+add_feature_info(EnableE2EE ${PROJECT_NAME}_ENABLE_E2EE
+                 "end-to-end encryption (WORK IN PROGRESS)")
 
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Debug' as none was specified")
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build" FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+if (CMAKE_BUILD_TYPE)
+    message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif(CMAKE_BUILD_TYPE)
+
+message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 include(CheckCXXCompilerFlag)
+if (MSVC)
+    add_compile_options(/EHsc /W4
+        /wd4100 /wd4127 /wd4242 /wd4244 /wd4245 /wd4267 /wd4365 /wd4456 /wd4459
+        /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
+        /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
+else()
+    foreach (FLAG Wall W Wpedantic Wextra Werror=return-type Wno-unused-parameter
+            Wno-gnu-zero-variadic-macro-arguments fvisibility-inlines-hidden)
+        CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
+        if ( COMPILER_${FLAG}_SUPPORTED AND
+                NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
+            add_compile_options(-${FLAG})
+        endif ()
+    endforeach ()
+endif()
+
 if (WIN32)
     if (NOT CMAKE_INSTALL_LIBDIR)
         set(CMAKE_INSTALL_LIBDIR ".")
@@ -35,37 +69,15 @@ endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
+message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-# Set a default build type if none was specified
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Debug' as none was specified")
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build" FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-    "MinSizeRel" "RelWithDebInfo")
-endif()
-
-if (MSVC)
-    add_compile_options(/EHsc /W4
-        /wd4100 /wd4127 /wd4242 /wd4244 /wd4245 /wd4267 /wd4365 /wd4456 /wd4459
-        /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
-        /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
-else()
-    foreach (FLAG Wall W Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments fvisibility-inlines-hidden)
-        CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
-        if ( COMPILER_${FLAG}_SUPPORTED AND
-                NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
-            add_compile_options(-${FLAG})
-        endif ()
-    endforeach ()
-endif()
-
 find_package(Qt5 5.9 REQUIRED Core Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
+message(STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
@@ -76,7 +88,18 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
             set (USE_INTREE_LIBQOLM 1)
         endif ()
     endif ()
-    if (NOT USE_INTREE_LIBQOLM)
+    if (USE_INTREE_LIBQOLM)
+        message( STATUS "Using in-tree libQtOlm")
+        find_package(Git QUIET)
+        if (GIT_FOUND)
+            execute_process(COMMAND
+                "${GIT_EXECUTABLE}" rev-parse -q HEAD
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
+                OUTPUT_VARIABLE QTOLM_GIT_SHA1
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+            message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
+        endif (GIT_FOUND)
+    else ()
         set(SAVED_CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
         set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
         find_package(QtOlm 3.0.1 REQUIRED)
@@ -85,6 +108,9 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
             PURPOSE "libQtOlm is required to support end-to-end encryption. See also BUILDING.md"
             URL "https://gitlab.com/b0/libqtolm"
             )
+        if (QtOlm_FOUND)
+            message(STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
+        endif()
     endif ()
 endif ()
 
@@ -95,47 +121,28 @@ if (MATRIX_DOC_PATH)
     get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
 endif ()
 if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
+    message( STATUS "Using GTAD at ${ABS_GTAD_PATH}" )
+    message( STATUS "Using API files at ${ABS_API_DEF_PATH}" )
+    set(API_GENERATION_ENABLED 1)
     if (NOT CLANG_FORMAT)
         set(CLANG_FORMAT clang-format)
     endif()
     get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
-endif()
-
-if (CMAKE_BUILD_TYPE)
-    message( STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-endif(CMAKE_BUILD_TYPE)
-message( STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
-message( STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}" )
-message( STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}" )
-message( STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}" )
-if (ABS_API_DEF_PATH AND ABS_GTAD_PATH)
-    message( STATUS "Generating API stubs enabled (use --target update-api)" )
-    message( STATUS "  Using GTAD at ${ABS_GTAD_PATH}" )
-    message( STATUS "  Using API files at ${ABS_API_DEF_PATH}" )
     if (ABS_CLANG_FORMAT)
+        set(API_FORMATTING_ENABLED 1)
         message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
     else ()
         message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
     endif ()
-endif ()
-find_package(Git)
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    if (USE_INTREE_LIBQOLM)
-        message( STATUS "Using in-tree libQtOlm")
-        if (GIT_FOUND)
-            execute_process(COMMAND
-                "${GIT_EXECUTABLE}" rev-parse -q HEAD
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
-                OUTPUT_VARIABLE QTOLM_GIT_SHA1
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-            message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
-        endif (GIT_FOUND)
-    else ()
-        message( STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
-    endif ()
-endif ()
-message( STATUS "=============================================================================" )
-message( STATUS )
+endif()
+add_feature_info(EnableApiCodeGeneration ${API_GENERATION_ENABLED}
+                 "build target update-api")
+add_feature_info(EnableApiFormatting ${API_FORMATTING_ENABLED}
+                 "formatting of generated API files with clang-format")
+
+message(STATUS)
+feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
+                FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 # Set up source files
 set(lib_SRCS
@@ -338,4 +345,4 @@ if (UNIX AND NOT APPLE)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
-feature_summary(WHAT ALL)
+message(STATUS "<== End of libQuotient configuration")
