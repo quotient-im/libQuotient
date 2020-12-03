@@ -135,9 +135,9 @@ if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
         message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
     endif ()
 endif()
-add_feature_info(EnableApiCodeGeneration ${API_GENERATION_ENABLED}
+add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
                  "build target update-api")
-add_feature_info(EnableApiFormatting ${API_FORMATTING_ENABLED}
+add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
                  "formatting of generated API files with clang-format")
 
 message(STATUS)
