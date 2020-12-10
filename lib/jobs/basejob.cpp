@@ -324,7 +324,7 @@ void BaseJob::Private::sendRequest()
         reply.reset(connection->nam()->put(req, requestData.source()));
         break;
     case HttpVerb::Delete:
-        reply.reset(connection->nam()->deleteResource(req));
+        reply.reset(connection->nam()->sendCustomRequest(req, "DELETE", requestData.source()));
         break;
     }
 }
