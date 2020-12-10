@@ -730,14 +730,19 @@ TEST_IMPL(visitResources)
         "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
         "https://matrix.to/#/" + roomId + '/' + eventId
     };
-    // The following URIs are not supposed to be actually joined (and even
-    // exist, as yet) - only to be syntactically correct
+    // Check that reserved characters are correctly processed.
     static const auto& joinRoomAlias =
-        QStringLiteral("unjoined:example.org"); // # will be added below
+        QStringLiteral("##/?.@\"unjoined:example.org");
+    static const auto& encodedRoomAliasNoSigil =
+        QUrl::toPercentEncoding(joinRoomAlias.mid(1), ":");
     static const QString joinQuery { "?action=join" };
+    // These URIs are not supposed to be actually joined (and even exist,
+    // as yet) - only to be syntactically correct
     static const QStringList joinByAliasUris {
-        "matrix:room/" + joinRoomAlias + joinQuery,
-        "https://matrix.to/#/%23"/*`#`*/ + joinRoomAlias + joinQuery
+        Uri(joinRoomAlias.toUtf8(), {}, joinQuery.mid(1)).toDisplayString(),
+        "matrix:room/" + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23"/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23" + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
     };
     static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
     static const QStringList viaServers { "matrix.org", "example.org" };
@@ -758,7 +763,7 @@ TEST_IMPL(visitResources)
         || testResourceResolver(eventUris, &UriDispatcher::roomAction,
                                 room(), { eventId })
         || testResourceResolver(joinByAliasUris, &UriDispatcher::joinAction,
-                                connection(), { '#' + joinRoomAlias })
+                                connection(), { joinRoomAlias })
         || testResourceResolver(joinByIdUris, &UriDispatcher::joinAction,
                                 connection(), { joinRoomId, viaServers }))
         return true;
