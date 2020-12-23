@@ -510,14 +510,15 @@ BaseJob::Status BaseJob::prepareResult() { return Success; }
 
 BaseJob::Status BaseJob::prepareError()
 {
-    if (!d->rawResponse.isEmpty()) {
-        if (const auto status = d->parseJson(); !status.good())
-            return status; // If there's anything there, it should be JSON
-        if (d->jsonResponse.isArray()) // ...specifically, a JSON object
-            return { IncorrectResponse,
-                     tr("Malformed error JSON: an array instead of an object") };
-    }
+    // Try to make sense of the error payload but be prepared for all kinds
+    // of unexpected stuff (raw HTML, plain text, foreign JSON among those)
+    if (!d->rawResponse.isEmpty()
+        && reply()->rawHeader("Content-Type") == "application/json")
+        d->parseJson();
 
+    // By now, if d->parseJson() above succeeded then jsonData() will return
+    // a valid JSON object - or an empty object otherwise (in which case most
+    // of if's below will fall through to `return NoError` at the end
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
     if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
