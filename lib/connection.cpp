@@ -270,8 +270,8 @@ void Connection::resolveServer(const QString& mxid)
     d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
     d->resolverJob = callApi<GetWellknownJob>();
     connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl] {
-        if (d->resolverJob->status() != BaseJob::NotFoundError) {
-            if (d->resolverJob->status() != BaseJob::Success) {
+        if (d->resolverJob->error() != BaseJob::NotFoundError) {
+            if (!d->resolverJob->status().good()) {
                 qCWarning(MAIN)
                     << "Fetching .well-known file failed, FAIL_PROMPT";
                 emit resolveError(tr("Failed resolving the homeserver"));
@@ -301,8 +301,7 @@ void Connection::resolveServer(const QString& mxid)
                 &Connection::resolved);
         connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
             qCWarning(MAIN) << "Homeserver base URL sanity check failed";
-            emit resolveError(
-                tr("The homeserver base URL doesn't seem to work"));
+            emit resolveError(tr("The homeserver doesn't seem to be working"));
         });
     });
 }
