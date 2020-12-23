@@ -136,6 +136,14 @@ public:
         {
             return !operator==(other);
         }
+        bool operator==(int otherCode) const
+        {
+            return code == otherCode;
+        }
+        bool operator!=(int otherCode) const
+        {
+            return !operator==(otherCode);
+        }
 
         int code;
         QString message;
