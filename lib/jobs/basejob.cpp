@@ -620,6 +620,7 @@ void BaseJob::finishJob()
             emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
             return;
         }
+        [[fallthrough]];
     default:;
     }
 
