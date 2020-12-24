@@ -1010,11 +1010,11 @@ TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
 
 std::pair<bool, QString> validatedTag(QString name)
 {
-    if (name.contains('.'))
+    if (name.isEmpty() || name.indexOf('.', 1) != -1)
         return { false, name };
 
     qCWarning(MAIN) << "The tag" << name
-                   << "doesn't follow the CS API conventions";
+                    << "doesn't follow the CS API conventions";
     name.prepend("u.");
     qCWarning(MAIN) << "Using " << name << "instead";
 
@@ -1082,11 +1082,11 @@ void Room::Private::setTags(TagsMap&& newTags)
     emit q->tagsAboutToChange();
     const auto keys = newTags.keys();
     for (const auto& k : keys)
-        if (const auto& checkRes = validatedTag(k); checkRes.first) {
-            if (newTags.contains(checkRes.second))
+        if (const auto& [adjusted, adjustedTag] = validatedTag(k); adjusted) {
+            if (newTags.contains(adjustedTag))
                 newTags.remove(k);
             else
-                newTags.insert(checkRes.second, newTags.take(k));
+                newTags.insert(adjustedTag, newTags.take(k));
         }
 
     tags = move(newTags);
