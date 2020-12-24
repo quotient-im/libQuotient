@@ -25,6 +25,7 @@ using namespace Quotient;
 TypingEvent::TypingEvent(const QJsonObject& obj) : Event(typeId(), obj)
 {
     const auto& array = contentJson()["user_ids"_ls].toArray();
+    _users.reserve(array.size());
     for (const auto& user : array)
         _users.push_back(user.toString());
 }

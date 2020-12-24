@@ -64,7 +64,7 @@ void DownloadFileJob::onSentRequest(QNetworkReply* reply)
             return;
         auto sizeHeader = reply->header(QNetworkRequest::ContentLengthHeader);
         if (sizeHeader.isValid()) {
-            auto targetSize = sizeHeader.value<qint64>();
+            auto targetSize = sizeHeader.toLongLong();
             if (targetSize != -1)
                 if (!d->tempFile->resize(targetSize)) {
                     qCWarning(JOBS) << "Failed to allocate" << targetSize

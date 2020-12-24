@@ -52,9 +52,10 @@ static NetworkAccessManager* createNam()
     auto nam = new NetworkAccessManager(QCoreApplication::instance());
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
     // See #109; in newer Qt, bearer management is deprecated altogether
-    nam->connect(nam, &QNetworkAccessManager::networkAccessibleChanged, [nam] {
-        nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
-    });
+    NetworkAccessManager::connect(nam,
+        &QNetworkAccessManager::networkAccessibleChanged, [nam] {
+            nam->setNetworkAccessible(QNetworkAccessManager::Accessible);
+        });
 #endif
     return nam;
 }

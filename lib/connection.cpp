@@ -929,8 +929,8 @@ void Connection::doInDirectChat(User* u,
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.
     DirectChatsMap removals;
-    for (auto it = std::as_const(d->directChats).find(u);
-         it != d->directChats.end() && it.key() == u; ++it) {
+    for (auto it = d->directChats.constFind(u);
+         it != d->directChats.cend() && it.key() == u; ++it) {
         const auto& roomId = *it;
         if (auto r = room(roomId, JoinState::Join)) {
             Q_ASSERT(r->id() == roomId);
