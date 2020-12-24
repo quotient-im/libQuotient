@@ -104,17 +104,21 @@ private slots:
     // Add more tests above here
 
 public:
-    Room* room() const { return targetRoom; }
-    Connection* connection() const { return targetRoom->connection(); }
+    [[nodiscard]] Room* room() const { return targetRoom; }
+    [[nodiscard]] Connection* connection() const
+    {
+        return targetRoom->connection();
+    }
 
 private:
-    bool checkFileSendingOutcome(const TestToken& thisTest,
-                                 const QString& txnId, const QString& fileName);
-    bool checkRedactionOutcome(const QByteArray& thisTest,
-                               const QString& evtIdToRedact);
+    [[nodiscard]] bool checkFileSendingOutcome(const TestToken& thisTest,
+                                               const QString& txnId,
+                                               const QString& fileName);
+    [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
+                                             const QString& evtIdToRedact);
 
-    bool validatePendingEvent(const QString& txnId);
-    bool checkDirectChat() const;
+    [[nodiscard]] bool validatePendingEvent(const QString& txnId);
+    [[nodiscard]] bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
                     int line);
 
@@ -185,7 +189,7 @@ TestManager::TestManager(int& argc, char** argv)
         [this](const QString& error) {
             clog << "Failed to resolve the server: " << error.toStdString()
                  << endl;
-            this->exit(-2);
+            QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
     connect(c, &Connection::loginError, this,
@@ -195,7 +199,7 @@ TestManager::TestManager(int& argc, char** argv)
                  << message.toStdString() << endl
                  << "Details:" << endl
                  << details.toStdString() << endl;
-            this->exit(-2);
+            QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
     connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
@@ -320,7 +324,7 @@ TEST_IMPL(loadMembers)
         FAIL_TEST();
     }
     r->setDisplayed();
-    connect(r, &Room::allMembersLoaded, [this, thisTest, r] {
+    connect(r, &Room::allMembersLoaded, this, [this, thisTest, r] {
         FINISH_TEST(r->memberNames().size() >= r->joinedCount());
     });
     return false;
@@ -745,7 +749,7 @@ TEST_IMPL(visitResources)
     static const QStringList viaServers { "matrix.org", "example.org" };
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
-                        [](QString q, const QString& s) {
+                        [](const QString& q, const QString& s) {
                             return q + "&via=" + s;
                         });
     static const QStringList joinByIdUris {
@@ -807,7 +811,8 @@ void TestManager::conclude()
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this, [this, room, plainReport] {
         const auto& pendingEvents = room->pendingEvents();
-        if (auto c = std::count_if(pendingEvents.begin(), pendingEvents.end(),
+        if (auto c = std::count_if(pendingEvents.cbegin(),
+                                   pendingEvents.cend(),
                                    [](const PendingEventItem& pe) {
                                        return pe.deliveryStatus()
                                               < EventStatus::ReachedServer;
@@ -834,8 +839,8 @@ void TestManager::finalize()
 {
     clog << "Logging out" << endl;
     c->logout();
-    connect(c, &Connection::loggedOut,
-        this, [this] { this->exit(failed.size() + running.size()); },
+    connect(c, &Connection::loggedOut, this,
+            [this] { QCoreApplication::exit(failed.size() + running.size()); },
         Qt::QueuedConnection);
 }
 
@@ -847,6 +852,7 @@ int main(int argc, char* argv[])
              << endl;
         return -1;
     }
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     return TestManager(argc, argv).exec();
 }
 

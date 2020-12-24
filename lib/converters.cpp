@@ -32,9 +32,9 @@ QVariant JsonConverter<QVariant>::load(const QJsonValue& jv)
     return jv.toVariant();
 }
 
-QJsonObject JsonConverter<QVariantHash>::dump(const QVariantHash& map)
+QJsonObject JsonConverter<QVariantHash>::dump(const QVariantHash& vh)
 {
-    return QJsonObject::fromVariantHash(map);
+    return QJsonObject::fromVariantHash(vh);
 }
 
 QVariantHash JsonConverter<QVariantHash>::load(const QJsonValue& jv)

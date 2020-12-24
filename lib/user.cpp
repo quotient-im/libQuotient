@@ -78,7 +78,7 @@ QString User::id() const { return d->id; }
 bool User::isGuest() const
 {
     Q_ASSERT(!d->id.isEmpty() && d->id.startsWith('@'));
-    auto it = std::find_if_not(d->id.begin() + 1, d->id.end(),
+    auto it = std::find_if_not(d->id.cbegin() + 1, d->id.cend(),
                                [](QChar c) { return c.isDigit(); });
     Q_ASSERT(it != d->id.end());
     return *it == ':';
@@ -138,7 +138,7 @@ inline bool User::doSetAvatar(SourceT&& source)
             connect(j, &BaseJob::success, this,
                     [this, newUrl = QUrl(contentUri)] {
                         if (newUrl == d->defaultAvatar.url()) {
-                            d->defaultAvatar.updateUrl(move(newUrl));
+                            d->defaultAvatar.updateUrl(newUrl);
                             emit defaultAvatarChanged();
                         } else
                             qCWarning(MAIN) << "User" << id()

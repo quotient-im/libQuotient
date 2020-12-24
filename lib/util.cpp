@@ -161,9 +161,6 @@ static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
               "Test fn_arg_t defaulting to first argument");
 
 template <typename T>
-static QString ft(T&&)
-{
-    return {};
-}
+static QString ft(T&&);
 static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
               "Test function templates");

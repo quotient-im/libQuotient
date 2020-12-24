@@ -32,7 +32,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
                 primaryType_ = Type(p.sigil);
                 auto safePrimaryId = primaryId.mid(1);
                 safePrimaryId.replace('/', "%2F");
-                pathToBe = p.uriString + std::move(safePrimaryId);
+                pathToBe = p.uriString + safePrimaryId;
                 break;
             }
         if (!secondaryId.isEmpty()) {
@@ -42,12 +42,12 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
             }
             auto safeSecondaryId = secondaryId.mid(1);
             safeSecondaryId.replace('/', "%2F");
-            pathToBe += "/event/" + std::move(safeSecondaryId);
+            pathToBe += "/event/" + safeSecondaryId;
         }
         setPath(pathToBe, QUrl::TolerantMode);
     }
     if (!query.isEmpty())
-        setQuery(std::move(query));
+        setQuery(query);
 }
 
 static inline auto encodedPath(const QUrl& url)
@@ -156,7 +156,7 @@ QUrl Uri::toUrl(UriForm form) const
         return {};
 
     if (form == CanonicalUri || type() == NonMatrix)
-        return *this;
+        return *this; // NOLINT(cppcoreguidelines-slicing): It's intentional
 
     QUrl url;
     url.setScheme("https");

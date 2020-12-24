@@ -350,7 +350,7 @@ public:
      */
     bool processReplacement(const RoomMessageEvent& newEvent);
 
-    void setTags(TagsMap newTags);
+    void setTags(TagsMap&& newTags);
 
     QJsonObject toJson() const;
 
@@ -1073,11 +1073,11 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
 
     if (propagate) {
         for (auto* r = this; (r = r->successor(joinStates));)
-            r->setTags(newTags, ActionScope::ThisRoomOnly);
+            r->setTags(d->tags, ActionScope::ThisRoomOnly);
     }
 }
 
-void Room::Private::setTags(TagsMap newTags)
+void Room::Private::setTags(TagsMap&& newTags)
 {
     emit q->tagsAboutToChange();
     const auto keys = newTags.keys();
@@ -1192,8 +1192,8 @@ QString Room::fileNameToDownload(const QString& eventId) const
 
 FileTransferInfo Room::fileTransferInfo(const QString& id) const
 {
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt == d->fileTransfers.end())
+    const auto infoIt = d->fileTransfers.constFind(id);
+    if (infoIt == d->fileTransfers.cend())
         return {};
 
     // FIXME: Add lib tests to make sure FileTransferInfo::status stays
@@ -1222,8 +1222,8 @@ QUrl Room::fileSource(const QString& id) const
         return url;
 
     // No urlToDownload means it's a pending or completed upload.
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt != d->fileTransfers.end())
+    auto infoIt = d->fileTransfers.constFind(id);
+    if (infoIt != d->fileTransfers.cend())
         return QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
 
     qCWarning(MAIN) << "File source for identifier" << id << "not found";
@@ -1312,7 +1312,6 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
     Q_UNUSED(roomKeyEvent)
     Q_UNUSED(senderKey)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-    return;
 #else // Quotient_E2EE_ENABLED
     if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
@@ -1438,7 +1437,7 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
     }
     const auto insertedSize = (index - baseIndex) * placement;
     Q_ASSERT(insertedSize == int(events.size()));
-    return insertedSize;
+    return Timeline::size_type(insertedSize);
 }
 
 QString Room::memberName(const QString& mxId) const
@@ -1654,8 +1653,8 @@ QString Room::retryMessage(const QString& txnId)
     const auto it = findPendingEvent(txnId);
     Q_ASSERT(it != d->unsyncedEvents.end());
     qCDebug(EVENTS) << "Retrying transaction" << txnId;
-    const auto& transferIt = d->fileTransfers.find(txnId);
-    if (transferIt != d->fileTransfers.end()) {
+    const auto& transferIt = d->fileTransfers.constFind(txnId);
+    if (transferIt != d->fileTransfers.cend()) {
         Q_ASSERT(transferIt->isUpload);
         if (transferIt->status == FileTransferInfo::Completed) {
             qCDebug(MESSAGES)
@@ -1752,7 +1751,8 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
     // Below, the upload job is used as a context object to clean up connections
-    connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
+    const auto& transferJob = d->fileTransfers.value(txnId).job;
+    connect(this, &Room::fileTransferCompleted, transferJob,
             [this, txnId](const QString& id, const QUrl&, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
@@ -1771,7 +1771,7 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                     }
                 }
             });
-    connect(this, &Room::fileTransferCancelled, d->fileTransfers[txnId].job,
+    connect(this, &Room::fileTransferCancelled, transferJob,
             [this, txnId](const QString& id) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
@@ -1973,8 +1973,8 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
 
 void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 {
-    auto ongoingTransfer = d->fileTransfers.find(eventId);
-    if (ongoingTransfer != d->fileTransfers.end()
+    if (auto ongoingTransfer = d->fileTransfers.constFind(eventId);
+        ongoingTransfer != d->fileTransfers.cend()
         && ongoingTransfer->status == FileTransferInfo::Started) {
         qCWarning(MAIN) << "Transfer for" << eventId
                         << "is ongoing; download won't start";
@@ -2031,8 +2031,8 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 
 void Room::cancelFileTransfer(const QString& id)
 {
-    auto it = d->fileTransfers.find(id);
-    if (it == d->fileTransfers.end()) {
+    const auto it = d->fileTransfers.constFind(id);
+    if (it == d->fileTransfers.cend()) {
         qCWarning(MAIN) << "No information on file transfer" << id << "in room"
                         << d->id;
         return;
@@ -2134,8 +2134,8 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 {
     // Can't use findInTimeline because it returns a const iterator, and
     // we need to change the underlying TimelineItem.
-    const auto pIdx = eventsIndex.find(redaction.redactedEvent());
-    if (pIdx == eventsIndex.end())
+    const auto pIdx = eventsIndex.constFind(redaction.redactedEvent());
+    if (pIdx == eventsIndex.cend())
         return false;
 
     Q_ASSERT(q->isValidIndex(*pIdx));
@@ -2205,8 +2205,8 @@ bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
 {
     // Can't use findInTimeline because it returns a const iterator, and
     // we need to change the underlying TimelineItem.
-    const auto pIdx = eventsIndex.find(newEvent.replacedEvent());
-    if (pIdx == eventsIndex.end())
+    const auto pIdx = eventsIndex.constFind(newEvent.replacedEvent());
+    if (pIdx == eventsIndex.cend())
         return false;
 
     Q_ASSERT(q->isValidIndex(*pIdx));
@@ -2451,12 +2451,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!e.isStateEvent())
         return Change::NoChange;
 
-    // Find a value (create empty if necessary) and get a reference to it
-    // getCurrentState<> is not used here because it (creates and) returns
+    // Find a value (create an empty one if necessary) and get a reference
+    // to it. Can't use getCurrentState<>() because it (creates and) returns
     // a stub if a value is not found, and what's needed here is a "real" event
     // or nullptr.
-    const auto*& curStateEvent =
-        d->currentState[{ e.matrixType(), e.stateKey() }];
+    auto& curStateEvent = d->currentState[{ e.matrixType(), e.stateKey() }];
     // Prepare for the state change
     visit(e, [this, oldRme = static_cast<const RoomMemberEvent*>(curStateEvent)](
                  const RoomMemberEvent& rme) {
