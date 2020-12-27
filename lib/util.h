@@ -148,7 +148,7 @@ public:
 
 namespace _impl {
     template <typename AlwaysVoid, typename>
-    struct fn_traits;
+    struct fn_traits {};
 }
 
 /// Determine traits of an arbitrary function/lambda/functor
