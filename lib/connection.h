@@ -62,27 +62,26 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 
-// To simplify comparisons of LoginFlows
-
-inline bool operator==(const GetLoginFlowsJob::LoginFlow& lhs,
-                       const GetLoginFlowsJob::LoginFlow& rhs)
-{
-    return lhs.type == rhs.type;
-}
-
-inline bool operator!=(const GetLoginFlowsJob::LoginFlow& lhs,
-                       const GetLoginFlowsJob::LoginFlow& rhs)
-{
-    return !(lhs == rhs);
-}
+using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 /// Predefined login flows
 struct LoginFlows {
-    using LoginFlow = GetLoginFlowsJob::LoginFlow;
     static inline const LoginFlow Password { "m.login.password" };
     static inline const LoginFlow SSO { "m.login.sso" };
     static inline const LoginFlow Token { "m.login.token" };
 };
+
+// To simplify comparisons of LoginFlows
+
+inline bool operator==(const LoginFlow& lhs, const LoginFlow& rhs)
+{
+    return lhs.type == rhs.type;
+}
+
+inline bool operator!=(const LoginFlow& lhs, const LoginFlow& rhs)
+{
+    return !(lhs == rhs);
+}
 
 class Connection;
 
@@ -881,19 +880,6 @@ protected Q_SLOTS:
 private:
     class Private;
     QScopedPointer<Private> d;
-
-    /**
-     * A single entry for functions that need to check whether the
-     * homeserver is valid before running. May either execute connectFn
-     * synchronously or asynchronously (if tryResolve is true and
-     * a DNS lookup is initiated); in case of errors, emits resolveError
-     * if the homeserver URL is not valid and cannot be resolved from
-     * userId.
-     *
-     * @param userId - fully-qualified MXID to resolve HS from
-     * @param connectFn - a function to execute once the HS URL is good
-     */
-    void checkAndConnect(const QString& userId, std::function<void()> connectFn);
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;
