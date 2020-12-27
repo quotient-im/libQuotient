@@ -504,13 +504,35 @@ public slots:
     /** Determine and set the homeserver from MXID */
     void resolveServer(const QString& mxid);
 
+    /** \brief Log in using a username and password pair
+     *
+     * Before logging in, this method checks if the homeserver is valid and
+     * supports the password login flow. If the homeserver is invalid but
+     * a full user MXID is provided, this method calls resolveServer() using
+     * this MXID.
+     *
+     * \sa resolveServer, resolveError, loginError
+     */
     void loginWithPassword(const QString& userId, const QString& password,
                            const QString& initialDeviceName,
                            const QString& deviceId = {});
+    /** \brief Log in using a login token
+     *
+     * One usual case for this method is the final stage of logging in via SSO.
+     * Unlike loginWithPassword() and assumeIdentity(), this method cannot
+     * resolve the server from the user name because the full user MXID is
+     * encoded in the login token. Callers should ensure the homeserver
+     * sanity in advance.
+     */
     void loginWithToken(const QByteArray& loginToken,
                         const QString& initialDeviceName,
                         const QString& deviceId = {});
-    void assumeIdentity(const QString& userId, const QString& accessToken,
+    /** \brief Use an existing access token to connect to the homeserver
+     *
+     * Similar to loginWithPassword(), this method checks that the homeserver
+     * URL is valid and tries to resolve it from the MXID in case it is not.
+     */
+    void assumeIdentity(const QString& mxId, const QString& accessToken,
                         const QString& deviceId);
     /*! \deprecated Use loginWithPassword instead */
     void connectToServer(const QString& userId, const QString& password,
@@ -662,9 +684,9 @@ signals:
      * This was a signal resulting from a successful resolveServer().
      * Since Connection now provides setHomeserver(), the HS URL
      * may change even without resolveServer() invocation. Use
-     * homeserverChanged() instead of resolved(). You can also use
-     * connectToServer and connectWithToken without the HS URL set in
-     * advance (i.e. without calling resolveServer), as they now trigger
+     * loginFLowsChanged() instead of resolved(). You can also use
+     * loginWith*() and assumeIdentity() without the HS URL set in
+     * advance (i.e. without calling resolveServer), as they trigger
      * server name resolution from MXID if the server URL is not valid.
      */
     void resolved();

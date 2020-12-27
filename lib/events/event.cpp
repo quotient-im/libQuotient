@@ -61,11 +61,14 @@ QString Event::matrixType() const { return fullJson()[TypeKeyL].toString(); }
 
 QByteArray Event::originalJson() const { return QJsonDocument(_json).toJson(); }
 
+// On const below: this is to catch accidental attempts to change event JSON
+// NOLINTNEXTLINE(readability-const-return-type)
 const QJsonObject Event::contentJson() const
 {
     return fullJson()[ContentKeyL].toObject();
 }
 
+// NOLINTNEXTLINE(readability-const-return-type)
 const QJsonObject Event::unsignedJson() const
 {
     return fullJson()[UnsignedKeyL].toObject();
