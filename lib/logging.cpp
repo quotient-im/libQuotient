@@ -24,6 +24,7 @@
 LOGGING_CATEGORY(MAIN, "quotient.main")
 LOGGING_CATEGORY(EVENTS, "quotient.events")
 LOGGING_CATEGORY(STATE, "quotient.events.state")
+LOGGING_CATEGORY(MEMBERS, "quotient.events.members")
 LOGGING_CATEGORY(MESSAGES, "quotient.events.messages")
 LOGGING_CATEGORY(EPHEMERAL, "quotient.events.ephemeral")
 LOGGING_CATEGORY(E2EE, "quotient.e2ee")
