@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+//
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include "encryptedevent.h"
 
 using namespace Quotient;
