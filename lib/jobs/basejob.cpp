@@ -24,6 +24,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QMetaEnum>
+#include <QtCore/QPointer>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -76,15 +77,6 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     return dbg << ": " << message;
 }
 
-struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
-    static inline void cleanup(QNetworkReply* reply)
-    {
-        if (reply && reply->isRunning())
-            reply->abort();
-        QScopedPointerDeleteLater::cleanup(reply);
-    }
-};
-
 template <typename... Ts>
 constexpr auto make_array(Ts&&... items)
 {
@@ -110,6 +102,16 @@ public:
     {
         timer.setSingleShot(true);
         retryTimer.setSingleShot(true);
+    }
+
+    ~Private()
+    {
+        if (reply) {
+            if (reply->isRunning()) {
+                reply->abort();
+            }
+            delete reply;
+        }
     }
 
     void sendRequest();
@@ -140,7 +142,10 @@ public:
 
     QByteArrayList expectedKeys;
 
-    QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
+    // When the QNetworkAccessManager is destroyed it destroys all pending replies.
+    // Using QPointer allows us to know when that happend.
+    QPointer<QNetworkReply> reply;
+
     Status status = Unprepared;
     QByteArray rawResponse;
     /// Contains a null document in case of non-JSON body (for a successful
@@ -315,16 +320,16 @@ void BaseJob::Private::sendRequest()
 
     switch (verb) {
     case HttpVerb::Get:
-        reply.reset(connection->nam()->get(req));
+        reply = connection->nam()->get(req);
         break;
     case HttpVerb::Post:
-        reply.reset(connection->nam()->post(req, requestData.source()));
+        reply = connection->nam()->post(req, requestData.source());
         break;
     case HttpVerb::Put:
-        reply.reset(connection->nam()->put(req, requestData.source()));
+        reply = connection->nam()->put(req, requestData.source());
         break;
     case HttpVerb::Delete:
-        reply.reset(connection->nam()->sendCustomRequest(req, "DELETE", requestData.source()));
+        reply = connection->nam()->sendCustomRequest(req, "DELETE", requestData.source());
         break;
     }
 }
