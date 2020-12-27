@@ -186,7 +186,7 @@ TestManager::TestManager(int& argc, char** argv)
 
     connect(c, &Connection::connected, this, &TestManager::setupAndRun);
     connect(c, &Connection::resolveError, this,
-        [this](const QString& error) {
+        [](const QString& error) {
             clog << "Failed to resolve the server: " << error.toStdString()
                  << endl;
             QCoreApplication::exit(-2);
@@ -268,7 +268,7 @@ void TestManager::onNewRoom(Room* r)
          << endl;
     connect(r, &Room::aboutToAddNewMessages, r, [r](RoomEventsRange timeline) {
         clog << timeline.size() << " new event(s) in room "
-             << r->canonicalAlias().toStdString() << endl;
+             << r->objectName().toStdString() << endl;
     });
 }
 
@@ -319,13 +319,13 @@ TEST_IMPL(loadMembers)
     // It's not exactly correct because an arbitrary server might not support
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
-    if (r->memberNames().size() >= r->joinedCount()) {
+    if (r->users().size() >= r->joinedCount()) {
         clog << "Lazy loading doesn't seem to be enabled" << endl;
         FAIL_TEST();
     }
     r->setDisplayed();
     connect(r, &Room::allMembersLoaded, this, [this, thisTest, r] {
-        FINISH_TEST(r->memberNames().size() >= r->joinedCount());
+        FINISH_TEST(r->users().size() >= r->joinedCount());
     });
     return false;
 }

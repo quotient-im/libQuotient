@@ -263,7 +263,7 @@ void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
     d->expectedContentTypes = contentTypes;
 }
 
-const QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
+QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
 
 void BaseJob::addExpectedKey(const QByteArray& key) { d->expectedKeys << key; }
 

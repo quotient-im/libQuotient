@@ -363,7 +363,7 @@ protected:
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
-    const QByteArrayList expectedKeys() const;
+    QByteArrayList expectedKeys() const;
     void addExpectedKey(const QByteArray &key);
     void setExpectedKeys(const QByteArrayList &keys);
 

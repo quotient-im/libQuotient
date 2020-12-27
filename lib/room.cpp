@@ -2522,31 +2522,20 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
             setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
-            QString previousCanonicalAlias =
-                oldStateEvent
-                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
-                          ->alias()
-                    : QString();
-
-            auto previousAltAliases =
-                oldStateEvent
-                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
-                          ->altAliases()
-                    : QStringList();
-
-            if (!previousCanonicalAlias.isEmpty()) {
-                previousAltAliases.push_back(previousCanonicalAlias);
+            const auto* oldCae =
+                    static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent);
+            QStringList previousAltAliases {};
+            if (oldCae) {
+                previousAltAliases = oldCae->altAliases();
+                if (!oldCae->alias().isEmpty())
+                    previousAltAliases.push_back(oldCae->alias());
             }
-
-            const auto previousAliases = std::move(previousAltAliases);
 
             auto newAliases = cae.altAliases();
-
-            if (!cae.alias().isEmpty()) {
+            if (!cae.alias().isEmpty())
                 newAliases.push_front(cae.alias());
-            }
 
-            connection()->updateRoomAliases(id(), previousAliases, newAliases);
+            connection()->updateRoomAliases(id(), previousAltAliases, newAliases);
             return AliasesChange;
             // clang-format off
         }
@@ -2588,7 +2577,9 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 if (u == localUser() && evt.isDirect())
                     connection()->addToDirectChats(this, user(evt.senderId()));
                 break;
-            default:
+            case MembershipType::Knock:
+            case MembershipType::Ban:
+            case MembershipType::Leave:
                 if (!d->membersLeft.contains(u))
                     d->membersLeft.append(u);
             }
