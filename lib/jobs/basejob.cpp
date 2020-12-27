@@ -342,7 +342,7 @@ void BaseJob::beforeAbandon() { }
 
 void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
-    if (connData && connData->baseUrl().isValid()) {
+    if (Q_LIKELY(connData && connData->baseUrl().isValid())) {
         d->inBackground = inBackground;
         d->connection = connData;
         doPrepare();
@@ -355,7 +355,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
             setStatus(FileError, "Request data not ready");
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
-        if (status().code == Unprepared) {
+        if (Q_LIKELY(status().code == Unprepared)) {
             d->connection->submit(this);
             return;
         }
