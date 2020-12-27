@@ -345,11 +345,10 @@ void Connection::loginWithToken(const QByteArray& loginToken,
                      loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& userId,
-                                const QString& accessToken,
+void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
                                 const QString& deviceId)
 {
-    checkAndConnect(userId,
+    checkAndConnect(mxId,
                     [=] { d->assumeIdentity(userId, accessToken, deviceId); });
 }
 
