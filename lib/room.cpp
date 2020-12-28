@@ -263,10 +263,11 @@ public:
             for (auto&& eptr : events) {
                 const auto& evt = *eptr;
                 Q_ASSERT(evt.isStateEvent());
-                // Update baseState afterwards to make sure that the old state
-                // is valid and usable inside processStateEvent
-                changes |= q->processStateEvent(evt);
-                baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
+                auto change = q->processStateEvent(evt);
+                if (change != NoChange) {
+                    changes |= change;
+                    baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
+                }
             }
             if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
                 qCDebug(PROFILER)
@@ -1353,23 +1354,27 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 
 void Room::Private::insertMemberIntoMap(User* u)
 {
-    const auto userName =
-        getCurrentState<RoomMemberEvent>(u->id())->displayName();
-    qDebug(STATE) << "insertMemberIntoMap(), user" << u->id() << "with name"
-                  << userName;
-    // If there is exactly one namesake of the added user, signal member
-    // renaming for that other one because the two should be disambiguated now.
+    const auto maybeUserName =
+        getCurrentState<RoomMemberEvent>(u->id())->newDisplayName();
+    if (!maybeUserName)
+        qCWarning(MEMBERS) << "insertMemberIntoMap():" << u->id()
+                           << "has no name (even empty)";
+    const auto userName = maybeUserName.value_or(QString());
     const auto namesakes = membersMap.values(userName);
-    qDebug(STATE) << namesakes.size() << "namesake(s) found";
+    qCDebug(MEMBERS) << "insertMemberIntoMap(), user" << u->id()
+                     << "with name" << userName << '-'
+                     << namesakes.size() << "namesake(s) found";
 
-    // Callers should check they are not adding an existing user once more.
+    // Callers should make sure they are not adding an existing user once more
     Q_ASSERT(!namesakes.contains(u));
     if (namesakes.contains(u)) { // Release version whines but continues
-        qCCritical(STATE) << "Trying to add a user" << u->id() << "to room"
-                          << q->objectName() << "but that's already in it";
+        qCCritical(MEMBERS) << "Trying to add a user" << u->id() << "to room"
+                            << q->objectName() << "but that's already in it";
         return;
     }
 
+    // If there is exactly one namesake of the added user, signal member
+    // renaming for that other one because the two should be disambiguated now
     if (namesakes.size() == 1)
         emit q->memberAboutToRename(namesakes.front(),
                                     namesakes.front()->fullName(q));
@@ -1381,21 +1386,41 @@ void Room::Private::insertMemberIntoMap(User* u)
 void Room::Private::removeMemberFromMap(User* u)
 {
     const auto userName =
-        getCurrentState<RoomMemberEvent>(u->id())->displayName();
+        getCurrentState<RoomMemberEvent>(
+                u->id())->newDisplayName().value_or(QString());
 
-    qDebug(STATE) << "removeMemberFromMap(), username" << userName << "for user"
-                  << u->id();
+    qCDebug(MEMBERS) << "removeMemberFromMap(), username" << userName
+                     << "for user" << u->id();
     User* namesake = nullptr;
     auto namesakes = membersMap.values(userName);
+    // If there was one namesake besides the removed user, signal member
+    // renaming for it because it doesn't need to be disambiguated any more.
     if (namesakes.size() == 2) {
-        namesake = namesakes.front() == u ? namesakes.back() : namesakes.front();
+        namesake =
+            namesakes.front() == u ? namesakes.back() : namesakes.front();
         Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
         emit q->memberAboutToRename(namesake, userName);
     }
     const auto removed = membersMap.remove(userName, u);
-    qDebug(STATE) << "Removed" << removed << "entries";
-    // If there was one namesake besides the removed user, signal member
-    // renaming for it because it doesn't need to be disambiguated any more.
+    if (removed == 0) {
+        qCDebug(MEMBERS) << "No entries removed; checking the whole list";
+        // Unless at the stage of initial filling, this no removed entries
+        // is suspicious; double-check that this user is not found in
+        // the whole map, and stop (for debug builds) or shout in the logs
+        // (for release builds) if there's one. That search is O(n), which
+        // may come rather expensive for larger rooms.
+        QElapsedTimer et;
+        auto it = std::find(membersMap.cbegin(), membersMap.cend(), u);
+        if (et.nsecsElapsed() > profilerMinNsecs() / 10)
+            qCDebug(MEMBERS) << "...done in" << et;
+        if (it != membersMap.cend()) {
+            Q_ASSERT_X(false, __FUNCTION__,
+                       "Mismatched name in the room members list");
+            qCCritical(MEMBERS) << "Mismatched name in the room members list;"
+                                   " avoiding the list corruption";
+            membersMap.remove(it.key(), u);
+        }
+    }
     if (namesake)
         emit q->memberRenamed(namesake);
 }
@@ -2449,7 +2474,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 Room::Changes Room::processStateEvent(const RoomEvent& e)
 {
     if (!e.isStateEvent())
-        return Change::NoChange;
+        return NoChange;
 
     // Find a value (create an empty one if necessary) and get a reference
     // to it. Can't use getCurrentState<>() because it (creates and) returns
@@ -2457,48 +2482,87 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // or nullptr.
     auto& curStateEvent = d->currentState[{ e.matrixType(), e.stateKey() }];
     // Prepare for the state change
-    visit(e, [this, oldRme = static_cast<const RoomMemberEvent*>(curStateEvent)](
-                 const RoomMemberEvent& rme) {
-        auto* u = user(rme.userId());
-        if (!u) { // ???
-            qCCritical(MAIN)
-                << "Could not get a user object for" << rme.userId();
-            return;
-        }
-        const auto prevMembership = oldRme ? oldRme->membership()
-                                           : MembershipType::Leave;
-        switch (prevMembership) {
-        case MembershipType::Invite:
-            if (rme.membership() != prevMembership) {
-                d->usersInvited.removeOne(u);
-                Q_ASSERT(!d->usersInvited.contains(u));
+    // clang-format off
+    const bool proceed = visit(e
+        , [this, curStateEvent](const RoomMemberEvent& rme) {
+            // clang-format on
+            auto* oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
+            auto* u = user(rme.userId());
+            if (!u) { // Some terribly malformed user id?
+                qCCritical(MAIN) << "Could not get a user object for"
+                                 << rme.userId();
+                return false; // Stay low and hope for the best...
             }
-            break;
-        case MembershipType::Join:
-            switch (rme.membership()) {
-            case MembershipType::Join: // rename/avatar change or no-op
-                if (rme.newDisplayName()) {
-                    emit memberAboutToRename(u, *rme.newDisplayName());
-                    d->removeMemberFromMap(u);
+            const auto prevMembership = oldRme ? oldRme->membership()
+                                               : MembershipType::Leave;
+            switch (prevMembership) {
+            case MembershipType::Invite:
+                if (rme.membership() != prevMembership) {
+                    d->usersInvited.removeOne(u);
+                    Q_ASSERT(!d->usersInvited.contains(u));
                 }
                 break;
-            case MembershipType::Invite:
-                qCWarning(MAIN) << "Membership change from Join to Invite:"
-                                << rme;
-                [[fallthrough]];
-            default: // whatever the new membership, it's no more Join
-                d->removeMemberFromMap(u);
-                emit userRemoved(u);
+            case MembershipType::Join:
+                if (rme.membership() == MembershipType::Join) {
+                    // rename/avatar change or no-op
+                    if (rme.newDisplayName()) {
+                        emit memberAboutToRename(u, *rme.newDisplayName());
+                        d->removeMemberFromMap(u);
+                    }
+                    if (!rme.newDisplayName() && !rme.newAvatarUrl()) {
+                        qCWarning(MEMBERS)
+                            << "No-op membership event for" << rme.userId()
+                            << "- retaining the state";
+                        qCWarning(MEMBERS) << "The event dump:" << rme;
+                        return false;
+                    }
+                } else {
+                    if (rme.membership() == MembershipType::Invite)
+                        qCWarning(MAIN)
+                            << "Membership change from Join to Invite:" << rme;
+                    // whatever the new membership, it's no more Join
+                    d->removeMemberFromMap(u);
+                    emit userRemoved(u);
+                }
+                break;
+            case MembershipType::Ban:
+            case MembershipType::Knock:
+            case MembershipType::Leave:
+                if (rme.membership() == MembershipType::Invite
+                    || rme.membership() == MembershipType::Join) {
+                    d->membersLeft.removeOne(u);
+                    Q_ASSERT(!d->membersLeft.contains(u));
+                }
+                break;
+            case MembershipType::Undefined:
+                ; // A warning will be dropped in the post-processing block below
             }
-            break;
-        default:
-            if (rme.membership() == MembershipType::Invite
-                || rme.membership() == MembershipType::Join) {
-                d->membersLeft.removeOne(u);
-                Q_ASSERT(!d->membersLeft.contains(u));
-            }
+            return true;
+            // clang-format off
         }
-    });
+        , [this, curStateEvent]( const EncryptionEvent& ee) {
+            // clang-format on
+            auto* oldEncEvt =
+                    static_cast<const EncryptionEvent*>(curStateEvent);
+            if (ee.algorithm().isEmpty()) {
+                qWarning(STATE)
+                    << "The encryption event for room" << objectName()
+                    << "doesn't have 'algorithm' specified - ignoring";
+                return false;
+            }
+            if (oldEncEvt
+                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
+                qCWarning(STATE) << "The room is already encrypted but a new"
+                                    " room encryption event arrived - ignoring";
+                return false;
+            }
+            return true;
+            // clang-format off
+        }
+        , true); // By default, go forward with the state change
+    // clang-format on
+    if (!proceed)
+        return NoChange;
 
     // Change the state
     const auto* const oldStateEvent =
@@ -2506,18 +2570,17 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     Q_ASSERT(!oldStateEvent
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
-    if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
+    if (is<RoomMemberEvent>(e))
+        qCDebug(MEMBERS) << "Updated room member state:" << e;
+    else
         qCDebug(STATE) << "Updated room state:" << e;
 
     // Update internal structures as per the change and work out the return value
 
     // clang-format off
-    return visit(e
+    const auto result = visit(e
         , [] (const RoomNameEvent&) {
             return NameChange;
-        }
-        , [] (const RoomAliasesEvent&) {
-            return NoChange; // This event has been removed by MSC2432
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
@@ -2558,13 +2621,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             switch (evt.membership()) {
             case MembershipType::Join:
                 if (prevMembership != MembershipType::Join) {
-                    qDebug(STATE) << "!Join -> Join";
                     d->insertMemberIntoMap(u);
                     emit userAdded(u);
                 } else {
                     if (evt.newDisplayName()) {
-                    qDebug(STATE) << "After renaming";
-                    d->insertMemberIntoMap(u);
+                        d->insertMemberIntoMap(u);
                         emit memberRenamed(u);
                     }
                     if (evt.newAvatarUrl())
@@ -2582,30 +2643,18 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             case MembershipType::Leave:
                 if (!d->membersLeft.contains(u))
                     d->membersLeft.append(u);
+                break;
+            case MembershipType::Undefined:
+                qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
             return MembersChange;
             // clang-format off
         }
-        , [this, oldEncEvt = static_cast<const EncryptionEvent*>(oldStateEvent)](
-            const EncryptionEvent& ee) {
-            // clang-format on
-            if (ee.algorithm().isEmpty()) {
-                qWarning(STATE)
-                    << "The encryption event for room" << objectName()
-                    << "doesn't have 'algorithm' specified - ignoring";
-                return NoChange;
-            }
-            if (oldEncEvt
-                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
-                qCWarning(STATE) << "The room is already encrypted but a new"
-                                    " room encryption event arrived - ignoring";
-                return NoChange;
-            }
+        , [this] (const EncryptionEvent&) {
             // As encryption can only be switched on once, emit the signal here
             // instead of aggregating and emitting in updateData()
             emit encryption();
             return OtherChange;
-            // clang-format off
         }
         , [this] (const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
@@ -2622,9 +2671,12 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     });
 
             return OtherChange;
+            // clang-format off
         }
-    );
+        , OtherChange);
     // clang-format on
+    Q_ASSERT(result != NoChange);
+    return result;
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)
