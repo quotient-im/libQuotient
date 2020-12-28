@@ -451,7 +451,7 @@ void Connection::Private::completeSetup(const QString& mxId)
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-    AccountSettings accountSettings(userId);
+    AccountSettings accountSettings(data->userId());
     encryptionManager.reset(
         new EncryptionManager(accountSettings.encryptionAccountPickle()));
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
