@@ -327,8 +327,9 @@ inline auto visit(const BaseEventT& event, FnT&& visitor)
 }
 
 namespace _impl {
+    // Using bool instead of auto below because auto apparently upsets MSVC
     template <class BaseT, typename FnT>
-    inline constexpr auto needs_downcast =
+    inline constexpr bool needs_downcast =
         std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
         && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
 }
