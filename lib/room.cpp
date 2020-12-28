@@ -36,6 +36,7 @@
 #include "csapi/room_state.h"
 #include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
+#include "csapi/read_markers.h"
 #include "csapi/tags.h"
 
 #include "events/callanswerevent.h"
@@ -55,7 +56,6 @@
 #include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "jobs/postreadmarkersjob.h"
 #include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
@@ -632,8 +632,8 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
     emit q->readMarkerForUserMoved(u, eventId, storedId);
     if (isLocalUser(u)) {
         if (storedId != serverReadMarker)
-            connection->callApi<PostReadMarkersJob>(BackgroundRequest, id,
-                                                    storedId);
+            connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
+                                                  storedId);
         emit q->readMarkerMoved(eventId, storedId);
         return Change::ReadMarkerChange;
     }

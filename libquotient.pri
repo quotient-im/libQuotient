@@ -72,7 +72,6 @@ HEADERS += \
     $$SRCPATH/jobs/syncjob.h \
     $$SRCPATH/jobs/mediathumbnailjob.h \
     $$SRCPATH/jobs/downloadfilejob.h \
-    $$SRCPATH/jobs/postreadmarkersjob.h \
     $$files($$SRCPATH/csapi/*.h, false) \
     $$files($$SRCPATH/csapi/definitions/*.h, false) \
     $$files($$SRCPATH/csapi/definitions/wellknown/*.h, false) \
