@@ -1401,8 +1401,7 @@ void Room::Private::removeMemberFromMap(User* u)
         Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
         emit q->memberAboutToRename(namesake, userName);
     }
-    const auto removed = membersMap.remove(userName, u);
-    if (removed == 0) {
+    if (membersMap.remove(userName, u) == 0) {
         qCDebug(MEMBERS) << "No entries removed; checking the whole list";
         // Unless at the stage of initial filling, this no removed entries
         // is suspicious; double-check that this user is not found in
