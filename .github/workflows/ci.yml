@@ -14,14 +14,15 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       max-parallel: 1
       matrix:
         os: [ubuntu-18.04, macos-10.15]
 #        e2ee: [false, true]
-        compiler: [gcc, clang]
+        compilers: [ 'CC=gcc CXX=g++', 'CC=clang CXX=clang++']
         exclude:
         - os: macos-10.15
-          compiler: gcc
+          compilers: 'CC=gcc CXX=g++'
 
     steps:
     - uses: actions/checkout@v2
@@ -30,26 +31,23 @@ jobs:
       id: cache-qt
       uses: actions/cache@v2
       with:
-        path: ../Qt
+        path: ../../Qt
         key: ${{ runner.os }}-QtCache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
         version: '5.9.9'
+        dir: ${{runner.workspace}}/..
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Configure CMake
-      env:
-        CXX: ${{ matrix.compiler }}
-#      working-directory: ${{runner.workspace}}/build
-      # Note the current convention is to use the -S and -B options here to specify source 
-      # and build directories, but this is only available with CMake 3.13 and higher.  
-      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake -Bbuild -S$GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: |
+        export ${{matrix.compilers}}
+        cmake -Bbuild -S$GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS
 
     - name: Build
       run: cmake --build build --target quotest
