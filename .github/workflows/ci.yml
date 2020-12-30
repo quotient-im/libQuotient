@@ -31,14 +31,14 @@ jobs:
       id: cache-qt
       uses: actions/cache@v2
       with:
-        path: ../../Qt
+        path: ${{runner.workspace}}/Qt
         key: ${{ runner.os }}-QtCache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
         version: '5.9.9'
-        dir: ${{runner.workspace}}/..
+#        dir: ${{runner.home}}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Create Build Environment
