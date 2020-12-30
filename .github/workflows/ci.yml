@@ -1,17 +1,20 @@
-name: CMake
+name: CI
 
-on: [push]
+on:
+  push:
+  pull_request:
+    types: [opened, reopened]
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  build:
+  CI:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-#      max-parallel: 1
+      max-parallel: 1
       matrix:
         os: [ubuntu-18.04, macos-10.15]
         e2ee: ['e2ee', '']
@@ -67,5 +70,8 @@ jobs:
         cmake tests -Bbuild-test $CMAKE_ARGS
         cmake --build build-test --target all
         
-#    - name: Run tests
-#      run: build-test/quotest 
+    - name: Run tests
+      env:
+        TEST_USER: ${{ secrets.TEST_USER }}
+        TEST_PWD: ${{ secrets.TEST_PWD }}
+      run: build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "CI job ${{ github.job }}"
