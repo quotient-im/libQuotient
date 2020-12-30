@@ -2,10 +2,6 @@ name: CMake
 
 on: [push]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: RelWithDebInfo
-
 defaults:
   run:
     shell: bash
@@ -15,43 +11,61 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      max-parallel: 1
+#      max-parallel: 1
       matrix:
         os: [ubuntu-18.04, macos-10.15]
-#        e2ee: [false, true]
+        e2ee: ['e2ee', '']
         compilers: [ 'CC=gcc CXX=g++', 'CC=clang CXX=clang++']
         exclude:
         - os: macos-10.15
           compilers: 'CC=gcc CXX=g++'
 
+    env:
+      DESTDIR: ${{ github.workspace }}
+      CMAKE_ARGS: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ github.workspace }}/usr'
+
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: ${{ matrix.e2ee == 'e2ee' }}
 
     - name: Cache Qt
       id: cache-qt
       uses: actions/cache@v2
       with:
-        path: ${{runner.workspace}}/Qt
+        path: ${{ runner.workspace }}/Qt
         key: ${{ runner.os }}-QtCache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
         version: '5.9.9'
-#        dir: ${{runner.home}}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: cmake -E make_directory ${{ runner.workspace }}/build
 
-    - name: Configure CMake
+    - name: Build and install olm
+      if: ${{ matrix.e2ee == 'e2ee' }}
       run: |
-        export ${{matrix.compilers}}
-        cmake -Bbuild -S$GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS
+        git clone https://gitlab.matrix.org/matrix-org/olm.git
+        pushd olm
+        cmake . -Bbuild $CMAKE_ARGS
+        cmake --build build --target install
+        popd
 
-    - name: Build
-      run: cmake --build build --target quotest
+    - name: Configure libQuotient
+      run: |
+        export ${{ matrix.compilers }}
+        cmake $GITHUB_WORKSPACE -Bbuild $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee == 'e2ee' }}
 
-#    - name: Test
-#      working-directory: ${{runner.workspace}}/build
-#      run: quotest ...
+    - name: Build and install libQuotient
+      run: cmake --build build --target install
+
+    - name: Build tests
+      run: |
+        cmake tests -Bbuild-test $CMAKE_ARGS
+        cmake --build build-test --target all
+        
+#    - name: Run tests
+#      run: build-test/quotest 
