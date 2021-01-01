@@ -17,15 +17,15 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ubuntu-18.04, macos-10.15]
-        e2ee: [e2ee, '']
         compiler: [ GCC, Clang ]
+        # Not using binary values here, to make the job captions more readable
+        e2ee: [ '', 'E2EE' ]
+        update-api: [ '', 'update-api' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
-
-    env:
-      DESTDIR: ${{ github.workspace }}
-      CMAKE_ARGS: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ github.workspace }}/usr'
+        - e2ee: '' # Somewhat reduce the number of combinations to check
+          update-api: 'update-api'
 
     steps:
     - uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
         version: '5.9.9'
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Create Build Environment
+    - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
           echo "CC=gcc" >>$GITHUB_ENV
@@ -55,21 +55,40 @@ jobs:
           echo "CXX=clang++" >>$GITHUB_ENV
         fi
         echo "QUOTEST_ORIGIN=${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        echo "DESTDIR=${{ runner.workspace }}" >>$GITHUB_ENV
+        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/usr" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Build and install olm
-      if: ${{ matrix.e2ee != '' }}
+      if: matrix.e2ee
       run: |
+        cd ${{ runner.workspace }}
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         pushd olm
-        cmake . -Bbuild $CMAKE_ARGS
+        cmake . -B build $CMAKE_ARGS
         cmake --build build --target install
         popd
-        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN, E2EE" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
+
+    - name: Pull CS API and build GTAD
+      if: matrix.update-api
+      run: |
+        cd ${{ runner.workspace }}
+        git clone https://github.com/matrix-org/matrix-doc.git
+        git clone --recursive https://github.com/KitsuneRal/gtad.git
+        pushd gtad
+        cmake . $CMAKE_ARGS
+        cmake --build .
+        popd
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
 
     - name: Configure libQuotient
-      run: |
-        cmake $GITHUB_WORKSPACE -Bbuild $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee == 'e2ee' }}
+      run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+
+    - name: Regenerate API code
+      if: matrix.update-api
+      run: cmake --build build --target update-api
 
     - name: Build and install libQuotient
       run: cmake --build build --target install
