@@ -45,6 +45,12 @@ jobs:
         version: '5.9.9'
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
+    - name: Install Valgrind
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get install valgrind
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp" >>$GITHUB_ENV
+
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
@@ -103,4 +109,4 @@ jobs:
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
-      run: build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+      run: $VALGRIND build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
