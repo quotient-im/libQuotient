@@ -48,8 +48,9 @@ jobs:
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-          echo "CC=gcc" >>$GITHUB_ENV
-          echo "CXX=g++" >>$GITHUB_ENV
+          if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
+          echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
+          echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
         else
           echo "CC=clang" >>$GITHUB_ENV
           echo "CXX=clang++" >>$GITHUB_ENV
