@@ -92,7 +92,7 @@ IncludeCategories:
 #IncludeIsMainRegex: '(_test)?$'
 #IncludeIsMainSourceRegex: ''
 #IndentCaseLabels: false
-IndentGotoLabels: false
+#IndentGotoLabels: false
 IndentPPDirectives: AfterHash
 #IndentWidth: 4
 #IndentWrappedFunctionNames: false
