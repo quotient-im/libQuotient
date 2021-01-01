@@ -17,11 +17,11 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ubuntu-18.04, macos-10.15]
-        e2ee: ['e2ee', '']
-        compilers: [ 'CC=gcc CXX=g++', 'CC=clang CXX=clang++']
+        e2ee: [e2ee, '']
+        compiler: [ GCC, Clang ]
         exclude:
         - os: macos-10.15
-          compilers: 'CC=gcc CXX=g++'
+          compiler: GCC
 
     env:
       DESTDIR: ${{ github.workspace }}
@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        submodules: ${{ matrix.e2ee == 'e2ee' }}
+        submodules: ${{ matrix.e2ee != '' }}
 
     - name: Cache Qt
       id: cache-qt
@@ -46,20 +46,29 @@ jobs:
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Create Build Environment
-      run: cmake -E make_directory ${{ runner.workspace }}/build
+      run: |
+        if [ "${{ matrix.compiler }}" == "GCC" ]; then
+          echo "CC=gcc" >>$GITHUB_ENV
+          echo "CXX=g++" >>$GITHUB_ENV
+        else
+          echo "CC=clang" >>$GITHUB_ENV
+          echo "CXX=clang++" >>$GITHUB_ENV
+        fi
+        echo "QUOTEST_ORIGIN=${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Build and install olm
-      if: ${{ matrix.e2ee == 'e2ee' }}
+      if: ${{ matrix.e2ee != '' }}
       run: |
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         pushd olm
         cmake . -Bbuild $CMAKE_ARGS
         cmake --build build --target install
         popd
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN, E2EE" >>$GITHUB_ENV
 
     - name: Configure libQuotient
       run: |
-        export ${{ matrix.compilers }}
         cmake $GITHUB_WORKSPACE -Bbuild $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee == 'e2ee' }}
 
     - name: Build and install libQuotient
@@ -74,4 +83,4 @@ jobs:
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
-      run: build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "CI job ${{ github.job }}"
+      run: build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
