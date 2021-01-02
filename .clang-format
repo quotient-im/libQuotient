@@ -92,7 +92,7 @@ IncludeCategories:
 #IncludeIsMainRegex: '(_test)?$'
 #IncludeIsMainSourceRegex: ''
 #IndentCaseLabels: false
-IndentGotoLabels: false
+#IndentGotoLabels: false # Uncomment once on ClangFormat 10
 IndentPPDirectives: AfterHash
 #IndentWidth: 4
 #IndentWrappedFunctionNames: false
@@ -122,7 +122,7 @@ SortUsingDeclarations: false
 #SpaceBeforeInheritanceColon: true
 #SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: true
-SpaceInEmptyBlock: false
+#SpaceInEmptyBlock: false # Uncomment once on ClangFormat 10
 #SpaceInEmptyParentheses: false
 #SpacesBeforeTrailingComments: 1
 #SpacesInAngles:  false
