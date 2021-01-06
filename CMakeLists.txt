@@ -331,7 +331,7 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION ${ConfigFilesLocation}
 )
-install(EXPORT_ANDROID_MK ${PROJECT_NAME}Targets DESTINATION share/ndk-modules)
+install(EXPORT_ANDROID_MK ${PROJECT_NAME}Targets DESTINATION ${CMAKE_INSTALL_DATADIR}/ndk-modules)
 
 if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
