@@ -1546,10 +1546,8 @@ void Connection::setHomeserver(const QUrl& url)
 {
     if (isJobPending(d->resolverJob))
         d->resolverJob->abandon();
-    d->resolverJob = nullptr;
     if (isJobPending(d->loginFlowsJob))
         d->loginFlowsJob->abandon();
-    d->loginFlowsJob = nullptr;
     d->loginFlows.clear();
 
     if (homeserver() != url) {
