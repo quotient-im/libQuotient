@@ -287,10 +287,14 @@ void Connection::resolveServer(const QString& mxid)
     const auto& oldBaseUrl = d->data->baseUrl();
     d->data->setBaseUrl(maybeBaseUrl); // Temporarily set it for this one call
     d->resolverJob = callApi<GetWellknownJob>();
+    // Connect to finished() to make sure baseUrl is restored in any case
     connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl, oldBaseUrl] {
         // Revert baseUrl so that setHomeserver() below triggers signals
         // in case the base URL actually changed
         d->data->setBaseUrl(oldBaseUrl);
+        if (d->resolverJob->error() == BaseJob::Abandoned)
+            return;
+
         if (d->resolverJob->error() != BaseJob::NotFoundError) {
             if (!d->resolverJob->status().good()) {
                 qCWarning(MAIN)
@@ -318,7 +322,7 @@ void Connection::resolveServer(const QString& mxid)
                          << "for base URL";
             setHomeserver(maybeBaseUrl);
         }
-        Q_ASSERT(d->loginFlowsJob != nullptr);
+        Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
         connect(d->loginFlowsJob, &BaseJob::success, this,
                 &Connection::resolved);
         connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
