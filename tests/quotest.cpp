@@ -831,7 +831,7 @@ void TestManager::conclude()
 //           .then(this, &TestManager::finalize); // Qt-style or
 //           .then([this] { finalize(); }); // STL-style
             auto* job = room->leaveRoom();
-            connect(job, &BaseJob::finished, this, [this, job,plainReport] {
+            connect(job, &BaseJob::result, this, [this, job,plainReport] {
                 Q_ASSERT(job->status().good());
                 finalize();
                 // Still flying, as the exit() connection in finalize() is queued

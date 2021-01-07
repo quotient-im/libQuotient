@@ -1543,7 +1543,7 @@ void Connection::setHomeserver(const QUrl& url)
 
     // Whenever a homeserver is updated, retrieve available login flows from it
     d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest);
-    connect(d->loginFlowsJob, &BaseJob::finished, this, [this] {
+    connect(d->loginFlowsJob, &BaseJob::result, this, [this] {
         if (d->loginFlowsJob->status().good())
             d->loginFlows = d->loginFlowsJob->flows();
         else
