@@ -858,7 +858,7 @@ const Room::RelatedEvents Room::relatedEvents(const RoomEvent& evt,
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= membersMap.size() || isJobRunning(allMembersJob))
+    if (q->joinedCount() <= membersMap.size() || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
@@ -1685,7 +1685,7 @@ QString Room::retryMessage(const QString& txnId)
                 << "File for transaction" << txnId
                 << "has already been uploaded, bypassing re-upload";
         } else {
-            if (isJobRunning(transferIt->job)) {
+            if (isJobPending(transferIt->job)) {
                 qCDebug(MESSAGES) << "Abandoning the upload job for transaction"
                                   << txnId << "and starting again";
                 transferIt->job->abandon();
@@ -1718,7 +1718,7 @@ void Room::discardMessage(const QString& txnId)
     const auto& transferIt = d->fileTransfers.find(txnId);
     if (transferIt != d->fileTransfers.end()) {
         Q_ASSERT(transferIt->isUpload);
-        if (isJobRunning(transferIt->job)) {
+        if (isJobPending(transferIt->job)) {
             transferIt->status = FileTransferInfo::Cancelled;
             transferIt->job->abandon();
             emit fileTransferFailed(txnId, tr("File upload cancelled"));
@@ -1924,7 +1924,7 @@ void Room::getPreviousContent(int limit, const QString &filter) { d->getPrevious
 
 void Room::Private::getPreviousContent(int limit, const QString &filter)
 {
-    if (isJobRunning(eventsHistoryJob))
+    if (isJobPending(eventsHistoryJob))
         return;
 
     eventsHistoryJob =
@@ -1977,7 +1977,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
     auto job = connection()->uploadFile(fileName, overrideContentType);
-    if (isJobRunning(job)) {
+    if (isJobPending(job)) {
         d->fileTransfers[id] = { job, fileName, true };
         connect(job, &BaseJob::uploadProgress, this,
                 [this, id](qint64 sent, qint64 total) {
@@ -2033,7 +2033,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         qDebug(MAIN) << "File path:" << filePath;
     }
     auto job = connection()->downloadFile(fileUrl, filePath);
-    if (isJobRunning(job)) {
+    if (isJobPending(job)) {
         // If there was a previous transfer (completed or failed), overwrite it.
         d->fileTransfers[eventId] = { job, job->targetFileName() };
         connect(job, &BaseJob::downloadProgress, this,
@@ -2061,7 +2061,7 @@ void Room::cancelFileTransfer(const QString& id)
                         << d->id;
         return;
     }
-    if (isJobRunning(it->job))
+    if (isJobPending(it->job))
         it->job->abandon();
     d->fileTransfers.remove(id);
     emit fileTransferCancelled(id);

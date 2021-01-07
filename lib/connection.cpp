@@ -271,7 +271,7 @@ Connection::~Connection()
 
 void Connection::resolveServer(const QString& mxid)
 {
-    if (isJobRunning(d->resolverJob))
+    if (isJobPending(d->resolverJob))
         d->resolverJob->abandon();
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
@@ -1229,7 +1229,7 @@ QByteArray Connection::accessToken() const
 {
     // The logout job needs access token to do its job; so the token is
     // kept inside d->data but no more exposed to the outside world.
-    return isJobRunning(d->logoutJob) ? QByteArray() : d->data->accessToken();
+    return isJobPending(d->logoutJob) ? QByteArray() : d->data->accessToken();
 }
 
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
@@ -1544,10 +1544,10 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (isJobRunning(d->resolverJob))
+    if (isJobPending(d->resolverJob))
         d->resolverJob->abandon();
     d->resolverJob = nullptr;
-    if (isJobRunning(d->loginFlowsJob))
+    if (isJobPending(d->loginFlowsJob))
         d->loginFlowsJob->abandon();
     d->loginFlowsJob = nullptr;
     d->loginFlows.clear();

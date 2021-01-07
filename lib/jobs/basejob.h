@@ -478,7 +478,7 @@ private:
     QScopedPointer<Private> d;
 };
 
-inline bool isJobRunning(BaseJob* job)
+inline bool isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }

@@ -37,9 +37,9 @@ public:
     explicit Private(QUrl url = {}) : _url(move(url)) {}
     ~Private()
     {
-        if (isJobRunning(_thumbnailRequest))
+        if (isJobPending(_thumbnailRequest))
             _thumbnailRequest->abandon();
-        if (isJobRunning(_uploadRequest))
+        if (isJobPending(_uploadRequest))
             _uploadRequest->abandon();
     }
 
@@ -87,7 +87,7 @@ QImage Avatar::get(Connection* connection, int width, int height,
 bool Avatar::upload(Connection* connection, const QString& fileName,
                     upload_callback_t callback) const
 {
-    if (isJobRunning(d->_uploadRequest))
+    if (isJobPending(d->_uploadRequest))
         return false;
     return d->upload(connection->uploadFile(fileName), move(callback));
 }
@@ -95,7 +95,7 @@ bool Avatar::upload(Connection* connection, const QString& fileName,
 bool Avatar::upload(Connection* connection, QIODevice* source,
                     upload_callback_t callback) const
 {
-    if (isJobRunning(d->_uploadRequest) || !source->isReadable())
+    if (isJobPending(d->_uploadRequest) || !source->isReadable())
         return false;
     return d->upload(connection->uploadContent(source), move(callback));
 }
@@ -125,7 +125,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         && checkUrl(_url)) {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         _requestedSize = size;
-        if (isJobRunning(_thumbnailRequest))
+        if (isJobPending(_thumbnailRequest))
             _thumbnailRequest->abandon();
         if (callback)
             callbacks.emplace_back(move(callback));
@@ -157,7 +157,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
 bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t &&callback)
 {
     _uploadRequest = job;
-    if (!isJobRunning(_uploadRequest))
+    if (!isJobPending(_uploadRequest))
         return false;
     _uploadRequest->connect(_uploadRequest, &BaseJob::success, _uploadRequest,
                             [job, callback] { callback(job->contentUri()); });
@@ -194,7 +194,7 @@ bool Avatar::updateUrl(const QUrl& newUrl)
 
     d->_url = newUrl;
     d->_imageSource = Private::Unknown;
-    if (isJobRunning(d->_thumbnailRequest))
+    if (isJobPending(d->_thumbnailRequest))
         d->_thumbnailRequest->abandon();
     return true;
 }
