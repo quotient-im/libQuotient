@@ -199,6 +199,7 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     connect(&d->retryTimer, &QTimer::timeout, this, [this] {
+        qCDebug(d->logCat) << "Retrying" << this;
         d->connection->submit(this);
     });
 }
@@ -374,8 +375,11 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 
 void BaseJob::sendRequest()
 {
-    if (status().code == Abandoned)
+    if (status().code == Abandoned) {
+        qCDebug(d->logCat) << "Won't proceed with the abandoned request:"
+                           << d->dumpRequest();
         return;
+    }
     Q_ASSERT(d->connection && status().code == Pending);
     qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
     d->needsToken |= d->connection->needsToken(objectName());
