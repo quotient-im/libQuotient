@@ -625,6 +625,7 @@ void BaseJob::finishJob()
             qCWarning(d->logCat).nospace()
                 << this << ": retry #" << d->retriesTaken << " in "
                 << retryIn.count() << " s";
+            setStatus(Pending, "Pending retry");
             d->retryTimer.start(retryIn);
             emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
             return;
