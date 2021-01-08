@@ -91,6 +91,7 @@ public slots:
     void doTest(const QByteArray& testName);
 
 private slots:
+    TEST_DECL(findRoomByAlias)
     TEST_DECL(loadMembers)
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
@@ -306,26 +307,25 @@ void TestManager::doTests()
             });
 }
 
+TEST_IMPL(findRoomByAlias)
+{
+    auto* roomByAlias = connection()->roomByAlias(targetRoom->canonicalAlias(),
+                                        JoinState::Join);
+    FINISH_TEST(roomByAlias == targetRoom);
+}
+
 TEST_IMPL(loadMembers)
 {
-    // Trying to load members from another (larger) room
-    const auto& testRoomAlias = QStringLiteral("#test:matrix.org");
-    auto* r = connection()->roomByAlias(testRoomAlias, JoinState::Join);
-    if (!r) {
-        clog << testRoomAlias.toStdString()
-             << " is not found in the test user's rooms" << endl;
-        FAIL_TEST();
-    }
     // It's not exactly correct because an arbitrary server might not support
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
-    if (r->users().size() >= r->joinedCount()) {
+    if (targetRoom->users().size() >= targetRoom->joinedCount()) {
         clog << "Lazy loading doesn't seem to be enabled" << endl;
         FAIL_TEST();
     }
-    r->setDisplayed();
-    connect(r, &Room::allMembersLoaded, this, [this, thisTest, r] {
-        FINISH_TEST(r->users().size() >= r->joinedCount());
+    targetRoom->setDisplayed();
+    connect(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
+        FINISH_TEST(targetRoom->users().size() >= targetRoom->joinedCount());
     });
     return false;
 }
