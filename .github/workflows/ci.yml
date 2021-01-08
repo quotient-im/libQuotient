@@ -96,3 +96,4 @@ jobs:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
       run: $VALGRIND build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+      timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
