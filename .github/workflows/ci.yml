@@ -106,6 +106,7 @@ jobs:
         cmake --build build-test --target all
         
     - name: Run tests
+      if: secrets.TEST_USER != ''
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
