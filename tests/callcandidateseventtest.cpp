@@ -7,7 +7,7 @@
 
 void TestCallCandidatesEvent::fromJson()
 {
-    auto documemt = QJsonDocument::fromJson(R"({
+    auto document = QJsonDocument::fromJson(R"({
         "age": 242352,
         "content": {
             "call_id": "12345",
@@ -27,7 +27,7 @@ void TestCallCandidatesEvent::fromJson()
         "type": "m.call.candidates"
     })");
 
-    QVERIFY(documemt.isObject());
+    QVERIFY(document.isObject());
 
     auto object = documemt.object();
 
