@@ -20,6 +20,7 @@
 
 #include "events/stateevent.h"
 
+#include <any>
 #include <utility>
 
 namespace Quotient {
@@ -72,6 +73,12 @@ public:
         return std::exchange(evt, move(other));
     }
 
+    /// Store arbitrary data with the event item
+    void setUserData(std::any userData) { data = userData; }
+    /// Obtain custom data previously stored with the event item
+    const std::any& userdata() const { return data; }
+    std::any& userData() { return data; }
+
 protected:
     template <typename EventT>
     EventT* getAs()
@@ -81,6 +88,7 @@ protected:
 
 private:
     RoomEventPtr evt;
+    std::any data;
 };
 
 class TimelineItem : public EventItemBase {
