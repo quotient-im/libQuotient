@@ -245,7 +245,7 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection,
     if (forceUpdate || d->oneTimeKeyCounts.isEmpty()) {
         d->uploadOneTimeKeysInitJob = connection->callApi<UploadKeysJob>();
         connect(d->uploadOneTimeKeysInitJob, &BaseJob::success, this, [this] {
-            d->setOneTimeKeyCounts(d->uploadIdentityKeysJob->oneTimeKeyCounts());
+            d->setOneTimeKeyCounts(d->uploadOneTimeKeyInitJob->oneTimeKeyCounts());
         });
     }
 
