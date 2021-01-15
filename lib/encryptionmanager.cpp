@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+// SPDX-FileCopyrightText: 2019 Kitsune Ral <Kitsune-Ral@users.sf.net>
+//
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #ifdef Quotient_E2EE_ENABLED
 #include "encryptionmanager.h"
 
@@ -245,7 +250,7 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection,
     if (forceUpdate || d->oneTimeKeyCounts.isEmpty()) {
         d->uploadOneTimeKeysInitJob = connection->callApi<UploadKeysJob>();
         connect(d->uploadOneTimeKeysInitJob, &BaseJob::success, this, [this] {
-            d->setOneTimeKeyCounts(d->uploadIdentityKeysJob->oneTimeKeyCounts());
+            d->setOneTimeKeyCounts(d->uploadOneTimeKeysInitJob->oneTimeKeyCounts());
         });
     }
 

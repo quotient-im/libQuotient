@@ -91,6 +91,7 @@ public slots:
     void doTest(const QByteArray& testName);
 
 private slots:
+    TEST_DECL(findRoomByAlias)
     TEST_DECL(loadMembers)
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
@@ -104,17 +105,21 @@ private slots:
     // Add more tests above here
 
 public:
-    Room* room() const { return targetRoom; }
-    Connection* connection() const { return targetRoom->connection(); }
+    [[nodiscard]] Room* room() const { return targetRoom; }
+    [[nodiscard]] Connection* connection() const
+    {
+        return targetRoom->connection();
+    }
 
 private:
-    bool checkFileSendingOutcome(const TestToken& thisTest,
-                                 const QString& txnId, const QString& fileName);
-    bool checkRedactionOutcome(const QByteArray& thisTest,
-                               const QString& evtIdToRedact);
+    [[nodiscard]] bool checkFileSendingOutcome(const TestToken& thisTest,
+                                               const QString& txnId,
+                                               const QString& fileName);
+    [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
+                                             const QString& evtIdToRedact);
 
-    bool validatePendingEvent(const QString& txnId);
-    bool checkDirectChat() const;
+    [[nodiscard]] bool validatePendingEvent(const QString& txnId);
+    [[nodiscard]] bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
                     int line);
 
@@ -182,10 +187,10 @@ TestManager::TestManager(int& argc, char** argv)
 
     connect(c, &Connection::connected, this, &TestManager::setupAndRun);
     connect(c, &Connection::resolveError, this,
-        [this](const QString& error) {
+        [](const QString& error) {
             clog << "Failed to resolve the server: " << error.toStdString()
                  << endl;
-            this->exit(-2);
+            QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
     connect(c, &Connection::loginError, this,
@@ -195,7 +200,7 @@ TestManager::TestManager(int& argc, char** argv)
                  << message.toStdString() << endl
                  << "Details:" << endl
                  << details.toStdString() << endl;
-            this->exit(-2);
+            QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
     connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
@@ -264,7 +269,7 @@ void TestManager::onNewRoom(Room* r)
          << endl;
     connect(r, &Room::aboutToAddNewMessages, r, [r](RoomEventsRange timeline) {
         clog << timeline.size() << " new event(s) in room "
-             << r->canonicalAlias().toStdString() << endl;
+             << r->objectName().toStdString() << endl;
     });
 }
 
@@ -302,26 +307,25 @@ void TestManager::doTests()
             });
 }
 
+TEST_IMPL(findRoomByAlias)
+{
+    auto* roomByAlias = connection()->roomByAlias(targetRoom->canonicalAlias(),
+                                        JoinState::Join);
+    FINISH_TEST(roomByAlias == targetRoom);
+}
+
 TEST_IMPL(loadMembers)
 {
-    // Trying to load members from another (larger) room
-    const auto& testRoomAlias = QStringLiteral("#test:matrix.org");
-    auto* r = connection()->roomByAlias(testRoomAlias, JoinState::Join);
-    if (!r) {
-        clog << testRoomAlias.toStdString()
-             << " is not found in the test user's rooms" << endl;
-        FAIL_TEST();
-    }
     // It's not exactly correct because an arbitrary server might not support
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
-    if (r->memberNames().size() >= r->joinedCount()) {
+    if (targetRoom->users().size() >= targetRoom->joinedCount()) {
         clog << "Lazy loading doesn't seem to be enabled" << endl;
         FAIL_TEST();
     }
-    r->setDisplayed();
-    connect(r, &Room::allMembersLoaded, [this, thisTest, r] {
-        FINISH_TEST(r->memberNames().size() >= r->joinedCount());
+    targetRoom->setDisplayed();
+    connect(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
+        FINISH_TEST(targetRoom->users().size() >= targetRoom->joinedCount());
     });
     return false;
 }
@@ -727,20 +731,25 @@ TEST_IMPL(visitResources)
         "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
         "https://matrix.to/#/" + roomId + '/' + eventId
     };
-    // The following URIs are not supposed to be actually joined (and even
-    // exist, as yet) - only to be syntactically correct
+    // Check that reserved characters are correctly processed.
     static const auto& joinRoomAlias =
-        QStringLiteral("unjoined:example.org"); // # will be added below
+        QStringLiteral("##/?.@\"unjoined:example.org");
+    static const auto& encodedRoomAliasNoSigil =
+        QUrl::toPercentEncoding(joinRoomAlias.mid(1), ":");
     static const QString joinQuery { "?action=join" };
+    // These URIs are not supposed to be actually joined (and even exist,
+    // as yet) - only to be syntactically correct
     static const QStringList joinByAliasUris {
-        "matrix:room/" + joinRoomAlias + joinQuery,
-        "https://matrix.to/#/%23"/*`#`*/ + joinRoomAlias + joinQuery
+        Uri(joinRoomAlias.toUtf8(), {}, joinQuery.mid(1)).toDisplayString(),
+        "matrix:room/" + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23"/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23" + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
     };
     static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
     static const QStringList viaServers { "matrix.org", "example.org" };
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
-                        [](QString q, const QString& s) {
+                        [](const QString& q, const QString& s) {
                             return q + "&via=" + s;
                         });
     static const QStringList joinByIdUris {
@@ -755,7 +764,7 @@ TEST_IMPL(visitResources)
         || testResourceResolver(eventUris, &UriDispatcher::roomAction,
                                 room(), { eventId })
         || testResourceResolver(joinByAliasUris, &UriDispatcher::joinAction,
-                                connection(), { '#' + joinRoomAlias })
+                                connection(), { joinRoomAlias })
         || testResourceResolver(joinByIdUris, &UriDispatcher::joinAction,
                                 connection(), { joinRoomId, viaServers }))
         return true;
@@ -794,43 +803,47 @@ void TestManager::conclude()
         htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
     }
 
-    // TODO: Waiting for proper futures to come so that it could be:
-    //            targetRoom->postHtmlText(...)
-    //            .then(this, &TestManager::finalize); // Qt-style or
-    //            .then([this] { finalize(); }); // STL-style
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
-    connectUntil(room, &Room::messageSent, this, [this, room, plainReport] {
-        const auto& pendingEvents = room->pendingEvents();
-        if (auto c = std::count_if(pendingEvents.begin(), pendingEvents.end(),
-                                   [](const PendingEventItem& pe) {
-                                       return pe.deliveryStatus()
-                                              < EventStatus::ReachedServer;
-                                   });
-            c > 0) {
-            clog << "Events to reach the server: " << c << ", not leaving yet"
-                 << endl;
-            return false;
-        }
+    connectUntil(room, &Room::messageSent, this,
+        [this, txnId, room, plainReport] (const QString& sentTxnId) {
+            if (sentTxnId != txnId)
+                return false;
+            const auto& pendingEvents = room->pendingEvents();
+            if (auto c = std::count_if(pendingEvents.cbegin(),
+                                       pendingEvents.cend(),
+                                       [](const PendingEventItem& pe) {
+                                           return pe.deliveryStatus()
+                                                  < EventStatus::ReachedServer;
+                                       });
+                c > 0) {
+                clog << "Events to reach the server: " << c
+                     << ", not leaving yet" << endl;
+                return false;
+            }
 
-        clog << "Leaving the room" << endl;
-        auto* job = room->leaveRoom();
-        connect(job, &BaseJob::finished, this, [this, job,plainReport] {
-            Q_ASSERT(job->status().good());
-            finalize();
-            // Still flying, as the exit() connection in finalize() is queued
-            clog << plainReport.toStdString() << endl;
+            clog << "Leaving the room" << endl;
+            // TODO: Waiting for proper futures to come so that it could be:
+//           room->leaveRoom()
+//           .then(this, &TestManager::finalize); // Qt-style or
+//           .then([this] { finalize(); }); // STL-style
+            auto* job = room->leaveRoom();
+            connect(job, &BaseJob::result, this, [this, job,plainReport] {
+                Q_ASSERT(job->status().good());
+                finalize();
+                // Still flying, as the exit() connection in finalize() is queued
+                clog << plainReport.toStdString() << endl;
+            });
+            return true;
         });
-        return true;
-    });
 }
 
 void TestManager::finalize()
 {
     clog << "Logging out" << endl;
     c->logout();
-    connect(c, &Connection::loggedOut,
-        this, [this] { this->exit(failed.size() + running.size()); },
+    connect(c, &Connection::loggedOut, this,
+            [this] { QCoreApplication::exit(failed.size() + running.size()); },
         Qt::QueuedConnection);
 }
 
@@ -842,6 +855,7 @@ int main(int argc, char* argv[])
              << endl;
         return -1;
     }
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     return TestManager(argc, argv).exec();
 }
 

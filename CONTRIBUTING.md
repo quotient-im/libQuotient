@@ -195,9 +195,10 @@ Additional considerations:
     `std::deque` for a timeline). Exposing STL containers or iterators in API
     intended for usage by QML code (e.g. in `Q_PROPERTY`) is unlikely to work
     and therefore unlikely to be accepted into `master`.
-* Although `std::unique_ptr<>` gives slightly stronger guarantees,
-  `QScopedPointer<>` is better supported by Qt Creator's debugger UI and
-  therefore is preferred.
+  * Prefer using `std::unique_ptr<>` over `QScopedPointer<>` as it gives
+    stronger guarantees. Earlier revisions of this text recommended using
+    `QScopedPointer<>` because Qt Creator's debugger UI had a display helper
+    for it; it now has helpers for both.
 * Use `QVector` instead of `QList` where possible - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details.
@@ -228,17 +229,17 @@ an empty doc-comment line.
 For in-code comments, the advice is as follows:
 * Don't restate what's happening in the code unless it's not really obvious.
   We assume the readers to have at least some command of C++ and Qt. If your
-  code is not obvious, consider rewriting it for clarity.
+  code is not obvious, consider making it clearer itself before commenting.
 * Both C++ and Qt still come with their arcane features and dark corners,
   and we don't want to limit anybody who feels they have a case for
-  variable templates, raw literals, or use `qAsConst` to avoid container
+  variable templates, raw literals, or use `std::as_const` to avoid container
   detachment. Use your experience to figure what might be less well-known to
   readers and comment such cases (references to web pages, Quotient wiki etc.
-  are very much ok).
+  are very much ok, the previous bullet notwithstanding).
 * Make sure to document not so much "what" but more "why" certain code is done
   the way it is. In the worst case, the logic of the code can be
-  reverse-engineered; you rarely can reverse-engineer the line of reasoning and
-  the pitfalls avoided.
+  reverse-engineered; but you can almost never reverse-engineer the line of
+  reasoning and the pitfalls avoided.
 
 ### Automated tests
 
@@ -301,15 +302,23 @@ can produce noticeable GUI freezing or stuttering. When you don't see a way
 to reduce algorithmic complexity, embed occasional `processEvents()` invocations
 in heavy loops (see `Connection::saveState()` to get the idea).
 
-Having said that, there's always a trade-off between various attributes; in particular, readability and maintainability of the code is more important than squeezing every bit out of that clumsy algorithm. Beware of premature optimization and have profiling data around before going into some hardcore optimization.
+Having said that, there's always a trade-off between various attributes;
+in particular, readability and maintainability of the code is more important
+than squeezing every bit out of that clumsy algorithm. Beware of premature
+optimization and profile the code before before diving into hardcore tweaking
+that might not give the benefits you think it would.
 
-Speaking of profiling logs (see README.md on how to turn them on) - in order
-to reduce small timespan logging spam, there's a default limit of at least
-200 microseconds to log most operations with the `PROFILER`
-(aka `quotient.profile.debug`) logging category. You can override this
-limit by passing the new value (in microseconds) in `PROFILER_LOG_USECS`
-definition to the compiler. If you happen to need to change it in runtime,
-let me (`@kitsune`) know.
+Speaking of profiling logs (see README.md on how to turn them on) - if you
+expect some code to take considerable (more than 10k "simple operations") time
+you might want to setup a `QElapsedTimer` and drop the elapsed time into logs
+under `PROFILER` logging category (see the existing code for examples -
+`room.cpp` has quite a few). In order to reduce small timespan logging spam,
+`PROFILER` log lines are usually guarded by a check that the timer counted
+some considerable time (200 microseconds by default, 20 microseconds for
+tighter parts). It's possible to override this limit library-wide by passing
+the new value (in microseconds) in `PROFILER_LOG_USECS` definition to
+the compiler; I don't think anybody ever used this facility. If you used it,
+and are reading this text - let me (`@kitsune`) know.
 
 ### Generated C++ code for CS API
 The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
@@ -317,15 +326,9 @@ it resides in Git, is actually generated from the official Swagger/OpenAPI
 definition files. If you're unhappy with something in there and want to improve
 the code, you have to understand the way these files are produced and setup
 some additional tooling. The shortest possible procedure resembling
-the below text can be found in .travis.yml (our Travis CI configuration
-actually regenerates those files upon every build). As described below,
-there is a handy build target for CMake; patches with a similar target
-for qmake are (you guessed it) very welcome.
-BACKUP
- You can edit C++ files in these directories by hand but be
-aware that any `make update-api` invocation will overwrite your changes.
-If you also happen to change the API definition files, you should place the new
-revision of the generated C++ files in a separate commit.
+the below text can be found in .travis.yml (our CI configuration actually
+regenerates those files upon every build). As described below, there is also
+a handy build target for CMake.
 
 #### Why generate the code at all?
 Because otherwise we have to do monkey business of writing boilerplate code,
@@ -414,31 +417,37 @@ The following warnings configuration is applied with GCC and Clang when using CM
 (the last one is to mute a warning triggered by Qt code for debug logging).
 We don't turn most of the warnings to errors but please treat them as such.
 If you use Qt Creator, the following line can be used with the Clang code model:
-`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma`.
+`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
 
 ### Continuous Integration
 
-We use Travis CI to check buildability and smoke-testing on Linux (GCC, Clang) and MacOS (Clang), and AppVeyor CI to build on Windows (MSVC). Every PR will go through these, and you'll see the traffic lights from them on the PR page. If your PR fails on any platform double-check that it's not your code causing it - and fix it if it is.
+We use CI to check buildability and smoke-testing on Linux (GCC, Clang),
+MacOS (Clang), and Windows (MSVC). Every PR will go through these, and you'll
+see the traffic lights from them on the PR page. If your PR fails
+on any platform double-check that it's not your code causing it - and fix
+(or ask how to fix if you don't know) if it is.
 
 ### clang-format
 
 We strongly recommend using clang-format or, even better, use an IDE that
-supports it. This will lay a tedious task of following the assumed
-code style from your shoulders over to your computer.
+supports it. This will lay over a tedious task of following the assumed
+code style from your shoulders (and fingers) to your computer.
 
 ### Other tools
 
 Recent versions of Qt Creator and CLion can automatically run your code through
-clang-tidy. The following list of clang-tidy checks slows Qt Creator analysis
-quite considerably but gives a good insight without too many false positives:
-`-*,bugprone-argument-comment,bugprone-assert-side-effect,bugprone-bool-pointer-implicit-conversion,bugprone-copy-constructor-init,bugprone-dangling-handle,bugprone-fold-init-type,bugprone-forward-declaration-namespace,bugprone-inaccurate-erase,bugprone-integer-division,bugprone-move-forwarding-reference,bugprone-string-constructor,bugprone-undefined-memory-manipulation,bugprone-use-after-move,bugprone-virtual-near-miss,cert-dcl03-c,cert-dcl21-cpp,cert-dcl50-cpp,cert-dcl54-cpp,cert-dcl58-cpp,cert-env33-c,cert-err09-cpp,cert-err34-c,cert-err52-cpp,cert-err60-cpp,cert-err61-cpp,cert-fio38-c,cert-flp30-c,cert-msc30-c,cert-msc50-cpp,cert-oop11-cpp,cppcoreguidelines-c-copy-assignment-signature,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-slicing,hicpp-deprecated-headers,hicpp-invalid-access-moved,hicpp-member-init,hicpp-move-const-arg,hicpp-named-parameter,hicpp-new-delete-operators,hicpp-static-assert,hicpp-undelegated-constructor,hicpp-use-*,misc-misplaced-const,misc-new-delete-overloads,misc-non-copyable-objects,misc-redundant-expression,misc-static-assert,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,misc-uniqueptr-reset-release,misc-unused-*,modernize-loop-convert,modernize-pass-by-value,modernize-return-braced-init-list,modernize-shrink-to-fit,modernize-unary-static-assert,modernize-use-*,performance-faster-string-find,performance-for-range-copy,performance-implicit-conversion-in-loop,performance-inefficient-*,performance-move-*,performance-type-promotion-in-math-fn,performance-unnecessary-*,readability-delete-null-pointer,readability-else-after-return,readability-inconsistent-declaration-parameter-name,readability-misleading-indentation,readability-redundant-*,readability-simplify-boolean-expr,readability-static-definition-in-anonymous-namespace,readability-uniqueptr-delete-release`.
+clang-tidy. The following list of clang-tidy checks gives a good insight
+without too many false positives:
+`-*,bugprone-argument-comment,bugprone-assert-side-effect,bugprone-bool-pointer-implicit-conversion,bugprone-copy-constructor-init,bugprone-dangling-handle,bugprone-fold-init-type,bugprone-forward-declaration-namespace,bugprone-forwarding-reference-overload,bugprone-inaccurate-erase,bugprone-integer-division,bugprone-lambda-function-name,bugprone-macro-*,bugprone-move-forwarding-reference,bugprone-multiple-statement-macro,bugprone-parent-virtual-call,bugprone-signed-char-misuse,bugprone-sizeof-*,bugprone-string-constructor,bugprone-string-integer-assignment,bugprone-suspicious-*,bugprone-terminating-continue,bugprone-undefined-memory-manipulation,bugprone-undelegated-constructor,bugprone-unused-*,bugprone-use-after-move,bugprone-virtual-near-miss,cert-dcl03-c,cert-dcl21-cpp,cert-dcl50-cpp,cert-dcl54-cpp,cert-dcl58-cpp,cert-env33-c,cert-err09-cpp,cert-err34-c,cert-err52-cpp,cert-err60-cpp,cert-err61-cpp,cert-fio38-c,cert-flp30-c,cert-msc30-c,cert-msc50-cpp,cert-oop11-cpp,clang-analyzer-apiModeling.StdCLibraryFunctions,clang-analyzer-core.CallAndMessage,clang-analyzer-core.NullDereference,clang-analyzer-cplusplus.*,clang-analyzer-optin.cplusplus.*,cppcoreguidelines-c-copy-assignment-signature,cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-slicing,hicpp-deprecated-headers,hicpp-invalid-access-moved,hicpp-member-init,hicpp-move-const-arg,hicpp-new-delete-operators,hicpp-static-assert,hicpp-undelegated-constructor,hicpp-use-*,misc-*,-misc-definitions-in-headers,-misc-no-recursion,-misc-non-private-member-variables-in-classes,modernize-loop-convert,modernize-pass-by-value,modernize-return-braced-init-list,modernize-shrink-to-fit,modernize-unary-static-assert,modernize-use-*,-modernize-use-trailing-return-type,performance-*,-performance-no-automatic-move,-performance-noexcept-move-constructor,-performance-unnecessary-*,readability-*,-readability-braces-around-statements,-readability-implicit-bool-conversion,-readability-isolate-declaration,-readability-magic-numbers,-readability-named-parameter,-readability-qualified-auto`.
 
 Qt Creator, in addition, knows about clazy, an even deeper Qt-aware static
-analysis tool. Even level 1 clazy eats away CPU but produces some very relevant
-notices that are easy to overlook otherwise, such as possible unintended copying
-of a Qt container, or unguarded null pointers. You can use this time to time
+analysis tool that produces some notices about Qt-specific issues that are
+easy to overlook otherwise, such as possible unintended copying of
+a Qt container, or unguarded null pointers. You can use this time to time
 (see Analyze menu in Qt Creator) instead of hogging your machine with
-deep analysis as you type.
+deep analysis as you type (or after each saving, depending on your version
+of Qt Creator). Most of clazy checks are relevant to our code, except:
+`fully-qualified-moc-types,overloaded-signal,qstring-comparison-to-implicit-char,foreach,non-pod-global-static,qstring-allocations,jni-signatures,qt4-qstring-from-array`.
 
 ### Submitting API changes
 

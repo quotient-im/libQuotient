@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
@@ -298,7 +286,7 @@ using Events = EventsArray<Event>;
 
 // === is<>(), eventCast<>() and visit<>() ===
 
-template <typename EventT>
+template <class EventT>
 inline bool is(const Event& e)
 {
     return e.type() == typeId<EventT>();
@@ -309,7 +297,7 @@ inline bool isUnknown(const Event& e)
     return e.type() == unknownEventTypeId();
 }
 
-template <typename EventT, typename BasePtrT>
+template <class EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
     -> decltype(static_cast<EventT*>(&*eptr))
 {
@@ -319,7 +307,7 @@ inline auto eventCast(const BasePtrT& eptr)
 }
 
 // A single generic catch-all visitor
-template <typename BaseEventT, typename FnT>
+template <class BaseEventT, typename FnT>
 inline auto visit(const BaseEventT& event, FnT&& visitor)
     -> decltype(visitor(event))
 {
@@ -327,18 +315,18 @@ inline auto visit(const BaseEventT& event, FnT&& visitor)
 }
 
 namespace _impl {
-    template <typename T, typename FnT>
-    constexpr auto needs_downcast()
-    {
-        return !std::is_convertible_v<T, fn_arg_t<FnT>>;
-    }
+    // Using bool instead of auto below because auto apparently upsets MSVC
+    template <class BaseT, typename FnT>
+    inline constexpr bool needs_downcast =
+        std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
+        && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
 }
 
 // A single type-specific void visitor
-template <typename BaseEventT, typename FnT>
-inline std::enable_if_t<_impl::needs_downcast<BaseEventT, FnT>()
+template <class BaseT, typename FnT>
+inline auto visit(const BaseT& event, FnT&& visitor)
+    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>
                         && std::is_void_v<fn_return_t<FnT>>>
-visit(const BaseEventT& event, FnT&& visitor)
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))
@@ -347,10 +335,10 @@ visit(const BaseEventT& event, FnT&& visitor)
 
 // A single type-specific non-void visitor with an optional default value
 // non-voidness is guarded by defaultValue type
-template <typename BaseEventT, typename FnT>
-inline std::enable_if_t<_impl::needs_downcast<BaseEventT, FnT>(), fn_return_t<FnT>>
-visit(const BaseEventT& event, FnT&& visitor,
-      fn_return_t<FnT>&& defaultValue = {})
+template <class BaseT, typename FnT>
+inline auto visit(const BaseT& event, FnT&& visitor,
+                  fn_return_t<FnT>&& defaultValue = {})
+    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>, fn_return_t<FnT>>
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))
@@ -359,9 +347,10 @@ visit(const BaseEventT& event, FnT&& visitor,
 }
 
 // A chain of 2 or more visitors
-template <typename BaseEventT, typename FnT1, typename FnT2, typename... FnTs>
-inline fn_return_t<FnT1> visit(const BaseEventT& event, FnT1&& visitor1,
-                               FnT2&& visitor2, FnTs&&... visitors)
+template <class BaseT, typename FnT1, typename FnT2, typename... FnTs>
+inline std::common_type_t<fn_return_t<FnT1>, fn_return_t<FnT2>> visit(
+        const BaseT& event, FnT1&& visitor1, FnT2&& visitor2,
+        FnTs&&... visitors)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
@@ -374,8 +363,8 @@ inline fn_return_t<FnT1> visit(const BaseEventT& event, FnT1&& visitor1,
 // over a range of event pointers
 template <typename RangeT, typename... FnTs>
 inline auto visitEach(RangeT&& events, FnTs&&... visitors)
-    -> std::enable_if_t<std::is_convertible_v<
-                            std::decay_t<decltype(**events.begin())>, Event>>
+    -> std::enable_if_t<std::is_void_v<
+            decltype(visit(**begin(events), std::forward<FnTs>(visitors)...))>>
 {
     for (auto&& evtPtr: events)
         visit(*evtPtr, std::forward<FnTs>(visitors)...);

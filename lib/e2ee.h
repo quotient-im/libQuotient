@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+// SPDX-FileCopyrightText: 2019 Kitsune Ral <Kitsune-Ral@users.sf.net>
+//
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #pragma once
 
 #include "util.h"

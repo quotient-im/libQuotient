@@ -1,3 +1,8 @@
+path_classifiers:
+  library:
+  - 3rdparty/*
+  test:
+  - exclude: tests/quotest.cpp # Let alerts from this come up too
 extraction:
   cpp:
     prepare:

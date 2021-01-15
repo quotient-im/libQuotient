@@ -75,6 +75,8 @@ private:
 
     std::tuple<FnTs...> fns_;
 };
+template <typename... FnTs>
+StaticUriDispatcher(FnTs&&... fns) -> StaticUriDispatcher<FnTs...>;
 
 UriResolveResult Quotient::visitResource(
     Connection* account, const Uri& uri,

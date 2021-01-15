@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
@@ -62,27 +50,26 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 
-// To simplify comparisons of LoginFlows
-
-inline bool operator==(const GetLoginFlowsJob::LoginFlow& lhs,
-                       const GetLoginFlowsJob::LoginFlow& rhs)
-{
-    return lhs.type == rhs.type;
-}
-
-inline bool operator!=(const GetLoginFlowsJob::LoginFlow& lhs,
-                       const GetLoginFlowsJob::LoginFlow& rhs)
-{
-    return !(lhs == rhs);
-}
+using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 /// Predefined login flows
 struct LoginFlows {
-    using LoginFlow = GetLoginFlowsJob::LoginFlow;
     static inline const LoginFlow Password { "m.login.password" };
     static inline const LoginFlow SSO { "m.login.sso" };
     static inline const LoginFlow Token { "m.login.token" };
 };
+
+// To simplify comparisons of LoginFlows
+
+inline bool operator==(const LoginFlow& lhs, const LoginFlow& rhs)
+{
+    return lhs.type == rhs.type;
+}
+
+inline bool operator!=(const LoginFlow& lhs, const LoginFlow& rhs)
+{
+    return !(lhs == rhs);
+}
 
 class Connection;
 
@@ -497,20 +484,42 @@ public:
         setUserFactory(defaultUserFactory<T>());
     }
 
-public slots:
+public Q_SLOTS:
     /** Set the homeserver base URL */
     void setHomeserver(const QUrl& baseUrl);
 
     /** Determine and set the homeserver from MXID */
     void resolveServer(const QString& mxid);
 
+    /** \brief Log in using a username and password pair
+     *
+     * Before logging in, this method checks if the homeserver is valid and
+     * supports the password login flow. If the homeserver is invalid but
+     * a full user MXID is provided, this method calls resolveServer() using
+     * this MXID.
+     *
+     * \sa resolveServer, resolveError, loginError
+     */
     void loginWithPassword(const QString& userId, const QString& password,
                            const QString& initialDeviceName,
                            const QString& deviceId = {});
+    /** \brief Log in using a login token
+     *
+     * One usual case for this method is the final stage of logging in via SSO.
+     * Unlike loginWithPassword() and assumeIdentity(), this method cannot
+     * resolve the server from the user name because the full user MXID is
+     * encoded in the login token. Callers should ensure the homeserver
+     * sanity in advance.
+     */
     void loginWithToken(const QByteArray& loginToken,
                         const QString& initialDeviceName,
                         const QString& deviceId = {});
-    void assumeIdentity(const QString& userId, const QString& accessToken,
+    /** \brief Use an existing access token to connect to the homeserver
+     *
+     * Similar to loginWithPassword(), this method checks that the homeserver
+     * URL is valid and tries to resolve it from the MXID in case it is not.
+     */
+    void assumeIdentity(const QString& mxId, const QString& accessToken,
                         const QString& deviceId);
     /*! \deprecated Use loginWithPassword instead */
     void connectToServer(const QString& userId, const QString& password,
@@ -656,15 +665,15 @@ public slots:
      */
     virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
 
-signals:
+Q_SIGNALS:
     /**
      * @deprecated
      * This was a signal resulting from a successful resolveServer().
      * Since Connection now provides setHomeserver(), the HS URL
      * may change even without resolveServer() invocation. Use
-     * homeserverChanged() instead of resolved(). You can also use
-     * connectToServer and connectWithToken without the HS URL set in
-     * advance (i.e. without calling resolveServer), as they now trigger
+     * loginFLowsChanged() instead of resolved(). You can also use
+     * loginWith*() and assumeIdentity() without the HS URL set in
+     * advance (i.e. without calling resolveServer), as they trigger
      * server name resolution from MXID if the server URL is not valid.
      */
     void resolved();
@@ -853,25 +862,12 @@ protected:
      */
     void onSyncSuccess(SyncData&& data, bool fromCache = false);
 
-protected slots:
+protected Q_SLOTS:
     void syncLoopIteration();
 
 private:
     class Private;
     QScopedPointer<Private> d;
-
-    /**
-     * A single entry for functions that need to check whether the
-     * homeserver is valid before running. May either execute connectFn
-     * synchronously or asynchronously (if tryResolve is true and
-     * a DNS lookup is initiated); in case of errors, emits resolveError
-     * if the homeserver URL is not valid and cannot be resolved from
-     * userId.
-     *
-     * @param userId - fully-qualified MXID to resolve HS from
-     * @param connectFn - a function to execute once the HS URL is good
-     */
-    void checkAndConnect(const QString& userId, std::function<void()> connectFn);
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;

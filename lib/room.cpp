@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "room.h"
@@ -36,6 +24,7 @@
 #include "csapi/room_state.h"
 #include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
+#include "csapi/read_markers.h"
 #include "csapi/tags.h"
 
 #include "events/callanswerevent.h"
@@ -55,7 +44,6 @@
 #include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "jobs/postreadmarkersjob.h"
 #include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
@@ -192,7 +180,7 @@ public:
 
     // void inviteUser(User* u); // We might get it at some point in time.
     void insertMemberIntoMap(User* u);
-    void removeMemberFromMap(const QString& username, User* u);
+    void removeMemberFromMap(User* u);
 
     // This updates the room displayname field (which is the way a room
     // should be shown in the room list); called whenever the list of
@@ -263,10 +251,11 @@ public:
             for (auto&& eptr : events) {
                 const auto& evt = *eptr;
                 Q_ASSERT(evt.isStateEvent());
-                // Update baseState afterwards to make sure that the old state
-                // is valid and usable inside processStateEvent
-                changes |= q->processStateEvent(evt);
-                baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
+                auto change = q->processStateEvent(evt);
+                if (change != NoChange) {
+                    changes |= change;
+                    baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
+                }
             }
             if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
                 qCDebug(PROFILER)
@@ -350,7 +339,7 @@ public:
      */
     bool processReplacement(const RoomMessageEvent& newEvent);
 
-    void setTags(TagsMap newTags);
+    void setTags(TagsMap&& newTags);
 
     QJsonObject toJson() const;
 
@@ -632,8 +621,8 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
     emit q->readMarkerForUserMoved(u, eventId, storedId);
     if (isLocalUser(u)) {
         if (storedId != serverReadMarker)
-            connection->callApi<PostReadMarkersJob>(BackgroundRequest, id,
-                                                    storedId);
+            connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
+                                                  storedId);
         emit q->readMarkerMoved(eventId, storedId);
         return Change::ReadMarkerChange;
     }
@@ -857,7 +846,7 @@ const Room::RelatedEvents Room::relatedEvents(const RoomEvent& evt,
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= membersMap.size() || isJobRunning(allMembersJob))
+    if (q->joinedCount() <= membersMap.size() || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
@@ -1010,11 +999,11 @@ TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
 
 std::pair<bool, QString> validatedTag(QString name)
 {
-    if (name.contains('.'))
+    if (name.isEmpty() || name.indexOf('.', 1) != -1)
         return { false, name };
 
     qCWarning(MAIN) << "The tag" << name
-                   << "doesn't follow the CS API conventions";
+                    << "doesn't follow the CS API conventions";
     name.prepend("u.");
     qCWarning(MAIN) << "Using " << name << "instead";
 
@@ -1073,20 +1062,20 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
 
     if (propagate) {
         for (auto* r = this; (r = r->successor(joinStates));)
-            r->setTags(newTags, ActionScope::ThisRoomOnly);
+            r->setTags(d->tags, ActionScope::ThisRoomOnly);
     }
 }
 
-void Room::Private::setTags(TagsMap newTags)
+void Room::Private::setTags(TagsMap&& newTags)
 {
     emit q->tagsAboutToChange();
     const auto keys = newTags.keys();
     for (const auto& k : keys)
-        if (const auto& checkRes = validatedTag(k); checkRes.first) {
-            if (newTags.contains(checkRes.second))
+        if (const auto& [adjusted, adjustedTag] = validatedTag(k); adjusted) {
+            if (newTags.contains(adjustedTag))
                 newTags.remove(k);
             else
-                newTags.insert(checkRes.second, newTags.take(k));
+                newTags.insert(adjustedTag, newTags.take(k));
         }
 
     tags = move(newTags);
@@ -1192,8 +1181,8 @@ QString Room::fileNameToDownload(const QString& eventId) const
 
 FileTransferInfo Room::fileTransferInfo(const QString& id) const
 {
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt == d->fileTransfers.end())
+    const auto infoIt = d->fileTransfers.constFind(id);
+    if (infoIt == d->fileTransfers.cend())
         return {};
 
     // FIXME: Add lib tests to make sure FileTransferInfo::status stays
@@ -1222,8 +1211,8 @@ QUrl Room::fileSource(const QString& id) const
         return url;
 
     // No urlToDownload means it's a pending or completed upload.
-    auto infoIt = d->fileTransfers.find(id);
-    if (infoIt != d->fileTransfers.end())
+    auto infoIt = d->fileTransfers.constFind(id);
+    if (infoIt != d->fileTransfers.cend())
         return QUrl::fromLocalFile(infoIt->localFileInfo.absoluteFilePath());
 
     qCWarning(MAIN) << "File source for identifier" << id << "not found";
@@ -1312,7 +1301,6 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
     Q_UNUSED(roomKeyEvent)
     Q_UNUSED(senderKey)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-    return;
 #else // Quotient_E2EE_ENABLED
     if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
@@ -1354,14 +1342,27 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 
 void Room::Private::insertMemberIntoMap(User* u)
 {
-    const auto userName = u->name(q);
-    // If there is exactly one namesake of the added user, signal member
-    // renaming for that other one because the two should be disambiguated now.
+    const auto maybeUserName =
+        getCurrentState<RoomMemberEvent>(u->id())->newDisplayName();
+    if (!maybeUserName)
+        qCWarning(MEMBERS) << "insertMemberIntoMap():" << u->id()
+                           << "has no name (even empty)";
+    const auto userName = maybeUserName.value_or(QString());
     const auto namesakes = membersMap.values(userName);
+    qCDebug(MEMBERS) << "insertMemberIntoMap(), user" << u->id()
+                     << "with name" << userName << '-'
+                     << namesakes.size() << "namesake(s) found";
 
-    // Callers should check they are not adding an existing user once more.
+    // Callers should make sure they are not adding an existing user once more
     Q_ASSERT(!namesakes.contains(u));
+    if (namesakes.contains(u)) { // Release version whines but continues
+        qCCritical(MEMBERS) << "Trying to add a user" << u->id() << "to room"
+                            << q->objectName() << "but that's already in it";
+        return;
+    }
 
+    // If there is exactly one namesake of the added user, signal member
+    // renaming for that other one because the two should be disambiguated now
     if (namesakes.size() == 1)
         emit q->memberAboutToRename(namesakes.front(),
                                     namesakes.front()->fullName(q));
@@ -1370,18 +1371,43 @@ void Room::Private::insertMemberIntoMap(User* u)
         emit q->memberRenamed(namesakes.front());
 }
 
-void Room::Private::removeMemberFromMap(const QString& username, User* u)
+void Room::Private::removeMemberFromMap(User* u)
 {
+    const auto userName =
+        getCurrentState<RoomMemberEvent>(
+                u->id())->newDisplayName().value_or(QString());
+
+    qCDebug(MEMBERS) << "removeMemberFromMap(), username" << userName
+                     << "for user" << u->id();
     User* namesake = nullptr;
-    auto namesakes = membersMap.values(username);
-    if (namesakes.size() == 2) {
-        namesake = namesakes.front() == u ? namesakes.back() : namesakes.front();
-        Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
-        emit q->memberAboutToRename(namesake, username);
-    }
-    membersMap.remove(username, u);
+    auto namesakes = membersMap.values(userName);
     // If there was one namesake besides the removed user, signal member
     // renaming for it because it doesn't need to be disambiguated any more.
+    if (namesakes.size() == 2) {
+        namesake =
+            namesakes.front() == u ? namesakes.back() : namesakes.front();
+        Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
+        emit q->memberAboutToRename(namesake, userName);
+    }
+    if (membersMap.remove(userName, u) == 0) {
+        qCDebug(MEMBERS) << "No entries removed; checking the whole list";
+        // Unless at the stage of initial filling, this no removed entries
+        // is suspicious; double-check that this user is not found in
+        // the whole map, and stop (for debug builds) or shout in the logs
+        // (for release builds) if there's one. That search is O(n), which
+        // may come rather expensive for larger rooms.
+        QElapsedTimer et;
+        auto it = std::find(membersMap.cbegin(), membersMap.cend(), u);
+        if (et.nsecsElapsed() > profilerMinNsecs() / 10)
+            qCDebug(MEMBERS) << "...done in" << et;
+        if (it != membersMap.cend()) {
+            Q_ASSERT_X(false, __FUNCTION__,
+                       "Mismatched name in the room members list");
+            qCCritical(MEMBERS) << "Mismatched name in the room members list;"
+                                   " avoiding the list corruption";
+            membersMap.remove(it.key(), u);
+        }
+    }
     if (namesake)
         emit q->memberRenamed(namesake);
 }
@@ -1423,7 +1449,7 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
     }
     const auto insertedSize = (index - baseIndex) * placement;
     Q_ASSERT(insertedSize == int(events.size()));
-    return insertedSize;
+    return Timeline::size_type(insertedSize);
 }
 
 QString Room::memberName(const QString& mxId) const
@@ -1639,15 +1665,15 @@ QString Room::retryMessage(const QString& txnId)
     const auto it = findPendingEvent(txnId);
     Q_ASSERT(it != d->unsyncedEvents.end());
     qCDebug(EVENTS) << "Retrying transaction" << txnId;
-    const auto& transferIt = d->fileTransfers.find(txnId);
-    if (transferIt != d->fileTransfers.end()) {
+    const auto& transferIt = d->fileTransfers.constFind(txnId);
+    if (transferIt != d->fileTransfers.cend()) {
         Q_ASSERT(transferIt->isUpload);
         if (transferIt->status == FileTransferInfo::Completed) {
             qCDebug(MESSAGES)
                 << "File for transaction" << txnId
                 << "has already been uploaded, bypassing re-upload";
         } else {
-            if (isJobRunning(transferIt->job)) {
+            if (isJobPending(transferIt->job)) {
                 qCDebug(MESSAGES) << "Abandoning the upload job for transaction"
                                   << txnId << "and starting again";
                 transferIt->job->abandon();
@@ -1680,7 +1706,7 @@ void Room::discardMessage(const QString& txnId)
     const auto& transferIt = d->fileTransfers.find(txnId);
     if (transferIt != d->fileTransfers.end()) {
         Q_ASSERT(transferIt->isUpload);
-        if (isJobRunning(transferIt->job)) {
+        if (isJobPending(transferIt->job)) {
             transferIt->status = FileTransferInfo::Cancelled;
             transferIt->job->abandon();
             emit fileTransferFailed(txnId, tr("File upload cancelled"));
@@ -1737,7 +1763,8 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
     // to enable the preview while the event is pending.
     uploadFile(txnId, localPath);
     // Below, the upload job is used as a context object to clean up connections
-    connect(this, &Room::fileTransferCompleted, d->fileTransfers[txnId].job,
+    const auto& transferJob = d->fileTransfers.value(txnId).job;
+    connect(this, &Room::fileTransferCompleted, transferJob,
             [this, txnId](const QString& id, const QUrl&, const QUrl& mxcUri) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
@@ -1756,7 +1783,7 @@ QString Room::postFile(const QString& plainText, const QUrl& localPath,
                     }
                 }
             });
-    connect(this, &Room::fileTransferCancelled, d->fileTransfers[txnId].job,
+    connect(this, &Room::fileTransferCancelled, transferJob,
             [this, txnId](const QString& id) {
                 if (id == txnId) {
                     auto it = findPendingEvent(txnId);
@@ -1885,7 +1912,7 @@ void Room::getPreviousContent(int limit, const QString &filter) { d->getPrevious
 
 void Room::Private::getPreviousContent(int limit, const QString &filter)
 {
-    if (isJobRunning(eventsHistoryJob))
+    if (isJobPending(eventsHistoryJob))
         return;
 
     eventsHistoryJob =
@@ -1938,7 +1965,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
     auto job = connection()->uploadFile(fileName, overrideContentType);
-    if (isJobRunning(job)) {
+    if (isJobPending(job)) {
         d->fileTransfers[id] = { job, fileName, true };
         connect(job, &BaseJob::uploadProgress, this,
                 [this, id](qint64 sent, qint64 total) {
@@ -1958,8 +1985,8 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
 
 void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 {
-    auto ongoingTransfer = d->fileTransfers.find(eventId);
-    if (ongoingTransfer != d->fileTransfers.end()
+    if (auto ongoingTransfer = d->fileTransfers.constFind(eventId);
+        ongoingTransfer != d->fileTransfers.cend()
         && ongoingTransfer->status == FileTransferInfo::Started) {
         qCWarning(MAIN) << "Transfer for" << eventId
                         << "is ongoing; download won't start";
@@ -1994,7 +2021,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         qDebug(MAIN) << "File path:" << filePath;
     }
     auto job = connection()->downloadFile(fileUrl, filePath);
-    if (isJobRunning(job)) {
+    if (isJobPending(job)) {
         // If there was a previous transfer (completed or failed), overwrite it.
         d->fileTransfers[eventId] = { job, job->targetFileName() };
         connect(job, &BaseJob::downloadProgress, this,
@@ -2016,13 +2043,13 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 
 void Room::cancelFileTransfer(const QString& id)
 {
-    auto it = d->fileTransfers.find(id);
-    if (it == d->fileTransfers.end()) {
+    const auto it = d->fileTransfers.constFind(id);
+    if (it == d->fileTransfers.cend()) {
         qCWarning(MAIN) << "No information on file transfer" << id << "in room"
                         << d->id;
         return;
     }
-    if (isJobRunning(it->job))
+    if (isJobPending(it->job))
         it->job->abandon();
     d->fileTransfers.remove(id);
     emit fileTransferCancelled(id);
@@ -2119,8 +2146,8 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 {
     // Can't use findInTimeline because it returns a const iterator, and
     // we need to change the underlying TimelineItem.
-    const auto pIdx = eventsIndex.find(redaction.redactedEvent());
-    if (pIdx == eventsIndex.end())
+    const auto pIdx = eventsIndex.constFind(redaction.redactedEvent());
+    if (pIdx == eventsIndex.cend())
         return false;
 
     Q_ASSERT(q->isValidIndex(*pIdx));
@@ -2190,8 +2217,8 @@ bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
 {
     // Can't use findInTimeline because it returns a const iterator, and
     // we need to change the underlying TimelineItem.
-    const auto pIdx = eventsIndex.find(newEvent.replacedEvent());
-    if (pIdx == eventsIndex.end())
+    const auto pIdx = eventsIndex.constFind(newEvent.replacedEvent());
+    if (pIdx == eventsIndex.cend())
         return false;
 
     Q_ASSERT(q->isValidIndex(*pIdx));
@@ -2434,57 +2461,95 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 Room::Changes Room::processStateEvent(const RoomEvent& e)
 {
     if (!e.isStateEvent())
-        return Change::NoChange;
+        return NoChange;
 
-    // Find a value (create empty if necessary) and get a reference to it
-    // getCurrentState<> is not used here because it (creates and) returns
+    // Find a value (create an empty one if necessary) and get a reference
+    // to it. Can't use getCurrentState<>() because it (creates and) returns
     // a stub if a value is not found, and what's needed here is a "real" event
     // or nullptr.
-    const auto*& curStateEvent =
-        d->currentState[{ e.matrixType(), e.stateKey() }];
+    auto& curStateEvent = d->currentState[{ e.matrixType(), e.stateKey() }];
     // Prepare for the state change
-    visit(e, [this, oldRme = static_cast<const RoomMemberEvent*>(curStateEvent)](
-                 const RoomMemberEvent& rme) {
-        auto* u = user(rme.userId());
-        if (!u) { // ???
-            qCCritical(MAIN)
-                << "Could not get a user object for" << rme.userId();
-            return;
-        }
-        const auto prevMembership = oldRme ? oldRme->membership()
-                                           : MembershipType::Leave;
-        switch (prevMembership) {
-        case MembershipType::Invite:
-            if (rme.membership() != prevMembership) {
-                d->usersInvited.removeOne(u);
-                Q_ASSERT(!d->usersInvited.contains(u));
+    // clang-format off
+    const bool proceed = visit(e
+        , [this, curStateEvent](const RoomMemberEvent& rme) {
+            // clang-format on
+            auto* oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
+            auto* u = user(rme.userId());
+            if (!u) { // Some terribly malformed user id?
+                qCCritical(MAIN) << "Could not get a user object for"
+                                 << rme.userId();
+                return false; // Stay low and hope for the best...
             }
-            break;
-        case MembershipType::Join:
-            switch (rme.membership()) {
-            case MembershipType::Join: // rename/avatar change or no-op
-                if (rme.newDisplayName()) {
-                    emit memberAboutToRename(u, *rme.newDisplayName());
-                    d->removeMemberFromMap(u->name(this), u);
+            const auto prevMembership = oldRme ? oldRme->membership()
+                                               : MembershipType::Leave;
+            switch (prevMembership) {
+            case MembershipType::Invite:
+                if (rme.membership() != prevMembership) {
+                    d->usersInvited.removeOne(u);
+                    Q_ASSERT(!d->usersInvited.contains(u));
                 }
                 break;
-            case MembershipType::Invite:
-                qCWarning(MAIN) << "Membership change from Join to Invite:"
-                                << rme;
-                [[fallthrough]];
-            default: // whatever the new membership, it's no more Join
-                d->removeMemberFromMap(u->name(this), u);
-                emit userRemoved(u);
+            case MembershipType::Join:
+                if (rme.membership() == MembershipType::Join) {
+                    // rename/avatar change or no-op
+                    if (rme.newDisplayName()) {
+                        emit memberAboutToRename(u, *rme.newDisplayName());
+                        d->removeMemberFromMap(u);
+                    }
+                    if (!rme.newDisplayName() && !rme.newAvatarUrl()) {
+                        qCWarning(MEMBERS)
+                            << "No-op membership event for" << rme.userId()
+                            << "- retaining the state";
+                        qCWarning(MEMBERS) << "The event dump:" << rme;
+                        return false;
+                    }
+                } else {
+                    if (rme.membership() == MembershipType::Invite)
+                        qCWarning(MAIN)
+                            << "Membership change from Join to Invite:" << rme;
+                    // whatever the new membership, it's no more Join
+                    d->removeMemberFromMap(u);
+                    emit userRemoved(u);
+                }
+                break;
+            case MembershipType::Ban:
+            case MembershipType::Knock:
+            case MembershipType::Leave:
+                if (rme.membership() == MembershipType::Invite
+                    || rme.membership() == MembershipType::Join) {
+                    d->membersLeft.removeOne(u);
+                    Q_ASSERT(!d->membersLeft.contains(u));
+                }
+                break;
+            case MembershipType::Undefined:
+                ; // A warning will be dropped in the post-processing block below
             }
-            break;
-        default:
-            if (rme.membership() == MembershipType::Invite
-                || rme.membership() == MembershipType::Join) {
-                d->membersLeft.removeOne(u);
-                Q_ASSERT(!d->membersLeft.contains(u));
-            }
+            return true;
+            // clang-format off
         }
-    });
+        , [this, curStateEvent]( const EncryptionEvent& ee) {
+            // clang-format on
+            auto* oldEncEvt =
+                    static_cast<const EncryptionEvent*>(curStateEvent);
+            if (ee.algorithm().isEmpty()) {
+                qWarning(STATE)
+                    << "The encryption event for room" << objectName()
+                    << "doesn't have 'algorithm' specified - ignoring";
+                return false;
+            }
+            if (oldEncEvt
+                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
+                qCWarning(STATE) << "The room is already encrypted but a new"
+                                    " room encryption event arrived - ignoring";
+                return false;
+            }
+            return true;
+            // clang-format off
+        }
+        , true); // By default, go forward with the state change
+    // clang-format on
+    if (!proceed)
+        return NoChange;
 
     // Change the state
     const auto* const oldStateEvent =
@@ -2492,47 +2557,35 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     Q_ASSERT(!oldStateEvent
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
-    if (!is<RoomMemberEvent>(e)) // Room member events are too numerous
+    if (is<RoomMemberEvent>(e))
+        qCDebug(MEMBERS) << "Updated room member state:" << e;
+    else
         qCDebug(STATE) << "Updated room state:" << e;
 
     // Update internal structures as per the change and work out the return value
 
     // clang-format off
-    return visit(e
+    const auto result = visit(e
         , [] (const RoomNameEvent&) {
             return NameChange;
-        }
-        , [] (const RoomAliasesEvent&) {
-            return NoChange; // This event has been removed by MSC2432
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
             setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
-            QString previousCanonicalAlias =
-                oldStateEvent
-                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
-                          ->alias()
-                    : QString();
-
-            auto previousAltAliases =
-                oldStateEvent
-                    ? static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent)
-                          ->altAliases()
-                    : QStringList();
-
-            if (!previousCanonicalAlias.isEmpty()) {
-                previousAltAliases.push_back(previousCanonicalAlias);
+            const auto* oldCae =
+                    static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent);
+            QStringList previousAltAliases {};
+            if (oldCae) {
+                previousAltAliases = oldCae->altAliases();
+                if (!oldCae->alias().isEmpty())
+                    previousAltAliases.push_back(oldCae->alias());
             }
-
-            const auto previousAliases = std::move(previousAltAliases);
 
             auto newAliases = cae.altAliases();
-
-            if (!cae.alias().isEmpty()) {
+            if (!cae.alias().isEmpty())
                 newAliases.push_front(cae.alias());
-            }
 
-            connection()->updateRoomAliases(id(), previousAliases, newAliases);
+            connection()->updateRoomAliases(id(), previousAltAliases, newAliases);
             return AliasesChange;
             // clang-format off
         }
@@ -2572,33 +2625,23 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 if (u == localUser() && evt.isDirect())
                     connection()->addToDirectChats(this, user(evt.senderId()));
                 break;
-            default:
+            case MembershipType::Knock:
+            case MembershipType::Ban:
+            case MembershipType::Leave:
                 if (!d->membersLeft.contains(u))
                     d->membersLeft.append(u);
+                break;
+            case MembershipType::Undefined:
+                qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
             return MembersChange;
             // clang-format off
         }
-        , [this, oldEncEvt = static_cast<const EncryptionEvent*>(oldStateEvent)](
-            const EncryptionEvent& ee) {
-            // clang-format on
-            if (ee.algorithm().isEmpty()) {
-                qWarning(STATE)
-                    << "The encryption event for room" << objectName()
-                    << "doesn't have 'algorithm' specified - ignoring";
-                return NoChange;
-            }
-            if (oldEncEvt
-                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
-                qCWarning(STATE) << "The room is already encrypted but a new"
-                                    " room encryption event arrived - ignoring";
-                return NoChange;
-            }
+        , [this] (const EncryptionEvent&) {
             // As encryption can only be switched on once, emit the signal here
             // instead of aggregating and emitting in updateData()
             emit encryption();
             return OtherChange;
-            // clang-format off
         }
         , [this] (const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
@@ -2615,9 +2658,12 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     });
 
             return OtherChange;
+            // clang-format off
         }
-    );
+        , OtherChange);
     // clang-format on
+    Q_ASSERT(result != NoChange);
+    return result;
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)
@@ -2779,7 +2825,7 @@ QString Room::Private::calculateDisplayname() const
     const bool localUserIsIn = joinState == JoinState::Join;
     const bool emptyRoom =
         membersMap.isEmpty()
-        || (membersMap.size() == 1 && isLocalUser(*membersMap.begin()));
+        || (membersMap.size() == 1 && isLocalUser(*membersMap.cbegin()));
     const bool nonEmptySummary = summary.heroes && !summary.heroes->empty();
     auto shortlist = nonEmptySummary ? buildShortlist(*summary.heroes)
                                      : !emptyRoom ? buildShortlist(membersMap)

@@ -141,7 +141,7 @@ public:
         return UriResolverBase::visitResource(account, uri);
     }
 
-signals:
+Q_SIGNALS:
     /// An action on a user has been requested
     void userAction(Quotient::User* user, QString action);
 

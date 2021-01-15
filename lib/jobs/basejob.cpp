@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "basejob.h"
@@ -24,6 +12,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QMetaEnum>
+#include <QtCore/QPointer>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -76,15 +65,6 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     return dbg << ": " << message;
 }
 
-struct NetworkReplyDeleter : public QScopedPointerDeleteLater {
-    static inline void cleanup(QNetworkReply* reply)
-    {
-        if (reply && reply->isRunning())
-            reply->abort();
-        QScopedPointerDeleteLater::cleanup(reply);
-    }
-};
-
 template <typename... Ts>
 constexpr auto make_array(Ts&&... items)
 {
@@ -110,6 +90,16 @@ public:
     {
         timer.setSingleShot(true);
         retryTimer.setSingleShot(true);
+    }
+
+    ~Private()
+    {
+        if (reply) {
+            if (reply->isRunning()) {
+                reply->abort();
+            }
+            delete reply;
+        }
     }
 
     void sendRequest();
@@ -140,7 +130,10 @@ public:
 
     QByteArrayList expectedKeys;
 
-    QScopedPointer<QNetworkReply, NetworkReplyDeleter> reply;
+    // When the QNetworkAccessManager is destroyed it destroys all pending replies.
+    // Using QPointer allows us to know when that happend.
+    QPointer<QNetworkReply> reply;
+
     Status status = Unprepared;
     QByteArray rawResponse;
     /// Contains a null document in case of non-JSON body (for a successful
@@ -194,6 +187,7 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
     connect(&d->retryTimer, &QTimer::timeout, this, [this] {
+        qCDebug(d->logCat) << "Retrying" << this;
         d->connection->submit(this);
     });
 }
@@ -258,7 +252,7 @@ void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
     d->expectedContentTypes = contentTypes;
 }
 
-const QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
+QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
 
 void BaseJob::addExpectedKey(const QByteArray& key) { d->expectedKeys << key; }
 
@@ -315,16 +309,16 @@ void BaseJob::Private::sendRequest()
 
     switch (verb) {
     case HttpVerb::Get:
-        reply.reset(connection->nam()->get(req));
+        reply = connection->nam()->get(req);
         break;
     case HttpVerb::Post:
-        reply.reset(connection->nam()->post(req, requestData.source()));
+        reply = connection->nam()->post(req, requestData.source());
         break;
     case HttpVerb::Put:
-        reply.reset(connection->nam()->put(req, requestData.source()));
+        reply = connection->nam()->put(req, requestData.source());
         break;
     case HttpVerb::Delete:
-        reply.reset(connection->nam()->deleteResource(req));
+        reply = connection->nam()->sendCustomRequest(req, "DELETE", requestData.source());
         break;
     }
 }
@@ -337,7 +331,7 @@ void BaseJob::beforeAbandon() { }
 
 void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 {
-    if (connData && connData->baseUrl().isValid()) {
+    if (Q_LIKELY(connData && connData->baseUrl().isValid())) {
         d->inBackground = inBackground;
         d->connection = connData;
         doPrepare();
@@ -350,7 +344,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
             setStatus(FileError, "Request data not ready");
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
-        if (status().code == Unprepared) {
+        if (Q_LIKELY(status().code == Unprepared)) {
             d->connection->submit(this);
             return;
         }
@@ -369,8 +363,11 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 
 void BaseJob::sendRequest()
 {
-    if (status().code == Abandoned)
+    if (status().code == Abandoned) {
+        qCDebug(d->logCat) << "Won't proceed with the abandoned request:"
+                           << d->dumpRequest();
         return;
+    }
     Q_ASSERT(d->connection && status().code == Pending);
     qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
     d->needsToken |= d->connection->needsToken(objectName());
@@ -510,14 +507,15 @@ BaseJob::Status BaseJob::prepareResult() { return Success; }
 
 BaseJob::Status BaseJob::prepareError()
 {
-    if (!d->rawResponse.isEmpty()) {
-        if (const auto status = d->parseJson(); !status.good())
-            return status; // If there's anything there, it should be JSON
-        if (d->jsonResponse.isArray()) // ...specifically, a JSON object
-            return { IncorrectResponse,
-                     tr("Malformed error JSON: an array instead of an object") };
-    }
+    // Try to make sense of the error payload but be prepared for all kinds
+    // of unexpected stuff (raw HTML, plain text, foreign JSON among those)
+    if (!d->rawResponse.isEmpty()
+        && reply()->rawHeader("Content-Type") == "application/json")
+        d->parseJson();
 
+    // By now, if d->parseJson() above succeeded then jsonData() will return
+    // a valid JSON object - or an empty object otherwise (in which case most
+    // of if's below will fall through to `return NoError` at the end
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
     if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
@@ -615,10 +613,12 @@ void BaseJob::finishJob()
             qCWarning(d->logCat).nospace()
                 << this << ": retry #" << d->retriesTaken << " in "
                 << retryIn.count() << " s";
+            setStatus(Pending, "Pending retry");
             d->retryTimer.start(retryIn);
             emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
             return;
         }
+        [[fallthrough]];
     default:;
     }
 

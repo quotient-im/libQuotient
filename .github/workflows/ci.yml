@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  CI:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+        compiler: [ GCC, Clang ]
+        # Not using binary values here, to make the job captions more readable
+        e2ee: [ '', 'E2EE' ]
+        update-api: [ '', 'update-api' ]
+        exclude:
+        - os: macos-10.15
+          compiler: GCC
+        - e2ee: '' # Somewhat reduce the number of combinations to check
+          update-api: 'update-api'
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: ${{ matrix.e2ee != '' }}
+
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v2
+      with:
+        path: ${{ runner.workspace }}/Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2.11.1
+      with:
+        version: '5.9.9'
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
+    - name: Install Valgrind
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get install valgrind
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp" >>$GITHUB_ENV
+
+    - name: Setup build environment
+      run: |
+        if [ "${{ matrix.compiler }}" == "GCC" ]; then
+          if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
+          echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
+          echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
+        else
+          echo "CC=clang" >>$GITHUB_ENV
+          echo "CXX=clang++" >>$GITHUB_ENV
+        fi
+        echo "QUOTEST_ORIGIN=${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        echo "DESTDIR=${{ runner.workspace }}" >>$GITHUB_ENV
+        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/usr" >>$GITHUB_ENV
+        cmake -E make_directory ${{ runner.workspace }}/build
+
+    - name: Build and install olm
+      if: matrix.e2ee
+      run: |
+        cd ${{ runner.workspace }}
+        git clone https://gitlab.matrix.org/matrix-org/olm.git
+        pushd olm
+        cmake . -B build $CMAKE_ARGS
+        cmake --build build --target install
+        popd
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
+
+    - name: Pull CS API and build GTAD
+      if: matrix.update-api
+      run: |
+        cd ${{ runner.workspace }}
+        git clone https://github.com/matrix-org/matrix-doc.git
+        git clone --recursive https://github.com/KitsuneRal/gtad.git
+        pushd gtad
+        cmake . $CMAKE_ARGS
+        cmake --build .
+        popd
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
+
+    - name: Configure libQuotient
+      run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+
+    - name: Regenerate API code
+      if: matrix.update-api
+      run: cmake --build build --target update-api
+
+    - name: Build and install libQuotient
+      run: cmake --build build --target install
+
+    - name: Build tests
+      run: |
+        cmake tests -Bbuild-test $CMAKE_ARGS
+        cmake --build build-test --target all
+        
+    - name: Run tests
+      env:
+        TEST_USER: ${{ secrets.TEST_USER }}
+        TEST_PWD: ${{ secrets.TEST_PWD }}
+      run: |
+        [[ -z "$TEST_USER" ]] || $VALGRIND build-test/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+      timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually

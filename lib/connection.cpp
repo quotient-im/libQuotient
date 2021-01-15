@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "connection.h"
@@ -37,6 +25,7 @@
 #include "csapi/versions.h"
 #include "csapi/voip.h"
 #include "csapi/wellknown.h"
+#include "csapi/whoami.h"
 
 #include "events/directchatevent.h"
 #include "events/eventloader.h"
@@ -133,10 +122,27 @@ public:
         != "json";
     bool lazyLoading = false;
 
+    /** \brief Check the homeserver and resolve it if needed, before connecting
+     *
+     * A single entry for functions that need to check whether the homeserver
+     * is valid before running. May execute connectFn either synchronously
+     * or asynchronously. In case of errors, emits resolveError() if
+     * the homeserver URL is not valid and cannot be resolved from userId, or
+     * the homeserver doesn't support the requested login flow.
+     *
+     * \param userId    fully-qualified MXID to resolve HS from
+     * \param connectFn a function to execute once the HS URL is good
+     * \param flow      optionally, a login flow that should be supported for
+     *                  connectFn to work; `none`, if there's no login flow
+     *                  requirements
+     * \sa resolveServer, resolveError
+     */
+    void checkAndConnect(const QString &userId,
+                         const std::function<void ()> &connectFn,
+                         const std::optional<LoginFlow> &flow = none);
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
-    void assumeIdentity(const QString& userId, const QString& accessToken,
-                        const QString& deviceId);
+    void completeSetup(const QString &mxId);
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);
@@ -253,7 +259,7 @@ Connection::~Connection()
 
 void Connection::resolveServer(const QString& mxid)
 {
-    if (isJobRunning(d->resolverJob))
+    if (isJobPending(d->resolverJob))
         d->resolverJob->abandon();
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
@@ -264,14 +270,21 @@ void Connection::resolveServer(const QString& mxid)
         return;
     }
 
-    auto domain = maybeBaseUrl.host();
-    qCDebug(MAIN) << "Finding the server" << domain;
+    qCDebug(MAIN) << "Finding the server" << maybeBaseUrl.host();
 
-    d->data->setBaseUrl(maybeBaseUrl); // Just enough to check .well-known file
+    const auto& oldBaseUrl = d->data->baseUrl();
+    d->data->setBaseUrl(maybeBaseUrl); // Temporarily set it for this one call
     d->resolverJob = callApi<GetWellknownJob>();
-    connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl] {
-        if (d->resolverJob->status() != BaseJob::NotFoundError) {
-            if (d->resolverJob->status() != BaseJob::Success) {
+    // Connect to finished() to make sure baseUrl is restored in any case
+    connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl, oldBaseUrl] {
+        // Revert baseUrl so that setHomeserver() below triggers signals
+        // in case the base URL actually changed
+        d->data->setBaseUrl(oldBaseUrl);
+        if (d->resolverJob->error() == BaseJob::Abandoned)
+            return;
+
+        if (d->resolverJob->error() != BaseJob::NotFoundError) {
+            if (!d->resolverJob->status().good()) {
                 qCWarning(MAIN)
                     << "Fetching .well-known file failed, FAIL_PROMPT";
                 emit resolveError(tr("Failed resolving the homeserver"));
@@ -297,12 +310,12 @@ void Connection::resolveServer(const QString& mxid)
                          << "for base URL";
             setHomeserver(maybeBaseUrl);
         }
+        Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
         connect(d->loginFlowsJob, &BaseJob::success, this,
                 &Connection::resolved);
         connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
             qCWarning(MAIN) << "Homeserver base URL sanity check failed";
-            emit resolveError(
-                tr("The homeserver base URL doesn't seem to work"));
+            emit resolveError(tr("The homeserver doesn't seem to be working"));
         });
     });
 }
@@ -325,10 +338,10 @@ void Connection::loginWithPassword(const QString& userId,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    checkAndConnect(userId, [=] {
+    d->checkAndConnect(userId, [=] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
                          password, /*token*/ "", deviceId, initialDeviceName);
-    });
+    }, LoginFlows::Password);
 }
 
 SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
@@ -341,17 +354,30 @@ void Connection::loginWithToken(const QByteArray& loginToken,
                                 const QString& initialDeviceName,
                                 const QString& deviceId)
 {
+    Q_ASSERT(d->data->baseUrl().isValid() && d->loginFlows.contains(LoginFlows::Token));
     d->loginToServer(LoginFlows::Token.type,
                      none /*user is encoded in loginToken*/, "" /*password*/,
                      loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& userId,
-                                const QString& accessToken,
+void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
                                 const QString& deviceId)
 {
-    checkAndConnect(userId,
-                    [=] { d->assumeIdentity(userId, accessToken, deviceId); });
+    d->checkAndConnect(mxId, [this, mxId, accessToken, deviceId] {
+        d->data->setToken(accessToken.toLatin1());
+        d->data->setDeviceId(deviceId); // Can't we deduce this from access_token?
+        auto* job = callApi<GetTokenOwnerJob>();
+        connect(job, &BaseJob::success, this, [this, job, mxId] {
+            if (mxId != job->userId())
+                qCWarning(MAIN).nospace()
+                    << "The access_token owner (" << job->userId()
+                    << ") is different from passed MXID (" << mxId << ")!";
+            d->completeSetup(job->userId());
+        });
+        connect(job, &BaseJob::failure, this, [this, job] {
+            emit loginError(job->errorString(), job->rawDataSample());
+        });
+    });
 }
 
 void Connection::reloadCapabilities()
@@ -391,8 +417,9 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     auto loginJob =
             q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
     connect(loginJob, &BaseJob::success, q, [this, loginJob] {
-        assumeIdentity(loginJob->userId(), loginJob->accessToken(),
-                       loginJob->deviceId());
+        data->setToken(loginJob->accessToken().toLatin1());
+        data->setDeviceId(loginJob->deviceId());
+        completeSetup(loginJob->userId());
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -405,21 +432,18 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     });
 }
 
-void Connection::Private::assumeIdentity(const QString& userId,
-                                         const QString& accessToken,
-                                         const QString& deviceId)
+void Connection::Private::completeSetup(const QString& mxId)
 {
-    data->setUserId(userId);
+    data->setUserId(mxId);
     q->user(); // Creates a User object for the local user
-    data->setToken(accessToken.toLatin1());
-    data->setDeviceId(deviceId);
-    q->setObjectName(userId % '/' % deviceId);
+    q->setObjectName(data->userId() % '/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
-                  << "by user" << userId << "from device" << deviceId;
+                  << "by user" << data->userId()
+                  << "from device" << data->deviceId();
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-    AccountSettings accountSettings(userId);
+    AccountSettings accountSettings(data->userId());
     encryptionManager.reset(
         new EncryptionManager(accountSettings.encryptionAccountPickle()));
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
@@ -432,22 +456,37 @@ void Connection::Private::assumeIdentity(const QString& userId,
     q->reloadCapabilities();
 }
 
-void Connection::checkAndConnect(const QString& userId,
-                                 std::function<void()> connectFn)
+void Connection::Private::checkAndConnect(const QString& userId,
+                                          const std::function<void()>& connectFn,
+                                          const std::optional<LoginFlow>& flow)
 {
-    if (d->data->baseUrl().isValid()) {
+    if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
         connectFn();
         return;
     }
-    // Not good to go, try to fix the homeserver URL.
+    // Not good to go, try to ascertain the homeserver URL and flows
     if (userId.startsWith('@') && userId.indexOf(':') != -1) {
-        connectSingleShot(this, &Connection::homeserverChanged, this, connectFn);
-        // NB: doResolveServer can emit resolveError, so this is a part of
-        // checkAndConnect function contract.
-        resolveServer(userId);
+        q->resolveServer(userId);
+        if (flow)
+            connectSingleShot(q, &Connection::loginFlowsChanged, q,
+                [this, flow, connectFn] {
+                    if (loginFlows.contains(*flow))
+                        connectFn();
+                    else
+                        emit q->loginError(
+                            tr("The homeserver at %1 does not support"
+                               " the login flow '%2'")
+                            .arg(data->baseUrl().toDisplayString()),
+                                 flow->type);
+                });
+        else
+            connectSingleShot(q, &Connection::homeserverChanged, q, connectFn);
     } else
-        emit resolveError(tr("%1 is an invalid homeserver URL")
-                              .arg(d->data->baseUrl().toString()));
+        emit q->resolveError(tr("Please provide the fully-qualified user id"
+                                " (such as @user:example.org) so that the"
+                                " homeserver could be resolved; the current"
+                                " homeserver URL(%1) is not good")
+                             .arg(data->baseUrl().toDisplayString()));
 }
 
 void Connection::logout()
@@ -932,7 +971,7 @@ void Connection::doInDirectChat(User* u,
     // not left), and delete inexistent (forgotten?) ones along the way.
     DirectChatsMap removals;
     for (auto it = d->directChats.constFind(u);
-         it != d->directChats.constEnd() && it.key() == u; ++it) {
+         it != d->directChats.cend() && it.key() == u; ++it) {
         const auto& roomId = *it;
         if (auto r = room(roomId, JoinState::Join)) {
             Q_ASSERT(r->id() == roomId);
@@ -1178,7 +1217,7 @@ QByteArray Connection::accessToken() const
 {
     // The logout job needs access token to do its job; so the token is
     // kept inside d->data but no more exposed to the outside world.
-    return isJobRunning(d->logoutJob) ? QByteArray() : d->data->accessToken();
+    return isJobPending(d->logoutJob) ? QByteArray() : d->data->accessToken();
 }
 
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
@@ -1493,12 +1532,10 @@ QByteArray Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (isJobRunning(d->resolverJob))
+    if (isJobPending(d->resolverJob))
         d->resolverJob->abandon();
-    d->resolverJob = nullptr;
-    if (isJobRunning(d->loginFlowsJob))
+    if (isJobPending(d->loginFlowsJob))
         d->loginFlowsJob->abandon();
-    d->loginFlowsJob = nullptr;
     d->loginFlows.clear();
 
     if (homeserver() != url) {
@@ -1508,7 +1545,7 @@ void Connection::setHomeserver(const QUrl& url)
 
     // Whenever a homeserver is updated, retrieve available login flows from it
     d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest);
-    connect(d->loginFlowsJob, &BaseJob::finished, this, [this] {
+    connect(d->loginFlowsJob, &BaseJob::result, this, [this] {
         if (d->loginFlowsJob->status().good())
             d->loginFlows = d->loginFlowsJob->flows();
         else

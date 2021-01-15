@@ -1,19 +1,7 @@
 /******************************************************************************
- * Copyright (C) 2015 Felix Rohrbach <kde@fxrh.de>
+ * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #pragma once
@@ -136,6 +124,14 @@ public:
         {
             return !operator==(other);
         }
+        bool operator==(int otherCode) const
+        {
+            return code == otherCode;
+        }
+        bool operator!=(int otherCode) const
+        {
+            return !operator==(otherCode);
+        }
 
         int code;
         QString message;
@@ -251,7 +247,7 @@ public:
         return dbg << j->objectName();
     }
 
-public slots:
+public Q_SLOTS:
     void initiate(ConnectionData* connData, bool inBackground);
 
     /**
@@ -263,7 +259,7 @@ public slots:
      */
     void abandon();
 
-signals:
+Q_SIGNALS:
     /** The job is about to send a network request */
     void aboutToSendRequest();
 
@@ -355,7 +351,7 @@ protected:
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
-    const QByteArrayList expectedKeys() const;
+    QByteArrayList expectedKeys() const;
     void addExpectedKey(const QByteArray &key);
     void setExpectedKeys(const QByteArrayList &keys);
 
@@ -433,7 +429,7 @@ protected:
     // Job objects should only be deleted via QObject::deleteLater
     ~BaseJob() override;
 
-protected slots:
+protected Q_SLOTS:
     void timeout();
 
     /*! \brief Check the pending or received reply for upfront issues
@@ -456,7 +452,7 @@ protected slots:
      */
     virtual Status checkReply(const QNetworkReply *reply) const;
 
-private slots:
+private Q_SLOTS:
     void sendRequest();
     void gotReply();
 
@@ -470,7 +466,7 @@ private:
     QScopedPointer<Private> d;
 };
 
-inline bool isJobRunning(BaseJob* job)
+inline bool isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }
