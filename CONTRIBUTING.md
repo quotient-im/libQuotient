@@ -326,9 +326,9 @@ it resides in Git, is actually generated from the official Swagger/OpenAPI
 definition files. If you're unhappy with something in there and want to improve
 the code, you have to understand the way these files are produced and setup
 some additional tooling. The shortest possible procedure resembling
-the below text can be found in .travis.yml (our CI configuration actually
-regenerates those files upon every build). As described below, there is also
-a handy build target for CMake.
+the below text can be found in .github/workflows/ci.yml (our CI configuration
+actually regenerates those files upon every build). As described below, there
+is also a handy build target for CMake.
 
 #### Why generate the code at all?
 Because otherwise we have to do monkey business of writing boilerplate code,
