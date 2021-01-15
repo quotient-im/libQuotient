@@ -40,7 +40,7 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
     : membership(fromJson<MembershipType>(json["membership"_ls]))
     , isDirect(json["is_direct"_ls].toBool())
     , displayName(fromJson<Omittable<QString>>(json["displayname"_ls]))
-    , avatarUrl(fromJson<Omittable<QUrl>>(json["avatar_url"_ls]))
+    , avatarUrl(fromJson<Omittable<QString>>(json["avatar_url"_ls]))
     , reason(json["reason"_ls].toString())
 {
     if (displayName)

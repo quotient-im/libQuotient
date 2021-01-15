@@ -70,7 +70,7 @@ SsoSession::~SsoSession()
 
 QUrl SsoSession::ssoUrl() const { return d->ssoUrl; }
 
-QUrl SsoSession::callbackUrl() const { return d->callbackUrl; }
+QUrl SsoSession::callbackUrl() const { return QUrl(d->callbackUrl); }
 
 void SsoSession::Private::processCallback()
 {

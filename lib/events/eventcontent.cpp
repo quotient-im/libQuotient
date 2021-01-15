@@ -77,7 +77,7 @@ void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
 }
 
 Thumbnail::Thumbnail(const QJsonObject& infoJson)
-    : ImageInfo(infoJson["thumbnail_url"_ls].toString(),
+    : ImageInfo(QUrl(infoJson["thumbnail_url"_ls].toString()),
                 infoJson["thumbnail_info"_ls].toObject())
 {}
 

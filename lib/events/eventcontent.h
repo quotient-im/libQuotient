@@ -177,7 +177,7 @@ namespace EventContent {
         using InfoT::InfoT;
         explicit UrlBasedContent(const QJsonObject& json)
             : TypedBase(json)
-            , InfoT(json["url"].toString(), json["info"].toObject(),
+            , InfoT(QUrl(json["url"].toString()), json["info"].toObject(),
                     json["filename"].toString())
         {
             // A small hack to facilitate links creation in QML.

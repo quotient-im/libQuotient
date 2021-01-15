@@ -1974,7 +1974,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                 });
         connect(job, &BaseJob::success, this, [this, id, localFilename, job] {
             d->fileTransfers[id].status = FileTransferInfo::Completed;
-            emit fileTransferCompleted(id, localFilename, job->contentUri());
+            emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()));
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
