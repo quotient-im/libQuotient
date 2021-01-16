@@ -1,8 +1,6 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2017 Marius Gripsgard <marius@ubports.com>
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2017 Marius Gripsgard <marius@ubports.com>
+// SPDX-FileCopyrightText: 2018 Josip Delic <delijati@googlemail.com>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "callinviteevent.h"
 

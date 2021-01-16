@@ -1,8 +1,11 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2016 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-FileCopyrightText: 2017 Roman Plášil <me@rplasil.name>
+// SPDX-FileCopyrightText: 2017 Marius Gripsgard <marius@ubports.com>
+// SPDX-FileCopyrightText: 2018 Josip Delic <delijati@googlemail.com>
+// SPDX-FileCopyrightText: 2018 Black Hat <bhat@encom.eu.org>
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+// SPDX-FileCopyrightText: 2020 Ram Nad <ramnad1999@gmail.com>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "room.h"
 

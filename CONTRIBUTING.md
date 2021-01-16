@@ -96,8 +96,18 @@ All new contributed material that is not executable, including all text when not
 -->
 
 Any components proposed for reuse should have a license that permits releasing
-a derivative work under *LGPL v2.1 or later* or LGPL v3. Moreover, the license of
-a proposed component should be approved by OSI, no exceptions.
+a derivative work under *LGPL v3 or later* (that includes licenses permitting
+*LGPL v2.1 or later* but not *LGPL v2.1 only*). In any case, the component
+should be redistributable under a license from
+[the list approved by OSI](https://opensource.org/licenses), no exceptions.
+
+We use [SPDX](https://spdx.dev) conventions for copyright statements. Please
+follow them when making a sizable contribution: add your name and year to
+the top of the file. New files should begin with the following preamble:
+```cpp
+// SPDX-FileCopyrightText: 2021 Your Name <your@email.address>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+```
 
 ## Vulnerability reporting (security issues) - see [SECURITY.md](./SECURITY.md)
 

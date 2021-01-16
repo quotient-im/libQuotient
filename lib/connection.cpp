@@ -1,8 +1,8 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2016 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-FileCopyrightText: 2017 Roman Plášil <me@rplasil.name>
+// SPDX-FileCopyrightText: 2019 Ville Ranki <ville.ranki@iki.fi>
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "connection.h"
 

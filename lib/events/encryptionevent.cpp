@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2017 Kitsune Ral <kitsune-ral@users.sf.net>
+// SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include "encryptionevent.h"
 
 #include "e2ee.h"

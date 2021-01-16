@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2016 Kitsune Ral <kitsune-ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include "settings.h"
 
 #include "logging.h"

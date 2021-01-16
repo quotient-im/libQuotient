@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2016 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "connection.h"
 #include "room.h"
