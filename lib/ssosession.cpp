@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Kitsune Ral <kitsune-ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include "ssosession.h"
 
 #include "connection.h"

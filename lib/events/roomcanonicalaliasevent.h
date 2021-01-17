@@ -1,8 +1,6 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2020 QMatrixClient project
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2020 Ram Nad <ramnad1999@gmail.com>
+// SPDX-FileCopyrightText: 2020 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
  
 #pragma once
 

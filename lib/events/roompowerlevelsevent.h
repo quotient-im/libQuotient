@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2019 Black Hat <bhat@encom.eu.org>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #pragma once
 
 #include "eventcontent.h"

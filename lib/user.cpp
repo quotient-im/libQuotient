@@ -1,8 +1,6 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2015 Felix Rohrbach <kde@fxrh.de>
+// SPDX-FileCopyrightText: 2016 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "user.h"
 

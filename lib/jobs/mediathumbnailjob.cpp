@@ -1,8 +1,5 @@
-/******************************************************************************
- * SPDX-FileCopyrightText: 2016 Felix Rohrbach <kde@fxrh.de>
- *
- * SPDX-License-Identifier: LGPL-2.1-or-later
- */
+// SPDX-FileCopyrightText: 2018 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "mediathumbnailjob.h"
 

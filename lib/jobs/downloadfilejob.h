@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2018 Kitsune Ral <Kitsune-Ral@users.sf.net>
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #pragma once
 
 #include "csapi/content-repo.h"
