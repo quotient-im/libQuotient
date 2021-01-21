@@ -259,8 +259,6 @@ endif()
 # new files and if it has, re-run cmake.
 file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
 
-set(tests_SRCS tests/quotest.cpp)
-
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS QT_NO_URL_CAST_FROM_STRING QT_NO_CAST_TO_ASCII)
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
@@ -290,9 +288,11 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
 endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
-set(TEST_BINARY quotest)
-add_executable(${TEST_BINARY} ${tests_SRCS})
-target_link_libraries(${TEST_BINARY} Qt5::Core Qt5::Test ${PROJECT_NAME})
+if (BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(quotest)
+    add_subdirectory(autotests)
+endif()
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
