@@ -11,4 +11,4 @@ function(QUOTIENT_ADD_TEST)
     add_test(NAME ${ARG_NAME} COMMAND ${ARG_NAME})
 endfunction()
 
-quotient_add_test(callcandidateseventtest.cpp NAME callcandidateseventtest)
+quotient_add_test(NAME callcandidateseventtest)

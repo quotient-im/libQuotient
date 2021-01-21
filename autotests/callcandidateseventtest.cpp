@@ -29,7 +29,7 @@ void TestCallCandidatesEvent::fromJson()
 
     QVERIFY(document.isObject());
 
-    auto object = documemt.object();
+    auto object = document.object();
 
     Quotient::CallCandidatesEvent callCandidatesEvent(object);
 
