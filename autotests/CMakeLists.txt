@@ -12,3 +12,4 @@ function(QUOTIENT_ADD_TEST)
 endfunction()
 
 quotient_add_test(NAME callcandidateseventtest)
+quotient_add_test(NAME testolmaccount)
