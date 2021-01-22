@@ -5,5 +5,4 @@
 set(quotest_SRCS quotest.cpp)
 
 add_executable(quotest ${quotest_SRCS})
-add_test(NAME quotest COMMAND quotest)
 target_link_libraries(quotest PRIVATE Qt5::Core Qt5::Test ${PROJECT_NAME})
