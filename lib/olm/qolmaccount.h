@@ -49,6 +49,8 @@ bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs);
 class QOlmAccount
 {
 public:
+    ~QOlmAccount();
+
     enum OlmAccountError {
         BadAccountKey,
         BadMessageKeyId,
