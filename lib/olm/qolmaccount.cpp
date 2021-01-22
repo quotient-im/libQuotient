@@ -66,6 +66,11 @@ QOlmAccount::QOlmAccount(OlmAccount *account)
     : m_account(account)
 {}
 
+QOlmAccount::~QOlmAccount()
+{
+    olm_clear_account(m_account);
+}
+
 std::optional<QOlmAccount> QOlmAccount::create()
 {
     auto account = olm_account(new uint8_t[olm_account_size()]);
