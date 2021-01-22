@@ -189,6 +189,7 @@ set(lib_SRCS
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
+    lib/olm/qolmaccount.cpp
 )
 
 set(CSAPI_DIR csapi)
@@ -283,7 +284,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_link_libraries(${PROJECT_NAME} QtOlm)
+    target_link_libraries(${PROJECT_NAME} Olm::Olm QtOlm)
     set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
