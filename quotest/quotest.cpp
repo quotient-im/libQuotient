@@ -101,6 +101,7 @@ private slots:
     TEST_DECL(setTopic)
     TEST_DECL(changeName)
     TEST_DECL(sendAndRedact)
+    TEST_DECL(showLocalUsername)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
     TEST_DECL(visitResources)
@@ -505,6 +506,17 @@ TEST_IMPL(changeName)
                  [this, thisTest, localUser, newName] {
                      FINISH_TEST(localUser->name() == newName);
                  });
+    return false;
+}
+
+
+TEST_IMPL(showLocalUsername)
+{
+    auto* const localUser = connection()->user();
+    if (localUser->name().contains("@")) {
+        // it is using the id fallback :(
+        FAIL_TEST();
+    }
     return false;
 }
 
