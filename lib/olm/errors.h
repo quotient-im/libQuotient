@@ -2,45 +2,28 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#pragma once
+#ifndef QUOTIENT_OLM_ERROR_H
+#define QUOTIENT_OLM_ERROR_H
 
-//! All errors that could be caused by an operation regarding an `QOlmAccount`.
-//! Errors are named exactly like the ones in libolm.
-enum OlmAccountError {
-    BadAccountKey,
-    BadMessageKeyId,
-    InvalidBase64,
-    NotEnoughRandom,
-    OutputBufferTooSmall,
-    Unknown,
-};
+#include <string>
 
-//! All errors that could be caused by an operation regarding an `QOlmSession`.
+namespace Quotient {
+//! All errors that could be caused by an operation regarding Olm
 //! Errors are named exactly like the ones in libolm.
-enum OlmSessionError {
+enum OlmError
+{
     BadAccountKey,
     BadMessageFormat,
     BadMessageKeyId,
     BadMessageMac,
     BadMessageVersion,
-    InvalidBase64,
-    NotEnoughRandom,
-    OutputBufferTooSmall,
-    Unknown,
-};
-
-//! All errors that could be caused by an operation
-//! regarding QOlmOutboundGroupSession and QOlmInboundGroupSession.
-//! Errors are named exactly like the ones in libolm.
-enum OlmGroupSessionError {
-    BadAccountKey,
-    BadMessageFormat,
-    BadMessageMac,
-    BadMessageVersion,
-    BadSessionKey,
     InvalidBase64,
     NotEnoughRandom,
     OutputBufferTooSmall,
     UnknownMessageIndex,
     Unknown,
 };
+
+} //namespace Quotient
+
+#endif
