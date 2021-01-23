@@ -517,6 +517,7 @@ TEST_IMPL(showLocalUsername)
         // it is using the id fallback :(
         FAIL_TEST();
     }
+    FINISH_TEST(true);
     return false;
 }
 
