@@ -79,6 +79,13 @@ find_package(Qt5 5.9 REQUIRED Core Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}")
 
+find_package(OpenSSL 1.1.0 REQUIRED)
+set_package_properties(OpenSSL PROPERTIES
+    DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
+    URL "https://www.openssl.org/"
+    TYPE REQUIRED
+)
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
             AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
@@ -291,7 +298,9 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm QtOlm)
     set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
-target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
+target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia
+    OpenSSL::Crypto
+    OpenSSL::SSL)
 
 if (BUILD_TESTING)
     enable_testing()
