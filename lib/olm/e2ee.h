@@ -54,7 +54,7 @@ struct IdentityKeys
     QByteArray ed25519;
 };
 
-//! Struct representing the the one-time keys.
+//! Struct representing the one-time keys.
 struct OneTimeKeys
 {
     QMap<QString, QMap<QString, QString>> keys;
