@@ -24,6 +24,8 @@ enum OlmError
     Unknown,
 };
 
+OlmError fromString(const std::string &error_raw);
+
 } //namespace Quotient
 
 #endif

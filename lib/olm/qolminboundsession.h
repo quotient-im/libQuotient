@@ -17,15 +17,16 @@ namespace Quotient {
 struct QOlmInboundGroupSession
 {
 public:
+    ~QOlmInboundGroupSession();
     //! Creates a new instance of `OlmInboundGroupSession`.
-    static std::variant<QOlmInboundGroupSession, OlmError> create(const QString &key);
+    static std::variant<QOlmInboundGroupSession, OlmError> create(const QByteArray &key);
     //! Import an inbound group session, from a previous export.
-    static std::variant<QOlmInboundGroupSession, OlmError> import(const QString &key);
+    static std::variant<QOlmInboundGroupSession, OlmError> import(const QByteArray &key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
     std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static std::variant<QOlmInboundGroupSession, OlmError> unpicke(QByteArray &picked, const PicklingMode &mode);
+    static std::variant<QOlmInboundGroupSession, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
     //! Decrypts ciphertext received for this group session.
     std::variant<std::pair<QString, uint32_t>, OlmError> decrypt(QString &message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
@@ -37,7 +38,7 @@ public:
     std::variant<QByteArray, OlmError> sessionId() const;
     bool isVerified() const;
 private:
-    QOlmInboundGroupSession(OlmInboundGroupSession *session, const QByteArray &buffer);
+    QOlmInboundGroupSession(OlmInboundGroupSession *session, QByteArray buffer);
     OlmInboundGroupSession *m_groupSession;
     QByteArray m_buffer;
 };
