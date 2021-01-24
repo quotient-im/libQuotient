@@ -30,7 +30,7 @@ bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
     return lhs.curve25519 == rhs.curve25519 &&& lhs.ed25519 == rhs.ed25519;
 }
 
-// Conver olm error to enum
+// Convert olm error to enum
 OlmError lastError(OlmAccount *account) {
     const std::string error_raw = olm_account_last_error(account);
 
