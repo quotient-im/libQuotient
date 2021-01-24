@@ -14,34 +14,38 @@ OlmError lastError(OlmOutboundGroupSession *session) {
     return fromString(error_raw);
 }
 
-QOlmOutboundGroupSession::QOlmOutboundGroupSession(OlmOutboundGroupSession *session, const QByteArray &buffer)
+QOlmOutboundGroupSession::QOlmOutboundGroupSession(OlmOutboundGroupSession *session)
     : m_groupSession(session)
-    , m_buffer(buffer)
 {
 }
 
 QOlmOutboundGroupSession::~QOlmOutboundGroupSession()
 {
     olm_clear_outbound_group_session(m_groupSession);
+    //delete[](reinterpret_cast<uint8_t *>(m_groupSession));
 }
 
-std::variant<QOlmOutboundGroupSession, OlmError> QOlmOutboundGroupSession::create()
+std::unique_ptr<QOlmOutboundGroupSession> QOlmOutboundGroupSession::create()
 {
-    QByteArray sessionBuffer(olm_outbound_group_session_size(), '0');
-    auto *olmOutboundGroupSession = olm_outbound_group_session(sessionBuffer.data());
+    auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
     const auto randomLen = olm_init_outbound_group_session_random_length(olmOutboundGroupSession);
     QByteArray randomBuf = getRandom(randomLen);
 
-    const auto error = olm_init_outbound_group_session(olmOutboundGroupSession, 
+    const auto error = olm_init_outbound_group_session(olmOutboundGroupSession,
             reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
 
     if (error == olm_error()) {
-        return lastError(olmOutboundGroupSession);
+        throw lastError(olmOutboundGroupSession);
     }
+
+    const auto keyMaxLength = olm_outbound_group_session_key_length(olmOutboundGroupSession);
+    QByteArray keyBuffer(keyMaxLength, '0');
+    olm_outbound_group_session_key(olmOutboundGroupSession, reinterpret_cast<uint8_t *>(keyBuffer.data()),
+            keyMaxLength);
 
     randomBuf.clear();
 
-    return QOlmOutboundGroupSession(olmOutboundGroupSession, sessionBuffer);
+    return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
 std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::pickle(const PicklingMode &mode)
@@ -61,20 +65,23 @@ std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::pickle(const Pickli
 }
 
 
-std::variant<QOlmOutboundGroupSession, OlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
-    QByteArray olmOutboundGroupSessionBuf(olm_outbound_group_session_size(), '0');
+    auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
     QByteArray key = toKey(mode);
-    auto olmOutboundGroupSession = olm_outbound_group_session(reinterpret_cast<uint8_t *>(olmOutboundGroupSessionBuf.data()));
     const auto error = olm_unpickle_outbound_group_session(olmOutboundGroupSession, key.data(), key.length(),
             pickled.data(), pickled.length());
     if (error == olm_error()) {
         return lastError(olmOutboundGroupSession);
     }
+    const auto idMaxLength = olm_outbound_group_session_id_length(olmOutboundGroupSession);
+    QByteArray idBuffer(idMaxLength, '0');
+    olm_outbound_group_session_id(olmOutboundGroupSession, reinterpret_cast<uint8_t *>(idBuffer.data()),
+            idBuffer.length());
 
     key.clear();
-    return QOlmOutboundGroupSession(olmOutboundGroupSession, olmOutboundGroupSessionBuf);
+    return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
 std::variant<QString, OlmError> QOlmOutboundGroupSession::encrypt(QString &plaintext)
