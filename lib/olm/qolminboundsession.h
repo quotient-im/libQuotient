@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <variant>
+#include <memory>
 #include "olm/olm.h"
 #include "olm/errors.h"
 #include "olm/e2ee.h"
@@ -21,14 +22,14 @@ struct QOlmInboundGroupSession
 public:
     ~QOlmInboundGroupSession();
     //! Creates a new instance of `OlmInboundGroupSession`.
-    static std::variant<QOlmInboundGroupSession, OlmError> create(const QByteArray &key);
+    static std::unique_ptr<QOlmInboundGroupSession> create(const QByteArray &key);
     //! Import an inbound group session, from a previous export.
-    static std::variant<QOlmInboundGroupSession, OlmError> import(const QByteArray &key);
+    static std::unique_ptr<QOlmInboundGroupSession> import(const QByteArray &key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
-    std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static std::variant<QOlmInboundGroupSession, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
     //! Decrypts ciphertext received for this group session.
     std::variant<std::pair<QString, uint32_t>, OlmError> decrypt(QString &message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
@@ -37,12 +38,11 @@ public:
     //! Get the first message index we know how to decrypt.
     uint32_t firstKnownIndex() const;
     //! Get a base64-encoded identifier for this session.
-    std::variant<QByteArray, OlmError> sessionId() const;
+    QByteArray sessionId() const;
     bool isVerified() const;
+    QOlmInboundGroupSession(OlmInboundGroupSession *session);
 private:
-    QOlmInboundGroupSession(OlmInboundGroupSession *session, QByteArray buffer);
     OlmInboundGroupSession *m_groupSession;
-    QByteArray m_buffer;
 };
 } // namespace Quotient
 #endif
