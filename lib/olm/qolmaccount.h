@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 #pragma once
+#ifdef Quotient_E2EE_ENABLED
 
 #include "olm/e2ee.h"
 #include "olm/errors.h"
@@ -52,3 +53,5 @@ private:
 };
 
 } // namespace Quotient
+
+#endif

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2021 Carl Schwan <carlschwan@kde.org>
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
-//
+
+#ifdef Quotient_E2EE_ENABLED
 #include "olm/qolmoutboundsession.h"
 #include "olm/utils.h"
 
@@ -119,3 +120,5 @@ std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::sessionKey() const
     }
     return keyBuffer;
 }
+
+#endif

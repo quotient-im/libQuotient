@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef Quotient_E2EE_ENABLED
+
 #include <QByteArray>
 #include <variant>
 #include "olm/olm.h"
@@ -43,3 +45,4 @@ private:
     QByteArray m_buffer;
 };
 } // namespace Quotient
+#endif
