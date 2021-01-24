@@ -5,6 +5,7 @@
 #ifdef Quotient_E2EE_ENABLED
 #include "olm/qolminboundsession.h"
 #include <iostream>
+#include <cstring>
 using namespace Quotient;
 
 OlmError lastError(OlmInboundGroupSession *session) {
@@ -89,22 +90,24 @@ std::variant<std::unique_ptr<QOlmInboundGroupSession>, OlmError> QOlmInboundGrou
     return std::make_unique<QOlmInboundGroupSession>(groupSession);
 }
 
-std::variant<std::pair<QString, uint32_t>, OlmError> QOlmInboundGroupSession::decrypt(QString &message)
+std::variant<std::pair<QString, uint32_t>, OlmError> QOlmInboundGroupSession::decrypt(const QByteArray &message)
 {
     // This is for capturing the output of olm_group_decrypt
     uint32_t messageIndex = 0;
 
     // We need to clone the message because
     // olm_decrypt_max_plaintext_length destroys the input buffer
-    QByteArray messageBuf = message.toUtf8();
+    QByteArray messageBuf(message.length(), '0');
+    std::copy(message.begin(), message.end(), messageBuf.begin());
 
     QByteArray plaintextBuf(olm_group_decrypt_max_plaintext_length(m_groupSession,
                 reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length()), '0');
-    const auto messageLen = messageBuf.length();
-    const auto plaintextMaxLen =  plaintextBuf.length();
+
+    messageBuf = QByteArray(message.length(), '0');
+    std::copy(message.begin(), message.end(), messageBuf.begin());
 
     const auto plaintextLen = olm_group_decrypt(m_groupSession, reinterpret_cast<uint8_t *>(messageBuf.data()),
-            messageLen, reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextMaxLen, &messageIndex);
+            messageBuf.length(), reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextBuf.length(), &messageIndex);
 
     // Error code or plaintext length is returned
     const auto decryptError = plaintextLen;
@@ -113,8 +116,10 @@ std::variant<std::pair<QString, uint32_t>, OlmError> QOlmInboundGroupSession::de
         return lastError(m_groupSession);
     }
 
-    plaintextBuf.truncate(plaintextLen);
-    return std::make_pair<QString, qint32>(QString(plaintextBuf), messageIndex);
+    QByteArray output(plaintextLen, '0');
+    std::memcpy(output.data(), plaintextBuf.data(), plaintextLen);
+
+    return std::make_pair<QString, qint32>(QString(output), messageIndex);
 }
 
 std::variant<QByteArray, OlmError> QOlmInboundGroupSession::exportSession(uint32_t messageIndex)
