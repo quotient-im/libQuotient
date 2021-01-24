@@ -4,7 +4,6 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #include "olm/qolminboundsession.h"
-#include <QDebug>
 #include <iostream>
 using namespace Quotient;
 
@@ -15,48 +14,44 @@ OlmError lastError(OlmInboundGroupSession *session) {
     return fromString(error_raw);
 }
 
-QOlmInboundGroupSession::QOlmInboundGroupSession(OlmInboundGroupSession *session, QByteArray buffer)
+QOlmInboundGroupSession::QOlmInboundGroupSession(OlmInboundGroupSession *session)
     : m_groupSession(session)
-    , m_buffer(buffer)
 {
 }
 
 QOlmInboundGroupSession::~QOlmInboundGroupSession()
 {
     olm_clear_inbound_group_session(m_groupSession);
+    //delete[](reinterpret_cast<uint8_t *>(m_groupSession));
 }
 
-std::variant<QOlmInboundGroupSession, OlmError> QOlmInboundGroupSession::create(const QByteArray &key)
+std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const QByteArray &key)
 {
-    QByteArray olmInboundGroupSessionBuf(olm_inbound_group_session_size(), '0');
-    const auto olmInboundGroupSession = olm_inbound_group_session(olmInboundGroupSessionBuf.data());
-
+    const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
     const auto temp = key;
-
     const auto error = olm_init_inbound_group_session(olmInboundGroupSession,
             reinterpret_cast<const uint8_t *>(temp.data()), temp.size());
 
     if (error == olm_error()) {
-        return lastError(olmInboundGroupSession);
+        throw lastError(olmInboundGroupSession);
     }
 
-    return QOlmInboundGroupSession(olmInboundGroupSession, std::move(olmInboundGroupSessionBuf));
+    return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
 }
 
 
-std::variant<QOlmInboundGroupSession, OlmError> QOlmInboundGroupSession::import(const QByteArray &key)
+std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::import(const QByteArray &key)
 {
-    QByteArray olmInboundGroupSessionBuf(olm_inbound_group_session_size(), '0');
-    const auto olmInboundGroupSession = olm_inbound_group_session(olmInboundGroupSessionBuf.data());
+    const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
     QByteArray keyBuf = key;
 
     const auto error = olm_import_inbound_group_session(olmInboundGroupSession,
             reinterpret_cast<const uint8_t *>(keyBuf.data()), keyBuf.size());
     if (error == olm_error()) {
-        return lastError(olmInboundGroupSession);
+        throw lastError(olmInboundGroupSession);
     }
 
-    return QOlmInboundGroupSession(olmInboundGroupSession, std::move(olmInboundGroupSessionBuf));
+    return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
 }
 
 QByteArray toKey(const PicklingMode &mode)
@@ -67,28 +62,31 @@ QByteArray toKey(const PicklingMode &mode)
     return std::get<Encrypted>(mode).key;
 }
 
-std::variant<QByteArray, OlmError> QOlmInboundGroupSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmInboundGroupSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(olm_pickle_inbound_group_session_length(m_groupSession), '0');
     const QByteArray key = toKey(mode);
     const auto error = olm_pickle_inbound_group_session(m_groupSession, key.data(), key.length(), pickledBuf.data(),
             pickledBuf.length());
     if (error == olm_error()) {
-        return lastError(m_groupSession);
+        throw lastError(m_groupSession);
     }
     return pickledBuf;
 }
 
-std::variant<QOlmInboundGroupSession, OlmError> QOlmInboundGroupSession::unpickle(QByteArray &picked, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmInboundGroupSession>, OlmError> QOlmInboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
-    QByteArray groupSessionBuf(olm_inbound_group_session_size(), '0');
-    auto groupSession = olm_inbound_group_session(groupSessionBuf.data());
-    const QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_inbound_group_session(groupSession, key.data(), key.length(), picked.data(), picked.size());
+    QByteArray pickledBuf = pickled;
+    const auto groupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
+    QByteArray key = toKey(mode);
+    const auto error = olm_unpickle_inbound_group_session(groupSession, key.data(), key.length(),
+            pickledBuf.data(), pickledBuf.size());
     if (error == olm_error()) {
         return lastError(groupSession);
     }
-    return QOlmInboundGroupSession(groupSession, std::move(groupSessionBuf));
+    key.clear();
+
+    return std::make_unique<QOlmInboundGroupSession>(groupSession);
 }
 
 std::variant<std::pair<QString, uint32_t>, OlmError> QOlmInboundGroupSession::decrypt(QString &message)
@@ -136,13 +134,13 @@ uint32_t QOlmInboundGroupSession::firstKnownIndex() const
     return olm_inbound_group_session_first_known_index(m_groupSession);
 }
 
-std::variant<QByteArray, OlmError> QOlmInboundGroupSession::sessionId() const
+QByteArray QOlmInboundGroupSession::sessionId() const
 {
     QByteArray sessionIdBuf(olm_inbound_group_session_id_length(m_groupSession), '0');
     const auto error = olm_inbound_group_session_id(m_groupSession, reinterpret_cast<uint8_t *>(sessionIdBuf.data()),
             sessionIdBuf.length());
     if (error == olm_error()) {
-        return lastError(m_groupSession);
+        throw lastError(m_groupSession);
     }
     return sessionIdBuf;
 }
