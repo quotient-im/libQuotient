@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#ifdef Quotient_E2EE_ENABLED
 #include "olm/utils.h"
 
 using namespace Quotient;
@@ -20,3 +21,4 @@ QByteArray Quotient::getRandom(size_t bufferSize)
     std::generate(buffer.begin(), buffer.end(), std::rand);
     return buffer;
 }
+#endif
