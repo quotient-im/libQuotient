@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#ifdef Quotient_E2EE_ENABLED
 #include "olm/qolminboundsession.h"
 #include <QDebug>
 #include <iostream>
@@ -150,3 +151,4 @@ bool QOlmInboundGroupSession::isVerified() const
 {
     return olm_inbound_group_session_is_verified(m_groupSession) != 0;
 }
+#endif
