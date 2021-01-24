@@ -11,6 +11,7 @@
 
 namespace Quotient {
 
+
 //! An out-bound group session is responsible for encrypting outgoing
 //! communication in a Megolm session.
 class QOlmOutboundGroupSession
@@ -26,7 +27,7 @@ public:
     //! pickling a `QOlmOutboundGroupSession`.
     static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
-    std::variant<QString, OlmError> encrypt(QString &plaintext);
+    std::variant<QByteArray, OlmError> encrypt(const QString &plaintext);
 
     //! Get the current message index for this session.
     //!
@@ -35,7 +36,7 @@ public:
     uint32_t sessionMessageIndex() const;
 
     //! Get a base64-encoded identifier for this session.
-    std::variant<QByteArray, OlmError> sessionId() const;
+    QByteArray sessionId() const;
 
     //! Get the base64-encoded current ratchet key for this session.
     //!
@@ -46,5 +47,7 @@ public:
 private:
     OlmOutboundGroupSession *m_groupSession;
 };
+
+using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
 }
 #endif

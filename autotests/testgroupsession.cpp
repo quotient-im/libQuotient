@@ -13,13 +13,13 @@ using namespace Quotient;
 void TestOlmSession::groupSessionPicklingValid()
 {
     auto ogs = QOlmOutboundGroupSession::create();
-    const auto ogsId = std::get<QByteArray>(ogs->sessionId());
+    const auto ogsId = ogs->sessionId();
     QVERIFY(QByteArray::fromBase64Encoding(ogsId).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
     QCOMPARE(0, ogs->sessionMessageIndex());
 
     auto ogsPickled = std::get<QByteArray>(ogs->pickle(Unencrypted {}));
-    auto ogs2 = std::get<std::unique_ptr<QOlmOutboundGroupSession>>(QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}));
-    QCOMPARE(ogsId, std::get<QByteArray>(ogs2->sessionId()));
+    auto ogs2 = std::get<QOlmOutboundGroupSessionPtr>(QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}));
+    QCOMPARE(ogsId, ogs2->sessionId());
 
     auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
     const auto igsId = igs->sessionId();
@@ -30,9 +30,28 @@ void TestOlmSession::groupSessionPicklingValid()
     QCOMPARE(0, igs->firstKnownIndex());
 
     auto igsPickled = igs->pickle(Unencrypted {});
-    igs = std::get<std::unique_ptr<QOlmInboundGroupSession>>(QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}));
+    igs = std::get<QOlmInboundGroupSessionPtr>(QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}));
     QCOMPARE(igsId, igs->sessionId());
 }
 
+void TestOlmSession::groupSessionCryptoValid()
+{
+    auto ogs = QOlmOutboundGroupSession::create();
+    auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
+    QCOMPARE(ogs->sessionId(), igs->sessionId());
+
+    const auto plainText = QStringLiteral("Hello world!");
+    const auto ciphertext = std::get<QByteArray>(ogs->encrypt(plainText));
+    qDebug() << ciphertext;
+    // ciphertext valid base64?
+    QVERIFY(QByteArray::fromBase64Encoding(ciphertext).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
+
+    const auto decryptionResult = std::get<std::pair<QString, uint32_t>>(igs->decrypt(ciphertext));
+
+    //// correct plaintext?
+    QCOMPARE(plainText, decryptionResult.first);
+
+    QCOMPARE(0, decryptionResult.second);
+}
 QTEST_MAIN(TestOlmSession)
 #endif
