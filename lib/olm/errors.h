@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifndef QUOTIENT_OLM_ERROR_H
-#define QUOTIENT_OLM_ERROR_H
+#pragma once
 
+#ifdef Quotient_E2EE_ENABLED
 #include <string>
 
 namespace Quotient {
