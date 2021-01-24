@@ -12,27 +12,26 @@ using namespace Quotient;
 
 void TestOlmSession::groupSessionPicklingValid()
 {
-    auto ogs = std::get<QOlmOutboundGroupSession>(QOlmOutboundGroupSession::create());
-    const auto ogsId = std::get<QByteArray>(ogs.sessionId());
+    auto ogs = QOlmOutboundGroupSession::create();
+    const auto ogsId = std::get<QByteArray>(ogs->sessionId());
     QVERIFY(QByteArray::fromBase64Encoding(ogsId).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
-    QCOMPARE(0, ogs.sessionMessageIndex());
+    QCOMPARE(0, ogs->sessionMessageIndex());
 
-    auto ogsPickled = std::get<QByteArray>(ogs.pickle(Unencrypted {}));
-    ogs = std::get<QOlmOutboundGroupSession>(QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}));
-    QCOMPARE(ogsId, std::get<QByteArray>(ogs.sessionId()));
+    auto ogsPickled = std::get<QByteArray>(ogs->pickle(Unencrypted {}));
+    auto ogs2 = std::get<std::unique_ptr<QOlmOutboundGroupSession>>(QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}));
+    QCOMPARE(ogsId, std::get<QByteArray>(ogs2->sessionId()));
 
-    qDebug() << std::get<QByteArray>(ogs.sessionKey());
-    auto igs = std::get<QOlmInboundGroupSession>(QOlmInboundGroupSession::create(std::get<QByteArray>(ogs.sessionKey())));
-    const auto igsId = std::get<QByteArray>(igs.sessionId());
+    auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
+    const auto igsId = igs->sessionId();
     // ID is valid base64?
     QVERIFY(QByteArray::fromBase64Encoding(igsId).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
 
     //// no messages have been sent yet
-    QCOMPARE(0, igs.firstKnownIndex());
+    QCOMPARE(0, igs->firstKnownIndex());
 
-    auto igsPickled = std::get<QByteArray>(igs.pickle(Unencrypted {}));
-    igs = std::get<QOlmInboundGroupSession>(QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}));
-    QCOMPARE(igsId, std::get<QByteArray>(igs.sessionId()));
+    auto igsPickled = igs->pickle(Unencrypted {});
+    igs = std::get<std::unique_ptr<QOlmInboundGroupSession>>(QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}));
+    QCOMPARE(igsId, igs->sessionId());
 }
 
 QTEST_MAIN(TestOlmSession)
