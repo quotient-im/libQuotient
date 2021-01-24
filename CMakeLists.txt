@@ -87,6 +87,13 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModul
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
+find_package(OpenSSL 1.1.0 REQUIRED)
+set_package_properties(OpenSSL PROPERTIES
+    DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
+    URL "https://www.openssl.org/"
+    TYPE REQUIRED
+)
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
             AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
@@ -324,7 +331,14 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm QtOlm)
     set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+
+target_link_libraries(${PROJECT_NAME}
+    ${Qt}::Core
+    ${Qt}::Network
+    ${Qt}::Gui
+    OpenSSL::Crypto
+    OpenSSL::SSL)
+
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
 endif()
