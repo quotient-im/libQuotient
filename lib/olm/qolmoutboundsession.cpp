@@ -84,7 +84,7 @@ std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> QOlmOutboundGr
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-std::variant<QString, OlmError> QOlmOutboundGroupSession::encrypt(QString &plaintext)
+std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::encrypt(const QString &plaintext)
 {
     QByteArray plaintextBuf = plaintext.toUtf8();
     const auto messageMaxLen = olm_group_encrypt_message_length(m_groupSession, plaintextBuf.length());
@@ -104,14 +104,14 @@ uint32_t QOlmOutboundGroupSession::sessionMessageIndex() const
     return olm_outbound_group_session_message_index(m_groupSession);
 }
 
-std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::sessionId() const
+QByteArray QOlmOutboundGroupSession::sessionId() const
 {
     const auto idMaxLength = olm_outbound_group_session_id_length(m_groupSession);
     QByteArray idBuffer(idMaxLength, '0');
     const auto error = olm_outbound_group_session_id(m_groupSession, reinterpret_cast<uint8_t *>(idBuffer.data()),
             idBuffer.length());
     if (error == olm_error()) {
-        return lastError(m_groupSession);
+        throw lastError(m_groupSession);
     }
     return idBuffer;
 }
