@@ -6,6 +6,8 @@
 #include "testolmaccount.h"
 #include "olm/qolmaccount.h"
 
+using namespace Quotient;
+
 void TestOlmAccount::pickleUnpickedTest()
 {
     auto olmAccount = QOlmAccount::create().value();
