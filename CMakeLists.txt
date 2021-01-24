@@ -157,6 +157,10 @@ set(lib_SRCS
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
     lib/olm/qolmaccount.cpp
+    lib/olm/qolminboundsession.cpp
+    lib/olm/qolmoutboundsession.cpp
+    lib/olm/utils.cpp
+    lib/olm/errors.cpp
 )
 
 # Configure API files generation

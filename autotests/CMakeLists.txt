@@ -13,3 +13,4 @@ endfunction()
 
 quotient_add_test(NAME callcandidateseventtest)
 quotient_add_test(NAME testolmaccount)
+quotient_add_test(NAME testgroupsession)
