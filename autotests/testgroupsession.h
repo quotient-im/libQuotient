@@ -11,5 +11,6 @@ class TestOlmSession : public QObject
 
 private Q_SLOTS:
     void groupSessionPicklingValid();
+    void groupSessionCryptoValid();
 };
 #endif

@@ -31,7 +31,7 @@ public:
     //! an `OlmInboundGroupSession`.
     static std::variant<std::unique_ptr<QOlmInboundGroupSession>, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
     //! Decrypts ciphertext received for this group session.
-    std::variant<std::pair<QString, uint32_t>, OlmError> decrypt(QString &message);
+    std::variant<std::pair<QString, uint32_t>, OlmError> decrypt(const QByteArray &message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
     //! in a format which can be used by import.
     std::variant<QByteArray, OlmError> exportSession(uint32_t messageIndex);
@@ -44,5 +44,7 @@ public:
 private:
     OlmInboundGroupSession *m_groupSession;
 };
+
+using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
 } // namespace Quotient
 #endif
