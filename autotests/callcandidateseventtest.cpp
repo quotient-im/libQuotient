@@ -43,13 +43,14 @@ void TestCallCandidatesEvent::fromJson()
     Quotient::CallCandidatesEvent callCandidatesEvent(object);
 
     QCOMPARE(callCandidatesEvent.version(), 0);
-    QCOMPARE(callCandidatesEvent.callId(), "12345");
+    QCOMPARE(callCandidatesEvent.callId(), QStringLiteral("12345"));
     QCOMPARE(callCandidatesEvent.candidates().count(), 1);
 
     const QJsonObject &candidate = callCandidatesEvent.candidates().at(0).toObject();
-    QCOMPARE(candidate.value("sdpMid").toString(), "audio");
+    QCOMPARE(candidate.value("sdpMid").toString(), QStringLiteral("audio"));
     QCOMPARE(candidate.value("sdpMLineIndex").toInt(), 0);
-    QCOMPARE(candidate.value("candidate").toString(), "candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0");
+    QCOMPARE(candidate.value("candidate").toString(),
+             QStringLiteral("candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0"));
 }
 
 QTEST_MAIN(TestCallCandidatesEvent)
