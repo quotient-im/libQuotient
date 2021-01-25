@@ -10,6 +10,7 @@ message(STATUS)
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
 
 include(FeatureSummary)
+include(CTest)
 
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
 add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS
