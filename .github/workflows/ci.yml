@@ -61,7 +61,7 @@ jobs:
           echo "CC=clang" >>$GITHUB_ENV
           echo "CXX=clang++" >>$GITHUB_ENV
         fi
-        echo "QUOTEST_ORIGIN=${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=${{ github.ref }} @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
         echo "DESTDIR=${{ runner.workspace }}" >>$GITHUB_ENV
         echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/usr" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
