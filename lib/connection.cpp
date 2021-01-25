@@ -133,6 +133,11 @@ public:
         != "json";
     bool lazyLoading = false;
 
+    /// \brief Stop resolving and login flows jobs, and clear login flows
+    ///
+    /// Prepares the class to set or resolve a new homeserver
+    void clearResolvingContext();
+
     /** \brief Check the homeserver and resolve it if needed, before connecting
      *
      * A single entry for functions that need to check whether the homeserver
@@ -270,8 +275,7 @@ Connection::~Connection()
 
 void Connection::resolveServer(const QString& mxid)
 {
-    if (isJobRunning(d->resolverJob))
-        d->resolverJob->abandon();
+    d->clearResolvingContext();
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
     maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
@@ -1530,13 +1534,19 @@ QByteArray Connection::generateTxnId() const
     return d->data->generateTxnId();
 }
 
+void Connection::Private::clearResolvingContext()
+{
+    if (isJobRunning(resolverJob))
+        resolverJob->abandon();
+    if (isJobRunning(loginFlowsJob))
+        loginFlowsJob->abandon();
+    loginFlows.clear();
+
+}
+
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (isJobRunning(d->resolverJob))
-        d->resolverJob->abandon();
-    if (isJobRunning(d->loginFlowsJob))
-        d->loginFlowsJob->abandon();
-    d->loginFlows.clear();
+    d->clearResolvingContext();
 
     if (homeserver() != url) {
         d->data->setBaseUrl(url);
