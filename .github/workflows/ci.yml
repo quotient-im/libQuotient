@@ -45,24 +45,28 @@ jobs:
         version: '5.9.9'
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Install Valgrind
-      if: contains(matrix.os, 'ubuntu')
+    - name: Install Ninja (macOS)
+      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      uses: seanmiddleditch/gha-setup-ninja@v3
+
+    - name: Install Ninja and Valgrind (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get install valgrind
+        sudo apt-get -qq install ninja-build valgrind
         echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-          if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
-          echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
-          echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
+            if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
+            echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
         else
-          echo "CC=clang" >>$GITHUB_ENV
-          echo "CXX=clang++" >>$GITHUB_ENV
+            echo "CC=clang" >>$GITHUB_ENV
+            echo "CXX=clang++" >>$GITHUB_ENV
         fi
         echo "QUOTEST_ORIGIN=${{ github.ref }} @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
