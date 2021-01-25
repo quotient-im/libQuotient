@@ -66,7 +66,7 @@ jobs:
             echo "CXX=clang++" >>$GITHUB_ENV
         fi
         echo "QUOTEST_ORIGIN=${{ github.ref }} @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
@@ -77,9 +77,6 @@ jobs:
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         cmake -S olm -B olm/build $CMAKE_ARGS
         cmake --build olm/build --target install
-        OLM_SO_PATH=$(dirname $(find ~/.local/lib* -name libolm.so))
-        test -n "$OLM_SO_PATH"
-        echo "DEP_SO_PATH=$OLM_SO_PATH" >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Pull CS API and build GTAD
@@ -90,7 +87,9 @@ jobs:
         git clone --recursive https://github.com/KitsuneRal/gtad.git
         cmake -S gtad -B gtad $CMAKE_ARGS
         cmake --build gtad
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" >>$GITHUB_ENV
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
+                                     -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
+             >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
 
     - name: Configure libQuotient
@@ -109,7 +108,7 @@ jobs:
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
-        LD_LIBRARY_PATH: "${{ env.DEP_SO_PATH }}:${{ env.Qt5_DIR }}/lib"
+        LD_LIBRARY_PATH: "${{ env.Qt5_DIR }}/lib"
       run: |
         [[ -z "$TEST_USER" ]] || $VALGRIND ~/.local/bin/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
