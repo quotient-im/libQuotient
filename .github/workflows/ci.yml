@@ -49,7 +49,7 @@ jobs:
       if: contains(matrix.os, 'ubuntu')
       run: |
         sudo apt-get install valgrind
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp" >>$GITHUB_ENV
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
@@ -62,8 +62,8 @@ jobs:
           echo "CXX=clang++" >>$GITHUB_ENV
         fi
         echo "QUOTEST_ORIGIN=${{ github.ref }} @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "DESTDIR=${{ runner.workspace }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/usr" >>$GITHUB_ENV
+        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Build and install olm
@@ -71,10 +71,11 @@ jobs:
       run: |
         cd ${{ runner.workspace }}
         git clone https://gitlab.matrix.org/matrix-org/olm.git
-        pushd olm
-        cmake . -B build $CMAKE_ARGS
-        cmake --build build --target install
-        popd
+        cmake -S olm -B olm/build $CMAKE_ARGS
+        cmake --build olm/build --target install
+        OLM_SO_PATH=$(dirname $(find ~/.local/lib* -name libolm.so))
+        test -n "$OLM_SO_PATH"
+        echo "DEP_SO_PATH=$OLM_SO_PATH" >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Pull CS API and build GTAD
@@ -83,10 +84,8 @@ jobs:
         cd ${{ runner.workspace }}
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        pushd gtad
-        cmake . $CMAKE_ARGS
-        cmake --build .
-        popd
+        cmake -S gtad -B gtad $CMAKE_ARGS
+        cmake --build gtad
         echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
 
@@ -98,12 +97,15 @@ jobs:
       run: cmake --build build --target update-api
 
     - name: Build and install libQuotient
-      run: cmake --build build --target install
+      run: |
+        cmake --build build --target install
+        ls ~/.local/bin/quotest
 
     - name: Run tests
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
+        LD_LIBRARY_PATH: "${{ env.DEP_SO_PATH }}:${{ env.Qt5_DIR }}/lib"
       run: |
-        [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+        [[ -z "$TEST_USER" ]] || $VALGRIND ~/.local/bin/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
