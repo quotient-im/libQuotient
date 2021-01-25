@@ -10,10 +10,7 @@ message(STATUS)
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
 
 include(FeatureSummary)
-
-option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
-add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS
-                 "the library functional test suite")
+include(CTest)
 
 # https://github.com/quotient-im/libQuotient/issues/369
 option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
@@ -114,36 +111,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     endif ()
 endif ()
 
-if (GTAD_PATH)
-    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
-endif ()
-if (MATRIX_DOC_PATH)
-    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
-endif ()
-if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
-    message( STATUS "Using GTAD at ${ABS_GTAD_PATH}" )
-    message( STATUS "Using API files at ${ABS_API_DEF_PATH}" )
-    set(API_GENERATION_ENABLED 1)
-    if (NOT CLANG_FORMAT)
-        set(CLANG_FORMAT clang-format)
-    endif()
-    get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
-    if (ABS_CLANG_FORMAT)
-        set(API_FORMATTING_ENABLED 1)
-        message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
-    else ()
-        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
-    endif ()
-endif()
-add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
-                 "build target update-api")
-add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
-                 "formatting of generated API files with clang-format")
-
-message(STATUS)
-feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
-                FATAL_ON_MISSING_REQUIRED_PACKAGES)
-
 # Set up source files
 set(lib_SRCS
     lib/networkaccessmanager.cpp
@@ -191,12 +158,34 @@ set(lib_SRCS
     lib/jobs/downloadfilejob.cpp
 )
 
+# Configure API files generation
+
 set(CSAPI_DIR csapi)
 set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
-if (MATRIX_DOC_PATH AND GTAD_PATH)
+if (GTAD_PATH)
+    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
+endif ()
+if (MATRIX_DOC_PATH)
+    get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
+endif ()
+if (ABS_GTAD_PATH AND ABS_API_DEF_PATH)
+    message( STATUS "Using GTAD at ${ABS_GTAD_PATH}" )
+    message( STATUS "Using API files at ${ABS_API_DEF_PATH}" )
+    set(API_GENERATION_ENABLED 1)
+    if (NOT CLANG_FORMAT)
+        set(CLANG_FORMAT clang-format)
+    endif()
+    get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
+    if (ABS_CLANG_FORMAT)
+        set(API_FORMATTING_ENABLED 1)
+        message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
+    else ()
+        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
+    endif ()
+
     if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12.0")
         # We use globbing with CONFIGURE_DEPENDS to produce two file lists:
         # one of all API files for clang-format and another of just .cpp
@@ -249,6 +238,10 @@ if (MATRIX_DOC_PATH AND GTAD_PATH)
         endif()
     endif()
 endif()
+add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
+                 "build target update-api")
+add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
+                 "formatting of generated API files with clang-format")
 
 # Make no mistake: CMake cannot run gtad first and then populate the list of
 # resulting api_SRCS files. In other words, placing the below statement after
@@ -288,15 +281,17 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
 endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
+configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
+
+# Configure testing
+
 if (BUILD_TESTING)
     enable_testing()
     add_subdirectory(quotest)
     add_subdirectory(autotests)
 endif()
 
-configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
-
-# Installation
+# Configure installation
 
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -337,13 +332,13 @@ if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
 
-if (${PROJECT_NAME}_INSTALL_TESTS)
-    install(TARGETS ${TEST_BINARY} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif ()
-
 if (UNIX AND NOT APPLE)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
+
+message(STATUS)
+feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
+                FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 message(STATUS "<== End of libQuotient configuration")

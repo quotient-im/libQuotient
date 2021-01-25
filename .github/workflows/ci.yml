@@ -45,25 +45,36 @@ jobs:
         version: '5.9.9'
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Install Valgrind
-      if: contains(matrix.os, 'ubuntu')
+    - name: Install Ninja (macOS)
+      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      uses: seanmiddleditch/gha-setup-ninja@v3
+
+    - name: Install Ninja and Valgrind (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get install valgrind
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=tests/.valgrind.supp" >>$GITHUB_ENV
+        sudo apt-get -qq install ninja-build valgrind
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-          if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
-          echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
-          echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
+            if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-8'; fi
+            echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
         else
-          echo "CC=clang" >>$GITHUB_ENV
-          echo "CXX=clang++" >>$GITHUB_ENV
+            echo "CC=clang" >>$GITHUB_ENV
+            echo "CXX=clang++" >>$GITHUB_ENV
         fi
-        echo "QUOTEST_ORIGIN=${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "DESTDIR=${{ runner.workspace }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/usr" >>$GITHUB_ENV
+        if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
+            VERSION="$(git describe --tags)"
+        elif [ '${{ github.ref }}' == 'refs/heads/master' ]; then
+            VERSION="ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
+        else
+            VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
+        fi
+        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
+                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Build and install olm
@@ -71,10 +82,8 @@ jobs:
       run: |
         cd ${{ runner.workspace }}
         git clone https://gitlab.matrix.org/matrix-org/olm.git
-        pushd olm
-        cmake . -B build $CMAKE_ARGS
-        cmake --build build --target install
-        popd
+        cmake -S olm -B olm/build $CMAKE_ARGS
+        cmake --build olm/build --target install
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Pull CS API and build GTAD
@@ -83,11 +92,11 @@ jobs:
         cd ${{ runner.workspace }}
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        pushd gtad
-        cmake . $CMAKE_ARGS
-        cmake --build .
-        popd
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" >>$GITHUB_ENV
+        cmake -S gtad -B gtad $CMAKE_ARGS
+        cmake --build gtad
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
+                                     -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
+             >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
 
     - name: Configure libQuotient
@@ -98,17 +107,14 @@ jobs:
       run: cmake --build build --target update-api
 
     - name: Build and install libQuotient
-      run: cmake --build build --target install
-
-    - name: Build tests
       run: |
-        cmake -S quotest -Bbuild-quotest $CMAKE_ARGS
-        cmake --build build-quotest --target all
-        
+        cmake --build build --target install
+        ls ~/.local/bin/quotest
+
     - name: Run tests
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
       run: |
-        [[ -z "$TEST_USER" ]] || $VALGRIND build-quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+        [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
