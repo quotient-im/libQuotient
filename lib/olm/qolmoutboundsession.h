@@ -49,5 +49,6 @@ private:
 };
 
 using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
+using OlmOutboundGroupSessionPtr = std::unique_ptr<OlmOutboundGroupSession>;
 }
 #endif

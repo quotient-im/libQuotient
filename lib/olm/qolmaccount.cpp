@@ -192,4 +192,9 @@ QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
     return sign(j.toJson());
 }
 
+OlmAccount *Quotient::QOlmAccount::data()
+{
+    return m_account;
+}
+
 #endif
