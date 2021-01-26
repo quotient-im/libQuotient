@@ -70,8 +70,8 @@ std::unique_ptr<QOlmSession> QOlmSession::createOutboundSession(QOlmAccount &acc
     QByteArray theirOneTimeKeyBuf = theirOneTimeKey.toUtf8();
     const auto error = olm_create_outbound_session(olmOutboundSession,
                                                    account.data(),
-                                                   theirIdentityKeyBuf.data(), theirIdentityKeyBuf.length(),
-                                                   theirOneTimeKeyBuf.data(), theirOneTimeKeyBuf.length(),
+                                                   reinterpret_cast<uint8_t *>(theirIdentityKeyBuf.data()), theirIdentityKeyBuf.length(),
+                                                   reinterpret_cast<uint8_t *>(theirOneTimeKeyBuf.data()), theirOneTimeKeyBuf.length(),
                                                    reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
 
     if (error == olm_error()) {
