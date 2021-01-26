@@ -7,11 +7,14 @@
 #include "olm/e2ee.h"
 #include "olm/errors.h"
 #include "olm/olm.h"
+#include "olm/session.h"
 #include <QObject>
 
 struct OlmAccount;
 
 namespace Quotient {
+
+class QOlmSession;
 
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}
@@ -63,10 +66,25 @@ public:
     QByteArray signOneTimeKey(const QString &key) const;
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
-    OlmAccount *data();
+
+    //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
+    //!
+    //! \param message An Olm pre-key message that was encrypted for this account.
+    std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSession(const Message &preKeyMessage);
+
+    //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
+    //!
+    //! \param theirIdentityKey - The identity key of an Olm account that
+    //! encrypted this Olm message.
+    std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const Message &preKeyMessage);
+
+    //! Creates an outbound session for sending messages to a specific
+    /// identity and one time key.
+    std::variant<std::unique_ptr<QOlmSession>, OlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
 
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);
+    OlmAccount *data();
 private:
     OlmAccount *m_account = nullptr;
     QString m_userId;
