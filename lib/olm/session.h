@@ -13,15 +13,17 @@
 
 namespace Quotient {
 
+class QOlmAccount;
+
 //! Either an outbound or inbound session for secure communication.
 class QOlmSession
 {
 public:
     ~QOlmSession();
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
-    static std::unique_ptr<QOlmSession> createInboundSession(QOlmAccount& account, const Message& preKeyMessage);
-    static std::unique_ptr<QOlmSession> createInboundSessionFrom(QOlmAccount& account, const QString& theirIdentityKey, const Message& preKeyMessage);
-    static std::unique_ptr<QOlmSession> createOutboundSession(QOlmAccount& account, const QString& theirIdentityKey, const QString& theirOneTimeKey);
+    static std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSession(QOlmAccount *account, const Message &preKeyMessage);
+    static std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSessionFrom(QOlmAccount *account, const QString &theirIdentityKey, const Message &preKeyMessage);
+    static std::variant<std::unique_ptr<QOlmSession>, OlmError> createOutboundSession(QOlmAccount *account, const QString &theirIdentityKey, const QString &theirOneTimeKey);
     //! Serialises an `QOlmSession` to encrypted Base64.
     std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode);
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
@@ -37,7 +39,7 @@ public:
 private:
     //! Helper function for creating new sessions and handling errors.
     static OlmSession* create();
-    static std::unique_ptr<QOlmSession> createInbound(QOlmAccount& account, const Message& preKeyMessage, bool from = false, const QString& theirIdentityKey = "");
+    static std::variant<std::unique_ptr<QOlmSession>, OlmError> createInbound(QOlmAccount *account, const Message& preKeyMessage, bool from = false, const QString& theirIdentityKey = "");
     OlmSession* m_session;
 };
 

@@ -197,4 +197,19 @@ OlmAccount *Quotient::QOlmAccount::data()
     return m_account;
 }
 
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSession(const Message &preKeyMessage)
+{
+    return QOlmSession::createInboundSession(this, preKeyMessage);
+}
+
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const Message &preKeyMessage)
+{
+    return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
+}
+
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
+{
+    return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
+}
+
 #endif
