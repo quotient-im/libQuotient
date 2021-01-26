@@ -25,7 +25,7 @@ OlmSession* QOlmSession::create()
     return olm_session(new uint8_t[olm_session_size()]);
 }
 
-std::unique_ptr<QOlmSession> QOlmSession::createInbound(QOlmAccount &account, const Message &preKeyMessage, bool from, const QString &theirIdentityKey)
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::createInbound(QOlmAccount *account, const Message &preKeyMessage, bool from, const QString &theirIdentityKey)
 {
     if (preKeyMessage.type() != Message::PreKey) {
         qCDebug(E2EE) << "The message is not a pre-key";
@@ -38,29 +38,33 @@ std::unique_ptr<QOlmSession> QOlmSession::createInbound(QOlmAccount &account, co
     QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
     size_t error = 0;
     if (from) {
-        error = olm_create_inbound_session_from(olmSession, account.data(), theirIdentityKeyBuf.data(), theirIdentityKeyBuf.length(), oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
+        error = olm_create_inbound_session_from(olmSession, account->data(), theirIdentityKeyBuf.data(), theirIdentityKeyBuf.length(), oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
     } else {
-        error = olm_create_inbound_session(olmSession, account.data(), oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
+        error = olm_create_inbound_session(olmSession, account->data(), oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
     }
 
     if (error == olm_error()) {
-        throw lastError(olmSession);
+        const auto lastErr = lastError(olmSession);
+        if (lastErr == OlmError::NotEnoughRandom) {
+            throw lastErr;
+        }
+        return lastErr;
     }
 
     return std::make_unique<QOlmSession>(olmSession);
 }
 
-std::unique_ptr<QOlmSession> QOlmSession::createInboundSession(QOlmAccount& account, const Message &preKeyMessage)
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::createInboundSession(QOlmAccount *account, const Message &preKeyMessage)
 {
     return createInbound(account, preKeyMessage);
 }
 
-std::unique_ptr<QOlmSession> QOlmSession::createInboundSessionFrom(QOlmAccount &account, const QString &theirIdentityKey, const Message &preKeyMessage)
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::createInboundSessionFrom(QOlmAccount *account, const QString &theirIdentityKey, const Message &preKeyMessage)
 {
     return createInbound(account, preKeyMessage, true, theirIdentityKey);
 }
 
-std::unique_ptr<QOlmSession> QOlmSession::createOutboundSession(QOlmAccount &account, const QString &theirIdentityKey, const QString &theirOneTimeKey)
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::createOutboundSession(QOlmAccount *account, const QString &theirIdentityKey, const QString &theirOneTimeKey)
 {
     auto *olmOutboundSession = create();
     const auto randomLen = olm_create_outbound_session_random_length(olmOutboundSession);
@@ -69,13 +73,17 @@ std::unique_ptr<QOlmSession> QOlmSession::createOutboundSession(QOlmAccount &acc
     QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
     QByteArray theirOneTimeKeyBuf = theirOneTimeKey.toUtf8();
     const auto error = olm_create_outbound_session(olmOutboundSession,
-                                                   account.data(),
+                                                   account->data(),
                                                    reinterpret_cast<uint8_t *>(theirIdentityKeyBuf.data()), theirIdentityKeyBuf.length(),
                                                    reinterpret_cast<uint8_t *>(theirOneTimeKeyBuf.data()), theirOneTimeKeyBuf.length(),
                                                    reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
 
     if (error == olm_error()) {
-        throw lastError(olmOutboundSession);
+        const auto lastErr = lastError(olmOutboundSession);
+        if (lastErr == OlmError::NotEnoughRandom) {
+            throw lastErr;
+        }
+        return lastErr;
     }
 
     randomBuf.clear();
