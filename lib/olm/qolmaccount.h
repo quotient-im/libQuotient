@@ -63,6 +63,10 @@ public:
     QByteArray signOneTimeKey(const QString &key) const;
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
+    OlmAccount *data();
+
+    // HACK do not use directly
+    QOlmAccount(OlmAccount *account);
 private:
     OlmAccount *m_account = nullptr;
     QString m_userId;
