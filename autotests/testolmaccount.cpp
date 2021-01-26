@@ -10,19 +10,22 @@ using namespace Quotient;
 
 void TestOlmAccount::pickleUnpickedTest()
 {
-    auto olmAccount = QOlmAccount::create().value();
-    auto identityKeys = std::get<IdentityKeys>(olmAccount.identityKeys());
+    QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    olmAccount.createNewAccount();
+    auto identityKeys = olmAccount.identityKeys();
     auto pickled = std::get<QByteArray>(olmAccount.pickle(Unencrypted{}));
-    auto olmAccount2 = std::get<QOlmAccount>(QOlmAccount::unpickle(pickled, Unencrypted{}));
-    auto identityKeys2 = std::get<IdentityKeys>(olmAccount2.identityKeys());
+    QOlmAccount olmAccount2(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    olmAccount2.unpickle(pickled, Unencrypted{});
+    auto identityKeys2 = olmAccount2.identityKeys();
     QCOMPARE(identityKeys.curve25519, identityKeys2.curve25519);
     QCOMPARE(identityKeys.ed25519, identityKeys2.ed25519);
 }
 
 void TestOlmAccount::identityKeysValid()
 {
-    auto olmAccount = QOlmAccount::create().value();
-    const auto identityKeys = std::get<IdentityKeys>(olmAccount.identityKeys());
+    QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    olmAccount.createNewAccount();
+    const auto identityKeys = olmAccount.identityKeys();
     const auto curve25519 = identityKeys.curve25519;
     const auto ed25519 = identityKeys.ed25519;
     // verify encoded keys length
@@ -36,10 +39,11 @@ void TestOlmAccount::identityKeysValid()
 
 void TestOlmAccount::signatureValid()
 {
-    const auto olmAccount = QOlmAccount::create().value();
+    QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    olmAccount.createNewAccount();
     const auto message = "Hello world!";
-    const auto signature = std::get<QString>(olmAccount.sign(message));
-    QVERIFY(QByteArray::fromBase64Encoding(signature.toUtf8()).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
+    const auto signature = olmAccount.sign(message);
+    QVERIFY(QByteArray::fromBase64Encoding(signature).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
 
     //let utility = OlmUtility::new();
     //let identity_keys = olm_account.parsed_identity_keys();
@@ -51,15 +55,16 @@ void TestOlmAccount::signatureValid()
 
 void TestOlmAccount::oneTimeKeysValid()
 {
-    const auto olmAccount = QOlmAccount::create().value();
+    QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    olmAccount.createNewAccount();
     const auto maxNumberOfOneTimeKeys = olmAccount.maxNumberOfOneTimeKeys();
     QCOMPARE(100, maxNumberOfOneTimeKeys);
 
-    const auto oneTimeKeysEmpty = std::get<OneTimeKeys>(olmAccount.oneTimeKeys());
+    const auto oneTimeKeysEmpty = olmAccount.oneTimeKeys();
     QVERIFY(oneTimeKeysEmpty.curve25519().isEmpty());
 
     olmAccount.generateOneTimeKeys(20);
-    const auto oneTimeKeysFilled = std::get<OneTimeKeys>(olmAccount.oneTimeKeys());
+    const auto oneTimeKeysFilled = olmAccount.oneTimeKeys();
     QCOMPARE(20, oneTimeKeysFilled.curve25519().count());
 }
 
