@@ -202,6 +202,8 @@ set(lib_SRCS
     lib/olm/qolmoutboundsession.cpp
     lib/olm/utils.cpp
     lib/olm/errors.cpp
+    lib/olm/session.cpp
+    lib/olm/message.cpp
 )
 
 set(CSAPI_DIR csapi)

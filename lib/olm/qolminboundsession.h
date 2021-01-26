@@ -46,5 +46,6 @@ private:
 };
 
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
+using OlmInboundGroupSessionPtr = std::unique_ptr<OlmInboundGroupSession>;
 } // namespace Quotient
 #endif
