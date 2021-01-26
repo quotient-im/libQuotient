@@ -20,36 +20,53 @@ namespace Quotient {
 class QOlmAccount
 {
 public:
+    QOlmAccount(const QString &userId, const QString &deviceId);
     ~QOlmAccount();
 
     //! Creates a new instance of OlmAccount. During the instantiation
     //! the Ed25519 fingerprint key pair and the Curve25519 identity key
     //! pair are generated. For more information see <a
     //! href="https://matrix.org/docs/guides/e2e_implementation.html#keys-used-in-end-to-end-encryption">here</a>.
-    static std::optional<QOlmAccount> create();
-    static std::variant<QOlmAccount, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
+    //! This needs to be called before any other action or use unpickle() instead.
+    void createNewAccount();
+
+    //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
+    //! This needs to be called before any other action or use createNewAccount() instead.
+    void unpickle(QByteArray &picked, const PicklingMode &mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
     std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode);
-    std::variant<IdentityKeys, OlmError> identityKeys();
+
+    //! Returns the account's public identity keys already formatted as JSON
+    IdentityKeys identityKeys() const;
 
     //! Returns the signature of the supplied message.
-    std::variant<QString, OlmError> sign(const QString &message) const;
+    QByteArray sign(const QByteArray &message) const;
+
+    //! Sign identity keys.
+    QByteArray signIdentityKeys() const;
 
     //! Maximum number of one time keys that this OlmAccount can
     //! currently hold.
     size_t maxNumberOfOneTimeKeys() const;
 
     //! Generates the supplied number of one time keys.
-    std::optional<OlmError> generateOneTimeKeys(size_t numberOfKeys) const;
+    void generateOneTimeKeys(size_t numberOfKeys) const;
 
     //! Gets the OlmAccount's one time keys formatted as JSON.
-    std::variant<OneTimeKeys, OlmError> oneTimeKeys() const;
+    OneTimeKeys oneTimeKeys() const;
 
-    // HACK do not use directly
-    QOlmAccount(OlmAccount *account);
+    //! Sign all time key.
+    QMap<QString, SignedOneTimeKey> signOneTimeKeys(const OneTimeKeys &keys) const;
+
+    //! Sign one time key.
+    QByteArray signOneTimeKey(const QString &key) const;
+
+    SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
 private:
-    OlmAccount *m_account;
+    OlmAccount *m_account = nullptr;
+    QString m_userId;
+    QString m_deviceId;
 };
 
 } // namespace Quotient
