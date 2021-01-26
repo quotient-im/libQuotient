@@ -44,36 +44,37 @@ QByteArray getRandom(size_t bufferSize)
     return buffer;
 }
 
-QOlmAccount::QOlmAccount(OlmAccount *account)
-    : m_account(account)
-{}
+QOlmAccount::QOlmAccount(const QString &userId, const QString &deviceId)
+    : m_userId(userId)
+    , m_deviceId(deviceId)
+{
+}
 
 QOlmAccount::~QOlmAccount()
 {
     olm_clear_account(m_account);
+    delete[](reinterpret_cast<uint8_t *>(m_account));
 }
 
-std::optional<QOlmAccount> QOlmAccount::create()
+void QOlmAccount::createNewAccount()
 {
-    auto account = olm_account(new uint8_t[olm_account_size()]);
-    size_t randomSize = olm_create_account_random_length(account);
+    m_account = olm_account(new uint8_t[olm_account_size()]);
+    size_t randomSize = olm_create_account_random_length(m_account);
     QByteArray randomData = getRandom(randomSize);
-    const auto error = olm_create_account(account, randomData.data(), randomSize);
+    const auto error = olm_create_account(m_account, randomData.data(), randomSize);
     if (error == olm_error()) {
-        return std::nullopt;
+        throw lastError(m_account);
     }
-    return std::make_optional<QOlmAccount>(account);
 }
 
-std::variant<QOlmAccount, OlmError> QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
+void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
-    auto account = olm_account(new uint8_t[olm_account_size()]);
+    m_account = olm_account(new uint8_t[olm_account_size()]);
     const QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_account(account, key.data(), key.length(), pickled.data(), pickled.size());
+    const auto error = olm_unpickle_account(m_account, key.data(), key.length(), pickled.data(), pickled.size());
     if (error == olm_error()) {
-        return lastError(account);
+        throw lastError(m_account);
     }
-    return QOlmAccount(account);
 }
 
 std::variant<QByteArray, OlmError> QOlmAccount::pickle(const PicklingMode &mode)
@@ -89,13 +90,13 @@ std::variant<QByteArray, OlmError> QOlmAccount::pickle(const PicklingMode &mode)
     return pickleBuffer;
 }
 
-std::variant<IdentityKeys, OlmError> QOlmAccount::identityKeys()
+IdentityKeys QOlmAccount::identityKeys() const
 {
     const size_t keyLength = olm_account_identity_keys_length(m_account);
     QByteArray keyBuffer(keyLength, '0');
     const auto error = olm_account_identity_keys(m_account, keyBuffer.data(), keyLength);
     if (error == olm_error()) {
-        return lastError(m_account);
+        throw lastError(m_account);
     }
     const QJsonObject key = QJsonDocument::fromJson(keyBuffer).object();
     return IdentityKeys {
@@ -104,7 +105,7 @@ std::variant<IdentityKeys, OlmError> QOlmAccount::identityKeys()
     };
 }
 
-std::variant<QString, OlmError> QOlmAccount::sign(const QString &message) const
+QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
     const size_t signatureLength = olm_account_signature_length(m_account);
     QByteArray signatureBuffer(signatureLength, '0');
@@ -112,9 +113,19 @@ std::variant<QString, OlmError> QOlmAccount::sign(const QString &message) const
             signatureBuffer.data(), signatureLength);
 
     if (error == olm_error()) {
-        return lastError(m_account);
+        throw lastError(m_account);
     }
-    return QString::fromUtf8(signatureBuffer);
+    return signatureBuffer;
+}
+
+QByteArray QOlmAccount::signIdentityKeys() const
+{
+    const auto keys = identityKeys();
+    const QJsonObject j{ {Curve25519Key, QString(keys.curve25519)}, {Ed25519Key, QString(keys.ed25519)} };
+    QJsonDocument doc;
+    doc.setObject(j);
+    return sign(doc.toJson());
+
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
@@ -122,26 +133,25 @@ size_t QOlmAccount::maxNumberOfOneTimeKeys() const
     return olm_account_max_number_of_one_time_keys(m_account);
 }
 
-std::optional<OlmError> QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
+void QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
 {
     const size_t randomLen = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
     QByteArray randomBuffer = getRandom(randomLen);
     const auto error = olm_account_generate_one_time_keys(m_account, numberOfKeys, randomBuffer.data(), randomLen);
 
     if (error == olm_error()) {
-        return lastError(m_account);
+        throw lastError(m_account);
     }
-    return std::nullopt;
 }
 
-std::variant<OneTimeKeys, OlmError> QOlmAccount::oneTimeKeys() const
+OneTimeKeys QOlmAccount::oneTimeKeys() const
 {
     const size_t oneTimeKeyLength = olm_account_one_time_keys_length(m_account);
     QByteArray oneTimeKeysBuffer(oneTimeKeyLength, '0');
 
     const auto error = olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(), oneTimeKeyLength);
     if (error == olm_error()) {
-        return lastError(m_account);
+        throw lastError(m_account);
     }
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     OneTimeKeys oneTimeKeys;
@@ -155,6 +165,31 @@ std::variant<OneTimeKeys, OlmError> QOlmAccount::oneTimeKeys() const
         oneTimeKeys.keys[key1.toString()] = keyMap;
     }
     return oneTimeKeys;
+}
+
+QMap<QString, SignedOneTimeKey> QOlmAccount::signOneTimeKeys(const OneTimeKeys &keys) const
+{
+    QMap<QString, SignedOneTimeKey> signedOneTimeKeys;
+    for (const auto &keyid : keys.curve25519().keys()) {
+        const auto oneTimeKey = keys.curve25519()[keyid];
+        QByteArray sign = signOneTimeKey(oneTimeKey);
+        signedOneTimeKeys["signed_curve25519:" + keyid] = signedOneTimeKey(oneTimeKey.toUtf8(), sign);
+    }
+    return signedOneTimeKeys;
+}
+
+SignedOneTimeKey QOlmAccount::signedOneTimeKey(const QByteArray &key, const QString &signature) const
+{
+    SignedOneTimeKey sign{};
+    sign.key = key;
+    sign.signatures = {{m_userId, {{"ed25519:" + m_deviceId, signature}}}};
+    return sign;
+}
+
+QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
+{
+    QJsonDocument j(QJsonObject{{"key", key}});
+    return sign(j.toJson());
 }
 
 #endif
