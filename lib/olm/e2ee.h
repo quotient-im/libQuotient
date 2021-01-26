@@ -66,6 +66,17 @@ struct OneTimeKeys
     std::optional<QMap<QString, QString>> get(QString keyType) const;
 };
 
+//! Struct representing the signed one-time keys.
+struct SignedOneTimeKey
+{
+    //! Required. The unpadded Base64-encoded 32-byte Curve25519 public key.
+    QString key;
+
+    //! Required. Signatures of the key object.
+    //! The signature is calculated using the process described at Signing JSON.
+    QMap<QString, QMap<QString, QString>> signatures;
+};
+
 bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs);
 
 } // namespace Quotient
