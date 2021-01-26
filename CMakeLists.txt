@@ -183,6 +183,7 @@ list(APPEND lib_SRCS
     lib/jobs/mediathumbnailjob.h lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.h lib/jobs/downloadfilejob.cpp
     lib/olm/qolmaccount.cpp
+    lib/olm/qolmsession.cpp
     lib/olm/qolminboundsession.cpp
     lib/olm/qolmoutboundsession.cpp
     lib/olm/utils.cpp
