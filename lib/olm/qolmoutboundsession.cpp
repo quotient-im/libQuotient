@@ -22,7 +22,7 @@ QOlmOutboundGroupSession::QOlmOutboundGroupSession(OlmOutboundGroupSession *sess
 QOlmOutboundGroupSession::~QOlmOutboundGroupSession()
 {
     olm_clear_outbound_group_session(m_groupSession);
-    //delete[](reinterpret_cast<uint8_t *>(m_groupSession));
+    delete[](reinterpret_cast<uint8_t *>(m_groupSession));
 }
 
 std::unique_ptr<QOlmOutboundGroupSession> QOlmOutboundGroupSession::create()
