@@ -6,6 +6,7 @@
 #include "olm/session.h"
 #include "olm/utils.h"
 #include "logging.h"
+#include <cstring>
 
 using namespace Quotient;
 
@@ -140,6 +141,46 @@ Message QOlmSession::encrypt(const QString &plaintext)
     }
 
     return Message(messageBuf, messageType);
+}
+
+std::variant<QString, OlmError> QOlmSession::decrypt(const Message &message) const
+{
+    const auto messageType = message.type();
+    const auto ciphertext = message.toCiphertext();
+    const auto messageTypeValue = messageType == Message::Type::General
+        ? OLM_MESSAGE_TYPE_MESSAGE : OLM_MESSAGE_TYPE_PRE_KEY;
+
+    // We need to clone the message because
+    // olm_decrypt_max_plaintext_length destroys the input buffer
+    QByteArray messageBuf(ciphertext.length(), '0');
+    std::copy(message.begin(), message.end(), messageBuf.begin());
+
+    const auto plaintextMaxLen = olm_decrypt_max_plaintext_length(m_session, messageTypeValue,
+            reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
+
+    if (plaintextMaxLen == olm_error()) {
+        return lastError(m_session);
+    }
+
+    QByteArray plaintextBuf(plaintextMaxLen, '0');
+    QByteArray messageBuf2(ciphertext.length(), '0');
+    std::copy(message.begin(), message.end(), messageBuf2.begin());
+
+    const auto plaintextResultLen = olm_decrypt(m_session, messageTypeValue,
+            reinterpret_cast<uint8_t *>(messageBuf2.data()), messageBuf2.length(),
+            reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextMaxLen);
+
+    if (plaintextResultLen == olm_error()) {
+        const auto lastErr = lastError(m_session);
+        if (lastErr == OlmError::OutputBufferTooSmall) {
+            throw lastErr;
+        }
+        return lastErr;
+    }
+    QByteArray output(plaintextResultLen, '0');
+    std::memcpy(output.data(), plaintextBuf.data(), plaintextResultLen);
+    plaintextBuf.clear();
+    return output;
 }
 
 Message::Type QOlmSession::encryptMessageType()
