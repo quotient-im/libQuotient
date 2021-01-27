@@ -14,4 +14,5 @@ private Q_SLOTS:
     void signatureValid();
     void oneTimeKeysValid();
     //void removeOneTimeKeys();
+    void deviceKeys();
 };
