@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include <QtTest/QtTest>
 
 class TestOlmAccount : public QObject
@@ -16,4 +15,3 @@ private Q_SLOTS:
     void oneTimeKeysValid();
     //void removeOneTimeKeys();
 };
-#endif

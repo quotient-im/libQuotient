@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include <QtTest/QtTest>
 
 class TestOlmSession : public QObject
@@ -13,4 +12,3 @@ private Q_SLOTS:
     void olmEncryptDecrypt();
     void correctSessionOrdering();
 };
-#endif
