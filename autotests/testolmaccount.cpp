@@ -5,6 +5,7 @@
 #include "testolmaccount.h"
 #include "olm/qolmaccount.h"
 #include "csapi/definitions/device_keys.h"
+#include "events/encryptedfile.h"
 
 using namespace Quotient;
 
@@ -132,4 +133,33 @@ void TestOlmAccount::deviceKeys()
     // QCOMPARE(device2.unsignedInfo.deviceDisplayName, "Alice's mobile phone");
 }
 
+void TestOlmAccount::encryptedFile()
+{
+    auto doc = QJsonDocument::fromJson(R"({
+      "url": "mxc://example.org/FHyPlCeYUSFFxlgbQYZmoEoe",
+      "v": "v2",
+      "key": {
+        "alg": "A256CTR",
+        "ext": true,
+        "k": "aWF6-32KGYaC3A_FEUCk1Bt0JA37zP0wrStgmdCaW-0",
+        "key_ops": ["encrypt","decrypt"],
+        "kty": "oct"
+      },
+      "iv": "w+sE15fzSc0AAAAAAAAAAA",
+      "hashes": {
+        "sha256": "fdSLu/YkRx3Wyh3KQabP3rd6+SFiKg5lsJZQHtkSAYA"
+      }})");
+
+    EncryptedFile file;
+    JsonObjectConverter<EncryptedFile>::fillFrom(doc.object(), file);
+
+    QCOMPARE(file.v, "v2");
+    QCOMPARE(file.iv, "w+sE15fzSc0AAAAAAAAAAA");
+    QCOMPARE(file.hashes["sha256"], "fdSLu/YkRx3Wyh3KQabP3rd6+SFiKg5lsJZQHtkSAYA");
+    QCOMPARE(file.key.alg, "A256CTR");
+    QCOMPARE(file.key.ext, true);
+    QCOMPARE(file.key.k, "aWF6-32KGYaC3A_FEUCk1Bt0JA37zP0wrStgmdCaW-0");
+    QCOMPARE(file.key.keyOps.count(), 2);
+    QCOMPARE(file.key.kty, "oct");
+}
 QTEST_MAIN(TestOlmAccount)
