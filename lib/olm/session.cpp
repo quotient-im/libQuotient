@@ -152,9 +152,9 @@ QByteArray QOlmSession::sessionId() const
     return idBuffer;
 }
 
-QOlmSession::QOlmSession(OlmSession *session): m_session(session)
+QOlmSession::QOlmSession(OlmSession *session)
+    : m_session(session)
 {
-
 }
 
 #endif // Quotient_E2EE_ENABLED
