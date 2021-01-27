@@ -32,7 +32,11 @@ public:
     static std::variant<std::unique_ptr<QOlmSession>, OlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
     Message encrypt(const QString &plaintext);
-    // TODO: WiP
+
+    //! Decrypts a message using this session. Decoding is lossy, meaing if
+    //! the decrypted plaintext contains invalid UTF-8 symbols, they will
+    //! be returned as `U+FFFD` (�).
+    std::variant<QString, OlmError> decrypt(const Message &message) const;
 
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
