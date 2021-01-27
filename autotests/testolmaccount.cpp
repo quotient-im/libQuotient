@@ -4,6 +4,7 @@
 
 #include "testolmaccount.h"
 #include "olm/qolmaccount.h"
+#include "csapi/definitions/device_keys.h"
 
 using namespace Quotient;
 
@@ -65,6 +66,70 @@ void TestOlmAccount::oneTimeKeysValid()
     olmAccount.generateOneTimeKeys(20);
     const auto oneTimeKeysFilled = olmAccount.oneTimeKeys();
     QCOMPARE(20, oneTimeKeysFilled.curve25519().count());
+}
+
+void TestOlmAccount::deviceKeys()
+{
+    // copied from mtxclient
+    DeviceKeys device1;
+    device1.userId   = "@alice:example.com";
+    device1.deviceId = "JLAFKJWSCS";
+    device1.keys = {{"curve25519:JLAFKJWSCS", "3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI"},
+                    {"ed25519:JLAFKJWSCS", "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"}};
+
+    // TODO that should be the default value
+    device1.algorithms = QStringList {"m.olm.v1.curve25519-aes-sha2",
+                           "m.megolm.v1.aes-sha2"};
+
+    device1.signatures = {
+      {"@alice:example.com",
+       {{"ed25519:JLAFKJWSCS",
+         "dSO80A01XiigH3uBiDVx/EjzaoycHcjq9lfQX0uWsqxl2giMIiSPR8a4d291W1ihKJL/"
+         "a+myXS367WT6NAIcBA"}}}};
+
+    QJsonObject j;
+    JsonObjectConverter<DeviceKeys>::dumpTo(j, device1);
+    QJsonDocument doc(j);
+    QCOMPARE(doc.toJson(QJsonDocument::Compact), "{\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],"
+              "\"device_id\":\"JLAFKJWSCS\",\"keys\":{\"curve25519:JLAFKJWSCS\":"
+              "\"3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI\",\"ed25519:JLAFKJWSCS\":"
+              "\"lEuiRJBit0IG6nUf5pUzWTUEsRVVe/"
+              "HJkoKuEww9ULI\"},\"signatures\":{\"@alice:example.com\":{\"ed25519:JLAFKJWSCS\":"
+              "\"dSO80A01XiigH3uBiDVx/EjzaoycHcjq9lfQX0uWsqxl2giMIiSPR8a4d291W1ihKJL/"
+              "a+myXS367WT6NAIcBA\"}},\"user_id\":\"@alice:example.com\"}");
+
+    auto doc2 = QJsonDocument::fromJson(R"({
+      "user_id": "@alice:example.com",
+      "device_id": "JLAFKJWSCS",
+      "algorithms": [
+        "m.olm.v1.curve25519-aes-sha2",
+        "m.megolm.v1.aes-sha2"
+      ],
+      "keys": {
+        "curve25519:JLAFKJWSCS": "3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI",
+        "ed25519:JLAFKJWSCS": "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"
+      },
+      "signatures": {
+        "@alice:example.com": {
+          "ed25519:JLAFKJWSCS": "dSO80A01XiigH3uBiDVx/EjzaoycHcjq9lfQX0uWsqxl2giMIiSPR8a4d291W1ihKJL/a+myXS367WT6NAIcBA"
+        }
+      },
+      "unsigned": {
+        "device_display_name": "Alice's mobile phone"
+      }
+    })");
+
+    DeviceKeys device2;
+    JsonObjectConverter<DeviceKeys>::fillFrom(doc2.object(), device2);
+
+    QCOMPARE(device2.userId, device1.userId);
+    QCOMPARE(device2.deviceId, device1.deviceId);
+    QCOMPARE(device2.keys, device1.keys);
+    QCOMPARE(device2.algorithms, device1.algorithms);
+    QCOMPARE(device2.signatures, device1.signatures);
+
+    // UnsignedDeviceInfo is missing from the generated DeviceKeys object :(
+    // QCOMPARE(device2.unsignedInfo.deviceDisplayName, "Alice's mobile phone");
 }
 
 QTEST_MAIN(TestOlmAccount)
