@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "testgroupsession.h"
 #include "olm/qolminboundsession.h"
 #include "olm/qolmoutboundsession.h"
@@ -54,4 +53,3 @@ void TestOlmSession::groupSessionCryptoValid()
     QCOMPARE(0, decryptionResult.second);
 }
 QTEST_MAIN(TestOlmSession)
-#endif
