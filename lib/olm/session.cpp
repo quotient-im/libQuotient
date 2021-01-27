@@ -18,6 +18,7 @@ OlmError lastError(OlmSession* session) {
 Quotient::QOlmSession::~QOlmSession()
 {
     olm_clear_session(m_session);
+    delete[](reinterpret_cast<uint8_t *>(m_session));
 }
 
 OlmSession* QOlmSession::create()
@@ -168,6 +169,25 @@ QByteArray QOlmSession::sessionId() const
 bool QOlmSession::hasReceivedMessage() const
 {
     return olm_session_has_received_message(m_session);
+}
+
+std::variant<bool, OlmError> QOlmSession::matchesInboundSession(Message &preKeyMessage)
+{
+    Q_ASSERT(preKeyMessage.type() == Message::Type::PreKey);
+    QByteArray oneTimeKeyBuf(preKeyMessage.data());
+    const auto matchesResult = olm_matches_inbound_session(m_session, oneTimeKeyBuf.data(), oneTimeKeyBuf.length());
+
+    if (matchesResult == olm_error()) {
+        return lastError(m_session);
+    }
+    switch (matchesResult) {
+        case 0:
+            return false;
+        case 1:
+            return true;
+        default:
+            return OlmError::Unknown;
+    }
 }
 
 QOlmSession::QOlmSession(OlmSession *session)
