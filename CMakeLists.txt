@@ -76,14 +76,14 @@ find_package(Qt5 5.9 REQUIRED Core Network Gui Multimedia Test)
 get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}")
 
-find_package(OpenSSL 1.1.0 REQUIRED)
-set_package_properties(OpenSSL PROPERTIES
-    DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
-    URL "https://www.openssl.org/"
-    TYPE REQUIRED
-)
-
 if (${PROJECT_NAME}_ENABLE_E2EE)
+    find_package(OpenSSL 1.1.0 REQUIRED)
+    set_package_properties(OpenSSL PROPERTIES
+        DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
+        URL "https://www.openssl.org/"
+        TYPE REQUIRED
+    )
+
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
             AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
         add_subdirectory(3rdparty/libQtOlm)
