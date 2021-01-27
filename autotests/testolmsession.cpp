@@ -52,9 +52,9 @@ void TestOlmSession::olmEncryptDecrypt()
         QVERIFY(std::get<bool>(inboundSession->matchesInboundSession(m)));
     }
 
-    //const auto decrypted = inboundSession->decrypt(encrypted);
+    const auto decrypted = std::get<QString>(inboundSession->decrypt(encrypted));
 
-    //QCOMPARE(decrypted, "Hello world!");
+    QCOMPARE(decrypted, "Hello world!");
 #endif
 }
 
