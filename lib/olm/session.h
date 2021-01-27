@@ -14,6 +14,8 @@
 namespace Quotient {
 
 class QOlmAccount;
+class QOlmSession;
+
 
 //! Either an outbound or inbound session for secure communication.
 class QOlmSession
@@ -42,6 +44,8 @@ private:
     static std::variant<std::unique_ptr<QOlmSession>, OlmError> createInbound(QOlmAccount *account, const Message& preKeyMessage, bool from = false, const QString& theirIdentityKey = "");
     OlmSession* m_session;
 };
+
+//using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 } //namespace Quotient
 
