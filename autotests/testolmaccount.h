@@ -15,4 +15,5 @@ private Q_SLOTS:
     void oneTimeKeysValid();
     //void removeOneTimeKeys();
     void deviceKeys();
+    void encryptedFile();
 };
