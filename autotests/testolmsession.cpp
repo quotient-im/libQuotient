@@ -58,4 +58,30 @@ void TestOlmSession::olmEncryptDecrypt()
 #endif
 }
 
+void TestOlmSession::correctSessionOrdering()
+{
+#ifdef Quotient_E2EE_ENABLED
+    // n0W5IJ2ZmaI9FxKRj/wohUQ6WEU0SfoKsgKKHsr4VbM
+    auto session1 = std::get<std::unique_ptr<QOlmSession>>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGvlaV6t/0ihD2/0QGckDIvbmE1aV+PxB0zUtHXh99bI/60N+PWkCLA84jEY4sz3d45ui/TVoFGLDHlymKxvlj7XngXrbtlxSkVntsPzDiNpKEXCa26N2ubKpQ0fbjrV5gbBTYWfU04DXHPXFDTksxpNALYt/h0eVMVhf6hB0ZzpLBsOG0mpwkLufwub0CuDEDGGmRddz3TcNCLq5NnI8R9udDWvHAkTS1UTbHuIf/y6cZg875nJyXpAvd8/XhL8TOo8ot2sE1fElBa4vrH/m9rBQMC1GPkhLBIizmY44C+Sq9PQRnF+uCZ", Unencrypted{}));
+    // +9pHJhP3K4E5/2m8PYBPLh8pS9CJodwUOh8yz3mnmw0
+    auto session2 = std::get<std::unique_ptr<QOlmSession>>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UFD+q37/WlfTAzQsSjCdD07FcErZ4siEy5vpiB+pyO8i53ptZvb2qRvqNKFzPaXuu33PS2PBTmmnR+kJt+DgDNqWadyaj/WqEAejc7ALqSs5GuhbZtpoLe+lRSRK0rwVX3gzz4qrl8pm0pD5pSZAUWRXDRlieGWMclz68VUvnSaQH7ElTo4S634CJk+xQfFFCD26v0yONPSN6rwouS1cWPuG5jTlnV8vCFVTU2+lduKh54Ko6FUJ/ei4xR8Nk2duBGSc/TdllX9e2lDYHSUkWoD4ti5xsFioB8Blus7JK9BZfcmRmdlxIOD", Unencrypted {}));
+    // MC7n8hX1l7WlC2/WJGHZinMocgiBZa4vwGAOredb/ME
+    auto session3 = std::get<std::unique_ptr<QOlmSession>>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGNk2TmVDJ95K0Nywf24FNklNVtXtFDiFPHFwNSmCbHNCp3hsGtZlt0AHUkMmL48XklLqzwtVk5/v2RRmSKR5LqYdIakrtuK/fY0ENhBZIbI1sRetaJ2KMbY9l6rCJNfFg8VhpZ4KTVvEZVuP9g/eZkCnP5NxzXiBRF6nfY3O/zhcKxa3acIqs6BMhyLsfuJ80t+hQ1HvVyuhBerGujdSDzV9tJ9SPidOwfYATk81LVF9hTmnI0KaZa7qCtFzhG0dU/Z3hIWH9HOaw1aSB/IPmughbwdJOwERyhuo3YHoznlQnJ7X252BlI", Unencrypted{}));
+
+    const auto session1Id = session1->sessionId();
+    const auto session2Id = session2->sessionId();
+    const auto session3Id = session3->sessionId();
+
+    std::vector<std::unique_ptr<QOlmSession>> sessionList;
+    sessionList.push_back(std::move(session1));
+    sessionList.push_back(std::move(session2));
+    sessionList.push_back(std::move(session3));
+
+    std::sort(sessionList.begin(), sessionList.end());
+    QCOMPARE(sessionList[0]->sessionId(), session2Id);
+    QCOMPARE(sessionList[1]->sessionId(), session3Id);
+    QCOMPARE(sessionList[2]->sessionId(), session1Id);
+#endif
+}
+
 QTEST_MAIN(TestOlmSession)
