@@ -121,11 +121,12 @@ std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::unpickle(QByte
     return std::make_unique<QOlmSession>(olmSession);
 }
 
-std::variant<Message, OlmError> QOlmSession::encrypt(const QString &plaintext)
+Message QOlmSession::encrypt(const QString &plaintext)
 {
     QByteArray plaintextBuf = plaintext.toUtf8();
     const auto messageMaxLen = olm_encrypt_message_length(m_session, plaintextBuf.length());
     QByteArray messageBuf(messageMaxLen, '0');
+    const auto messageType = encryptMessageType();
     const auto randomLen = olm_encrypt_random_length(m_session);
     QByteArray randomBuf = getRandom(randomLen);
     const auto error = olm_encrypt(m_session,
@@ -134,10 +135,22 @@ std::variant<Message, OlmError> QOlmSession::encrypt(const QString &plaintext)
                                    reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
 
     if (error == olm_error()) {
-        return lastError(m_session);
+        throw lastError(m_session);
     }
 
-    return Message::fromCiphertext(messageBuf);
+    return Message(messageBuf, messageType);
+}
+
+Message::Type QOlmSession::encryptMessageType()
+{
+    const auto messageTypeResult = olm_encrypt_message_type(m_session);
+    if (messageTypeResult == olm_error()) {
+        throw lastError(m_session);
+    }
+    if (messageTypeResult == OLM_MESSAGE_TYPE_PRE_KEY) {
+        return Message::PreKey;
+    }
+    return Message::General;
 }
 
 QByteArray QOlmSession::sessionId() const
@@ -150,6 +163,11 @@ QByteArray QOlmSession::sessionId() const
         throw lastError(m_session);
     }
     return idBuffer;
+}
+
+bool QOlmSession::hasReceivedMessage() const
+{
+    return olm_session_has_received_message(m_session);
 }
 
 QOlmSession::QOlmSession(OlmSession *session)

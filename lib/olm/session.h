@@ -31,11 +31,16 @@ public:
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
     static std::variant<std::unique_ptr<QOlmSession>, OlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
-    std::variant<Message, OlmError> encrypt(const QString &plaintext);
+    Message encrypt(const QString &plaintext);
     // TODO: WiP
 
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
+
+    //! The type of the next message that will be returned from encryption.
+    Message::Type encryptMessageType();
+
+    bool hasReceivedMessage() const;
 
     QOlmSession(OlmSession* session);
 private:
