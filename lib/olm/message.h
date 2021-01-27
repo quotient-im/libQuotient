@@ -28,16 +28,15 @@ public:
     Q_ENUM(Type)
 
     Message() = default;
-    explicit Message(const QByteArray& ciphertext, Type type = General);
-    explicit Message(QByteArray ciphertext);
+    explicit Message(const QByteArray &ciphertext, Type type = General);
 
-    static Message fromCiphertext(QByteArray ciphertext);
+    static Message fromCiphertext(const QByteArray &ciphertext);
 
     Q_INVOKABLE Type type() const;
     Q_INVOKABLE QByteArray toCiphertext() const;
 
 private:
-    Type _messageType = General;
+    Type m_messageType = General;
 };
 
 
