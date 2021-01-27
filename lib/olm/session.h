@@ -40,7 +40,11 @@ public:
     //! The type of the next message that will be returned from encryption.
     Message::Type encryptMessageType();
 
+    //! Checker for any received messages for this session.
     bool hasReceivedMessage() const;
+
+    //! Checks if the 'prekey' message is for this in-bound session.
+    std::variant<bool, OlmError> matchesInboundSession(Message &preKeyMessage);
 
     QOlmSession(OlmSession* session);
 private:
