@@ -102,6 +102,12 @@ jobs:
       with:
         arch: ${{ matrix.platform }}
 
+    - name: Install OpenSSL
+      if: contains(matrix.os, 'ubuntu') and matrix.e2ee
+      run: |
+        sudo apt-get install libssl-dev
+        echo "openssl version" >>$GITHUB_ENV
+
     - name: Build and install olm
       if: matrix.e2ee
       run: |
