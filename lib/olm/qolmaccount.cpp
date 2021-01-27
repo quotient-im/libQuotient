@@ -199,11 +199,13 @@ OlmAccount *Quotient::QOlmAccount::data()
 
 std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSession(const Message &preKeyMessage)
 {
+    Q_ASSERT(preKeyMessage.type() == Message::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
 std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const Message &preKeyMessage)
 {
+    Q_ASSERT(preKeyMessage.type() == Message::PreKey);
     return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
 }
 
