@@ -26,7 +26,7 @@ std::pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>> createSess
 
     const auto preKey = outbound->encrypt(""); // Payload does not matter for PreKey
 
-    if (preKey.type() != Message::General) {
+    if (preKey.type() != Message::PreKey) {
         throw "Wrong first message type received, can't create session";
     }
     auto inbound = std::get<std::unique_ptr<QOlmSession>>(accountB.createInboundSession(preKey));
@@ -39,6 +39,22 @@ void TestOlmSession::olmOutboundSessionCreation()
 #ifdef Quotient_E2EE_ENABLED
     const auto [_, outboundSession] = createSessionPair();
     QCOMPARE(0, outboundSession->hasReceivedMessage());
+#endif
+}
+
+void TestOlmSession::olmEncryptDecrypt()
+{
+#ifdef Quotient_E2EE_ENABLED
+    const auto [inboundSession, outboundSession] = createSessionPair();
+    const auto encrypted = outboundSession->encrypt("Hello world!");
+    if (encrypted.type() == Message::PreKey) {
+        Message m(encrypted); // clone
+        QVERIFY(std::get<bool>(inboundSession->matchesInboundSession(m)));
+    }
+
+    //const auto decrypted = inboundSession->decrypt(encrypted);
+
+    //QCOMPARE(decrypted, "Hello world!");
 #endif
 }
 
