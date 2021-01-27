@@ -9,6 +9,7 @@
 #include "olm/e2ee.h"
 #include "olm/message.h"
 #include "olm/errors.h"
+#include <QDebug>
 #include "olm/qolmaccount.h"
 
 namespace Quotient {
@@ -29,7 +30,7 @@ public:
     //! Serialises an `QOlmSession` to encrypted Base64.
     std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode);
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
-    static std::variant<std::unique_ptr<QOlmSession>, OlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmSession>, OlmError> unpickle(const QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
     Message encrypt(const QString &plaintext);
 
@@ -50,6 +51,15 @@ public:
     //! Checks if the 'prekey' message is for this in-bound session.
     std::variant<bool, OlmError> matchesInboundSession(Message &preKeyMessage);
 
+    friend bool operator<(const QOlmSession& lhs, const QOlmSession& rhs)
+    {
+        return lhs.sessionId() < rhs.sessionId();
+    }
+
+    friend bool operator<(const std::unique_ptr<QOlmSession> &lhs, const std::unique_ptr<QOlmSession> &rhs) {
+        return *lhs < *rhs;
+    }
+
     QOlmSession(OlmSession* session);
 private:
     //! Helper function for creating new sessions and handling errors.
@@ -57,6 +67,7 @@ private:
     static std::variant<std::unique_ptr<QOlmSession>, OlmError> createInbound(QOlmAccount *account, const Message& preKeyMessage, bool from = false, const QString& theirIdentityKey = "");
     OlmSession* m_session;
 };
+
 
 //using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
