@@ -108,13 +108,13 @@ std::variant<QByteArray, OlmError> QOlmSession::pickle(const PicklingMode &mode)
     return pickledBuf;
 }
 
-std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmSession = create();
     QByteArray key = toKey(mode);
     const auto error = olm_unpickle_session(olmSession, key.data(), key.length(),
-            pickled.data(), pickled.length());
+            pickledBuf.data(), pickledBuf.length());
     if (error == olm_error()) {
         return lastError(olmSession);
     }
