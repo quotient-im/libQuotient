@@ -7,7 +7,6 @@
 
 using namespace Quotient;
 
-#ifdef Quotient_E2EE_ENABLED
 std::pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>> createSessionPair()
 {
     QByteArray pickledAccountA("eOBXIKivUT6YYowRH031BNv7zNmzqM5B7CpXdyeaPvala5mt7/OeqrG1qVA7vA1SYloFyvJPIy0QNkD3j1HiPl5vtZHN53rtfZ9exXDok03zjmssqn4IJsqcA7Fbo1FZeKafG0NFcWwCPTdmcV7REqxjqGm3I4K8MQFa45AdTGSUu2C12cWeOcbSMlcINiMral+Uyah1sgPmLJ18h1qcnskXUXQvpffZ5DiUw1Iz5zxnwOQF1GVyowPJD7Zdugvj75RQnDxAn6CzyvrY2k2CuedwqDC3fIXM2xdUNWttW4nC2g4InpBhCVvNwhZYxlUb5BUEjmPI2AB3dAL5ry6o9MFncmbN6x5x");
@@ -32,19 +31,15 @@ std::pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>> createSess
     auto inbound = std::get<std::unique_ptr<QOlmSession>>(accountB.createInboundSession(preKey));
     return std::make_pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>>(std::move(inbound), std::move(outbound));
 }
-#endif
 
 void TestOlmSession::olmOutboundSessionCreation()
 {
-#ifdef Quotient_E2EE_ENABLED
     const auto [_, outboundSession] = createSessionPair();
     QCOMPARE(0, outboundSession->hasReceivedMessage());
-#endif
 }
 
 void TestOlmSession::olmEncryptDecrypt()
 {
-#ifdef Quotient_E2EE_ENABLED
     const auto [inboundSession, outboundSession] = createSessionPair();
     const auto encrypted = outboundSession->encrypt("Hello world!");
     if (encrypted.type() == Message::PreKey) {
@@ -55,12 +50,10 @@ void TestOlmSession::olmEncryptDecrypt()
     const auto decrypted = std::get<QString>(inboundSession->decrypt(encrypted));
 
     QCOMPARE(decrypted, "Hello world!");
-#endif
 }
 
 void TestOlmSession::correctSessionOrdering()
 {
-#ifdef Quotient_E2EE_ENABLED
     // n0W5IJ2ZmaI9FxKRj/wohUQ6WEU0SfoKsgKKHsr4VbM
     auto session1 = std::get<std::unique_ptr<QOlmSession>>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGvlaV6t/0ihD2/0QGckDIvbmE1aV+PxB0zUtHXh99bI/60N+PWkCLA84jEY4sz3d45ui/TVoFGLDHlymKxvlj7XngXrbtlxSkVntsPzDiNpKEXCa26N2ubKpQ0fbjrV5gbBTYWfU04DXHPXFDTksxpNALYt/h0eVMVhf6hB0ZzpLBsOG0mpwkLufwub0CuDEDGGmRddz3TcNCLq5NnI8R9udDWvHAkTS1UTbHuIf/y6cZg875nJyXpAvd8/XhL8TOo8ot2sE1fElBa4vrH/m9rBQMC1GPkhLBIizmY44C+Sq9PQRnF+uCZ", Unencrypted{}));
     // +9pHJhP3K4E5/2m8PYBPLh8pS9CJodwUOh8yz3mnmw0
@@ -81,7 +74,6 @@ void TestOlmSession::correctSessionOrdering()
     QCOMPARE(sessionList[0]->sessionId(), session2Id);
     QCOMPARE(sessionList[1]->sessionId(), session3Id);
     QCOMPARE(sessionList[2]->sessionId(), session1Id);
-#endif
 }
 
 QTEST_MAIN(TestOlmSession)
