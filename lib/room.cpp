@@ -65,13 +65,12 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include <account.h> // QtOlm
-#include <errors.h> // QtOlm
-#include <groupsession.h> // QtOlm
+#    include "crypto/qolmaccount.h"
+#    include "crypto/qolmerrors.h"
+#    include "crypto/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED
 
 using namespace Quotient;
-using namespace QtOlm;
 using namespace std::placeholders;
 using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
@@ -362,23 +361,25 @@ public:
     // A map from senderKey to a map of sessionId to InboundGroupSession
     // Not using QMultiHash, because we want to quickly return
     // a number of relations for a given event without enumerating them.
-    QHash<QPair<QString, QString>, InboundGroupSession*> groupSessions; // TODO:
+    QHash<QPair<QString, QString>, QOlmInboundGroupSession*> groupSessions; // TODO:
                                                                         // cache
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
     {
+        // new e2ee TODO:
+        /*
         if (groupSessions.contains({ senderKey, sessionId })) {
             qCDebug(E2EE) << "Inbound Megolm session" << sessionId
                           << "with senderKey" << senderKey << "already exists";
             return false;
         }
 
-        InboundGroupSession* megolmSession;
+        QOlmInboundGroupSession* megolmSession;
         try {
-            megolmSession = new InboundGroupSession(sessionKey.toLatin1(),
+            megolmSession = new QOlmInboundGroupSession(sessionKey.toLatin1(),
                                                     InboundGroupSession::Init,
                                                     q);
-        } catch (OlmError* e) {
+        } catch (QOlmError* e) {
             qCDebug(E2EE) << "Unable to create new InboundGroupSession"
                           << e->what();
             return false;
@@ -390,6 +391,7 @@ public:
             return false;
         }
         groupSessions.insert({ senderKey, sessionId }, megolmSession);
+        */
         return true;
     }
 
@@ -400,6 +402,8 @@ public:
                                        QDateTime timestamp)
     {
         std::pair<QString, uint32_t> decrypted;
+        // new e2ee TODO:
+        /*
         QPair<QString, QString> senderSessionPairKey =
             qMakePair(senderKey, sessionId);
         if (!groupSessions.contains(senderSessionPairKey)) {
@@ -408,7 +412,7 @@ public:
                              "this message";
             return QString();
         }
-        InboundGroupSession* senderSession =
+        QOlmInboundGroupSession* senderSession =
             groupSessions.value(senderSessionPairKey);
         if (!senderSession) {
             qCDebug(E2EE) << "Unable to decrypt event" << eventId
@@ -417,7 +421,7 @@ public:
         }
         try {
             decrypted = senderSession->decrypt(cipher);
-        } catch (OlmError* e) {
+        } catch (QOlmError* e) {
             qCDebug(E2EE) << "Unable to decrypt event" << eventId
                           << "with matching megolm session:" << e->what();
             return QString();
@@ -435,6 +439,7 @@ public:
                 return QString();
             }
         }
+        */
 
         return decrypted.first;
     }
