@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "olm/qolmoutboundsession.h"
-#include "olm/utils.h"
+#include "crypto/qolmoutboundsession.h"
+#include "crypto/utils.h"
 
 using namespace Quotient;
 

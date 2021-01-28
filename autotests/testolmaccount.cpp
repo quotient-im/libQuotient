@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testolmaccount.h"
-#include "olm/qolmaccount.h"
-#include "csapi/definitions/device_keys.h"
-#include "events/encryptedfile.h"
+#include <crypto/qolmaccount.h>
+#include <csapi/definitions/device_keys.h>
+#include <events/encryptedfile.h>
 
 using namespace Quotient;
 

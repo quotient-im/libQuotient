@@ -6,11 +6,12 @@
 
 #ifdef Quotient_E2EE_ENABLED
 
-#include "olm/e2ee.h"
-#include "olm/message.h"
-#include "olm/errors.h"
 #include <QDebug>
-#include "olm/qolmaccount.h"
+#include <olm/olm.h>
+#include "crypto/e2ee.h"
+#include "crypto/message.h"
+#include "crypto/errors.h"
+#include "crypto/qolmaccount.h"
 
 namespace Quotient {
 
