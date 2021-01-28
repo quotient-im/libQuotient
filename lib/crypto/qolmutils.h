@@ -5,6 +5,8 @@
 #pragma once
 #ifdef Quotient_E2EE_ENABLED
 
+#include <QByteArray>
+
 #include "crypto/e2ee.h"
 
 namespace Quotient {

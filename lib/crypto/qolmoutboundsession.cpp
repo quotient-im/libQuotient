@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/qolmoutboundsession.h"
-#include "crypto/utils.h"
+#include "qolmoutboundsession.h"
+#include "crypto/qolmutils.h"
 
 using namespace Quotient;
 
-OlmError lastError(OlmOutboundGroupSession *session) {
+QOlmError lastError(OlmOutboundGroupSession *session) {
     const std::string error_raw = olm_outbound_group_session_last_error(session);
 
     return fromString(error_raw);
@@ -48,7 +48,7 @@ std::unique_ptr<QOlmOutboundGroupSession> QOlmOutboundGroupSession::create()
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::pickle(const PicklingMode &mode)
+std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::pickle(const PicklingMode &mode)
 {
     QByteArray pickledBuf(olm_pickle_outbound_group_session_length(m_groupSession), '0');
     QByteArray key = toKey(mode);
@@ -65,7 +65,7 @@ std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::pickle(const Pickli
 }
 
 
-std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
@@ -84,7 +84,7 @@ std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> QOlmOutboundGr
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::encrypt(const QString &plaintext)
+std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::encrypt(const QString &plaintext)
 {
     QByteArray plaintextBuf = plaintext.toUtf8();
     const auto messageMaxLen = olm_group_encrypt_message_length(m_groupSession, plaintextBuf.length());
@@ -116,7 +116,7 @@ QByteArray QOlmOutboundGroupSession::sessionId() const
     return idBuffer;
 }
 
-std::variant<QByteArray, OlmError> QOlmOutboundGroupSession::sessionKey() const
+std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::sessionKey() const
 {
     const auto keyMaxLength = olm_outbound_group_session_key_length(m_groupSession);
     QByteArray keyBuffer(keyMaxLength, '0');

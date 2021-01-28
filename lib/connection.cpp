@@ -34,7 +34,7 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "account.h" // QtOlm
+#    include "crypto/qolmaccount.h"
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -189,7 +189,7 @@ public:
             return {};
 
         const auto identityKey =
-            encryptionManager->account()->curve25519IdentityKey();
+            encryptionManager->account()->identityKeys().curve25519;
         const auto personalCipherObject =
             encryptedEvent.ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
@@ -201,7 +201,7 @@ public:
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
                           << encryptedEvent.senderKey()
-                          << encryptionManager->account()->oneTimeKeys();
+                          << encryptionManager->account()->oneTimeKeys().keys;
             return {};
         }
 
@@ -230,10 +230,10 @@ public:
                 .value(Ed25519Key).toString();
         if (ourKey
             != QString::fromUtf8(
-                encryptionManager->account()->ed25519IdentityKey())) {
+                encryptionManager->account()->identityKeys().ed25519)) {
             qCDebug(E2EE) << "Found key" << ourKey
                           << "instead of ours own ed25519 key"
-                          << encryptionManager->account()->ed25519IdentityKey()
+                          << encryptionManager->account()->identityKeys().ed25519
                           << "in Olm plaintext";
             return {};
         }
@@ -1223,7 +1223,7 @@ QByteArray Connection::accessToken() const
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
 #ifdef Quotient_E2EE_ENABLED
-QtOlm::Account* Connection::olmAccount() const
+QOlmAccount *Connection::olmAccount() const
 {
     return d->encryptionManager->account();
 }
