@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testgroupsession.h"
-#include "olm/qolminboundsession.h"
-#include "olm/qolmoutboundsession.h"
-#include "olm/utils.h"
+#include <crypto/qolminboundsession.h>
+#include <crypto/qolmoutboundsession.h>
+#include <crypto/utils.h>
 
 using namespace Quotient;
 
