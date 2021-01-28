@@ -35,8 +35,6 @@ before_build:
 build_script:
 - cmake %CMAKE_ARGS% %CMAKE_E2EE_ARGS% -H. -Bbuild
 - cmake --build build
-# qmake uses olm just built by CMake - it can't build olm on its own.
-- qmake -Wall quotest.pro -- %QMAKE_E2EE_ARGS% && jom
 
 #after_build:
 #- cmake --build build --target install
