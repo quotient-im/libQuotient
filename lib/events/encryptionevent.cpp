@@ -4,7 +4,7 @@
 
 #include "encryptionevent.h"
 
-#include "e2ee.h"
+#include "crypto/e2ee.h"
 
 #include <array>
 
