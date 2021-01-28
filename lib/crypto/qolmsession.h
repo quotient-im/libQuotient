@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "olm/e2ee.h"
-#include "olm/olm.h"
-#include "olm/errors.h"
 #include <variant>
+#include <olm/olm.h>
+#include "crypto/e2ee.h"
+#include "crypto/errors.h"
 
 namespace Quotient {
 
