@@ -5,15 +5,17 @@
 
 #pragma once
 
-#include "util.h"
 #include <optional>
 #include <string>
 #include <variant>
-#include <QMap>
 
+#include <QMap>
 #include <QStringList>
 
+#include "util.h"
+
 namespace Quotient {
+
 inline const auto CiphertextKeyL = "ciphertext"_ls;
 inline const auto SenderKeyKeyL = "sender_key"_ls;
 inline const auto DeviceIdKeyL = "device_id"_ls;
@@ -37,7 +39,6 @@ inline const auto MegolmV1AesSha2AlgoKey =
     QStringLiteral("m.megolm.v1.aes-sha2");
 inline const QStringList SupportedAlgorithms = { OlmV1Curve25519AesSha2AlgoKey,
                                                  MegolmV1AesSha2AlgoKey };
-
 struct Unencrypted {};
 struct Encrypted {
     QByteArray key;
