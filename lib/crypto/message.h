@@ -6,8 +6,8 @@
 
 #ifdef Quotient_E2EE_ENABLED
 
-#include <QtCore/QObject>
-#include <QtCore/QByteArray>
+#include <QObject>
+#include <QByteArray>
 
 namespace Quotient {
 

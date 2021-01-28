@@ -177,14 +177,14 @@ list(APPEND lib_SRCS
     lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.cpp
-    lib/olm/qolmaccount.cpp
-    lib/olm/qolmsession.cpp
-    lib/olm/qolminboundsession.cpp
-    lib/olm/qolmoutboundsession.cpp
-    lib/olm/utils.cpp
-    lib/olm/errors.cpp
-    lib/olm/session.cpp
-    lib/olm/message.cpp
+    lib/crypto/qolmaccount.cpp
+    lib/crypto/qolmsession.cpp
+    lib/crypto/qolminboundsession.cpp
+    lib/crypto/qolmoutboundsession.cpp
+    lib/crypto/utils.cpp
+    lib/crypto/errors.cpp
+    lib/crypto/session.cpp
+    lib/crypto/message.cpp
 )
 
 # Configure API files generation
