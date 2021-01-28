@@ -6,7 +6,7 @@
 #include "encryptionmanager.h"
 
 #include "connection.h"
-#include "e2ee.h"
+#include "crypto/e2ee.h"
 
 #include "csapi/keys.h"
 
