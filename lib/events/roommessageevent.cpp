@@ -325,7 +325,10 @@ void TextContent::fillJson(QJsonObject* json) const
     }
     if (relatesTo) {
         json->insert(QStringLiteral("m.relates_to"),
-                     QJsonObject { { "rel_type", relatesTo->type }, { EventIdKey, relatesTo->eventId } });
+                     relatesTo->type == RelatesTo::ReplyTypeId() ?
+                         QJsonObject { { relatesTo->type, QJsonObject{ { EventIdKey, relatesTo->eventId } } } } :
+                         QJsonObject { { "rel_type", relatesTo->type }, { EventIdKey, relatesTo->eventId } }
+        );
         if (relatesTo->type == RelatesTo::ReplacementTypeId()) {
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html")) {
