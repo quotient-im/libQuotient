@@ -10,7 +10,7 @@
 #include <variant>
 #include <memory>
 #include "olm/olm.h"
-#include "crypto/errors.h"
+#include "crypto/qolmerrors.h"
 #include "crypto/e2ee.h"
 
 namespace Quotient {
@@ -29,12 +29,12 @@ public:
     QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, OlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
     //! Decrypts ciphertext received for this group session.
-    std::variant<std::pair<QString, uint32_t>, OlmError> decrypt(const QByteArray &message);
+    std::variant<std::pair<QString, uint32_t>, QOlmError> decrypt(const QByteArray &message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
     //! in a format which can be used by import.
-    std::variant<QByteArray, OlmError> exportSession(uint32_t messageIndex);
+    std::variant<QByteArray, QOlmError> exportSession(uint32_t messageIndex);
     //! Get the first message index we know how to decrypt.
     uint32_t firstKnownIndex() const;
     //! Get a base64-encoded identifier for this session.

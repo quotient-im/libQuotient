@@ -88,46 +88,26 @@ get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
+    find_package(Olm 3.2.1 REQUIRED)
+    set_package_properties(Olm PROPERTIES
+        DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
+        URL "https://gitlab.matrix.org/matrix-org/olm"
+        TYPE REQUIRED
+    )
+    if (Olm_FOUND)
+        message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
+    endif()
+
     find_package(OpenSSL 1.1.0 REQUIRED)
     set_package_properties(OpenSSL PROPERTIES
         DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
         URL "https://www.openssl.org/"
         TYPE REQUIRED
     )
-
-    if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
-            AND EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm/lib/utils.h)
-        add_subdirectory(3rdparty/libQtOlm)
-        include_directories(3rdparty/libQtOlm)
-        if (NOT DEFINED USE_INTREE_LIBQOLM)
-            set (USE_INTREE_LIBQOLM 1)
-        endif ()
-    endif ()
-    if (USE_INTREE_LIBQOLM)
-        message( STATUS "Using in-tree libQtOlm")
-        find_package(Git QUIET)
-        if (GIT_FOUND)
-            execute_process(COMMAND
-                "${GIT_EXECUTABLE}" rev-parse -q HEAD
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/libQtOlm
-                OUTPUT_VARIABLE QTOLM_GIT_SHA1
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-            message( STATUS "  Library git SHA1: ${QTOLM_GIT_SHA1}")
-        endif (GIT_FOUND)
-    else ()
-        set(SAVED_CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
-        set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
-        find_package(QtOlm 3.0.1 REQUIRED)
-        set_package_properties(QtOlm PROPERTIES
-            DESCRIPTION "QtOlm is a Qt wrapper around libOlm"
-            PURPOSE "libQtOlm is required to support end-to-end encryption. See also BUILDING.md"
-            URL "https://gitlab.com/b0/libqtolm"
-            )
-        if (QtOlm_FOUND)
-            message(STATUS "Using libQtOlm ${QtOlm_VERSION} at ${QtOlm_DIR}")
-        endif()
-    endif ()
-endif ()
+    if (OpenSSL_FOUND)
+        message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
+    endif()
+endif()
 
 # Set up source files
 list(APPEND lib_SRCS
@@ -181,10 +161,10 @@ list(APPEND lib_SRCS
     lib/crypto/qolmsession.cpp
     lib/crypto/qolminboundsession.cpp
     lib/crypto/qolmoutboundsession.cpp
-    lib/crypto/utils.cpp
-    lib/crypto/errors.cpp
-    lib/crypto/session.cpp
-    lib/crypto/message.cpp
+    lib/crypto/qolmutils.cpp
+    lib/crypto/qolmerrors.cpp
+    lib/crypto/qolmsession.cpp
+    lib/crypto/qolmmessage.cpp
 )
 
 # Configure API files generation
@@ -331,16 +311,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_link_libraries(${PROJECT_NAME} Olm::Olm QtOlm)
-    set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
+    target_link_libraries(${PROJECT_NAME} Olm::Olm
+        OpenSSL::Crypto
+        OpenSSL::SSL)
+    set(FIND_DEPS "find_dependency(Olm OpenSSL)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-    ${Qt}::Core
-    ${Qt}::Network
-    ${Qt}::Gui
-    OpenSSL::Crypto
-    OpenSSL::SSL)
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

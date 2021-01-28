@@ -10,7 +10,7 @@
 namespace Quotient {
 //! All errors that could be caused by an operation regarding Olm
 //! Errors are named exactly like the ones in libolm.
-enum OlmError
+enum QOlmError
 {
     BadAccountKey,
     BadMessageFormat,
@@ -24,7 +24,7 @@ enum OlmError
     Unknown,
 };
 
-OlmError fromString(const std::string &error_raw);
+QOlmError fromString(const std::string &error_raw);
 
 } //namespace Quotient
 

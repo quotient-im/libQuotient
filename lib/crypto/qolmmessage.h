@@ -18,7 +18,7 @@ namespace Quotient {
  *
  * The class provides functions to get a type and the ciphertext.
  */
-class Message : public QByteArray {
+class QOlmMessage : public QByteArray {
     Q_GADGET
 public:
     enum Type {
@@ -27,11 +27,11 @@ public:
     };
     Q_ENUM(Type)
 
-    Message() = default;
-    explicit Message(const QByteArray &ciphertext, Type type = General);
-    explicit Message(const Message &message);
+    QOlmMessage() = default;
+    explicit QOlmMessage(const QByteArray &ciphertext, Type type = General);
+    explicit QOlmMessage(const QOlmMessage &message);
 
-    static Message fromCiphertext(const QByteArray &ciphertext);
+    static QOlmMessage fromCiphertext(const QByteArray &ciphertext);
 
     Q_INVOKABLE Type type() const;
     Q_INVOKABLE QByteArray toCiphertext() const;
