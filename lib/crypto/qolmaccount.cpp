@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "qolmaccount.h"
-#include "olm/utils.h"
+#include "crypto/qolmaccount.h"
+#include "crypto/utils.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDebug>

@@ -5,8 +5,8 @@
 #ifdef Quotient_E2EE_ENABLED
 
 #include "olm/olm.h" // from Olm
-#include "olm/errors.h"
-#include "olm/e2ee.h"
+#include "crypto/errors.h"
+#include "crypto/e2ee.h"
 #include <memory>
 
 namespace Quotient {

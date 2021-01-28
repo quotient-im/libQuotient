@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "olm/session.h"
-#include "olm/utils.h"
+#include "crypto/session.h"
+#include "crypto/utils.h"
 #include "logging.h"
 #include <cstring>
 
