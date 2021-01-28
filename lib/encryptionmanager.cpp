@@ -13,16 +13,15 @@
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder>
 
-#include <account.h> // QtOlm
-#include <session.h> // QtOlm
-#include <message.h> // QtOlm
-#include <errors.h> // QtOlm
-#include <utils.h> // QtOlm
+#include "crypto/qolmaccount.h"
+#include "crypto/qolmsession.h"
+#include "crypto/qolmmessage.h"
+#include "crypto/qolmerrors.h"
+#include "crypto/qolmutils.h"
 #include <functional>
 #include <memory>
 
 using namespace Quotient;
-using namespace QtOlm;
 using std::move;
 
 class EncryptionManager::Private {
@@ -36,11 +35,9 @@ public:
         Q_ASSERT((0 <= signedKeysProportion) && (signedKeysProportion <= 1));
         Q_ASSERT((0 <= oneTimeKeyThreshold) && (oneTimeKeyThreshold <= 1));
         if (encryptionAccountPickle.isEmpty()) {
-            olmAccount.reset(new Account());
+            // new e2ee TODO: olmAccount.reset(new QOlmAccount());
         } else {
-            olmAccount.reset(
-                new Account(encryptionAccountPickle)); // TODO: passphrase even
-                                                       // with qtkeychain?
+            // new e2ee TODO: olmAccount.reset(new QOlmAccount(encryptionAccountPickle)); // TODO: passphrase even with qtkeychain?
         }
         /*
          * Note about targetKeysNumber:
@@ -54,7 +51,7 @@ public:
          * until the limit is reached and it starts discarding keys, starting by
          * the oldest.
          */
-        targetKeysNumber = olmAccount->maxOneTimeKeys() / 2;
+        targetKeysNumber = olmAccount->maxNumberOfOneTimeKeys() / 2;
         targetOneTimeKeyCounts = {
             { SignedCurve25519Key,
               qRound(signedKeysProportion * targetKeysNumber) },
@@ -72,7 +69,7 @@ public:
     UploadKeysJob* uploadOneTimeKeysJob = nullptr;
     QueryKeysJob* queryKeysJob = nullptr;
 
-    QScopedPointer<Account> olmAccount;
+    QScopedPointer<QOlmAccount> olmAccount;
 
     float signedKeysProportion;
     float oneTimeKeyThreshold;
@@ -91,7 +88,7 @@ public:
     QHash<QString, int> targetOneTimeKeyCounts;
 
     // A map from senderKey to InboundSession
-    QMap<QString, InboundSession*> sessions; // TODO: cache
+    QMap<QString, QOlmSession*> sessions; // TODO: cache
     void updateDeviceKeys(
         const QHash<QString,
                     QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
@@ -103,13 +100,15 @@ public:
             }
         }
     }
-    QString sessionDecrypt(Message* message, const QString& senderKey)
+    QString sessionDecrypt(QOlmMessage* message, const QString& senderKey)
     {
         QString decrypted;
-        QList<InboundSession*> senderSessions = sessions.values(senderKey);
+        QList<QOlmSession*> senderSessions = sessions.values(senderKey);
         // Try to decrypt message body using one of the known sessions for that
         // device
         bool sessionsPassed = false;
+        // new e2ee TODO:
+        /*
         for (auto senderSession : senderSessions) {
             if (senderSession == senderSessions.last()) {
                 sessionsPassed = true;
@@ -120,11 +119,9 @@ public:
                     << "Success decrypting Olm event using existing session"
                     << senderSession->id();
                 break;
-            } catch (OlmError* e) {
-                if (message->messageType() == 0) {
-                    PreKeyMessage preKeyMessage =
-                        PreKeyMessage(message->cipherText());
-                    if (senderSession->matches(&preKeyMessage, senderKey)) {
+            } catch (QOlmError* e) {
+                if (message->type() == QOlmMessage::PreKey) {
+                    if (senderSession->matches(&message, senderKey)) {
                         // We had a matching session for a pre-key message, but
                         // it didn't work. This means something is wrong, so we
                         // fail now.
@@ -138,8 +135,9 @@ public:
                 // Simply keep trying otherwise
             }
         }
+        */
         if (sessionsPassed || senderSessions.empty()) {
-            if (message->messageType() > 0) {
+            if (message->type() != QOlmMessage::PreKey) {
                 // Not a pre-key message, we should have had a matching session
                 if (!sessions.empty()) {
                     qCDebug(E2EE) << "Error decrypting with existing sessions";
@@ -150,9 +148,11 @@ public:
             }
             // We have a pre-key message without any matching session, in this
             // case we should try to create one.
-            InboundSession* newSession;
+            QOlmSession* newSession;
             qCDebug(E2EE) << "try to establish new InboundSession with" << senderKey;
-            PreKeyMessage preKeyMessage = PreKeyMessage(message->cipherText());
+            QOlmMessage preKeyMessage = QOlmMessage(message->toCiphertext(),QOlmMessage::PreKey);
+            // new e2ee TODO:
+            /*
             try {
                 newSession = new InboundSession(olmAccount.data(),
                                                 &preKeyMessage,
@@ -172,7 +172,9 @@ public:
                     << e->what();
                 return QString();
             }
+
             olmAccount->removeOneTimeKeys(newSession);
+            */
             sessions.insert(senderKey, newSession);
         }
         return decrypted;
@@ -211,9 +213,9 @@ void EncryptionManager::uploadIdentityKeys(Connection* connection)
          * as specified by the key algorithm.
          */
         { { Curve25519Key + QStringLiteral(":") + connection->deviceId(),
-            d->olmAccount->curve25519IdentityKey() },
+            d->olmAccount->identityKeys().curve25519 },
           { Ed25519Key + QStringLiteral(":") + connection->deviceId(),
-            d->olmAccount->ed25519IdentityKey() } },
+            d->olmAccount->identityKeys().curve25519 } },
         /* signatures should be provided after the unsigned deviceKeys
            generation */
         {}
@@ -262,8 +264,7 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection,
                                        + unsignedKeysToUploadCount);
 
     QHash<QString, QVariant> oneTimeKeys = {};
-    const auto& olmAccountCurve25519OneTimeKeys =
-        d->olmAccount->curve25519OneTimeKeys();
+    const auto& olmAccountCurve25519OneTimeKeys = d->olmAccount->oneTimeKeys().curve25519();
 
     int oneTimeKeysCounter = 0;
     for (auto it = olmAccountCurve25519OneTimeKeys.cbegin();
@@ -273,7 +274,7 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection,
         QVariant key;
         if (oneTimeKeysCounter < signedKeysToUploadCount) {
             QJsonObject message { { QStringLiteral("key"),
-                                    it.value().toString() } };
+                                    it.value() } };
 
             QByteArray signedMessage = d->olmAccount->sign(message);
             QJsonObject signatures {
@@ -297,7 +298,7 @@ void EncryptionManager::uploadOneTimeKeys(Connection* connection,
     connect(d->uploadOneTimeKeysJob, &BaseJob::success, this, [this] {
         d->setOneTimeKeyCounts(d->uploadOneTimeKeysJob->oneTimeKeyCounts());
     });
-    d->olmAccount->markKeysAsPublished();
+    // new e2ee TODO: d->olmAccount->markKeysAsPublished();
     qCDebug(E2EE) << QString("Uploaded new one-time keys: %1 signed, %2 unsigned.")
                     .arg(signedKeysToUploadCount)
                 .arg(unsignedKeysToUploadCount);
@@ -328,11 +329,11 @@ QString EncryptionManager::sessionDecryptMessage(
     int type = personalCipherObject.value(TypeKeyL).toInt(-1);
     QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
     if (type == 0) {
-        PreKeyMessage preKeyMessage { body };
-        decrypted = d->sessionDecrypt(reinterpret_cast<Message*>(&preKeyMessage),
+        QOlmMessage preKeyMessage = QOlmMessage(body, QOlmMessage::PreKey);
+        decrypted = d->sessionDecrypt(reinterpret_cast<QOlmMessage*>(&preKeyMessage),
                                       senderKey);
     } else if (type == 1) {
-        Message message { body };
+        QOlmMessage message = QOlmMessage(body, QOlmMessage::PreKey);
         decrypted = d->sessionDecrypt(&message, senderKey);
     }
     return decrypted;
@@ -340,10 +341,11 @@ QString EncryptionManager::sessionDecryptMessage(
 
 QByteArray EncryptionManager::olmAccountPickle()
 {
-    return d->olmAccount->pickle(); // TODO: passphrase even with qtkeychain?
+    // new e2ee TODO: return d->olmAccount->pickle(); // TODO: passphrase even with qtkeychain?
+    return {};
 }
 
-QtOlm::Account* EncryptionManager::account() const
+QOlmAccount *EncryptionManager::account() const
 {
     return d->olmAccount.data();
 }

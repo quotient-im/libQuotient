@@ -4,8 +4,8 @@
 #pragma once
 #ifdef Quotient_E2EE_ENABLED
 
-#include "olm/olm.h" // from Olm
-#include "crypto/errors.h"
+#include "olm/olm.h"
+#include "crypto/qolmerrors.h"
 #include "crypto/e2ee.h"
 #include <memory>
 
@@ -22,12 +22,12 @@ public:
     //! Throw OlmError on errors
     static std::unique_ptr<QOlmOutboundGroupSession> create();
     //! Serialises an `QOlmOutboundGroupSession` to encrypted Base64.
-    std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode);
+    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, OlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
-    std::variant<QByteArray, OlmError> encrypt(const QString &plaintext);
+    std::variant<QByteArray, QOlmError> encrypt(const QString &plaintext);
 
     //! Get the current message index for this session.
     //!
@@ -42,7 +42,7 @@ public:
     //!
     //! Each message is sent with a different ratchet key. This function returns the
     //! ratchet key that will be used for the next message.
-    std::variant<QByteArray, OlmError> sessionKey() const;
+    std::variant<QByteArray, QOlmError> sessionKey() const;
     QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
 private:
     OlmOutboundGroupSession *m_groupSession;

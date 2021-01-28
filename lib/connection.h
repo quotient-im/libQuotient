@@ -22,10 +22,6 @@
 
 #include <functional>
 
-namespace QtOlm {
-class Account;
-}
-
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
@@ -48,6 +44,8 @@ class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
+
+class QOlmAccount;
 
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
@@ -320,7 +318,7 @@ public:
     QByteArray accessToken() const;
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
-    QtOlm::Account* olmAccount() const;
+    QOlmAccount* olmAccount() const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;

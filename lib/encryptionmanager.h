@@ -9,12 +9,9 @@
 #include <functional>
 #include <memory>
 
-namespace QtOlm {
-class Account;
-}
-
 namespace Quotient {
 class Connection;
+class QOlmAccount;
 
 class EncryptionManager : public QObject {
     Q_OBJECT
@@ -39,7 +36,7 @@ public:
                                   const QByteArray& senderKey);
     QByteArray olmAccountPickle();
 
-    QtOlm::Account* account() const;
+    QOlmAccount* account() const;
 
 private:
     class Private;
