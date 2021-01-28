@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/qolmaccount.h"
-#include "crypto/utils.h"
+#include "qolmaccount.h"
+#include "crypto/qolmutils.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDebug>
@@ -31,7 +31,7 @@ bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
 }
 
 // Convert olm error to enum
-OlmError lastError(OlmAccount *account) {
+QOlmError lastError(OlmAccount *account) {
     const std::string error_raw = olm_account_last_error(account);
 
     return fromString(error_raw);
@@ -77,7 +77,7 @@ void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
     }
 }
 
-std::variant<QByteArray, OlmError> QOlmAccount::pickle(const PicklingMode &mode)
+std::variant<QByteArray, QOlmError> QOlmAccount::pickle(const PicklingMode &mode)
 {
     const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(m_account);
@@ -116,6 +116,11 @@ QByteArray QOlmAccount::sign(const QByteArray &message) const
         throw lastError(m_account);
     }
     return signatureBuffer;
+}
+
+QByteArray QOlmAccount::sign(const QJsonObject &message) const
+{
+    return sign(QJsonDocument(message).toJson(QJsonDocument::Compact));
 }
 
 QByteArray QOlmAccount::signIdentityKeys() const
@@ -197,19 +202,19 @@ OlmAccount *Quotient::QOlmAccount::data()
     return m_account;
 }
 
-std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSession(const Message &preKeyMessage)
+std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
 {
-    Q_ASSERT(preKeyMessage.type() == Message::PreKey);
+    Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const Message &preKeyMessage)
+std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
 {
-    Q_ASSERT(preKeyMessage.type() == Message::PreKey);
+    Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, OlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
+std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
 {
     return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
 }

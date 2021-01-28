@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include <crypto/session.h>
+#include "crypto/qolmsession.h"
 #include "testolmsession.h"
 
 using namespace Quotient;

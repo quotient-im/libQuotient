@@ -3,36 +3,36 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/message.h"
+#include "qolmmessage.h"
 
 using namespace Quotient;
 
-Message::Message(const QByteArray &ciphertext, Message::Type type)
+QOlmMessage::QOlmMessage(const QByteArray &ciphertext, QOlmMessage::Type type)
     : QByteArray(std::move(ciphertext))
     , m_messageType(type)
 {
     Q_ASSERT_X(!ciphertext.isEmpty(), "olm message", "Ciphertext is empty");
 }
 
-Message::Message(const Message &message)
+QOlmMessage::QOlmMessage(const QOlmMessage &message)
     : QByteArray(message)
     , m_messageType(message.type())
 {
 }
 
-Message::Type Message::type() const
+QOlmMessage::Type QOlmMessage::type() const
 {
     return m_messageType;
 }
 
-QByteArray Message::toCiphertext() const
+QByteArray QOlmMessage::toCiphertext() const
 {
     return QByteArray(*this);
 }
 
-Message Message::fromCiphertext(const QByteArray &ciphertext)
+QOlmMessage QOlmMessage::fromCiphertext(const QByteArray &ciphertext)
 {
-    return Message(ciphertext, Message::General);
+    return QOlmMessage(ciphertext, QOlmMessage::General);
 }
 
 
