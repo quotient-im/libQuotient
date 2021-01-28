@@ -5,9 +5,9 @@
 #ifdef Quotient_E2EE_ENABLED
 
 #include "crypto/e2ee.h"
-#include "crypto/errors.h"
-#include "crypto/session.h"
-#include <olm/olm.h>
+#include "crypto/qolmerrors.h"
+#include "crypto/qolmmessage.h"
+#include "crypto/qolmsession.h"
 #include <QObject>
 
 struct OlmAccount;
@@ -38,13 +38,14 @@ public:
     void unpickle(QByteArray &picked, const PicklingMode &mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    std::variant<QByteArray, OlmError> pickle(const PicklingMode &mode);
+    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
 
     //! Returns the signature of the supplied message.
     QByteArray sign(const QByteArray &message) const;
+    QByteArray sign(const QJsonObject& message) const;
 
     //! Sign identity keys.
     QByteArray signIdentityKeys() const;
@@ -70,17 +71,17 @@ public:
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param message An Olm pre-key message that was encrypted for this account.
-    std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSession(const Message &preKeyMessage);
+    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInboundSession(const QOlmMessage &preKeyMessage);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of an Olm account that
     //! encrypted this Olm message.
-    std::variant<std::unique_ptr<QOlmSession>, OlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const Message &preKeyMessage);
+    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
-    std::variant<std::unique_ptr<QOlmSession>, OlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
+    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
 
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);

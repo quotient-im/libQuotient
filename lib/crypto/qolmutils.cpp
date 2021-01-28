@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/utils.h"
+#include "crypto/qolmutils.h"
 #include <QDebug>
 #include <openssl/rand.h>
 
