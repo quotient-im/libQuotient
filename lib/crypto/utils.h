@@ -5,7 +5,7 @@
 #pragma once
 #ifdef Quotient_E2EE_ENABLED
 
-#include "olm/e2ee.h"
+#include "crypto/e2ee.h"
 
 namespace Quotient {
 // Convert PicklingMode to key
