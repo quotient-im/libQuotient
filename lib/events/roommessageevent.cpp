@@ -345,8 +345,8 @@ void TextContent::fillJson(QJsonObject* json) const
         if (relatesTo->type == RelatesTo::ReplacementTypeId()) {
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html")) {
-                json->insert(FormatKey, HtmlContentTypeId);
-                json->insert(FormattedBodyKey, body);
+                newContentJson.insert(FormatKey, HtmlContentTypeId);
+                newContentJson.insert(FormattedBodyKey, body);
             }
             json->insert(QStringLiteral("m.new_content"), newContentJson);
         }
