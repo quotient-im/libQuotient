@@ -10,8 +10,8 @@
 #include <variant>
 #include <memory>
 #include "olm/olm.h"
-#include "olm/errors.h"
-#include "olm/e2ee.h"
+#include "crypto/errors.h"
+#include "crypto/e2ee.h"
 
 namespace Quotient {
 
