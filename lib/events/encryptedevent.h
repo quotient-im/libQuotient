@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "e2ee.h"
+#include "crypto/e2ee.h"
 #include "roomevent.h"
 
 namespace Quotient {

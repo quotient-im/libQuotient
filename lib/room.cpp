@@ -12,7 +12,7 @@
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
-#include "e2ee.h"
+#include "crypto/e2ee.h"
 #include "syncdata.h"
 #include "user.h"
 
