@@ -7,10 +7,13 @@
 
 #include <optional>
 #include <string>
+#include "converters.h"
 #include <variant>
 
 #include <QMap>
+#include <QHash>
 #include <QStringList>
+#include <QMetaType>
 
 #include "util.h"
 
@@ -68,16 +71,56 @@ struct OneTimeKeys
 };
 
 //! Struct representing the signed one-time keys.
-struct SignedOneTimeKey
+class SignedOneTimeKey
 {
+public:
+    SignedOneTimeKey() = default;
+    SignedOneTimeKey(const SignedOneTimeKey &) = default;
+    SignedOneTimeKey &operator=(const SignedOneTimeKey &) = default;
     //! Required. The unpadded Base64-encoded 32-byte Curve25519 public key.
     QString key;
 
     //! Required. Signatures of the key object.
     //! The signature is calculated using the process described at Signing JSON.
-    QMap<QString, QMap<QString, QString>> signatures;
+    QHash<QString, QHash<QString, QString>> signatures;
+};
+
+
+template <>
+struct JsonObjectConverter<SignedOneTimeKey> {
+    static void fillFrom(const QJsonObject& jo,
+                         SignedOneTimeKey& result)
+    {
+        fromJson(jo.value("key"_ls), result.key);
+        fromJson(jo.value("signatures"_ls), result.signatures);
+    }
+
+    static void dumpTo(QJsonObject &jo, const SignedOneTimeKey &result)
+    {
+        addParam<>(jo, QStringLiteral("key"), result.key);
+        addParam<>(jo, QStringLiteral("signatures"), result.signatures);
+    }
 };
 
 bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs);
 
+template <typename T>
+class asKeyValueRange
+{
+public:
+    asKeyValueRange(T &data)
+        : m_data{data}
+    {
+    }
+
+    auto begin() { return m_data.keyValueBegin(); }
+
+    auto end() { return m_data.keyValueEnd(); }
+
+private:
+    T &m_data;
+};
+
 } // namespace Quotient
+
+Q_DECLARE_METATYPE(Quotient::SignedOneTimeKey)
