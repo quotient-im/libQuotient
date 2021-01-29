@@ -162,6 +162,7 @@ list(APPEND lib_SRCS
     lib/crypto/qolminboundsession.cpp
     lib/crypto/qolmoutboundsession.cpp
     lib/crypto/qolmutils.cpp
+    lib/crypto/qolmutility.cpp
     lib/crypto/qolmerrors.cpp
     lib/crypto/qolmsession.cpp
     lib/crypto/qolmmessage.cpp
