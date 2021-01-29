@@ -244,19 +244,6 @@ void TestOlmAccount::uploadOneTimeKeys()
             QSignalSpy spy3(request, &BaseJob::result);
             QVERIFY(spy3.wait(10000));
         });
-        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
-            QFAIL("Network error: make sure synapse is running");
-        });
-        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
-            QFAIL("Login failed");
-        });
-    });
-
-    connect(conn, &Connection::resolveError, this, [=](QString error) {
-        QFAIL("Network error: make sure synapse is running");
-    });
-    connect(conn, &Connection::loginError, this, [=] {
-        QFAIL("Network error: make sure synapse is running");
     });
 
     QSignalSpy spy(conn, &Connection::loginFlowsChanged);
@@ -298,19 +285,6 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
             QSignalSpy spy3(request, &BaseJob::result);
             QVERIFY(spy3.wait(10000));
         });
-        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
-            QFAIL("Network error: make sure synapse is running");
-        });
-        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
-            QFAIL("Login failed");
-        });
-    });
-
-    connect(conn, &Connection::resolveError, this, [=](QString error) {
-        QFAIL("Network error: make sure synapse is running");
-    });
-    connect(conn, &Connection::loginError, this, [=] {
-        QFAIL("Network error: make sure synapse is running");
     });
 
     QSignalSpy spy(conn, &Connection::loginFlowsChanged);
@@ -344,19 +318,6 @@ void TestOlmAccount::uploadKeys()
             QSignalSpy spy3(request, &BaseJob::result);
             QVERIFY(spy3.wait(10000));
         });
-        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
-            QFAIL("Network error: make sure synapse is running");
-        });
-        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
-            QFAIL("Login failed");
-        });
-    });
-
-    connect(conn, &Connection::resolveError, this, [=](QString error) {
-        QFAIL("Network error: make sure synapse is running");
-    });
-    connect(conn, &Connection::loginError, this, [=] {
-        QFAIL("Network error: make sure synapse is running");
     });
 
     QSignalSpy spy(conn, &Connection::loginFlowsChanged);
@@ -364,6 +325,105 @@ void TestOlmAccount::uploadKeys()
     QVERIFY(spy.wait(10000));
     QVERIFY(spy2.wait(10000));
     delete conn;
+}
+
+inline void sleep()
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+
+void TestOlmAccount::claimKeys()
+{
+    auto alice = new Connection();
+    alice->resolveServer("@alice:localhost:" + QString::number(443));
+    connect(alice, &Connection::loginFlowsChanged, this, [this, alice]() {
+        alice->loginWithPassword("alice", "secret", "AlicePhone", "");
+        connect(alice, &Connection::connected, this, [this, alice] {
+            qDebug() << "alice->accessToken()" << alice->accessToken();
+            QVERIFY(!alice->accessToken().isEmpty());
+        });
+    });
+
+    QSignalSpy spy(alice, &Connection::loginFlowsChanged);
+    QSignalSpy spy2(alice, &Connection::connected);
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy2.wait(10000));
+
+    auto bob = new Connection();
+    bob->resolveServer("@bob:localhost:" + QString::number(443));
+    connect(bob, &Connection::loginFlowsChanged, this, [this, bob]() {
+        bob->loginWithPassword("bob", "secret", "BobPhone", "");
+        connect(bob, &Connection::connected, this, [this, bob] {
+            qDebug() << "bob->accessToken()" << bob->accessToken();
+            QVERIFY(!bob->accessToken().isEmpty());
+        });
+    });
+
+    QSignalSpy spy3(bob, &Connection::loginFlowsChanged);
+    QSignalSpy spy4(bob, &Connection::connected);
+    QVERIFY(spy3.wait(10000));
+    QVERIFY(spy4.wait(10000));
+
+    // Bob uploads his keys.
+    auto *bobOlm = bob->olmAccount();
+    bobOlm->generateOneTimeKeys(1);
+    auto request = bobOlm->createUploadKeyRequest(bobOlm->oneTimeKeys());
+
+    connect(request, &BaseJob::result, this, [request, bob](BaseJob *job) {
+        auto job2 = static_cast<UploadKeysJob *>(job);
+        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
+    });
+    bob->run(request);
+
+    QSignalSpy requestSpy(request, &BaseJob::result);
+    QVERIFY(requestSpy.wait(10000));
+
+    // Alice retrieves bob's keys & claims one signed one-time key.
+    auto *aliceOlm = alice->olmAccount();
+    QHash<QString, QStringList> deviceKeys;
+    deviceKeys[bob->userId()] = QStringList();
+    auto job = alice->callApi<QueryKeysJob>(deviceKeys);
+    connect(job, &BaseJob::result, this, [bob, alice, aliceOlm, job, this] {
+        auto bobDevices = job->deviceKeys()[bob->userId()];
+        QVERIFY(bobDevices.size() > 0);
+
+        auto devices = {bob->deviceId()};
+
+        // Retrieve the identity key for the current device.
+        auto bobEd25519 =
+          bobDevices[bob->deviceId()].keys["ed25519:" + bob->deviceId()];
+
+        const auto currentDevice = bobDevices[bob->deviceId()];
+
+        // Verify signature.
+        QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(), bob->userId()));
+
+        QHash<QString, QHash<QString, QString>> oneTimeKeys;
+        for (const auto &d : devices) {
+            oneTimeKeys[bob->userId()] = QHash<QString, QString>();
+            oneTimeKeys[bob->userId()][d] = SignedCurve25519Key;
+        }
+        auto job = alice->callApi<ClaimKeysJob>(oneTimeKeys);
+        connect(job, &BaseJob::result, this, [aliceOlm, bob, bobEd25519, job] {
+            const auto userId = bob->userId();
+            const auto deviceId = bob->deviceId();
+
+            // The device exists.
+            QCOMPARE(job->oneTimeKeys().size(), 1);
+            QCOMPARE(job->oneTimeKeys()[userId].size(), 1);
+
+            // The key is the one bob sent.
+            auto oneTimeKey = job->oneTimeKeys()[userId][deviceId];
+            QVERIFY(oneTimeKey.canConvert<SignedOneTimeKey>());
+
+            //auto algo = oneTimeKey.begin().key();
+            //auto contents = oneTimeKey.begin().value();
+        });
+    });
+    delete bob;
+    delete alice;
 }
 
 QTEST_MAIN(TestOlmAccount)
