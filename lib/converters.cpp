@@ -3,15 +3,26 @@
 
 #include "converters.h"
 
-#include <QtCore/QVariant>
+#include <QVariant>
+#include "crypto/e2ee.h"
 
 QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 {
+    if (v.canConvert<SignedOneTimeKey>()) {
+        return toJson(v.value<SignedOneTimeKey>());
+    }
     return QJsonValue::fromVariant(v);
 }
 
 QVariant Quotient::JsonConverter<QVariant>::load(const QJsonValue& jv)
 {
+    if (jv.isObject()) {
+        QJsonObject obj = jv.toObject();
+        if (obj.contains("key") && obj.contains("signatures")) {
+            SignedOneTimeKey signedOneTimeKeys;
+            signedOneTimeKeys.key = obj["key"].toString();
+        }
+    }
     return jv.toVariant();
 }
 
