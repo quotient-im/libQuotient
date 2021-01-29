@@ -4,7 +4,7 @@
 
 #include "testolmaccount.h"
 #include "crypto/qolmaccount.h"
-#include "csapi/definitions/device_keys.h"
+#include "connection.h"
 #include "events/encryptedfile.h"
 
 using namespace Quotient;
@@ -162,4 +162,208 @@ void TestOlmAccount::encryptedFile()
     QCOMPARE(file.key.keyOps.count(), 2);
     QCOMPARE(file.key.kty, "oct");
 }
+
+void TestOlmAccount::uploadIdentityKey()
+{
+    auto conn = new Connection();
+    conn->resolveServer("@alice:localhost:" + QString::number(443));
+    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
+        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
+        connect(conn, &Connection::connected, this, [this, conn] {
+            auto olmAccount = conn->olmAccount();
+            auto idKeys = olmAccount->identityKeys();
+
+            QVERIFY(idKeys.curve25519.size() > 10);
+            QVERIFY(idKeys.curve25519.size() > 10);
+
+
+            OneTimeKeys unused;
+            auto request = olmAccount->createUploadKeyRequest(unused);
+            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+                auto job2 = static_cast<UploadKeysJob *>(job);
+                QCOMPARE(job2->oneTimeKeyCounts().size(), 0);
+            });
+            connect(request, &BaseJob::failure, this, [] {
+                QFAIL("upload failed");
+            });
+            conn->run(request);
+            QSignalSpy spy3(request, &BaseJob::result);
+            QVERIFY(spy3.wait(10000));
+        });
+        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
+            QFAIL("Network error: make sure synapse is running");
+        });
+        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
+            QFAIL("Login failed");
+        });
+    });
+
+    connect(conn, &Connection::resolveError, this, [=](QString error) {
+        QFAIL("Network error: make sure synapse is running");
+    });
+    connect(conn, &Connection::loginError, this, [=] {
+        QFAIL("Network error: make sure synapse is running");
+    });
+
+    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
+    QSignalSpy spy2(conn, &Connection::connected);
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy2.wait(10000));
+    delete conn;
+}
+
+void TestOlmAccount::uploadOneTimeKeys()
+{
+    auto conn = new Connection();
+    conn->resolveServer("@alice:localhost:" + QString::number(443));
+    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
+        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
+        connect(conn, &Connection::connected, this, [this, conn] {
+            auto olmAccount = conn->olmAccount();
+
+            auto nKeys = olmAccount->generateOneTimeKeys(5);
+            QCOMPARE(nKeys, 5);
+
+            auto oneTimeKeys = olmAccount->oneTimeKeys();
+
+            QHash<QString, QVariant> oneTimeKeysHash;
+            const auto curve = oneTimeKeys.curve25519();
+            for (const auto &[keyId, key] : asKeyValueRange(curve)) {
+                oneTimeKeysHash["curve25519:"+keyId] = key;
+            }
+            auto request = new UploadKeysJob(none, oneTimeKeysHash);
+            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+                auto job2 = static_cast<UploadKeysJob *>(job);
+                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+                QCOMPARE(job2->oneTimeKeyCounts()["curve25519"], 5);
+            });
+            connect(request, &BaseJob::failure, this, [] {
+                QFAIL("upload failed");
+            });
+            conn->run(request);
+            QSignalSpy spy3(request, &BaseJob::result);
+            QVERIFY(spy3.wait(10000));
+        });
+        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
+            QFAIL("Network error: make sure synapse is running");
+        });
+        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
+            QFAIL("Login failed");
+        });
+    });
+
+    connect(conn, &Connection::resolveError, this, [=](QString error) {
+        QFAIL("Network error: make sure synapse is running");
+    });
+    connect(conn, &Connection::loginError, this, [=] {
+        QFAIL("Network error: make sure synapse is running");
+    });
+
+    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
+    QSignalSpy spy2(conn, &Connection::connected);
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy2.wait(10000));
+    delete conn;
+}
+
+void TestOlmAccount::uploadSignedOneTimeKeys()
+{
+    auto conn = new Connection();
+    conn->resolveServer("@alice:localhost:" + QString::number(443));
+    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
+        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
+        connect(conn, &Connection::connected, this, [this, conn] {
+            auto olmAccount = conn->olmAccount();
+            auto nKeys = olmAccount->generateOneTimeKeys(5);
+            QCOMPARE(nKeys, 5);
+
+            auto oneTimeKeys = olmAccount->oneTimeKeys();
+            QHash<QString, QVariant> oneTimeKeysHash;
+            const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
+            for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
+                QVariant var;
+                var.setValue(key);
+                oneTimeKeysHash[keyId] = var;
+            }
+            auto request = new UploadKeysJob(none, oneTimeKeysHash);
+            connect(request, &BaseJob::result, this, [request, nKeys, conn](BaseJob *job) {
+                auto job2 = static_cast<UploadKeysJob *>(job);
+                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+                QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], nKeys);
+            });
+            connect(request, &BaseJob::failure, this, [] {
+                QFAIL("upload failed");
+            });
+            conn->run(request);
+            QSignalSpy spy3(request, &BaseJob::result);
+            QVERIFY(spy3.wait(10000));
+        });
+        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
+            QFAIL("Network error: make sure synapse is running");
+        });
+        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
+            QFAIL("Login failed");
+        });
+    });
+
+    connect(conn, &Connection::resolveError, this, [=](QString error) {
+        QFAIL("Network error: make sure synapse is running");
+    });
+    connect(conn, &Connection::loginError, this, [=] {
+        QFAIL("Network error: make sure synapse is running");
+    });
+
+    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
+    QSignalSpy spy2(conn, &Connection::connected);
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy2.wait(10000));
+    delete conn;
+}
+
+void TestOlmAccount::uploadKeys()
+{
+    auto conn = new Connection();
+    conn->resolveServer("@alice:localhost:" + QString::number(443));
+    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
+        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
+        connect(conn, &Connection::connected, this, [this, conn] {
+            auto olmAccount = conn->olmAccount();
+            auto idks = olmAccount->identityKeys();
+            olmAccount->generateOneTimeKeys(1);
+            auto otks = olmAccount->oneTimeKeys();
+            auto request = olmAccount->createUploadKeyRequest(otks);
+            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+                auto job2 = static_cast<UploadKeysJob *>(job);
+                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+                QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
+            });
+            connect(request, &BaseJob::failure, this, [] {
+                QFAIL("upload failed");
+            });
+            conn->run(request);
+            QSignalSpy spy3(request, &BaseJob::result);
+            QVERIFY(spy3.wait(10000));
+        });
+        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
+            QFAIL("Network error: make sure synapse is running");
+        });
+        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
+            QFAIL("Login failed");
+        });
+    });
+
+    connect(conn, &Connection::resolveError, this, [=](QString error) {
+        QFAIL("Network error: make sure synapse is running");
+    });
+    connect(conn, &Connection::loginError, this, [=] {
+        QFAIL("Network error: make sure synapse is running");
+    });
+
+    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
+    QSignalSpy spy2(conn, &Connection::connected);
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy2.wait(10000));
+    delete conn;
+}
+
 QTEST_MAIN(TestOlmAccount)
