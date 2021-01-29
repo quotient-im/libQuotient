@@ -68,6 +68,9 @@ public:
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
 
+    //! Remove the one time key used to create the supplied session.
+    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const;
+
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param message An Olm pre-key message that was encrypted for this account.

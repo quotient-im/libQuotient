@@ -197,6 +197,16 @@ QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
     return sign(j.toJson());
 }
 
+std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const
+{
+    const auto error = olm_remove_one_time_keys(m_account, session->raw());
+
+    if (error == olm_error()) {
+        return lastError(m_account);
+    }
+    return std::nullopt;
+}
+
 OlmAccount *Quotient::QOlmAccount::data()
 {
     return m_account;
