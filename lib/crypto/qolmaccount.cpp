@@ -77,7 +77,10 @@ void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
     const QByteArray key = toKey(mode);
     const auto error = olm_unpickle_account(m_account, key.data(), key.length(), pickled.data(), pickled.size());
     if (error == olm_error()) {
-        throw lastError(m_account);
+        qCWarning(E2EE) << "Failed to unpickle olm account";
+        //TODO: Do something that is not dying
+        // Probably log the user out since we have no way of getting to the keys
+        //throw lastError(m_account);
     }
 }
 
