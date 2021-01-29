@@ -7,6 +7,7 @@
 #include "connection.h"
 #include "csapi/keys.h"
 #include "crypto/qolmutils.h"
+#include "crypto/qolmutility.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDebug>
@@ -261,6 +262,47 @@ std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInbound
 std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
 {
     return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
+}
+
+bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
+                             const QString &deviceId,
+                             const QString &userId)
+{
+    const auto signKeyId = "ed25519:" + deviceId;
+    const auto signingKey = deviceKeys.keys[signKeyId];
+    const auto signature = deviceKeys.signatures[userId][signKeyId];
+
+    if (signature.isEmpty()) {
+        return false;
+    }
+
+    return ed25519VerifySignature(signingKey, toJson(deviceKeys), signature);
+}
+
+bool Quotient::ed25519VerifySignature(QString signingKey,
+                              QJsonObject obj,
+                              QString signature)
+{
+    if (signature.isEmpty()) {
+        return false;
+    }
+
+    obj.remove("unsigned");
+    obj.remove("signatures");
+
+    QJsonDocument doc;
+    doc.setObject(obj);
+    auto canonicalJson = doc.toJson();
+
+    QByteArray signingKeyBuf = signingKey.toUtf8();
+    QOlmUtility utility;
+    auto signatureBuf = signature.toUtf8();
+    auto result = utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
+    if (std::holds_alternative<QOlmError>(result)) {
+        return false;
+    }
+
+    return std::get<bool>(result);
 }
 
 #endif
