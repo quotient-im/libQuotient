@@ -15,7 +15,12 @@ public:
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
     : QNetworkAccessManager(parent), d(std::make_unique<Private>())
-{}
+{
+    connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors)
+            {
+                reply->ignoreSslErrors();
+            });
+}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 {

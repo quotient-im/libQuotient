@@ -4,6 +4,8 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #include "qolmaccount.h"
+#include "connection.h"
+#include "csapi/keys.h"
 #include "crypto/qolmutils.h"
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -138,7 +140,7 @@ size_t QOlmAccount::maxNumberOfOneTimeKeys() const
     return olm_account_max_number_of_one_time_keys(m_account);
 }
 
-void QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
+size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
 {
     const size_t randomLen = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
     QByteArray randomBuffer = getRandom(randomLen);
@@ -147,6 +149,7 @@ void QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
     if (error == olm_error()) {
         throw lastError(m_account);
     }
+    return error;
 }
 
 OneTimeKeys QOlmAccount::oneTimeKeys() const
@@ -210,6 +213,37 @@ std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const std::unique_ptr<QO
 OlmAccount *Quotient::QOlmAccount::data()
 {
     return m_account;
+}
+
+UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
+{
+
+    DeviceKeys deviceKeys;
+    deviceKeys.userId = m_userId;
+    deviceKeys.deviceId = m_deviceId;
+    deviceKeys.algorithms = QStringList {"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"};
+
+    const auto idKeys = identityKeys();
+    deviceKeys.keys["curve25519:" + m_deviceId] = idKeys.curve25519;
+    deviceKeys.keys["ed25519:" + m_deviceId] = idKeys.ed25519;
+
+    const auto sign = signIdentityKeys();
+    deviceKeys.signatures[m_userId]["ed25519:" + m_deviceId] = sign;
+
+    if (oneTimeKeys.curve25519().isEmpty()) {
+        return new UploadKeysJob(deviceKeys);
+    }
+
+    // Sign & append the one time keys.
+    auto temp = signOneTimeKeys(oneTimeKeys);
+    QHash<QString, QVariant> oneTimeKeysSigned;
+    for (const auto &[keyId, key] : asKeyValueRange(temp)) {
+        QVariant keyVar;
+        keyVar.setValue(key);
+        oneTimeKeysSigned[keyId] = keyVar;
+    }
+
+    return new UploadKeysJob(deviceKeys, oneTimeKeysSigned);
 }
 
 std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)

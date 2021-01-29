@@ -4,6 +4,7 @@
 #pragma once
 #ifdef Quotient_E2EE_ENABLED
 
+#include "csapi/keys.h"
 #include "crypto/e2ee.h"
 #include "crypto/qolmerrors.h"
 #include "crypto/qolmmessage.h"
@@ -15,6 +16,7 @@ struct OlmAccount;
 namespace Quotient {
 
 class QOlmSession;
+class Connection;
 
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}
@@ -55,7 +57,7 @@ public:
     size_t maxNumberOfOneTimeKeys() const;
 
     //! Generates the supplied number of one time keys.
-    void generateOneTimeKeys(size_t numberOfKeys) const;
+    size_t generateOneTimeKeys(size_t numberOfKeys) const;
 
     //! Gets the OlmAccount's one time keys formatted as JSON.
     OneTimeKeys oneTimeKeys() const;
@@ -67,6 +69,8 @@ public:
     QByteArray signOneTimeKey(const QString &key) const;
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
+
+    UploadKeysJob *createUploadKeyRequest(const OneTimeKeys &oneTimeKeys);
 
     //! Remove the one time key used to create the supplied session.
     [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const;
@@ -90,7 +94,7 @@ public:
     QOlmAccount(OlmAccount *account);
     OlmAccount *data();
 private:
-    OlmAccount *m_account = nullptr;
+    OlmAccount *m_account = nullptr; // owning
     QString m_userId;
     QString m_deviceId;
 };
