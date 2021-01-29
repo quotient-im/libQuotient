@@ -16,4 +16,8 @@ private Q_SLOTS:
     //void removeOneTimeKeys();
     void deviceKeys();
     void encryptedFile();
+    void uploadIdentityKey();
+    void uploadOneTimeKeys();
+    void uploadSignedOneTimeKeys();
+    void uploadKeys();
 };
