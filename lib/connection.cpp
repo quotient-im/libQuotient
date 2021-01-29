@@ -108,7 +108,8 @@ public:
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
 #ifdef Quotient_E2EE_ENABLED
-    QScopedPointer<EncryptionManager> encryptionManager;
+    std::unique_ptr<QOlmAccount> olmAccount;
+    //QScopedPointer<EncryptionManager> encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -183,6 +184,9 @@ public:
 
     EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
+        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+        return {};
+        /*
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
@@ -242,6 +246,7 @@ public:
 
         return std::move(decryptedEvent);
 #endif // Quotient_E2EE_ENABLED
+*/
     }
 };
 
@@ -420,8 +425,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        encryptionManager->uploadIdentityKeys(q);
-        encryptionManager->uploadOneTimeKeys(q);
+        //encryptionManager->uploadIdentityKeys(q);
+        //encryptionManager->uploadOneTimeKeys(q);
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -442,11 +447,19 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
     AccountSettings accountSettings(data->userId());
-    encryptionManager.reset(
-        new EncryptionManager(accountSettings.encryptionAccountPickle()));
+
+    // init olmAccount
+    olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId());
+
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
-        accountSettings.setEncryptionAccountPickle(
-            encryptionManager->olmAccountPickle());
+        // create new account and save unpickle data
+        olmAccount->createNewAccount();
+        accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(olmAccount->pickle(Unencrypted{})));
+        // TODO handle pickle errors
+    } else {
+        // account already existing
+        auto pickle = accountSettings.encryptionAccountPickle();
+        olmAccount->unpickle(pickle, Unencrypted{});
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
@@ -608,16 +621,16 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
     // handling device_one_time_keys_count
-    if (!d->encryptionManager)
-    {
-        qCDebug(E2EE) << "Encryption manager is not there yet, updating "
-                         "one-time key counts will be skipped";
-        return;
-    }
-    if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
-            !deviceOneTimeKeysCount.isEmpty())
-        d->encryptionManager->updateOneTimeKeyCounts(this,
-                                                     deviceOneTimeKeysCount);
+    //if (!d->encryptionManager)
+    //{
+    //    qCDebug(E2EE) << "Encryption manager is not there yet, updating "
+    //                     "one-time key counts will be skipped";
+    //    return;
+    //}
+    //if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
+    //        !deviceOneTimeKeysCount.isEmpty())
+    //    d->encryptionManager->updateOneTimeKeyCounts(this,
+    //                                                 deviceOneTimeKeysCount);
 #endif // Quotient_E2EE_ENABLED
 }
 
@@ -745,6 +758,7 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
+/*
 #ifdef Quotient_E2EE_ENABLED
     // handling m.room_key to-device encrypted event
     visitEach(toDeviceEvents, [this](const EncryptedEvent& ee) {
@@ -775,6 +789,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             });
     });
 #endif
+*/
 }
 
 void Connection::stopSync()
@@ -1228,7 +1243,7 @@ bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 #ifdef Quotient_E2EE_ENABLED
 QOlmAccount *Connection::olmAccount() const
 {
-    return d->encryptionManager->account();
+    return d->olmAccount.get(); //d->encryptionManager->account();
 }
 #endif // Quotient_E2EE_ENABLED
 
