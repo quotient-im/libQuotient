@@ -213,7 +213,7 @@ bool QOlmSession::hasReceivedMessage() const
     return olm_session_has_received_message(m_session);
 }
 
-std::variant<bool, QOlmError> QOlmSession::matchesInboundSession(QOlmMessage &preKeyMessage)
+std::variant<bool, QOlmError> QOlmSession::matchesInboundSession(const QOlmMessage &preKeyMessage) const
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::Type::PreKey);
     QByteArray oneTimeKeyBuf(preKeyMessage.data());
@@ -223,6 +223,25 @@ std::variant<bool, QOlmError> QOlmSession::matchesInboundSession(QOlmMessage &pr
         return lastError(m_session);
     }
     switch (matchesResult) {
+        case 0:
+            return false;
+        case 1:
+            return true;
+        default:
+            return QOlmError::Unknown;
+    }
+}
+std::variant<bool, QOlmError> QOlmSession::matchesInboundSessionFrom(const QString &theirIdentityKey, const QOlmMessage &preKeyMessage) const
+{
+    const auto theirIdentityKeyBuf = theirIdentityKey.toUtf8();
+    auto oneTimeKeyMessageBuf = preKeyMessage.toCiphertext();
+    const auto error = olm_matches_inbound_session_from(m_session, theirIdentityKeyBuf.data(), theirIdentityKeyBuf.length(),
+            oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
+
+    if (error == olm_error()) {
+        return lastError(m_session);
+    }
+    switch (error) {
         case 0:
             return false;
         case 1:
