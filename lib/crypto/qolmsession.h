@@ -50,7 +50,10 @@ public:
     bool hasReceivedMessage() const;
 
     //! Checks if the 'prekey' message is for this in-bound session.
-    std::variant<bool, QOlmError> matchesInboundSession(QOlmMessage &preKeyMessage);
+    std::variant<bool, QOlmError> matchesInboundSession(const QOlmMessage &preKeyMessage) const;
+
+    //! Checks if the 'prekey' message is for this in-bound session.
+    std::variant<bool, QOlmError> matchesInboundSessionFrom(const QString &theirIdentityKey, const QOlmMessage &preKeyMessage) const;
 
     friend bool operator<(const QOlmSession& lhs, const QOlmSession& rhs)
     {
@@ -61,6 +64,10 @@ public:
         return *lhs < *rhs;
     }
 
+    OlmSession *raw() const
+    {
+        return m_session;
+    }
     QOlmSession(OlmSession* session);
 private:
     //! Helper function for creating new sessions and handling errors.
