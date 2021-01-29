@@ -99,6 +99,15 @@ private:
     QString m_deviceId;
 };
 
+bool verifyIdentitySignature(const DeviceKeys &deviceKeys,
+                             const QString &deviceId,
+                             const QString &userId);
+
+//! checks if the signature is signed by the signing_key
+bool ed25519VerifySignature(QString signingKey,
+                              QJsonObject obj,
+                              QString signature);
+
 } // namespace Quotient
 
 #endif
