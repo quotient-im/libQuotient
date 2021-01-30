@@ -163,207 +163,130 @@ void TestOlmAccount::encryptedFile()
     QCOMPARE(file.key.kty, "oct");
 }
 
+#define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME) \
+    auto VAR = std::make_shared<Connection>(); \
+    (VAR) ->resolveServer("@alice:localhost:" + QString::number(443)); \
+    connect( (VAR) .get(), &Connection::loginFlowsChanged, this, [this, VAR ] () { \
+        (VAR) ->loginWithPassword( (USERNAME) , SECRET , DEVICE_NAME , ""); \
+    }); \
+    connect( (VAR) .get(), &Connection::networkError, [=](QString error, const QString &, int, int) { \
+        QFAIL("Network error: make sure synapse is running"); \
+    }); \
+    connect( (VAR) .get(), &Connection::loginError, [=](QString error, const QString &) { \
+        QFAIL("Login failed"); \
+    }); \
+    QSignalSpy spy ## VAR ((VAR).get(), &Connection::loginFlowsChanged); \
+    QSignalSpy spy2 ## VAR ((VAR).get(), &Connection::connected); \
+    QVERIFY(spy ## VAR .wait(10000)); \
+    QVERIFY(spy2 ## VAR .wait(10000));
+
 void TestOlmAccount::uploadIdentityKey()
 {
-    auto conn = new Connection();
-    conn->resolveServer("@alice:localhost:" + QString::number(443));
-    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
-        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
-        connect(conn, &Connection::connected, this, [this, conn] {
-            auto olmAccount = conn->olmAccount();
-            auto idKeys = olmAccount->identityKeys();
+    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
 
-            QVERIFY(idKeys.curve25519.size() > 10);
-            QVERIFY(idKeys.curve25519.size() > 10);
+    auto olmAccount = conn->olmAccount();
+    auto idKeys = olmAccount->identityKeys();
 
+    QVERIFY(idKeys.curve25519.size() > 10);
+    QVERIFY(idKeys.curve25519.size() > 10);
 
-            OneTimeKeys unused;
-            auto request = olmAccount->createUploadKeyRequest(unused);
-            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-                auto job2 = static_cast<UploadKeysJob *>(job);
-                QCOMPARE(job2->oneTimeKeyCounts().size(), 0);
-            });
-            connect(request, &BaseJob::failure, this, [] {
-                QFAIL("upload failed");
-            });
-            conn->run(request);
-            QSignalSpy spy3(request, &BaseJob::result);
-            QVERIFY(spy3.wait(10000));
-        });
-        connect(conn, &Connection::networkError, [=](QString error, const QString &, int, int) {
-            QFAIL("Network error: make sure synapse is running");
-        });
-        connect(conn, &Connection::loginError, [=](QString error, const QString &) {
-            QFAIL("Login failed");
-        });
+    OneTimeKeys unused;
+    auto request = olmAccount->createUploadKeyRequest(unused);
+    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+        auto job2 = static_cast<UploadKeysJob *>(job);
+        QCOMPARE(job2->oneTimeKeyCounts().size(), 0);
     });
-
-    connect(conn, &Connection::resolveError, this, [=](QString error) {
-        QFAIL("Network error: make sure synapse is running");
+    connect(request, &BaseJob::failure, this, [] {
+        QFAIL("upload failed");
     });
-    connect(conn, &Connection::loginError, this, [=] {
-        QFAIL("Network error: make sure synapse is running");
-    });
-
-    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
-    QSignalSpy spy2(conn, &Connection::connected);
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy2.wait(10000));
-    delete conn;
+    conn->run(request);
+    QSignalSpy spy3(request, &BaseJob::result);
+    QVERIFY(spy3.wait(10000));
 }
 
 void TestOlmAccount::uploadOneTimeKeys()
 {
-    auto conn = new Connection();
-    conn->resolveServer("@alice:localhost:" + QString::number(443));
-    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
-        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
-        connect(conn, &Connection::connected, this, [this, conn] {
-            auto olmAccount = conn->olmAccount();
+    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    auto olmAccount = conn->olmAccount();
 
-            auto nKeys = olmAccount->generateOneTimeKeys(5);
-            QCOMPARE(nKeys, 5);
+    auto nKeys = olmAccount->generateOneTimeKeys(5);
+    QCOMPARE(nKeys, 5);
 
-            auto oneTimeKeys = olmAccount->oneTimeKeys();
+    auto oneTimeKeys = olmAccount->oneTimeKeys();
 
-            QHash<QString, QVariant> oneTimeKeysHash;
-            const auto curve = oneTimeKeys.curve25519();
-            for (const auto &[keyId, key] : asKeyValueRange(curve)) {
-                oneTimeKeysHash["curve25519:"+keyId] = key;
-            }
-            auto request = new UploadKeysJob(none, oneTimeKeysHash);
-            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-                auto job2 = static_cast<UploadKeysJob *>(job);
-                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-                QCOMPARE(job2->oneTimeKeyCounts()["curve25519"], 5);
-            });
-            connect(request, &BaseJob::failure, this, [] {
-                QFAIL("upload failed");
-            });
-            conn->run(request);
-            QSignalSpy spy3(request, &BaseJob::result);
-            QVERIFY(spy3.wait(10000));
-        });
+    QHash<QString, QVariant> oneTimeKeysHash;
+    const auto curve = oneTimeKeys.curve25519();
+    for (const auto &[keyId, key] : asKeyValueRange(curve)) {
+        oneTimeKeysHash["curve25519:"+keyId] = key;
+    }
+    auto request = new UploadKeysJob(none, oneTimeKeysHash);
+    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+        auto job2 = static_cast<UploadKeysJob *>(job);
+        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(job2->oneTimeKeyCounts()["curve25519"], 5);
     });
-
-    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
-    QSignalSpy spy2(conn, &Connection::connected);
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy2.wait(10000));
-    delete conn;
+    connect(request, &BaseJob::failure, this, [] {
+        QFAIL("upload failed");
+    });
+    conn->run(request);
+    QSignalSpy spy3(request, &BaseJob::result);
+    QVERIFY(spy3.wait(10000));
 }
 
 void TestOlmAccount::uploadSignedOneTimeKeys()
 {
-    auto conn = new Connection();
-    conn->resolveServer("@alice:localhost:" + QString::number(443));
-    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
-        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
-        connect(conn, &Connection::connected, this, [this, conn] {
-            auto olmAccount = conn->olmAccount();
-            auto nKeys = olmAccount->generateOneTimeKeys(5);
-            QCOMPARE(nKeys, 5);
+    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    auto olmAccount = conn->olmAccount();
+    auto nKeys = olmAccount->generateOneTimeKeys(5);
+    QCOMPARE(nKeys, 5);
 
-            auto oneTimeKeys = olmAccount->oneTimeKeys();
-            QHash<QString, QVariant> oneTimeKeysHash;
-            const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
-            for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
-                QVariant var;
-                var.setValue(key);
-                oneTimeKeysHash[keyId] = var;
-            }
-            auto request = new UploadKeysJob(none, oneTimeKeysHash);
-            connect(request, &BaseJob::result, this, [request, nKeys, conn](BaseJob *job) {
-                auto job2 = static_cast<UploadKeysJob *>(job);
-                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-                QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], nKeys);
-            });
-            connect(request, &BaseJob::failure, this, [] {
-                QFAIL("upload failed");
-            });
-            conn->run(request);
-            QSignalSpy spy3(request, &BaseJob::result);
-            QVERIFY(spy3.wait(10000));
-        });
+    auto oneTimeKeys = olmAccount->oneTimeKeys();
+    QHash<QString, QVariant> oneTimeKeysHash;
+    const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
+    for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
+        QVariant var;
+        var.setValue(key);
+        oneTimeKeysHash[keyId] = var;
+    }
+    auto request = new UploadKeysJob(none, oneTimeKeysHash);
+    connect(request, &BaseJob::result, this, [request, nKeys, conn](BaseJob *job) {
+        auto job2 = static_cast<UploadKeysJob *>(job);
+        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], nKeys);
     });
-
-    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
-    QSignalSpy spy2(conn, &Connection::connected);
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy2.wait(10000));
-    delete conn;
+    connect(request, &BaseJob::failure, this, [] {
+        QFAIL("upload failed");
+    });
+    conn->run(request);
+    QSignalSpy spy3(request, &BaseJob::result);
+    QVERIFY(spy3.wait(10000));
 }
 
 void TestOlmAccount::uploadKeys()
 {
-    auto conn = new Connection();
-    conn->resolveServer("@alice:localhost:" + QString::number(443));
-    connect(conn, &Connection::loginFlowsChanged, this, [this, conn]() {
-        conn->loginWithPassword("alice", "secret", "AlicePhone", "");
-        connect(conn, &Connection::connected, this, [this, conn] {
-            auto olmAccount = conn->olmAccount();
-            auto idks = olmAccount->identityKeys();
-            olmAccount->generateOneTimeKeys(1);
-            auto otks = olmAccount->oneTimeKeys();
-            auto request = olmAccount->createUploadKeyRequest(otks);
-            connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-                auto job2 = static_cast<UploadKeysJob *>(job);
-                QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-                QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
-            });
-            connect(request, &BaseJob::failure, this, [] {
-                QFAIL("upload failed");
-            });
-            conn->run(request);
-            QSignalSpy spy3(request, &BaseJob::result);
-            QVERIFY(spy3.wait(10000));
-        });
+    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    auto olmAccount = conn->olmAccount();
+    auto idks = olmAccount->identityKeys();
+    olmAccount->generateOneTimeKeys(1);
+    auto otks = olmAccount->oneTimeKeys();
+    auto request = olmAccount->createUploadKeyRequest(otks);
+    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
+        auto job2 = static_cast<UploadKeysJob *>(job);
+        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
-
-    QSignalSpy spy(conn, &Connection::loginFlowsChanged);
-    QSignalSpy spy2(conn, &Connection::connected);
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy2.wait(10000));
-    delete conn;
+    connect(request, &BaseJob::failure, this, [] {
+        QFAIL("upload failed");
+    });
+    conn->run(request);
+    QSignalSpy spy3(request, &BaseJob::result);
+    QVERIFY(spy3.wait(10000));
 }
-
-inline void sleep()
-{
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-}
-
 
 void TestOlmAccount::claimKeys()
 {
-    auto alice = new Connection();
-    alice->resolveServer("@alice:localhost:" + QString::number(443));
-    connect(alice, &Connection::loginFlowsChanged, this, [this, alice]() {
-        alice->loginWithPassword("alice", "secret", "AlicePhone", "");
-        connect(alice, &Connection::connected, this, [this, alice] {
-            qDebug() << "alice->accessToken()" << alice->accessToken();
-            QVERIFY(!alice->accessToken().isEmpty());
-        });
-    });
-
-    QSignalSpy spy(alice, &Connection::loginFlowsChanged);
-    QSignalSpy spy2(alice, &Connection::connected);
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy2.wait(10000));
-
-    auto bob = new Connection();
-    bob->resolveServer("@bob:localhost:" + QString::number(443));
-    connect(bob, &Connection::loginFlowsChanged, this, [this, bob]() {
-        bob->loginWithPassword("bob", "secret", "BobPhone", "");
-        connect(bob, &Connection::connected, this, [this, bob] {
-            qDebug() << "bob->accessToken()" << bob->accessToken();
-            QVERIFY(!bob->accessToken().isEmpty());
-        });
-    });
-
-    QSignalSpy spy3(bob, &Connection::loginFlowsChanged);
-    QSignalSpy spy4(bob, &Connection::connected);
-    QVERIFY(spy3.wait(10000));
-    QVERIFY(spy4.wait(10000));
+    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "alice", "secret", "AlicePhone")
 
     // Bob uploads his keys.
     auto *bobOlm = bob->olmAccount();
@@ -422,8 +345,70 @@ void TestOlmAccount::claimKeys()
             //auto contents = oneTimeKey.begin().value();
         });
     });
-    delete bob;
-    delete alice;
 }
 
+void TestOlmAccount::claimMultipleKeys()
+{
+    // Login with alice multiple times
+    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(alice1, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(alice2, "alice", "secret", "AlicePhone")
+
+    auto olm = alice->olmAccount();
+    olm->generateOneTimeKeys(10);
+    auto res = olm->createUploadKeyRequest(olm->oneTimeKeys());
+    alice->run(res);
+    connect(res, &BaseJob::result, this, [res] {
+        QCOMPARE(res->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(res->oneTimeKeyCounts()["signed_curve25519"], 10);
+    });
+    QSignalSpy spy(res, &BaseJob::result);
+
+    auto olm1 = alice1->olmAccount();
+    olm1->generateOneTimeKeys(10);
+    auto res1 = olm1->createUploadKeyRequest(olm1->oneTimeKeys());
+    alice1->run(res1);
+    connect(res1, &BaseJob::result, this, [res1] {
+        QCOMPARE(res1->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(res1->oneTimeKeyCounts()["signed_curve25519"], 10);
+    });
+    QSignalSpy spy1(res1, &BaseJob::result);
+
+    auto olm2 = alice2->olmAccount();
+    olm2->generateOneTimeKeys(10);
+    auto res2 = olm2->createUploadKeyRequest(olm2->oneTimeKeys());
+    alice2->run(res2);
+    connect(res2, &BaseJob::result, this, [res2] {
+        QCOMPARE(res2->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(res2->oneTimeKeyCounts()["signed_curve25519"], 10);
+    });
+    QSignalSpy spy2(res2, &BaseJob::result);
+
+    QVERIFY(spy.wait(10000));
+    QVERIFY(spy1.wait(10000));
+    QVERIFY(spy2.wait(10000));
+
+    // Bob will claim all keys from alice
+    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+
+    QStringList devices_;
+    devices_ << alice->deviceId()
+             << alice1->deviceId()
+             << alice2->deviceId();
+
+    QHash<QString, QHash<QString, QString>> oneTimeKeys;
+    for (const auto &d : devices_) {
+        oneTimeKeys[alice->userId()] = QHash<QString, QString>();
+        oneTimeKeys[alice->userId()][d] = SignedCurve25519Key;
+    }
+    auto job = bob->callApi<ClaimKeysJob>(oneTimeKeys);
+    connect(job, &BaseJob::result, this, [bob, job] {
+        const auto userId = bob->userId();
+        const auto deviceId = bob->deviceId();
+
+        // The device exists.
+        QCOMPARE(job->oneTimeKeys().size(), 1);
+        QCOMPARE(job->oneTimeKeys()[userId].size(), 3);
+    });
+}
 QTEST_MAIN(TestOlmAccount)
