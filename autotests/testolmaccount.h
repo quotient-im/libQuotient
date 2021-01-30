@@ -3,10 +3,16 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include <QtTest/QtTest>
+#include <QString>
+
+namespace Quotient {
+    class Connection;
+}
 
 class TestOlmAccount : public QObject
 {
     Q_OBJECT
+
 
 private Q_SLOTS:
     void pickleUnpickedTest();
@@ -21,4 +27,5 @@ private Q_SLOTS:
     void uploadSignedOneTimeKeys();
     void uploadKeys();
     void claimKeys();
+    void claimMultipleKeys();
 };
