@@ -272,6 +272,7 @@ bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
     const auto signingKey = deviceKeys.keys[signKeyId];
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
+
     if (signature.isEmpty()) {
         return false;
     }
@@ -292,7 +293,9 @@ bool Quotient::ed25519VerifySignature(QString signingKey,
 
     QJsonDocument doc;
     doc.setObject(obj);
-    auto canonicalJson = doc.toJson();
+    auto canonicalJson = doc.toJson(QJsonDocument::Compact);
+
+    qDebug() << canonicalJson;
 
     QByteArray signingKeyBuf = signingKey.toUtf8();
     QOlmUtility utility;
