@@ -129,10 +129,19 @@ QByteArray QOlmAccount::sign(const QJsonObject &message) const
 QByteArray QOlmAccount::signIdentityKeys() const
 {
     const auto keys = identityKeys();
-    const QJsonObject j{ {Curve25519Key, QString(keys.curve25519)}, {Ed25519Key, QString(keys.ed25519)} };
-    QJsonDocument doc;
-    doc.setObject(j);
-    return sign(doc.toJson());
+    QJsonObject body
+    {
+        {"algorithms", QJsonArray{"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"}},
+        {"user_id", m_userId},
+        {"device_id", m_deviceId},
+        {"keys",
+            QJsonObject{
+                {QStringLiteral("curve25519:") + m_deviceId, QString::fromUtf8(keys.curve25519)},
+                {QStringLiteral("ed25519:") + m_deviceId, QString::fromUtf8(keys.ed25519)}
+            }
+        }
+    };
+    return sign(QJsonDocument(body).toJson(QJsonDocument::Compact));
 
 }
 
@@ -279,7 +288,6 @@ bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
     if (signature.isEmpty()) {
-        qDebug() << "signature empty";
         return false;
     }
 
@@ -305,7 +313,6 @@ bool Quotient::ed25519VerifySignature(const QString &signingKey,
     auto signatureBuf = signature.toUtf8();
     auto result = utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
     if (std::holds_alternative<QOlmError>(result)) {
-        qDebug() << "error:" << std::get<QOlmError>(result);
         return false;
     }
 
