@@ -61,7 +61,6 @@ void TestOlmUtility::verifySignedOneTimeKey()
     auto utilityBuf = new uint8_t[olm_utility_size()];
     auto utility = olm_utility(utilityBuf);
 
-    qDebug() << "1" << aliceOlm->identityKeys().ed25519 << msg << QString::fromUtf8(sig);
 
     QByteArray signatureBuf1(sig.length(), '0');
     std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
@@ -73,7 +72,6 @@ void TestOlmUtility::verifySignedOneTimeKey()
                                  msg.size(),
                                  (void *)sig.data(),
                                  sig.size());
-    qDebug() << "2" << aliceOlm->identityKeys().ed25519 << msg << QString::fromUtf8(signatureBuf1);
 
     QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QCOMPARE(res, 0);

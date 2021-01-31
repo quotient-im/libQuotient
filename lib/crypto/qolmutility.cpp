@@ -20,12 +20,10 @@ QOlmUtility::QOlmUtility()
 {
     auto utility = new uint8_t[olm_utility_size()];
     m_utility = olm_utility(utility);
-    qDebug() << "created";
 }
 
 QOlmUtility::~QOlmUtility()
 {
-    qDebug() << "deleted";
     olm_clear_utility(m_utility);
     delete[](reinterpret_cast<uint8_t *>(m_utility));
 }
@@ -51,19 +49,15 @@ std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
     QByteArray signatureBuf(signature.length(), '0');
     std::copy(signature.begin(), signature.end(), signatureBuf.begin());
 
-    qDebug() << "3" << key << message << signature;
-
     const auto ret = olm_ed25519_verify(m_utility, key.data(), key.size(),
             message.data(), message.size(), (void *)signatureBuf.data(), signatureBuf.size());
 
     const auto error = ret;
     if (error == olm_error()) {
-        qDebug() << QString(olm_utility_last_error(m_utility));
         return lastError(m_utility);
     }
 
     if (ret != 0) {
-        qDebug() << "ed25519Verify" << ret;
         return false;
     }
     return true;
