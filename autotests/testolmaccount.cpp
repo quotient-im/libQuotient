@@ -309,10 +309,9 @@ void TestOlmAccount::claimKeys()
     deviceKeys[bob->userId()] = QStringList();
     auto job = alice->callApi<QueryKeysJob>(deviceKeys);
     connect(job, &BaseJob::result, this, [bob, alice, aliceOlm, job, this] {
+        qDebug() << job->jsonData();
         auto bobDevices = job->deviceKeys()[bob->userId()];
         QVERIFY(bobDevices.size() > 0);
-
-        auto devices = {bob->deviceId()};
 
         // Retrieve the identity key for the current device.
         auto bobEd25519 =
@@ -324,10 +323,9 @@ void TestOlmAccount::claimKeys()
         QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(), bob->userId()));
 
         QHash<QString, QHash<QString, QString>> oneTimeKeys;
-        for (const auto &d : devices) {
-            oneTimeKeys[bob->userId()] = QHash<QString, QString>();
-            oneTimeKeys[bob->userId()][d] = SignedCurve25519Key;
-        }
+        oneTimeKeys[bob->userId()] = QHash<QString, QString>();
+        oneTimeKeys[bob->userId()][bob->deviceId()] = SignedCurve25519Key;
+
         auto job = alice->callApi<ClaimKeysJob>(oneTimeKeys);
         connect(job, &BaseJob::result, this, [aliceOlm, bob, bobEd25519, job] {
             const auto userId = bob->userId();
