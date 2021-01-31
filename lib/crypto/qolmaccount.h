@@ -72,6 +72,8 @@ public:
 
     UploadKeysJob *createUploadKeyRequest(const OneTimeKeys &oneTimeKeys);
 
+    DeviceKeys getDeviceKeys() const;
+
     //! Remove the one time key used to create the supplied session.
     [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const;
 
@@ -104,9 +106,9 @@ bool verifyIdentitySignature(const DeviceKeys &deviceKeys,
                              const QString &userId);
 
 //! checks if the signature is signed by the signing_key
-bool ed25519VerifySignature(QString signingKey,
-                              QJsonObject obj,
-                              QString signature);
+bool ed25519VerifySignature(const QString &signingKey,
+                            const QJsonObject &obj,
+                            const QString &signature);
 
 } // namespace Quotient
 

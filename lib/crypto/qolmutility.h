@@ -36,7 +36,7 @@ public:
     //! \param message QByteArray The message that was signed.
     //! \param signature QByteArray The signature of the message.
     std::variant<bool, QOlmError> ed25519Verify(const QByteArray &key,
-            const QByteArray &message, QByteArray &signature);
+            const QByteArray &message, const QByteArray &signature);
 
 
 private:
