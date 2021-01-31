@@ -309,7 +309,6 @@ void TestOlmAccount::claimKeys()
     deviceKeys[bob->userId()] = QStringList();
     auto job = alice->callApi<QueryKeysJob>(deviceKeys);
     connect(job, &BaseJob::result, this, [bob, alice, aliceOlm, job, this] {
-        qDebug() << job->jsonData();
         auto bobDevices = job->deviceKeys()[bob->userId()];
         QVERIFY(bobDevices.size() > 0);
 
@@ -337,7 +336,16 @@ void TestOlmAccount::claimKeys()
 
             // The key is the one bob sent.
             auto oneTimeKey = job->oneTimeKeys()[userId][deviceId];
-            QVERIFY(oneTimeKey.canConvert<SignedOneTimeKey>());
+            QVERIFY(oneTimeKey.canConvert<QVariantMap>());
+
+            QVariantMap varMap = oneTimeKey.toMap();
+            bool found = false;
+            for (const auto key : varMap.keys()) {
+                if (key.startsWith(QStringLiteral("signed_curve25519"))) {
+                    found = true;
+                }
+            }
+            QVERIFY(found);
 
             //auto algo = oneTimeKey.begin().key();
             //auto contents = oneTimeKey.begin().value();
