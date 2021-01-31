@@ -110,10 +110,10 @@ IdentityKeys QOlmAccount::identityKeys() const
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
-    const size_t signatureLength = olm_account_signature_length(m_account);
-    QByteArray signatureBuffer(signatureLength, '0');
+    QByteArray signatureBuffer(olm_account_signature_length(m_account), '0');
+
     const auto error = olm_account_sign(m_account, message.data(), message.length(),
-            signatureBuffer.data(), signatureLength);
+            signatureBuffer.data(), signatureBuffer.length());
 
     if (error == olm_error()) {
         throw lastError(m_account);
@@ -216,9 +216,8 @@ OlmAccount *Quotient::QOlmAccount::data()
     return m_account;
 }
 
-UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
+DeviceKeys QOlmAccount::getDeviceKeys() const
 {
-
     DeviceKeys deviceKeys;
     deviceKeys.userId = m_userId;
     deviceKeys.deviceId = m_deviceId;
@@ -230,6 +229,13 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
 
     const auto sign = signIdentityKeys();
     deviceKeys.signatures[m_userId]["ed25519:" + m_deviceId] = sign;
+
+    return deviceKeys;
+}
+
+UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
+{
+    auto deviceKeys = getDeviceKeys();
 
     if (oneTimeKeys.curve25519().isEmpty()) {
         return new UploadKeysJob(deviceKeys);
@@ -272,36 +278,34 @@ bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
     const auto signingKey = deviceKeys.keys[signKeyId];
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
-
     if (signature.isEmpty()) {
+        qDebug() << "signature empty";
         return false;
     }
 
     return ed25519VerifySignature(signingKey, toJson(deviceKeys), signature);
 }
 
-bool Quotient::ed25519VerifySignature(QString signingKey,
-                              QJsonObject obj,
-                              QString signature)
+bool Quotient::ed25519VerifySignature(const QString &signingKey,
+                              const QJsonObject &obj,
+                              const QString &signature)
 {
     if (signature.isEmpty()) {
         return false;
     }
+    QJsonObject obj1 = obj;
 
-    obj.remove("unsigned");
-    obj.remove("signatures");
+    obj1.remove("unsigned");
+    obj1.remove("signatures");
 
-    QJsonDocument doc;
-    doc.setObject(obj);
-    auto canonicalJson = doc.toJson(QJsonDocument::Compact);
-
-    qDebug() << canonicalJson;
+    auto canonicalJson = QJsonDocument(obj1).toJson(QJsonDocument::Compact);
 
     QByteArray signingKeyBuf = signingKey.toUtf8();
     QOlmUtility utility;
     auto signatureBuf = signature.toUtf8();
     auto result = utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
     if (std::holds_alternative<QOlmError>(result)) {
+        qDebug() << "error:" << std::get<QOlmError>(result);
         return false;
     }
 
