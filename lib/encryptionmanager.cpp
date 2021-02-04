@@ -69,7 +69,7 @@ public:
     UploadKeysJob* uploadOneTimeKeysJob = nullptr;
     QueryKeysJob* queryKeysJob = nullptr;
 
-    QScopedPointer<QOlmAccount> olmAccount;
+    std::unique_ptr<QOlmAccount> olmAccount;
 
     float signedKeysProportion;
     float oneTimeKeyThreshold;
@@ -350,7 +350,7 @@ QByteArray EncryptionManager::olmAccountPickle()
 
 QOlmAccount *EncryptionManager::account() const
 {
-    return d->olmAccount.data();
+    return d->olmAccount.get();
 }
 
 void EncryptionManager::Private::updateKeysToUpload()

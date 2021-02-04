@@ -70,7 +70,12 @@ public:
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
 
+    /// Mark the current set of one time keys as published.
+    void markKeysAsPublished() const;
+
     UploadKeysJob *createUploadKeyRequest(const OneTimeKeys &oneTimeKeys);
+
+    UploadKeysJob *createUploadKeyRequest();
 
     DeviceKeys getDeviceKeys() const;
 

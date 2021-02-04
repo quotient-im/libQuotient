@@ -8,7 +8,7 @@
 
 #include "connectiondata.h"
 #ifdef Quotient_E2EE_ENABLED
-#    include "encryptionmanager.h"
+#    include "crypto/encryptionmanager_p.h"
 #endif // Quotient_E2EE_ENABLED
 #include "room.h"
 #include "settings.h"
@@ -52,6 +52,7 @@
 #include <QtNetwork/QDnsLookup>
 
 using namespace Quotient;
+
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
 template <typename HashT, typename Pred>
@@ -105,15 +106,18 @@ public:
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
+    // Encryption related variable.
 #ifdef Quotient_E2EE_ENABLED
-    std::unique_ptr<QOlmAccount> olmAccount;
-    //QScopedPointer<EncryptionManager> encryptionManager;
+    EncryptionManager *encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
     QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
+    // Allows to know if it's the first time we do a sync job.
+    // Useful for devices changed job.
+    bool initialSync = true;
     QPointer<LogoutJob> logoutJob = nullptr;
 
     bool cacheState = true;
@@ -150,6 +154,11 @@ public:
     void consumeAccountData(Events&& accountDataEvents);
     void consumePresenceData(Events&& presenceData);
     void consumeToDeviceEvents(Events&& toDeviceEvents);
+
+#ifdef Quotient_E2EE_ENABLED
+    void uploadOneTimeKeys(bool forceUpdate = false);
+    void ensureOneTimeKeyCount(const QMap<QString, uint16_t> &counts);
+#endif
 
     template <typename EventT>
     EventT* unpackAccountData() const
@@ -428,8 +437,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        //encryptionManager->uploadIdentityKeys(q);
-        //encryptionManager->uploadOneTimeKeys(q);
+        encryptionManager->uploadIdentityKeys();
+        encryptionManager->uploadOneTimeKeys();
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -448,21 +457,8 @@ void Connection::Private::completeSetup(const QString& mxId)
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-    AccountSettings accountSettings(data->userId());
-
-    // init olmAccount
-    olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId());
-
-    if (accountSettings.encryptionAccountPickle().isEmpty()) {
-        // create new account and save unpickle data
-        olmAccount->createNewAccount();
-        accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(olmAccount->pickle(Unencrypted{})));
-        // TODO handle pickle errors
-    } else {
-        // account already existing
-        auto pickle = accountSettings.encryptionAccountPickle();
-        olmAccount->unpickle(pickle, Unencrypted{});
-    }
+    encryptionManager = new EncryptionManager(data->userId(), data->deviceId(),
+            q);
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
     emit q->connected();
@@ -551,7 +547,8 @@ void Connection::sync(int timeout)
         callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
                          timeout);
     connect(job, &SyncJob::success, this, [this, job] {
-        onSyncSuccess(job->takeData());
+        onSyncSuccess(job->takeData(), false, d->initialSync);
+        d->initialSync = false;
         d->syncJob = nullptr;
         emit syncDone();
     });
@@ -613,7 +610,7 @@ QJsonObject toJson(const DirectChatsMap& directChats)
     return json;
 }
 
-void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
+void Connection::onSyncSuccess(SyncData&& data, bool fromCache, bool initialSync)
 {
     d->data->setLastEvent(data.nextBatch());
     d->consumeRoomData(data.takeRoomData(), fromCache);
@@ -622,16 +619,21 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
     // handling device_one_time_keys_count
-    //if (!d->encryptionManager)
-    //{
-    //    qCDebug(E2EE) << "Encryption manager is not there yet, updating "
-    //                     "one-time key counts will be skipped";
-    //    return;
-    //}
-    //if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
-    //        !deviceOneTimeKeysCount.isEmpty())
-    //    d->encryptionManager->updateOneTimeKeyCounts(this,
-    //                                                 deviceOneTimeKeysCount);
+    d->encryptionManager->ensureOneTimeKeyCount(data.deviceOneTimeKeysCount());
+    if (initialSync) {
+        QStringList usersToTrack;
+        for (const auto &room: allRooms()) {
+            if (room->usesEncryption()) {
+                for (const auto &user : room->users()) {
+                    usersToTrack.append(user->id());
+                }
+            }
+        }
+        d->encryptionManager->trackUsersDevices(usersToTrack);
+        d->encryptionManager->getKeysChangesSince(data.nextBatch());
+    } else {
+        d->encryptionManager->updateDevices(data.takeDevicesList().changed, data.nextBatch());
+    }
 #endif // Quotient_E2EE_ENABLED
 }
 
@@ -1240,7 +1242,7 @@ bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 #ifdef Quotient_E2EE_ENABLED
 QOlmAccount *Connection::olmAccount() const
 {
-    return d->olmAccount.get(); //d->encryptionManager->account();
+    return d->encryptionManager->olmAccount();
 }
 #endif // Quotient_E2EE_ENABLED
 
@@ -1651,6 +1653,7 @@ void Connection::saveState() const
                            { QStringLiteral("events"), accountDataEvents } });
     }
 
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     const auto data =
         d->cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
@@ -1664,6 +1667,7 @@ void Connection::saveState() const
 
     outFile.write(data.data(), data.size());
     qCDebug(MAIN) << "State cache saved to" << outFile.fileName();
+
 }
 
 void Connection::loadState()
@@ -1674,6 +1678,8 @@ void Connection::loadState()
     QElapsedTimer et;
     et.start();
 
+    d->encryptionManager->load();
+
     SyncData sync { d->topLevelStatePath() };
     if (sync.nextBatch().isEmpty()) // No token means no cache by definition
         return;
@@ -1682,10 +1688,11 @@ void Connection::loadState()
         qCWarning(MAIN) << "State cache incomplete, discarding";
         return;
     }
+
     // TODO: to handle load failures, instead of the above block:
     // 1. Do initial sync on failed rooms without saving the nextBatch token
     // 2. Do the sync across all rooms as normal
-    onSyncSuccess(std::move(sync), true);
+    onSyncSuccess(std::move(sync), true, false);
     qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }
 

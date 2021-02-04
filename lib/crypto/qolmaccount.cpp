@@ -242,6 +242,16 @@ DeviceKeys QOlmAccount::getDeviceKeys() const
     return deviceKeys;
 }
 
+void QOlmAccount::markKeysAsPublished() const
+{
+    olm_account_mark_keys_as_published(m_account);
+}
+
+UploadKeysJob *QOlmAccount::createUploadKeyRequest()
+{
+    return createUploadKeyRequest(oneTimeKeys());
+}
+
 UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
 {
     auto deviceKeys = getDeviceKeys();

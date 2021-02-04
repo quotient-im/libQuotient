@@ -90,7 +90,8 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
     endif()
 
-    find_package(OpenSSL 1.1.0 REQUIRED)
+    find_package(OpenSSL REQUIRED)
+    #find_package(OpenSSL 1.1.0 REQUIRED COMPONENTS SSL Crypto)
     set_package_properties(OpenSSL PROPERTIES
         DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
         URL "https://www.openssl.org/"
@@ -148,7 +149,6 @@ set(lib_SRCS
     lib/networksettings.cpp
     lib/converters.cpp
     lib/util.cpp
-    lib/encryptionmanager.cpp
     lib/eventitem.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
@@ -185,6 +185,7 @@ set(lib_SRCS
     lib/crypto/qolmerrors.cpp
     lib/crypto/qolmsession.cpp
     lib/crypto/qolmmessage.cpp
+    lib/crypto/encryptionmanager.cpp
 )
 
 set(CSAPI_DIR csapi)

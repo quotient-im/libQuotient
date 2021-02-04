@@ -64,6 +64,34 @@ inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
     return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
 
+QDebug Quotient::operator<<(QDebug dbg, const DevicesList& devicesList)
+{
+    QDebugStateSaver _(dbg);
+    QStringList sl;
+    if (!devicesList.changed.isEmpty())
+        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "));
+    if (!devicesList.left.isEmpty())
+        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "));
+    dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
+    return dbg;
+}
+
+void JsonObjectConverter<DevicesList>::dumpTo(QJsonObject& jo,
+                                              const DevicesList& rs)
+{
+    addParam<IfNotEmpty>(jo, QStringLiteral("changed"),
+                         rs.changed);
+    addParam<IfNotEmpty>(jo, QStringLiteral("left"),
+                         rs.left);
+}
+
+void JsonObjectConverter<DevicesList>::fillFrom(const QJsonObject& jo,
+                                                DevicesList& rs)
+{
+    fromJson(jo["changed"_ls], rs.changed);
+    fromJson(jo["left"_ls], rs.left);
+}
+
 SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
                            const QJsonObject& room_)
     : roomId(roomId_)
@@ -128,6 +156,8 @@ Events&& SyncData::takeAccountData() { return std::move(accountData); }
 
 Events&& SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
 
+DevicesList&& SyncData::takeDevicesList() { return std::move(devicesList); }
+
 QJsonObject SyncData::loadJson(const QString& fileName)
 {
     QFile roomFile { fileName };
@@ -166,6 +196,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     presenceData = load<Events>(json, "presence"_ls);
     accountData = load<Events>(json, "account_data"_ls);
     toDeviceEvents = load<Events>(json, "to_device"_ls);
+    devicesList = load<DevicesList>(json, "device_lists"_ls);
 
     fromJson(json.value("device_one_time_keys_count"_ls),
              deviceOneTimeKeysCount_);

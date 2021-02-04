@@ -318,7 +318,8 @@ public:
     QByteArray accessToken() const;
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
-    QOlmAccount* olmAccount() const;
+    /// Get the corresponding QOlmAccount to this account.
+    QOlmAccount *olmAccount() const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -857,7 +858,7 @@ protected:
     /**
      * Completes loading sync data.
      */
-    void onSyncSuccess(SyncData&& data, bool fromCache = false);
+    void onSyncSuccess(SyncData&& data, bool fromCache = false,  bool initialSync = false);
 
 protected Q_SLOTS:
     void syncLoopIteration();
