@@ -282,7 +282,8 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL)
-    set(FIND_DEPS "find_dependency(Olm OpenSSL)") # For QuotientConfig.cmake.in
+    set(FIND_DEPS "find_dependency(Olm)
+    find_dependency(OpenSSL)") # For QuotientConfig.cmake.in
 endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
 
