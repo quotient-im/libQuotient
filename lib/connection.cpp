@@ -191,6 +191,9 @@ public:
 
     EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
+        if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+            return encryptionManager->handleOlmMessage(encryptedEvent);
+        }
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
         /*

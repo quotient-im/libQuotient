@@ -4,7 +4,7 @@
 // SPDX-license-identifier: lgpl-2.1-or-later
 
 #include "crypto/encryptionmanager_p.h"
-#include "settings.h"
+#include "events/eventloader.h"
 #include "syncdata.h"
 #include "connection.h"
 
@@ -15,17 +15,15 @@ constexpr int MAX_ONETIME_KEYS = 50;
 EncryptionManager::EncryptionManager(const QString &userId,
         const QString &deviceId, Connection *connection)
     : QObject(connection)
+    , m_accountSettings(AccountSettings(userId))
     , m_connection(connection)
 {
-    AccountSettings accountSettings(userId);
-
     // Init olmAccount
     m_olmAccount = std::make_unique<QOlmAccount>(userId, deviceId);
 
-    if (accountSettings.encryptionAccountPickle().isEmpty()) {
+    if (m_accountSettings.encryptionAccountPickle().isEmpty()) {
         // create new account and save unpickle data
         m_olmAccount->createNewAccount();
-        accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(m_olmAccount->pickle(Unencrypted{})));
         // TODO handle pickle errors
 
         // Upload one time keys for the device.
@@ -34,15 +32,17 @@ EncryptionManager::EncryptionManager(const QString &userId,
         m_connection->run(job);
         connect(job, &BaseJob::result, this, [job, this] {
             m_olmAccount->markKeysAsPublished();
+            m_accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(m_olmAccount->pickle(Unencrypted{})));
         });
         connect(job, &BaseJob::failure, this, [job, this] {
             // todo handle failure
             // 404 -> server doesn't support key upload
             // other -> it's a fatal error
         });
+        m_accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(m_olmAccount->pickle(Unencrypted{})));
     } else {
         // account already existing
-        auto pickle = accountSettings.encryptionAccountPickle();
+        auto pickle = m_accountSettings.encryptionAccountPickle();
         m_olmAccount->unpickle(pickle, Unencrypted{});
     }
 }
@@ -100,7 +100,6 @@ void EncryptionManager::trackUserDevices(const QString &userId)
     auto job =  m_connection->callApi<QueryKeysJob>(deviceKeys);
     m_queryKeysJob.insert(userId, job);
     connect(job, &BaseJob::result, this, [this, userId, job] {
-        qDebug() << job << job->deviceKeys().keys() << job->jsonData() << userId;
         auto devices = job->deviceKeys()[userId];
         m_devices.insert(userId, devices);
         m_outdatedUserDevices.removeOne(userId);
@@ -130,13 +129,11 @@ void EncryptionManager::trackUsersDevices(const QStringList &users)
     for (const auto &userId : qAsConst(usersToTrack)) {
         deviceKeys[userId] = QStringList();
     }
-    qDebug() << "list" << deviceKeys;
     auto job =  m_connection->callApi<QueryKeysJob>(deviceKeys);
     for (const auto &userId : qAsConst(usersToTrack)) {
         m_queryKeysJob.insert(userId, job);
     }
-    connect(job, &BaseJob::result, this, [this, &usersToTrack, job] {
-        qDebug() << job << job->deviceKeys().keys() << job->jsonData();
+    connect(job, &BaseJob::result, this, [this, usersToTrack, job] {
         for (const auto &userId : qAsConst(usersToTrack)) {
             auto devices = job->deviceKeys()[userId];
             m_devices.insert(userId, devices);
@@ -154,6 +151,7 @@ void EncryptionManager::save()
     obj.insert("trackedUserDevices", QJsonArray::fromStringList(m_trackedUserDevices));
     obj.insert("outdatedUserDevices", QJsonArray::fromStringList(m_outdatedUserDevices));
     obj.insert("nextBatch", m_nextBatch);
+    //obj.insert("devices", fillJson(objDevices));
 
     QFile deviceFile { m_connection->stateCacheDir().filePath("devices.json") };
     if (deviceFile.open(QFile::WriteOnly | QFile::Text)) {
@@ -165,7 +163,6 @@ void EncryptionManager::save()
         const auto deviceData = json.toJson(QJsonDocument::Compact);
 #endif
         deviceFile.write(deviceData.data(), deviceData.size());
-        qDebug() << "writing to " << m_connection->stateCacheDir().filePath("devices.json");
     }
 }
 
@@ -180,6 +177,7 @@ void EncryptionManager::load()
             m_trackedUserDevices = fromJson<QStringList>(obj["trackedUserDevices"]);
             m_outdatedUserDevices = fromJson<QStringList>(obj["outdatedUserDevices"]);
             m_nextBatch = fromJson<QString>(obj["nextBatch"]);
+            m_devices = fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(obj["devices"]);
         }
     }
 }
@@ -187,7 +185,7 @@ void EncryptionManager::load()
 void EncryptionManager::getKeysChangesSince(const QString &nextBatch)
 {
     auto getKeysChangesJob = m_connection->callApi<GetKeysChangesJob>(m_nextBatch, nextBatch);
-    connect(getKeysChangesJob, &BaseJob::success, this, [this, &nextBatch, getKeysChangesJob] {
+    connect(getKeysChangesJob, &BaseJob::result, this, [this, nextBatch, getKeysChangesJob] {
         updateDevices(getKeysChangesJob->changed(), nextBatch);
     });
 }
@@ -235,8 +233,7 @@ void EncryptionManager::updateDevices(const QStringList &changed, const QString 
     for (const auto &userId : qAsConst(usersToDownload)) {
         m_queryKeysJob.insert(userId, job);
     }
-    connect(job, &BaseJob::result, this, [this, &usersToDownload, job] {
-        qDebug() << job << job->deviceKeys().keys();
+    connect(job, &BaseJob::result, this, [this, usersToDownload, job] {
         for (const auto &userId : qAsConst(usersToDownload)) {
             if (!job->deviceKeys().contains(userId)) {
                 continue;
@@ -247,4 +244,161 @@ void EncryptionManager::updateDevices(const QStringList &changed, const QString 
         }
         save();
     });
+}
+
+EventPtr EncryptionManager::handleOlmMessage(const EncryptedEvent& encryptedEvent)
+{
+    // handle olm message
+    const auto myKey = m_olmAccount->identityKeys().curve25519;
+
+    const auto ciphertext = encryptedEvent.ciphertext(myKey);
+
+    if (!ciphertext.has_value()) {
+        return {};
+    }
+
+    // 0 = > OLM_PRE_KEY, 1 => OLM_MESSAGE
+    const auto type = ciphertext->value("type").toInt();
+
+    const QOlmMessage message(ciphertext->value("body").toString().toUtf8(),
+                              type == 0 ? QOlmMessage::Type::PreKey : QOlmMessage::Type::General);
+
+    auto document = tryToHandle(encryptedEvent.senderKey(), message);
+
+    if (document.isEmpty()) {
+        // Check for prekey message
+        if (type == 0) {
+            document = handlePreKeyOlmMessage(encryptedEvent.senderId(), encryptedEvent.senderKey().toUtf8(), message);
+        }
+    }
+
+
+    return {};
+}
+
+QJsonDocument EncryptionManager::tryToHandle(const QString &senderKey, const QOlmMessage &message)
+{
+    const auto sessionIds = getOlmSessions(senderKey);
+
+    for (const auto &sessionId : sessionIds) {
+        auto session = getOlmSession(senderKey, sessionId);
+        if (!session) {
+            continue;
+        }
+
+        auto result = session->decrypt(message);
+        if (std::holds_alternative<QOlmError>(result)) {
+            qDebug() << "failed to decrypt olm message with sessionId:" << sessionId;
+            continue;
+        }
+        const auto text = std::get<QString>(result);
+
+        // save new session
+        // TODO error handling
+        saveOlmSession(sessionId, std::move(session), QDateTime::currentMSecsSinceEpoch());
+
+        return QJsonDocument::fromJson(text.toUtf8());
+    }
+    return {};
+}
+
+void EncryptionManager::saveAccount()
+{
+    m_accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(m_olmAccount->pickle(Unencrypted{})));
+}
+
+QJsonDocument EncryptionManager::handlePreKeyOlmMessage(const QString &sender, const QByteArray &senderKey,
+                                                        const QOlmMessage &message)
+{
+
+    auto inboundSessionResult = m_olmAccount->createInboundSessionFrom(senderKey, message);
+
+    if (std::holds_alternative<QOlmError>(inboundSessionResult)) {
+        qDebug() << "failed to create inbound session with" << sender;
+        return {};
+    }
+    // We also remove the one time key used to establish that
+    // session so we'll have to update our copy of the account object.
+    saveAccount();
+
+    auto inboundSession = std::get<std::unique_ptr<QOlmSession>>(std::move(inboundSessionResult));
+    auto matches = inboundSession->matchesInboundSessionFrom(senderKey, message);
+    if (auto res = std::get_if<bool>(&matches); res) {
+        qDebug() << "inbound olm session doesn't match sender's key" << sender;
+    }
+
+    auto textResult = inboundSession->decrypt(message);
+
+    if (std::holds_alternative<QOlmError>(textResult)) {
+        qDebug() << "failed to decrypt olm message" << message;
+        return {};
+    }
+
+    auto doc = QJsonDocument::fromJson(std::get<QString>(textResult).toUtf8());
+
+    saveOlmSession(senderKey, std::move(inboundSession), QDateTime::currentMSecsSinceEpoch());
+    return doc;
+}
+
+void EncryptionManager::saveOlmSession(const QString &curve25519, std::unique_ptr<QOlmSession> olmSession,
+        uint64_t timestamp)
+{
+    const auto sessionPickle = std::get<QByteArray>(olmSession->pickle(Unencrypted {}));
+    const auto sessionId = olmSession->sessionId();
+
+    StoredOlmSession storedOlmSession;
+    storedOlmSession.lastMessageTimestamp = timestamp;
+    storedOlmSession.pickedSession = sessionPickle;
+
+    QFile f {  m_connection->stateCacheDir().filePath(QStringLiteral("curve25519/") + curve25519 + QStringLiteral(".json")) };
+
+    if (f.open(QFile::ReadWrite | QFile::Text)) {
+        QTextStream in(&f);
+        auto doc = QJsonDocument::fromJson(in.readAll().toUtf8());
+
+        auto sessionObj = doc.object();
+        sessionObj.insert(sessionId, toJson(storedOlmSession));
+
+        doc.setObject(sessionObj);
+        const auto data = doc.toJson();
+
+        f.write(data.data(), data.size());
+    } else {
+        qDebug() << "Couldn't save olm session";
+    }
+}
+
+std::unique_ptr<QOlmSession> EncryptionManager::getOlmSession(const QString &curve25519,
+        const QString &sessionId)
+{
+    QFile f {  m_connection->stateCacheDir().filePath(QStringLiteral("curve25519/") + curve25519 + QStringLiteral(".json")) };
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        QTextStream in(&f);
+        const auto doc = QJsonDocument::fromJson(in.readAll().toUtf8());
+        const auto sessionObj = doc.object();
+        if (!sessionObj.contains(sessionId)) {
+            return nullptr;
+        }
+
+        const auto storedOlmSession = fromJson<StoredOlmSession>(sessionObj.value(sessionId));
+
+        auto olmSession = std::get<std::unique_ptr<QOlmSession>>(QOlmSession::unpickle(storedOlmSession.pickedSession, Unencrypted {}));
+        // todo error handling
+        return olmSession;
+    }
+    return nullptr;
+}
+
+QStringList EncryptionManager::getOlmSessions(const QString &curve25519)
+{
+    // TODO opening and closing a file for each session key is not optional
+    // Investigate caching it in memory with getOlmSessions and persisting
+    // after each save.
+    QFile f {  m_connection->stateCacheDir().filePath(QStringLiteral("curve25519/") + curve25519 + QStringLiteral(".json")) };
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        QTextStream in(&f);
+        const auto doc = QJsonDocument::fromJson(in.readAll().toUtf8());
+        return doc.object().keys();
+    }
+    return {};
 }

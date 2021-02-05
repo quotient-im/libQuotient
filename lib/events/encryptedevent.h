@@ -5,6 +5,7 @@
 
 #include "crypto/e2ee.h"
 #include "roomevent.h"
+#include <optional>
 
 namespace Quotient {
 class Room;
@@ -54,9 +55,14 @@ public:
     {
         return content<QString>(CiphertextKeyL).toLatin1();
     }
-    QJsonObject ciphertext(const QString& identityKey) const
+    /// Get the corresponding ciphertext for the identityKey (if it exists).
+    std::optional<QJsonObject> ciphertext(const QString& identityKey) const
     {
-        return content<QJsonObject>(CiphertextKeyL).value(identityKey).toObject();
+        const auto ciphertextForKey = content<QJsonObject>(CiphertextKeyL).value(identityKey);
+        if (!ciphertextForKey.isUndefined()) {
+            return ciphertextForKey.toObject();
+        }
+        return std::nullopt;
     }
     QString senderKey() const { return content<QString>(SenderKeyKeyL); }
 

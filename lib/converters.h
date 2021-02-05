@@ -128,6 +128,11 @@ struct JsonConverter<qint64> : public TrivialJsonDumper<qint64> {
 };
 
 template <>
+struct JsonConverter<uint64_t> : public TrivialJsonDumper<qint64> {
+    static auto load(const QJsonValue& jv) { return uint64_t(jv.toInt()); }
+};
+
+template <>
 struct JsonConverter<QString> : public TrivialJsonDumper<QString> {
     static auto load(const QJsonValue& jv) { return jv.toString(); }
 };

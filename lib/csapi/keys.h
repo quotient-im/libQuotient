@@ -133,6 +133,16 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
         fillFromJson<DeviceKeys>(jo, result);
         fromJson(jo.value("unsigned"_ls), result.unsignedData);
     }
+
+    static void dumpTo(QJsonObject& jo, const QueryKeysJob::DeviceInformation& pod)
+    {
+        addParam<>(jo, QStringLiteral("user_id"), pod.userId);
+        addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
+        addParam<>(jo, QStringLiteral("algorithms"), pod.algorithms);
+        addParam<>(jo, QStringLiteral("keys"), pod.keys);
+        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        //addParam<IfNotEmpty>(jo, QStringLiteral("unsigned"), pod.unsignedData);
+    }
 };
 
 /*! \brief Claim one-time encryption keys.
