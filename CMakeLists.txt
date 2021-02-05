@@ -153,6 +153,7 @@ list(APPEND lib_SRCS
     lib/events/encryptedevent.cpp
     lib/events/roomkeyevent.cpp
     lib/events/stickerevent.cpp
+    lib/events/keyverificationevent.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp
