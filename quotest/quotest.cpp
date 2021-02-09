@@ -513,12 +513,7 @@ TEST_IMPL(changeName)
 TEST_IMPL(showLocalUsername)
 {
     auto* const localUser = connection()->user();
-    if (localUser->name().contains("@")) {
-        // it is using the id fallback :(
-        FAIL_TEST();
-    }
-    FINISH_TEST(true);
-    return false;
+    FINISH_TEST(localUser->name().contains("@"));
 }
 
 TEST_IMPL(sendAndRedact)
