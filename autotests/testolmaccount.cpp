@@ -188,7 +188,6 @@ void TestOlmAccount::uploadIdentityKey()
     auto idKeys = olmAccount->identityKeys();
 
     QVERIFY(idKeys.curve25519.size() > 10);
-    QVERIFY(idKeys.curve25519.size() > 10);
 
     OneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
