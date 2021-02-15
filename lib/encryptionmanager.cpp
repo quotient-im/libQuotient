@@ -333,10 +333,10 @@ QString EncryptionManager::sessionDecryptMessage(
     int type = personalCipherObject.value(TypeKeyL).toInt(-1);
     QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
     if (type == 0) {
-        QOlmMessage preKeyMessage = QOlmMessage(body, QOlmMessage::PreKey);
+        QOlmMessage preKeyMessage(body, QOlmMessage::PreKey);
         decrypted = d->sessionDecrypt(preKeyMessage, senderKey);
     } else if (type == 1) {
-        QOlmMessage message = QOlmMessage(body, QOlmMessage::PreKey);
+        QOlmMessage message(body, QOlmMessage::PreKey);
         decrypted = d->sessionDecrypt(message, senderKey);
     }
     return decrypted;
