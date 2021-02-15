@@ -513,7 +513,7 @@ TEST_IMPL(changeName)
 TEST_IMPL(showLocalUsername)
 {
     auto* const localUser = connection()->user();
-    FINISH_TEST(localUser->name().contains("@"));
+    FINISH_TEST(!localUser->name().contains("@"));
 }
 
 TEST_IMPL(sendAndRedact)
