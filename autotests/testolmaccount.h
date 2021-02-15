@@ -15,7 +15,7 @@ class TestOlmAccount : public QObject
 
 
 private Q_SLOTS:
-    void pickleUnpickedTest();
+    void pickleUnpickledTest();
     void identityKeysValid();
     void signatureValid();
     void oneTimeKeysValid();
