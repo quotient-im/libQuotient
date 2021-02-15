@@ -65,7 +65,7 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "crypto/qolmaccount.h"
+#include "crypto/qolmaccount.h"
 #    include "crypto/qolmerrors.h"
 #    include "crypto/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED

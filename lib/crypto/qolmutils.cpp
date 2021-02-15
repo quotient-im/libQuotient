@@ -12,7 +12,7 @@ using namespace Quotient;
 QByteArray Quotient::toKey(const Quotient::PicklingMode &mode)
 {
     if (std::holds_alternative<Quotient::Unencrypted>(mode)) {
-        return "";
+        return {};
     }
     return std::get<Quotient::Encrypted>(mode).key;
 }
