@@ -350,7 +350,7 @@ QByteArray EncryptionManager::olmAccountPickle()
 
 QOlmAccount *EncryptionManager::account() const
 {
-    return d->olmAccount.data();
+    return d->olmAccount.get();
 }
 
 void EncryptionManager::Private::updateKeysToUpload()
