@@ -69,7 +69,7 @@ public:
     UploadKeysJob* uploadOneTimeKeysJob = nullptr;
     QueryKeysJob* queryKeysJob = nullptr;
 
-    QScopedPointer<QOlmAccount> olmAccount;
+    std::unique_ptr<QOlmAccount> olmAccount;
 
     float signedKeysProportion;
     float oneTimeKeyThreshold;

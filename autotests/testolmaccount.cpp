@@ -9,7 +9,7 @@
 
 using namespace Quotient;
 
-void TestOlmAccount::pickleUnpickedTest()
+void TestOlmAccount::pickleUnpickledTest()
 {
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     olmAccount.createNewAccount();
@@ -73,7 +73,7 @@ void TestOlmAccount::deviceKeys()
 {
     // copied from mtxclient
     DeviceKeys device1;
-    device1.userId   = "@alice:example.com";
+    device1.userId = "@alice:example.com";
     device1.deviceId = "JLAFKJWSCS";
     device1.keys = {{"curve25519:JLAFKJWSCS", "3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI"},
                     {"ed25519:JLAFKJWSCS", "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"}};
