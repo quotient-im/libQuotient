@@ -17,10 +17,10 @@ QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 QVariant Quotient::JsonConverter<QVariant>::load(const QJsonValue& jv)
 {
     if (jv.isObject()) {
-        QJsonObject obj = jv.toObject();
-        if (obj.contains("key") && obj.contains("signatures")) {
+        const QJsonObject obj = jv.toObject();
+        if (obj.contains(QLatin1String("key")) && obj.contains(QLatin1String("signatures"))) {
             SignedOneTimeKey signedOneTimeKeys;
-            signedOneTimeKeys.key = obj["key"].toString();
+            signedOneTimeKeys.key = obj[QLatin1String("key")].toString();
         }
     }
     return jv.toVariant();
