@@ -101,6 +101,7 @@ private slots:
     TEST_DECL(setTopic)
     TEST_DECL(changeName)
     TEST_DECL(sendAndRedact)
+    TEST_DECL(showLocalUsername)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
     TEST_DECL(visitResources)
@@ -506,6 +507,13 @@ TEST_IMPL(changeName)
                      FINISH_TEST(localUser->name() == newName);
                  });
     return false;
+}
+
+
+TEST_IMPL(showLocalUsername)
+{
+    auto* const localUser = connection()->user();
+    FINISH_TEST(!localUser->name().contains("@"));
 }
 
 TEST_IMPL(sendAndRedact)

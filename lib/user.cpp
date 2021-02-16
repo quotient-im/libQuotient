@@ -49,6 +49,16 @@ User::User(QString userId, Connection* connection)
     : QObject(connection), d(new Private(move(userId)))
 {
     setObjectName(id());
+    if (connection->userId() == id()) {
+        // Load profile information for local user.
+        auto *profileJob = connection->callApi<GetUserProfileJob>(id());
+        connect(profileJob, &BaseJob::result, this, [this, profileJob] {
+            d->defaultName = profileJob->displayname();
+            d->defaultAvatar = Avatar(QUrl(profileJob->avatarUrl()));
+            emit defaultNameChanged();
+            emit defaultAvatarChanged();
+        });
+    }
 }
 
 Connection* User::connection() const
