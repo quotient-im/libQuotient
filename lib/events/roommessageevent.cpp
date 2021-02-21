@@ -313,7 +313,7 @@ TextContent::TextContent(const QJsonObject& json)
     const auto actualJson = isReplacement(relatesTo)
                                 ? json.value("m.new_content"_ls).toObject()
                                 : json;
-    // Special-casing the custom matrix.org's (actually, Riot's) way
+    // Special-casing the custom matrix.org's (actually, Element's) way
     // of sending HTML messages.
     if (actualJson["format"_ls].toString() == HtmlContentTypeId) {
         mimeType = HtmlMimeType;
