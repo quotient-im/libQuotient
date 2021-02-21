@@ -7,13 +7,19 @@
 using namespace Quotient;
 
 struct ReplacePair { QByteArray uriString; char sigil; };
-/// Defines bi-directional mapping of path prefixes and sigils
+/// \brief Defines bi-directional mapping of path prefixes and sigils
+///
+/// When there are two prefixes for the same sigil, the first matching
+/// entry for a given sigil is used.
 static const auto replacePairs = {
-    ReplacePair { "user/", '@' },
+    ReplacePair { "u/", '@' },
+    { "user/", '@' },
     { "roomid/", '!' },
+    { "r/", '#' },
     { "room/", '#' },
     // The notation for bare event ids is not proposed in MSC2312 but there's
     // https://github.com/matrix-org/matrix-doc/pull/2644
+    { "e/", '$' },
     { "event/", '$' }
 };
 
@@ -94,7 +100,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
         case 2:
             break;
         case 4:
-            if (splitPath[2] == "event")
+            if (splitPath[2] == "event" || splitPath[2] == "e")
                 break;
             [[fallthrough]];
         default:
@@ -147,7 +153,8 @@ Uri::Type Uri::type() const { return primaryType_; }
 
 Uri::SecondaryType Uri::secondaryType() const
 {
-    return pathSegment(*this, 2) == "event" ? EventId : NoSecondaryId;
+    const auto& type2 = pathSegment(*this, 2);
+    return type2 == "event" || type2 == "e" ? EventId : NoSecondaryId;
 }
 
 QUrl Uri::toUrl(UriForm form) const
