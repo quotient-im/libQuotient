@@ -88,8 +88,7 @@ a commit without a DCO is an accident and the DCO still applies.
 
 Unless a contributor explicitly specifies otherwise, we assume contributors
 to agree that all contributed code is released either under *LGPL v2.1 or later*.
-This is more than just [LGPL v2.1 libQuotient now uses](./COPYING)
-because the project plans to switch to LGPL v3 for library code in the near future.
+The project plans to switch to LGPL v3 for library code in the near future.
 <!-- The below is invalid yet!
 All new contributed material that is not executable, including all text when not executed, is also released under the
 [Creative Commons Attribution 4.0 International (CC BY 4.0) license](https://creativecommons.org/licenses/by/4.0/) or later.

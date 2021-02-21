@@ -14,7 +14,7 @@ The Quotient project aims to produce a Qt5-based SDK to develop applications
 for [Matrix](https://matrix.org). libQuotient is a library that enables client
 applications. It is the backbone of
 [Quaternion](https://github.com/quotient-im/Quaternion),
-[Spectral](https://matrix.org/docs/projects/client/spectral.html) and
+[NeoChat](https://matrix.org/docs/projects/client/neo-chat) and
 other projects.
 Versions 0.5.x and older use the previous name - libQMatrixClient.
 
@@ -77,8 +77,8 @@ If you use CMake, `find_package(Quotient)` sets up the client code to use
 libQuotient, assuming the library development files are installed. There's no
 documented procedure to use a preinstalled library with qmake; consider
 introducing a submodule in your source tree and build it along with the rest
-of the application for now. Note also that qmake is considered for phase-out
-in Qt 6 so you should probably think of moving over to CMake eventually.
+of the application for now. Note also that qmake is no more supported
+in libQuotient 0.7 so you should really think of moving over to CMake.
 
 Building with dynamic linkage is only tested on Linux at the moment and is
 a recommended way of linking your application with libQuotient on this platform.
@@ -89,7 +89,8 @@ with dynamic linking and submit PRs if you get reusable results.
 most common use cases such as sending messages, uploading files,
 setting room state etc.; for more extensive usage check out the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion)
-(the reference client of Quotient) or [Spectral](https://gitlab.com/b0/spectral).
+(the reference client of Quotient) or
+[NeoChat](https://invent.kde.org/network/neochat).
 
 To ease the first step, `tests/CMakeLists.txt` is a good starting point
 for your own CMake-based project using libQuotient.
@@ -160,7 +161,7 @@ with the _installed_ library. Installation of the `quotest` binary
 along with the rest of the library can be skipped
 by setting `Quotient_INSTALL_TESTS` to `OFF`.
 
-### qmake-based
+### qmake-based (deprecated)
 The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `quotest.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
 ```shell script
 qmake quotest.pro
@@ -173,8 +174,7 @@ run a sync long-polling loop and do some tests of the library API. Note that
 qmake didn't really know about C++17 until Qt 5.12 so if your Qt is older
 you may have quite a bit of warnings during the compilation process.
 
-Installing the standalone library with qmake is not implemented yet; PRs are
-welcome though.
+Installing the standalone library with qmake has not been implemented.
 
 ## Troubleshooting
 
