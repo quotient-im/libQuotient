@@ -733,12 +733,15 @@ TEST_IMPL(visitResources)
         roomId, "matrix:roomid/" + roomId.mid(1),
         "https://matrix.to/#/%21"/*`!`*/ + roomId.mid(1),
         roomAlias, "matrix:room/" + roomAlias.mid(1),
+        "matrix:r/" + roomAlias.mid(1),
         "https://matrix.to/#/" + roomAlias,
     };
     const QStringList userUris { userId, "matrix:user/" + userId.mid(1),
+                                 "matrix:u/" + userId.mid(1),
                                  "https://matrix.to/#/" + userId };
     const QStringList eventUris {
         "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
+        "matrix:r/" + roomAlias.mid(1) + "/e/" + eventId.mid(1),
         "https://matrix.to/#/" + roomId + '/' + eventId
     };
     // Check that reserved characters are correctly processed.
@@ -752,6 +755,7 @@ TEST_IMPL(visitResources)
     static const QStringList joinByAliasUris {
         Uri(joinRoomAlias.toUtf8(), {}, joinQuery.mid(1)).toDisplayString(),
         "matrix:room/" + encodedRoomAliasNoSigil + joinQuery,
+        "matrix:r/" + encodedRoomAliasNoSigil + joinQuery,
         "https://matrix.to/#/%23"/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
         "https://matrix.to/#/%23" + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
     };
