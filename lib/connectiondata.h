@@ -29,6 +29,7 @@ public:
     bool needsToken(const QString& requestName) const;
     QNetworkAccessManager* nam() const;
 
+    void ignoreSslErrors(bool ignore = true) const;
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);
     void setDeviceId(const QString& deviceId);
