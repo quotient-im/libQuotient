@@ -165,6 +165,7 @@ void TestOlmAccount::encryptedFile()
 
 #define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME) \
     auto VAR = std::make_shared<Connection>(); \
+    VAR->ignoreSslErrors(true); \
     (VAR) ->resolveServer("@alice:localhost:" + QString::number(443)); \
     connect( (VAR) .get(), &Connection::loginFlowsChanged, this, [this, VAR ] () { \
         (VAR) ->loginWithPassword( (USERNAME) , SECRET , DEVICE_NAME , ""); \
