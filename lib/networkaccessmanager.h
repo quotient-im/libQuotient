@@ -19,6 +19,7 @@ public:
     QList<QSslError> ignoredSslErrors() const;
     void addIgnoredSslError(const QSslError& error);
     void clearIgnoredSslErrors();
+    void ignoreSslErrors(bool ignore = true) const;
 
     /** Get a pointer to the singleton */
     static NetworkAccessManager* instance();
