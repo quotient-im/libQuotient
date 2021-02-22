@@ -476,6 +476,11 @@ public:
         setUserFactory(defaultUserFactory<T>());
     }
 
+    /// Ignore ssl errors (usefull for automated testing with local synapse
+    /// instance).
+    /// \internal
+    void ignoreSslErrors(bool ignore);
+
 public Q_SLOTS:
     /** Set the homeserver base URL */
     void setHomeserver(const QUrl& baseUrl);
