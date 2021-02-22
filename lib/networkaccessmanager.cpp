@@ -16,15 +16,24 @@ public:
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
     : QNetworkAccessManager(parent), d(std::make_unique<Private>())
 {
-    connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors)
-            {
-                reply->ignoreSslErrors();
-            });
 }
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 {
     return d->ignoredSslErrors;
+}
+
+void NetworkAccessManager::ignoreSslErrors(bool ignore) const
+{
+    if (ignore) {
+        connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors)
+                {
+    qDebug() << 24 / 0;
+                    reply->ignoreSslErrors();
+                });
+    } else {
+        disconnect(this, &QNetworkAccessManager::sslErrors, this, nullptr);
+    }
 }
 
 void NetworkAccessManager::addIgnoredSslError(const QSslError& error)
