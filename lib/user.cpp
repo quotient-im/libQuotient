@@ -154,6 +154,11 @@ bool User::setAvatar(QIODevice* source)
     return doSetAvatar(source);
 }
 
+void User::removeAvatar()
+{
+    connection()->callApi<SetAvatarUrlJob>(id(), "");
+}
+
 void User::requestDirectChat() { connection()->requestDirectChat(this); }
 
 void User::ignore() { connection()->addToIgnoredUsers(this); }

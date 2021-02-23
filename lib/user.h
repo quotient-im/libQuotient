@@ -117,6 +117,8 @@ public Q_SLOTS:
     bool setAvatar(const QString& fileName);
     /// Upload contents of the QIODevice and set that as an avatar
     bool setAvatar(QIODevice* source);
+    /// Removes the avatar from the profile
+    void removeAvatar();
     /// Create or find a direct chat with this user
     /*! The resulting chat is returned asynchronously via
      * Connection::directChatAvailable()
