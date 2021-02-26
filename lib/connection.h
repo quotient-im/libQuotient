@@ -354,6 +354,11 @@ public:
      * \sa loadingCapabilities */
     QVector<SupportedRoomVersion> availableRoomVersions() const;
 
+    /// Indicate if the user can change its password from the client.
+    /// This is often not the case when SSO is enabled.
+    /// \sa loadingCapabilities
+    bool canChangePassword() const;
+
     /**
      * Call this before first sync to load from previously saved file.
      *

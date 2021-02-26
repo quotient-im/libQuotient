@@ -1745,6 +1745,14 @@ QStringList Connection::stableRoomVersions() const
     return l;
 }
 
+bool Connection::canChangePassword() const
+{
+    // By default assume we can
+    return d->capabilities.changePassword
+           ? d->capabilities.changePassword->enabled
+           : true;
+}
+
 inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
                             const Connection::SupportedRoomVersion& v2)
 {
