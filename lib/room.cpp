@@ -2632,27 +2632,22 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                                        << p.receipts.size() << "users";
             }
             const auto newMarker = findInTimeline(p.evtId);
-            if (newMarker != timelineEdge()) {
-                for (const Receipt& r : p.receipts) {
-                    if (r.userId == connection()->userId())
-                        continue; // FIXME, #185
-                    auto* const u = user(r.userId);
-                    if (u && memberJoinState(u) == JoinState::Join)
-                        changes |= d->promoteReadMarker(u, newMarker);
-                }
-            } else {
+            if (newMarker != timelineEdge())
                 qCDebug(EPHEMERAL) << "Event" << p.evtId
                                    << "not found; saving read receipts anyway";
-                // If the event is not found (most likely, because it's too old
-                // and hasn't been fetched from the server yet), but there is
-                // a previous marker for a user, keep the previous marker.
-                // Otherwise, blindly store the event id for this user.
-                for (const Receipt& r : p.receipts) {
-                    if (r.userId == connection()->userId())
-                        continue; // FIXME, #185
-                    auto* const u = user(r.userId);
-                    if (u && memberJoinState(u) == JoinState::Join
-                        && readMarker(u) == timelineEdge())
+            for (const Receipt& r : p.receipts) {
+                auto* const u = user(r.userId);
+                if (u == localUser())
+                    continue; // The local user has m.fully_read but FIXME: #464
+                if (u && memberJoinState(u) == JoinState::Join) {
+                    // If the event is not found (most likely, because it's
+                    // too old and hasn't been fetched from the server yet)
+                    // but there is a previous marker for a user, keep
+                    // the previous marker (XXX: why??). Otherwise, blindly
+                    // store the event id for this user.
+                    if (newMarker != timelineEdge())
+                        changes |= d->promoteReadMarker(u, newMarker);
+                    else if (readMarker(u) == timelineEdge())
                         changes |= d->setLastReadEvent(u, p.evtId);
                 }
             }
