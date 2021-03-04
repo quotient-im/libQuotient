@@ -24,9 +24,9 @@ UriResolveResult UriResolverBase::visitResource(Connection* account,
     case Uri::UserId: {
         if (uri.action() == "join")
             return IncorrectAction;
-        auto* user = account->user(uri.primaryId());
-        Q_ASSERT(user != nullptr);
-        return visitUser(user, uri.action());
+        if (auto* const user = account->user(uri.primaryId()))
+            return visitUser(user, uri.action());
+        return InvalidUri;
     }
     case Uri::RoomId:
     case Uri::RoomAlias: {

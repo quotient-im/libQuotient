@@ -1460,7 +1460,9 @@ QString Room::roomMembername(const User* u) const
 
 QString Room::roomMembername(const QString& userId) const
 {
-    return roomMembername(user(userId));
+    if (auto* const u = user(userId))
+        return roomMembername(u);
+    return {};
 }
 
 QString Room::safeMemberName(const QString& userId) const
@@ -2349,7 +2351,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         // the new message events.
         if (const auto senderId = (*from)->senderId(); !senderId.isEmpty()) {
             auto* const firstWriter = q->user(senderId);
-            if (q->readMarker(firstWriter) != timeline.crend()) {
+            if (firstWriter && q->readMarker(firstWriter) != timeline.crend()) {
                 roomChanges |=
                     promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
                 qCDebug(MESSAGES)
@@ -2418,6 +2420,13 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     if (!e.isStateEvent())
         return Change::NoChange;
 
+    auto* const sender = user(e.senderId());
+    if (!sender) {
+        qCWarning(MAIN) << "State event" << e.id()
+                        << "is invalid and won't be processed";
+        return Change::NoChange;
+    }
+
     // Find a value (create an empty one if necessary) and get a reference
     // to it. Can't use getCurrentState<>() because it (creates and) returns
     // a stub if a value is not found, and what's needed here is a "real" event
@@ -2426,9 +2435,9 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // Prepare for the state change
     const auto oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
     visit(e, [this, &oldRme](const RoomMemberEvent& rme) {
-        auto* u = user(rme.userId());
-        if (!u) { // ???
-            qCCritical(MAIN)
+        auto* const u = user(rme.userId());
+        if (!u) { // Invalid user id?
+            qCWarning(MAIN)
                 << "Could not get a user object for" << rme.userId();
             return;
         }
@@ -2517,9 +2526,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 emit avatarChanged();
             return AvatarChange;
         }
-        , [this,oldRme] (const RoomMemberEvent& evt) {
+        , [this,oldRme,sender] (const RoomMemberEvent& evt) {
             // clang-format on
             auto* u = user(evt.userId());
+            if (!u)
+                return NoChange; // Already warned earlier
             // TODO: remove in 0.7
             u->processEvent(evt, this, oldRme == nullptr);
 
@@ -2539,7 +2550,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 if (!d->usersInvited.contains(u))
                     d->usersInvited.push_back(u);
                 if (u == localUser() && evt.isDirect())
-                    connection()->addToDirectChats(this, user(evt.senderId()));
+                    connection()->addToDirectChats(this, sender);
                 break;
             case MembershipType::Knock:
             case MembershipType::Ban:
@@ -2599,8 +2610,8 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     if (auto* evt = eventCast<TypingEvent>(event)) {
         d->usersTyping.clear();
         for (const QString& userId : qAsConst(evt->users())) {
-            auto u = user(userId);
-            if (memberJoinState(u) == JoinState::Join)
+            auto* const u = user(userId);
+            if (u && memberJoinState(u) == JoinState::Join)
                 d->usersTyping.append(u);
         }
         if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
@@ -2625,8 +2636,8 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
-                    auto u = user(r.userId);
-                    if (memberJoinState(u) == JoinState::Join)
+                    auto* const u = user(r.userId);
+                    if (u && memberJoinState(u) == JoinState::Join)
                         changes |= d->promoteReadMarker(u, newMarker);
                 }
             } else {
@@ -2639,8 +2650,8 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
-                    auto u = user(r.userId);
-                    if (memberJoinState(u) == JoinState::Join
+                    auto* const u = user(r.userId);
+                    if (u && memberJoinState(u) == JoinState::Join
                         && readMarker(u) == timelineEdge())
                         changes |= d->setLastReadEvent(u, p.evtId);
                 }

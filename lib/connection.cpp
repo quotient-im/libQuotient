@@ -691,7 +691,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
 
                 DirectChatsMap remoteAdditions;
                 for (auto it = usersToDCs.begin(); it != usersToDCs.end(); ++it) {
-                    if (auto* u = q->user(it.key())) {
+                    if (auto* const u = q->user(it.key())) {
                         if (!directChats.contains(u, it.value())
                             && !dcLocalRemovals.contains(u, it.value())) {
                             Q_ASSERT(!directChatUsers.contains(it.value(), u));
@@ -924,6 +924,12 @@ Connection::createRoom(RoomVisibility visibility, const QString& alias,
                        const QJsonObject& creationContent)
 {
     invites.removeOne(userId()); // The creator is by definition in the room
+    for (const auto& i : invites)
+        if (!user(i)) {
+            qCWarning(MAIN) << "Won't create a room with malformed invitee ids";
+            return nullptr;
+        }
+
     auto job = callApi<CreateRoomJob>(visibility == PublishRoom
                                           ? QStringLiteral("public")
                                           : QStringLiteral("private"),
@@ -958,7 +964,7 @@ void Connection::requestDirectChat(User* u)
 void Connection::doInDirectChat(const QString& userId,
                                 const std::function<void(Room*)>& operation)
 {
-    if (auto* u = user(userId))
+    if (auto* const u = user(userId))
         doInDirectChat(u, operation);
     else
         qCCritical(MAIN)
