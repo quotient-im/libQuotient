@@ -71,4 +71,21 @@ public:
     QStringList aliases() const { return content().value; }
 };
 REGISTER_EVENT_TYPE(RoomAliasesEvent)
+
+class RoomPinnedEvent
+    : public StateEvent<EventContent::SimpleContent<QStringList>>
+{
+public:
+    DEFINE_EVENT_TYPEID("m.room.pinned_messages", RoomPinnedEvent)
+
+    explicit RoomPinnedEvent(const QJsonObject& json)
+        : StateEvent(typeId(), json, QStringLiteral("pinned"))
+    { }
+    explicit RoomPinnedEvent(const QStringList& roomEvents)
+        : StateEvent(typeId(), matrixTypeId(), {},
+                     QStringLiteral("pinned"), roomEvents)
+    { }
+    QStringList pinnedEvents() const { return content().value; }
+};
+REGISTER_EVENT_TYPE(RoomPinnedEvent)
 } // namespace Quotient

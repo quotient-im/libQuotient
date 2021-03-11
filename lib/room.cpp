@@ -557,6 +557,16 @@ QString Room::canonicalAlias() const
 
 QString Room::displayName() const { return d->displayname; }
 
+QList<const RoomEvent*> Room::pinnedEvents() const
+{
+    QStringList events = d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
+    QList<const RoomEvent*> pinnedEvents;
+    QStringList::iterator i;
+    for (i = events.begin(); i != events.end(); ++i)
+        pinnedEvents.append(findInTimeline(*i)->event());
+    return pinnedEvents;
+}
+
 void Room::refreshDisplayName() { d->updateDisplayname(); }
 
 QString Room::topic() const
@@ -1830,6 +1840,10 @@ void Room::setCanonicalAlias(const QString& newAlias)
     d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
+void Room::setPinnedMessages(const QStringList& events)
+{
+    d->requestSetState<RoomPinnedEvent>(events);
+}
 void Room::setLocalAliases(const QStringList& aliases)
 {
     d->requestSetState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);

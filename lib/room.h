@@ -191,6 +191,7 @@ public:
     QStringList altAliases() const;
     QStringList aliases() const;
     QString displayName() const;
+    QList<const RoomEvent*> pinnedEvents() const;
     QString topic() const;
     QString avatarMediaId() const;
     QUrl avatarUrl() const;
@@ -566,6 +567,7 @@ public Q_SLOTS:
     SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
     void setName(const QString& newName);
     void setCanonicalAlias(const QString& newAlias);
+    void setPinnedMessages(const QStringList& events);
     /// Set room aliases on the user's current server
     void setLocalAliases(const QStringList& aliases);
     void setTopic(const QString& newTopic);
