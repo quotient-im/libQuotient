@@ -562,8 +562,11 @@ QList<const RoomEvent*> Room::pinnedEvents() const
     QStringList events = d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
     QList<const RoomEvent*> pinnedEvents;
     QStringList::iterator i;
-    for (i = events.begin(); i != events.end(); ++i)
-        pinnedEvents.append(findInTimeline(*i)->event());
+    for (i = events.begin(); i != events.end(); ++i) {
+        auto timelineItem = findInTimeline(*i); 
+        if (timelineItem != historyEdge())
+            pinnedEvents.append(timelineItem->event());
+    }
     return pinnedEvents;
 }
 
