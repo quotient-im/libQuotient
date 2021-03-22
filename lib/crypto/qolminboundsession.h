@@ -4,8 +4,6 @@
 
 #pragma once
 
-#ifdef Quotient_E2EE_ENABLED
-
 #include <QByteArray>
 #include <variant>
 #include <memory>
@@ -48,4 +46,3 @@ private:
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
 using OlmInboundGroupSessionPtr = std::unique_ptr<OlmInboundGroupSession>;
 } // namespace Quotient
-#endif

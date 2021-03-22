@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #pragma once
-#ifdef Quotient_E2EE_ENABLED
 
 #include <QByteArray>
 
@@ -14,4 +13,3 @@ namespace Quotient {
 QByteArray toKey(const PicklingMode &mode);
 QByteArray getRandom(size_t bufferSize);
 }
-#endif
