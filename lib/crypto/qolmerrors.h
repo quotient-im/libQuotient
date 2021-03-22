@@ -4,7 +4,6 @@
 
 #pragma once
 
-#ifdef Quotient_E2EE_ENABLED
 #include <string>
 
 namespace Quotient {
@@ -27,5 +26,3 @@ enum QOlmError
 QOlmError fromString(const std::string &error_raw);
 
 } //namespace Quotient
-
-#endif

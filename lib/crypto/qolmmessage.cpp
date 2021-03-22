@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "qolmmessage.h"
 
 using namespace Quotient;
@@ -34,9 +33,3 @@ QOlmMessage QOlmMessage::fromCiphertext(const QByteArray &ciphertext)
 {
     return QOlmMessage(ciphertext, QOlmMessage::General);
 }
-
-
-#endif // Quotient_E2EE_ENABLED
-
-
-

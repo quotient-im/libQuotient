@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2021 Carl Schwan <carlschwan@kde.org>
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
+
 #pragma once
-#ifdef Quotient_E2EE_ENABLED
 
 #include "csapi/keys.h"
 #include "crypto/e2ee.h"
@@ -111,5 +111,3 @@ bool ed25519VerifySignature(const QString &signingKey,
                             const QString &signature);
 
 } // namespace Quotient
-
-#endif
