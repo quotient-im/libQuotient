@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "crypto/qolmutility.h"
 #include "olm/olm.h"
 #include <QDebug>
@@ -62,6 +61,3 @@ std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
     }
     return true;
 }
-
-
-#endif

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "qolmoutboundsession.h"
 #include "crypto/qolmutils.h"
 
@@ -127,5 +126,3 @@ std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::sessionKey() const
     }
     return keyBuffer;
 }
-
-#endif
