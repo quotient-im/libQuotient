@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "crypto/qolmutils.h"
 #include <QDebug>
 #include <openssl/rand.h>
@@ -23,4 +22,3 @@ QByteArray Quotient::getRandom(size_t bufferSize)
     RAND_bytes(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size());
     return buffer;
 }
-#endif

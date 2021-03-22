@@ -4,7 +4,6 @@
 
 #pragma once
 
-#ifdef Quotient_E2EE_ENABLED
 #include <QObject>
 #include <variant>
 #include "crypto/qolmerrors.h"
@@ -44,5 +43,3 @@ private:
 
 };
 }
-
-#endif
