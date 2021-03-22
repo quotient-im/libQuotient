@@ -4,8 +4,6 @@
 
 #pragma once
 
-#ifdef Quotient_E2EE_ENABLED
-
 #include <QObject>
 #include <QByteArray>
 
@@ -40,7 +38,4 @@ private:
     Type m_messageType = General;
 };
 
-
 } //namespace Quotient
-
-#endif // Quotient_E2EE_ENABLED

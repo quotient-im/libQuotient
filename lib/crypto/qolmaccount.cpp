@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "qolmaccount.h"
 #include "connection.h"
 #include "csapi/keys.h"
@@ -318,5 +317,3 @@ bool Quotient::ed25519VerifySignature(const QString &signingKey,
 
     return std::get<bool>(result);
 }
-
-#endif
