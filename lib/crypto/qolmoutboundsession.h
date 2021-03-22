@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2021 Carl Schwan <carlschwan@kde.org>
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
+
 #pragma once
-#ifdef Quotient_E2EE_ENABLED
 
 #include "olm/olm.h"
 #include "crypto/qolmerrors.h"
@@ -51,4 +51,3 @@ private:
 using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
 using OlmOutboundGroupSessionPtr = std::unique_ptr<OlmOutboundGroupSession>;
 }
-#endif

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#ifdef Quotient_E2EE_ENABLED
 #include "qolmsession.h"
 #include "crypto/qolmutils.h"
 #include "logging.h"
@@ -255,8 +254,3 @@ QOlmSession::QOlmSession(OlmSession *session)
     : m_session(session)
 {
 }
-
-#endif // Quotient_E2EE_ENABLED
-
-
-

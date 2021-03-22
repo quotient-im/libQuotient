@@ -4,8 +4,6 @@
 
 #pragma once
 
-#ifdef Quotient_E2EE_ENABLED
-
 #include <QDebug>
 #include <olm/olm.h> // FIXME: OlmSession
 #include "crypto/e2ee.h"
@@ -80,5 +78,3 @@ private:
 //using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 } //namespace Quotient
-
-#endif // Quotient_E2EE_ENABLED
