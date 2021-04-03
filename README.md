@@ -85,13 +85,13 @@ a recommended way of linking your application with libQuotient on this platform.
 Static linkage is the default on Windows/macOS; feel free to experiment
 with dynamic linking and submit PRs if you get reusable results.
 
-[Quotest](tests), the test application that comes with libQuotient, includes
+[Quotest](quotest), the test application that comes with libQuotient, includes
 most common use cases such as sending messages, uploading files,
 setting room state etc.; for more extensive usage check out the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion)
 (the reference client of Quotient) or [Spectral](https://gitlab.com/b0/spectral).
 
-To ease the first step, `tests/CMakeLists.txt` is a good starting point
+To ease the first step, `quotest/CMakeLists.txt` is a good starting point
 for your own CMake-based project using libQuotient.
 
 ## Building the library
@@ -155,7 +155,7 @@ You can install the library with CMake:
 cmake --build . --target install
 ```
 This will also install cmake package config files; once this is done, you
-should be able to use [`tests/CMakeLists.txt`](tests/CMakeLists.txt) to compile quotest
+should be able to use [`quotest/CMakeLists.txt`](quotest/CMakeLists.txt) to compile quotest
 with the _installed_ library. Installation of the `quotest` binary
 along with the rest of the library can be skipped
 by setting `Quotient_INSTALL_TESTS` to `OFF`.
