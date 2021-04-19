@@ -10,7 +10,6 @@ using namespace Quotient;
 QOlmError lastError(OlmInboundGroupSession *session) {
     const std::string error_raw = olm_inbound_group_session_last_error(session);
 
-    std::cout << error_raw;
     return fromString(error_raw);
 }
 
@@ -38,7 +37,6 @@ std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const Q
 
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
 }
-
 
 std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::import(const QByteArray &key)
 {
@@ -123,9 +121,9 @@ std::variant<std::pair<QString, uint32_t>, QOlmError> QOlmInboundGroupSession::d
 
 std::variant<QByteArray, QOlmError> QOlmInboundGroupSession::exportSession(uint32_t messageIndex)
 {
-    const auto keyLen = olm_export_inbound_group_session_length(m_groupSession);
-    QByteArray keyBuf(keyLen, '0');
-    const auto error = olm_export_inbound_group_session(m_groupSession, reinterpret_cast<uint8_t *>(keyBuf.data()), keyLen, messageIndex);
+    const auto keyLength = olm_export_inbound_group_session_length(m_groupSession);
+    QByteArray keyBuf(keyLength, '0');
+    const auto error = olm_export_inbound_group_session(m_groupSession, reinterpret_cast<uint8_t *>(keyBuf.data()), keyLength, messageIndex);
 
     if (error == olm_error()) {
         return lastError(m_groupSession);

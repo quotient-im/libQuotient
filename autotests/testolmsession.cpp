@@ -26,7 +26,7 @@ std::pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>> createSess
     const auto preKey = outbound->encrypt(""); // Payload does not matter for PreKey
 
     if (preKey.type() != QOlmMessage::PreKey) {
-        throw "Wrong first message type received, can't create session";
+        QFAIL("Wrong first message type received, can't create session");
     }
     auto inbound = std::get<std::unique_ptr<QOlmSession>>(accountB.createInboundSession(preKey));
     return std::make_pair<std::unique_ptr<QOlmSession>, std::unique_ptr<QOlmSession>>(std::move(inbound), std::move(outbound));

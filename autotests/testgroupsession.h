@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include <QtTest/QtTest>
+#include <QTest>
 
 class TestOlmSession : public QObject
 {
