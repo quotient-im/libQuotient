@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+
 #pragma once
 
 #include "olm/olm.h"
@@ -21,11 +22,11 @@ public:
     //! Creates a new instance of `QOlmOutboundGroupSession`.
     //! Throw OlmError on errors
     static std::unique_ptr<QOlmOutboundGroupSession> create();
-    //! Serialises an `QOlmOutboundGroupSession` to encrypted Base64.
+    //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
     std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> unpickle(const QByteArray &pickled, const PicklingMode &mode);
     //! Encrypts a plaintext message using the session.
     std::variant<QByteArray, QOlmError> encrypt(const QString &plaintext);
 
