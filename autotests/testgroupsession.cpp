@@ -41,7 +41,6 @@ void TestOlmSession::groupSessionCryptoValid()
 
     const auto plainText = QStringLiteral("Hello world!");
     const auto ciphertext = std::get<QByteArray>(ogs->encrypt(plainText));
-    qDebug() << ciphertext;
     // ciphertext valid base64?
     QVERIFY(QByteArray::fromBase64Encoding(ciphertext).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
 

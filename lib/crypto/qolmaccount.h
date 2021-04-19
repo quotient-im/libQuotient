@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+
 #pragma once
 
 #include "csapi/keys.h"
@@ -37,7 +38,7 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! This needs to be called before any other action or use createNewAccount() instead.
-    void unpickle(QByteArray &picked, const PicklingMode &mode);
+    void unpickle(QByteArray &pickled, const PicklingMode &mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
     std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
@@ -62,7 +63,7 @@ public:
     //! Gets the OlmAccount's one time keys formatted as JSON.
     OneTimeKeys oneTimeKeys() const;
 
-    //! Sign all time key.
+    //! Sign all one time keys.
     QMap<QString, SignedOneTimeKey> signOneTimeKeys(const OneTimeKeys &keys) const;
 
     //! Sign one time key.
@@ -84,7 +85,7 @@ public:
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
-    //! \param theirIdentityKey - The identity key of an Olm account that
+    //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
     std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
 

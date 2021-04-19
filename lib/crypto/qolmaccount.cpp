@@ -151,9 +151,9 @@ size_t QOlmAccount::maxNumberOfOneTimeKeys() const
 
 size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
 {
-    const size_t randomLen = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
-    QByteArray randomBuffer = getRandom(randomLen);
-    const auto error = olm_account_generate_one_time_keys(m_account, numberOfKeys, randomBuffer.data(), randomLen);
+    const size_t randomLength = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
+    QByteArray randomBuffer = getRandom(randomLength);
+    const auto error = olm_account_generate_one_time_keys(m_account, numberOfKeys, randomBuffer.data(), randomLength);
 
     if (error == olm_error()) {
         throw lastError(m_account);
@@ -219,12 +219,12 @@ std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const std::unique_ptr<QO
     return std::nullopt;
 }
 
-OlmAccount *Quotient::QOlmAccount::data()
+OlmAccount *QOlmAccount::data()
 {
     return m_account;
 }
 
-DeviceKeys QOlmAccount::getDeviceKeys() const
+DeviceKeys QOlmAccount::deviceKeys() const
 {
     DeviceKeys deviceKeys;
     deviceKeys.userId = m_userId;
@@ -243,7 +243,7 @@ DeviceKeys QOlmAccount::getDeviceKeys() const
 
 UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
 {
-    auto deviceKeys = getDeviceKeys();
+    auto deviceKeys = deviceKeys();
 
     if (oneTimeKeys.curve25519().isEmpty()) {
         return new UploadKeysJob(deviceKeys);
@@ -253,9 +253,7 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
     auto temp = signOneTimeKeys(oneTimeKeys);
     QHash<QString, QVariant> oneTimeKeysSigned;
     for (const auto &[keyId, key] : asKeyValueRange(temp)) {
-        QVariant keyVar;
-        keyVar.setValue(key);
-        oneTimeKeysSigned[keyId] = keyVar;
+        oneTimeKeysSigned[keyId] = QVariant::fromValue(key);
     }
 
     return new UploadKeysJob(deviceKeys, oneTimeKeysSigned);

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+
 #include "qolmerrors.h"
 
 Quotient::QOlmError Quotient::fromString(const std::string &error_raw) {
