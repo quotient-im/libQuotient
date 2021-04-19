@@ -27,11 +27,11 @@ public:
     QString sha256Bytes(const QByteArray &inputBuf) const;
 
     //! Convenience function that converts the UTF-8 message
-    //! to bytes and then calls `sha256_bytes()`, returning its output.
+    //! to bytes and then calls `sha256Bytes()`, returning its output.
     QString sha256Utf8Msg(const QString &message) const;
 
     //! Verify a ed25519 signature.
-    //! \param any QByteArray The public part of the ed25519 key that signed the message.
+    //! \param key QByteArray The public part of the ed25519 key that signed the message.
     //! \param message QByteArray The message that was signed.
     //! \param signature QByteArray The signature of the message.
     std::variant<bool, QOlmError> ed25519Verify(const QByteArray &key,
