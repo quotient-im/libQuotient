@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include <QtTest/QtTest>
+#include <QTest>
 #include <QString>
 
 namespace Quotient {
@@ -12,7 +12,6 @@ namespace Quotient {
 class TestOlmAccount : public QObject
 {
     Q_OBJECT
-
 
 private Q_SLOTS:
     void pickleUnpickledTest();
