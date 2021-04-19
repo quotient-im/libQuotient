@@ -27,8 +27,8 @@ QOlmOutboundGroupSession::~QOlmOutboundGroupSession()
 std::unique_ptr<QOlmOutboundGroupSession> QOlmOutboundGroupSession::create()
 {
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
-    const auto randomLen = olm_init_outbound_group_session_random_length(olmOutboundGroupSession);
-    QByteArray randomBuf = getRandom(randomLen);
+    const auto randomLength = olm_init_outbound_group_session_random_length(olmOutboundGroupSession);
+    QByteArray randomBuf = getRandom(randomLength);
 
     const auto error = olm_init_outbound_group_session(olmOutboundGroupSession,
             reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
@@ -86,8 +86,8 @@ std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> QOlmOutboundG
 std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::encrypt(const QString &plaintext)
 {
     QByteArray plaintextBuf = plaintext.toUtf8();
-    const auto messageMaxLen = olm_group_encrypt_message_length(m_groupSession, plaintextBuf.length());
-    QByteArray messageBuf(messageMaxLen, '0');
+    const auto messageMaxLength = olm_group_encrypt_message_length(m_groupSession, plaintextBuf.length());
+    QByteArray messageBuf(messageMaxLength, '0');
     const auto error = olm_group_encrypt(m_groupSession, reinterpret_cast<uint8_t *>(plaintextBuf.data()),
             plaintextBuf.length(), reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
 
