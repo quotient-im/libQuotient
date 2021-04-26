@@ -51,13 +51,7 @@ User::User(QString userId, Connection* connection)
     setObjectName(id());
     if (connection->userId() == id()) {
         // Load profile information for local user.
-        auto *profileJob = connection->callApi<GetUserProfileJob>(id());
-        connect(profileJob, &BaseJob::result, this, [this, profileJob] {
-            d->defaultName = profileJob->displayname();
-            d->defaultAvatar = Avatar(QUrl(profileJob->avatarUrl()));
-            emit defaultNameChanged();
-            emit defaultAvatarChanged();
-        });
+        load();
     }
 }
 
@@ -68,6 +62,17 @@ Connection* User::connection() const
 }
 
 User::~User() = default;
+
+void User::load()
+{
+    auto *profileJob = connection()->callApi<GetUserProfileJob>(id());
+    connect(profileJob, &BaseJob::result, this, [this, profileJob] {
+        d->defaultName = profileJob->displayname();
+        d->defaultAvatar = Avatar(QUrl(profileJob->avatarUrl()));
+        emit defaultNameChanged();
+        emit defaultAvatarChanged();
+    });
+}
 
 QString User::id() const { return d->id; }
 

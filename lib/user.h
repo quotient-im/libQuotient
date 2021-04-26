@@ -130,6 +130,10 @@ public Q_SLOTS:
     void unmarkIgnore();
     /// Check whether the user is in ignore list
     bool isIgnored() const;
+    /// Force loading displayName and avartar url. This is required in
+    /// some cases where the you need to use an user independent of the
+    /// room.
+    void load();
 
 Q_SIGNALS:
     void defaultNameChanged();
