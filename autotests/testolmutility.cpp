@@ -118,7 +118,7 @@ void TestOlmUtility::validUploadKeysRequest()
         }
     };
 
-    DeviceKeys deviceKeys = alice->getDeviceKeys();
+    DeviceKeys deviceKeys = alice->deviceKeys();
     QCOMPARE(QJsonDocument(toJson(deviceKeys)).toJson(QJsonDocument::Compact),
             QJsonDocument(body).toJson(QJsonDocument::Compact));
 

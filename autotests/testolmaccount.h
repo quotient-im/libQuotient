@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include <QTest>
+#include <QtTest/QtTest>
 #include <QString>
 
 namespace Quotient {

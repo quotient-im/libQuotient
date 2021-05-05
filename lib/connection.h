@@ -476,11 +476,6 @@ public:
         setUserFactory(defaultUserFactory<T>());
     }
 
-    /// Ignore ssl errors (usefull for automated testing with local synapse
-    /// instance).
-    /// \internal
-    void ignoreSslErrors(bool ignore);
-
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows
     ///

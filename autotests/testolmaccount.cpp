@@ -6,6 +6,7 @@
 #include "crypto/qolmaccount.h"
 #include "connection.h"
 #include "events/encryptedfile.h"
+#include "networkaccessmanager.h"
 
 using namespace Quotient;
 
@@ -164,8 +165,8 @@ void TestOlmAccount::encryptedFile()
 }
 
 #define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME) \
+    NetworkAccessManager::instance()->ignoreSslErrors(true); \
     auto VAR = std::make_shared<Connection>(); \
-    VAR->ignoreSslErrors(true); \
     (VAR) ->resolveServer("@alice:localhost:" + QString::number(443)); \
     connect( (VAR) .get(), &Connection::loginFlowsChanged, this, [this, VAR ] () { \
         (VAR) ->loginWithPassword( (USERNAME) , SECRET , DEVICE_NAME , ""); \
