@@ -28,7 +28,6 @@ void NetworkAccessManager::ignoreSslErrors(bool ignore) const
     if (ignore) {
         connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors)
                 {
-    qDebug() << 24 / 0;
                     reply->ignoreSslErrors();
                 });
     } else {
