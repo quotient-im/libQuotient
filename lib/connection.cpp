@@ -574,11 +574,6 @@ void Connection::sync(int timeout)
     });
 }
 
-void Connection::ignoreSslErrors(bool ignore)
-{
-    connectionData()->ignoreSslErrors(ignore);
-}
-
 void Connection::syncLoop(int timeout)
 {
     if (d->syncLoopConnection && d->syncTimeout == timeout) {
