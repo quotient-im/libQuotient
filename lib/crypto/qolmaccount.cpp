@@ -243,10 +243,10 @@ DeviceKeys QOlmAccount::deviceKeys() const
 
 UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
 {
-    auto deviceKeys = deviceKeys();
+    auto keys = deviceKeys();
 
     if (oneTimeKeys.curve25519().isEmpty()) {
-        return new UploadKeysJob(deviceKeys);
+        return new UploadKeysJob(keys);
     }
 
     // Sign & append the one time keys.
@@ -256,7 +256,7 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
         oneTimeKeysSigned[keyId] = QVariant::fromValue(key);
     }
 
-    return new UploadKeysJob(deviceKeys, oneTimeKeysSigned);
+    return new UploadKeysJob(keys, oneTimeKeysSigned);
 }
 
 std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)

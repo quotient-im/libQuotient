@@ -128,12 +128,6 @@ bool ConnectionData::needsToken(const QString& requestName) const
            != d->needToken.cend();
 }
 
-void ConnectionData::ignoreSslErrors(bool ignore) const
-{
-    auto quotientNam = static_cast<NetworkAccessManager>(nam());
-    quotientNam.ignoreSslErrors(ignore);
-}
-
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
     d->deviceId = deviceId;

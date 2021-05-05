@@ -73,7 +73,7 @@ public:
 
     UploadKeysJob *createUploadKeyRequest(const OneTimeKeys &oneTimeKeys);
 
-    DeviceKeys getDeviceKeys() const;
+    DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
     [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const;
