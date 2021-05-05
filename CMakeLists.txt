@@ -11,6 +11,7 @@ message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
 
 include(FeatureSummary)
 include(CTest)
+include(cmake/QuotientGenerateHeaders.cmake)
 
 # https://github.com/quotient-im/libQuotient/issues/369
 option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
@@ -291,8 +292,9 @@ if (BUILD_TESTING)
     add_subdirectory(autotests)
 endif()
 
-# Configure installation
+add_subdirectory(lib)
 
+# Configure installation
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
