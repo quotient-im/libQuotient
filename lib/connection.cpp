@@ -807,7 +807,7 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
     // that may add their own slots to finished().
     connect(job, &BaseJob::finished, this, [this, job] {
         if (job->status().good())
-            provideRoom(job->roomId());
+            provideRoom(job->roomId(), JoinState::Join);
     });
     return job;
 }
@@ -1468,6 +1468,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     }
 
     if (!room) {
+        joinState = joinState.value_or(JoinState::Join);
         room = roomFactory()(this, id, joinState.value_or(JoinState::Join));
         if (!room) {
             qCCritical(MAIN) << "Failed to create a room" << id;
