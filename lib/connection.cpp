@@ -100,6 +100,13 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
 
+#ifdef Quotient_E2EE_ENABLED
+    QSet<QString> trackedUsers;
+    QSet<QString> outdatedUsers;
+    QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>> deviceKeys;
+    QueryKeysJob *currentQueryKeysJob = nullptr;
+#endif
+
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
 
@@ -150,6 +157,7 @@ public:
     void consumeAccountData(Events&& accountDataEvents);
     void consumePresenceData(Events&& presenceData);
     void consumeToDeviceEvents(Events&& toDeviceEvents);
+    void consumeDevicesList(DevicesList&& devicesList);
 
     template <typename EventT>
     EventT* unpackAccountData() const
@@ -246,6 +254,10 @@ public:
 #endif // Quotient_E2EE_ENABLED
 */
     }
+#ifdef Quotient_E2EE_ENABLED
+    void loadOutdatedUserDevices();
+    void createDevicesList();
+#endif
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -467,6 +479,11 @@ void Connection::Private::completeSetup(const QString& mxId)
     emit q->stateChanged();
     emit q->connected();
     q->reloadCapabilities();
+#ifdef Quotient_E2EE_ENABLED
+    connectSingleShot(q, &Connection::syncDone, q, [=](){
+        createDevicesList();
+    });
+#endif
 }
 
 void Connection::Private::checkAndConnect(const QString& userId,
@@ -633,6 +650,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     //    d->encryptionManager->updateOneTimeKeyCounts(this,
     //                                                 deviceOneTimeKeysCount);
 #endif // Quotient_E2EE_ENABLED
+    d->consumeDevicesList(data.takeDevicesList());
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -791,6 +809,21 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
     });
 #endif
 */
+}
+
+void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
+{
+#ifdef Quotient_E2EE_ENABLED
+    for(const auto &changed : devicesList.changed) {
+        outdatedUsers += changed;
+    }
+    for(const auto &left : devicesList.left) {
+        trackedUsers -= left;
+        outdatedUsers -= left;
+        deviceKeys.remove(left);
+    }
+    loadOutdatedUserDevices();
+#endif
 }
 
 void Connection::stopSync()
@@ -1795,3 +1828,43 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     }
     return result;
 }
+
+#ifdef Quotient_E2EE_ENABLED
+void Connection::Private::createDevicesList()
+{
+    for(const auto &room : q->allRooms()) {
+        if(!room->usesEncryption()) {
+            continue;
+        }
+        for(const auto &user : room->users()) {
+            if(user->id() != q->userId()) {
+                trackedUsers += user->id();
+            }
+        }
+    }
+    outdatedUsers += trackedUsers;
+    loadOutdatedUserDevices();
+}
+
+void Connection::Private::loadOutdatedUserDevices()
+{
+    QHash<QString, QStringList> users;
+    for(const auto &user : outdatedUsers) {
+        users[user] += QStringList();
+    }
+    if(currentQueryKeysJob) {
+        currentQueryKeysJob->abandon();
+        currentQueryKeysJob = nullptr;
+    }
+    auto queryKeysJob = q->callApi<QueryKeysJob>(users);
+    currentQueryKeysJob = queryKeysJob;
+    connect(queryKeysJob, &BaseJob::success, q, [=](){
+        const auto data = queryKeysJob->deviceKeys();
+        for(const auto &[user, keys] : asKeyValueRange(data)) {
+            //TODO Check key signature
+            deviceKeys[user] = keys;
+            outdatedUsers -= user;
+        }
+    });
+}
+#endif
