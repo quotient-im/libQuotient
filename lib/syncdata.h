@@ -36,6 +36,27 @@ struct JsonObjectConverter<RoomSummary> {
     static void fillFrom(const QJsonObject& jo, RoomSummary& rs);
 };
 
+/// Information on e2e device updates. Note: only present on an
+/// incremental sync.
+struct DevicesList {
+    /// List of users who have updated their device identity keys, or who
+    /// now share an encrypted room with the client since the previous
+    /// sync response.
+    QStringList changed;
+
+    /// List of users with whom we do not share any encrypted rooms
+    /// anymore since the previous sync response.
+    QStringList left;
+};
+
+QDebug operator<<(QDebug dhg, const DevicesList &devicesList);
+
+template <>
+struct JsonObjectConverter<DevicesList> {
+    static void dumpTo(QJsonObject &jo, const DevicesList &dev);
+    static void fillFrom(const QJsonObject& jo, DevicesList& rs);
+};
+
 class SyncRoomData {
 public:
     QString roomId;
@@ -82,6 +103,7 @@ public:
         return deviceOneTimeKeysCount_;
     }
     SyncDataList&& takeRoomData();
+    DevicesList&& takeDevicesList();
 
     QString nextBatch() const { return nextBatch_; }
 
@@ -98,6 +120,7 @@ private:
     SyncDataList roomData;
     QStringList unresolvedRoomIds;
     QHash<QString, int> deviceOneTimeKeysCount_;
+    DevicesList devicesList;
 
     static QJsonObject loadJson(const QString& fileName);
 };
