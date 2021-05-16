@@ -1841,6 +1841,7 @@ void Connection::Private::loadOutdatedUserDevices()
     auto queryKeysJob = q->callApi<QueryKeysJob>(users);
     currentQueryKeysJob = queryKeysJob;
     connect(queryKeysJob, &BaseJob::success, q, [=](){
+        currentQueryKeysJob = nullptr;
         const auto data = queryKeysJob->deviceKeys();
         for(const auto &[user, keys] : asKeyValueRange(data)) {
             //TODO Check key signature
