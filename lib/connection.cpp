@@ -814,14 +814,18 @@ void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
 {
 #ifdef Quotient_E2EE_ENABLED
     for(const auto &changed : devicesList.changed) {
-        outdatedUsers += changed;
+        if(trackedUsers.contains(changed)) {
+            outdatedUsers += changed;
+        }
     }
     for(const auto &left : devicesList.left) {
         trackedUsers -= left;
         outdatedUsers -= left;
         deviceKeys.remove(left);
     }
-    loadOutdatedUserDevices();
+    if(!outdatedUsers.isEmpty()) {
+        loadOutdatedUserDevices();
+    }
 #endif
 }
 

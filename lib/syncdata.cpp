@@ -200,6 +200,10 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     fromJson(json.value("device_one_time_keys_count"_ls),
              deviceOneTimeKeysCount_);
 
+    if(json.contains("device_lists")) {
+        fromJson(json.value("device_lists"), devicesList);
+    }
+
     auto rooms = json.value("rooms"_ls).toObject();
     auto totalRooms = 0;
     auto totalEvents = 0;
