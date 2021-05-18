@@ -1854,4 +1854,17 @@ void Connection::Private::loadOutdatedUserDevices()
         }
     });
 }
+
+void Connection::newEncryptedRoom(Room *room)
+{
+    for(const auto &user : room->users()) {
+        if(!d->trackedUsers.contains(user->id())) {
+            d->trackedUsers += user->id();
+            d->outdatedUsers += user->id();
+        }
+    }
+    if(!d->outdatedUsers.isEmpty()) {
+        d->loadOutdatedUserDevices();
+    }
+}
 #endif
