@@ -200,6 +200,10 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     fromJson(json.value("device_one_time_keys_count"_ls),
              deviceOneTimeKeysCount_);
 
+    if(json.contains("device_lists")) {
+        fromJson(json.value("device_lists"), devicesList);
+    }
+
     auto rooms = json.value("rooms"_ls).toObject();
     JoinStates::Int ii = 1; // ii is used to make a JoinState value
     auto totalRooms = 0;
