@@ -3,7 +3,7 @@ build
 build_dir
 
 # IDE project files/directories
-.kdev4
+*.kdev4
 .directory
 *.user*
 .idea
