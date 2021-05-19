@@ -1866,8 +1866,22 @@ void Connection::Private::loadOutdatedUserDevices()
         currentQueryKeysJob = nullptr;
         const auto data = queryKeysJob->deviceKeys();
         for(const auto &[user, keys] : asKeyValueRange(data)) {
-            //TODO Check key signature
-            deviceKeys[user] = keys;
+            deviceKeys[user].clear();
+            for(const auto &device : keys) {
+                if(device.userId != user) {
+                    qCWarning(E2EE) << "mxId mismatch during device key verification:" << device.userId << user;
+                    continue;
+                }
+                if(!device.algorithms.contains("m.olm.v1.curve25519-aes-sha2") || !device.algorithms.contains("m.megolm.v1.aes-sha2")) {
+                    qCWarning(E2EE) << "Unsupported encryption algorithms found" << device.algorithms;
+                    continue;
+                }
+                if(verifyIdentitySignature(device, device.deviceId, device.userId)) {
+                    qCWarning(E2EE) << "Failed to verify devicekeys signature. Skipping this device";
+                    continue;
+                }
+                deviceKeys[user][device.deviceId] = device;
+            }
             outdatedUsers -= user;
         }
     });
