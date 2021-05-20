@@ -166,6 +166,11 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
         fillFromJson<DeviceKeys>(jo, result);
         fromJson(jo.value("unsigned"_ls), result.unsignedData);
     }
+    static void dumpTo(QJsonObject& jo, const QueryKeysJob::DeviceInformation& deviceInformation)
+    {
+        jo = toJson<DeviceKeys>(deviceInformation);
+        //addParam<>(jo, "unsigned"_ls, deviceInformation.unsignedData);
+    }
 };
 
 /*! \brief Claim one-time encryption keys.
