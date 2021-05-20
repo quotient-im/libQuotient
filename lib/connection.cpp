@@ -1876,7 +1876,7 @@ void Connection::Private::loadOutdatedUserDevices()
                     qCWarning(E2EE) << "Unsupported encryption algorithms found" << device.algorithms;
                     continue;
                 }
-                if(verifyIdentitySignature(device, device.deviceId, device.userId)) {
+                if(!verifyIdentitySignature(device, device.deviceId, device.userId)) {
                     qCWarning(E2EE) << "Failed to verify devicekeys signature. Skipping this device";
                     continue;
                 }
