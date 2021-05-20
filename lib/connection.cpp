@@ -256,6 +256,8 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     void loadOutdatedUserDevices();
     void createDevicesList();
+    void saveDevicesList();
+    void loadDevicesList();
 #endif
 };
 
@@ -484,7 +486,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     q->reloadCapabilities();
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(q, &Connection::syncDone, q, [=](){
-        createDevicesList();
+        loadDevicesList();
     });
 #endif
 }
@@ -1884,6 +1886,7 @@ void Connection::Private::loadOutdatedUserDevices()
             }
             outdatedUsers -= user;
         }
+        saveDevicesList();
     });
 }
 
@@ -1898,5 +1901,99 @@ void Connection::encryptionUpdate(Room *room)
     if(!d->outdatedUsers.isEmpty()) {
         d->loadOutdatedUserDevices();
     }
+}
+
+void Connection::Private::saveDevicesList()
+{
+    if (!cacheState)
+        return;
+
+    QElapsedTimer et;
+    et.start();
+
+    QFile outFile { q->stateCacheDir().filePath("deviceslist.json") };
+    if (!outFile.open(QFile::WriteOnly)) {
+        qCWarning(MAIN) << "Error opening" << outFile.fileName() << ":"
+                        << outFile.errorString();
+        qCWarning(MAIN) << "Caching the rooms state disabled";
+        cacheState = false;
+        return;
+    }
+
+    QJsonObject rootObj {
+        { QStringLiteral("cache_version"),
+          QJsonObject {
+              { QStringLiteral("major"), SyncData::cacheVersion().first },
+              { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
+    };
+    {
+        QJsonObject trackedUsersJson;
+        QJsonObject outdatedUsersJson;
+        for (const auto &user : trackedUsers) {
+            trackedUsersJson.insert(user, QJsonValue::Null);
+        }
+        for (const auto &user : outdatedUsers) {
+            outdatedUsersJson.insert(user, QJsonValue::Null);
+        }
+        rootObj.insert(QStringLiteral("tracked_users"), trackedUsersJson);
+        rootObj.insert(QStringLiteral("outdated_users"), outdatedUsersJson);
+        QJsonObject devicesList = toJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(deviceKeys);
+        rootObj.insert(QStringLiteral("devices_list"), devicesList);
+        rootObj.insert(QStringLiteral("sync_token"), q->nextBatchToken());
+    }
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    const auto data =
+        cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
+                         : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+#else
+    QJsonDocument json { rootObj };
+    const auto data = cacheToBinary ? json.toBinaryData()
+                                       : json.toJson(QJsonDocument::Compact);
+#endif
+    qCDebug(PROFILER) << "DeviceList generated in" << et;
+
+    outFile.write(data.data(), data.size());
+    qCDebug(E2EE) << "DevicesList saved to" << outFile.fileName();
+}
+
+void Connection::Private::loadDevicesList()
+{
+    QFile file { q->stateCacheDir().filePath("deviceslist.json") };
+    if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
+        qCDebug(E2EE) << "No devicesList cache exists. Creating new";
+        createDevicesList();
+        return;
+    }
+    auto data = file.readAll();
+    const auto json = data.startsWith('{')
+                          ? QJsonDocument::fromJson(data).object()
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                          : QCborValue::fromCbor(data).toJsonValue().toObject()
+#else
+                          : QJsonDocument::fromBinaryData(data).object()
+#endif
+        ;
+    if (json.isEmpty()) {
+        qCWarning(MAIN) << "DevicesList cache is broken or empty, discarding";
+        createDevicesList();
+        return;
+    }
+    for(const auto &user : json["tracked_users"].toArray()) {
+        trackedUsers += user.toString();
+    }
+    for(const auto &user : json["outdated_users"].toArray()) {
+        outdatedUsers += user.toString();
+    }
+
+    deviceKeys = fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(json["devices_list"].toObject());
+    auto oldToken = json["sync_token"].toString();
+    auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
+    connect(changesJob, &BaseJob::success, q, [=](){
+        for(const auto &user : changesJob->changed()) {
+            outdatedUsers += user;
+        }
+        loadOutdatedUserDevices();
+    });
 }
 #endif
