@@ -795,13 +795,13 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             return;
         }
 
-        visit(*sessionDecryptMessage(event),
-            [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+        visit(*sessionDecryptMessage(ee),
+            [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                    qWarning() << "IT'S A ROOMKEY EVENT, RUUUUUUUUUUUUUUUUUN";
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
                 } else {
-                    qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                    qCDebug(E2EE)
+                        << "Encrypted event room id" << roomKeyEvent.roomId()
                         << "is not found at the connection" << q->objectName();
                 }
             },
