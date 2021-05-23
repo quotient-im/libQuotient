@@ -457,6 +457,10 @@ void Connection::Private::completeSetup(const QString& mxId)
         olmAccount->createNewAccount();
         accountSettings.setEncryptionAccountPickle(std::get<QByteArray>(olmAccount->pickle(Unencrypted{})));
         // TODO handle pickle errors
+        auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
+        connect(job, &BaseJob::failure, q, [=]{
+            qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
+        });
     } else {
         // account already existing
         auto pickle = accountSettings.encryptionAccountPickle();
