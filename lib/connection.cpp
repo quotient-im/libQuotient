@@ -110,8 +110,8 @@ public:
 
 #ifdef Quotient_E2EE_ENABLED
     std::unique_ptr<QOlmAccount> olmAccount;
-    //QScopedPointer<EncryptionManager> encryptionManager;
     bool isUploadingKeys = false;
+    QScopedPointer<EncryptionManager> encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -188,7 +188,6 @@ public:
     {
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
-        /*
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
@@ -248,7 +247,6 @@ public:
 
         return std::move(decryptedEvent);
 #endif // Quotient_E2EE_ENABLED
-*/
     }
 };
 
@@ -763,7 +761,6 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
-/*
 #ifdef Quotient_E2EE_ENABLED
     // handling m.room_key to-device encrypted event
     visitEach(toDeviceEvents, [this](const EncryptedEvent& ee) {
@@ -773,20 +770,15 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             return;
         }
 
-        // TODO: full maintaining of the device keys
-        // with device_lists sync extention and /keys/query
-        qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
-                      << ee.senderId();
-        // encryptionManager->updateDeviceKeys();
-
         visit(*sessionDecryptMessage(ee),
             [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
-                if (auto* detectedRoom = q->room(roomKeyEvent.roomId()))
+                if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
-                else
+                } else {
                     qCDebug(E2EE)
                         << "Encrypted event room id" << roomKeyEvent.roomId()
                         << "is not found at the connection" << q->objectName();
+                }
             },
             [](const Event& evt) {
                 qCDebug(E2EE) << "Skipping encrypted to_device event, type"
@@ -794,7 +786,6 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             });
     });
 #endif
-*/
 }
 
 void Connection::stopSync()
