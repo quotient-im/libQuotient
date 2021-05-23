@@ -8,7 +8,8 @@
 
 namespace Quotient {
 class Room;
-/*
+
+/**
  * While the specification states:
  *
  * "This event type is used when sending encrypted events.
