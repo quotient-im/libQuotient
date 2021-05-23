@@ -30,8 +30,7 @@ OlmSession* QOlmSession::create()
 std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInbound(QOlmAccount *account, const QOlmMessage &preKeyMessage, bool from, const QString &theirIdentityKey)
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
-        qCDebug(E2EE) << "The message is not a pre-key";
-        throw BadMessageFormat;
+        qCCritical(E2EE) << "The message is not a pre-key in when creating inbound session" << BadMessageFormat;
     }
 
     const auto olmSession = create();
@@ -48,7 +47,7 @@ std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInbound
     if (error == olm_error()) {
         const auto lastErr = lastError(olmSession);
         if (lastErr == QOlmError::NotEnoughRandom) {
-            throw lastErr;
+            qCCritical(E2EE) << "Error when creating inbound session" << lastErr;
         }
         return lastErr;
     }
