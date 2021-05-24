@@ -93,6 +93,8 @@ public:
     /// identity and one time key.
     std::variant<std::unique_ptr<QOlmSession>, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
 
+    void markKeysAsPublished();
+
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);
     OlmAccount *data();

@@ -276,6 +276,11 @@ std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createOutboun
     return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
 }
 
+void QOlmAccount::markKeysAsPublished()
+{
+    olm_account_mark_keys_as_published(m_account);
+}
+
 bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
                              const QString &deviceId,
                              const QString &userId)
