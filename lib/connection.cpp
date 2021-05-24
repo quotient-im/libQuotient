@@ -114,6 +114,7 @@ public:
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
 #ifdef Quotient_E2EE_ENABLED
+<<<<<<< HEAD
     std::unique_ptr<QOlmAccount> olmAccount;
     bool isUploadingKeys = false;
     EncryptionManager *encryptionManager;
@@ -458,7 +459,11 @@ void Connection::Private::completeSetup(const QString& mxId)
     AccountSettings accountSettings(data->userId());
 
     // init olmAccount
-    olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId());
+    olmAccount = new QOlmAccount(data->userId(), data->deviceId(), q);
+    connect(olmAccount, &QOlmAccount::needsSave, q, [=](){
+        auto pickle = olmAccount->pickle(Unencrypted{});
+        AccountSettings(data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
+    });
 
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
         // create new account and save unpickle data
@@ -1280,7 +1285,7 @@ bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 #ifdef Quotient_E2EE_ENABLED
 QOlmAccount *Connection::olmAccount() const
 {
-    return d->olmAccount.get(); //d->encryptionManager->account();
+    return d->olmAccount; //d->encryptionManager->account();
 }
 #endif // Quotient_E2EE_ENABLED
 
