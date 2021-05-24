@@ -46,8 +46,9 @@ QByteArray getRandom(size_t bufferSize)
     return buffer;
 }
 
-QOlmAccount::QOlmAccount(const QString &userId, const QString &deviceId)
-    : m_userId(userId)
+QOlmAccount::QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent)
+    : QObject(parent)
+    , m_userId(userId)
     , m_deviceId(deviceId)
 {
 }
@@ -158,6 +159,7 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
     if (error == olm_error()) {
         throw lastError(m_account);
     }
+    Q_EMIT needsSave();
     return error;
 }
 
