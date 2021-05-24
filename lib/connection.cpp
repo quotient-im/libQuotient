@@ -108,6 +108,7 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     std::unique_ptr<QOlmAccount> olmAccount;
     //QScopedPointer<EncryptionManager> encryptionManager;
+    bool isUploadingKeys = false;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -621,13 +622,17 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumePresenceData(data.takePresenceData());
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
-    if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()) {
+    if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys() && !d->isUploadingKeys) {
+        d->isUploadingKeys = true;
         d->olmAccount->generateOneTimeKeys(d->olmAccount->maxNumberOfOneTimeKeys() - data.deviceOneTimeKeysCount()["signed_curve25519"]);
         auto keys = d->olmAccount->oneTimeKeys();
         auto job = d->olmAccount->createUploadKeyRequest(keys);
         run(job, ForegroundRequest);
         connect(job, &BaseJob::success, this, [=](){
             d->olmAccount->markKeysAsPublished();
+        });
+        connect(job, &BaseJob::result, this, [=](){
+            d->isUploadingKeys = false;
         });
     }
 #endif // Quotient_E2EE_ENABLED
