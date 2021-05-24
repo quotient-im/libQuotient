@@ -622,17 +622,15 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumePresenceData(data.takePresenceData());
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
-    // handling device_one_time_keys_count
-    //if (!d->encryptionManager)
-    //{
-    //    qCDebug(E2EE) << "Encryption manager is not there yet, updating "
-    //                     "one-time key counts will be skipped";
-    //    return;
-    //}
-    //if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
-    //        !deviceOneTimeKeysCount.isEmpty())
-    //    d->encryptionManager->updateOneTimeKeyCounts(this,
-    //                                                 deviceOneTimeKeysCount);
+    if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()) {
+        d->olmAccount->generateOneTimeKeys(d->olmAccount->maxNumberOfOneTimeKeys() - data.deviceOneTimeKeysCount()["signed_curve25519"]);
+        auto keys = d->olmAccount->oneTimeKeys();
+        auto job = d->olmAccount->createUploadKeyRequest(keys);
+        run(job, ForegroundRequest);
+        connect(job, &BaseJob::success, this, [=](){
+            d->olmAccount->markKeysAsPublished();
+        });
+    }
 #endif // Quotient_E2EE_ENABLED
 }
 
