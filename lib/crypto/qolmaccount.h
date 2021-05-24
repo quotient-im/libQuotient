@@ -23,10 +23,11 @@ class Connection;
 //! \code{.cpp}
 //! const auto olmAccount = new QOlmAccount(this);
 //! \endcode
-class QOlmAccount
+class QOlmAccount : public QObject
 {
+    Q_OBJECT
 public:
-    QOlmAccount(const QString &userId, const QString &deviceId);
+    QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent = nullptr);
     ~QOlmAccount();
 
     //! Creates a new instance of OlmAccount. During the instantiation
@@ -98,6 +99,10 @@ public:
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);
     OlmAccount *data();
+
+Q_SIGNALS:
+    void needsSave() const;
+
 private:
     OlmAccount *m_account = nullptr; // owning
     QString m_userId;
