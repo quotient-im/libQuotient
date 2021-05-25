@@ -807,7 +807,7 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
     // that may add their own slots to finished().
     connect(job, &BaseJob::finished, this, [this, job] {
         if (job->status().good())
-            provideRoom(job->roomId());
+            provideRoom(job->roomId(), JoinState::Join);
     });
     return job;
 }
@@ -1464,11 +1464,13 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
         room = d->roomMap.value({ id, true }, nullptr);
         if (room)
             return room;
-        // No Invite either, setup a new room object below
+        // No Invite either, setup a new room object in Join state
+        joinState = JoinState::Join;
     }
 
     if (!room) {
-        room = roomFactory()(this, id, joinState.value_or(JoinState::Join));
+        Q_ASSERT(joinState.has_value());
+        room = roomFactory()(this, id, *joinState);
         if (!room) {
             qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
