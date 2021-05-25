@@ -557,13 +557,17 @@ QString Room::canonicalAlias() const
 
 QString Room::displayName() const { return d->displayname; }
 
-QList<const RoomEvent*> Room::pinnedEvents() const
+QStringList Room::pinnedEventIds() const {
+    return d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
+}
+
+QVector< const Quotient::RoomEvent* > Quotient::Room::pinnedEvents() const
 {
     QStringList events = d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
-    QList<const RoomEvent*> pinnedEvents;
+    QVector<const RoomEvent*> pinnedEvents;
     QStringList::iterator i;
     for (i = events.begin(); i != events.end(); ++i) {
-        auto timelineItem = findInTimeline(*i); 
+        auto timelineItem = findInTimeline(*i);
         if (timelineItem != historyEdge())
             pinnedEvents.append(timelineItem->event());
     }
@@ -1843,7 +1847,7 @@ void Room::setCanonicalAlias(const QString& newAlias)
     d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
-void Room::setPinnedMessages(const QStringList& events)
+void Room::setPinnedEvents(const QStringList& events)
 {
     d->requestSetState<RoomPinnedEvent>(events);
 }
@@ -2609,6 +2613,10 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             connection()->updateRoomAliases(id(), previousAltAliases, newAliases);
             return AliasesChange;
             // clang-format off
+        }
+        , [this] (const RoomPinnedEvent&) {
+            emit pinnedEventsChanged();
+            return OtherChange;
         }
         , [] (const RoomTopicEvent&) {
             return TopicChange;

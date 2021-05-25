@@ -55,6 +55,7 @@ namespace EventContent {
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
+DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages", QStringList, pinnedEvents)
 
 class RoomAliasesEvent
     : public StateEvent<EventContent::SimpleContent<QStringList>> {
@@ -71,21 +72,4 @@ public:
     QStringList aliases() const { return content().value; }
 };
 REGISTER_EVENT_TYPE(RoomAliasesEvent)
-
-class RoomPinnedEvent
-    : public StateEvent<EventContent::SimpleContent<QStringList>>
-{
-public:
-    DEFINE_EVENT_TYPEID("m.room.pinned_messages", RoomPinnedEvent)
-
-    explicit RoomPinnedEvent(const QJsonObject& json)
-        : StateEvent(typeId(), json, QStringLiteral("pinned"))
-    { }
-    explicit RoomPinnedEvent(const QStringList& roomEvents)
-        : StateEvent(typeId(), matrixTypeId(), {},
-                     QStringLiteral("pinned"), roomEvents)
-    { }
-    QStringList pinnedEvents() const { return content().value; }
-};
-REGISTER_EVENT_TYPE(RoomPinnedEvent)
 } // namespace Quotient

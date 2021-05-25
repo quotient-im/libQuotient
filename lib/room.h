@@ -85,6 +85,8 @@ class Room : public QObject {
     Q_PROPERTY(QStringList altAliases READ altAliases NOTIFY namesChanged)
     Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
+    Q_PROPERTY(QStringList pinnedEventIds READ pinnedEventIds WRITE setPinnedEvents
+                   NOTIFY pinnedEventsChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
                    STORED false)
@@ -191,7 +193,9 @@ public:
     QStringList altAliases() const;
     QStringList aliases() const;
     QString displayName() const;
-    QList<const RoomEvent*> pinnedEvents() const;
+    QStringList pinnedEventIds() const;
+    // Returns events available locally, use pinnedEventIds() for full list
+    QVector<const RoomEvent*> pinnedEvents() const;
     QString topic() const;
     QString avatarMediaId() const;
     QUrl avatarUrl() const;
@@ -567,7 +571,7 @@ public Q_SLOTS:
     SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
     void setName(const QString& newName);
     void setCanonicalAlias(const QString& newAlias);
-    void setPinnedMessages(const QStringList& events);
+    void setPinnedEvents(const QStringList& events);
     /// Set room aliases on the user's current server
     void setLocalAliases(const QStringList& aliases);
     void setTopic(const QString& newTopic);
@@ -663,6 +667,7 @@ Q_SIGNALS:
     void namesChanged(Quotient::Room* room);
     void displaynameAboutToChange(Quotient::Room* room);
     void displaynameChanged(Quotient::Room* room, QString oldName);
+    void pinnedEventsChanged();
     void topicChanged();
     void avatarChanged();
     void userAdded(Quotient::User* user);
