@@ -525,7 +525,7 @@ public Q_SLOTS:
      */
     void assumeIdentity(const QString& mxId, const QString& accessToken,
                         const QString& deviceId);
-    /*! \deprecated Use loginWithPassword instead */
+    [[deprecated("Use loginWithPassword instead")]]
     void connectToServer(const QString& userId, const QString& password,
                          const QString& initialDeviceName,
                          const QString& deviceId = {})
@@ -536,6 +536,7 @@ public Q_SLOTS:
      * Use assumeIdentity() if you have an access token or
      * loginWithToken() if you have a login token.
      */
+    [[deprecated("Use assumeIdentity() (access token) or loginWithToken() (login token)")]]
     void connectWithToken(const QString& userId, const QString& accessToken,
                           const QString& deviceId)
     {
@@ -547,7 +548,7 @@ public Q_SLOTS:
     /// Find out if capabilites are still loading from the server
     bool loadingCapabilities() const;
 
-    /** @deprecated Use stopSync() instead */
+    [[deprecate("Use stopSync() instead")]]
     void disconnectFromServer() { stopSync(); }
     void logout();
 
@@ -665,8 +666,7 @@ public Q_SLOTS:
 
     // Old API that will be abolished any time soon. DO NOT USE.
 
-    /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead
-     */
+    [[deprecated("Use callApi<PostReceiptJob>() or Room::postReceipt() instead")]]
     virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
 
 Q_SIGNALS:
@@ -675,11 +675,12 @@ Q_SIGNALS:
      * This was a signal resulting from a successful resolveServer().
      * Since Connection now provides setHomeserver(), the HS URL
      * may change even without resolveServer() invocation. Use
-     * loginFLowsChanged() instead of resolved(). You can also use
+     * loginFlowsChanged() instead of resolved(). You can also use
      * loginWith*() and assumeIdentity() without the HS URL set in
      * advance (i.e. without calling resolveServer), as they trigger
      * server name resolution from MXID if the server URL is not valid.
      */
+    [[deprecated("Read comment above. TL;DR: use loginFlowsChanged")]]
     void resolved();
     void resolveError(QString error);
 
@@ -688,7 +689,8 @@ Q_SIGNALS:
     void capabilitiesLoaded();
 
     void connected();
-    void reconnected(); //< \deprecated Use connected() instead
+    [[deprecated("Use connected() instead")
+    void reconnected();
     void loggedOut();
     /** Login data or state have changed
      *

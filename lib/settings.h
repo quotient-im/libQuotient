@@ -147,10 +147,9 @@ public:
     QUrl homeserver() const;
     void setHomeserver(const QUrl& url);
 
-    /** \deprecated \sa setToken */
+    [[deprecated("Use setToken")]]
     QString accessToken() const;
-    /** \deprecated Storing accessToken in QSettings is unsafe,
-     * see quotient-im/Quaternion#181 */
+    [[deprecated("Storing accessToken in QSettings is unsafe, see quotient-im/Quaternion#181")]]
     void setAccessToken(const QString& accessToken);
     Q_INVOKABLE void clearAccessToken();
 
