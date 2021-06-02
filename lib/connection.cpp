@@ -798,6 +798,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
         visit(*sessionDecryptMessage(event),
             [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
+                    qWarning() << "IT'S A ROOMKEY EVENT, RUUUUUUUUUUUUUUUUUN";
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
                 } else {
                     qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
