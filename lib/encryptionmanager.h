@@ -19,6 +19,7 @@ class EncryptionManager : public QObject {
 public:
     explicit EncryptionManager(QObject* parent = nullptr);
     ~EncryptionManager();
+
     QString sessionDecryptMessage(const QJsonObject& personalCipherObject,
                                   const QByteArray& senderKey, std::unique_ptr<QOlmAccount>& account);
 
