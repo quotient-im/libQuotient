@@ -482,11 +482,6 @@ void Connection::Private::completeSetup(const QString& mxId)
     emit q->stateChanged();
     emit q->connected();
     q->reloadCapabilities();
-#ifdef Quotient_E2EE_ENABLED
-    connectSingleShot(q, &Connection::syncDone, q, [=](){
-        loadDevicesList();
-    });
-#endif
 }
 
 void Connection::Private::checkAndConnect(const QString& userId,
@@ -636,11 +631,6 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
-    d->data->setLastEvent(data.nextBatch());
-    d->consumeRoomData(data.takeRoomData(), fromCache);
-    d->consumeAccountData(data.takeAccountData());
-    d->consumePresenceData(data.takePresenceData());
-    d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
     if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys() && !d->isUploadingKeys) {
         d->isUploadingKeys = true;
@@ -655,8 +645,19 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
             d->isUploadingKeys = false;
         });
     }
-#endif // Quotient_E2EE_ENABLED
+    static bool first = true;
+    if(first) {
+        d->loadDevicesList();
+        first = false;
+    }
+
     d->consumeDevicesList(data.takeDevicesList());
+#endif // Quotient_E2EE_ENABLED
+    d->data->setLastEvent(data.nextBatch());
+    d->consumeRoomData(data.takeRoomData(), fromCache);
+    d->consumeAccountData(data.takeAccountData());
+    d->consumePresenceData(data.takePresenceData());
+    d->consumeToDeviceEvents(data.takeToDeviceEvents());
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -813,9 +814,11 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
 {
 #ifdef Quotient_E2EE_ENABLED
+    bool hasNewOutdatedUser = false;
     for(const auto &changed : devicesList.changed) {
         if(trackedUsers.contains(changed)) {
             outdatedUsers += changed;
+            hasNewOutdatedUser = true;
         }
     }
     for(const auto &left : devicesList.left) {
@@ -823,7 +826,7 @@ void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
         outdatedUsers -= left;
         deviceKeys.remove(left);
     }
-    if(!outdatedUsers.isEmpty()) {
+    if(hasNewOutdatedUser) {
         loadOutdatedUserDevices();
     }
 #endif
@@ -1881,13 +1884,15 @@ void Connection::Private::loadOutdatedUserDevices()
 
 void Connection::encryptionUpdate(Room *room)
 {
+    bool hasNewOutdatedUser = false;
     for(const auto &user : room->users()) {
         if(!d->trackedUsers.contains(user->id())) {
             d->trackedUsers += user->id();
             d->outdatedUsers += user->id();
+            hasNewOutdatedUser = true;
         }
     }
-    if(!d->outdatedUsers.isEmpty()) {
+    if(hasNewOutdatedUser) {
         d->loadOutdatedUserDevices();
     }
 }
@@ -1916,13 +1921,13 @@ void Connection::Private::saveDevicesList()
               { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
     };
     {
-        QJsonObject trackedUsersJson;
-        QJsonObject outdatedUsersJson;
+        QJsonArray trackedUsersJson;
+        QJsonArray outdatedUsersJson;
         for (const auto &user : trackedUsers) {
-            trackedUsersJson.insert(user, QJsonValue::Null);
+            trackedUsersJson += user;
         }
         for (const auto &user : outdatedUsers) {
-            outdatedUsersJson.insert(user, QJsonValue::Null);
+            outdatedUsersJson += user;
         }
         rootObj.insert(QStringLiteral("tracked_users"), trackedUsersJson);
         rootObj.insert(QStringLiteral("outdated_users"), outdatedUsersJson);
@@ -1979,10 +1984,14 @@ void Connection::Private::loadDevicesList()
     auto oldToken = json["sync_token"].toString();
     auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
     connect(changesJob, &BaseJob::success, q, [=](){
+        bool hasNewOutdatedUser = false;
         for(const auto &user : changesJob->changed()) {
             outdatedUsers += user;
+            hasNewOutdatedUser = true;
         }
-        loadOutdatedUserDevices();
+        if(hasNewOutdatedUser) {
+            loadOutdatedUserDevices();
+        }
     });
 }
 #endif
