@@ -105,6 +105,7 @@ public:
     QSet<QString> outdatedUsers;
     QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>> deviceKeys;
     QueryKeysJob *currentQueryKeysJob = nullptr;
+    bool encryptionUpdateRequired = false;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -255,7 +256,6 @@ public:
     }
 #ifdef Quotient_E2EE_ENABLED
     void loadOutdatedUserDevices();
-    void createDevicesList();
     void saveDevicesList();
     void loadDevicesList();
 #endif
@@ -659,6 +659,10 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
+    if(d->encryptionUpdateRequired) {
+        d->loadOutdatedUserDevices();
+        d->encryptionUpdateRequired = false;
+    }
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -1839,22 +1843,6 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
 }
 
 #ifdef Quotient_E2EE_ENABLED
-void Connection::Private::createDevicesList()
-{
-    for(const auto &room : q->allRooms()) {
-        if(!room->usesEncryption()) {
-            continue;
-        }
-        for(const auto &user : room->users()) {
-            if(user->id() != q->userId()) {
-                trackedUsers += user->id();
-            }
-        }
-    }
-    outdatedUsers += trackedUsers;
-    loadOutdatedUserDevices();
-}
-
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -1895,16 +1883,12 @@ void Connection::Private::loadOutdatedUserDevices()
 
 void Connection::encryptionUpdate(Room *room)
 {
-    bool hasNewOutdatedUser = false;
     for(const auto &user : room->users()) {
         if(!d->trackedUsers.contains(user->id())) {
             d->trackedUsers += user->id();
             d->outdatedUsers += user->id();
-            hasNewOutdatedUser = true;
+            d->encryptionUpdateRequired = true;
         }
-    }
-    if(hasNewOutdatedUser) {
-        d->loadOutdatedUserDevices();
     }
 }
 
@@ -1967,7 +1951,6 @@ void Connection::Private::loadDevicesList()
     QFile file { q->stateCacheDir().filePath("deviceslist.json") };
     if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
         qCDebug(E2EE) << "No devicesList cache exists. Creating new";
-        createDevicesList();
         return;
     }
     auto data = file.readAll();
@@ -1981,7 +1964,6 @@ void Connection::Private::loadDevicesList()
         ;
     if (json.isEmpty()) {
         qCWarning(MAIN) << "DevicesList cache is broken or empty, discarding";
-        createDevicesList();
         return;
     }
     for(const auto &user : json["tracked_users"].toArray()) {
