@@ -105,6 +105,7 @@ public:
     QSet<QString> outdatedUsers;
     QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>> deviceKeys;
     QueryKeysJob *currentQueryKeysJob = nullptr;
+    bool encryptionUpdateRequired = false;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -255,7 +256,6 @@ public:
     }
 #ifdef Quotient_E2EE_ENABLED
     void loadOutdatedUserDevices();
-    void createDevicesList();
     void saveDevicesList();
     void loadDevicesList();
 #endif
@@ -484,11 +484,6 @@ void Connection::Private::completeSetup(const QString& mxId)
     emit q->stateChanged();
     emit q->connected();
     q->reloadCapabilities();
-#ifdef Quotient_E2EE_ENABLED
-    connectSingleShot(q, &Connection::syncDone, q, [=](){
-        loadDevicesList();
-    });
-#endif
 }
 
 void Connection::Private::checkAndConnect(const QString& userId,
@@ -637,11 +632,6 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
-    d->data->setLastEvent(data.nextBatch());
-    d->consumeRoomData(data.takeRoomData(), fromCache);
-    d->consumeAccountData(data.takeAccountData());
-    d->consumePresenceData(data.takePresenceData());
-    d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
     if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys() && !d->isUploadingKeys) {
         d->isUploadingKeys = true;
@@ -656,8 +646,25 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
             d->isUploadingKeys = false;
         });
     }
-#endif // Quotient_E2EE_ENABLED
+    static bool first = true;
+    if(first) {
+        d->loadDevicesList();
+        first = false;
+    }
+
     d->consumeDevicesList(data.takeDevicesList());
+#endif // Quotient_E2EE_ENABLED
+    d->data->setLastEvent(data.nextBatch());
+    d->consumeRoomData(data.takeRoomData(), fromCache);
+    d->consumeAccountData(data.takeAccountData());
+    d->consumePresenceData(data.takePresenceData());
+    d->consumeToDeviceEvents(data.takeToDeviceEvents());
+#ifdef Quotient_E2EE_ENABLED
+    if(d->encryptionUpdateRequired) {
+        d->loadOutdatedUserDevices();
+        d->encryptionUpdateRequired = false;
+    }
+#endif
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -814,9 +821,11 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
 {
 #ifdef Quotient_E2EE_ENABLED
+    bool hasNewOutdatedUser = false;
     for(const auto &changed : devicesList.changed) {
         if(trackedUsers.contains(changed)) {
             outdatedUsers += changed;
+            hasNewOutdatedUser = true;
         }
     }
     for(const auto &left : devicesList.left) {
@@ -824,7 +833,7 @@ void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
         outdatedUsers -= left;
         deviceKeys.remove(left);
     }
-    if(!outdatedUsers.isEmpty()) {
+    if(hasNewOutdatedUser) {
         loadOutdatedUserDevices();
     }
 #endif
@@ -1836,22 +1845,6 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
 }
 
 #ifdef Quotient_E2EE_ENABLED
-void Connection::Private::createDevicesList()
-{
-    for(const auto &room : q->allRooms()) {
-        if(!room->usesEncryption()) {
-            continue;
-        }
-        for(const auto &user : room->users()) {
-            if(user->id() != q->userId()) {
-                trackedUsers += user->id();
-            }
-        }
-    }
-    outdatedUsers += trackedUsers;
-    loadOutdatedUserDevices();
-}
-
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -1896,10 +1889,8 @@ void Connection::encryptionUpdate(Room *room)
         if(!d->trackedUsers.contains(user->id())) {
             d->trackedUsers += user->id();
             d->outdatedUsers += user->id();
+            d->encryptionUpdateRequired = true;
         }
-    }
-    if(!d->outdatedUsers.isEmpty()) {
-        d->loadOutdatedUserDevices();
     }
 }
 
@@ -1927,13 +1918,13 @@ void Connection::Private::saveDevicesList()
               { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
     };
     {
-        QJsonObject trackedUsersJson;
-        QJsonObject outdatedUsersJson;
+        QJsonArray trackedUsersJson;
+        QJsonArray outdatedUsersJson;
         for (const auto &user : trackedUsers) {
-            trackedUsersJson.insert(user, QJsonValue::Null);
+            trackedUsersJson += user;
         }
         for (const auto &user : outdatedUsers) {
-            outdatedUsersJson.insert(user, QJsonValue::Null);
+            outdatedUsersJson += user;
         }
         rootObj.insert(QStringLiteral("tracked_users"), trackedUsersJson);
         rootObj.insert(QStringLiteral("outdated_users"), outdatedUsersJson);
@@ -1962,7 +1953,6 @@ void Connection::Private::loadDevicesList()
     QFile file { q->stateCacheDir().filePath("deviceslist.json") };
     if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
         qCDebug(E2EE) << "No devicesList cache exists. Creating new";
-        createDevicesList();
         return;
     }
     auto data = file.readAll();
@@ -1976,7 +1966,6 @@ void Connection::Private::loadDevicesList()
         ;
     if (json.isEmpty()) {
         qCWarning(MAIN) << "DevicesList cache is broken or empty, discarding";
-        createDevicesList();
         return;
     }
     for(const auto &user : json["tracked_users"].toArray()) {
@@ -1990,10 +1979,14 @@ void Connection::Private::loadDevicesList()
     auto oldToken = json["sync_token"].toString();
     auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
     connect(changesJob, &BaseJob::success, q, [=](){
+        bool hasNewOutdatedUser = false;
         for(const auto &user : changesJob->changed()) {
             outdatedUsers += user;
+            hasNewOutdatedUser = true;
         }
-        loadOutdatedUserDevices();
+        if(hasNewOutdatedUser) {
+            loadOutdatedUserDevices();
+        }
     });
 }
 #endif
