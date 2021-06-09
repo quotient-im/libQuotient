@@ -660,10 +660,12 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
+#ifdef Quotient_E2EE_ENABLED
     if(d->encryptionUpdateRequired) {
         d->loadOutdatedUserDevices();
         d->encryptionUpdateRequired = false;
     }
+#endif
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
