@@ -519,10 +519,6 @@ void TestOlmAccount::keyChange()
             auto aliceOlm = alice->olmAccount();
             aliceOlm->generateOneTimeKeys(1);
             auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
-            connect(aliceRes, &BaseJob::result, this, [aliceRes] {
-                QCOMPARE(aliceRes->oneTimeKeyCounts().size(), 1);
-                QCOMPARE(aliceRes->oneTimeKeyCounts()["signed_curve25519"], 1);
-            });
             QSignalSpy spy(aliceRes, &BaseJob::result);
 
             alice->run(aliceRes);
@@ -557,12 +553,15 @@ void TestOlmAccount::enableEncryption()
     auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), {"@bob:localhost"});
     connect(alice.get(), &Connection::newRoom, this, [alice, bob, &joinedRoom, this] (Quotient::Room *room) {
         room->activateEncryption(); // TODO we should also wait for it
+        QSignalSpy spy(room, &Room::encryption);
+
         joinedRoom = room->id();
-        sleep(1);
         auto job = bob->joinRoom(room->id());
-        QSignalSpy spy(job, &BaseJob::result);
+        QSignalSpy spy1(job, &BaseJob::result);
         QVERIFY(spy.wait(10000));
+        QVERIFY(spy1.wait(10000));
     });
+
     QSignalSpy spy(job, &BaseJob::result);
     QVERIFY(spy.wait(10000));
 
@@ -574,8 +573,14 @@ void TestOlmAccount::enableEncryption()
             auto event = it->event();
             if (eventCast<const EncryptedEvent>(event)) {
                 hasEncryption = true;
+            } else {
+               qDebug() << event->matrixType() << typeId<EncryptedEvent>() << event->type();
+               if ( event->matrixType() == "m.room.encryption") {
+                    qDebug() << event->contentJson();
+               }
             }
         }
+        QVERIFY(bob->room(joinedRoom)->usesEncryption());
         QVERIFY(hasEncryption);
     });
     QSignalSpy spy2(bob.get(), &Connection::syncDone);
