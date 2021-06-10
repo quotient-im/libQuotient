@@ -28,4 +28,5 @@ private Q_SLOTS:
     void queryTest();
     void claimKeys();
     void claimMultipleKeys();
+    void keyChange();
 };
