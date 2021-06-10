@@ -2998,6 +2998,11 @@ QJsonObject Room::toJson() const { return d->toJson(); }
 
 MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
+QString Room::enableEncryption()
+{
+    return d->sendEvent<EncryptionEvent>(Quotient::EncryptionType::MegolmV1AesSha2);
+}
+
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
     return operator()(u1, room->disambiguatedMemberName(u2->id()));

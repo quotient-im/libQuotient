@@ -29,4 +29,5 @@ private Q_SLOTS:
     void claimKeys();
     void claimMultipleKeys();
     void keyChange();
+    void enableEncryption();
 };
