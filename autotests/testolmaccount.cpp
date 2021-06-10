@@ -4,11 +4,20 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testolmaccount.h"
-#include "crypto/qolmaccount.h"
-#include "crypto/qolmutility.h"
-#include "connection.h"
-#include "events/encryptedfile.h"
-#include "networkaccessmanager.h"
+#include <crypto/qolmaccount.h>
+#include <crypto/qolmutility.h>
+#include <connection.h>
+#include <events/encryptedfile.h>
+#include <networkaccessmanager.h>
+#include <room.h>
+#include <csapi/joining.h>
+
+// for sleep
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 using namespace Quotient;
 
@@ -531,10 +540,46 @@ void TestOlmAccount::keyChange()
             QSignalSpy spy2(changeJob, &BaseJob::result);
             QVERIFY(spy2.wait(10000));
         });
+        QSignalSpy spy2(alice.get(), &Connection::syncDone);
+        QVERIFY(spy2.wait(10000));
     });
     QSignalSpy spy(job, &BaseJob::result);
     QVERIFY(spy.wait(10000));
 }
 
+void TestOlmAccount::enableEncryption()
+{
+    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+
+    QString joinedRoom;
+
+    auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), {"@bob:localhost"});
+    connect(alice.get(), &Connection::newRoom, this, [alice, bob, &joinedRoom, this] (Quotient::Room *room) {
+        room->activateEncryption(); // TODO we should also wait for it
+        joinedRoom = room->id();
+        sleep(1);
+        auto job = bob->joinRoom(room->id());
+        QSignalSpy spy(job, &BaseJob::result);
+        QVERIFY(spy.wait(10000));
+    });
+    QSignalSpy spy(job, &BaseJob::result);
+    QVERIFY(spy.wait(10000));
+
+    bob->sync();
+    connect(bob.get(), &Connection::syncDone, this, [bob, &joinedRoom, this] {
+        auto &events = bob->room(joinedRoom)->messageEvents();
+        bool hasEncryption = false;
+        for (auto it = events.rbegin(); it != events.rend(); ++it) {
+            auto event = it->event();
+            if (eventCast<const EncryptedEvent>(event)) {
+                hasEncryption = true;
+            }
+        }
+        QVERIFY(hasEncryption);
+    });
+    QSignalSpy spy2(bob.get(), &Connection::syncDone);
+    QVERIFY(spy2.wait(10000));
+}
 
 QTEST_MAIN(TestOlmAccount)
