@@ -1640,7 +1640,6 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 return;
             }
             it->setDeparted();
-            qCDebug(EVENTS) << "Event txn" << txnId << "has departed";
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
         Room::connect(call, &BaseJob::failure, q,
@@ -2969,7 +2968,10 @@ MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
 QString Room::enableEncryption()
 {
-    return d->sendEvent<EncryptionEvent>(Quotient::EncryptionType::MegolmV1AesSha2);
+    QJsonObject obj {
+        { AlgorithmKeyL, MegolmV1AesSha2AlgoKey }
+    };
+    return d->sendEvent<EncryptionEvent>(obj);
 }
 
 bool MemberSorter::operator()(User* u1, User* u2) const
