@@ -494,4 +494,47 @@ void TestOlmAccount::claimMultipleKeys()
         QCOMPARE(job->oneTimeKeys()[userId].size(), 3);
     });
 }
+
+void TestOlmAccount::keyChange()
+{
+    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
+
+    auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), QStringList());
+    connect(job, &BaseJob::result, this, [alice, job, this] () {
+        // Alice syncs to get the first next_batch token.
+        alice->sync();
+        connect(alice.get(), &Connection::syncDone, this, [alice, this] {
+            const auto nextBatchToken = alice->nextBatchToken();
+
+            // generate keys and change existing one
+            auto aliceOlm = alice->olmAccount();
+            aliceOlm->generateOneTimeKeys(1);
+            auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
+            connect(aliceRes, &BaseJob::result, this, [aliceRes] {
+                QCOMPARE(aliceRes->oneTimeKeyCounts().size(), 1);
+                QCOMPARE(aliceRes->oneTimeKeyCounts()["signed_curve25519"], 1);
+            });
+            QSignalSpy spy(aliceRes, &BaseJob::result);
+
+            alice->run(aliceRes);
+            QVERIFY(spy.wait(10000));
+
+            // The key changes should contain her username
+            // because of the key uploading.
+
+            auto changeJob = alice->callApi<GetKeysChangesJob>(nextBatchToken, "");
+            connect(changeJob, &BaseJob::result, this, [&changeJob, &alice] {
+                QCOMPARE(changeJob->changed().size(), 1);
+                QCOMPARE(changeJob->left().size(), 0);
+                QCOMPARE(changeJob->changed()[0], alice->userId());
+            });
+            QSignalSpy spy2(changeJob, &BaseJob::result);
+            QVERIFY(spy2.wait(10000));
+        });
+    });
+    QSignalSpy spy(job, &BaseJob::result);
+    QVERIFY(spy.wait(10000));
+}
+
+
 QTEST_MAIN(TestOlmAccount)
