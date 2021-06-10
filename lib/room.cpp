@@ -1914,7 +1914,6 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 return;
             }
             it->setDeparted();
-            qCDebug(EVENTS) << "Event txn" << txnId << "has departed";
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
         Room::connect(call, &BaseJob::failure, q,
