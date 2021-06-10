@@ -300,13 +300,14 @@ void TestOlmAccount::queryTest()
         QCOMPARE(aliceRes->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
     QSignalSpy spy(aliceRes, &BaseJob::result);
-    bob->run(aliceRes);
+    alice->run(aliceRes);
     QVERIFY(spy.wait(10000));
 
     auto bobOlm = bob->olmAccount();
     bobOlm->generateOneTimeKeys(1);
-    auto bobRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
+    auto bobRes = bobOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(bobRes, &BaseJob::result, this, [bobRes] {
+
         QCOMPARE(bobRes->oneTimeKeyCounts().size(), 1);
         QCOMPARE(bobRes->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
@@ -347,7 +348,6 @@ void TestOlmAccount::queryTest()
             QVERIFY(bobDevices.size() > 0);
 
             auto devKeys = bobDevices[alice->deviceId()];
-            qDebug() << bobDevices.keys();
             QCOMPARE(devKeys.userId, alice->userId());
             QCOMPARE(devKeys.deviceId, alice->deviceId());
             QCOMPARE(devKeys.keys, aliceOlm->deviceKeys().keys);
