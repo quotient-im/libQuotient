@@ -206,7 +206,7 @@ SignedOneTimeKey QOlmAccount::signedOneTimeKey(const QByteArray &key, const QStr
 QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
 {
     QJsonDocument j(QJsonObject{{"key", key}});
-    return sign(j.toJson());
+    return sign(j.toJson(QJsonDocument::Compact));
 }
 
 std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const
