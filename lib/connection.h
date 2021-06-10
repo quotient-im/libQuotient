@@ -668,7 +668,6 @@ public Q_SLOTS:
     virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
 
     void encryptionUpdate(Room *room);
-
 Q_SIGNALS:
     /**
      * @deprecated
