@@ -253,7 +253,7 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
     auto temp = signOneTimeKeys(oneTimeKeys);
     QHash<QString, QVariant> oneTimeKeysSigned;
     for (const auto &[keyId, key] : asKeyValueRange(temp)) {
-        oneTimeKeysSigned[keyId] = QVariant::fromValue(key);
+        oneTimeKeysSigned[keyId] = QVariant::fromValue(toJson(key));
     }
 
     return new UploadKeysJob(keys, oneTimeKeysSigned);
