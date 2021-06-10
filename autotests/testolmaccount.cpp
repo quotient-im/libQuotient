@@ -4,6 +4,7 @@
 
 #include "testolmaccount.h"
 #include "crypto/qolmaccount.h"
+#include "crypto/qolmutility.h"
 #include "connection.h"
 #include "events/encryptedfile.h"
 #include "networkaccessmanager.h"
@@ -47,12 +48,12 @@ void TestOlmAccount::signatureValid()
     const auto signature = olmAccount.sign(message);
     QVERIFY(QByteArray::fromBase64Encoding(signature).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
 
-    //let utility = OlmUtility::new();
-    //let identity_keys = olm_account.parsed_identity_keys();
-    //let ed25519_key = identity_keys.ed25519();
-    //assert!(utility
-    //    .ed25519_verify(&ed25519_key, message, &signature)
-    //    .unwrap());
+    QOlmUtility utility;
+    const auto identityKeys = olmAccount.identityKeys();
+    const auto ed25519Key = identityKeys.ed25519;
+    const auto verify = utility.ed25519Verify(ed25519Key, message, signature);
+    QVERIFY(std::holds_alternative<bool>(verify));
+    QVERIFY(std::get<bool>(verify) == true);
 }
 
 void TestOlmAccount::oneTimeKeysValid()
@@ -341,7 +342,7 @@ void TestOlmAccount::claimKeys()
 
             QVariantMap varMap = oneTimeKey.toMap();
             bool found = false;
-            for (const auto key : varMap.keys()) {
+            for (const auto &key : varMap.keys()) {
                 if (key.startsWith(QStringLiteral("signed_curve25519"))) {
                     found = true;
                 }
