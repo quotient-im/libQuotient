@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2021 Carl Schwan <carlschwan@kde.org>
+// SPDX-FileCopyrightText: 2020 mtxclient developers
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
@@ -285,6 +286,79 @@ void TestOlmAccount::uploadKeys()
     QVERIFY(spy3.wait(10000));
 }
 
+void TestOlmAccount::queryTest()
+{
+    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+
+    // Create and upload keys for both users.
+    auto aliceOlm = alice->olmAccount();
+    aliceOlm->generateOneTimeKeys(1);
+    auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
+    connect(aliceRes, &BaseJob::result, this, [aliceRes] {
+        QCOMPARE(aliceRes->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(aliceRes->oneTimeKeyCounts()["signed_curve25519"], 1);
+    });
+    QSignalSpy spy(aliceRes, &BaseJob::result);
+    bob->run(aliceRes);
+    QVERIFY(spy.wait(10000));
+
+    auto bobOlm = bob->olmAccount();
+    bobOlm->generateOneTimeKeys(1);
+    auto bobRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
+    connect(bobRes, &BaseJob::result, this, [bobRes] {
+        QCOMPARE(bobRes->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(bobRes->oneTimeKeyCounts()["signed_curve25519"], 1);
+    });
+    QSignalSpy spy1(bobRes, &BaseJob::result);
+    bob->run(bobRes);
+    QVERIFY(spy1.wait(10000));
+
+    {
+        // Each user is requests each other's keys.
+        QHash<QString, QStringList> deviceKeys;
+        deviceKeys[bob->userId()] = QStringList();
+        auto job = alice->callApi<QueryKeysJob>(deviceKeys);
+        QSignalSpy spy(job, &BaseJob::result);
+        connect(job, &BaseJob::result, this, [job, &bob, &bobOlm] {
+            QCOMPARE(job->failures().size(), 0);
+
+            auto aliceDevices = job->deviceKeys()[bob->userId()];
+            QVERIFY(aliceDevices.size() > 0);
+
+            auto devKeys = aliceDevices[bob->deviceId()];
+            QCOMPARE(devKeys.userId, bob->userId());
+            QCOMPARE(devKeys.deviceId, bob->deviceId());
+            QCOMPARE(devKeys.keys, bobOlm->deviceKeys().keys);
+            QCOMPARE(devKeys.signatures, bobOlm->deviceKeys().signatures);
+        });
+        QVERIFY(spy.wait(10000));
+    }
+
+    {
+        QHash<QString, QStringList> deviceKeys;
+        deviceKeys[alice->userId()] = QStringList();
+        auto job = bob->callApi<QueryKeysJob>(deviceKeys);
+        QSignalSpy spy(job, &BaseJob::result);
+        connect(job, &BaseJob::result, this, [job, &alice, &aliceOlm] {
+            QCOMPARE(job->failures().size(), 0);
+
+            auto bobDevices = job->deviceKeys()[alice->userId()];
+            QVERIFY(bobDevices.size() > 0);
+
+            auto devKeys = bobDevices[alice->deviceId()];
+            qDebug() << bobDevices.keys();
+            QCOMPARE(devKeys.userId, alice->userId());
+            QCOMPARE(devKeys.deviceId, alice->deviceId());
+            QCOMPARE(devKeys.keys, aliceOlm->deviceKeys().keys);
+            QCOMPARE(devKeys.signatures, aliceOlm->deviceKeys().signatures);
+        });
+        QVERIFY(spy.wait(10000));
+    }
+}
+
+
+
 void TestOlmAccount::claimKeys()
 {
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
@@ -365,36 +439,37 @@ void TestOlmAccount::claimMultipleKeys()
     auto olm = alice->olmAccount();
     olm->generateOneTimeKeys(10);
     auto res = olm->createUploadKeyRequest(olm->oneTimeKeys());
-    alice->run(res);
+    QSignalSpy spy(res, &BaseJob::result);
     connect(res, &BaseJob::result, this, [res] {
         QCOMPARE(res->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res->oneTimeKeyCounts()["signed_curve25519"], 10);
     });
-    QSignalSpy spy(res, &BaseJob::result);
+    alice->run(res);
 
     auto olm1 = alice1->olmAccount();
     olm1->generateOneTimeKeys(10);
     auto res1 = olm1->createUploadKeyRequest(olm1->oneTimeKeys());
-    alice1->run(res1);
+    QSignalSpy spy1(res1, &BaseJob::result);
     connect(res1, &BaseJob::result, this, [res1] {
         QCOMPARE(res1->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res1->oneTimeKeyCounts()["signed_curve25519"], 10);
     });
-    QSignalSpy spy1(res1, &BaseJob::result);
+    alice1->run(res1);
 
     auto olm2 = alice2->olmAccount();
     olm2->generateOneTimeKeys(10);
     auto res2 = olm2->createUploadKeyRequest(olm2->oneTimeKeys());
-    alice2->run(res2);
+    QSignalSpy spy2(res2, &BaseJob::result);
     connect(res2, &BaseJob::result, this, [res2] {
         QCOMPARE(res2->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res2->oneTimeKeyCounts()["signed_curve25519"], 10);
     });
-    QSignalSpy spy2(res2, &BaseJob::result);
+    alice2->run(res2);
+
 
     QVERIFY(spy.wait(10000));
     QVERIFY(spy1.wait(10000));
-    QVERIFY(spy2.wait(10000));
+    QVERIFY(spy2.wait(1000)); // TODO this is failing even with 10000
 
     // Bob will claim all keys from alice
     CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")

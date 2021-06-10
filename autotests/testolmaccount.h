@@ -25,6 +25,7 @@ private Q_SLOTS:
     void uploadOneTimeKeys();
     void uploadSignedOneTimeKeys();
     void uploadKeys();
+    void queryTest();
     void claimKeys();
     void claimMultipleKeys();
 };
