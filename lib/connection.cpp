@@ -116,7 +116,7 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     std::unique_ptr<QOlmAccount> olmAccount;
     bool isUploadingKeys = false;
-    QScopedPointer<EncryptionManager> encryptionManager;
+    EncryptionManager *encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -192,17 +192,14 @@ public:
 
     EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
-        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-        return {};
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
-#else // Quotient_E2EE_ENABLED
+#else
         if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
             return {};
 
-        const auto identityKey =
-            encryptionManager->account()->identityKeys().curve25519;
+        const auto identityKey = olmAccount->identityKeys().curve25519;
         const auto personalCipherObject =
             encryptedEvent.ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
@@ -210,11 +207,11 @@ public:
             return {};
         }
         const auto decrypted = encryptionManager->sessionDecryptMessage(
-            personalCipherObject, encryptedEvent.senderKey().toLatin1());
+            personalCipherObject, encryptedEvent.senderKey().toLatin1(), olmAccount);
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
                           << encryptedEvent.senderKey()
-                          << encryptionManager->account()->oneTimeKeys().keys;
+                          << olmAccount->oneTimeKeys().keys;
             return {};
         }
 
@@ -231,22 +228,18 @@ public:
 
         // TODO: keys to constants
         const auto decryptedEventObject = decryptedEvent->fullJson();
-        const auto recipient =
-            decryptedEventObject.value("recipient"_ls).toString();
+        const auto recipient = decryptedEventObject.value("recipient"_ls).toString();
         if (recipient != data->userId()) {
             qCDebug(E2EE) << "Found user" << recipient << "instead of us"
                           << data->userId() << "in Olm plaintext";
             return {};
         }
-        const auto ourKey =
-            decryptedEventObject.value("recipient_keys"_ls).toObject()
-                .value(Ed25519Key).toString();
-        if (ourKey
-            != QString::fromUtf8(
-                encryptionManager->account()->identityKeys().ed25519)) {
+        const auto ourKey = decryptedEventObject.value("recipient_keys"_ls).toObject()
+            .value(Ed25519Key).toString();
+        if (ourKey != QString::fromUtf8(olmAccount->identityKeys().ed25519)) {
             qCDebug(E2EE) << "Found key" << ourKey
                           << "instead of ours own ed25519 key"
-                          << encryptionManager->account()->identityKeys().ed25519
+                          << olmAccount->identityKeys().ed25519
                           << "in Olm plaintext";
             return {};
         }
@@ -264,6 +257,7 @@ public:
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
 {
+    d->encryptionManager = new EncryptionManager(this);
     d->q = this; // All d initialization should occur before this line
 }
 
@@ -792,21 +786,20 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
 #ifdef Quotient_E2EE_ENABLED
-    // handling m.room_key to-device encrypted event
-    visitEach(toDeviceEvents, [this](const EncryptedEvent& ee) {
-        if (ee.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-            qCDebug(E2EE) << "Encrypted event" << ee.id() << "algorithm"
-                          << ee.algorithm() << "is not supported";
+    qWarning() << "Consuming to device events" << toDeviceEvents.size();
+    if(toDeviceEvents.size() > 0)
+    visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
+        if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+            qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
             return;
         }
 
-        visit(*sessionDecryptMessage(ee),
-            [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+        visit(*sessionDecryptMessage(event),
+            [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
                 } else {
-                    qCDebug(E2EE)
-                        << "Encrypted event room id" << roomKeyEvent.roomId()
+                    qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
                         << "is not found at the connection" << q->objectName();
                 }
             },
