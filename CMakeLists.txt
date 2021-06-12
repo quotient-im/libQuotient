@@ -81,6 +81,7 @@ endif()
 if (NOT Qt5Core_FOUND OR BUILD_WITH_Qt6)
     find_package(Qt6 6.2 REQUIRED Core Network Gui Test) # TODO: Multimedia
     set(Qt Qt6)
+    qt6_wrap_cpp(lib_SRCS lib/quotient_common.h)
 else()
     find_package(Qt5 5.12 REQUIRED Core Network Gui Multimedia Test)
     set(Qt Qt5)
@@ -124,7 +125,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
 endif ()
 
 # Set up source files
-set(lib_SRCS
+list(APPEND lib_SRCS
     lib/networkaccessmanager.cpp
     lib/connectiondata.cpp
     lib/connection.cpp
