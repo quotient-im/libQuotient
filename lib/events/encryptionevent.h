@@ -40,6 +40,7 @@ public:
                                                           // default value
         : StateEvent(typeId(), obj)
     {}
+    EncryptionEvent(EncryptionEvent&&) = delete;
     template <typename... ArgTs>
     EncryptionEvent(ArgTs&&... contentArgs)
         : StateEvent(typeId(), matrixTypeId(), QString(),
