@@ -70,7 +70,7 @@ static QString pathSegment(const QUrl& url, int which)
         encodedPath(url).section('/', which, which).toUtf8());
 }
 
-static auto decodeFragmentPart(const QStringRef& part)
+static auto decodeFragmentPart(QStringView part)
 {
     return QUrl::fromPercentEncoding(part.toLatin1()).toUtf8();
 }
@@ -98,7 +98,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     if (scheme() == "matrix") {
         // Check sanity as per https://github.com/matrix-org/matrix-doc/pull/2312
         const auto& urlPath = encodedPath(*this);
-        const auto& splitPath = urlPath.splitRef('/');
+        const auto& splitPath = urlPath.split('/');
         switch (splitPath.size()) {
         case 2:
             break;
@@ -128,9 +128,9 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
         // so force QUrl to decode everything.
         auto f = fragment(QUrl::EncodeUnicode);
         if (auto&& m = MatrixToUrlRE.match(f); m.hasMatch())
-            *this = Uri { decodeFragmentPart(m.capturedRef("main")),
-                          decodeFragmentPart(m.capturedRef("sec")),
-                          decodeFragmentPart(m.capturedRef("query")) };
+            *this = Uri { decodeFragmentPart(m.capturedView(u"main")),
+                          decodeFragmentPart(m.capturedView(u"sec")),
+                          decodeFragmentPart(m.capturedView(u"query")) };
     }
 }
 

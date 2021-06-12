@@ -754,7 +754,7 @@ public:
     explicit MemberSorter(const Room* r) : room(r) {}
 
     bool operator()(User* u1, User* u2) const;
-    bool operator()(User* u1, const QString& u2name) const;
+    bool operator()(User* u1, QStringView u2name) const;
 
     template <typename ContT, typename ValT>
     typename ContT::size_type lowerBoundIndex(const ContT& c, const ValT& v) const
