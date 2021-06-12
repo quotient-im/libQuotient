@@ -14,6 +14,9 @@
 #include "settings.h"
 #include "user.h"
 
+// NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
+#include "moc_connection.cpp"
+
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
 #include "csapi/joining.h"
