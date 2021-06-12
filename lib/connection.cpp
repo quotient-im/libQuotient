@@ -464,6 +464,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         AccountSettings(data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
         //TODO handle errors
     });
+    encryptionManager = new EncryptionManager(q);
 
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
         // create new account and save unpickle data
@@ -1891,9 +1892,9 @@ void Connection::Private::saveDevicesList()
 
     QFile outFile { q->stateCacheDir().filePath("deviceslist.json") };
     if (!outFile.open(QFile::WriteOnly)) {
-        qCWarning(MAIN) << "Error opening" << outFile.fileName() << ":"
+        qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                         << outFile.errorString();
-        qCWarning(MAIN) << "Caching the rooms state disabled";
+        qCWarning(E2EE) << "Caching the rooms state disabled";
         cacheState = false;
         return;
     }

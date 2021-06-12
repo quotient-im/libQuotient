@@ -369,37 +369,95 @@ public:
     // A map from senderKey to a map of sessionId to InboundGroupSession
     // Not using QMultiHash, because we want to quickly return
     // a number of relations for a given event without enumerating them.
-    QHash<QPair<QString, QString>, QOlmInboundGroupSession*> groupSessions; // TODO:
-                                                                        // cache
+    std::map<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
+
+    void loadMegOlmSessions() {
+        QFile file { connection->stateCacheDir().filePath("megolmsessions.json") };
+        if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
+            qCDebug(E2EE) << "No megolm sessions cache exists.";
+            return;
+        }
+        auto data = file.readAll();
+        const auto json = data.startsWith('{')
+            ? QJsonDocument::fromJson(data).object()
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+            : QCborValue::fromCbor(data).toJsonValue().toObject()
+#else
+            : QJsonDocument::fromBinaryData(data).object()
+#endif
+            ;
+        if (json.isEmpty()) {
+            qCWarning(MAIN) << "Megolm sessions cache is empty";
+            return;
+        }
+        for(const auto &s : json["sessions"].toArray()) {
+            auto pickle = s.toObject()["pickle"].toString().toLatin1();
+            auto senderKey = s.toObject()["sender_key"].toString();
+            auto sessionId = s.toObject()["session_id"].toString();
+            auto sessionResult = QOlmInboundGroupSession::unpickle(pickle, Unencrypted{});
+            if(std::holds_alternative<QOlmError>(sessionResult)) {
+                qCWarning(E2EE) << "Failed to unpickle olm session";
+                continue;
+            }
+            groupSessions[qMakePair(senderKey, sessionId)] = std::move(std::get<std::unique_ptr<QOlmInboundGroupSession>>(sessionResult));
+        }
+    }
+    void saveMegOlmSessions() {
+        QFile outFile { connection->stateCacheDir().filePath("megolmsessions.json") };
+        if (!outFile.open(QFile::WriteOnly)) {
+            qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
+                            << outFile.errorString();
+            qCWarning(E2EE) << "Failed to write megolm sessions";
+            return;
+        }
+
+        QJsonObject rootObj {
+            { QStringLiteral("cache_version"),
+            QJsonObject {
+                { QStringLiteral("major"), 1 },
+                { QStringLiteral("minor"), 0 } } }
+        };
+        {
+            QJsonArray sessionsJson;
+            for (const auto &session : groupSessions) {
+                auto pickleResult = session.second->pickle(Unencrypted{});
+                sessionsJson += QJsonObject {
+                    {QStringLiteral("sender_key"), session.first.first},
+                    {QStringLiteral("session_id"), session.first.second},
+                    {QStringLiteral("pickle"), QString(pickleResult)}
+                };
+            }
+            rootObj.insert(QStringLiteral("sessions"), sessionsJson);
+        }
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        const auto data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+#else
+        QJsonDocument json { rootObj };
+        const auto data = json.toJson(QJsonDocument::Compact);
+#endif
+
+        outFile.write(data.data(), data.size());
+        qCDebug(E2EE) << "Megolm sessions saved to" << outFile.fileName();
+    }
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
     {
-        // new e2ee TODO:
-        /*
-        if (groupSessions.contains({ senderKey, sessionId })) {
-            qCDebug(E2EE) << "Inbound Megolm session" << sessionId
+        if (groupSessions.find(qMakePair(senderKey, sessionId)) != groupSessions.end()) {
+            qCWarning(E2EE) << "Inbound Megolm session" << sessionId
                           << "with senderKey" << senderKey << "already exists";
             return false;
         }
 
-        QOlmInboundGroupSession* megolmSession;
-        try {
-            megolmSession = new QOlmInboundGroupSession(sessionKey.toLatin1(),
-                                                    InboundGroupSession::Init,
-                                                    q);
-        } catch (QOlmError* e) {
-            qCDebug(E2EE) << "Unable to create new InboundGroupSession"
-                          << e->what();
+        std::unique_ptr<QOlmInboundGroupSession> megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
+        if (megolmSession->sessionId() != sessionId) {
+            qCWarning(E2EE) << "Session ID mismatch in m.room_key event sent "
+                             "from sender with key" << senderKey;
             return false;
         }
-        if (megolmSession->id() != sessionId) {
-            qCDebug(E2EE) << "Session ID mismatch in m.room_key event sent "
-                             "from sender with key"
-                          << senderKey;
-            return false;
-        }
-        groupSessions.insert({ senderKey, sessionId }, megolmSession);
-        */
+        qCWarning(E2EE) << "Adding inbound session";
+        groupSessions[qMakePair(senderKey, sessionId)] = std::move(megolmSession);
+        saveMegOlmSessions();
         return true;
     }
 
@@ -409,46 +467,33 @@ public:
                                        const QString& eventId,
                                        QDateTime timestamp)
     {
-        std::pair<QString, uint32_t> decrypted;
-        // new e2ee TODO:
-        /*
         QPair<QString, QString> senderSessionPairKey =
             qMakePair(senderKey, sessionId);
-        if (!groupSessions.contains(senderSessionPairKey)) {
-            qCDebug(E2EE) << "Unable to decrypt event" << eventId
+        if (groupSessions.find(senderSessionPairKey) == groupSessions.end()) {
+            qCWarning(E2EE) << "Unable to decrypt event" << eventId
                           << "The sender's device has not sent us the keys for "
                              "this message";
             return QString();
         }
-        QOlmInboundGroupSession* senderSession =
-            groupSessions.value(senderSessionPairKey);
-        if (!senderSession) {
-            qCDebug(E2EE) << "Unable to decrypt event" << eventId
-                          << "senderSessionPairKey:" << senderSessionPairKey;
+        auto& senderSession = groupSessions[senderSessionPairKey];
+        auto decryptResult = senderSession->decrypt(cipher);
+        if(std::holds_alternative<QOlmError>(decryptResult)) {
+            qCWarning(E2EE) << "Unable to decrypt event" << eventId
+            << "with matching megolm session:" << std::get<QOlmError>(decryptResult);
             return QString();
         }
-        try {
-            decrypted = senderSession->decrypt(cipher);
-        } catch (QOlmError* e) {
-            qCDebug(E2EE) << "Unable to decrypt event" << eventId
-                          << "with matching megolm session:" << e->what();
-            return QString();
-        }
-        QPair<QString, QDateTime> properties = groupSessionIndexRecord.value(
-            qMakePair(senderSession->id(), decrypted.second));
+        std::pair<QString, uint32_t> decrypted = std::get<std::pair<QString, uint32_t>>(decryptResult);
+        QPair<QString, QDateTime> properties = groupSessionIndexRecord.value(qMakePair(senderSession->sessionId(), decrypted.second));
         if (properties.first.isEmpty()) {
-            groupSessionIndexRecord.insert(qMakePair(senderSession->id(),
-                                                     decrypted.second),
-                                           qMakePair(eventId, timestamp));
+            groupSessionIndexRecord.insert(qMakePair(senderSession->sessionId(), decrypted.second), qMakePair(eventId, timestamp));
         } else {
-            if ((properties.first != eventId)
-                || (properties.second != timestamp)) {
-                qCDebug(E2EE) << "Detected a replay attack on event" << eventId;
+            if ((properties.first != eventId) || (properties.second != timestamp)) {
+                qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
                 return QString();
             }
         }
-        */
-
+        //TODO is this necessary?
+        saveMegOlmSessions();
         return decrypted.first;
     }
 #endif // Quotient_E2EE_ENABLED
@@ -475,6 +520,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
+    qCDebug(STATE) << "New" << initialJoinState << "Room:" << id;
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [=](){
         connection->encryptionUpdate(this);
@@ -484,6 +530,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             connection->encryptionUpdate(this);
         }
     });
+    d->loadMegOlmSessions();
 #endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
@@ -1504,13 +1551,29 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
             encryptedEvent.sessionId(), encryptedEvent.id(),
             encryptedEvent.originTimestamp());
         if (decrypted.isEmpty()) {
+            qCWarning(E2EE) << "Encrypted message is empty";
             return {};
         }
-        return makeEvent<RoomMessageEvent>(
-            QJsonDocument::fromJson(decrypted.toUtf8()).object());
+        QJsonObject eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
+        eventObject["event_id"] = encryptedEvent.id();
+        eventObject["sender"] = encryptedEvent.senderId();
+        eventObject["origin_server_ts"] = encryptedEvent.originTimestamp().toMSecsSinceEpoch();
+        if(encryptedEvent.contentJson().contains("m.relates_to")) {
+            auto relates = encryptedEvent.contentJson()["m.relates_to"].toObject();
+            auto content = eventObject["content"].toObject();
+            content["m.relates_to"] = relates;
+            eventObject["content"] = content;
+        }
+        if(encryptedEvent.unsignedJson().contains("redacts")) {
+            auto redacts = encryptedEvent.unsignedJson()["redacts"].toString();
+            auto unsign = eventObject["unsigned"].toObject();
+            unsign["redacts"] = redacts;
+            eventObject["unsigned"] = unsign;
+        }
+        return makeEvent<RoomMessageEvent>(eventObject);
     }
     qCDebug(E2EE) << "Algorithm of the encrypted event with id"
-                  << encryptedEvent.id() << "is not for the current device";
+                  << encryptedEvent.id() << "is not decryptable by the current device";
     return {};
 #endif // Quotient_E2EE_ENABLED
 }
@@ -1529,8 +1592,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
     }
     if (d->addInboundGroupSession(senderKey, roomKeyEvent.sessionId(),
                                   roomKeyEvent.sessionKey())) {
-        qCDebug(E2EE) << "added new inboundGroupSession:"
-                      << d->groupSessions.count();
+        qCWarning(E2EE) << "added new inboundGroupSession:"
+                      << d->groupSessions.size();
     }
 #endif // Quotient_E2EE_ENABLED
 }
@@ -2590,6 +2653,18 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     QElapsedTimer et;
     et.start();
+
+    //TODO should this be done before dropDuplicateEvents?
+    for(long unsigned int i = 0; i < events.size(); i++) {
+        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
+            qDebug() << "Encrypted Event";
+            auto decrypted = q->decryptMessage(*encrypted);
+            if(decrypted) {
+                events[i] = std::move(decrypted);
+            }
+        }
+    }
+
     {
         // Pre-process redactions and edits so that events that get
         // redacted/replaced in the same batch landed in the timeline already
@@ -2742,6 +2817,18 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     Changes changes {};
+
+    //TODO should this be done before dropDuplicateEvents?
+    for(long unsigned int i = 0; i < events.size(); i++) {
+        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
+            qDebug() << "Encrypted Event";
+            auto decrypted = q->decryptMessage(*encrypted);
+            if(decrypted) {
+                events[i] = std::move(decrypted);
+            }
+        }
+    }
+
     // In case of lazy-loading new members may be loaded with historical
     // messages. Also, the cache doesn't store events with empty content;
     // so when such events show up in the timeline they should be properly
