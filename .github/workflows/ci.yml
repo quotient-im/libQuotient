@@ -42,7 +42,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
-        version: '5.9.9'
+        version: '5.12.10'
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Install Ninja (macOS)
