@@ -458,8 +458,8 @@ void Connection::Private::completeSetup(const QString& mxId)
     AccountSettings accountSettings(data->userId());
 
     // init olmAccount
-    olmAccount = new QOlmAccount(data->userId(), data->deviceId(), q);
-    connect(olmAccount, &QOlmAccount::needsSave, q, [=](){
+    olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
+    connect(olmAccount.get(), &QOlmAccount::needsSave, q, [=](){
         auto pickle = olmAccount->pickle(Unencrypted{});
         AccountSettings(data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
     });
@@ -1283,7 +1283,7 @@ bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 #ifdef Quotient_E2EE_ENABLED
 QOlmAccount *Connection::olmAccount() const
 {
-    return d->olmAccount; //d->encryptionManager->account();
+    return d->olmAccount.get();
 }
 #endif // Quotient_E2EE_ENABLED
 
