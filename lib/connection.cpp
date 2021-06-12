@@ -114,7 +114,6 @@ public:
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
 #ifdef Quotient_E2EE_ENABLED
-<<<<<<< HEAD
     std::unique_ptr<QOlmAccount> olmAccount;
     bool isUploadingKeys = false;
     EncryptionManager *encryptionManager;
