@@ -186,14 +186,18 @@ QString Uri::primaryId() const
     if (primaryType_ == Empty || primaryType_ == Invalid)
         return {};
 
-    const auto& idStem = pathSegment(*this, 1);
-    return idStem.isEmpty() ? idStem : primaryType_ + idStem;
+    auto idStem = pathSegment(*this, 1);
+    if (!idStem.isEmpty())
+        idStem.push_front(char(primaryType_));
+    return idStem;
 }
 
 QString Uri::secondaryId() const
 {
-    const auto& idStem = pathSegment(*this, 3);
-    return idStem.isEmpty() ? idStem : secondaryType() + idStem;
+    auto idStem = pathSegment(*this, 3);
+    if (!idStem.isEmpty())
+        idStem.push_front(char(secondaryType()));
+    return idStem;
 }
 
 static const auto ActionKey = QStringLiteral("action");
