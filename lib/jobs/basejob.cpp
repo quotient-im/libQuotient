@@ -288,7 +288,8 @@ void BaseJob::Private::sendRequest()
         req.setRawHeader("Authorization",
                          QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
-    req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
     req.setMaximumRedirectsAllowed(10);
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     req.setAttribute(
