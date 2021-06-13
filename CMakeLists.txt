@@ -72,13 +72,9 @@ message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-option(BUILD_WITH_QT6 "Build Quotient with Qt 6" OFF)
+option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 
-if (NOT BUILD_WITH_QT6)
-    # Use Qt5 by default
-    find_package(Qt5 5.12 QUIET COMPONENTS Core)
-endif()
-if (NOT Qt5Core_FOUND OR BUILD_WITH_Qt6)
+if (BUILD_WITH_QT6)
     find_package(Qt6 6.2 REQUIRED Core Network Gui Test) # TODO: Multimedia
     set(Qt Qt6)
     qt6_wrap_cpp(lib_SRCS lib/quotient_common.h)
