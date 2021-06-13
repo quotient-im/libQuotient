@@ -10,7 +10,9 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
-#include <QtMultimedia/QMediaResource>
+#if QT_VERSION_MAJOR < 6
+#    include <QtMultimedia/QMediaResource>
+#endif
 
 using namespace Quotient;
 using namespace EventContent;
@@ -149,7 +151,11 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
             return new VideoContent(localUrl, file.size(), mimeType,
+#if QT_VERSION_MAJOR < 6
                                     QMediaResource(localUrl).resolution(),
+#else
+                                    {},
+#endif
                                     file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
