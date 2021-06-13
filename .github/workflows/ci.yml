@@ -18,6 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-18.04, macos-10.15]
         compiler: [ GCC, Clang ]
+        qt-version: [ '5.12.10' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '', 'E2EE' ]
         update-api: [ '', 'update-api' ]
@@ -37,12 +38,12 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}-QtCache
+        key: ${{ runner.os }}-Qt${{ matrix.qt-version }}-cache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
-        version: '5.9.9'
+        version: ${{ matrix.qt-version }}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Install Ninja (macOS)

@@ -14,6 +14,9 @@
 #include "settings.h"
 #include "user.h"
 
+// NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
+#include "moc_connection.cpp"
+
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
 #include "csapi/joining.h"
@@ -55,7 +58,7 @@ using namespace Quotient;
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
 template <typename HashT, typename Pred>
-HashT erase_if(HashT& hashMap, Pred pred)
+HashT remove_if(HashT& hashMap, Pred pred)
 {
     HashT removals;
     for (auto it = hashMap.begin(); it != hashMap.end();) {
@@ -665,16 +668,16 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                 // https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
                 DirectChatsMap remoteRemovals =
-                    erase_if(directChats, [&usersToDCs, this](auto it) {
+                    remove_if(directChats, [&usersToDCs, this](auto it) {
                         return !(
                             usersToDCs.contains(it.key()->id(), it.value())
                             || dcLocalAdditions.contains(it.key(), it.value()));
                     });
-                erase_if(directChatUsers, [&remoteRemovals](auto it) {
+                remove_if(directChatUsers, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.value(), it.key());
                 });
                 // Remove from dcLocalRemovals what the server already has.
-                erase_if(dcLocalRemovals, [&remoteRemovals](auto it) {
+                remove_if(dcLocalRemovals, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.key(), it.value());
                 });
                 if (MAIN().isDebugEnabled())
@@ -702,7 +705,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                             << "Couldn't get a user object for" << it.key();
                 }
                 // Remove from dcLocalAdditions what the server already has.
-                erase_if(dcLocalAdditions, [&remoteAdditions](auto it) {
+                remove_if(dcLocalAdditions, [&remoteAdditions](auto it) {
                     return remoteAdditions.contains(it.key(), it.value());
                 });
                 if (!remoteAdditions.isEmpty() || !remoteRemovals.isEmpty())
@@ -1385,7 +1388,7 @@ void Connection::removeFromDirectChats(const QString& roomId, User* user)
         removals.insert(user, roomId);
         d->dcLocalRemovals.insert(user, roomId);
     } else {
-        removals = erase_if(d->directChats,
+        removals = remove_if(d->directChats,
                             [&roomId](auto it) { return it.value() == roomId; });
         d->directChatUsers.remove(roomId);
         d->dcLocalRemovals += removals;

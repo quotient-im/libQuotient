@@ -3,6 +3,7 @@
 
 #include "requestdata.h"
 
+#include <QtCore/QIODevice>
 #include <QtCore/QBuffer>
 #include <QtCore/QByteArray>
 #include <QtCore/QJsonArray>
@@ -30,5 +31,9 @@ RequestData::RequestData(const QByteArray& a) : _source(fromData(a)) {}
 RequestData::RequestData(const QJsonObject& jo) : _source(fromJson(jo)) {}
 
 RequestData::RequestData(const QJsonArray& ja) : _source(fromJson(ja)) {}
+
+RequestData::RequestData(QIODevice* source)
+    : _source(std::unique_ptr<QIODevice>(source))
+{}
 
 RequestData::~RequestData() = default;

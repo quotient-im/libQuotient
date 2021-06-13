@@ -72,9 +72,18 @@ message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt5 5.9 REQUIRED Core Network Gui Multimedia Test)
-get_filename_component(Qt5_Prefix "${Qt5_DIR}/../../../.." ABSOLUTE)
-message(STATUS "Using Qt ${Qt5_VERSION} at ${Qt5_Prefix}")
+option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
+
+if (BUILD_WITH_QT6)
+    find_package(Qt6 6.2 REQUIRED Core Network Gui Test) # TODO: Multimedia
+    set(Qt Qt6)
+    qt6_wrap_cpp(lib_SRCS lib/quotient_common.h)
+else()
+    find_package(Qt5 5.12 REQUIRED Core Network Gui Multimedia Test)
+    set(Qt Qt5)
+endif()
+get_filename_component($Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
+message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     if ((NOT DEFINED USE_INTREE_LIBQOLM OR USE_INTREE_LIBQOLM)
@@ -112,7 +121,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
 endif ()
 
 # Set up source files
-set(lib_SRCS
+list(APPEND lib_SRCS
     lib/networkaccessmanager.cpp
     lib/connectiondata.cpp
     lib/connection.cpp
@@ -279,7 +288,10 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} QtOlm)
     set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
-target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Network Qt5::Gui Qt5::Multimedia)
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+if (Qt STREQUAL Qt5) # Qt 6 hasn't got Multimedia component as yet
+    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+endif()
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 

@@ -16,6 +16,9 @@
 #include "syncdata.h"
 #include "user.h"
 
+// NB: since Qt 6, moc_room.cpp needs User fully defined
+#include "moc_room.cpp"
+
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
 #include "csapi/inviting.h"
@@ -2959,12 +2962,16 @@ bool MemberSorter::operator()(User* u1, User* u2) const
     return operator()(u1, room->disambiguatedMemberName(u2->id()));
 }
 
-bool MemberSorter::operator()(User* u1, const QString& u2name) const
+bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
     auto n1 = room->disambiguatedMemberName(u1->id());
     if (n1.startsWith('@'))
         n1.remove(0, 1);
-    auto n2 = u2name.midRef(u2name.startsWith('@') ? 1 : 0);
+    const auto n2 = u2name.mid(u2name.startsWith('@') ? 1 : 0)
+#if QT_VERSION_MAJOR < 6
+        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
+#endif
+        ;
 
     return n1.localeAwareCompare(n2) < 0;
 }

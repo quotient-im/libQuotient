@@ -24,8 +24,7 @@ public:
     RequestData(const QByteArray& a = {});
     RequestData(const QJsonObject& jo);
     RequestData(const QJsonArray& ja);
-    RequestData(QIODevice* source) : _source(std::unique_ptr<QIODevice>(source))
-    {}
+    RequestData(QIODevice* source);
     RequestData(RequestData&&) = default;
     RequestData& operator=(RequestData&&) = default;
     ~RequestData();
