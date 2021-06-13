@@ -21,7 +21,9 @@ void Settings::setLegacyNames(const QString& organizationName,
 
 Settings::Settings(QObject* parent) : QSettings(parent)
 {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     setIniCodec("UTF-8");
+#endif
 }
 
 void Settings::setValue(const QString& key, const QVariant& value)

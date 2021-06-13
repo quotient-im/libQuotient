@@ -221,14 +221,16 @@ template <typename T>
 struct JsonConverter<std::vector<T>>
     : public JsonArrayConverter<std::vector<T>> {};
 
+#if QT_VERSION_MAJOR < 6 // QVector is an alias of QList in Qt6 but not in Qt 5
 template <typename T>
 struct JsonConverter<QVector<T>> : public JsonArrayConverter<QVector<T>> {};
+#endif
 
 template <typename T>
 struct JsonConverter<QList<T>> : public JsonArrayConverter<QList<T>> {};
 
 template <>
-struct JsonConverter<QStringList> : public JsonConverter<QList<QString>> {
+struct JsonConverter<QStringList> : public JsonArrayConverter<QStringList> {
     static auto dump(const QStringList& sl)
     {
         return QJsonArray::fromStringList(sl);
