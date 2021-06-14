@@ -30,6 +30,8 @@
 #include <utility>
 
 namespace Quotient {
+Q_NAMESPACE
+
 class Event;
 class Avatar;
 class SyncRoomData;
@@ -260,12 +262,12 @@ public:
     /*!
      * \brief Get a disambiguated name for the given user in the room context
      */
-    [[deprecated("Use safeMemberName() instead")
+    [[deprecated("Use safeMemberName() instead")]]
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
     /*!
      * \brief Get a disambiguated name for a user with this id in the room context
      */
-    [[deprecated("Use safeMemberName() instead")
+    [[deprecated("Use safeMemberName() instead")]]
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
     /*!
@@ -312,7 +314,7 @@ public:
      * arrived event; same as messageEvents().cend()
      */
     Timeline::const_iterator syncEdge() const;
-    [[deprecated("Use historyEdge instead")
+    [[deprecated("Use historyEdge instead")]]
     rev_iter_t timelineEdge() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;

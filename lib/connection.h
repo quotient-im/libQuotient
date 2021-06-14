@@ -548,7 +548,7 @@ public Q_SLOTS:
     /// Find out if capabilites are still loading from the server
     bool loadingCapabilities() const;
 
-    [[deprecate("Use stopSync() instead")]]
+    [[deprecated("Use stopSync() instead")]]
     void disconnectFromServer() { stopSync(); }
     void logout();
 
@@ -689,7 +689,7 @@ Q_SIGNALS:
     void capabilitiesLoaded();
 
     void connected();
-    [[deprecated("Use connected() instead")
+    [[deprecated("Use connected() instead")]]
     void reconnected();
     void loggedOut();
     /** Login data or state have changed
