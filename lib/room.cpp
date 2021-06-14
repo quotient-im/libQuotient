@@ -803,7 +803,7 @@ bool Room::isValidIndex(TimelineItem::index_t timelineIndex) const
 
 Room::rev_iter_t Room::findInTimeline(TimelineItem::index_t index) const
 {
-    return timelineEdge()
+    return historyEdge()
            - (isValidIndex(index) ? index - minTimelineIndex() + 1 : 0);
 }
 
@@ -2701,7 +2701,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                                        << p.receipts.size() << "users";
             }
             const auto newMarker = findInTimeline(p.evtId);
-            if (newMarker != timelineEdge()) {
+            if (newMarker != historyEdge()) {
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
@@ -2721,7 +2721,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                         continue; // FIXME, #185
                     auto u = user(r.userId);
                     if (memberJoinState(u) == JoinState::Join
-                        && readMarker(u) == timelineEdge())
+                        && readMarker(u) == historyEdge())
                         changes |= d->setLastReadEvent(u, p.evtId);
                 }
             }
@@ -2749,7 +2749,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(STATE) << "Server-side read marker at" << readEventId;
         d->serverReadMarker = readEventId;
         const auto newMarker = findInTimeline(readEventId);
-        changes |= newMarker != timelineEdge()
+        changes |= newMarker != historyEdge()
                        ? d->markMessagesAsRead(newMarker)
                        : d->setLastReadEvent(localUser(), readEventId);
     }

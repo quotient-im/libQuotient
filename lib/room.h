@@ -377,7 +377,7 @@ public:
      * events (non-redacted message events from users other than local)
      * are counted.
      *
-     * In a case when readMarker() == timelineEdge() (the local read
+     * In a case when readMarker() == historyEdge() (the local read
      * marker is beyond the local timeline) only the bottom limit of
      * the unread messages number can be estimated (and even that may
      * be slightly off due to, e.g., redactions of events not loaded

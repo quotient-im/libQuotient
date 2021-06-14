@@ -556,7 +556,7 @@ bool TestSuite::checkRedactionOutcome(const QByteArray& thisTest,
     // redacted at the next sync, or the nearest sync completes with
     // the unredacted event but the next one brings redaction.
     auto it = targetRoom->findInTimeline(evtIdToRedact);
-    if (it == targetRoom->timelineEdge())
+    if (it == targetRoom->historyEdge())
         return false; // Waiting for the next sync
 
     if ((*it)->isRedacted()) {
