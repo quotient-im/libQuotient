@@ -28,7 +28,10 @@ public:
     // Result properties
 
     /// The TURN server credentials.
-    QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
+    QJsonObject data() const
+    {
+        return fromJson<QJsonObject>(jsonData());
+    }
 };
 
 } // namespace Quotient

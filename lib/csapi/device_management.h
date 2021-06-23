@@ -59,7 +59,10 @@ public:
     // Result properties
 
     /// Device information
-    Device device() const { return fromJson<Device>(jsonData()); }
+    Device device() const
+    {
+        return fromJson<Device>(jsonData());
+    }
 };
 
 /*! \brief Update a device
@@ -83,7 +86,8 @@ public:
 
 /*! \brief Delete a device
  *
- * This API endpoint uses the `User-Interactive Authentication API`_.
+ * This API endpoint uses the [User-Interactive Authentication
+ * API](/client-server-api/#user-interactive-authentication-api).
  *
  * Deletes the given device, and invalidates any access token associated with it.
  */
@@ -104,7 +108,8 @@ public:
 
 /*! \brief Bulk deletion of devices
  *
- * This API endpoint uses the `User-Interactive Authentication API`_.
+ * This API endpoint uses the [User-Interactive Authentication
+ * API](/client-server-api/#user-interactive-authentication-api).
  *
  * Deletes the given devices, and invalidates any access token associated with
  * them.

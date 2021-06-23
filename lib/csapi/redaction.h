@@ -15,9 +15,12 @@ namespace Quotient {
  *
  * This cannot be undone.
  *
- * Users may redact their own events, and any user with a power level
- * greater than or equal to the ``redact`` power level of the room may
- * redact events there.
+ * Any user with a power level greater than or equal to the `m.room.redaction`
+ * event power level may send redaction events in the room. If the user's power
+ * level greater is also greater than or equal to the `redact` power level
+ * of the room, the user may redact events sent by other users.
+ *
+ * Server administrators may redact events sent by users on their server.
  */
 class RedactEventJob : public BaseJob {
 public:
@@ -43,7 +46,10 @@ public:
     // Result properties
 
     /// A unique identifier for the event.
-    QString eventId() const { return loadFromJson<QString>("event_id"_ls); }
+    QString eventId() const
+    {
+        return loadFromJson<QString>("event_id"_ls);
+    }
 };
 
 } // namespace Quotient

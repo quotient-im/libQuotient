@@ -51,7 +51,10 @@ public:
     // Result properties
 
     /// The room ID for this room alias.
-    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
+    QString roomId() const
+    {
+        return loadFromJson<QString>("room_id"_ls);
+    }
 
     /// A list of servers that are aware of this room alias.
     QStringList servers() const
@@ -68,13 +71,13 @@ public:
  * instance that room aliases can only be deleted by their creator or a server
  * administrator.
  *
- * .. Note::
- *    Servers may choose to update the ``alt_aliases`` for the
- * ``m.room.canonical_alias`` state event in the room when an alias is removed.
+ * **Note:**
+ * Servers may choose to update the `alt_aliases` for the
+ * `m.room.canonical_alias` state event in the room when an alias is removed.
  * Servers which choose to update the canonical alias event are recommended to,
  * in addition to their other relevant permission checks, delete the alias and
  * return a successful response even if the user does not have permission to
- * update the ``m.room.canonical_alias`` event.
+ * update the `m.room.canonical_alias` event.
  */
 class DeleteRoomAliasJob : public BaseJob {
 public:
@@ -99,18 +102,18 @@ public:
  * given room.
  *
  * This endpoint can be called by users who are in the room (external
- * users receive an ``M_FORBIDDEN`` error response). If the room's
- * ``m.room.history_visibility`` maps to ``world_readable``, any
+ * users receive an `M_FORBIDDEN` error response). If the room's
+ * `m.room.history_visibility` maps to `world_readable`, any
  * user can call this endpoint.
  *
  * Servers may choose to implement additional access control checks here,
  * such as allowing server administrators to view aliases regardless of
  * membership.
  *
- * .. Note::
- *    Clients are recommended not to display this list of aliases prominently
- *    as they are not curated, unlike those listed in the
- * ``m.room.canonical_alias`` state event.
+ * **Note:**
+ * Clients are recommended not to display this list of aliases prominently
+ * as they are not curated, unlike those listed in the `m.room.canonical_alias`
+ * state event.
  */
 class GetLocalAliasesJob : public BaseJob {
 public:

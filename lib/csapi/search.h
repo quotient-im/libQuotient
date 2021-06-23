@@ -23,15 +23,15 @@ public:
     /// returned are included in the response.
     struct IncludeEventContext {
         /// How many events before the result are
-        /// returned. By default, this is ``5``.
+        /// returned. By default, this is `5`.
         Omittable<int> beforeLimit;
         /// How many events after the result are
-        /// returned. By default, this is ``5``.
+        /// returned. By default, this is `5`.
         Omittable<int> afterLimit;
         /// Requests that the server returns the
         /// historic profile information for the users
         /// that sent the events that were returned.
-        /// By default, this is ``false``.
+        /// By default, this is `false`.
         Omittable<bool> includeProfile;
     };
 
@@ -54,10 +54,10 @@ public:
         QString searchTerm;
         /// The keys to search. Defaults to all.
         QStringList keys;
-        /// This takes a `filter`_.
+        /// This takes a [filter](/client-server-api/#filtering).
         RoomEventFilter filter;
         /// The order in which to search for results.
-        /// By default, this is ``"rank"``.
+        /// By default, this is `"rank"`.
         QString orderBy;
         /// Configures whether any context for the events
         /// returned are included in the response.
@@ -93,7 +93,7 @@ public:
         /// The historic profile information of the
         /// users that sent the events returned.
         ///
-        /// The ``string`` key is the user ID for which
+        /// The `string` key is the user ID for which
         /// the profile belongs to.
         QHash<QString, UserProfile> profileInfo;
         /// Events just before the result.
@@ -139,15 +139,15 @@ public:
         std::vector<Result> results;
         /// The current state for every room in the results.
         /// This is included if the request had the
-        /// ``include_state`` key set with a value of ``true``.
+        /// `include_state` key set with a value of `true`.
         ///
-        /// The ``string`` key is the room ID for which the ``State
-        /// Event`` array belongs to.
+        /// The `string` key is the room ID for which the `State
+        /// Event` array belongs to.
         UnorderedMap<QString, StateEvents> state;
         /// Any groups that were requested.
         ///
-        /// The outer ``string`` key is the group key requested (eg: ``room_id``
-        /// or ``sender``). The inner ``string`` key is the grouped value (eg:
+        /// The outer `string` key is the group key requested (eg: `room_id`
+        /// or `sender`). The inner `string` key is the grouped value (eg:
         /// a room's ID or a user's ID).
         QHash<QString, QHash<QString, GroupValue>> groups;
         /// Token that can be used to get the next batch of
@@ -172,7 +172,7 @@ public:
      *
      * \param nextBatch
      *   The point to return events from. If given, this should be a
-     *   ``next_batch`` result from a previous call to this endpoint.
+     *   `next_batch` result from a previous call to this endpoint.
      */
     explicit SearchJob(const Categories& searchCategories,
                        const QString& nextBatch = {});

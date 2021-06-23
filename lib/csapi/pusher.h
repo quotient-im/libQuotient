@@ -19,7 +19,7 @@ public:
     /// A dictionary of information for the pusher implementation
     /// itself.
     struct PusherData {
-        /// Required if ``kind`` is ``http``. The URL to use to send
+        /// Required if `kind` is `http`. The URL to use to send
         /// notifications to.
         QString url;
         /// The format to use when sending notifications to the Push
@@ -29,11 +29,11 @@ public:
 
     /// Gets all currently active pushers for the authenticated user.
     struct Pusher {
-        /// This is a unique identifier for this pusher. See ``/set`` for
+        /// This is a unique identifier for this pusher. See `/set` for
         /// more detail.
         /// Max length, 512 bytes.
         QString pushkey;
-        /// The kind of pusher. ``"http"`` is a pusher that
+        /// The kind of pusher. `"http"` is a pusher that
         /// sends HTTP pokes.
         QString kind;
         /// This is a reverse-DNS style identifier for the application.
@@ -104,27 +104,27 @@ struct JsonObjectConverter<GetPushersJob::Pusher> {
 
 /*! \brief Modify a pusher for this user on the homeserver.
  *
- * This endpoint allows the creation, modification and deletion of `pushers`_
- * for this user ID. The behaviour of this endpoint varies depending on the
- * values in the JSON body.
+ * This endpoint allows the creation, modification and deletion of
+ * [pushers](/client-server-api/#push-notifications) for this user ID. The
+ * behaviour of this endpoint varies depending on the values in the JSON body.
  */
 class PostPusherJob : public BaseJob {
 public:
     // Inner data structures
 
     /// A dictionary of information for the pusher implementation
-    /// itself. If ``kind`` is ``http``, this should contain ``url``
+    /// itself. If `kind` is `http`, this should contain `url`
     /// which is the URL to use to send notifications to.
     struct PusherData {
-        /// Required if ``kind`` is ``http``. The URL to use to send
+        /// Required if `kind` is `http`. The URL to use to send
         /// notifications to. MUST be an HTTPS URL with a path of
-        /// ``/_matrix/push/v1/notify``.
+        /// `/_matrix/push/v1/notify`.
         QString url;
         /// The format to send notifications in to Push Gateways if the
-        /// ``kind`` is ``http``. The details about what fields the
+        /// `kind` is `http`. The details about what fields the
         /// homeserver should send to the push gateway are defined in the
-        /// `Push Gateway Specification`_. Currently the only format
-        /// available is 'event_id_only'.
+        /// [Push Gateway Specification](/push-gateway-api/). Currently the only
+        /// format available is 'event_id_only'.
         QString format;
     };
 
@@ -140,13 +140,13 @@ public:
      *   client has no such concept, use any unique identifier.
      *   Max length, 512 bytes.
      *
-     *   If the ``kind`` is ``"email"``, this is the email address to
+     *   If the `kind` is `"email"`, this is the email address to
      *   send notifications to.
      *
      * \param kind
-     *   The kind of pusher to configure. ``"http"`` makes a pusher that
-     *   sends HTTP pokes. ``"email"`` makes a pusher that emails the
-     *   user with unread notifications. ``null`` deletes the pusher.
+     *   The kind of pusher to configure. `"http"` makes a pusher that
+     *   sends HTTP pokes. `"email"` makes a pusher that emails the
+     *   user with unread notifications. `null` deletes the pusher.
      *
      * \param appId
      *   This is a reverse-DNS style identifier for the application.
@@ -154,7 +154,7 @@ public:
      *   different platform versions get different app identifiers.
      *   Max length, 64 chars.
      *
-     *   If the ``kind`` is ``"email"``, this is ``"m.email"``.
+     *   If the `kind` is `"email"`, this is `"m.email"`.
      *
      * \param appDisplayName
      *   A string that will allow the user to identify what application
@@ -170,7 +170,7 @@ public:
      *
      * \param data
      *   A dictionary of information for the pusher implementation
-     *   itself. If ``kind`` is ``http``, this should contain ``url``
+     *   itself. If `kind` is `http`, this should contain `url`
      *   which is the URL to use to send notifications to.
      *
      * \param profileTag
@@ -182,7 +182,7 @@ public:
      *   given pushkey and App ID in addition to any others with
      *   different user IDs. Otherwise, the homeserver must remove any
      *   other pushers with the same App ID and pushkey for different
-     *   users. The default is ``false``.
+     *   users. The default is `false`.
      */
     explicit PostPusherJob(const QString& pushkey, const QString& kind,
                            const QString& appId, const QString& appDisplayName,

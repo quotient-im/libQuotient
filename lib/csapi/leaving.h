@@ -28,15 +28,12 @@ public:
      *
      * \param roomId
      *   The room identifier to leave.
-     */
-    explicit LeaveRoomJob(const QString& roomId);
-
-    /*! \brief Construct a URL without creating a full-fledged job object
      *
-     * This function can be used when a URL for LeaveRoomJob
-     * is necessary but the job itself isn't.
+     * \param reason
+     *   Optional reason to be included as the `reason` on the subsequent
+     *   membership event.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+    explicit LeaveRoomJob(const QString& roomId, const QString& reason = {});
 };
 
 /*! \brief Stop the requesting user remembering about a particular room.

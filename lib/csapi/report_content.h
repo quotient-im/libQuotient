@@ -31,7 +31,8 @@ public:
      *   The reason the content is being reported. May be blank.
      */
     explicit ReportContentJob(const QString& roomId, const QString& eventId,
-                              int score, const QString& reason);
+                              Omittable<int> score = none,
+                              const QString& reason = {});
 };
 
 } // namespace Quotient

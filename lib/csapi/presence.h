@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * This API sets the given user's presence state. When setting the status,
  * the activity time is updated to reflect that activity; the client does
- * not need to specify the ``last_active_ago`` field. You cannot set the
+ * not need to specify the `last_active_ago` field. You cannot set the
  * presence state of another user.
  */
 class SetPresenceJob : public BaseJob {
@@ -55,7 +55,10 @@ public:
     // Result properties
 
     /// This user's presence.
-    QString presence() const { return loadFromJson<QString>("presence"_ls); }
+    QString presence() const
+    {
+        return loadFromJson<QString>("presence"_ls);
+    }
 
     /// The length of time in milliseconds since an action was performed
     /// by this user.
@@ -65,7 +68,10 @@ public:
     }
 
     /// The state message for this user if one was set.
-    QString statusMsg() const { return loadFromJson<QString>("status_msg"_ls); }
+    QString statusMsg() const
+    {
+        return loadFromJson<QString>("status_msg"_ls);
+    }
 
     /// Whether the user is currently active
     Omittable<bool> currentlyActive() const

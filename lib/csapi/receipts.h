@@ -27,8 +27,8 @@ public:
      *   The event ID to acknowledge up to.
      *
      * \param receipt
-     *   Extra receipt information to attach to ``content`` if any. The
-     *   server will automatically set the ``ts`` field.
+     *   Extra receipt information to attach to `content` if any. The
+     *   server will automatically set the `ts` field.
      */
     explicit PostReceiptJob(const QString& roomId, const QString& receiptType,
                             const QString& eventId,

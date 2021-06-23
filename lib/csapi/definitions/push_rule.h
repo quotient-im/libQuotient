@@ -25,10 +25,10 @@ struct PushRule {
 
     /// The conditions that must hold true for an event in order for a rule to
     /// be applied to an event. A rule with no conditions always matches. Only
-    /// applicable to ``underride`` and ``override`` rules.
+    /// applicable to `underride` and `override` rules.
     QVector<PushCondition> conditions;
 
-    /// The glob-style pattern to match against.  Only applicable to ``content``
+    /// The glob-style pattern to match against.  Only applicable to `content`
     /// rules.
     QString pattern;
 };

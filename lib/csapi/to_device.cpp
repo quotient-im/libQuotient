@@ -16,6 +16,6 @@ SendToDeviceJob::SendToDeviceJob(
                   % eventType % "/" % txnId)
 {
     QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("messages"), messages);
+    addParam<>(_data, QStringLiteral("messages"), messages);
     setRequestData(std::move(_data));
 }

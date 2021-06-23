@@ -37,6 +37,12 @@ struct PublicRoomsChunk {
 
     /// The URL for the room's avatar, if one is set.
     QString avatarUrl;
+
+    /// The room's join rule. When not present, the room is assumed to
+    /// be `public`. Note that rooms with `invite` join rules are not
+    /// expected here, but rooms with `knock` rules are given their
+    /// near-public nature.
+    QString joinRule;
 };
 
 template <>
@@ -54,6 +60,7 @@ struct JsonObjectConverter<PublicRoomsChunk> {
         addParam<>(jo, QStringLiteral("world_readable"), pod.worldReadable);
         addParam<>(jo, QStringLiteral("guest_can_join"), pod.guestCanJoin);
         addParam<IfNotEmpty>(jo, QStringLiteral("avatar_url"), pod.avatarUrl);
+        addParam<IfNotEmpty>(jo, QStringLiteral("join_rule"), pod.joinRule);
     }
     static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod)
     {
@@ -66,6 +73,7 @@ struct JsonObjectConverter<PublicRoomsChunk> {
         fromJson(jo.value("world_readable"_ls), pod.worldReadable);
         fromJson(jo.value("guest_can_join"_ls), pod.guestCanJoin);
         fromJson(jo.value("avatar_url"_ls), pod.avatarUrl);
+        fromJson(jo.value("join_rule"_ls), pod.joinRule);
     }
 };
 

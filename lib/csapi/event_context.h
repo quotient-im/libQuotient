@@ -16,8 +16,8 @@ namespace Quotient {
  * surrounding an event.
  *
  * *Note*: This endpoint supports lazy-loading of room member events. See
- * `Lazy-loading room members <#lazy-loading-room-members>`_ for more
- * information.
+ * [Lazy-loading room members](/client-server-api/#lazy-loading-room-members)
+ * for more information.
  */
 class GetEventContextJob : public BaseJob {
 public:
@@ -33,13 +33,13 @@ public:
      *   The maximum number of events to return. Default: 10.
      *
      * \param filter
-     *   A JSON ``RoomEventFilter`` to filter the returned events with. The
-     *   filter is only applied to ``events_before``, ``events_after``, and
-     *   ``state``. It is not applied to the ``event`` itself. The filter may
-     *   be applied before or/and after the ``limit`` parameter - whichever the
+     *   A JSON `RoomEventFilter` to filter the returned events with. The
+     *   filter is only applied to `events_before`, `events_after`, and
+     *   `state`. It is not applied to the `event` itself. The filter may
+     *   be applied before or/and after the `limit` parameter - whichever the
      *   homeserver prefers.
      *
-     *   See `Filtering <#filtering>`_ for more information.
+     *   See [Filtering](/client-server-api/#filtering) for more information.
      */
     explicit GetEventContextJob(const QString& roomId, const QString& eventId,
                                 Omittable<int> limit = none,
@@ -58,10 +58,16 @@ public:
     // Result properties
 
     /// A token that can be used to paginate backwards with.
-    QString begin() const { return loadFromJson<QString>("start"_ls); }
+    QString begin() const
+    {
+        return loadFromJson<QString>("start"_ls);
+    }
 
     /// A token that can be used to paginate forwards with.
-    QString end() const { return loadFromJson<QString>("end"_ls); }
+    QString end() const
+    {
+        return loadFromJson<QString>("end"_ls);
+    }
 
     /// A list of room events that happened just before the
     /// requested event, in reverse-chronological order.
@@ -71,7 +77,10 @@ public:
     }
 
     /// Details of the requested event.
-    RoomEventPtr event() { return takeFromJson<RoomEventPtr>("event"_ls); }
+    RoomEventPtr event()
+    {
+        return takeFromJson<RoomEventPtr>("event"_ls);
+    }
 
     /// A list of room events that happened just after the
     /// requested event, in chronological order.
@@ -81,7 +90,10 @@ public:
     }
 
     /// The state of the room at the last event returned.
-    StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
+    StateEvents state()
+    {
+        return takeFromJson<StateEvents>("state"_ls);
+    }
 };
 
 } // namespace Quotient

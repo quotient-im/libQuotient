@@ -10,22 +10,20 @@ namespace Quotient {
 
 /*! \brief Send a state event to the given room.
  *
- * .. For backwards compatibility with older links...
- * .. _`put-matrix-client-r0-rooms-roomid-state-eventtype`:
- *
  * State events can be sent using this endpoint.  These events will be
- * overwritten if ``<room id>``, ``<event type>`` and ``<state key>`` all
+ * overwritten if `<room id>`, `<event type>` and `<state key>` all
  * match.
  *
  * Requests to this endpoint **cannot use transaction IDs**
- * like other ``PUT`` paths because they cannot be differentiated from the
- * ``state_key``. Furthermore, ``POST`` is unsupported on state paths.
+ * like other `PUT` paths because they cannot be differentiated from the
+ * `state_key`. Furthermore, `POST` is unsupported on state paths.
  *
  * The body of the request should be the content object of the event; the
  * fields in this object will vary depending on the type of event. See
- * `Room Events`_ for the ``m.`` event specification.
+ * [Room Events](/client-server-api/#room-events) for the `m.` event
+ * specification.
  *
- * If the event type being sent is ``m.room.canonical_alias`` servers
+ * If the event type being sent is `m.room.canonical_alias` servers
  * SHOULD ensure that any new aliases being listed in the event are valid
  * per their grammar/syntax and that they point to the room ID where the
  * state event is to be sent. Servers do not validate aliases which are
@@ -46,22 +44,20 @@ public:
      *   an empty string, the trailing slash on this endpoint is optional.
      *
      * \param body
-     *   .. For backwards compatibility with older links...
-     *   .. _`put-matrix-client-r0-rooms-roomid-state-eventtype`:
-     *
      *   State events can be sent using this endpoint.  These events will be
-     *   overwritten if ``<room id>``, ``<event type>`` and ``<state key>`` all
+     *   overwritten if `<room id>`, `<event type>` and `<state key>` all
      *   match.
      *
      *   Requests to this endpoint **cannot use transaction IDs**
-     *   like other ``PUT`` paths because they cannot be differentiated from the
-     *   ``state_key``. Furthermore, ``POST`` is unsupported on state paths.
+     *   like other `PUT` paths because they cannot be differentiated from the
+     *   `state_key`. Furthermore, `POST` is unsupported on state paths.
      *
      *   The body of the request should be the content object of the event; the
      *   fields in this object will vary depending on the type of event. See
-     *   `Room Events`_ for the ``m.`` event specification.
+     *   [Room Events](/client-server-api/#room-events) for the `m.` event
+     * specification.
      *
-     *   If the event type being sent is ``m.room.canonical_alias`` servers
+     *   If the event type being sent is `m.room.canonical_alias` servers
      *   SHOULD ensure that any new aliases being listed in the event are valid
      *   per their grammar/syntax and that they point to the room ID where the
      *   state event is to be sent. Servers do not validate aliases which are
@@ -75,7 +71,10 @@ public:
     // Result properties
 
     /// A unique identifier for the event.
-    QString eventId() const { return loadFromJson<QString>("event_id"_ls); }
+    QString eventId() const
+    {
+        return loadFromJson<QString>("event_id"_ls);
+    }
 };
 
 } // namespace Quotient

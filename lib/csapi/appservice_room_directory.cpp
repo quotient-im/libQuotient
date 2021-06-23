@@ -8,10 +8,10 @@
 
 using namespace Quotient;
 
-UpdateAppserviceRoomDirectoryVsibilityJob::UpdateAppserviceRoomDirectoryVsibilityJob(
+UpdateAppserviceRoomDirectoryVisibilityJob::UpdateAppserviceRoomDirectoryVisibilityJob(
     const QString& networkId, const QString& roomId, const QString& visibility)
     : BaseJob(HttpVerb::Put,
-              QStringLiteral("UpdateAppserviceRoomDirectoryVsibilityJob"),
+              QStringLiteral("UpdateAppserviceRoomDirectoryVisibilityJob"),
               QStringLiteral("/_matrix/client/r0")
                   % "/directory/list/appservice/" % networkId % "/" % roomId)
 {

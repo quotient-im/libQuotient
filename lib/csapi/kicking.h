@@ -15,10 +15,10 @@ namespace Quotient {
  * The caller must have the required power level in order to perform this
  * operation.
  *
- * Kicking a user adjusts the target member's membership state to be ``leave``
- * with an optional ``reason``. Like with other membership changes, a user can
+ * Kicking a user adjusts the target member's membership state to be `leave`
+ * with an optional `reason`. Like with other membership changes, a user can
  * directly adjust the target member's state by making a request to
- * ``/rooms/<room id>/state/m.room.member/<user id>``.
+ * `/rooms/<room id>/state/m.room.member/<user id>`.
  */
 class KickJob : public BaseJob {
 public:
@@ -32,7 +32,8 @@ public:
      *
      * \param reason
      *   The reason the user has been kicked. This will be supplied as the
-     *   ``reason`` on the target's updated `m.room.member`_ event.
+     *   `reason` on the target's updated
+     * [`m.room.member`](/client-server-api/#mroommember) event.
      */
     explicit KickJob(const QString& roomId, const QString& userId,
                      const QString& reason = {});

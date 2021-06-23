@@ -17,11 +17,11 @@ namespace Quotient {
  * This API is similar to the room directory visibility API used by clients
  * to update the homeserver's more general room directory.
  *
- * This API requires the use of an application service access token
- * (``as_token``) instead of a typical client's access_token. This API cannot be
- * invoked by users who are not identified as application services.
+ * This API requires the use of an application service access token (`as_token`)
+ * instead of a typical client's access_token. This API cannot be invoked by
+ * users who are not identified as application services.
  */
-class UpdateAppserviceRoomDirectoryVsibilityJob : public BaseJob {
+class UpdateAppserviceRoomDirectoryVisibilityJob : public BaseJob {
 public:
     /*! \brief Updates a room's visibility in the application service's room
      * directory.
@@ -38,9 +38,9 @@ public:
      *   Whether the room should be visible (public) in the directory
      *   or not (private).
      */
-    explicit UpdateAppserviceRoomDirectoryVsibilityJob(const QString& networkId,
-                                                       const QString& roomId,
-                                                       const QString& visibility);
+    explicit UpdateAppserviceRoomDirectoryVisibilityJob(
+        const QString& networkId, const QString& roomId,
+        const QString& visibility);
 };
 
 } // namespace Quotient

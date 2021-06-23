@@ -22,7 +22,7 @@ public:
     /// user has been, or would have been notified about.
     struct Notification {
         /// The action(s) to perform when the conditions for this rule are met.
-        /// See `Push Rules: API`_.
+        /// See [Push Rules: API](/client-server-api/#push-rules-api).
         QVector<QVariant> actions;
         /// The Event object for the event that triggered the notification.
         EventPtr event;
@@ -35,7 +35,7 @@ public:
         QString roomId;
         /// The unix timestamp at which the event notification was sent,
         /// in milliseconds.
-        int ts;
+        qint64 ts;
     };
 
     // Construction/destruction
@@ -49,7 +49,7 @@ public:
      *   Limit on the number of events to return in this request.
      *
      * \param only
-     *   Allows basic filtering of events returned. Supply ``highlight``
+     *   Allows basic filtering of events returned. Supply `highlight`
      *   to return only events where the notification had the highlight
      *   tweak set.
      */
@@ -68,10 +68,13 @@ public:
 
     // Result properties
 
-    /// The token to supply in the ``from`` param of the next
-    /// ``/notifications`` request in order to request more
+    /// The token to supply in the `from` param of the next
+    /// `/notifications` request in order to request more
     /// events. If this is absent, there are no more results.
-    QString nextToken() const { return loadFromJson<QString>("next_token"_ls); }
+    QString nextToken() const
+    {
+        return loadFromJson<QString>("next_token"_ls);
+    }
 
     /// The list of events that triggered notifications.
     std::vector<Notification> notifications()

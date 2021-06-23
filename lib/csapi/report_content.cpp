@@ -9,13 +9,13 @@
 using namespace Quotient;
 
 ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId,
-                                   int score, const QString& reason)
+                                   Omittable<int> score, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("ReportContentJob"),
               QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
                   % "/report/" % eventId)
 {
     QJsonObject _data;
-    addParam<>(_data, QStringLiteral("score"), score);
-    addParam<>(_data, QStringLiteral("reason"), reason);
+    addParam<IfNotEmpty>(_data, QStringLiteral("score"), score);
+    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
     setRequestData(std::move(_data));
 }

@@ -15,8 +15,8 @@ namespace Quotient {
  * pagination query parameters to paginate history in the room.
  *
  * *Note*: This endpoint supports lazy-loading of room member events. See
- * `Lazy-loading room members <#lazy-loading-room-members>`_ for more
- * information.
+ * [Lazy-loading room members](/client-server-api/#lazy-loading-room-members)
+ * for more information.
  */
 class GetRoomEventsJob : public BaseJob {
 public:
@@ -27,8 +27,8 @@ public:
      *
      * \param from
      *   The token to start returning events from. This token can be obtained
-     *   from a ``prev_batch`` token returned for each room by the sync API,
-     *   or from a ``start`` or ``end`` token returned by a previous request
+     *   from a `prev_batch` token returned for each room by the sync API,
+     *   or from a `start` or `end` token returned by a previous request
      *   to this endpoint.
      *
      * \param dir
@@ -36,8 +36,8 @@ public:
      *
      * \param to
      *   The token to stop returning events at. This token can be obtained from
-     *   a ``prev_batch`` token returned for each room by the sync endpoint,
-     *   or from a ``start`` or ``end`` token returned by a previous request to
+     *   a `prev_batch` token returned for each room by the sync endpoint,
+     *   or from a `start` or `end` token returned by a previous request to
      *   this endpoint.
      *
      * \param limit
@@ -64,29 +64,41 @@ public:
 
     // Result properties
 
-    /// The token the pagination starts from. If ``dir=b`` this will be
-    /// the token supplied in ``from``.
-    QString begin() const { return loadFromJson<QString>("start"_ls); }
+    /// The token the pagination starts from. If `dir=b` this will be
+    /// the token supplied in `from`.
+    QString begin() const
+    {
+        return loadFromJson<QString>("start"_ls);
+    }
 
-    /// The token the pagination ends at. If ``dir=b`` this token should
+    /// The token the pagination ends at. If `dir=b` this token should
     /// be used again to request even earlier events.
-    QString end() const { return loadFromJson<QString>("end"_ls); }
+    QString end() const
+    {
+        return loadFromJson<QString>("end"_ls);
+    }
 
-    /// A list of room events. The order depends on the ``dir`` parameter.
-    /// For ``dir=b`` events will be in reverse-chronological order,
-    /// for ``dir=f`` in chronological order, so that events start
-    /// at the ``from`` point.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    /// A list of room events. The order depends on the `dir` parameter.
+    /// For `dir=b` events will be in reverse-chronological order,
+    /// for `dir=f` in chronological order, so that events start
+    /// at the `from` point.
+    RoomEvents chunk()
+    {
+        return takeFromJson<RoomEvents>("chunk"_ls);
+    }
 
-    /// A list of state events relevant to showing the ``chunk``. For example, if
-    /// ``lazy_load_members`` is enabled in the filter then this may contain
-    /// the membership events for the senders of events in the ``chunk``.
+    /// A list of state events relevant to showing the `chunk`. For example, if
+    /// `lazy_load_members` is enabled in the filter then this may contain
+    /// the membership events for the senders of events in the `chunk`.
     ///
-    /// Unless ``include_redundant_members`` is ``true``, the server
+    /// Unless `include_redundant_members` is `true`, the server
     /// may remove membership events which would have already been
     /// sent to the client in prior calls to this endpoint, assuming
     /// the membership of those members has not changed.
-    StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
+    StateEvents state()
+    {
+        return takeFromJson<StateEvents>("state"_ls);
+    }
 };
 
 } // namespace Quotient

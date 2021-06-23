@@ -8,12 +8,14 @@
 
 using namespace Quotient;
 
-InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId)
+InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId,
+                             const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("InviteUserJob"),
               QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
                   % "/invite")
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
     setRequestData(std::move(_data));
 }
