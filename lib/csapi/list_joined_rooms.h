@@ -26,7 +26,7 @@ public:
 
     // Result properties
 
-    /// The ID of each room in which the user has ``joined`` membership.
+    /// The ID of each room in which the user has `joined` membership.
     QStringList joinedRooms() const
     {
         return loadFromJson<QStringList>("joined_rooms"_ls);

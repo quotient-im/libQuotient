@@ -25,8 +25,8 @@ public:
      * \param oneTimeKeys
      *   One-time public keys for "pre-key" messages.  The names of
      *   the properties should be in the format
-     *   ``<algorithm>:<key_id>``. The format of the key is determined
-     *   by the `key algorithm <#key-algorithms>`_.
+     *   `<algorithm>:<key_id>`. The format of the key is determined
+     *   by the [key algorithm](/client-server-api/#key-algorithms).
      *
      *   May be absent if no new one-time keys are required.
      */
@@ -98,7 +98,7 @@ public:
     ///
     /// If the homeserver could be reached, but the user or device
     /// was unknown, no failure is recorded. Instead, the corresponding
-    /// user or device is missing from the ``device_keys`` result.
+    /// user or device is missing from the `device_keys` result.
     QHash<QString, QJsonObject> failures() const
     {
         return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
@@ -107,7 +107,7 @@ public:
     /// Information on the queried devices. A map from user ID, to a
     /// map from device ID to device information.  For each device,
     /// the information returned will be the same as uploaded via
-    /// ``/keys/upload``, with the addition of an ``unsigned``
+    /// `/keys/upload`, with the addition of an `unsigned`
     /// property.
     QHash<QString, QHash<QString, DeviceInformation>> deviceKeys() const
     {
@@ -163,18 +163,17 @@ public:
     ///
     /// If the homeserver could be reached, but the user or device
     /// was unknown, no failure is recorded. Instead, the corresponding
-    /// user or device is missing from the ``one_time_keys`` result.
+    /// user or device is missing from the `one_time_keys` result.
     QHash<QString, QJsonObject> failures() const
     {
         return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
     }
 
     /// One-time keys for the queried devices. A map from user ID, to a
-    /// map from devices to a map from ``<algorithm>:<key_id>`` to the key
-    /// object.
+    /// map from devices to a map from `<algorithm>:<key_id>` to the key object.
     ///
-    /// See the `key algorithms <#key-algorithms>`_ section for information
-    /// on the Key Object format.
+    /// See the [key algorithms](/client-server-api/#key-algorithms) section for
+    /// information on the Key Object format.
     QHash<QString, QHash<QString, QVariant>> oneTimeKeys() const
     {
         return loadFromJson<QHash<QString, QHash<QString, QVariant>>>(
@@ -190,26 +189,28 @@ public:
  * The server should include in the results any users who:
  *
  * * currently share a room with the calling user (ie, both users have
- *   membership state ``join``); *and*
+ *   membership state `join`); *and*
  * * added new device identity keys or removed an existing device with
- *   identity keys, between ``from`` and ``to``.
+ *   identity keys, between `from` and `to`.
  */
 class GetKeysChangesJob : public BaseJob {
 public:
     /*! \brief Query users with recent device key updates.
      *
      * \param from
-     *   The desired start point of the list. Should be the ``next_batch`` field
-     *   from a response to an earlier call to |/sync|. Users who have not
+     *   The desired start point of the list. Should be the `next_batch` field
+     *   from a response to an earlier call to
+     * [`/sync`](/client-server-api/#get_matrixclientr0sync). Users who have not
      *   uploaded new device identity keys since this point, nor deleted
      *   existing devices with identity keys since then, will be excluded
      *   from the results.
      *
      * \param to
-     *   The desired end point of the list. Should be the ``next_batch``
-     *   field from a recent call to |/sync| - typically the most recent
-     *   such call. This may be used by the server as a hint to check its
-     *   caches are up to date.
+     *   The desired end point of the list. Should be the `next_batch`
+     *   field from a recent call to
+     * [`/sync`](/client-server-api/#get_matrixclientr0sync) - typically the
+     * most recent such call. This may be used by the server as a hint to check
+     * its caches are up to date.
      */
     explicit GetKeysChangesJob(const QString& from, const QString& to);
 

@@ -11,7 +11,7 @@ namespace Quotient {
 /*! \brief Set the user's display name.
  *
  * This API sets the given user's display name. You must have permission to
- * set this user's display name, e.g. you need to have their ``access_token``.
+ * set this user's display name, e.g. you need to have their `access_token`.
  */
 class SetDisplayNameJob : public BaseJob {
 public:
@@ -61,7 +61,7 @@ public:
 /*! \brief Set the user's avatar URL.
  *
  * This API sets the given user's avatar URL. You must have permission to
- * set this user's avatar URL, e.g. you need to have their ``access_token``.
+ * set this user's avatar URL, e.g. you need to have their `access_token`.
  */
 class SetAvatarUrlJob : public BaseJob {
 public:
@@ -109,7 +109,7 @@ public:
  * Get the combined profile information for this user. This API may be used
  * to fetch the user's own profile information or other users; either
  * locally or on remote homeservers. This API may return keys which are not
- * limited to ``displayname`` or ``avatar_url``.
+ * limited to `displayname` or `avatar_url`.
  */
 class GetUserProfileJob : public BaseJob {
 public:

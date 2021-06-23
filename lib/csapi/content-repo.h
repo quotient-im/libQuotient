@@ -32,7 +32,8 @@ public:
 
     // Result properties
 
-    /// The `MXC URI`_ to the uploaded content.
+    /// The [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the
+    /// uploaded content.
     QString contentUri() const
     {
         return loadFromJson<QString>("content_uri"_ls);
@@ -47,10 +48,10 @@ public:
     /*! \brief Download content from the content repository.
      *
      * \param serverName
-     *   The server name from the ``mxc://`` URI (the authoritory component)
+     *   The server name from the `mxc://` URI (the authoritory component)
      *
      * \param mediaId
-     *   The media ID from the ``mxc://`` URI (the path component)
+     *   The media ID from the `mxc://` URI (the path component)
      *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
@@ -95,13 +96,13 @@ public:
      * name
      *
      * \param serverName
-     *   The server name from the ``mxc://`` URI (the authoritory component)
+     *   The server name from the `mxc://` URI (the authoritory component)
      *
      * \param mediaId
-     *   The media ID from the ``mxc://`` URI (the path component)
+     *   The media ID from the `mxc://` URI (the path component)
      *
      * \param fileName
-     *   A filename to give in the ``Content-Disposition`` header.
+     *   A filename to give in the `Content-Disposition` header.
      *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch the media
@@ -127,7 +128,7 @@ public:
     /// The content type of the file that was previously uploaded.
     QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
-    /// The ``fileName`` requested or the name of the file that was previously
+    /// The `fileName` requested or the name of the file that was previously
     /// uploaded, if set.
     QString contentDisposition() const
     {
@@ -141,17 +142,18 @@ public:
 /*! \brief Download a thumbnail of content from the content repository
  *
  * Download a thumbnail of content from the content repository.
- * See the `thumbnailing <#thumbnails>`_ section for more information.
+ * See the [Thumbnails](/client-server-api/#thumbnails) section for more
+ * information.
  */
 class GetContentThumbnailJob : public BaseJob {
 public:
     /*! \brief Download a thumbnail of content from the content repository
      *
      * \param serverName
-     *   The server name from the ``mxc://`` URI (the authoritory component)
+     *   The server name from the `mxc://` URI (the authoritory component)
      *
      * \param mediaId
-     *   The media ID from the ``mxc://`` URI (the path component)
+     *   The media ID from the `mxc://` URI (the path component)
      *
      * \param width
      *   The *desired* width of the thumbnail. The actual thumbnail may be
@@ -162,8 +164,8 @@ public:
      *   larger than the size specified.
      *
      * \param method
-     *   The desired resizing method. See the `thumbnailing <#thumbnails>`_
-     *   section for more information.
+     *   The desired resizing method. See the
+     * [Thumbnails](/client-server-api/#thumbnails) section for more information.
      *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch
@@ -199,11 +201,11 @@ public:
  * Get information about a URL for the client. Typically this is called when a
  * client sees a URL in a message and wants to render a preview for the user.
  *
- * .. Note::
- *   Clients should consider avoiding this endpoint for URLs posted in encrypted
- *   rooms. Encrypted rooms often contain more sensitive information the users
- *   do not want to share with the homeserver, and this can mean that the URLs
- *   being shared should also not be shared with the homeserver.
+ * **Note:**
+ * Clients should consider avoiding this endpoint for URLs posted in encrypted
+ * rooms. Encrypted rooms often contain more sensitive information the users
+ * do not want to share with the homeserver, and this can mean that the URLs
+ * being shared should also not be shared with the homeserver.
  */
 class GetUrlPreviewJob : public BaseJob {
 public:
@@ -235,7 +237,8 @@ public:
         return loadFromJson<Omittable<qint64>>("matrix:image:size"_ls);
     }
 
-    /// An `MXC URI`_ to the image. Omitted if there is no image.
+    /// An [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the image.
+    /// Omitted if there is no image.
     QString ogImage() const { return loadFromJson<QString>("og:image"_ls); }
 };
 

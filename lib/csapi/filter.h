@@ -32,7 +32,7 @@ public:
     // Result properties
 
     /// The ID of the filter that was created. Cannot start
-    /// with a ``{`` as this character is used to determine
+    /// with a `{` as this character is used to determine
     /// if the filter provided is inline JSON or a previously
     /// declared filter by homeservers on some APIs.
     QString filterId() const { return loadFromJson<QString>("filter_id"_ls); }

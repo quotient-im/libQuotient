@@ -11,10 +11,10 @@ namespace Quotient {
 struct OpenidToken {
     /// An access token the consumer may use to verify the identity of
     /// the person who generated the token. This is given to the federation
-    /// API ``GET /openid/userinfo`` to verify the user's identity.
+    /// API `GET /openid/userinfo` to verify the user's identity.
     QString accessToken;
 
-    /// The string ``Bearer``.
+    /// The string `Bearer`.
     QString tokenType;
 
     /// The homeserver domain the consumer should use when attempting to

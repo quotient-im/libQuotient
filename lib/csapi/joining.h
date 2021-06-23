@@ -13,7 +13,7 @@ namespace Quotient {
 /*! \brief Start the requesting user participating in a particular room.
  *
  * *Note that this API requires a room ID, not alias.*
- * ``/join/{roomIdOrAlias}`` *exists if you have a room alias.*
+ * `/join/{roomIdOrAlias}` *exists if you have a room alias.*
  *
  * This API starts a user participating in a particular room, if that user
  * is allowed to participate in that room. After this call, the client is
@@ -21,7 +21,9 @@ namespace Quotient {
  * events associated with the room until the user leaves the room.
  *
  * After a user has joined a room, the room will appear as an entry in the
- * response of the |/initialSync|_ and |/sync|_ APIs.
+ * response of the
+ * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
+ * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
  */
 class JoinRoomByIdJob : public BaseJob {
 public:
@@ -32,7 +34,7 @@ public:
      *
      * \param thirdPartySigned
      *   If supplied, the homeserver must verify that it matches a pending
-     *   ``m.room.third_party_invite`` event in the room, and perform
+     *   `m.room.third_party_invite` event in the room, and perform
      *   key validity checking if required by the event.
      */
     explicit JoinRoomByIdJob(
@@ -48,7 +50,7 @@ public:
 /*! \brief Start the requesting user participating in a particular room.
  *
  * *Note that this API takes either a room ID or alias, unlike*
- * ``/room/{roomId}/join``.
+ * `/room/{roomId}/join`.
  *
  * This API starts a user participating in a particular room, if that user
  * is allowed to participate in that room. After this call, the client is
@@ -56,7 +58,9 @@ public:
  * events associated with the room until the user leaves the room.
  *
  * After a user has joined a room, the room will appear as an entry in the
- * response of the |/initialSync|_ and |/sync|_ APIs.
+ * response of the
+ * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
+ * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
  */
 class JoinRoomJob : public BaseJob {
 public:
@@ -70,8 +74,8 @@ public:
      *   must be participating in the room.
      *
      * \param thirdPartySigned
-     *   If a ``third_party_signed`` was supplied, the homeserver must verify
-     *   that it matches a pending ``m.room.third_party_invite`` event in the
+     *   If a `third_party_signed` was supplied, the homeserver must verify
+     *   that it matches a pending `m.room.third_party_invite` event in the
      *   room, and perform key validity checking if required by the event.
      */
     explicit JoinRoomJob(

@@ -17,9 +17,9 @@ namespace Quotient {
  * This API is similar to the room directory visibility API used by clients
  * to update the homeserver's more general room directory.
  *
- * This API requires the use of an application service access token
- * (``as_token``) instead of a typical client's access_token. This API cannot be
- * invoked by users who are not identified as application services.
+ * This API requires the use of an application service access token (`as_token`)
+ * instead of a typical client's access_token. This API cannot be invoked by
+ * users who are not identified as application services.
  */
 class UpdateAppserviceRoomDirectoryVsibilityJob : public BaseJob {
 public:

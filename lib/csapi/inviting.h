@@ -10,12 +10,11 @@ namespace Quotient {
 
 /*! \brief Invite a user to participate in a particular room.
  *
- * .. _invite-by-user-id-endpoint:
- *
  * *Note that there are two forms of this API, which are documented separately.
  * This version of the API requires that the inviter knows the Matrix
  * identifier of the invitee. The other is documented in the*
- * `third party invites section`_.
+ * [third party invites
+ * section](/client-server-api/#post_matrixclientr0roomsroomidinvite-1).
  *
  * This API invites a user to participate in a particular room.
  * They do not start participating in the room until they actually join the
@@ -25,9 +24,7 @@ namespace Quotient {
  * join that room.
  *
  * If the user was invited to the room, the homeserver will append a
- * ``m.room.member`` event to the room.
- *
- * .. _third party invites section: `invite-by-third-party-id-endpoint`_
+ * `m.room.member` event to the room.
  */
 class InviteUserJob : public BaseJob {
 public:

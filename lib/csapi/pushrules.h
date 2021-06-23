@@ -15,9 +15,9 @@ namespace Quotient {
 /*! \brief Retrieve all push rulesets.
  *
  * Retrieve all push rulesets for this user. Clients can "drill-down" on
- * the rulesets by suffixing a ``scope`` to this path e.g.
- * ``/pushrules/global/``. This will return a subset of this data under the
- * specified key e.g. the ``global`` key.
+ * the rulesets by suffixing a `scope` to this path e.g.
+ * `/pushrules/global/`. This will return a subset of this data under the
+ * specified key e.g. the `global` key.
  */
 class GetPushRulesJob : public BaseJob {
 public:
@@ -49,7 +49,7 @@ public:
     /*! \brief Retrieve a push rule.
      *
      * \param scope
-     *   ``global`` to specify global rules.
+     *   `global` to specify global rules.
      *
      * \param kind
      *   The kind of rule
@@ -71,7 +71,7 @@ public:
     // Result properties
 
     /// The specific push rule. This will also include keys specific to the
-    /// rule itself such as the rule's ``actions`` and ``conditions`` if set.
+    /// rule itself such as the rule's `actions` and `conditions` if set.
     PushRule pushRule() const { return fromJson<PushRule>(jsonData()); }
 };
 
@@ -84,7 +84,7 @@ public:
     /*! \brief Delete a push rule.
      *
      * \param scope
-     *   ``global`` to specify global rules.
+     *   `global` to specify global rules.
      *
      * \param kind
      *   The kind of rule
@@ -117,7 +117,7 @@ public:
     /*! \brief Add or change a push rule.
      *
      * \param scope
-     *   ``global`` to specify global rules.
+     *   `global` to specify global rules.
      *
      * \param kind
      *   The kind of rule
@@ -129,7 +129,7 @@ public:
      *   The action(s) to perform when the conditions for this rule are met.
      *
      * \param before
-     *   Use 'before' with a ``rule_id`` as its value to make the new rule the
+     *   Use 'before' with a `rule_id` as its value to make the new rule the
      *   next-most important rule with respect to the given user defined rule.
      *   It is not possible to add a rule relative to a predefined server rule.
      *
@@ -141,10 +141,10 @@ public:
      * \param conditions
      *   The conditions that must hold true for an event in order for a
      *   rule to be applied to an event. A rule with no conditions
-     *   always matches. Only applicable to ``underride`` and ``override`` rules.
+     *   always matches. Only applicable to `underride` and `override` rules.
      *
      * \param pattern
-     *   Only applicable to ``content`` rules. The glob-style pattern to match
+     *   Only applicable to `content` rules. The glob-style pattern to match
      * against.
      */
     explicit SetPushRuleJob(const QString& scope, const QString& kind,
@@ -165,8 +165,8 @@ public:
     /*! \brief Get whether a push rule is enabled
      *
      * \param scope
-     *   Either ``global`` or ``device/<profile_tag>`` to specify global
-     *   rules or device rules for the given ``profile_tag``.
+     *   Either `global` or `device/<profile_tag>` to specify global
+     *   rules or device rules for the given `profile_tag`.
      *
      * \param kind
      *   The kind of rule
@@ -200,7 +200,7 @@ public:
     /*! \brief Enable or disable a push rule.
      *
      * \param scope
-     *   ``global`` to specify global rules.
+     *   `global` to specify global rules.
      *
      * \param kind
      *   The kind of rule
@@ -224,8 +224,8 @@ public:
     /*! \brief The actions for a push rule
      *
      * \param scope
-     *   Either ``global`` or ``device/<profile_tag>`` to specify global
-     *   rules or device rules for the given ``profile_tag``.
+     *   Either `global` or `device/<profile_tag>` to specify global
+     *   rules or device rules for the given `profile_tag`.
      *
      * \param kind
      *   The kind of rule
@@ -263,7 +263,7 @@ public:
     /*! \brief Set the actions for a push rule.
      *
      * \param scope
-     *   ``global`` to specify global rules.
+     *   `global` to specify global rules.
      *
      * \param kind
      *   The kind of rule
