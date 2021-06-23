@@ -16,17 +16,15 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
         qt-version: [ '5.12.10' ]
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ '', 'E2EE' ]
+        e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
-        - e2ee: '' # Somewhat reduce the number of combinations to check
-          update-api: 'update-api'
 
     steps:
     - uses: actions/checkout@v2
