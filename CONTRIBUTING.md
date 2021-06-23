@@ -439,9 +439,9 @@ on any platform double-check that it's not your code causing it - and fix
 
 ### clang-format
 
-We strongly recommend using clang-format or, even better, use an IDE that
-supports it. This will lay over a tedious task of following the assumed
-code style from your shoulders (and fingers) to your computer.
+We strongly recommend using clang-format (version 10 or newer) or, even better,
+use an IDE that supports it. This will lay over a tedious task of following
+the assumed code style from your shoulders (and fingers) to your computer.
 
 ### Other tools
 

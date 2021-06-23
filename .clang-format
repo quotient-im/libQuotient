@@ -23,16 +23,17 @@ AlignAfterOpenBracket: Align
 #AlignConsecutiveAssignments: false
 #AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
-AlignOperands: true
+AlignOperands: true # 'Align' since ClangFormat 11 
 #AlignTrailingComments: false
 #AllowAllArgumentsOnNextLine: true
 #AllowAllConstructorInitializersOnNextLine: true
 #AllowAllParametersOfDeclarationOnNextLine: true
-#AllowShortBlocksOnASingleLine: false # 'Empty' since ClangFormat 10
+#AllowShortEnumsOnASingleLine: true
+#AllowShortBlocksOnASingleLine: Empty
 #AllowShortCaseLabelsOnASingleLine: false
 #AllowShortFunctionsOnASingleLine: All
 #AllowShortLambdasOnASingleLine: All
-#AllowShortIfStatementsOnASingleLine: false # 'Never' since ClangFormat 10
+#AllowShortIfStatementsOnASingleLine: Never
 #AllowShortLoopsOnASingleLine: false
 #AlwaysBreakAfterDefinitionReturnType: None # deprecated
 #AlwaysBreakAfterReturnType: None
@@ -43,7 +44,7 @@ AlwaysBreakTemplateDeclarations: Yes
 BraceWrapping:
   AfterCaseLabel:  false
   AfterClass:      false
-  AfterControlStatement: false
+  AfterControlStatement: MultiLine
   AfterEnum:       false
   AfterFunction:   true
   AfterNamespace:  false
@@ -61,22 +62,18 @@ BreakBeforeBraces: Custom
 #BreakBeforeInheritanceComma: false
 #BreakInheritanceList: BeforeColon
 #BreakBeforeTernaryOperators: true
-#BreakConstructorInitializersBeforeComma: false
+#BreakConstructorInitializersBeforeComma: false # deprecated?
 #BreakConstructorInitializers: BeforeComma
 #BreakStringLiterals: true
 ColumnLimit: 80
-CompactNamespaces: false
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
+#CompactNamespaces: false
+#ConstructorInitializerAllOnOneLineOrOnePerLine: false
 #ConstructorInitializerIndentWidth: 4
 #ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
 #DeriveLineEnding: true
 #DerivePointerAlignment: false
 FixNamespaceComments: true
-ForEachMacros:
-  - foreach
-  - Q_FOREACH
-  - forever
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:    '^<Qt.+/'
@@ -89,10 +86,10 @@ IncludeCategories:
     Priority: 4
   - Regex:    '.*'
     Priority: 1
-#IncludeIsMainRegex: '(_test)?$'
+IncludeIsMainRegex: '(_test)?$'
 #IncludeIsMainSourceRegex: ''
 #IndentCaseLabels: false
-#IndentGotoLabels: false # Uncomment once on ClangFormat 10
+IndentGotoLabels: false
 IndentPPDirectives: AfterHash
 #IndentWidth: 4
 #IndentWrappedFunctionNames: false
@@ -112,7 +109,7 @@ PenaltyReturnTypeOnItsOwnLine: 60
 #PointerAlignment: Left
 #ReflowComments: true
 #SortIncludes: true
-SortUsingDeclarations: false
+#SortUsingDeclarations: true
 #SpaceAfterCStyleCast: false
 #SpaceAfterLogicalNot: false
 #SpaceAfterTemplateKeyword: true
@@ -121,8 +118,8 @@ SortUsingDeclarations: false
 #SpaceBeforeCtorInitializerColon: true
 #SpaceBeforeInheritanceColon: true
 #SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: true
-#SpaceInEmptyBlock: false # Uncomment once on ClangFormat 10
+#SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyBlock: false
 #SpaceInEmptyParentheses: false
 #SpacesBeforeTrailingComments: 1
 #SpacesInAngles:  false
@@ -132,7 +129,7 @@ SpaceBeforeRangeBasedForLoopColon: true
 #SpacesInParentheses: false
 #SpacesInSquareBrackets: false
 #SpaceBeforeSquareBrackets: false
-Standard: Cpp11 # Once on ClangFormat 10, switch to Cpp17
+Standard: c++17
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
