@@ -85,7 +85,7 @@ analyzer:
             { type: RoomEventPtr, imports: "events/eventloader.h" }
         - /event.yaml$/:
             { type: EventPtr, imports: "events/eventloader.h" }
-      - /m\.room\.member$/: void # Skip resolving; see EventsArray<> below
+      - /m\.room\.member/: void # Skip resolving; see EventsArray<> below
       - '/^(\./)?definitions/request_email_validation.yaml$/':
           title: EmailValidationData
       - '/^(\./)?definitions/request_msisdn_validation.yaml$/':
@@ -109,7 +109,7 @@ analyzer:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
             imports: "events/eventloader.h"
-        - /m\.room\.member$/: # Only used in an array (see also above)
+        - /m\.room\.member/: # Only used in an array (see also above)
             type: "EventsArray<RoomMemberEvent>"
             imports: "events/roommemberevent.h"
         - /state_event.yaml$/: StateEvents
