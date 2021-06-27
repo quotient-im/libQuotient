@@ -176,6 +176,8 @@ void User::rename(const QString& newName, const Room* r)
     const auto actualNewName = sanitized(newName);
     MemberEventContent evtC;
     evtC.displayName = actualNewName;
+    // #481: fill in the current avatar URL in order to not clear it out
+    evtC.avatarUrl = r->getCurrentState<RoomMemberEvent>(id())->avatarUrl();
     r->setState<RoomMemberEvent>(id(), move(evtC));
     // The state will be updated locally after it arrives with sync
 }
