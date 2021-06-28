@@ -3,21 +3,14 @@ image: Visual Studio 2017
 environment:
   CMAKE_ARGS: '-G "NMake Makefiles JOM" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo'
   matrix:
+  - QTDIR: C:\Qt\5.9\msvc2017 # Oldest supported Qt, 32-bit
+    VCVARS: "vcvars32.bat"
+    PLATFORM: x86
   - QTDIR: C:\Qt\5.13\msvc2017 # Fresh Qt, 32-bit
     VCVARS: "vcvars32.bat"
     PLATFORM: x86
   - QTDIR: C:\Qt\5.13\msvc2017_64 # Fresh Qt, 64-bit
     VCVARS: "vcvars64.bat"
-    PLATFORM:
-  - QTDIR: C:\Qt\5.9\msvc2017_64 # Oldest supported Qt, 64-bit, E2EE
-    VCVARS: "vcvars64.bat"
-    QMAKE_E2EE_ARGS: '"DEFINES += Quotient_E2EE_ENABLED USE_INTREE_LIBQOLM" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/olm"'
-    CMAKE_E2EE_ARGS: '-DQuotient_ENABLE_E2EE=ON -DOlm_DIR=build/olm'
-    PLATFORM:
-  - QTDIR: C:\Qt\5.13\msvc2017_64 # Fresh Qt, 64-bit, E2EE
-    VCVARS: "vcvars64.bat"
-    QMAKE_E2EE_ARGS: '"DEFINES += Quotient_E2EE_ENABLED USE_INTREE_LIBQOLM" "INCLUDEPATH += olm/include" "LIBS += -Lbuild/olm"'
-    CMAKE_E2EE_ARGS: '-DQuotient_ENABLE_E2EE=ON -DOlm_DIR=build/olm'
     PLATFORM:
 
 init:
@@ -28,15 +21,10 @@ init:
 
 before_build:
 - git submodule update --init --recursive
-- git clone https://gitlab.matrix.org/matrix-org/olm.git
-- cmake %CMAKE_ARGS% -Holm -Bbuild/olm
-- cmake --build build/olm
 
 build_script:
-- cmake %CMAKE_ARGS% %CMAKE_E2EE_ARGS% -H. -Bbuild
+- cmake %CMAKE_ARGS% -H. -Bbuild
 - cmake --build build
-# qmake uses olm just built by CMake - it can't build olm on its own.
-- qmake -Wall quotest.pro -- %QMAKE_E2EE_ARGS% && jom
 
 #after_build:
 #- cmake --build build --target install
