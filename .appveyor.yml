@@ -3,7 +3,7 @@ image: Visual Studio 2017
 environment:
   CMAKE_ARGS: '-G "NMake Makefiles JOM" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo'
   matrix:
-  - QTDIR: C:\Qt\5.9\msvc2017 # Oldest supported Qt, 32-bit
+  - QTDIR: C:\Qt\5.9\msvc2017_64 # Oldest supported Qt, 64-bit
     VCVARS: "vcvars32.bat"
     PLATFORM: x86
   - QTDIR: C:\Qt\5.13\msvc2017 # Fresh Qt, 32-bit
