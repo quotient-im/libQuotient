@@ -18,7 +18,7 @@ public:
 
     /// List the tags set by a user on a room.
     struct Tag {
-        /// A number in a range ``[0,1]`` describing a relative
+        /// A number in a range `[0,1]` describing a relative
         /// position of the room under the given tag.
         Omittable<float> order;
         /// List the tags set by a user on a room.
@@ -83,7 +83,7 @@ public:
      *   The tag to add.
      *
      * \param order
-     *   A number in a range ``[0,1]`` describing a relative
+     *   A number in a range `[0,1]` describing a relative
      *   position of the room under the given tag.
      *
      * \param additionalProperties

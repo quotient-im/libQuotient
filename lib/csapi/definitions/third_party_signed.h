@@ -7,7 +7,7 @@
 #include "converters.h"
 
 namespace Quotient {
-/// A signature of an ``m.third_party_invite`` token to prove that this user
+/// A signature of an `m.third_party_invite` token to prove that this user
 /// owns a third party identity which has been invited to the room.
 struct ThirdPartySigned {
     /// The Matrix ID of the user who issued the invite.
