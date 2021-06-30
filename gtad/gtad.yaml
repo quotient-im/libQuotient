@@ -132,6 +132,7 @@ analyzer:
   #operations:
 
 mustache:
+#  delimiter: '%| |%' # or something else instead of '{{ }}'
   constants:
     # Syntax elements used by GTAD
 #    _quote: '"' # Common quote for left and right
