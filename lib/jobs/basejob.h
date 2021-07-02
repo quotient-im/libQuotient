@@ -72,20 +72,6 @@ public:
     };
     Q_ENUM(StatusCode)
 
-    /**
-     * A simple wrapper around QUrlQuery that allows its creation from
-     * a list of string pairs
-     */
-    class Query : public QUrlQuery {
-    public:
-        using QUrlQuery::QUrlQuery;
-        Query() = default;
-        Query(const std::initializer_list<QPair<QString, QString>>& l)
-        {
-            setQueryItems(l);
-        }
-    };
-
     using Data = RequestData;
 
     /*!
@@ -139,7 +125,7 @@ public:
     BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
             bool needsToken = true);
     BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-            const Query& query, Data&& data = {}, bool needsToken = true);
+            const QUrlQuery& query, Data&& data = {}, bool needsToken = true);
 
     QUrl requestUrl() const;
     bool isBackground() const;

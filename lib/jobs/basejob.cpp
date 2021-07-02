@@ -175,11 +175,11 @@ public:
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  bool needsToken)
-    : BaseJob(verb, name, endpoint, Query {}, Data {}, needsToken)
+    : BaseJob(verb, name, endpoint, QUrlQuery {}, Data {}, needsToken)
 {}
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                 const Query& query, Data&& data, bool needsToken)
+                 const QUrlQuery &query, Data&& data, bool needsToken)
     : d(new Private(verb, endpoint, query, std::move(data), needsToken))
 {
     setObjectName(name);
