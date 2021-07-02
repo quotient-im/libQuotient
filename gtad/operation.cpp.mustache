@@ -13,7 +13,7 @@ using namespace Quotient;
 auto queryTo{{camelCaseOperationId}}(
             {{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
-    BaseJob::Query _q;{{#queryParams}}
+    QUrlQuery _q;{{#queryParams}}
     addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q,
             QStringLiteral("{{baseName}}"), {{paramName}});{{/queryParams}}
     return _q;
