@@ -47,7 +47,7 @@ ClaimKeysJob::ClaimKeysJob(
 
 auto queryToGetKeysChanges(const QString& from, const QString& to)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("from"), from);
     addParam<>(_q, QStringLiteral("to"), to);
     return _q;

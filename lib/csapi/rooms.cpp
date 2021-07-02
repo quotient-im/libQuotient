@@ -58,7 +58,7 @@ GetRoomStateJob::GetRoomStateJob(const QString& roomId)
 auto queryToGetMembersByRoom(const QString& at, const QString& membership,
                              const QString& notMembership)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("at"), at);
     addParam<IfNotEmpty>(_q, QStringLiteral("membership"), membership);
     addParam<IfNotEmpty>(_q, QStringLiteral("not_membership"), notMembership);

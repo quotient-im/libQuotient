@@ -38,7 +38,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(
 auto queryToGetPublicRooms(Omittable<int> limit, const QString& since,
                            const QString& server)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
     addParam<IfNotEmpty>(_q, QStringLiteral("since"), since);
     addParam<IfNotEmpty>(_q, QStringLiteral("server"), server);
@@ -66,7 +66,7 @@ GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
 
 auto queryToQueryPublicRooms(const QString& server)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("server"), server);
     return _q;
 }

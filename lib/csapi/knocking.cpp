@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToKnockRoom(const QStringList& serverName)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("server_name"), serverName);
     return _q;
 }

@@ -12,7 +12,7 @@ auto queryToGetRoomEvents(const QString& from, const QString& to,
                           const QString& dir, Omittable<int> limit,
                           const QString& filter)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("from"), from);
     addParam<IfNotEmpty>(_q, QStringLiteral("to"), to);
     addParam<>(_q, QStringLiteral("dir"), dir);

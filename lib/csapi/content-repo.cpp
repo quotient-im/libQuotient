@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToUploadContent(const QString& filename)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("filename"), filename);
     return _q;
 }
@@ -28,7 +28,7 @@ UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
 
 auto queryToGetContent(bool allowRemote)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
     return _q;
 }
@@ -55,7 +55,7 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId,
 
 auto queryToGetContentOverrideName(bool allowRemote)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
     return _q;
 }
@@ -88,7 +88,7 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
 auto queryToGetContentThumbnail(int width, int height, const QString& method,
                                 bool allowRemote)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("width"), width);
     addParam<>(_q, QStringLiteral("height"), height);
     addParam<IfNotEmpty>(_q, QStringLiteral("method"), method);
@@ -124,7 +124,7 @@ GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName,
 
 auto queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("url"), url);
     addParam<IfNotEmpty>(_q, QStringLiteral("ts"), ts);
     return _q;

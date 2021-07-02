@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToRedirectToSSO(const QString& redirectUrl)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("redirectUrl"), redirectUrl);
     return _q;
 }
@@ -31,7 +31,7 @@ RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
 
 auto queryToRedirectToIdP(const QString& redirectUrl)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("redirectUrl"), redirectUrl);
     return _q;
 }

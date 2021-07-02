@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToGetEventContext(Omittable<int> limit, const QString& filter)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
     addParam<IfNotEmpty>(_q, QStringLiteral("filter"), filter);
     return _q;

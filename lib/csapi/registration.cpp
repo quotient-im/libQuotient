@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToRegister(const QString& kind)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("kind"), kind);
     return _q;
 }
@@ -106,7 +106,7 @@ DeactivateAccountJob::DeactivateAccountJob(
 
 auto queryToCheckUsernameAvailability(const QString& username)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("username"), username);
     return _q;
 }

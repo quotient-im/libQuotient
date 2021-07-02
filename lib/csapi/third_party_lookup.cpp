@@ -36,7 +36,7 @@ GetProtocolMetadataJob::GetProtocolMetadataJob(const QString& protocol)
 
 auto queryToQueryLocationByProtocol(const QString& searchFields)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("searchFields"), searchFields);
     return _q;
 }
@@ -61,7 +61,7 @@ QueryLocationByProtocolJob::QueryLocationByProtocolJob(
 
 auto queryToQueryUserByProtocol(const QString& fields)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("fields..."), fields);
     return _q;
 }
@@ -86,7 +86,7 @@ QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol,
 
 auto queryToQueryLocationByAlias(const QString& alias)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("alias"), alias);
     return _q;
 }
@@ -107,7 +107,7 @@ QueryLocationByAliasJob::QueryLocationByAliasJob(const QString& alias)
 
 auto queryToQueryUserByID(const QString& userid)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<>(_q, QStringLiteral("userid"), userid);
     return _q;
 }

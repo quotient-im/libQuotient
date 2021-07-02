@@ -11,7 +11,7 @@ using namespace Quotient;
 auto queryToGetNotifications(const QString& from, Omittable<int> limit,
                              const QString& only)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
     addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
     addParam<IfNotEmpty>(_q, QStringLiteral("only"), only);

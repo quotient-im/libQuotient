@@ -10,7 +10,7 @@ using namespace Quotient;
 
 auto queryToSearch(const QString& nextBatch)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("next_batch"), nextBatch);
     return _q;
 }
