@@ -618,8 +618,9 @@ User* Room::user(const QString& userId) const
 
 JoinState Room::memberJoinState(User* user) const
 {
-    return d->membersMap.contains(user->name(this), user) ? JoinState::Join
-                                                          : JoinState::Leave;
+    return user != nullptr && d->membersMap.contains(user->name(this), user)
+               ? JoinState::Join
+               : JoinState::Leave;
 }
 
 JoinState Room::joinState() const { return d->joinState; }
