@@ -286,8 +286,8 @@ public:
             }
             if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
                 qCDebug(PROFILER)
-                    << "*** Room::Private::updateStateFrom():" << events.size()
-                    << "event(s)," << et;
+                    << "Updated" << q->objectName() << "room state from"
+                    << events.size() << "event(s) in" << et;
         }
         return changes;
     }
@@ -718,7 +718,8 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
         count_if(from, to,
                  std::bind(&Room::Private::isEventNotable, this, _1));
     if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-        qCDebug(PROFILER) << "Counting gained unread messages took" << et;
+        qCDebug(PROFILER) << "Counting gained unread messages in"
+                          << q->objectName() << "took" << et;
 
     if (newUnreadMessages == 0)
         return NoChange;
@@ -748,7 +749,8 @@ Room::Changes Room::Private::recalculateUnreadCount()
         int(count_if(timeline.crbegin(), q->readMarker(),
                      [this](const auto& ti) { return isEventNotable(ti); }));
     if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-        qCDebug(PROFILER) << "Recounting unread messages took" << et;
+        qCDebug(PROFILER) << "Recounting unread messages in" << q->objectName()
+                          << "took" << et;
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
     if (unreadMessages == 0)
@@ -1520,21 +1522,13 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     setJoinState(data.joinState);
 
     Changes roomChanges = Change::NoChange;
-    QElapsedTimer et;
-    et.start();
     for (auto&& event : data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
 
     roomChanges |= d->updateStateFrom(data.state);
+    // The order of calculation is important - don't merge these lines!
+    roomChanges |= d->addNewMessageEvents(move(data.timeline));
 
-    if (!data.timeline.empty()) {
-        et.restart();
-        roomChanges |= d->addNewMessageEvents(move(data.timeline));
-        if (data.timeline.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER)
-                << "*** Room::addNewMessageEvents():" << data.timeline.size()
-                << "event(s)," << et;
-    }
     if (roomChanges & TopicChange)
         emit topicChanged();
 
@@ -2264,6 +2258,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::NoChange;
 
+    QElapsedTimer et;
+    et.start();
     {
         // Pre-process redactions and edits so that events that get
         // redacted/replaced in the same batch landed in the timeline already
@@ -2401,6 +2397,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
+    if (totalInserted > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+        qCDebug(PROFILER) << "Added" << totalInserted << "new event(s) to"
+                          << q->objectName() << "in" << et;
     return roomChanges;
 }
 
@@ -2446,8 +2445,8 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-        qCDebug(PROFILER) << "*** Room::addHistoricalMessageEvents():"
-                          << insertedSize << "event(s)," << et;
+        qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
+                          << q->objectName() << "in" << et;
 }
 
 Room::Changes Room::processStateEvent(const RoomEvent& e)
@@ -2650,8 +2649,9 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 d->usersTyping.append(u);
         }
         if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
-                              << evt->users().size() << "users," << et;
+            qCDebug(PROFILER)
+                << "Processing typing events from" << evt->users().size()
+                << "user(s) in" << objectName() << "took" << et;
         emit typingChanged();
     }
     if (auto* evt = eventCast<ReceiptEvent>(event)) {
@@ -2660,11 +2660,13 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             totalReceipts += p.receipts.size();
             {
                 if (p.receipts.size() == 1)
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts[0].userId;
+                    qCDebug(EPHEMERAL)
+                        << objectName() << "received a read receipt for"
+                        << p.evtId << "from" << p.receipts[0].userId;
                 else
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts.size() << "users";
+                    qCDebug(EPHEMERAL)
+                        << objectName() << "received read receipts for"
+                        << p.evtId << "from" << p.receipts.size() << "users";
             }
             const auto newMarker = findInTimeline(p.evtId);
             if (newMarker == historyEdge())
@@ -2685,10 +2687,9 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
         }
         if (evt->eventsWithReceipts().size() > 3 || totalReceipts > 10
             || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER)
-                << "*** Room::processEphemeralEvent(receipts):"
-                << evt->eventsWithReceipts().size() << "event(s) with"
-                << totalReceipts << "receipt(s)," << et;
+            qCDebug(PROFILER) << "Processing" << totalReceipts << "receipt(s) on"
+                              << evt->eventsWithReceipts().size()
+                              << "event(s) in" << objectName() << "took" << et;
     }
     return changes;
 }
@@ -2896,7 +2897,8 @@ QJsonObject Room::Private::toJson() const
     result.insert(QStringLiteral("unread_notifications"), unreadNotifObj);
 
     if (et.elapsed() > 30)
-        qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;
+        qCDebug(PROFILER) << "Room::toJson() for" << q->objectName() << "took"
+                          << et;
 
     return result;
 }
