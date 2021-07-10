@@ -336,8 +336,22 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
+    /*! \brief Obtain a read receipt of any user
+     *
+     * Since 0.6.8, there's an important difference between the single-argument
+     * and the zero-argument overloads of this function: a call with an argument
+     * returns the last _read receipt_ position (for any room member) while
+     * a call without arguments returns the last _fully read_ position.
+     * This is due to API stability guarantees; 0.7 will have distinctly named
+     * methods to return read receipts and the fully read marker.
+     */
     rev_iter_t readMarker(const User* user) const;
+    /*! \brief Obtain the local user's fully-read marker
+     *
+     * \sa the description for the single-argument overload of this function
+     */
     rev_iter_t readMarker() const;
+    /// \brief Get the event id for the local user's fully-read marker
     QString readMarkerEventId() const;
     QList<User*> usersAtEventId(const QString& eventId);
     /**
@@ -346,7 +360,11 @@ public:
      * Finds in the timeline and marks as read the event with
      * the specified id; also posts a read receipt to the server either
      * for this message or, if it's from the local user, for
-     * the nearest non-local message before. uptoEventId must be non-empty.
+     * the nearest non-local message before. If the fully read marker is within
+     * the displayed viewport (between firstDisplayedMarker() and
+     * lastDisplayedMarker()) then it is advanced as well.
+     *
+     * uptoEventId must be non-empty.
      */
     void markMessagesAsRead(QString uptoEventId);
 
@@ -573,7 +591,7 @@ public slots:
     void downloadFile(const QString& eventId, const QUrl& localFilename = {});
     void cancelFileTransfer(const QString& id);
 
-    /// Mark all messages in the room as read
+    /// Mark the bottommost message in the room as fully read
     void markAllMessagesAsRead();
 
     /// Switch the room's version (aka upgrade)
