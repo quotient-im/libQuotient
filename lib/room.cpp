@@ -2694,9 +2694,9 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(STATE) << "Updated account data of type"
                        << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
-        return Change::AccountDataChange;
+        changes |= Change::AccountDataChange;
     }
-    return Change::NoChange;
+    return changes;
 }
 
 template <typename ContT>
