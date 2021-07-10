@@ -19,7 +19,7 @@ namespace Quotient {
  *
  * The search is performed case-insensitively on user IDs and display
  * names preferably using a collation determined based upon the
- * ``Accept-Language`` header provided in the request, if present.
+ * `Accept-Language` header provided in the request, if present.
  */
 class SearchUserDirectoryJob : public BaseJob {
 public:
@@ -34,7 +34,7 @@ public:
     ///
     /// The search is performed case-insensitively on user IDs and display
     /// names preferably using a collation determined based upon the
-    /// ``Accept-Language`` header provided in the request, if present.
+    /// `Accept-Language` header provided in the request, if present.
     struct User {
         /// The user's matrix user ID.
         QString userId;

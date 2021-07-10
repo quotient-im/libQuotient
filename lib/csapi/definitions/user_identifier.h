@@ -9,8 +9,9 @@
 namespace Quotient {
 /// Identification information for a user
 struct UserIdentifier {
-    /// The type of identification.  See `Identifier types`_ for supported
-    /// values and additional property descriptions.
+    /// The type of identification.  See [Identifier
+    /// types](/client-server-api/#identifier-types) for supported values and
+    /// additional property descriptions.
     QString type;
 
     /// Identification information for a user

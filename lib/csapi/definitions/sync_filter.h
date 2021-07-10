@@ -14,13 +14,13 @@ namespace Quotient {
 struct RoomFilter {
     /// A list of room IDs to exclude. If this list is absent then no rooms are
     /// excluded. A matching room will be excluded even if it is listed in the
-    /// ``'rooms'`` filter. This filter is applied before the filters in
-    /// ``ephemeral``, ``state``, ``timeline`` or ``account_data``
+    /// `'rooms'` filter. This filter is applied before the filters in
+    /// `ephemeral`, `state`, `timeline` or `account_data`
     QStringList notRooms;
 
     /// A list of room IDs to include. If this list is absent then all rooms are
-    /// included. This filter is applied before the filters in ``ephemeral``,
-    /// ``state``, ``timeline`` or ``account_data``
+    /// included. This filter is applied before the filters in `ephemeral`,
+    /// `state`, `timeline` or `account_data`
     QStringList rooms;
 
     /// The events that aren't recorded in the room history, e.g. typing and

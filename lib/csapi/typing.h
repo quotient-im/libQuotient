@@ -11,8 +11,8 @@ namespace Quotient {
 /*! \brief Informs the server that the user has started or stopped typing.
  *
  * This tells the server that the user is typing for the next N
- * milliseconds where N is the value specified in the ``timeout`` key.
- * Alternatively, if ``typing`` is ``false``, it tells the server that the
+ * milliseconds where N is the value specified in the `timeout` key.
+ * Alternatively, if `typing` is `false`, it tells the server that the
  * user has stopped typing.
  */
 class SetTypingJob : public BaseJob {
@@ -26,7 +26,7 @@ public:
      *   The room in which the user is typing.
      *
      * \param typing
-     *   Whether the user is typing or not. If ``false``, the ``timeout``
+     *   Whether the user is typing or not. If `false`, the `timeout`
      *   key can be omitted.
      *
      * \param timeout

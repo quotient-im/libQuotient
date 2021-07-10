@@ -12,7 +12,7 @@ namespace Quotient {
 
 /*! \brief Get a single event by event ID.
  *
- * Get a single event based on ``roomId/eventId``. You must have permission to
+ * Get a single event based on `roomId/eventId`. You must have permission to
  * retrieve this event e.g. by being a member in the room for this event.
  */
 class GetOneRoomEventJob : public BaseJob {
@@ -42,9 +42,6 @@ public:
 };
 
 /*! \brief Get the state identified by the type and key.
- *
- * .. For backwards compatibility with older links...
- * .. _`get-matrix-client-r0-rooms-roomid-state-eventtype`:
  *
  * Looks up the contents of a state event in a room. If the user is
  * joined to the room then the state is taken from the current
@@ -118,16 +115,15 @@ public:
      *
      * \param at
      *   The point in time (pagination token) to return members for in the room.
-     *   This token can be obtained from a ``prev_batch`` token returned for
+     *   This token can be obtained from a `prev_batch` token returned for
      *   each room by the sync API. Defaults to the current state of the room,
      *   as determined by the server.
      *
      * \param membership
      *   The kind of membership to filter for. Defaults to no filtering if
-     *   unspecified. When specified alongside ``not_membership``, the two
+     *   unspecified. When specified alongside `not_membership`, the two
      *   parameters create an 'or' condition: either the membership *is*
-     *   the same as ``membership`` **or** *is not* the same as
-     * ``not_membership``.
+     *   the same as `membership` **or** *is not* the same as `not_membership`.
      *
      * \param notMembership
      *   The kind of membership to exclude from the results. Defaults to no
@@ -162,7 +158,7 @@ public:
  * room. The current user must be in the room for it to work, unless it is an
  * Application Service in which case any of the AS's users must be in the room.
  * This API is primarily for Application Services and should be faster to
- * respond than ``/members`` as it can be implemented more efficiently on the
+ * respond than `/members` as it can be implemented more efficiently on the
  * server.
  */
 class GetJoinedMembersByRoomJob : public BaseJob {
@@ -173,7 +169,7 @@ public:
     /// the room. The current user must be in the room for it to work, unless it
     /// is an Application Service in which case any of the AS's users must be in
     /// the room. This API is primarily for Application Services and should be
-    /// faster to respond than ``/members`` as it can be implemented more
+    /// faster to respond than `/members` as it can be implemented more
     /// efficiently on the server.
     struct RoomMember {
         /// The display name of the user this object is representing.
