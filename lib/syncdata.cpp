@@ -192,7 +192,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     for (size_t i = 0; i < JoinStateStrings.size(); ++i, ii <<= 1) {
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
-        roomData.reserve(static_cast<size_t>(rs.size()));
+        roomData.reserve(roomData.size() + static_cast<size_t>(rs.size()));
         for (auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt) {
             auto roomJson =
                 roomIt->isObject()
