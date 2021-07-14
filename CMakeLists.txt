@@ -122,6 +122,11 @@ endif ()
 
 # Set up source files
 list(APPEND lib_SRCS
+    # This .h is special in that it declares a Q_NAMESPACE but has no .cpp
+    # where staticMetaObject for that namespace would be defined; passing it
+    # to add_library (see below) puts it on the automoc radar, producing
+    # a compilation unit with the needed definition.
+    lib/quotient_common.h
     lib/networkaccessmanager.cpp
     lib/connectiondata.cpp
     lib/connection.cpp
