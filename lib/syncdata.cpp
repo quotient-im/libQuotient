@@ -186,10 +186,15 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
              deviceOneTimeKeysCount_);
 
     auto rooms = json.value("rooms"_ls).toObject();
-    JoinStates::Int ii = 1; // ii is used to make a JoinState value
     auto totalRooms = 0;
     auto totalEvents = 0;
-    for (size_t i = 0; i < JoinStateStrings.size(); ++i, ii <<= 1) {
+    // The first comparison shortcuts the loop when not all states are there
+    // in the response (anything except "join" is only occasional, and "join"
+    // intentionally comes first in the enum).
+    for (size_t i = 0; int(i) < rooms.size() && i < JoinStateStrings.size();
+         ++i) {
+        // This assumes that JoinState values go over powers of 2: 1,2,4,...
+        const auto joinState = JoinState(1U << i);
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(roomData.size() + static_cast<size_t>(rs.size()));
@@ -202,7 +207,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
                 unresolvedRoomIds.push_back(roomIt.key());
                 continue;
             }
-            roomData.emplace_back(roomIt.key(), JoinState(ii), roomJson);
+            roomData.emplace_back(roomIt.key(), joinState, roomJson);
             const auto& r = roomData.back();
             totalEvents += r.state.size() + r.ephemeral.size()
                            + r.accountData.size() + r.timeline.size();
