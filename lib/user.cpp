@@ -121,11 +121,11 @@ void User::rename(const QString& newName, const Room* r)
         rename(newName);
         return;
     }
-    Q_ASSERT_X(r->memberJoinState(this) == JoinState::Join, __FUNCTION__,
+    // #481: take the current state and update it with the new name
+    auto evtC = r->getCurrentState<RoomMemberEvent>(id())->content();
+    Q_ASSERT_X(evtC.membership == MembershipType::Join, __FUNCTION__,
                "Attempt to rename a user that's not a room member");
-    const auto actualNewName = sanitized(newName);
-    MemberEventContent evtC;
-    evtC.displayName = actualNewName;
+    evtC.displayName = sanitized(newName);
     r->setState<RoomMemberEvent>(id(), move(evtC));
     // The state will be updated locally after it arrives with sync
 }
