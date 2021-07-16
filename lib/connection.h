@@ -6,7 +6,6 @@
 #pragma once
 
 #include "ssosession.h"
-#include "joinstate.h"
 #include "qt_connection_util.h"
 #include "quotient_common.h"
 

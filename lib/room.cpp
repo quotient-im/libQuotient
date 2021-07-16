@@ -460,7 +460,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
-    qCDebug(STATE) << "New" << toCString(initialJoinState) << "Room:" << id;
+    qCDebug(STATE) << "New" << initialJoinState << "Room:" << id;
 }
 
 Room::~Room() { delete d; }
@@ -603,6 +603,11 @@ JoinState Room::memberJoinState(User* user) const
                                                           : JoinState::Leave;
 }
 
+Membership Room::memberState(User* user) const
+{
+    return d->getCurrentState<RoomMemberEvent>(user->id())->membership();
+}
+
 JoinState Room::joinState() const { return d->joinState; }
 
 void Room::setJoinState(JoinState state)
@@ -611,8 +616,8 @@ void Room::setJoinState(JoinState state)
     if (state == oldState)
         return;
     d->joinState = state;
-    qCDebug(STATE) << "Room" << id() << "changed state: " << int(oldState)
-                   << "->" << int(state);
+    qCDebug(STATE) << "Room" << id() << "changed state: " << oldState
+                   << "->" << state;
     emit changed(Change::JoinStateChange);
     emit joinStateChanged(oldState, state);
 }
@@ -2513,16 +2518,16 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 return false; // Stay low and hope for the best...
             }
             const auto prevMembership = oldRme ? oldRme->membership()
-                                               : MembershipType::Leave;
+                                               : Membership::Leave;
             switch (prevMembership) {
-            case MembershipType::Invite:
+            case Membership::Invite:
                 if (rme.membership() != prevMembership) {
                     d->usersInvited.removeOne(u);
                     Q_ASSERT(!d->usersInvited.contains(u));
                 }
                 break;
-            case MembershipType::Join:
-                if (rme.membership() == MembershipType::Join) {
+            case Membership::Join:
+                if (rme.membership() == Membership::Join) {
                     // rename/avatar change or no-op
                     if (rme.newDisplayName()) {
                         emit memberAboutToRename(u, *rme.newDisplayName());
@@ -2536,7 +2541,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                         return false;
                     }
                 } else {
-                    if (rme.membership() == MembershipType::Invite)
+                    if (rme.membership() == Membership::Invite)
                         qCWarning(MAIN)
                             << "Membership change from Join to Invite:" << rme;
                     // whatever the new membership, it's no more Join
@@ -2544,16 +2549,16 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                     emit userRemoved(u);
                 }
                 break;
-            case MembershipType::Ban:
-            case MembershipType::Knock:
-            case MembershipType::Leave:
-                if (rme.membership() == MembershipType::Invite
-                    || rme.membership() == MembershipType::Join) {
+            case Membership::Ban:
+            case Membership::Knock:
+            case Membership::Leave:
+                if (rme.membership() == Membership::Invite
+                    || rme.membership() == Membership::Join) {
                     d->membersLeft.removeOne(u);
                     Q_ASSERT(!d->membersLeft.contains(u));
                 }
                 break;
-            case MembershipType::Undefined:
+            case Membership::Undefined:
                 ; // A warning will be dropped in the post-processing block below
             }
             return true;
@@ -2636,10 +2641,10 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 static_cast<const RoomMemberEvent*>(oldStateEvent);
             const auto prevMembership = oldMemberEvent
                                             ? oldMemberEvent->membership()
-                                            : MembershipType::Leave;
+                                            : Membership::Leave;
             switch (evt.membership()) {
-            case MembershipType::Join:
-                if (prevMembership != MembershipType::Join) {
+            case Membership::Join:
+                if (prevMembership != Membership::Join) {
                     d->insertMemberIntoMap(u);
                     emit userAdded(u);
                 } else {
@@ -2651,19 +2656,19 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                         emit memberAvatarChanged(u);
                 }
                 break;
-            case MembershipType::Invite:
+            case Membership::Invite:
                 if (!d->usersInvited.contains(u))
                     d->usersInvited.push_back(u);
                 if (u == localUser() && evt.isDirect())
                     connection()->addToDirectChats(this, user(evt.senderId()));
                 break;
-            case MembershipType::Knock:
-            case MembershipType::Ban:
-            case MembershipType::Leave:
+            case Membership::Knock:
+            case Membership::Ban:
+            case Membership::Leave:
                 if (!d->membersLeft.contains(u))
                     d->membersLeft.append(u);
                 break;
-            case MembershipType::Undefined:
+            case Membership::Undefined:
                 qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
             return MembersChange;
