@@ -8,6 +8,8 @@
 
 using namespace Quotient;
 
+UriResolverBase::~UriResolverBase() = default;
+
 UriResolveResult UriResolverBase::visitResource(Connection* account,
                                                 const Uri& uri)
 {
