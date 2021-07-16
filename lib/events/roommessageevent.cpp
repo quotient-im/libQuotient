@@ -135,6 +135,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
 {}
 
+#if QT_VERSION_MAJOR < 6
 TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
 {
     auto filePath = file.absoluteFilePath();
@@ -151,11 +152,7 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
             return new VideoContent(localUrl, file.size(), mimeType,
-#if QT_VERSION_MAJOR < 6
                                     QMediaResource(localUrl).resolution(),
-#else
-                                    {},
-#endif
                                     file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
@@ -172,6 +169,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                      : rawMsgTypeForFile(file),
                        contentFromFile(file, asGenericFile))
 {}
+#endif
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj), _content(nullptr)

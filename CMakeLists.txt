@@ -75,14 +75,14 @@ set(CMAKE_AUTOMOC ON)
 option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 
 if (BUILD_WITH_QT6)
-    find_package(Qt6 6.2 REQUIRED Core Network Gui Test) # TODO: Multimedia
-    set(Qt Qt6)
-    qt6_wrap_cpp(lib_SRCS lib/quotient_common.h)
+    set(QtMinVersion "6.0")
 else()
-    find_package(Qt5 5.12 REQUIRED Core Network Gui Multimedia Test)
-    set(Qt Qt5)
+    set(QtMinVersion "5.12")
+    set(QtExtraModules "Multimedia") # See #483
 endif()
-get_filename_component($Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
+string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
+get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
@@ -299,7 +299,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     set(FIND_DEPS "find_dependency(QtOlm)") # For QuotientConfig.cmake.in
 endif()
 target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
-if (Qt STREQUAL Qt5) # Qt 6 hasn't got Multimedia component as yet
+if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
 endif()
 
