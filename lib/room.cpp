@@ -31,6 +31,7 @@
 #include "csapi/kicking.h"
 #include "csapi/leaving.h"
 #include "csapi/receipts.h"
+#include "csapi/read_markers.h"
 #include "csapi/redaction.h"
 #include "csapi/room_send.h"
 #include "csapi/room_state.h"
@@ -55,7 +56,6 @@
 #include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "jobs/postreadmarkersjob.h"
 #include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
@@ -135,7 +135,7 @@ public:
     QString firstDisplayedEventId;
     QString lastDisplayedEventId;
     QHash<const User*, QString> lastReadEventIds;
-    QString serverReadMarker;
+    QString fullyReadUntilEventId;
     TagsMap tags;
     UnorderedMap<QString, EventPtr> accountData;
     QString prevBatch;
@@ -286,8 +286,8 @@ public:
             }
             if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
                 qCDebug(PROFILER)
-                    << "*** Room::Private::updateStateFrom():" << events.size()
-                    << "event(s)," << et;
+                    << "Updated" << q->objectName() << "room state from"
+                    << events.size() << "event(s) in" << et;
         }
         return changes;
     }
@@ -311,11 +311,12 @@ public:
      */
     void dropDuplicateEvents(RoomEvents& events) const;
 
-    Changes setLastReadEvent(User* u, QString eventId);
-    void updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
-    Changes promoteReadMarker(User* u, const rev_iter_t& newMarker, bool force = false);
-
-    Changes markMessagesAsRead(rev_iter_t upToMarker);
+    void setLastReadReceipt(User* u, rev_iter_t newMarker,
+                            QString newEvtId = {});
+    Changes setFullyReadMarker(const QString &eventId);
+    Changes updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
+    Changes recalculateUnreadCount();
+    void markMessagesAsRead(const rev_iter_t &upToMarker);
 
     void getAllMembers();
 
@@ -618,8 +619,9 @@ User* Room::user(const QString& userId) const
 
 JoinState Room::memberJoinState(User* user) const
 {
-    return d->membersMap.contains(user->name(this), user) ? JoinState::Join
-                                                          : JoinState::Leave;
+    return user != nullptr && d->membersMap.contains(user->name(this), user)
+               ? JoinState::Join
+               : JoinState::Leave;
 }
 
 JoinState Room::joinState() const { return d->joinState; }
@@ -636,139 +638,164 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
+void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
+                                       QString newEvtId)
 {
-    auto& storedId = lastReadEventIds[u];
-    if (storedId == eventId)
-        return Change::NoChange;
-    eventIdReadUsers.remove(storedId, u);
-    eventIdReadUsers.insert(eventId, u);
-    swap(storedId, eventId);
-    emit q->lastReadEventChanged(u);
-    emit q->readMarkerForUserMoved(u, eventId, storedId);
-    if (isLocalUser(u)) {
-        if (storedId != serverReadMarker)
-            connection->callApi<PostReadMarkersJob>(BackgroundRequest, id,
-                                                    storedId);
-        emit q->readMarkerMoved(eventId, storedId);
-        return Change::ReadMarkerChange;
+    if (!u) {
+        Q_ASSERT(u != nullptr); // For Debug builds
+        qCCritical(MAIN) << "Empty user, skipping read receipt registration";
+        return; // For Release builds
     }
-    return Change::NoChange;
+    if (q->memberJoinState(u) != JoinState::Join) {
+        qCWarning(MAIN) << "Won't record read receipt for non-member" << u->id();
+        return;
+    }
+
+    if (newMarker == timeline.crend() && !newEvtId.isEmpty())
+        newMarker = q->findInTimeline(newEvtId);
+    if (newMarker != timeline.crend()) {
+        // NB: with reverse iterators, timeline history >= sync edge
+        if (newMarker >= q->readMarker(u))
+            return;
+
+        // Try to auto-promote the read marker over the user's own messages
+        // (switch to direct iterators for that).
+        const auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
+                                         [=](const TimelineItem& ti) {
+                                             return ti->senderId() != u->id();
+                                         })
+                                 - 1;
+        newEvtId = (*eagerMarker)->id();
+        if (eagerMarker != newMarker.base() - 1) // &*(rIt.base() - 1) === &*rIt
+            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << u->id()
+                               << "to" << newEvtId;
+    }
+
+    auto& storedId = lastReadEventIds[u];
+    if (storedId == newEvtId)
+        return;
+    // Finally make the change
+    eventIdReadUsers.remove(storedId, u);
+    eventIdReadUsers.insert(newEvtId, u);
+    swap(storedId, newEvtId); // Now newEvtId actually stores the old eventId
+    emit q->lastReadEventChanged(u);
+    if (!isLocalUser(u))
+        emit q->readMarkerForUserMoved(u, newEvtId, storedId);
 }
 
-void Room::Private::updateUnreadCount(const rev_iter_t& from,
-                                      const rev_iter_t& to)
+Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
+                                               const rev_iter_t& to)
 {
     Q_ASSERT(from >= timeline.crbegin() && from <= timeline.crend());
     Q_ASSERT(to >= from && to <= timeline.crend());
 
-    // Catch a special case when the last read event id refers to an event
-    // that has just arrived. In this case we should recalculate
-    // unreadMessages and might need to promote the read marker further
-    // over local-origin messages.
-    auto readMarker = q->readMarker();
-    if (readMarker == timeline.crend() && q->allHistoryLoaded())
-        --readMarker; // Read marker not found in the timeline, initialise it
-    if (readMarker >= from && readMarker < to) {
-        promoteReadMarker(q->localUser(), readMarker, true);
-        return;
+    auto fullyReadMarker = q->readMarker();
+    if (fullyReadMarker <= from)
+        return NoChange; // What's arrived is already fully read
+
+    if (fullyReadMarker == timeline.crend() && q->allHistoryLoaded())
+        --fullyReadMarker; // No read marker in the whole room, initialise it
+    if (fullyReadMarker < to) {
+        // Catch a special case when the last fully read event id refers to an
+        // event that has just arrived. In this case we should recalculate
+        // unreadMessages to get an exact number instead of an estimation
+        // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
+        // For the same reason (switching from the estimation to the exact
+        // number) this branch always returns UnreadNotifsChange, even if
+        // the estimation luckily matched the exact result.
+        recalculateUnreadCount();
+        return UnreadNotifsChange;
     }
 
-    Q_ASSERT(to <= readMarker);
+    // Fully read marker is somewhere beyond the most historical message from
+    // the arrived batch - add up newly arrived messages to the current counter,
+    // instead of a complete recalculation.
+    Q_ASSERT(to <= fullyReadMarker);
 
     QElapsedTimer et;
     et.start();
     const auto newUnreadMessages =
-        count_if(from, to, std::bind(&Room::Private::isEventNotable, this, _1));
+        count_if(from, to,
+                 std::bind(&Room::Private::isEventNotable, this, _1));
     if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-        qCDebug(PROFILER) << "Counting gained unread messages took" << et;
+        qCDebug(PROFILER) << "Counting gained unread messages in"
+                          << q->objectName() << "took" << et;
 
-    if (newUnreadMessages > 0) {
-        // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-        if (unreadMessages < 0)
-            unreadMessages = 0;
+    if (newUnreadMessages == 0)
+        return NoChange;
 
-        unreadMessages += newUnreadMessages;
-        qCDebug(MESSAGES) << "Room" << q->objectName() << "has gained"
-                          << newUnreadMessages << "unread message(s),"
-                          << (q->readMarker() == timeline.crend()
-                                  ? "in total at least"
-                                  : "in total")
+    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
+    if (unreadMessages < 0)
+        unreadMessages = 0;
+
+    unreadMessages += newUnreadMessages;
+    qCDebug(MESSAGES) << "Room" << q->objectName() << "has gained"
+                      << newUnreadMessages << "unread message(s),"
+                      << (q->readMarker() == timeline.crend()
+                              ? "in total at least"
+                              : "in total")
+                      << unreadMessages << "unread message(s)";
+    emit q->unreadMessagesChanged(q);
+    return UnreadNotifsChange;
+}
+
+Room::Changes Room::Private::recalculateUnreadCount()
+{
+    // Recalculate unread messages
+    const auto oldUnreadCount = unreadMessages;
+    QElapsedTimer et;
+    et.start();
+    unreadMessages =
+        int(count_if(timeline.crbegin(), q->readMarker(),
+                     [this](const auto& ti) { return isEventNotable(ti); }));
+    if (et.nsecsElapsed() > profilerMinNsecs() / 10)
+        qCDebug(PROFILER) << "Recounting unread messages in" << q->objectName()
+                          << "took" << et;
+
+    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
+    if (unreadMessages == 0)
+        unreadMessages = -1;
+
+    if (unreadMessages == oldUnreadCount)
+        return NoChange;
+
+    if (unreadMessages == -1)
+        qCDebug(MESSAGES)
+            << "Room" << displayname << "has no more unread messages";
+    else
+        qCDebug(MESSAGES) << "Room" << displayname << "still has"
                           << unreadMessages << "unread message(s)";
-        emit q->unreadMessagesChanged(q);
-    }
+    emit q->unreadMessagesChanged(q);
+    return UnreadNotifsChange;
 }
 
-Room::Changes Room::Private::promoteReadMarker(User* u,
-                                               const rev_iter_t& newMarker,
-                                               bool force)
+Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
 {
-    Q_ASSERT_X(u, __FUNCTION__, "User* should not be nullptr");
-    Q_ASSERT(newMarker >= timeline.crbegin() && newMarker <= timeline.crend());
+    if (fullyReadUntilEventId == eventId)
+        return NoChange;
 
-    const auto prevMarker = q->readMarker(u);
-    if (!force && prevMarker <= newMarker) // Remember, we deal with reverse
-                                           // iterators
-        return Change::NoChange;
+    const auto prevFullyReadId = std::exchange(fullyReadUntilEventId, eventId);
+    qCDebug(MESSAGES) << "Fully read marker moved to" << fullyReadUntilEventId;
+    emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
 
-    Q_ASSERT(newMarker < timeline.crend());
+    Changes changes = ReadMarkerChange;
+    if (const auto rm = q->readMarker(); rm != timeline.crend()) {
+        // Pull read receipt if it's behind
+        if (auto rr = q->readMarker(q->localUser()); rr > rm)
+            setLastReadReceipt(q->localUser(), rm);
 
-    // Try to auto-promote the read marker over the user's own messages
-    // (switch to direct iterators for that).
-    auto eagerMarker =
-        find_if(newMarker.base(), timeline.cend(), [=](const TimelineItem& ti) {
-            return ti->senderId() != u->id();
-        });
-
-    auto changes = setLastReadEvent(u, (*(eagerMarker - 1))->id());
-    if (isLocalUser(u)) {
-        const auto oldUnreadCount = unreadMessages;
-        QElapsedTimer et;
-        et.start();
-        unreadMessages =
-            int(count_if(eagerMarker, timeline.cend(),
-                         [this](const auto& ti) { return isEventNotable(ti); }));
-        if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-            qCDebug(PROFILER) << "Recounting unread messages took" << et;
-
-        // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-        if (unreadMessages == 0)
-            unreadMessages = -1;
-
-        if (force || unreadMessages != oldUnreadCount) {
-            if (unreadMessages == -1) {
-                qCDebug(MESSAGES)
-                    << "Room" << displayname << "has no more unread messages";
-            } else
-                qCDebug(MESSAGES) << "Room" << displayname << "still has"
-                                  << unreadMessages << "unread message(s)";
-            emit q->unreadMessagesChanged(q);
-            changes |= Change::UnreadNotifsChange;
-        }
+        changes |= recalculateUnreadCount();
     }
     return changes;
 }
 
-Room::Changes Room::Private::markMessagesAsRead(rev_iter_t upToMarker)
+void Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
-    const auto prevMarker = q->readMarker();
-    auto changes = promoteReadMarker(q->localUser(), upToMarker);
-    if (prevMarker != upToMarker)
-        qCDebug(MESSAGES) << "Marked messages as read until" << *q->readMarker();
-
-    // We shouldn't send read receipts for the local user's own messages - so
-    // search earlier messages for the latest message not from the local user
-    // until the previous last-read message, whichever comes first.
-    for (; upToMarker < prevMarker; ++upToMarker) {
-        if ((*upToMarker)->senderId() != q->localUser()->id()) {
-            connection->callApi<PostReceiptJob>(BackgroundRequest,
-                                                id, QStringLiteral("m.read"),
-                                                QUrl::toPercentEncoding(
-                                                    (*upToMarker)->id()));
-            break;
-        }
+    if (upToMarker < q->readMarker()) {
+        setFullyReadMarker((*upToMarker)->id());
+        connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
+                                              fullyReadUntilEventId);
     }
-    return changes;
 }
 
 void Room::markMessagesAsRead(QString uptoEventId)
@@ -923,6 +950,11 @@ void Room::setFirstDisplayedEventId(const QString& eventId)
     if (d->firstDisplayedEventId == eventId)
         return;
 
+    if (findInTimeline(eventId) == historyEdge())
+        qCWarning(MESSAGES)
+            << eventId
+            << "is marked as first displayed but doesn't seem to be loaded";
+
     d->firstDisplayedEventId = eventId;
     emit firstDisplayedEventChanged();
 }
@@ -945,8 +977,18 @@ void Room::setLastDisplayedEventId(const QString& eventId)
     if (d->lastDisplayedEventId == eventId)
         return;
 
+    const auto marker = findInTimeline(eventId);
+    if (marker == historyEdge())
+        qCWarning(MESSAGES)
+            << eventId
+            << "is marked as last displayed but doesn't seem to be loaded";
+
     d->lastDisplayedEventId = eventId;
     emit lastDisplayedEventChanged();
+    if (d->displayed && marker < readMarker(localUser()))
+        connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
+                                              QStringLiteral("m.read"),
+                                              QUrl::toPercentEncoding(eventId));
 }
 
 void Room::setLastDisplayedEvent(TimelineItem::index_t index)
@@ -961,11 +1003,14 @@ Room::rev_iter_t Room::readMarker(const User* user) const
     return findInTimeline(d->lastReadEventIds.value(user));
 }
 
-Room::rev_iter_t Room::readMarker() const { return readMarker(localUser()); }
+Room::rev_iter_t Room::readMarker() const
+{
+    return findInTimeline(d->fullyReadUntilEventId);
+}
 
 QString Room::readMarkerEventId() const
 {
-    return d->lastReadEventIds.value(localUser());
+    return d->fullyReadUntilEventId;
 }
 
 QList<User*> Room::usersAtEventId(const QString& eventId)
@@ -1477,21 +1522,13 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     setJoinState(data.joinState);
 
     Changes roomChanges = Change::NoChange;
-    QElapsedTimer et;
-    et.start();
     for (auto&& event : data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
 
     roomChanges |= d->updateStateFrom(data.state);
+    // The order of calculation is important - don't merge these lines!
+    roomChanges |= d->addNewMessageEvents(move(data.timeline));
 
-    if (!data.timeline.empty()) {
-        et.restart();
-        roomChanges |= d->addNewMessageEvents(move(data.timeline));
-        if (data.timeline.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER)
-                << "*** Room::addNewMessageEvents():" << data.timeline.size()
-                << "event(s)," << et;
-    }
     if (roomChanges & TopicChange)
         emit topicChanged();
 
@@ -2221,6 +2258,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::NoChange;
 
+    QElapsedTimer et;
+    et.start();
     {
         // Pre-process redactions and edits so that events that get
         // redacted/replaced in the same batch landed in the timeline already
@@ -2346,25 +2385,21 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         // The first event in the just-added batch (referred to by `from`)
         // defines whose read marker can possibly be promoted any further over
         // the same author's events newly arrived. Others will need explicit
-        // read receipts from the server (or, for the local user,
-        // markMessagesAsRead() invocation) to promote their read markers over
+        // read receipts from the server - or, for the local user, calling
+        // setLastDisplayedEventId() - to promote their read receipts over
         // the new message events.
-        if (const auto senderId = (*from)->senderId(); !senderId.isEmpty()) {
-            auto* const firstWriter = q->user(senderId);
-            if (firstWriter && q->readMarker(firstWriter) != timeline.crend()) {
-                roomChanges |=
-                    promoteReadMarker(firstWriter, rev_iter_t(from) - 1);
-                qCDebug(MESSAGES)
-                    << "Auto-promoted read marker for" << senderId
-                    << "to" << *q->readMarker(firstWriter);
-            }
+        if (auto* const firstWriter = q->user((*from)->senderId())) {
+            const auto firstEventId = (*from)->id();
+            if (lastReadEventIds.value(firstWriter) == firstEventId)
+                setLastReadReceipt(firstWriter, rev_iter_t(from + 1));
         }
-
-        updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
-        roomChanges |= Change::UnreadNotifsChange;
+        roomChanges |= updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
+    if (totalInserted > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+        qCDebug(PROFILER) << "Added" << totalInserted << "new event(s) to"
+                          << q->objectName() << "in" << et;
     return roomChanges;
 }
 
@@ -2406,13 +2441,12 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             emit q->updatedEvent(relation.eventId);
         }
     }
-    if (from <= q->readMarker())
-        updateUnreadCount(from, timeline.crend());
+    updateUnreadCount(from, timeline.crend());
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
-        qCDebug(PROFILER) << "*** Room::addHistoricalMessageEvents():"
-                          << insertedSize << "event(s)," << et;
+        qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
+                          << q->objectName() << "in" << et;
 }
 
 Room::Changes Room::processStateEvent(const RoomEvent& e)
@@ -2611,12 +2645,13 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
         d->usersTyping.clear();
         for (const QString& userId : qAsConst(evt->users())) {
             auto* const u = user(userId);
-            if (u && memberJoinState(u) == JoinState::Join)
+            if (memberJoinState(u) == JoinState::Join)
                 d->usersTyping.append(u);
         }
         if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
-                              << evt->users().size() << "users," << et;
+            qCDebug(PROFILER)
+                << "Processing typing events from" << evt->users().size()
+                << "user(s) in" << objectName() << "took" << et;
         emit typingChanged();
     }
     if (auto* evt = eventCast<ReceiptEvent>(event)) {
@@ -2625,44 +2660,36 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             totalReceipts += p.receipts.size();
             {
                 if (p.receipts.size() == 1)
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts[0].userId;
+                    qCDebug(EPHEMERAL)
+                        << objectName() << "received a read receipt for"
+                        << p.evtId << "from" << p.receipts[0].userId;
                 else
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts.size() << "users";
+                    qCDebug(EPHEMERAL)
+                        << objectName() << "received read receipts for"
+                        << p.evtId << "from" << p.receipts.size() << "users";
             }
             const auto newMarker = findInTimeline(p.evtId);
-            if (newMarker != timelineEdge()) {
-                for (const Receipt& r : p.receipts) {
-                    if (r.userId == connection()->userId())
-                        continue; // FIXME, #185
-                    auto* const u = user(r.userId);
-                    if (u && memberJoinState(u) == JoinState::Join)
-                        changes |= d->promoteReadMarker(u, newMarker);
+            if (newMarker == historyEdge())
+                qCDebug(EPHEMERAL) << "Event of the read receipt(s) is not "
+                                      "found; saving them anyway";
+            for (const Receipt& r : p.receipts)
+                if (auto* const u = user(r.userId);
+                    memberJoinState(u) == JoinState::Join) {
+                    // If the event is not found (most likely, because it's
+                    // too old and hasn't been fetched from the server yet)
+                    // but there is a previous marker for a user, keep
+                    // the previous marker because read receipts are not
+                    // supposed to move backwards. Otherwise, blindly
+                    // store the event id for this user and update the read
+                    // marker when/if the event is fetched later on.
+                    d->setLastReadReceipt(u, newMarker, p.evtId);
                 }
-            } else {
-                qCDebug(EPHEMERAL) << "Event" << p.evtId
-                                   << "not found; saving read receipts anyway";
-                // If the event is not found (most likely, because it's too old
-                // and hasn't been fetched from the server yet), but there is
-                // a previous marker for a user, keep the previous marker.
-                // Otherwise, blindly store the event id for this user.
-                for (const Receipt& r : p.receipts) {
-                    if (r.userId == connection()->userId())
-                        continue; // FIXME, #185
-                    auto* const u = user(r.userId);
-                    if (u && memberJoinState(u) == JoinState::Join
-                        && readMarker(u) == timelineEdge())
-                        changes |= d->setLastReadEvent(u, p.evtId);
-                }
-            }
         }
         if (evt->eventsWithReceipts().size() > 3 || totalReceipts > 10
             || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER)
-                << "*** Room::processEphemeralEvent(receipts):"
-                << evt->eventsWithReceipts().size() << "event(s) with"
-                << totalReceipts << "receipt(s)," << et;
+            qCDebug(PROFILER) << "Processing" << totalReceipts << "receipt(s) on"
+                              << evt->eventsWithReceipts().size()
+                              << "event(s) in" << objectName() << "took" << et;
     }
     return changes;
 }
@@ -2675,15 +2702,9 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         changes |= Change::TagsChange;
     }
 
-    if (auto* evt = eventCast<ReadMarkerEvent>(event)) {
-        auto readEventId = evt->event_id();
-        qCDebug(STATE) << "Server-side read marker at" << readEventId;
-        d->serverReadMarker = readEventId;
-        const auto newMarker = findInTimeline(readEventId);
-        changes |= newMarker != timelineEdge()
-                       ? d->markMessagesAsRead(newMarker)
-                       : d->setLastReadEvent(localUser(), readEventId);
-    }
+    if (auto* evt = eventCast<const ReadMarkerEvent>(event))
+        changes |= d->setFullyReadMarker(evt->event_id());
+
     // For all account data events
     auto& currentData = d->accountData[event->matrixType()];
     // A polymorphic event-specific comparison might be a bit more
@@ -2876,7 +2897,8 @@ QJsonObject Room::Private::toJson() const
     result.insert(QStringLiteral("unread_notifications"), unreadNotifObj);
 
     if (et.elapsed() > 30)
-        qCDebug(PROFILER) << "Room::toJson() for" << displayname << "took" << et;
+        qCDebug(PROFILER) << "Room::toJson() for" << q->objectName() << "took"
+                          << et;
 
     return result;
 }
