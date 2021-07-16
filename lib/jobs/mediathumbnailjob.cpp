@@ -17,13 +17,17 @@ MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
                                      const QString& mediaId, QSize requestedSize)
     : GetContentThumbnailJob(serverName, mediaId, requestedSize.width(),
                              requestedSize.height(), "scale")
-{}
+{
+    setLoggingCategory(THUMBNAILJOB);
+}
 
 MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
     : MediaThumbnailJob(mxcUri.authority(),
                         mxcUri.path().mid(1), // sans leading '/'
                         requestedSize)
-{}
+{
+    setLoggingCategory(THUMBNAILJOB);
+}
 
 QImage MediaThumbnailJob::thumbnail() const { return _thumbnail; }
 
