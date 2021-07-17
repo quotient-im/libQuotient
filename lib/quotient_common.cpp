@@ -9,7 +9,7 @@ inline QDebug suppressScopeAndDump(QDebug dbg, Enum e)
 {
     // Suppress "Quotient::" prefix
     QDebugStateSaver _dss(dbg);
-    dbg.setVerbosity(QDebug::MinimumVerbosity);
+    dbg.setVerbosity(0 /* QDebug::MinimumVerbosity since Qt 5.13 */);
     return qt_QMetaEnum_debugOperator(dbg, std::underlying_type_t<Enum>(e),
                                       qt_getEnumMetaObject(e),
                                       qt_getEnumName(e));
@@ -20,7 +20,7 @@ inline QDebug suppressScopeAndDump(QDebug dbg, const QFlags<Enum>& f)
 {
     // Suppress "Quotient::" prefix
     QDebugStateSaver _dss(dbg);
-    dbg.setVerbosity(QDebug::MinimumVerbosity);
+    dbg.setVerbosity(0 /* QDebug::MinimumVerbosity since Qt 5.13 */);
     return qt_QMetaEnum_flagDebugOperator_helper(dbg, f);
 }
 
