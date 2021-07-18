@@ -5,6 +5,7 @@
 #include "basejob.h"
 
 #include "connectiondata.h"
+#include "quotient_common.h"
 
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
@@ -14,8 +15,6 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
-
-#include <array>
 
 using namespace Quotient;
 using std::chrono::seconds, std::chrono::milliseconds;
@@ -61,12 +60,6 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     } else
         dbg << code;
     return dbg << ": " << message;
-}
-
-template <typename... Ts>
-constexpr auto make_array(Ts&&... items)
-{
-    return std::array<std::common_type_t<Ts...>, sizeof...(Ts)>({items...});
 }
 
 class BaseJob::Private {
@@ -163,8 +156,8 @@ public:
     {
         // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
         static const auto verbs =
-            make_array(QStringLiteral("GET"), QStringLiteral("PUT"),
-                       QStringLiteral("POST"), QStringLiteral("DELETE"));
+            to_array({ QStringLiteral("GET"), QStringLiteral("PUT"),
+                       QStringLiteral("POST"), QStringLiteral("DELETE") });
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % ' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
