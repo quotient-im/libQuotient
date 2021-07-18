@@ -49,13 +49,14 @@ namespace EventContent {
     // but specific aggregation structure is altered. See doc comments to
     // each type for the list of available attributes.
 
-    // A quick classes inheritance structure follows:
+    // A quick classes inheritance structure follows (the definitions are
+    // spread across eventcontent.h and roommessageevent.h):
     // FileInfo
-    //   FileContent : UrlBasedContent<FileInfo, Thumbnail>
-    //   AudioContent : UrlBasedContent<FileInfo, Duration>
+    //   FileContent : UrlWithThumbnailContent<FileInfo>
+    //   AudioContent : PlayableContent<UrlBasedContent<FileInfo>>
     //   ImageInfo : FileInfo + imageSize attribute
-    //     ImageContent : UrlBasedContent<ImageInfo, Thumbnail>
-    //     VideoContent : UrlBasedContent<ImageInfo, Thumbnail, Duration>
+    //     ImageContent : UrlWithThumbnailContent<ImageInfo>
+    //     VideoContent : PlayableContent<UrlWithThumbnailContent<ImageInfo>>
 
     /**
      * A base/mixin class for structures representing an "info" object for
