@@ -10,6 +10,7 @@
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
+#include <QtCore/QMetaType>
 
 class QFileInfo;
 
@@ -153,13 +154,13 @@ namespace EventContent {
 
     class TypedBase : public Base {
     public:
-        explicit TypedBase(QJsonObject o = {}) : Base(std::move(o)) {}
         virtual QMimeType type() const = 0;
         virtual const FileInfo* fileInfo() const { return nullptr; }
         virtual FileInfo* fileInfo() { return nullptr; }
         virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
 
     protected:
+        explicit TypedBase(QJsonObject o = {}) : Base(std::move(o)) {}
         using Base::Base;
     };
 
