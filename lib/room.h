@@ -549,8 +549,13 @@ public Q_SLOTS:
     QString postHtmlText(const QString& plainText, const QString& html);
     /// Send a reaction on a given event with a given key
     QString postReaction(const QString& eventId, const QString& key);
+
+    QString postFile(const QString& plainText, EventContent::TypedBase* content);
+#if QT_VERSION_MAJOR < 6
+    /// \deprecated Use postFile(QString, MessageEventType, EventContent) instead
     QString postFile(const QString& plainText, const QUrl& localPath,
                      bool asGenericFile = false);
+#endif
     /** Post a pre-created room message event
      *
      * Takes ownership of the event, deleting it once the matching one

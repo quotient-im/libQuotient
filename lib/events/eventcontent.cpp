@@ -5,10 +5,13 @@
 
 #include "converters.h"
 #include "util.h"
+#include "logging.h"
 
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QFileInfo>
 
 using namespace Quotient::EventContent;
+using std::move;
 
 QJsonObject Base::toJson() const
 {
@@ -17,22 +20,37 @@ QJsonObject Base::toJson() const
     return o;
 }
 
-FileInfo::FileInfo(const QUrl& u, qint64 payloadSize, const QMimeType& mimeType,
-                   const QString& originalFilename)
-    : mimeType(mimeType)
-    , url(u)
-    , payloadSize(payloadSize)
-    , originalName(originalFilename)
-{}
+FileInfo::FileInfo(const QFileInfo &fi)
+    : mimeType(QMimeDatabase().mimeTypeForFile(fi))
+    , url(QUrl::fromLocalFile(fi.filePath()))
+    , payloadSize(fi.size())
+    , originalName(fi.fileName())
+{
+    Q_ASSERT(fi.isFile());
+}
 
-FileInfo::FileInfo(const QUrl& u, const QJsonObject& infoJson,
-                   const QString& originalFilename)
+FileInfo::FileInfo(QUrl u, qint64 payloadSize, const QMimeType& mimeType,
+                   QString originalFilename)
+    : mimeType(mimeType)
+    , url(move(u))
+    , payloadSize(payloadSize)
+    , originalName(move(originalFilename))
+{
+    if (!isValid())
+        qCWarning(MESSAGES)
+            << "To client developers: using FileInfo(QUrl, qint64, ...) "
+               "constructor for non-mxc resources is deprecated since Quotient "
+               "0.7; for local resources, use FileInfo(QFileInfo) instead";
+}
+
+FileInfo::FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
+                   QString originalFilename)
     : originalInfoJson(infoJson)
     , mimeType(
           QMimeDatabase().mimeTypeForName(infoJson["mimetype"_ls].toString()))
-    , url(u)
+    , url(move(mxcUrl))
     , payloadSize(fromJson<qint64>(infoJson["size"_ls]))
-    , originalName(originalFilename)
+    , originalName(move(originalFilename))
 {
     if (!mimeType.isValid())
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
@@ -53,14 +71,19 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
         infoJson->insert(QStringLiteral("mimetype"), mimeType.name());
 }
 
-ImageInfo::ImageInfo(const QUrl& u, qint64 fileSize, QMimeType mimeType,
-                     const QSize& imageSize, const QString& originalFilename)
-    : FileInfo(u, fileSize, mimeType, originalFilename), imageSize(imageSize)
+ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)
+    : FileInfo(fi), imageSize(imageSize)
 {}
 
-ImageInfo::ImageInfo(const QUrl& u, const QJsonObject& infoJson,
+ImageInfo::ImageInfo(const QUrl& mxcUrl, qint64 fileSize, const QMimeType& type,
+                     QSize imageSize, const QString& originalFilename)
+    : FileInfo(mxcUrl, fileSize, type, originalFilename)
+    , imageSize(imageSize)
+{}
+
+ImageInfo::ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
                      const QString& originalFilename)
-    : FileInfo(u, infoJson, originalFilename)
+    : FileInfo(mxcUrl, infoJson, originalFilename)
     , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
 {}
 

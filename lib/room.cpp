@@ -306,6 +306,8 @@ public:
         return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
     }
 
+    QString doPostFile(RoomEventPtr &&msgEvent, const QUrl &localUrl);
+
     RoomEvent* addAsPending(RoomEventPtr&& event);
 
     QString doSendEvent(const RoomEvent* pEvent);
@@ -1756,56 +1758,79 @@ QString Room::postReaction(const QString& eventId, const QString& key)
     return d->sendEvent<ReactionEvent>(EventRelation::annotate(eventId, key));
 }
 
+QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
+{
+    const auto txnId = addAsPending(move(msgEvent))->transactionId();
+    // Remote URL will only be known after upload; fill in the local path
+    // to enable the preview while the event is pending.
+    q->uploadFile(txnId, localUrl);
+    // Below, the upload job is used as a context object to clean up connections
+    const auto& transferJob = fileTransfers.value(txnId).job;
+    connect(q, &Room::fileTransferCompleted, transferJob,
+            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri) {
+                if (tId != txnId)
+                    return;
+
+                const auto it = q->findPendingEvent(txnId);
+                if (it != unsyncedEvents.end()) {
+                    it->setFileUploaded(mxcUri);
+                    emit q->pendingEventChanged(
+                        int(it - unsyncedEvents.begin()));
+                    doSendEvent(it->get());
+                } else {
+                    // Normally in this situation we should instruct
+                    // the media server to delete the file; alas, there's no
+                    // API specced for that.
+                    qCWarning(MAIN) << "File uploaded to" << mxcUri
+                                    << "but the event referring to it was "
+                                       "cancelled";
+                }
+            });
+    connect(q, &Room::fileTransferCancelled, transferJob,
+            [this, txnId](const QString& tId) {
+                if (tId != txnId)
+                    return;
+
+                const auto it = q->findPendingEvent(txnId);
+                if (it == unsyncedEvents.end())
+                    return;
+
+                const auto idx = int(it - unsyncedEvents.begin());
+                emit q->pendingEventAboutToDiscard(idx);
+                // See #286 on why `it` may not be valid here.
+                unsyncedEvents.erase(unsyncedEvents.begin() + idx);
+                emit q->pendingEventDiscarded();
+            });
+
+    return txnId;
+}
+
+QString Room::postFile(const QString& plainText,
+                       EventContent::TypedBase* content)
+{
+    Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
+    const auto* const fileInfo = content->fileInfo();
+    Q_ASSERT(fileInfo != nullptr);
+    QFileInfo localFile { fileInfo->url.toLocalFile() };
+    Q_ASSERT(localFile.isFile());
+
+    return d->doPostFile(
+        makeEvent<RoomMessageEvent>(
+            plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
+        fileInfo->url);
+}
+
+#if QT_VERSION_MAJOR < 6
 QString Room::postFile(const QString& plainText, const QUrl& localPath,
                        bool asGenericFile)
 {
     QFileInfo localFile { localPath.toLocalFile() };
     Q_ASSERT(localFile.isFile());
-
-    const auto txnId =
-        d->addAsPending(
-             makeEvent<RoomMessageEvent>(plainText, localFile, asGenericFile))
-            ->transactionId();
-    // Remote URL will only be known after upload; fill in the local path
-    // to enable the preview while the event is pending.
-    uploadFile(txnId, localPath);
-    // Below, the upload job is used as a context object to clean up connections
-    const auto& transferJob = d->fileTransfers.value(txnId).job;
-    connect(this, &Room::fileTransferCompleted, transferJob,
-            [this, txnId](const QString& id, const QUrl&, const QUrl& mxcUri) {
-                if (id == txnId) {
-                    auto it = findPendingEvent(txnId);
-                    if (it != d->unsyncedEvents.end()) {
-                        it->setFileUploaded(mxcUri);
-                        emit pendingEventChanged(
-                            int(it - d->unsyncedEvents.begin()));
-                        d->doSendEvent(it->get());
-                    } else {
-                        // Normally in this situation we should instruct
-                        // the media server to delete the file; alas, there's no
-                        // API specced for that.
-                        qCWarning(MAIN) << "File uploaded to" << mxcUri
-                                        << "but the event referring to it was "
-                                           "cancelled";
-                    }
-                }
-            });
-    connect(this, &Room::fileTransferCancelled, transferJob,
-            [this, txnId](const QString& id) {
-                if (id == txnId) {
-                    auto it = findPendingEvent(txnId);
-                    if (it != d->unsyncedEvents.end()) {
-                        const auto idx = int(it - d->unsyncedEvents.begin());
-                        emit pendingEventAboutToDiscard(idx);
-                        // See #286 on why iterator may not be valid here.
-                        d->unsyncedEvents.erase(d->unsyncedEvents.begin() + idx);
-                        emit pendingEventDiscarded();
-                    }
-                }
-            });
-
-    return txnId;
+    return d->doPostFile(makeEvent<RoomMessageEvent>(plainText, localFile,
+                                                     asGenericFile),
+                         localPath);
 }
+#endif
 
 QString Room::postEvent(RoomEvent* event)
 {

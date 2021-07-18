@@ -20,12 +20,12 @@ public:
         : StateEvent(typeId(), matrixTypeId(), QString(), avatar)
     {}
     // A replica of EventContent::ImageInfo constructor
-    explicit RoomAvatarEvent(const QUrl& u, qint64 fileSize = -1,
+    explicit RoomAvatarEvent(const QUrl& mxcUrl, qint64 fileSize = -1,
                              QMimeType mimeType = {},
                              const QSize& imageSize = {},
                              const QString& originalFilename = {})
         : RoomAvatarEvent(EventContent::ImageContent {
-            u, fileSize, mimeType, imageSize, originalFilename })
+            mxcUrl, fileSize, mimeType, imageSize, originalFilename })
     {}
 
     QUrl url() const { return content().url; }

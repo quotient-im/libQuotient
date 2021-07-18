@@ -10,7 +10,8 @@
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
-#include <QtCore/QMetaType>
+
+class QFileInfo;
 
 namespace Quotient {
 namespace EventContent {
@@ -73,11 +74,13 @@ namespace EventContent {
      */
     class FileInfo {
     public:
-        explicit FileInfo(const QUrl& u, qint64 payloadSize = -1,
+        FileInfo() = default;
+        explicit FileInfo(const QFileInfo& fi);
+        explicit FileInfo(QUrl mxcUrl, qint64 payloadSize = -1,
                           const QMimeType& mimeType = {},
-                          const QString& originalFilename = {});
-        FileInfo(const QUrl& u, const QJsonObject& infoJson,
-                 const QString& originalFilename = {});
+                          QString originalFilename = {});
+        FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
+                 QString originalFilename = {});
 
         bool isValid() const;
 
@@ -113,10 +116,12 @@ namespace EventContent {
      */
     class ImageInfo : public FileInfo {
     public:
-        explicit ImageInfo(const QUrl& u, qint64 fileSize = -1,
-                           QMimeType mimeType = {}, const QSize& imageSize = {},
+        ImageInfo() = default;
+        explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
+        explicit ImageInfo(const QUrl& mxcUrl, qint64 fileSize = -1,
+                           const QMimeType& type = {}, QSize imageSize = {},
                            const QString& originalFilename = {});
-        ImageInfo(const QUrl& u, const QJsonObject& infoJson,
+        ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
                   const QString& originalFilename = {});
 
         void fillInfoJson(QJsonObject* infoJson) const;
@@ -134,7 +139,7 @@ namespace EventContent {
      */
     class Thumbnail : public ImageInfo {
     public:
-        Thumbnail() : ImageInfo(QUrl()) {} // To allow empty thumbnails
+        Thumbnail() = default; // Allow empty thumbnails
         Thumbnail(const QJsonObject& infoJson);
         Thumbnail(const ImageInfo& info) : ImageInfo(info) {}
         using ImageInfo::ImageInfo;
