@@ -5,6 +5,8 @@
 
 #include <qobjectdefs.h>
 
+#include <array>
+
 namespace Quotient {
 Q_NAMESPACE
 
