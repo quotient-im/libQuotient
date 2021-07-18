@@ -7,23 +7,21 @@
 
 #include "eventcontent.h"
 #include "stateevent.h"
+#include "quotient_common.h"
 
 namespace Quotient {
 class MemberEventContent : public EventContent::Base {
 public:
-    enum MembershipType : unsigned char {
-        Invite = 0,
-        Join,
-        Knock,
-        Leave,
-        Ban,
-        Undefined
-    };
+    using MembershipType
+        [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
-    explicit MemberEventContent(MembershipType mt = Join) : membership(mt) {}
+    explicit MemberEventContent(Membership ms = Membership::Join)
+        : membership(ms)
+    {}
     explicit MemberEventContent(const QJsonObject& json);
 
-    MembershipType membership;
+    Membership membership;
+    /// (Only for invites) Whether the invite is to a direct chat
     bool isDirect = false;
     Omittable<QString> displayName;
     Omittable<QUrl> avatarUrl;
@@ -33,15 +31,15 @@ protected:
     void fillJson(QJsonObject* o) const override;
 };
 
-using MembershipType = MemberEventContent::MembershipType;
+using MembershipType [[deprecated("Use Membership instead")]] = Membership;
 
 class RoomMemberEvent : public StateEvent<MemberEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
-    using MembershipType = MemberEventContent::MembershipType;
-    Q_ENUM(MembershipType)
+    using MembershipType
+        [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
     explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
@@ -65,7 +63,7 @@ public:
         : StateEvent(type, fullJson)
     {}
 
-    MembershipType membership() const { return content().membership; }
+    Membership membership() const { return content().membership; }
     QString userId() const { return stateKey(); }
     bool isDirect() const { return content().isDirect; }
     Omittable<QString> newDisplayName() const { return content().displayName; }

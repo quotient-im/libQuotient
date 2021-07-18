@@ -640,7 +640,7 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
             }
             qWarning(MAIN) << "Room" << roomData.roomId
                            << "has just been forgotten but /sync returned it in"
-                           << toCString(roomData.joinState)
+                           << roomData.joinState
                            << "state - suspiciously fast turnaround";
         }
         if (auto* r = q->provideRoom(roomData.roomId, roomData.joinState)) {
@@ -1356,7 +1356,7 @@ void Connection::Private::removeRoom(const QString& roomId)
     for (auto f : { false, true })
         if (auto r = roomMap.take({ roomId, f })) {
             qCDebug(MAIN) << "Room" << r->objectName() << "in state"
-                          << toCString(r->joinState()) << "will be deleted";
+                          << r->joinState() << "will be deleted";
             emit r->beforeDestruction(r);
             r->deleteLater();
         }

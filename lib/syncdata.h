@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "joinstate.h"
+#include "quotient_common.h"
 
 #include "events/stateevent.h"
 

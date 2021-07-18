@@ -11,7 +11,7 @@
 
 #include "connection.h"
 #include "eventitem.h"
-#include "joinstate.h"
+#include "quotient_common.h"
 
 #include "csapi/message_pagination.h"
 
@@ -245,12 +245,19 @@ public:
     /**
      * \brief Check the join state of a given user in this room
      *
+     * \deprecated Use memberState and check against a mask
+     *
      * \note Banned and invited users are not tracked separately for now (Leave
      *       will be returned for them).
      *
      * \return Join if the user is a room member; Leave otherwise
      */
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
+
+    //! \brief Check the join state of a given user in this room
+    //!
+    //! \return the given user's state with respect to the room
+    Q_INVOKABLE Quotient::Membership memberState(User* user) const;
 
     //! \brief Get a display name (without disambiguation) for the given member
     //!
