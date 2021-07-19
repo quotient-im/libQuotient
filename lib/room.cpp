@@ -315,7 +315,7 @@ public:
                             QString newEvtId = {});
     Changes setFullyReadMarker(const QString &eventId);
     Changes updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
-    Changes recalculateUnreadCount();
+    Changes recalculateUnreadCount(bool force = false);
     void markMessagesAsRead(const rev_iter_t &upToMarker);
 
     void getAllMembers();
@@ -701,10 +701,10 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
         // unreadMessages to get an exact number instead of an estimation
         // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
         // For the same reason (switching from the estimation to the exact
-        // number) this branch always returns UnreadNotifsChange, even if
-        // the estimation luckily matched the exact result.
-        recalculateUnreadCount();
-        return UnreadNotifsChange;
+        // number) this branch always emits unreadMessagesChanged() and returns
+        // UnreadNotifsChange, even if the estimation luckily matched the exact
+        // result.
+        return recalculateUnreadCount(true);
     }
 
     // Fully read marker is somewhere beyond the most historical message from
@@ -739,7 +739,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     return UnreadNotifsChange;
 }
 
-Room::Changes Room::Private::recalculateUnreadCount()
+Room::Changes Room::Private::recalculateUnreadCount(bool force)
 {
     // Recalculate unread messages
     const auto oldUnreadCount = unreadMessages;
@@ -756,7 +756,7 @@ Room::Changes Room::Private::recalculateUnreadCount()
     if (unreadMessages == 0)
         unreadMessages = -1;
 
-    if (unreadMessages == oldUnreadCount)
+    if (!force && unreadMessages == oldUnreadCount)
         return NoChange;
 
     if (unreadMessages == -1)
