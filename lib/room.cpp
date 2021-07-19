@@ -793,7 +793,11 @@ void Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
     if (upToMarker < q->readMarker()) {
         setFullyReadMarker((*upToMarker)->id());
+        // Assuming that if a read receipt was sent on a newer event, it will
+        // stay there instead of "un-reading" notifications/mentions from
+        // m.fully_read to m.read
         connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
+                                              fullyReadUntilEventId,
                                               fullyReadUntilEventId);
     }
 }
