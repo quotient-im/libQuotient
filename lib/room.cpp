@@ -315,7 +315,7 @@ public:
                             QString newEvtId = {});
     Changes setFullyReadMarker(const QString &eventId);
     Changes updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
-    Changes recalculateUnreadCount();
+    Changes recalculateUnreadCount(bool force = false);
     void markMessagesAsRead(const rev_iter_t &upToMarker);
 
     void getAllMembers();
@@ -701,10 +701,10 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
         // unreadMessages to get an exact number instead of an estimation
         // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
         // For the same reason (switching from the estimation to the exact
-        // number) this branch always returns UnreadNotifsChange, even if
-        // the estimation luckily matched the exact result.
-        recalculateUnreadCount();
-        return UnreadNotifsChange;
+        // number) this branch always emits unreadMessagesChanged() and returns
+        // UnreadNotifsChange, even if the estimation luckily matched the exact
+        // result.
+        return recalculateUnreadCount(true);
     }
 
     // Fully read marker is somewhere beyond the most historical message from
@@ -739,7 +739,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     return UnreadNotifsChange;
 }
 
-Room::Changes Room::Private::recalculateUnreadCount()
+Room::Changes Room::Private::recalculateUnreadCount(bool force)
 {
     // Recalculate unread messages
     const auto oldUnreadCount = unreadMessages;
@@ -756,7 +756,7 @@ Room::Changes Room::Private::recalculateUnreadCount()
     if (unreadMessages == 0)
         unreadMessages = -1;
 
-    if (unreadMessages == oldUnreadCount)
+    if (!force && unreadMessages == oldUnreadCount)
         return NoChange;
 
     if (unreadMessages == -1)
@@ -775,7 +775,8 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
         return NoChange;
 
     const auto prevFullyReadId = std::exchange(fullyReadUntilEventId, eventId);
-    qCDebug(MESSAGES) << "Fully read marker moved to" << fullyReadUntilEventId;
+    qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
+                      << "moved to" << fullyReadUntilEventId;
     emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
 
     Changes changes = ReadMarkerChange;
@@ -793,7 +794,11 @@ void Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
     if (upToMarker < q->readMarker()) {
         setFullyReadMarker((*upToMarker)->id());
+        // Assuming that if a read receipt was sent on a newer event, it will
+        // stay there instead of "un-reading" notifications/mentions from
+        // m.fully_read to m.read
         connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
+                                              fullyReadUntilEventId,
                                               fullyReadUntilEventId);
     }
 }
@@ -950,7 +955,7 @@ void Room::setFirstDisplayedEventId(const QString& eventId)
     if (d->firstDisplayedEventId == eventId)
         return;
 
-    if (findInTimeline(eventId) == historyEdge())
+    if (!eventId.isEmpty() && findInTimeline(eventId) == historyEdge())
         qCWarning(MESSAGES)
             << eventId
             << "is marked as first displayed but doesn't seem to be loaded";
@@ -978,7 +983,7 @@ void Room::setLastDisplayedEventId(const QString& eventId)
         return;
 
     const auto marker = findInTimeline(eventId);
-    if (marker == historyEdge())
+    if (!eventId.isEmpty() && marker == historyEdge())
         qCWarning(MESSAGES)
             << eventId
             << "is marked as last displayed but doesn't seem to be loaded";
@@ -2383,15 +2388,20 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                        << timeline.back();
 
         // The first event in the just-added batch (referred to by `from`)
-        // defines whose read marker can possibly be promoted any further over
+        // defines whose read receipt can possibly be promoted any further over
         // the same author's events newly arrived. Others will need explicit
         // read receipts from the server - or, for the local user, calling
         // setLastDisplayedEventId() - to promote their read receipts over
         // the new message events.
         if (auto* const firstWriter = q->user((*from)->senderId())) {
-            const auto firstEventId = (*from)->id();
-            if (lastReadEventIds.value(firstWriter) == firstEventId)
-                setLastReadReceipt(firstWriter, rev_iter_t(from + 1));
+            setLastReadReceipt(firstWriter, rev_iter_t(from + 1));
+            if (firstWriter == q->localUser() && q->readMarker().base() == from) {
+                // If the local user's message(s) is/are first in the batch
+                // and the fully read marker was right before it, promote
+                // the fully read marker to the same event as the read receipt.
+                roomChanges |=
+                    setFullyReadMarker(lastReadEventIds.value(firstWriter));
+            }
         }
         roomChanges |= updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
     }
