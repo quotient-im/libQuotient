@@ -196,7 +196,7 @@ inline auto wrap_in_function(FnT&& f)
     return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
 }
 
-inline auto operator"" _ls(const char* s, std::size_t size)
+inline constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));
 }
