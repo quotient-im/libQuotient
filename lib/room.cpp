@@ -991,10 +991,12 @@ void Room::setLastDisplayedEventId(const QString& eventId)
 
     d->lastDisplayedEventId = eventId;
     emit lastDisplayedEventChanged();
-    if (d->displayed && marker < readMarker(localUser()))
+    if (d->displayed && marker < readMarker(localUser())) {
+        d->setLastReadReceipt(localUser(), marker);
         connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
                                               QStringLiteral("m.read"),
                                               QUrl::toPercentEncoding(eventId));
+    }
 }
 
 void Room::setLastDisplayedEvent(TimelineItem::index_t index)
