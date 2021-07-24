@@ -1570,20 +1570,18 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         roomChanges |= processEphemeralEvent(move(ephemeralEvent));
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-    if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages) {
-        qCDebug(MESSAGES) << "Setting unread_count to" << data.unreadCount;
-        d->unreadMessages = data.unreadCount;
+    if (merge(d->unreadMessages, data.unreadCount)) {
+        qCDebug(MESSAGES) << "Loaded unread_count:" << *data.unreadCount //
+                          << "in" << objectName();
         emit unreadMessagesChanged(this);
     }
 
-    if (data.highlightCount != d->highlightCount) {
-        d->highlightCount = data.highlightCount;
+    if (merge(d->highlightCount, data.highlightCount))
         emit highlightCountChanged();
-    }
-    if (data.notificationCount != d->notificationCount) {
-        d->notificationCount = data.notificationCount;
+
+    if (merge(d->notificationCount, data.notificationCount))
         emit notificationCountChanged();
-    }
+
     if (roomChanges != Change::NoChange) {
         d->updateDisplayname();
         emit changed(roomChanges);

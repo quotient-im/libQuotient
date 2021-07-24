@@ -30,6 +30,13 @@ struct HashQ {
 template <typename KeyT, typename ValT>
 using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
+namespace _impl {
+    template <typename TT>
+    constexpr inline auto IsOmittableValue = false;
+    template <typename TT>
+    constexpr inline auto IsOmittable = IsOmittableValue<std::decay_t<TT>>;
+}
+
 constexpr auto none = std::nullopt;
 
 /** `std::optional` with tweaks
@@ -107,18 +114,18 @@ public:
         return !this->has_value();
     }
 
-    /// Merge the value from another Omittable
-    /// \return true if \p other is not omitted and the value of
-    ///         the current Omittable was different (or omitted);
-    ///         in other words, if the current Omittable has changed;
-    ///         false otherwise
+    //! Merge the value from another Omittable
+    //! \return true if \p other is not omitted and the value of
+    //!         the current Omittable was different (or omitted),
+    //!         in other words, if the current Omittable has changed;
+    //!         false otherwise
     template <typename T1>
     auto merge(const Omittable<T1>& other)
-        -> std::enable_if_t<std::is_convertible<T1, T>::value, bool>
+        -> std::enable_if_t<std::is_convertible_v<T1, T>, bool>
     {
         if (!other || (this->has_value() && **this == *other))
             return false;
-        *this = other;
+        emplace(*other);
         return true;
     }
 
@@ -131,6 +138,34 @@ public:
     const value_type& operator*() const& { return base_type::operator*(); }
     value_type& operator*() && { return base_type::operator*(); }
 };
+
+namespace _impl {
+    template <typename T>
+    constexpr inline auto IsOmittableValue<Omittable<T>> = true;
+}
+
+template <typename T1, typename T2>
+inline auto merge(Omittable<T1>& lhs, T2&& rhs)
+{
+    return lhs.merge(std::forward<T2>(rhs));
+}
+
+//! \brief Merge the value from an Omittable
+//! This is an adaptation of Omittable::merge() to the case when the value
+//! on the left hand side is not an Omittable.
+//! \return true if \p rhs is not omitted and the \p lhs value was different,
+//!         in other words, if \p lhs has changed;
+//!         false otherwise
+template <typename T1, typename T2>
+inline auto merge(T1& lhs, const Omittable<T2>& rhs)
+    -> std::enable_if_t<!_impl::IsOmittable<T1>
+                            && std::is_convertible_v<T2, T1>, bool>
+{
+    if (!rhs || lhs == *rhs)
+        return false;
+    lhs = *rhs;
+    return true;
+}
 
 namespace _impl {
     template <typename AlwaysVoid, typename>

@@ -90,13 +90,13 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
     }
 
     const auto unreadJson = room_.value("unread_notifications"_ls).toObject();
-    unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);
-    highlightCount = unreadJson.value("highlight_count"_ls).toInt();
-    notificationCount = unreadJson.value("notification_count"_ls).toInt();
-    if (highlightCount > 0 || notificationCount > 0)
+    fromJson(unreadJson.value(UnreadCountKey), unreadCount);
+    fromJson(unreadJson.value("highlight_count"_ls), highlightCount);
+    fromJson(unreadJson.value("notification_count"_ls), notificationCount);
+    if (highlightCount.has_value() || notificationCount.has_value())
         qCDebug(SYNCJOB) << "Room" << roomId_
-                         << "has highlights:" << highlightCount
-                         << "and notifications:" << notificationCount;
+                         << "has highlights:" << *highlightCount
+                         << "and notifications:" << *notificationCount;
 }
 
 SyncData::SyncData(const QString& cacheFileName)

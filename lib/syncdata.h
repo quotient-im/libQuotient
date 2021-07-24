@@ -48,9 +48,9 @@ public:
 
     bool timelineLimited;
     QString timelinePrevBatch;
-    int unreadCount;
-    int highlightCount;
-    int notificationCount;
+    Omittable<int> unreadCount;
+    Omittable<int> highlightCount;
+    Omittable<int> notificationCount;
 
     SyncRoomData(const QString& roomId, JoinState joinState_,
                  const QJsonObject& room_);
