@@ -107,8 +107,8 @@ public:
     UnorderedMap<StateEventKey, StateEventPtr> baseState;
     /// State event stubs - events without content, just type and state key
     static decltype(baseState) stubbedState;
-    /// The state of the room at timeline position after-maxTimelineIndex()
-    /// \sa Room::syncEdge
+    /// The state of the room at syncEdge()
+    /// \sa syncEdge
     QHash<StateEventKey, const StateEventBase*> currentState;
     /// Servers with aliases for this room except the one of the local user
     /// \sa Room::remoteAliases
@@ -204,6 +204,8 @@ public:
 
     /// A point in the timeline corresponding to baseState
     rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
+    rev_iter_t historyEdge() const { return timeline.crend(); }
+    Timeline::const_iterator syncEdge() const { return timeline.cend(); }
 
     void getPreviousContent(int limit = 10);
 
@@ -651,16 +653,16 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
         return;
     }
 
-    if (newMarker == timeline.crend() && !newEvtId.isEmpty())
+    if (newMarker == historyEdge() && !newEvtId.isEmpty())
         newMarker = q->findInTimeline(newEvtId);
-    if (newMarker != timeline.crend()) {
+    if (newMarker != historyEdge()) {
         // NB: with reverse iterators, timeline history >= sync edge
         if (newMarker >= q->readMarker(u))
             return;
 
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
-        const auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
+        const auto eagerMarker = find_if(newMarker.base(), syncEdge(),
                                          [=](const TimelineItem& ti) {
                                              return ti->senderId() != u->id();
                                          })
@@ -693,7 +695,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     if (fullyReadMarker <= from)
         return NoChange; // What's arrived is already fully read
 
-    if (fullyReadMarker == timeline.crend() && q->allHistoryLoaded())
+    if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
         --fullyReadMarker; // No read marker in the whole room, initialise it
     if (fullyReadMarker < to) {
         // Catch a special case when the last fully read event id refers to an
@@ -731,7 +733,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     unreadMessages += newUnreadMessages;
     qCDebug(MESSAGES) << "Room" << q->objectName() << "has gained"
                       << newUnreadMessages << "unread message(s),"
-                      << (q->readMarker() == timeline.crend()
+                      << (q->readMarker() == historyEdge()
                               ? "in total at least"
                               : "in total")
                       << unreadMessages << "unread message(s)";
@@ -780,7 +782,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
 
     Changes changes = ReadMarkerChange;
-    if (const auto rm = q->readMarker(); rm != timeline.crend()) {
+    if (const auto rm = q->readMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind
         if (auto rr = q->readMarker(q->localUser()); rr > rm)
             setLastReadReceipt(q->localUser(), rm);
@@ -832,14 +834,11 @@ bool Room::hasUnreadMessages() const { return unreadCount() >= 0; }
 
 int Room::unreadCount() const { return d->unreadMessages; }
 
-Room::rev_iter_t Room::historyEdge() const { return d->timeline.crend(); }
+Room::rev_iter_t Room::historyEdge() const { return d->historyEdge(); }
 
-Room::Timeline::const_iterator Room::syncEdge() const
-{
-    return d->timeline.cend();
-}
+Room::Timeline::const_iterator Room::syncEdge() const { return d->syncEdge(); }
 
-Room::rev_iter_t Room::timelineEdge() const { return historyEdge(); }
+Room::rev_iter_t Room::timelineEdge() const { return d->historyEdge(); }
 
 TimelineItem::index_t Room::minTimelineIndex() const
 {
@@ -918,7 +917,7 @@ void Room::Private::getAllMembers()
         // the full members list was requested.
         if (!timeline.empty())
             for (auto it = q->findInTimeline(nextIndex).base();
-                 it != timeline.cend(); ++it)
+                 it != syncEdge(); ++it)
                 if (is<RoomMemberEvent>(**it))
                     roomChanges |= q->processStateEvent(**it);
         if (roomChanges & MembersChange)
@@ -2332,7 +2331,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             emit q->aboutToAddNewMessages(eventsSpan);
             auto insertedSize = moveEventsToTimeline(eventsSpan, Newer);
             totalInserted += insertedSize;
-            auto firstInserted = timeline.cend() - insertedSize;
+            auto firstInserted = syncEdge() - insertedSize;
             q->onAddNewTimelineEvents(firstInserted);
             emit q->addedMessages(firstInserted->index(),
                                   timeline.back().index());
@@ -2362,20 +2361,20 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         unsyncedEvents.erase(unsyncedEvents.begin() + pendingEvtIdx);
         if (auto insertedSize = moveEventsToTimeline({ remoteEcho, it }, Newer)) {
             totalInserted += insertedSize;
-            q->onAddNewTimelineEvents(timeline.cend() - insertedSize);
+            q->onAddNewTimelineEvents(syncEdge() - insertedSize);
         }
         emit q->pendingEventMerged();
     }
     // Events merged and transferred from `events` to `timeline` now.
-    const auto from = timeline.cend() - totalInserted;
+    const auto from = syncEdge() - totalInserted;
 
     if (q->supportsCalls())
-        for (auto it = from; it != timeline.cend(); ++it)
+        for (auto it = from; it != syncEdge(); ++it)
             if (const auto* evt = it->viewAs<CallEventBase>())
                 emit q->callEvent(q, evt);
 
     if (totalInserted > 0) {
-        for (auto it = from; it != timeline.cend(); ++it) {
+        for (auto it = from; it != syncEdge(); ++it) {
             if (const auto* reaction = it->viewAs<ReactionEvent>()) {
                 const auto& relation = reaction->relation();
                 relations[{ relation.eventId, relation.type }] << reaction;
@@ -2437,21 +2436,21 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     emit q->aboutToAddHistoricalMessages(events);
     const auto insertedSize = moveEventsToTimeline(events, Older);
-    const auto from = timeline.crend() - insertedSize;
+    const auto from = historyEdge() - insertedSize;
 
     qCDebug(STATE) << "Room" << displayname << "received" << insertedSize
                    << "past events; the oldest event is now" << timeline.front();
     q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages(timeline.front().index(), from->index());
 
-    for (auto it = from; it != timeline.crend(); ++it) {
+    for (auto it = from; it != historyEdge(); ++it) {
         if (const auto* reaction = it->viewAs<ReactionEvent>()) {
             const auto& relation = reaction->relation();
             relations[{ relation.eventId, relation.type }] << reaction;
             emit q->updatedEvent(relation.eventId);
         }
     }
-    updateUnreadCount(from, timeline.crend());
+    updateUnreadCount(from, historyEdge());
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
