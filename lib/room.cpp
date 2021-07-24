@@ -692,7 +692,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     Q_ASSERT(to >= from && to <= timeline.crend());
 
     auto fullyReadMarker = q->readMarker();
-    if (fullyReadMarker <= from)
+    if (fullyReadMarker < from)
         return NoChange; // What's arrived is already fully read
 
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
@@ -743,7 +743,9 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
 
 Room::Changes Room::Private::recalculateUnreadCount(bool force)
 {
-    // Recalculate unread messages
+    // The recalculation logic assumes that the fully read marker points at
+    // a specific position in the timeline
+    Q_ASSERT(q->readMarker() != historyEdge());
     const auto oldUnreadCount = unreadMessages;
     QElapsedTimer et;
     et.start();
@@ -1548,6 +1550,9 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         roomChanges |= processEphemeralEvent(move(ephemeralEvent));
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
+    // -2 is a special value to which SyncRoomData::SyncRoomData sets
+    // unreadCount when it's missing in the payload (to distinguish from
+    // explicit 0 in the payload).
     if (data.unreadCount != -2 && data.unreadCount != d->unreadMessages) {
         qCDebug(MESSAGES) << "Setting unread_count to" << data.unreadCount;
         d->unreadMessages = data.unreadCount;
@@ -2451,6 +2456,10 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         }
     }
     updateUnreadCount(from, historyEdge());
+    // When there are no unread messages and the read marker is within the
+    // known timeline, unreadMessages == -1
+    // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
+    Q_ASSERT(unreadMessages != 0 || q->readMarker() == historyEdge());
 
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
