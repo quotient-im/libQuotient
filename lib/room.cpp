@@ -2457,7 +2457,9 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             emit q->updatedEvent(relation.eventId);
         }
     }
-    updateUnreadCount(from, historyEdge());
+    if (updateUnreadCount(from, historyEdge()) != NoChange)
+        connection->saveRoomState(q);
+
     // When there are no unread messages and the read marker is within the
     // known timeline, unreadMessages == -1
     // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
