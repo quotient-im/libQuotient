@@ -121,7 +121,7 @@ public:
     int notificationCount = 0;
     members_map_t membersMap;
     QList<User*> usersTyping;
-    QMultiHash<QString, User*> eventIdReadUsers;
+    QHash<QString, QSet<User*>> eventIdReadUsers;
     QList<User*> usersInvited;
     QList<User*> membersLeft;
     int unreadMessages = 0;
@@ -627,8 +627,11 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
     auto& storedId = lastReadEventIds[u];
     if (storedId == eventId)
         return Change::NoChange;
-    eventIdReadUsers.remove(storedId, u);
-    eventIdReadUsers.insert(eventId, u);
+    auto& oldEventReadUsers = eventIdReadUsers[storedId];
+    oldEventReadUsers.remove(u);
+    if (oldEventReadUsers.isEmpty())
+        eventIdReadUsers.remove(storedId);
+    eventIdReadUsers[eventId].insert(u);
     swap(storedId, eventId);
     emit q->lastReadEventChanged(u);
     emit q->readMarkerForUserMoved(u, eventId, storedId);
@@ -965,9 +968,9 @@ QString Room::readMarkerEventId() const
     return d->lastReadEventIds.value(localUser());
 }
 
-QList<User*> Room::usersAtEventId(const QString& eventId)
+QSet<User*> Room::usersAtEventId(const QString& eventId)
 {
-    return d->eventIdReadUsers.values(eventId);
+    return d->eventIdReadUsers.value(eventId);
 }
 
 int Room::notificationCount() const { return d->notificationCount; }
