@@ -909,6 +909,11 @@ void Room::setFirstDisplayedEventId(const QString& eventId)
     if (d->firstDisplayedEventId == eventId)
         return;
 
+    if (!eventId.isEmpty() && findInTimeline(eventId) == historyEdge())
+        qCWarning(MESSAGES)
+            << eventId
+            << "is marked as first displayed but doesn't seem to be loaded";
+
     d->firstDisplayedEventId = eventId;
     emit firstDisplayedEventChanged();
 }
@@ -930,6 +935,12 @@ void Room::setLastDisplayedEventId(const QString& eventId)
 {
     if (d->lastDisplayedEventId == eventId)
         return;
+
+    const auto marker = findInTimeline(eventId);
+    if (!eventId.isEmpty() && marker == historyEdge())
+        qCWarning(MESSAGES)
+            << eventId
+            << "is marked as last displayed but doesn't seem to be loaded";
 
     d->lastDisplayedEventId = eventId;
     emit lastDisplayedEventChanged();
