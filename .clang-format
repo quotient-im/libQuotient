@@ -44,7 +44,7 @@ AlwaysBreakTemplateDeclarations: Yes
 BraceWrapping:
   AfterCaseLabel:  false
   AfterClass:      false
-  AfterControlStatement: MultiLine
+  AfterControlStatement: Never # Switch to MultiLine, once https://bugs.llvm.org/show_bug.cgi?id=47936 is fixed
   AfterEnum:       false
   AfterFunction:   true
   AfterNamespace:  false
