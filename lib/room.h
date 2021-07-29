@@ -181,12 +181,10 @@ public:
     QString name() const;
     /// Room aliases defined on the current user's server
     /// \sa remoteAliases, setLocalAliases
-    [[deprecated("Use aliases()")]]
-    QStringList localAliases() const;
+    [[deprecated("Use aliases()")]] QStringList localAliases() const;
     /// Room aliases defined on other servers
     /// \sa localAliases
-    [[deprecated("Use aliases()")]]
-    QStringList remoteAliases() const;
+    [[deprecated("Use aliases()")]] QStringList remoteAliases() const;
     QString canonicalAlias() const;
     QStringList altAliases() const;
     QStringList aliases() const;
@@ -271,7 +269,8 @@ public:
      */
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
     /*!
-     * \brief Get a disambiguated name for a user with this id in the room context
+     * \brief Get a disambiguated name for a user with this id in the room
+     * context
      *
      * \deprecated use safeMemberName() instead
      */
@@ -339,9 +338,13 @@ public:
                                       const char* relType) const;
 
     const RoomCreateEvent* creation() const
-    { return getCurrentState<RoomCreateEvent>(); }
+    {
+        return getCurrentState<RoomCreateEvent>();
+    }
     const RoomTombstoneEvent* tombstone() const
-    { return getCurrentState<RoomTombstoneEvent>(); }
+    {
+        return getCurrentState<RoomTombstoneEvent>();
+    }
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
