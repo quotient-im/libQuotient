@@ -71,6 +71,28 @@ public:
     bool failed() const { return status == Failed; }
 };
 
+//! \brief Data structure for a room member's read receipt
+//! \sa Room::lastReadReceipt
+class ReadReceipt {
+    Q_GADGET
+    Q_PROPERTY(QString eventId MEMBER eventId CONSTANT)
+    Q_PROPERTY(QDateTime timestamp MEMBER timestamp CONSTANT)
+public:
+    QString eventId;
+    QDateTime timestamp;
+
+    bool operator==(const ReadReceipt& other)
+    {
+        return eventId == other.eventId && timestamp == other.timestamp;
+    }
+    bool operator!=(const ReadReceipt& other) { return !operator==(other); }
+};
+inline void swap(ReadReceipt& lhs, ReadReceipt& rhs)
+{
+    swap(lhs.eventId, rhs.eventId);
+    swap(lhs.timestamp, rhs.timestamp);
+}
+
 class Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
@@ -104,9 +126,11 @@ class Room : public QObject {
                    setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
     Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE
                    setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
-
+    //! \deprecated since 0.7
     Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE
                    markMessagesAsRead NOTIFY readMarkerMoved)
+    Q_PROPERTY(QString lastFullyReadEventId READ lastFullyReadEventId WRITE
+                   markMessagesAsRead NOTIFY fullyReadMarkerMoved)
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
                    unreadMessagesChanged)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
@@ -361,9 +385,18 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
+    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
+                 " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker(const User* user) const;
+    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
+                 " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker() const;
+    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
+                 " fullyReadMarker() to get m.fully_read marker")]] //
     QString readMarkerEventId() const;
+    ReadReceipt lastReadReceipt(const QString& userId) const;
+    QString lastFullyReadEventId() const;
+    rev_iter_t fullyReadMarker() const;
     QSet<User*> usersAtEventId(const QString& eventId);
     /**
      * \brief Mark the event with uptoEventId as read
@@ -704,7 +737,10 @@ Q_SIGNALS:
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
     void lastReadEventChanged(Quotient::User* user);
+    void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
+    //! \deprecated since 0.7 - use fullyReadMarkerMoved
     void readMarkerMoved(QString fromEventId, QString toEventId);
+    //! \deprecated since 0.7 - use lastReadEventChanged
     void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
                                 QString toEventId);
     void unreadMessagesChanged(Quotient::Room* room);
@@ -779,4 +815,5 @@ private:
 };
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::FileTransferInfo)
+Q_DECLARE_METATYPE(Quotient::ReadReceipt)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::Room::Changes)
