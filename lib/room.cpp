@@ -2127,7 +2127,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         QStringLiteral("membership") };
     // clang-format on
 
-    std::vector<std::pair<event_type_t, QStringList>> keepContentKeysMap {
+    static const std::pair<event_type_t, QStringList> keepContentKeysMap[] {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
         { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
         { RoomPowerLevelsEvent::typeId(),
@@ -2146,9 +2146,9 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
             ++it;
     }
     auto keepContentKeys =
-        find_if(keepContentKeysMap.begin(), keepContentKeysMap.end(),
+        find_if(begin(keepContentKeysMap), end(keepContentKeysMap),
                 [&target](const auto& t) { return target.type() == t.first; });
-    if (keepContentKeys == keepContentKeysMap.end()) {
+    if (keepContentKeys == end(keepContentKeysMap)) {
         originalJson.remove(ContentKeyL);
         originalJson.remove(PrevContentKeyL);
     } else {
