@@ -115,7 +115,6 @@ class Room : public QObject {
 
     Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
     Q_PROPERTY(QStringList memberNames READ safeMemberNames NOTIFY memberListChanged)
-    Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
     Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
     Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
@@ -203,16 +202,9 @@ public:
     Room* successor(JoinStates statesFilter = JoinState::Invite
                                               | JoinState::Join) const;
     QString name() const;
-    /// Room aliases defined on the current user's server
-    /// \sa remoteAliases, setLocalAliases
-    [[deprecated("Use aliases()")]]
-    QStringList localAliases() const;
-    /// Room aliases defined on other servers
-    /// \sa localAliases
-    [[deprecated("Use aliases()")]]
-    QStringList remoteAliases() const;
     QString canonicalAlias() const;
     QStringList altAliases() const;
+    //! Get a list of both canonical and alternative aliases
     QStringList aliases() const;
     QString displayName() const;
     QString topic() const;
@@ -228,8 +220,6 @@ public:
     QStringList memberNames() const;
     QStringList safeMemberNames() const;
     QStringList htmlSafeMemberNames() const;
-    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
-    int memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
@@ -295,7 +285,8 @@ public:
      */
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
     /*!
-     * \brief Get a disambiguated name for a user with this id in the room context
+     * \brief Get a disambiguated name for a user with this id in the room
+     * context
      *
      * \deprecated use safeMemberName() instead
      */
@@ -345,8 +336,6 @@ public:
      * arrived event; same as messageEvents().cend()
      */
     Timeline::const_iterator syncEdge() const;
-    /// \deprecated Use historyEdge instead
-    rev_iter_t timelineEdge() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;
     Q_INVOKABLE bool
@@ -363,9 +352,13 @@ public:
                                       const char* relType) const;
 
     const RoomCreateEvent* creation() const
-    { return getCurrentState<RoomCreateEvent>(); }
+    {
+        return getCurrentState<RoomCreateEvent>();
+    }
     const RoomTombstoneEvent* tombstone() const
-    { return getCurrentState<RoomTombstoneEvent>(); }
+    {
+        return getCurrentState<RoomTombstoneEvent>();
+    }
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -417,7 +410,7 @@ public:
      * events (non-redacted message events from users other than local)
      * are counted.
      *
-     * In a case when readMarker() == timelineEdge() (the local read
+     * In a case when readMarker() == historyEdge() (the local read
      * marker is beyond the local timeline) only the bottom limit of
      * the unread messages number can be estimated (and even that may
      * be slightly off due to, e.g., redactions of events not loaded

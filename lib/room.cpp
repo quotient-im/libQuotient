@@ -541,21 +541,6 @@ QStringList Room::altAliases() const
     return d->getCurrentState<RoomCanonicalAliasEvent>()->altAliases();
 }
 
-QStringList Room::localAliases() const
-{
-    return d->getCurrentState<RoomAliasesEvent>(
-        connection()->domain())
-        ->aliases();
-}
-
-QStringList Room::remoteAliases() const
-{
-    QStringList result;
-    for (const auto& s : std::as_const(d->aliasServers))
-        result += d->getCurrentState<RoomAliasesEvent>(s)->aliases();
-    return result;
-}
-
 QString Room::canonicalAlias() const
 {
     return d->getCurrentState<RoomCanonicalAliasEvent>()->alias();
@@ -829,8 +814,6 @@ Room::Timeline::const_iterator Room::syncEdge() const
     return d->timeline.cend();
 }
 
-Room::rev_iter_t Room::timelineEdge() const { return historyEdge(); }
-
 TimelineItem::index_t Room::minTimelineIndex() const
 {
     return d->timeline.empty() ? 0 : d->timeline.front().index();
@@ -849,7 +832,7 @@ bool Room::isValidIndex(TimelineItem::index_t timelineIndex) const
 
 Room::rev_iter_t Room::findInTimeline(TimelineItem::index_t index) const
 {
-    return timelineEdge()
+    return historyEdge()
            - (isValidIndex(index) ? index - minTimelineIndex() + 1 : 0);
 }
 
@@ -1323,8 +1306,6 @@ QStringList Room::htmlSafeMemberNames() const
 
     return res;
 }
-
-int Room::memberCount() const { return d->membersMap.size(); }
 
 int Room::timelineSize() const { return int(d->timeline.size()); }
 
@@ -2191,15 +2172,14 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         QStringLiteral("membership") };
     // clang-format on
 
-    std::vector<std::pair<event_type_t, QStringList>> keepContentKeysMap {
+    static const std::pair<event_type_t, QStringList> keepContentKeysMap[] {
         { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
         { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
         { RoomPowerLevelsEvent::typeId(),
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),
-            QStringLiteral("users"), QStringLiteral("users_default") } },
-        { RoomAliasesEvent::typeId(), { QStringLiteral("aliases") } }
+            QStringLiteral("users"), QStringLiteral("users_default") } }
         //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
         //        , { RoomHistoryVisibility::typeId(),
         //                { QStringLiteral("history_visibility") } }
@@ -2211,9 +2191,9 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
             ++it;
     }
     auto keepContentKeys =
-        find_if(keepContentKeysMap.begin(), keepContentKeysMap.end(),
+        find_if(begin(keepContentKeysMap), end(keepContentKeysMap),
                 [&target](const auto& t) { return target.type() == t.first; });
-    if (keepContentKeys == keepContentKeysMap.end()) {
+    if (keepContentKeys == end(keepContentKeysMap)) {
         originalJson.remove(ContentKeyL);
         originalJson.remove(PrevContentKeyL);
     } else {

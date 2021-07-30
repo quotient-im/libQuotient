@@ -133,6 +133,7 @@ Standard: c++17
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
+  - DEFINE_EVENT_TYPEID
 TabWidth: 4
 #UseCRLF: false
 #UseTab: Never
