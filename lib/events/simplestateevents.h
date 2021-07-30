@@ -56,8 +56,10 @@ namespace EventContent {
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
 
-class RoomAliasesEvent
-    : public StateEvent<EventContent::SimpleContent<QStringList>> {
+class [[deprecated(
+    "m.room.aliases events are deprecated by the Matrix spec; use"
+    " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")]] //
+RoomAliasesEvent : public StateEvent<EventContent::SimpleContent<QStringList>> {
 public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)

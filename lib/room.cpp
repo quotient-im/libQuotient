@@ -540,21 +540,6 @@ QStringList Room::altAliases() const
     return d->getCurrentState<RoomCanonicalAliasEvent>()->altAliases();
 }
 
-QStringList Room::localAliases() const
-{
-    return d->getCurrentState<RoomAliasesEvent>(
-        connection()->domain())
-        ->aliases();
-}
-
-QStringList Room::remoteAliases() const
-{
-    QStringList result;
-    for (const auto& s : std::as_const(d->aliasServers))
-        result += d->getCurrentState<RoomAliasesEvent>(s)->aliases();
-    return result;
-}
-
 QString Room::canonicalAlias() const
 {
     return d->getCurrentState<RoomCanonicalAliasEvent>()->alias();
@@ -793,8 +778,6 @@ Room::Timeline::const_iterator Room::syncEdge() const
     return d->timeline.cend();
 }
 
-Room::rev_iter_t Room::timelineEdge() const { return historyEdge(); }
-
 TimelineItem::index_t Room::minTimelineIndex() const
 {
     return d->timeline.empty() ? 0 : d->timeline.front().index();
@@ -813,7 +796,7 @@ bool Room::isValidIndex(TimelineItem::index_t timelineIndex) const
 
 Room::rev_iter_t Room::findInTimeline(TimelineItem::index_t index) const
 {
-    return timelineEdge()
+    return historyEdge()
            - (isValidIndex(index) ? index - minTimelineIndex() + 1 : 0);
 }
 
@@ -1278,8 +1261,6 @@ QStringList Room::htmlSafeMemberNames() const
 
     return res;
 }
-
-int Room::memberCount() const { return d->membersMap.size(); }
 
 int Room::timelineSize() const { return int(d->timeline.size()); }
 
@@ -2153,8 +2134,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),
-            QStringLiteral("users"), QStringLiteral("users_default") } },
-        { RoomAliasesEvent::typeId(), { QStringLiteral("aliases") } }
+            QStringLiteral("users"), QStringLiteral("users_default") } }
         //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
         //        , { RoomHistoryVisibility::typeId(),
         //                { QStringLiteral("history_visibility") } }
@@ -2743,7 +2723,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                                        << p.receipts.size() << "users";
             }
             const auto newMarker = findInTimeline(p.evtId);
-            if (newMarker != timelineEdge()) {
+            if (newMarker != historyEdge()) {
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
@@ -2763,7 +2743,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                         continue; // FIXME, #185
                     auto u = user(r.userId);
                     if (memberJoinState(u) == JoinState::Join
-                        && readMarker(u) == timelineEdge())
+                        && readMarker(u) == historyEdge())
                         changes |= d->setLastReadEvent(u, p.evtId);
                 }
             }
@@ -2791,7 +2771,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(STATE) << "Server-side read marker at" << readEventId;
         d->serverReadMarker = readEventId;
         const auto newMarker = findInTimeline(readEventId);
-        changes |= newMarker != timelineEdge()
+        changes |= newMarker != historyEdge()
                        ? d->markMessagesAsRead(newMarker)
                        : d->setLastReadEvent(localUser(), readEventId);
     }
