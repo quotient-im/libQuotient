@@ -765,6 +765,15 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     return changes;
 }
 
+void Room::setReadReceipt(const QString& atEventId)
+{
+    d->setLastReadReceipt(localUser(), historyEdge(),
+                          { atEventId, QDateTime::currentDateTime() });
+    connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
+                                          QStringLiteral("m.read"),
+                                          QUrl::toPercentEncoding(atEventId));
+}
+
 void Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
     if (upToMarker < q->fullyReadMarker()) {

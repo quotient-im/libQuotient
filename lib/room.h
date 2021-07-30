@@ -626,7 +626,12 @@ public Q_SLOTS:
     void downloadFile(const QString& eventId, const QUrl& localFilename = {});
     void cancelFileTransfer(const QString& id);
 
-    /// Mark all messages in the room as read
+    //! \brief Set a given event as last read and post a read receipt on it
+    //!
+    //! Does nothing if the event is behind the current read receipt.
+    //! \sa lastReadReceipt, markMessagesAsRead, markAllMessagesAsRead
+    void setReadReceipt(const QString& atEventId);
+    //! Put the fully-read marker at the latest message in the room
     void markAllMessagesAsRead();
 
     /// Switch the room's version (aka upgrade)
