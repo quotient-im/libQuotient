@@ -72,5 +72,4 @@ public:
     QString server() const { return stateKey(); }
     QStringList aliases() const { return content().value; }
 };
-REGISTER_EVENT_TYPE(RoomAliasesEvent)
 } // namespace Quotient
