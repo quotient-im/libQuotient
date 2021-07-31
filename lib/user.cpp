@@ -71,7 +71,9 @@ void User::Private::fetchProfile(const User* q)
 {
     defaultAvatar.emplace(Avatar {});
     defaultName = "";
-    auto* j = q->connection()->callApi<GetUserProfileJob>(BackgroundRequest, id);
+    auto* j =
+        q->connection()->callApi<GetUserProfileJob>(BackgroundRequest,
+                                                    QUrl::toPercentEncoding(id));
     // FIXME: accepting const User* and const_cast'ing it here is only
     //        until we get a better User API in 0.7
     QObject::connect(j, &BaseJob::success, q,
