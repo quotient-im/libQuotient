@@ -107,7 +107,7 @@ class Room : public QObject {
     Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE
                    markMessagesAsRead NOTIFY readMarkerMoved)
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
-                   unreadMessagesChanged)
+                   unreadMessagesChanged STORED false)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
     Q_PROPERTY(int highlightCount READ highlightCount NOTIFY
                    highlightCountChanged RESET resetHighlightCount)
@@ -116,8 +116,8 @@ class Room : public QObject {
     Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
-    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
-    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
+    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
+    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged STORED false)
 
     Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
                    eventsHistoryJobChanged)
