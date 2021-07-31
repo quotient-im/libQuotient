@@ -378,30 +378,85 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
+    //! \brief Obtain a read receipt of any user
+    //!
+    //! \deprecated Use lastReadReceipt or fullyReadMarker instead
+    //! Historically, readMarker was returning a "converged" read marker
+    //! representing both the read receipt and the fully read marker, as
+    //! Quotient managed them together. Since 0.6.8, a single-argument call of
+    //! readMarker returns the last read receipt position (for any room member)
+    //! and a call without arguments returns the last _fully read_ position,
+    //! to provide access to both positions separately while maintaining API
+    //! stability guarantees. 0.7 has separate methods to return read receipts
+    //! and the fully read marker - use them instead.
+    //! \sa lastReadReceipt
     [[deprecated("Use lastReadReceipt() to get m.read receipt or"
                  " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker(const User* user) const;
+    //! \brief Obtain the local user's fully-read marker
+    //! \deprecated Use fullyReadMarker instead
+    //! See the documentation for the single-argument overload
+    //! \sa fullyReadMarker
     [[deprecated("Use lastReadReceipt() to get m.read receipt or"
                  " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker() const;
+    //! \brief Get the event id for the local user's fully-read marker
+    //! \deprecated Use lastFullyReadEventId instead
+    //! See the readMarker documentation
     [[deprecated("Use lastReadReceipt() to get m.read receipt or"
                  " fullyReadMarker() to get m.fully_read marker")]] //
     QString readMarkerEventId() const;
-    ReadReceipt lastReadReceipt(const QString& userId) const;
-    QString lastFullyReadEventId() const;
-    rev_iter_t fullyReadMarker() const;
-    QSet<User*> usersAtEventId(const QString& eventId);
-    /**
-     * \brief Mark the event with uptoEventId as read
-     *
-     * Finds in the timeline and marks as read the event with
-     * the specified id; also posts a read receipt to the server either
-     * for this message or, if it's from the local user, for
-     * the nearest non-local message before. uptoEventId must be non-empty.
-     */
-    void markMessagesAsRead(QString uptoEventId);
 
-    /// Check whether there are unread messages in the room
+    //! \brief Get the latest read receipt from a user
+    //!
+    //! The user id must be valid. A read receipt with an empty event id
+    //! is returned if the user id is valid but there was no read receipt
+    //! from them.
+    //! \sa usersAtEventId
+    ReadReceipt lastReadReceipt(const QString& userId) const;
+
+    //! \brief Get the latest event id marked as fully read
+    //!
+    //! This can be either the event id pointed to by the actual latest
+    //! m.fully_read event, or the latest event id marked locally as fully read
+    //! if markMessagesAsRead or markAllMessagesAsRead has been called and
+    //! the homeserver didn't return an updated m.fully_read event yet.
+    //! \sa markMessagesAsRead, markAllMessagesAsRead, fullyReadMarker
+    QString lastFullyReadEventId() const;
+
+    //! \brief Get the iterator to the latest timeline item marked as fully read
+    //!
+    //! This method calls findInTimeline on the result of lastFullyReadEventId.
+    //! If the fully read marker turns out to be outside the timeline (because
+    //! the event marked as fully read is too far back in the history) the
+    //! returned value will be equal to historyEdge.
+    //!
+    //! Be sure to read the caveats on iterators returned by findInTimeline.
+    //! \sa lastFullyReadEventId, findInTimeline
+    rev_iter_t fullyReadMarker() const;
+
+    //! \brief Get users whose latest read receipts point to the event
+    //!
+    //! This method is for cases when you need to show users who have read
+    //! an event. Calling it on inexistent or empty event id will return
+    //! an empty set.
+    //! \sa lastReadReceipt
+    QSet<User*> usersAtEventId(const QString& eventId);
+
+    //!
+    //! \brief Mark the event with uptoEventId as fully read
+    //!
+    //! Marks the event with the specified id as fully read locally and also
+    //! sends an update to m.fully_read account data to the server either
+    //! for this message or, if it's from the local user, for
+    //! the nearest non-local message before. uptoEventId must point to a known
+    //! event in the timeline; the method will do nothing if the event is behind
+    //! the current m.fully_read marker or is not loaded, to prevent
+    //! accidentally trying to move the marker back in the timeline.
+    //! \sa markAllMessagesAsRead, fullyReadMarker
+    Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
+
+    //! Check whether there are unread messages in the room
     bool hasUnreadMessages() const;
 
     /** Get the number of unread messages in the room
