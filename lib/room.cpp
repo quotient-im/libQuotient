@@ -924,11 +924,8 @@ void Room::setDisplayed(bool displayed)
 
     d->displayed = displayed;
     emit displayedChanged(displayed);
-    if (displayed) {
-        resetHighlightCount();
-        resetNotificationCount();
+    if (displayed)
         d->getAllMembers();
-    }
 }
 
 QString Room::firstDisplayedEventId() const { return d->firstDisplayedEventId; }
