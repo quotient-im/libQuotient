@@ -649,7 +649,8 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
         return; // For Release builds
     }
     if (q->memberJoinState(u) != JoinState::Join) {
-        qCWarning(MAIN) << "Won't record read receipt for non-member" << u->id();
+        qCWarning(EPHEMERAL)
+            << "Won't record read receipt for non-member" << u->id();
         return;
     }
 
@@ -657,8 +658,11 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
         newMarker = q->findInTimeline(newEvtId);
     if (newMarker != historyEdge()) {
         // NB: with reverse iterators, timeline history >= sync edge
-        if (newMarker >= q->readMarker(u))
+        if (newMarker >= q->readMarker(u)) {
+            qCDebug(EPHEMERAL) << "The new read receipt for" << u->id()
+                               << "is at or behind the old one, skipping";
             return;
+        }
 
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
@@ -680,6 +684,8 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
     eventIdReadUsers.remove(storedId, u);
     eventIdReadUsers.insert(newEvtId, u);
     swap(storedId, newEvtId); // Now newEvtId actually stores the old eventId
+    qCDebug(EPHEMERAL) << "The new read receipt for" << u->id() << "is at"
+                       << storedId;
     emit q->lastReadEventChanged(u);
     if (!isLocalUser(u))
         emit q->readMarkerForUserMoved(u, newEvtId, storedId);
