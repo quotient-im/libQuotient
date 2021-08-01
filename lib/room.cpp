@@ -1561,11 +1561,21 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         emit unreadMessagesChanged(this);
     }
 
-    if (data.highlightCount != d->highlightCount) {
+    // Similar to unreadCount, SyncRoomData constructor assigns -1 to
+    // highlightCount/notificationCount when those are missing in the payload
+    if (data.highlightCount != -1 && data.highlightCount != d->highlightCount) {
+        qCDebug(MESSAGES).nospace()
+            << "Highlights in " << objectName() //
+            << ": " << d->highlightCount << " -> " << data.highlightCount;
         d->highlightCount = data.highlightCount;
         emit highlightCountChanged();
     }
-    if (data.notificationCount != d->notificationCount) {
+    if (data.notificationCount != -1
+        && data.notificationCount != d->notificationCount) //
+    {
+        qCDebug(MESSAGES).nospace()
+            << "Notifications in " << objectName() //
+            << ": " << d->notificationCount << " -> " << data.notificationCount;
         d->notificationCount = data.notificationCount;
         emit notificationCountChanged();
     }
