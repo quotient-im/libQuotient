@@ -2923,6 +2923,31 @@ QJsonObject Room::Private::toJson() const
                           { QStringLiteral("events"), accountDataEvents } });
     }
 
+    if (const auto& readReceiptEventId = lastReadEventIds.value(q->localUser());
+        !readReceiptEventId.isEmpty()) //
+    {
+        // Okay, that's a mouthful; but basically, it's simply placing an m.read
+        // event in the 'ephemeral' section of the cached sync payload.
+        // See also receiptevent.* and m.read example in the spec.
+        // Only the local user's read receipt is saved - others' are really
+        // considered ephemeral but this one is useful in understanding where
+        // the user is in the timeline before any history is loaded.
+        result.insert(
+            QStringLiteral("ephemeral"),
+            QJsonObject {
+                { QStringLiteral("events"),
+                  QJsonArray { QJsonObject {
+                      { TypeKey, ReceiptEvent::matrixTypeId() },
+                      { ContentKey,
+                        QJsonObject {
+                            { readReceiptEventId,
+                              QJsonObject {
+                                  { QStringLiteral("m.read"),
+                                    QJsonObject {
+                                        { connection->userId(),
+                                          QJsonObject {} } } } } } } } } } } });
+    }
+
     QJsonObject unreadNotifObj { { SyncRoomData::UnreadCountKey,
                                    unreadMessages } };
 
