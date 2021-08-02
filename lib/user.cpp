@@ -65,7 +65,8 @@ User::~User() = default;
 
 void User::load()
 {
-    auto *profileJob = connection()->callApi<GetUserProfileJob>(id());
+    auto* profileJob =
+        connection()->callApi<GetUserProfileJob>(QUrl::toPercentEncoding(id()));
     connect(profileJob, &BaseJob::result, this, [this, profileJob] {
         d->defaultName = profileJob->displayname();
         d->defaultAvatar = Avatar(QUrl(profileJob->avatarUrl()));
