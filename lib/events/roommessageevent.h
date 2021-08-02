@@ -62,9 +62,26 @@ public:
                                                       _content.data());
     }
     QMimeType mimeType() const;
+    //! \brief Determine whether the message has text content
+    //!
+    //! \return true, if the message type is one of m.text, m.notice, m.emote,
+    //!         or the message type is unspecified (in which case plainBody()
+    //!         can still be examined); false otherwise
     bool hasTextContent() const;
+    //! \brief Determine whether the message has a file/attachment
+    //!
+    //! \return true, if the message has a data structure corresponding to
+    //!         a file (such as m.file or m.audio); false otherwise
     bool hasFileContent() const;
+    //! \brief Determine whether the message has a thumbnail
+    //!
+    //! \return true, if the message has a data structure corresponding to
+    //!         a thumbnail (the message type may be one for visual content,
+    //!         such as m.image, or generic binary content, i.e. m.file);
+    //!         false otherwise
     bool hasThumbnail() const;
+    //! \brief Obtain id of an event replaced by the current one
+    //! \sa RoomEvent::isReplaced, RoomEvent::replacedBy
     QString replacedEvent() const;
 
     static QString rawMsgTypeForUrl(const QUrl& url);
