@@ -72,10 +72,7 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// The name of the file that was previously uploaded, if set.
     QString contentDisposition() const
@@ -84,10 +81,7 @@ public:
     }
 
     /// The content that was previously uploaded.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Download content from the content repository overriding the file name
@@ -132,10 +126,7 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// The `fileName` requested or the name of the file that was previously
     /// uploaded, if set.
@@ -145,10 +136,7 @@ public:
     }
 
     /// The content that was previously uploaded.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Download a thumbnail of content from the content repository
@@ -202,16 +190,10 @@ public:
     // Result properties
 
     /// The content type of the thumbnail.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// A thumbnail of the requested content.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Get information about a URL for a client
@@ -257,10 +239,7 @@ public:
 
     /// An [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the image.
     /// Omitted if there is no image.
-    QString ogImage() const
-    {
-        return loadFromJson<QString>("og:image"_ls);
-    }
+    QString ogImage() const { return loadFromJson<QString>("og:image"_ls); }
 };
 
 /*! \brief Get the configuration for the content repository.

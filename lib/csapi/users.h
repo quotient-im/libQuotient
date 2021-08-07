@@ -66,10 +66,7 @@ public:
     }
 
     /// Indicates if the result list has been truncated by the limit.
-    bool limited() const
-    {
-        return loadFromJson<bool>("limited"_ls);
-    }
+    bool limited() const { return loadFromJson<bool>("limited"_ls); }
 };
 
 template <>

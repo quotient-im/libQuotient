@@ -35,10 +35,7 @@ public:
     /// with a `{` as this character is used to determine
     /// if the filter provided is inline JSON or a previously
     /// declared filter by homeservers on some APIs.
-    QString filterId() const
-    {
-        return loadFromJson<QString>("filter_id"_ls);
-    }
+    QString filterId() const { return loadFromJson<QString>("filter_id"_ls); }
 };
 
 /*! \brief Download a filter
@@ -67,10 +64,7 @@ public:
     // Result properties
 
     /// The filter definition.
-    Filter filter() const
-    {
-        return fromJson<Filter>(jsonData());
-    }
+    Filter filter() const { return fromJson<Filter>(jsonData()); }
 };
 
 } // namespace Quotient

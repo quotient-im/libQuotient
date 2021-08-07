@@ -49,10 +49,7 @@ public:
     // Result properties
 
     /// The joined room ID.
-    QString roomId() const
-    {
-        return loadFromJson<QString>("room_id"_ls);
-    }
+    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
 /*! \brief Start the requesting user participating in a particular room.
@@ -98,10 +95,7 @@ public:
     // Result properties
 
     /// The joined room ID.
-    QString roomId() const
-    {
-        return loadFromJson<QString>("room_id"_ls);
-    }
+    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
 } // namespace Quotient

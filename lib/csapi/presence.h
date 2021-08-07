@@ -55,10 +55,7 @@ public:
     // Result properties
 
     /// This user's presence.
-    QString presence() const
-    {
-        return loadFromJson<QString>("presence"_ls);
-    }
+    QString presence() const { return loadFromJson<QString>("presence"_ls); }
 
     /// The length of time in milliseconds since an action was performed
     /// by this user.
@@ -68,10 +65,7 @@ public:
     }
 
     /// The state message for this user if one was set.
-    QString statusMsg() const
-    {
-        return loadFromJson<QString>("status_msg"_ls);
-    }
+    QString statusMsg() const { return loadFromJson<QString>("status_msg"_ls); }
 
     /// Whether the user is currently active
     Omittable<bool> currentlyActive() const

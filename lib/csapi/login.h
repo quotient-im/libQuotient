@@ -121,10 +121,7 @@ public:
     // Result properties
 
     /// The fully-qualified Matrix ID for the account.
-    QString userId() const
-    {
-        return loadFromJson<QString>("user_id"_ls);
-    }
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 
     /// An access token for the account.
     /// This access token can then be used to authorize other requests.
@@ -146,10 +143,7 @@ public:
 
     /// ID of the logged-in device. Will be the same as the
     /// corresponding parameter in the request, if one was specified.
-    QString deviceId() const
-    {
-        return loadFromJson<QString>("device_id"_ls);
-    }
+    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
 
     /// Optional client configuration provided by the server. If present,
     /// clients SHOULD use the provided object to reconfigure themselves,

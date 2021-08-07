@@ -101,10 +101,7 @@ public:
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    QString avatarUrl() const
-    {
-        return loadFromJson<QString>("avatar_url"_ls);
-    }
+    QString avatarUrl() const { return loadFromJson<QString>("avatar_url"_ls); }
 };
 
 /*! \brief Get this user's profile information.
@@ -133,10 +130,7 @@ public:
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    QString avatarUrl() const
-    {
-        return loadFromJson<QString>("avatar_url"_ls);
-    }
+    QString avatarUrl() const { return loadFromJson<QString>("avatar_url"_ls); }
 
     /// The user's display name if they have set one, otherwise not present.
     QString displayname() const

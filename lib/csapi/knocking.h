@@ -49,10 +49,7 @@ public:
     // Result properties
 
     /// The knocked room ID.
-    QString roomId() const
-    {
-        return loadFromJson<QString>("room_id"_ls);
-    }
+    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
 } // namespace Quotient

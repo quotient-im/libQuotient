@@ -72,10 +72,7 @@ public:
 
     /// The specific push rule. This will also include keys specific to the
     /// rule itself such as the rule's `actions` and `conditions` if set.
-    PushRule pushRule() const
-    {
-        return fromJson<PushRule>(jsonData());
-    }
+    PushRule pushRule() const { return fromJson<PushRule>(jsonData()); }
 };
 
 /*! \brief Delete a push rule.
@@ -191,10 +188,7 @@ public:
     // Result properties
 
     /// Whether the push rule is enabled or not.
-    bool enabled() const
-    {
-        return loadFromJson<bool>("enabled"_ls);
-    }
+    bool enabled() const { return loadFromJson<bool>("enabled"_ls); }
 };
 
 /*! \brief Enable or disable a push rule.

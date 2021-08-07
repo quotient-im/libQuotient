@@ -34,19 +34,13 @@ public:
     // Result properties
 
     /// The user ID that owns the access token.
-    QString userId() const
-    {
-        return loadFromJson<QString>("user_id"_ls);
-    }
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 
     /// Device ID associated with the access token. If no device
     /// is associated with the access token (such as in the case
     /// of application services) then this field can be omitted.
     /// Otherwise this is required.
-    QString deviceId() const
-    {
-        return loadFromJson<QString>("device_id"_ls);
-    }
+    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
 };
 
 } // namespace Quotient

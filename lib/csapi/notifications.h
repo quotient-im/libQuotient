@@ -71,10 +71,7 @@ public:
     /// The token to supply in the `from` param of the next
     /// `/notifications` request in order to request more
     /// events. If this is absent, there are no more results.
-    QString nextToken() const
-    {
-        return loadFromJson<QString>("next_token"_ls);
-    }
+    QString nextToken() const { return loadFromJson<QString>("next_token"_ls); }
 
     /// The list of events that triggered notifications.
     std::vector<Notification> notifications()

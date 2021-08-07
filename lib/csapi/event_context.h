@@ -58,16 +58,10 @@ public:
     // Result properties
 
     /// A token that can be used to paginate backwards with.
-    QString begin() const
-    {
-        return loadFromJson<QString>("start"_ls);
-    }
+    QString begin() const { return loadFromJson<QString>("start"_ls); }
 
     /// A token that can be used to paginate forwards with.
-    QString end() const
-    {
-        return loadFromJson<QString>("end"_ls);
-    }
+    QString end() const { return loadFromJson<QString>("end"_ls); }
 
     /// A list of room events that happened just before the
     /// requested event, in reverse-chronological order.
@@ -77,10 +71,7 @@ public:
     }
 
     /// Details of the requested event.
-    RoomEventPtr event()
-    {
-        return takeFromJson<RoomEventPtr>("event"_ls);
-    }
+    RoomEventPtr event() { return takeFromJson<RoomEventPtr>("event"_ls); }
 
     /// A list of room events that happened just after the
     /// requested event, in chronological order.
@@ -90,10 +81,7 @@ public:
     }
 
     /// The state of the room at the last event returned.
-    StateEvents state()
-    {
-        return takeFromJson<StateEvents>("state"_ls);
-    }
+    StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
 };
 
 } // namespace Quotient
