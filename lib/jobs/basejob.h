@@ -180,7 +180,7 @@ public:
      * If there's no top-level JSON object in the response or if there's
      * no node with the key \p keyName, \p defaultValue is returned.
      */
-    template <typename T, typename StrT> // Waiting for QStringViews...
+    template <typename T, typename StrT>
     T loadFromJson(const StrT& keyName, T&& defaultValue = {}) const
     {
         const auto& jv = jsonData().value(keyName);
