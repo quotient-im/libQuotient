@@ -99,11 +99,11 @@ public:
      */
     const Avatar& avatarObject(const Room* room = nullptr) const;
     Q_INVOKABLE QImage avatar(int dimension,
-                              const Quotient::Room* room = nullptr);
+                              const Quotient::Room* room = nullptr) const;
     Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
-                              const Quotient::Room* room = nullptr);
+                              const Quotient::Room* room = nullptr) const;
     QImage avatar(int width, int height, const Room* room,
-                  const Avatar::get_callback_t& callback);
+                  const Avatar::get_callback_t& callback) const;
 
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;

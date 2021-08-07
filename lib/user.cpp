@@ -197,18 +197,18 @@ const Avatar& User::avatarObject(const Room* room) const
     return d->otherAvatars.try_emplace(mediaId, url).first->second;
 }
 
-QImage User::avatar(int dimension, const Room* room)
+QImage User::avatar(int dimension, const Room* room) const
 {
     return avatar(dimension, dimension, room);
 }
 
-QImage User::avatar(int width, int height, const Room* room)
+QImage User::avatar(int width, int height, const Room* room) const
 {
     return avatar(width, height, room, [] {});
 }
 
 QImage User::avatar(int width, int height, const Room* room,
-                    const Avatar::get_callback_t& callback)
+                    const Avatar::get_callback_t& callback) const
 {
     return avatarObject(room).get(connection(), width, height, callback);
 }
