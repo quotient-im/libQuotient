@@ -41,7 +41,7 @@ public:
         /// The display name of the user, if one exists.
         QString displayName;
         /// The avatar url, as an MXC, if one exists.
-        QString avatarUrl;
+        QUrl avatarUrl;
     };
 
     // Construction/destruction

@@ -122,7 +122,7 @@ GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName,
     setExpectedContentTypes({ "image/jpeg", "image/png" });
 }
 
-auto queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
+auto queryToGetUrlPreview(const QUrl& url, Omittable<qint64> ts)
 {
     QUrlQuery _q;
     addParam<>(_q, QStringLiteral("url"), url);
@@ -130,7 +130,7 @@ auto queryToGetUrlPreview(const QString& url, Omittable<qint64> ts)
     return _q;
 }
 
-QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url,
+QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QUrl& url,
                                       Omittable<qint64> ts)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
@@ -139,7 +139,7 @@ QUrl GetUrlPreviewJob::makeRequestUrl(QUrl baseUrl, const QString& url,
                                    queryToGetUrlPreview(url, ts));
 }
 
-GetUrlPreviewJob::GetUrlPreviewJob(const QString& url, Omittable<qint64> ts)
+GetUrlPreviewJob::GetUrlPreviewJob(const QUrl& url, Omittable<qint64> ts)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetUrlPreviewJob"),
               QStringLiteral("/_matrix/media/r0") % "/preview_url",
               queryToGetUrlPreview(url, ts))

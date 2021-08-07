@@ -175,7 +175,7 @@ public:
         /// The display name of the user this object is representing.
         QString displayName;
         /// The mxc avatar url of the user this object is representing.
-        QString avatarUrl;
+        QUrl avatarUrl;
     };
 
     // Construction/destruction
