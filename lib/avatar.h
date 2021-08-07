@@ -21,7 +21,7 @@ public:
     Avatar& operator=(Avatar&&);
 
     using get_callback_t = std::function<void()>;
-    using upload_callback_t = std::function<void(QString)>;
+    using upload_callback_t = std::function<void(QUrl)>;
 
     QImage get(Connection* connection, int dimension,
                get_callback_t callback) const;
