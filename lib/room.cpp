@@ -57,6 +57,7 @@
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QCollator>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
 #include <QtCore/QTemporaryFile>
 
@@ -2976,6 +2977,14 @@ QJsonObject Room::toJson() const { return d->toJson(); }
 
 MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
+inline auto makeCollator()
+{
+    QCollator c { QLocale() };
+    c.setCaseSensitivity(Qt::CaseInsensitive);
+    c.setIgnorePunctuation(true);
+    return c;
+}
+
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
     return operator()(u1, room->disambiguatedMemberName(u2->id()));
@@ -2983,6 +2992,7 @@ bool MemberSorter::operator()(User* u1, User* u2) const
 
 bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
+    static auto collator = makeCollator();
     auto n1 = room->disambiguatedMemberName(u1->id());
     if (n1.startsWith('@'))
         n1.remove(0, 1);
@@ -2992,5 +3002,5 @@ bool MemberSorter::operator()(User* u1, QStringView u2name) const
 #endif
         ;
 
-    return n1.localeAwareCompare(n2) < 0;
+    return collator.compare(n1, n2) < 0;
 }
