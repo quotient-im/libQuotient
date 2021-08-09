@@ -649,7 +649,8 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
         return; // For Release builds
     }
     if (q->memberJoinState(u) != JoinState::Join) {
-        qCWarning(MAIN) << "Won't record read receipt for non-member" << u->id();
+        qCWarning(EPHEMERAL)
+            << "Won't record read receipt for non-member" << u->id();
         return;
     }
 
@@ -657,8 +658,11 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
         newMarker = q->findInTimeline(newEvtId);
     if (newMarker != historyEdge()) {
         // NB: with reverse iterators, timeline history >= sync edge
-        if (newMarker >= q->readMarker(u))
+        if (newMarker >= q->readMarker(u)) {
+            qCDebug(EPHEMERAL) << "The new read receipt for" << u->id()
+                               << "is at or behind the old one, skipping";
             return;
+        }
 
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
@@ -680,6 +684,8 @@ void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
     eventIdReadUsers.remove(storedId, u);
     eventIdReadUsers.insert(newEvtId, u);
     swap(storedId, newEvtId); // Now newEvtId actually stores the old eventId
+    qCDebug(EPHEMERAL) << "The new read receipt for" << u->id() << "is at"
+                       << storedId;
     emit q->lastReadEventChanged(u);
     if (!isLocalUser(u))
         emit q->readMarkerForUserMoved(u, newEvtId, storedId);
@@ -937,11 +943,8 @@ void Room::setDisplayed(bool displayed)
 
     d->displayed = displayed;
     emit displayedChanged(displayed);
-    if (displayed) {
-        resetHighlightCount();
-        resetNotificationCount();
+    if (displayed)
         d->getAllMembers();
-    }
 }
 
 QString Room::firstDisplayedEventId() const { return d->firstDisplayedEventId; }
@@ -1561,11 +1564,21 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         emit unreadMessagesChanged(this);
     }
 
-    if (data.highlightCount != d->highlightCount) {
+    // Similar to unreadCount, SyncRoomData constructor assigns -1 to
+    // highlightCount/notificationCount when those are missing in the payload
+    if (data.highlightCount != -1 && data.highlightCount != d->highlightCount) {
+        qCDebug(MESSAGES).nospace()
+            << "Highlights in " << objectName() //
+            << ": " << d->highlightCount << " -> " << data.highlightCount;
         d->highlightCount = data.highlightCount;
         emit highlightCountChanged();
     }
-    if (data.notificationCount != d->notificationCount) {
+    if (data.notificationCount != -1
+        && data.notificationCount != d->notificationCount) //
+    {
+        qCDebug(MESSAGES).nospace()
+            << "Notifications in " << objectName() //
+            << ": " << d->notificationCount << " -> " << data.notificationCount;
         d->notificationCount = data.notificationCount;
         emit notificationCountChanged();
     }
@@ -2905,6 +2918,31 @@ QJsonObject Room::Private::toJson() const
         result.insert(QStringLiteral("account_data"),
                       QJsonObject {
                           { QStringLiteral("events"), accountDataEvents } });
+    }
+
+    if (const auto& readReceiptEventId = lastReadEventIds.value(q->localUser());
+        !readReceiptEventId.isEmpty()) //
+    {
+        // Okay, that's a mouthful; but basically, it's simply placing an m.read
+        // event in the 'ephemeral' section of the cached sync payload.
+        // See also receiptevent.* and m.read example in the spec.
+        // Only the local user's read receipt is saved - others' are really
+        // considered ephemeral but this one is useful in understanding where
+        // the user is in the timeline before any history is loaded.
+        result.insert(
+            QStringLiteral("ephemeral"),
+            QJsonObject {
+                { QStringLiteral("events"),
+                  QJsonArray { QJsonObject {
+                      { TypeKey, ReceiptEvent::matrixTypeId() },
+                      { ContentKey,
+                        QJsonObject {
+                            { readReceiptEventId,
+                              QJsonObject {
+                                  { QStringLiteral("m.read"),
+                                    QJsonObject {
+                                        { connection->userId(),
+                                          QJsonObject {} } } } } } } } } } } });
     }
 
     QJsonObject unreadNotifObj { { SyncRoomData::UnreadCountKey,
