@@ -36,7 +36,7 @@ struct PublicRoomsChunk {
     bool guestCanJoin;
 
     /// The URL for the room's avatar, if one is set.
-    QString avatarUrl;
+    QUrl avatarUrl;
 
     /// The room's join rule. When not present, the room is assumed to
     /// be `public`. Note that rooms with `invite` join rules are not

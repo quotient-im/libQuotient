@@ -34,10 +34,7 @@ public:
 
     /// The [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the
     /// uploaded content.
-    QString contentUri() const
-    {
-        return loadFromJson<QString>("content_uri"_ls);
-    }
+    QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_ls); }
 };
 
 /*! \brief Download content from the content repository.
@@ -219,14 +216,14 @@ public:
      *   return a newer version if it does not have the requested version
      *   available.
      */
-    explicit GetUrlPreviewJob(const QString& url, Omittable<qint64> ts = none);
+    explicit GetUrlPreviewJob(const QUrl& url, Omittable<qint64> ts = none);
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
      * This function can be used when a URL for GetUrlPreviewJob
      * is necessary but the job itself isn't.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& url,
+    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url,
                                Omittable<qint64> ts = none);
 
     // Result properties
@@ -239,7 +236,7 @@ public:
 
     /// An [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the image.
     /// Omitted if there is no image.
-    QString ogImage() const { return loadFromJson<QString>("og:image"_ls); }
+    QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_ls); }
 };
 
 /*! \brief Get the configuration for the content repository.

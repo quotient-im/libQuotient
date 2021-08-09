@@ -151,25 +151,23 @@ struct JsonConverter<QDate> {
 };
 
 template <>
-struct JsonConverter<QUrl> : JsonConverter<QString> {
-    static auto dump(const QUrl& url) // Override on top of that for QString
+struct JsonConverter<QUrl> {
+    static auto load(const QJsonValue& jv)
     {
-        return JsonConverter<QString>::dump(url.toString(QUrl::FullyEncoded));
+        // QT_NO_URL_CAST_FROM_STRING makes this a bit more verbose
+        QUrl url;
+        url.setUrl(jv.toString());
+        return url;
+    }
+    static auto dump(const QUrl& url)
+    {
+        return url.toString(QUrl::FullyEncoded);
     }
 };
 
 template <>
 struct JsonConverter<QJsonArray> : public TrivialJsonDumper<QJsonArray> {
     static auto load(const QJsonValue& jv) { return jv.toArray(); }
-};
-
-template <>
-struct JsonConverter<QByteArray> {
-    static QString dump(const QByteArray& ba) { return ba.constData(); }
-    static auto load(const QJsonValue& jv)
-    {
-        return fromJson<QString>(jv).toLatin1();
-    }
 };
 
 template <>
@@ -304,16 +302,15 @@ namespace _impl {
         q.addQueryItem(k, v ? QStringLiteral("true") : QStringLiteral("false"));
     }
 
+    inline void addTo(QUrlQuery& q, const QString& k, const QUrl& v)
+    {
+        q.addQueryItem(k, v.toEncoded());
+    }
+
     inline void addTo(QUrlQuery& q, const QString& k, const QStringList& vals)
     {
         for (const auto& v : vals)
             q.addQueryItem(k, v);
-    }
-
-    inline void addTo(QUrlQuery& q, const QString&, const QJsonObject& vals)
-    {
-        for (auto it = vals.begin(); it != vals.end(); ++it)
-            q.addQueryItem(it.key(), it.value().toString());
     }
 
     // This one is for types that don't have isEmpty() and for all types

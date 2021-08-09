@@ -21,7 +21,7 @@ public:
     struct PusherData {
         /// Required if `kind` is `http`. The URL to use to send
         /// notifications to.
-        QString url;
+        QUrl url;
         /// The format to use when sending notifications to the Push
         /// Gateway.
         QString format;
@@ -119,7 +119,7 @@ public:
         /// Required if `kind` is `http`. The URL to use to send
         /// notifications to. MUST be an HTTPS URL with a path of
         /// `/_matrix/push/v1/notify`.
-        QString url;
+        QUrl url;
         /// The format to send notifications in to Push Gateways if the
         /// `kind` is `http`. The details about what fields the
         /// homeserver should send to the push gateway are defined in the

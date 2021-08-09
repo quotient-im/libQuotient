@@ -68,6 +68,9 @@ analyzer:
       - dateTime:
           type: QDateTime
           initializer: QDateTime::fromString("{{defaultValue}}")
+      - uri:
+          type: QUrl
+          initializer: QUrl::fromEncoded("{{defaultValue}}")
       - //: &QString
           type: QString
           initializer: QStringLiteral("{{defaultValue}}")

@@ -33,7 +33,7 @@ GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
               false)
 {}
 
-SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QString& avatarUrl)
+SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetAvatarUrlJob"),
               QStringLiteral("/_matrix/client/r0") % "/profile/" % userId
                   % "/avatar_url")

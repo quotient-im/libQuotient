@@ -135,17 +135,17 @@ template <typename SourceT>
 inline bool User::doSetAvatar(SourceT&& source)
 {
     return d->defaultAvatar.upload(
-        connection(), source, [this](const QString& contentUri) {
+        connection(), source, [this](const QUrl& contentUri) {
             auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
             connect(j, &BaseJob::success, this,
-                    [this, newUrl = QUrl(contentUri)] {
-                        if (newUrl == d->defaultAvatar.url()) {
-                            d->defaultAvatar.updateUrl(newUrl);
+                    [this, contentUri] {
+                        if (contentUri == d->defaultAvatar.url()) {
+                            d->defaultAvatar.updateUrl(contentUri);
                             emit defaultAvatarChanged();
                         } else
                             qCWarning(MAIN) << "User" << id()
                                             << "already has avatar URL set to"
-                                            << newUrl.toDisplayString();
+                                            << contentUri.toDisplayString();
                     });
         });
 }
@@ -162,7 +162,7 @@ bool User::setAvatar(QIODevice* source)
 
 void User::removeAvatar()
 {
-    connection()->callApi<SetAvatarUrlJob>(id(), "");
+    connection()->callApi<SetAvatarUrlJob>(id(), QUrl());
 }
 
 void User::requestDirectChat() { connection()->requestDirectChat(this); }

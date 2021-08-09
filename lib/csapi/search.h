@@ -81,7 +81,7 @@ public:
         /// Performs a full text search across different categories.
         QString displayname;
         /// Performs a full text search across different categories.
-        QString avatarUrl;
+        QUrl avatarUrl;
     };
 
     /// Context for result, if requested.
