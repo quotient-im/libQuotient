@@ -10,7 +10,7 @@ namespace Quotient {
 /// Used by clients to discover identity server information.
 struct IdentityServerInformation {
     /// The base URL for the identity server for client-server connections.
-    QString baseUrl;
+    QUrl baseUrl;
 };
 
 template <>

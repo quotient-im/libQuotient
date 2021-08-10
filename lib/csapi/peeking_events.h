@@ -53,23 +53,14 @@ public:
 
     /// A token which correlates to the first value in `chunk`. This
     /// is usually the same token supplied to `from=`.
-    QString begin() const
-    {
-        return loadFromJson<QString>("start"_ls);
-    }
+    QString begin() const { return loadFromJson<QString>("start"_ls); }
 
     /// A token which correlates to the last value in `chunk`. This
     /// token should be used in the next request to `/events`.
-    QString end() const
-    {
-        return loadFromJson<QString>("end"_ls);
-    }
+    QString end() const { return loadFromJson<QString>("end"_ls); }
 
     /// An array of events.
-    RoomEvents chunk()
-    {
-        return takeFromJson<RoomEvents>("chunk"_ls);
-    }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 };
 
 } // namespace Quotient

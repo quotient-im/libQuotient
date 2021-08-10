@@ -111,18 +111,12 @@ public:
     /// A pagination token for the response. The absence of this token
     /// means there are no more results to fetch and the client should
     /// stop paginating.
-    QString nextBatch() const
-    {
-        return loadFromJson<QString>("next_batch"_ls);
-    }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
 
     /// A pagination token that allows fetching previous results. The
     /// absence of this token means there are no results before this
     /// batch, i.e. this is the first batch.
-    QString prevBatch() const
-    {
-        return loadFromJson<QString>("prev_batch"_ls);
-    }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
 
     /// An estimate on the total number of public rooms, if the
     /// server has an estimate.
@@ -196,18 +190,12 @@ public:
     /// A pagination token for the response. The absence of this token
     /// means there are no more results to fetch and the client should
     /// stop paginating.
-    QString nextBatch() const
-    {
-        return loadFromJson<QString>("next_batch"_ls);
-    }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
 
     /// A pagination token that allows fetching previous results. The
     /// absence of this token means there are no results before this
     /// batch, i.e. this is the first batch.
-    QString prevBatch() const
-    {
-        return loadFromJson<QString>("prev_batch"_ls);
-    }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
 
     /// An estimate on the total number of public rooms, if the
     /// server has an estimate.

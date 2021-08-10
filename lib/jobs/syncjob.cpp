@@ -10,7 +10,7 @@ static size_t jobId = 0;
 SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
                  const QString& presence)
     : BaseJob(HttpVerb::Get, QStringLiteral("SyncJob-%1").arg(++jobId),
-              QStringLiteral("_matrix/client/r0/sync"))
+              "_matrix/client/r0/sync")
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;

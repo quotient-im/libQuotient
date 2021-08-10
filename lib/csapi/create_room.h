@@ -268,10 +268,7 @@ public:
     // Result properties
 
     /// The created room's ID.
-    QString roomId() const
-    {
-        return loadFromJson<QString>("room_id"_ls);
-    }
+    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
 template <>

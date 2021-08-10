@@ -43,10 +43,7 @@ public:
     /// Specification](http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse)
     /// with the only difference being the lack of an `id_token`. Instead,
     /// the Matrix homeserver's name is provided.
-    OpenidToken tokenData() const
-    {
-        return fromJson<OpenidToken>(jsonData());
-    }
+    OpenidToken tokenData() const { return fromJson<OpenidToken>(jsonData()); }
 };
 
 } // namespace Quotient

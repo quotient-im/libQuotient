@@ -51,10 +51,7 @@ public:
     // Result properties
 
     /// The room ID for this room alias.
-    QString roomId() const
-    {
-        return loadFromJson<QString>("room_id"_ls);
-    }
+    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 
     /// A list of servers that are aware of this room alias.
     QStringList servers() const

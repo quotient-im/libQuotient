@@ -4,8 +4,6 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 }}{{>preamble}}
 #include "{{filenameBase}}.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 {{#operations}}{{#operation}}
     {{#queryParams?}}
@@ -36,7 +34,7 @@ QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}},
 {   {{#headerParams}}
     setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
     {{/headerParams}}{{#inlineBody}}{{^propertyMap}}{{^bodyParams?}}
-    setRequestData(Data({{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
+    setRequestData(RequestData({{#consumesNonJson?}}{{nameCamelCase}}{{/consumesNonJson?
     }}{{^consumesNonJson?}}toJson({{nameCamelCase}}){{/consumesNonJson?}}));
     {{/bodyParams?}}{{/propertyMap}}{{/inlineBody
     }}{{^consumesNonJson?}}{{#bodyParams?}}

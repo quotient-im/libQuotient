@@ -155,18 +155,20 @@ just don't bankrupt us with it. Refactoring is welcome.
 
 ### Code style and formatting
 
-As of Quotient 0.6, the C++ standard for newly written code is C++17, with a few
-restrictions, notably:
+As of Quotient 0.6, the C++ standard for newly written code is C++17 with C++20
+compatibility and a few restrictions, notably:
 * standard library's _deduction guides_ cannot be used to lighten up syntax
   in template instantiation, i.e. you have to still write
-  `std::array<int, 2> { 1, 2 }` instead of `std::array { 1, 2 }` or use helpers
-  like `std::make_pair` - once we move over to the later Apple toolchain, this
-  will be no more necessary.
-* enumerators and slots cannot have `[[attributes]]` because moc of Qt 5.9
-  chokes on them. This will be lifted when we move on to Qt 5.12 for the oldest
-  supported version.
-* things from `std::filesystem` cannot be used until we push the oldest
-  required g++/libc to version 8.
+  `std::array<int, 2> { 1, 2 }` instead of `std::array { 1, 2 }` (or use
+  `Quotient::make_array` helper from `util.h`), use `std::make_pair` to create
+  pairs etc. - once we move over to the later Apple toolchain, this will be
+  no more necessary;
+* enumerators and slots cannot have `[[attributes]]` because moc from Qt 5.12
+  chokes on them - this will be lifted when we move on to Qt 5.13 for the oldest
+  supported version, in the meantime use `Q_DECL_DEPRECATED` and similar Qt
+  macros - they expand to nothing when the code is passed to moc.
+* explicit lists in lambda captures are preferred over `[=]`; note that C++20
+  deprecates implicit `this` capture in `[=]`.
 
 The code style is defined by `.clang-format`, and in general, all C++ files
 should follow it. Files with minor deviations from the defined style are still
@@ -408,7 +410,7 @@ I (Kitsune) will be very glad to help you out.
 The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
 * `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
 * `moveOnly` - some types are not copyable at all and must be moved instead (an obvious example is anything "tainted" with a member of type `std::unique_ptr<>`). The template will use `T&&` instead of `T` or `const T&` to pass such types around.
-* `useOmittable` - wrap types that have no value with "null" semantics (i.e. number types and custom-defined data structures) into a special `Omittable<>` template defined in `converters.h` - a substitute for `std::optional` from C++17 (we're still at C++14 yet).
+* `useOmittable` - wrap types that have no value with "null" semantics (i.e. number types and custom-defined data structures) into a special `Omittable<>` template defined in `converters.h`, a drop-in upgrade over `std::optional`.
 * `omittedValue` - an alternative for `useOmittable`, just provide a value used for an omitted parameter. This is used for bool parameters which normally are considered false if omitted (or they have an explicit default value, passed in the "official" GTAD's `defaultValue` variable).
 * `initializer` - this is a _partial_ (see GTAD and Mustache documentation for explanations but basically it's a variable that is a Mustache template itself) that specifies how exactly a default value should be passed to the parameter. E.g., the default value for a `QString` parameter is enclosed into `QStringLiteral`.
 

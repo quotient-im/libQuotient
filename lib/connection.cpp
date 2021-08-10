@@ -13,6 +13,7 @@
 #include "room.h"
 #include "settings.h"
 #include "user.h"
+#include "accountregistry.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp"
@@ -258,6 +259,7 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
+    AccountRegistry::instance().drop(this);
 }
 
 void Connection::resolveServer(const QString& mxid)
@@ -286,7 +288,7 @@ void Connection::resolveServer(const QString& mxid)
         if (d->resolverJob->error() == BaseJob::Abandoned)
             return;
 
-        if (d->resolverJob->error() != BaseJob::NotFoundError) {
+        if (d->resolverJob->error() != BaseJob::NotFound) {
             if (!d->resolverJob->status().good()) {
                 qCWarning(MAIN)
                     << "Fetching .well-known file failed, FAIL_PROMPT";
@@ -314,8 +316,6 @@ void Connection::resolveServer(const QString& mxid)
             setHomeserver(maybeBaseUrl);
         }
         Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
-        connect(d->loginFlowsJob, &BaseJob::success, this,
-                &Connection::resolved);
         connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
             qCWarning(MAIN) << "Homeserver base URL sanity check failed";
             emit resolveError(tr("The homeserver doesn't seem to be working"));
@@ -341,7 +341,7 @@ void Connection::loginWithPassword(const QString& userId,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    d->checkAndConnect(userId, [=] {
+    d->checkAndConnect(userId, [=,this] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
                          password, /*token*/ "", deviceId, initialDeviceName);
     }, LoginFlows::Password);
@@ -401,7 +401,7 @@ void Connection::reloadCapabilities()
                    " disabling version upgrade recommendations to reduce noise";
     });
     connect(d->capabilitiesJob, &BaseJob::failure, this, [this] {
-        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
+        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequest)
             qCDebug(MAIN) << "Server doesn't support /capabilities;"
                              " version upgrade recommendations won't be issued";
     });
@@ -443,6 +443,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
+    AccountRegistry::instance().add(q);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -795,11 +796,6 @@ void Connection::stopSync()
 
 QString Connection::nextBatchToken() const { return d->data->lastEvent(); }
 
-PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event)
-{
-    return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
-}
-
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
@@ -841,6 +837,15 @@ inline auto splitMediaId(const QString& mediaId)
                ("'" + mediaId + "' doesn't look like 'serverName/localMediaId'")
                    .toLatin1());
     return idParts;
+}
+
+QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
+{
+    Q_ASSERT(mxcUrl.scheme() == "mxc");
+    QUrlQuery q(mxcUrl.query());
+    q.addQueryItem(QStringLiteral("user_id"), userId());
+    mxcUrl.setQuery(q);
+    return mxcUrl;
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
@@ -1053,7 +1058,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
         connect(leaveJob, &BaseJob::result, this,
                 [this, leaveJob, forgetJob, room] {
                     if (leaveJob->error() == BaseJob::Success
-                        || leaveJob->error() == BaseJob::NotFoundError) {
+                        || leaveJob->error() == BaseJob::NotFound) {
                         run(forgetJob);
                         // If the matching /sync response hasn't arrived yet,
                         // mark the room for explicit deletion
@@ -1072,7 +1077,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob] {
         // Leave room in case of success, or room not known by server
         if (forgetJob->error() == BaseJob::Success
-            || forgetJob->error() == BaseJob::NotFoundError)
+            || forgetJob->error() == BaseJob::NotFound)
             d->removeRoom(id); // Delete the room from roomMap
         else
             qCWarning(MAIN).nospace() << "Error forgetting room " << id << ": "
@@ -1237,20 +1242,6 @@ SyncJob* Connection::syncJob() const { return d->syncJob; }
 int Connection::millisToReconnect() const
 {
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
-}
-
-QHash<QPair<QString, bool>, Room*> Connection::roomMap() const
-{
-    // Copy-on-write-and-remove-elements is faster than copying elements one by
-    // one.
-    QHash<QPair<QString, bool>, Room*> roomMap = d->roomMap;
-    for (auto it = roomMap.begin(); it != roomMap.end();) {
-        if (it.value()->joinState() == JoinState::Leave)
-            it = roomMap.erase(it);
-        else
-            ++it;
-    }
-    return roomMap;
 }
 
 QVector<Room*> Connection::allRooms() const
@@ -1725,7 +1716,7 @@ void Connection::getTurnServers()
 {
     auto job = callApi<GetTurnServerJob>();
     connect(job, &GetTurnServerJob::success, this,
-            [=] { emit turnServersChanged(job->data()); });
+            [this,job] { emit turnServersChanged(job->data()); });
 }
 
 const QString Connection::SupportedRoomVersion::StableTag =

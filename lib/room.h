@@ -107,6 +107,7 @@ class Room : public QObject {
     Q_PROPERTY(QStringList altAliases READ altAliases NOTIFY namesChanged)
     Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
+    Q_PROPERTY(QString displayNameForHtml READ displayNameForHtml NOTIFY displaynameChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
                    STORED false)
@@ -131,7 +132,7 @@ class Room : public QObject {
     Q_PROPERTY(QString lastFullyReadEventId READ lastFullyReadEventId WRITE
                    markMessagesAsRead NOTIFY fullyReadMarkerMoved)
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
-                   unreadMessagesChanged)
+                   unreadMessagesChanged STORED false)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
     Q_PROPERTY(int highlightCount READ highlightCount NOTIFY
                    highlightCountChanged RESET resetHighlightCount)
@@ -140,8 +141,8 @@ class Room : public QObject {
     Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
-    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
-    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
+    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
+    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged STORED false)
 
     Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
                    eventsHistoryJobChanged)
@@ -207,6 +208,7 @@ public:
     //! Get a list of both canonical and alternative aliases
     QStringList aliases() const;
     QString displayName() const;
+    QString displayNameForHtml() const;
     QString topic() const;
     QString avatarMediaId() const;
     QUrl avatarUrl() const;
@@ -216,7 +218,7 @@ public:
     QList<User*> membersLeft() const;
 
     Q_INVOKABLE QList<Quotient::User*> users() const;
-    [[deprecated("Use safeMemberNames() or htmlSafeMemberNames() instead")]]
+    Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
     QStringList memberNames() const;
     QStringList safeMemberNames() const;
     QStringList htmlSafeMemberNames() const;
@@ -259,37 +261,32 @@ public:
     /**
      * \brief Check the join state of a given user in this room
      *
-     * \deprecated Use memberState and check against a mask
-     *
      * \note Banned and invited users are not tracked separately for now (Leave
      *       will be returned for them).
      *
      * \return Join if the user is a room member; Leave otherwise
      */
+    Q_DECL_DEPRECATED_X("Use isMember() instead")
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
 
     //! \brief Check the join state of a given user in this room
     //!
     //! \return the given user's state with respect to the room
-    Q_INVOKABLE Quotient::Membership memberState(User* user) const;
+    Q_INVOKABLE Quotient::Membership memberState(const QString& userId) const;
+
+    //! Check whether a user with the given id is a member of the room
+    Q_INVOKABLE bool isMember(const QString& userId) const;
 
     //! \brief Get a display name (without disambiguation) for the given member
     //!
     //! \sa safeMemberName, htmlSafeMemberName
     Q_INVOKABLE QString memberName(const QString& mxId) const;
 
-    /*!
-     * \brief Get a disambiguated name for the given user in the room context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for the given user in the room context
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
-    /*!
-     * \brief Get a disambiguated name for a user with this id in the room
-     * context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for a user with this id in the room
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
     /*!
@@ -549,6 +546,9 @@ public:
     /// Get the list of users this room is a direct chat with
     QList<User*> directChatUsers() const;
 
+    Q_INVOKABLE QUrl makeMediaUrl(const QString& eventId,
+                                  const QUrl &mxcUrl) const;
+
     Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
     Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
 
@@ -640,7 +640,7 @@ public Q_SLOTS:
 
     QString postFile(const QString& plainText, EventContent::TypedBase* content);
 #if QT_VERSION_MAJOR < 6
-    /// \deprecated Use postFile(QString, MessageEventType, EventContent) instead
+    Q_DECL_DEPRECATED_X("Use postFile(QString, MessageEventType, EventContent)") //
     QString postFile(const QString& plainText, const QUrl& localPath,
                      bool asGenericFile = false);
 #endif
@@ -699,6 +699,12 @@ public Q_SLOTS:
                     const QString& sdp);
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
+
+    /**
+     * Activates encryption for this room.
+     * Warning: Cannot be undone
+     */
+    void activateEncryption();
 
 Q_SIGNALS:
     /// Initial set of state events has been loaded
@@ -811,7 +817,8 @@ Q_SIGNALS:
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
     void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
     void fileTransferFailed(QString id, QString errorMessage = {});
-    void fileTransferCancelled(QString id);
+    // fileTransferCancelled() is no more here; use fileTransferFailed() and
+    // check the transfer status instead
 
     void callEvent(Quotient::Room* room, const Quotient::RoomEvent* event);
 

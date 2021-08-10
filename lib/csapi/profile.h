@@ -73,7 +73,7 @@ public:
      * \param avatarUrl
      *   The new avatar URL for this user.
      */
-    explicit SetAvatarUrlJob(const QString& userId, const QString& avatarUrl);
+    explicit SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl);
 };
 
 /*! \brief Get the user's avatar URL.
@@ -101,10 +101,7 @@ public:
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    QString avatarUrl() const
-    {
-        return loadFromJson<QString>("avatar_url"_ls);
-    }
+    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_ls); }
 };
 
 /*! \brief Get this user's profile information.
@@ -133,10 +130,7 @@ public:
     // Result properties
 
     /// The user's avatar URL if they have set one, otherwise not present.
-    QString avatarUrl() const
-    {
-        return loadFromJson<QString>("avatar_url"_ls);
-    }
+    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_ls); }
 
     /// The user's display name if they have set one, otherwise not present.
     QString displayname() const

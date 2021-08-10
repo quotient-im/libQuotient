@@ -17,6 +17,7 @@ Q_DECLARE_LOGGING_CATEGORY(E2EE)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
 Q_DECLARE_LOGGING_CATEGORY(THUMBNAILJOB)
+Q_DECLARE_LOGGING_CATEGORY(NETWORK)
 Q_DECLARE_LOGGING_CATEGORY(PROFILER)
 
 namespace Quotient {
@@ -67,8 +68,6 @@ inline qint64 profilerMinNsecs()
         * 1000;
 }
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;
 
 inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {

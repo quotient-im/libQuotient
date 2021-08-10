@@ -267,10 +267,7 @@ public:
     /// The Matrix User IDs of all users who may have left all
     /// the end-to-end encrypted rooms they previously shared
     /// with the user.
-    QStringList left() const
-    {
-        return loadFromJson<QStringList>("left"_ls);
-    }
+    QStringList left() const { return loadFromJson<QStringList>("left"_ls); }
 };
 
 } // namespace Quotient

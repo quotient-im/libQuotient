@@ -14,9 +14,6 @@
 
 static const auto RegExpOptions =
     QRegularExpression::CaseInsensitiveOption
-#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-    | QRegularExpression::OptimizeOnFirstUsageOption // Default since 5.12
-#endif
     | QRegularExpression::UseUnicodePropertiesOption;
 
 // Converts all that looks like a URL into HTML links
@@ -33,7 +30,7 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // comma or dot
     static const QRegularExpression FullUrlRegExp(
         QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp):(//)?\w|(magnet|matrix):)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
         RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
@@ -44,7 +41,7 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
     static const QRegularExpression MxIdRegExp(
         QStringLiteral(
-            R"((^|[^<>/])([!#@][-a-z0-9_=#/.]{1,252}:(?:\w|\.|-)+\.\w+(?::\d{1,5})?))"),
+            R"((^|[][[:space:](){}`'";])([!#@][-a-z0-9_=#/.]{1,252}:\w(?:\w|\.|-)*\.\w+(?::\d{1,5})?))"),
         RegExpOptions);
     Q_ASSERT(FullUrlRegExp.isValid() && EmailAddressRegExp.isValid()
              && MxIdRegExp.isValid());
@@ -117,6 +114,26 @@ QString Quotient::serverPart(const QString& mxId)
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
     Q_ASSERT(parser.isValid());
     return parser.match(mxId).captured(1);
+}
+
+QString Quotient::versionString()
+{
+    return QStringLiteral(Quotient_VERSION_STRING);
+}
+
+int Quotient::majorVersion()
+{
+    return Quotient_VERSION_MAJOR;
+}
+
+int Quotient::minorVersion()
+{
+    return Quotient_VERSION_MINOR;
+}
+
+int Quotient::patchVersion()
+{
+    return Quotient_VERSION_PATCH;
 }
 
 // Tests for function_traits<>

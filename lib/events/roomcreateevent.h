@@ -4,6 +4,7 @@
 #pragma once
 
 #include "stateevent.h"
+#include "quotient_common.h"
 
 namespace Quotient {
 class RoomCreateEvent : public StateEventBase {
@@ -24,6 +25,7 @@ public:
     QString version() const;
     Predecessor predecessor() const;
     bool isUpgrade() const;
+    RoomType roomType() const;
 };
 REGISTER_EVENT_TYPE(RoomCreateEvent)
 } // namespace Quotient

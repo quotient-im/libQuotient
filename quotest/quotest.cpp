@@ -5,6 +5,7 @@
 #include "room.h"
 #include "user.h"
 #include "uriresolver.h"
+#include "networkaccessmanager.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
@@ -20,6 +21,8 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QTimer>
+#include <QtConcurrent/QtConcurrent>
+#include <QtNetwork/QNetworkReply>
 
 #include <functional>
 #include <iostream>
@@ -48,7 +51,7 @@ private:
     QByteArrayList running {}, succeeded {}, failed {};
 };
 
-using TestToken = QByteArray; // return value of QMetaMethod::name
+using TestToken = decltype(std::declval<QMetaMethod>().name());
 Q_DECLARE_METATYPE(TestToken)
 
 // For now, the token itself is the test name but that may change.
@@ -105,6 +108,7 @@ private slots:
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
     TEST_DECL(visitResources)
+    TEST_DECL(prettyPrintTests)
     // Add more tests above here
 
 public:
@@ -137,7 +141,7 @@ private:
 // connectUntil() to break the QMetaObject::Connection upon finishing the test
 // item.
 #define FINISH_TEST(Condition) \
-    return (finishTest(thisTest, Condition, __FILE__, __LINE__), true)
+    return (finishTest(thisTest, (Condition), __FILE__, __LINE__), true)
 
 #define FAIL_TEST() FINISH_TEST(false)
 
@@ -241,7 +245,7 @@ void TestManager::setupAndRun()
             clog << "Sync " << ++i << " complete" << endl;
             if (auto* r = testSuite->room()) {
                 clog << "Test room timeline size = " << r->timelineSize();
-                if (r->pendingEvents().empty())
+                if (!r->pendingEvents().empty())
                     clog << ", pending size = " << r->pendingEvents().size();
                 clog << endl;
             }
@@ -435,6 +439,39 @@ TEST_IMPL(sendFile)
     return false;
 }
 
+// Can be replaced with a lambda once QtConcurrent is able to resolve return
+// types from lambda invocations (Qt 6 can, not sure about earlier)
+struct DownloadRunner {
+    QUrl url;
+
+    using result_type = QNetworkReply::NetworkError;
+
+    QNetworkReply::NetworkError operator()(int) const
+    {
+        QEventLoop el;
+        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply {
+            NetworkAccessManager::instance()->get(QNetworkRequest(url))
+        };
+        QObject::connect(
+            reply.data(), &QNetworkReply::finished, &el, [&el] { el.exit(); },
+            Qt::QueuedConnection);
+        el.exec();
+        return reply->error();
+    }
+};
+
+bool testDownload(const QUrl& url)
+{
+    // Move out actual test from the multithreaded code
+    // to help debugging
+    auto results = QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 },
+                                                DownloadRunner { url });
+    return std::all_of(results.cbegin(), results.cend(),
+                        [](QNetworkReply::NetworkError ne) {
+                            return ne == QNetworkReply::NoError;
+                        });
+}
+
 bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                                         const QString& txnId,
                                         const QString& fileName)
@@ -465,14 +502,15 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
             return visit(
                 *evt,
                 [&](const RoomMessageEvent& e) {
-                    // TODO: actually try to download it to check, e.g., #366
-                    // (and #368 would help to test against bad file names).
+                    // TODO: check #366 once #368 is implemented
                     FINISH_TEST(
                         !e.id().isEmpty()
-                            && pendingEvents[size_t(pendingIdx)]->transactionId()
-                                   == txnId
-                            && e.hasFileContent()
-                            && e.content()->fileInfo()->originalName == fileName);
+                        && pendingEvents[size_t(pendingIdx)]->transactionId()
+                               == txnId
+                        && e.hasFileContent()
+                        && e.content()->fileInfo()->originalName == fileName
+                        && testDownload(targetRoom->connection()->makeMediaUrl(
+                            e.content()->fileInfo()->url)));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
@@ -787,6 +825,52 @@ TEST_IMPL(visitResources)
     FINISH_TEST(true);
 }
 
+bool checkPrettyPrint(
+    std::initializer_list<std::pair<const char*, const char*>> tests)
+{
+    bool result = true;
+    for (const auto& [test, etalon] : tests) {
+        const auto is = prettyPrint(test).toStdString();
+        const auto shouldBe = std::string("<span style='white-space:pre-wrap'>")
+                              + etalon + "</span>";
+        if (is == shouldBe)
+            continue;
+        clog << is << " != " << shouldBe << endl;
+        result = false;
+    }
+    return result;
+}
+
+TEST_IMPL(prettyPrintTests)
+{
+    const bool prettyPrintTestResult = checkPrettyPrint(
+        { { "https://www.matrix.org",
+            R"(<a href="https://www.matrix.org">https://www.matrix.org</a>)" },
+//          { "www.matrix.org", // Doesn't work yet
+//             R"(<a href="https://www.matrix.org">www.matrix.org</a>)" },
+          { "smb://somewhere/file", "smb://somewhere/file" }, // Disallowed scheme
+          { "https:/something", "https:/something" }, // Malformed URL
+          { "https://matrix.to/#/!roomid:example.org",
+            R"(<a href="https://matrix.to/#/!roomid:example.org">https://matrix.to/#/!roomid:example.org</a>)" },
+          { "https://matrix.to/#/@user_id:example.org",
+            R"(<a href="https://matrix.to/#/@user_id:example.org">https://matrix.to/#/@user_id:example.org</a>)" },
+          { "https://matrix.to/#/#roomalias:example.org",
+            R"(<a href="https://matrix.to/#/#roomalias:example.org">https://matrix.to/#/#roomalias:example.org</a>)" },
+          { "https://matrix.to/#/##ircroomalias:example.org",
+            R"(<a href="https://matrix.to/#/##ircroomalias:example.org">https://matrix.to/#/##ircroomalias:example.org</a>)" },
+          { "me@example.org",
+            R"(<a href="mailto:me@example.org">me@example.org</a>)" },
+          { "mailto:me@example.org",
+            R"(<a href="mailto:me@example.org">mailto:me@example.org</a>)" },
+          { "!room_id:example.org",
+            R"(<a href="https://matrix.to/#/!room_id:example.org">!room_id:example.org</a>)" },
+          { "@user_id:example.org",
+            R"(<a href="https://matrix.to/#/@user_id:example.org">@user_id:example.org</a>)" },
+          { "#room_alias:example.org",
+            R"(<a href="https://matrix.to/#/#room_alias:example.org">#room_alias:example.org</a>)" } });
+    FINISH_TEST(prettyPrintTestResult);
+}
+
 void TestManager::conclude()
 {
     // Clean up the room (best effort)
@@ -855,10 +939,22 @@ void TestManager::conclude()
 
 void TestManager::finalize()
 {
+    if (!c->isUsable() || !c->isLoggedIn()) {
+        clog << "No usable connection reached" << endl;
+        QCoreApplication::exit(-2);
+        return; // NB: QCoreApplication::exit() does return to the caller
+    }
     clog << "Logging out" << endl;
     c->logout();
-    connect(c, &Connection::loggedOut, this,
-            [this] { QCoreApplication::exit(failed.size() + running.size()); },
+    connect(
+        c, &Connection::loggedOut, this,
+        [this] {
+            QCoreApplication::exit(!testSuite ? -3
+                                   : succeeded.empty() && failed.empty()
+                                           && running.empty()
+                                       ? -4
+                                       : failed.size() + running.size());
+        },
         Qt::QueuedConnection);
 }
 

@@ -145,21 +145,21 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
         auto mimeTypeName = mimeType.name();
         if (mimeTypeName.startsWith("image/"))
             return new ImageContent(localUrl, file.size(), mimeType,
-                                    QImageReader(filePath).size(),
+                                    QImageReader(filePath).size(), none,
                                     file.fileName());
 
         // duration can only be obtained asynchronously and can only be reliably
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
             return new VideoContent(localUrl, file.size(), mimeType,
-                                    QMediaResource(localUrl).resolution(),
+                                    QMediaResource(localUrl).resolution(), none,
                                     file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
-            return new AudioContent(localUrl, file.size(), mimeType,
+            return new AudioContent(localUrl, file.size(), mimeType, none,
                                     file.fileName());
     }
-    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
+    return new FileContent(localUrl, file.size(), mimeType, none, file.fileName());
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,

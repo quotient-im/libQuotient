@@ -34,10 +34,7 @@ public:
 
     /// The [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the
     /// uploaded content.
-    QString contentUri() const
-    {
-        return loadFromJson<QString>("content_uri"_ls);
-    }
+    QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_ls); }
 };
 
 /*! \brief Download content from the content repository.
@@ -72,10 +69,7 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// The name of the file that was previously uploaded, if set.
     QString contentDisposition() const
@@ -84,10 +78,7 @@ public:
     }
 
     /// The content that was previously uploaded.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Download content from the content repository overriding the file name
@@ -132,10 +123,7 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// The `fileName` requested or the name of the file that was previously
     /// uploaded, if set.
@@ -145,10 +133,7 @@ public:
     }
 
     /// The content that was previously uploaded.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Download a thumbnail of content from the content repository
@@ -202,16 +187,10 @@ public:
     // Result properties
 
     /// The content type of the thumbnail.
-    QString contentType() const
-    {
-        return reply()->rawHeader("Content-Type");
-    }
+    QString contentType() const { return reply()->rawHeader("Content-Type"); }
 
     /// A thumbnail of the requested content.
-    QIODevice* data()
-    {
-        return reply();
-    }
+    QIODevice* data() { return reply(); }
 };
 
 /*! \brief Get information about a URL for a client
@@ -237,14 +216,14 @@ public:
      *   return a newer version if it does not have the requested version
      *   available.
      */
-    explicit GetUrlPreviewJob(const QString& url, Omittable<qint64> ts = none);
+    explicit GetUrlPreviewJob(const QUrl& url, Omittable<qint64> ts = none);
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
      * This function can be used when a URL for GetUrlPreviewJob
      * is necessary but the job itself isn't.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& url,
+    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url,
                                Omittable<qint64> ts = none);
 
     // Result properties
@@ -257,10 +236,7 @@ public:
 
     /// An [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the image.
     /// Omitted if there is no image.
-    QString ogImage() const
-    {
-        return loadFromJson<QString>("og:image"_ls);
-    }
+    QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_ls); }
 };
 
 /*! \brief Get the configuration for the content repository.

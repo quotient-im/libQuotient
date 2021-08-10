@@ -10,7 +10,7 @@ namespace Quotient {
 /// Used by clients to discover homeserver information.
 struct HomeserverInformation {
     /// The base URL for the homeserver for client-server connections.
-    QString baseUrl;
+    QUrl baseUrl;
 };
 
 template <>

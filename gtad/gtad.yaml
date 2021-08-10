@@ -68,6 +68,9 @@ analyzer:
       - dateTime:
           type: QDateTime
           initializer: QDateTime::fromString("{{defaultValue}}")
+      - uri:
+          type: QUrl
+          initializer: QUrl::fromEncoded("{{defaultValue}}")
       - //: &QString
           type: QString
           initializer: QStringLiteral("{{defaultValue}}")
@@ -137,7 +140,7 @@ mustache:
     # Syntax elements used by GTAD
 #    _quote: '"' # Common quote for left and right
 #    _leftQuote: '"'
-#    _rightQuote: '"'
+#    _rightQuote: '"_ls'
     _comment: '//'
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>
@@ -187,8 +190,8 @@ mustache:
     joinedParamDef: "{{>maybeCrefType}} {{paramName}}{{>cjoin}}"
 
     passPathAndMaybeQuery: >-
-      QStringLiteral("{{basePathWithoutHost}}")
-      {{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+      makePath("{{basePathWithoutHost}}"{{#pathParts}},
+        {{_}}{{/pathParts}}){{#queryParams?}},
       queryTo{{camelCaseOperationId}}(
       {{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}){{/queryParams?}}
 

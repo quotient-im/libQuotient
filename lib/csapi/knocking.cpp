@@ -4,8 +4,6 @@
 
 #include "knocking.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 auto queryToKnockRoom(const QStringList& serverName)
@@ -18,7 +16,7 @@ auto queryToKnockRoom(const QStringList& serverName)
 KnockRoomJob::KnockRoomJob(const QString& roomIdOrAlias,
                            const QStringList& serverName, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("KnockRoomJob"),
-              QStringLiteral("/_matrix/client/r0") % "/knock/" % roomIdOrAlias,
+              makePath("/_matrix/client/r0", "/knock/", roomIdOrAlias),
               queryToKnockRoom(serverName))
 {
     QJsonObject _data;

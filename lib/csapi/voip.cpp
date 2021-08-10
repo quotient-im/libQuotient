@@ -4,18 +4,15 @@
 
 #include "voip.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 QUrl GetTurnServerJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/_matrix/client/r0")
-                                       % "/voip/turnServer");
+    return BaseJob::makeRequestUrl(
+        std::move(baseUrl), makePath("/_matrix/client/r0", "/voip/turnServer"));
 }
 
 GetTurnServerJob::GetTurnServerJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetTurnServerJob"),
-              QStringLiteral("/_matrix/client/r0") % "/voip/turnServer")
+              makePath("/_matrix/client/r0", "/voip/turnServer"))
 {}

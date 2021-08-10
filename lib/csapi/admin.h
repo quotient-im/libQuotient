@@ -74,10 +74,7 @@ public:
     // Result properties
 
     /// The Matrix user ID of the user.
-    QString userId() const
-    {
-        return loadFromJson<QString>("user_id"_ls);
-    }
+    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
 
     /// Each key is an identifier for one of the user's devices.
     QHash<QString, DeviceInfo> devices() const

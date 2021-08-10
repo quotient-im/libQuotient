@@ -4,14 +4,11 @@
 
 #include "room_upgrades.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 UpgradeRoomJob::UpgradeRoomJob(const QString& roomId, const QString& newVersion)
     : BaseJob(HttpVerb::Post, QStringLiteral("UpgradeRoomJob"),
-              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
-                  % "/upgrade")
+              makePath("/_matrix/client/r0", "/rooms/", roomId, "/upgrade"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("new_version"), newVersion);

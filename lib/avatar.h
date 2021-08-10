@@ -21,7 +21,7 @@ public:
     Avatar& operator=(Avatar&&);
 
     using get_callback_t = std::function<void()>;
-    using upload_callback_t = std::function<void(QString)>;
+    using upload_callback_t = std::function<void(QUrl)>;
 
     QImage get(Connection* connection, int dimension,
                get_callback_t callback) const;
@@ -42,5 +42,3 @@ private:
     std::unique_ptr<Private> d;
 };
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;

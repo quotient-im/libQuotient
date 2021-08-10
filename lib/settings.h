@@ -78,9 +78,8 @@ protected:
 
 class SettingsGroup : public Settings {
 public:
-    template <typename... ArgTs>
-    explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
-        : Settings(std::forward<ArgTs>(qsettingsArgs)...)
+    explicit SettingsGroup(QString path, QObject* parent = nullptr)
+        : Settings(parent)
         , groupPath(std::move(path))
     {}
 
@@ -131,15 +130,11 @@ class AccountSettings : public SettingsGroup {
     QTNT_DECLARE_SETTING(QString, deviceId, setDeviceId)
     QTNT_DECLARE_SETTING(QString, deviceName, setDeviceName)
     QTNT_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
-    /** \deprecated \sa setAccessToken */
-    Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
                    WRITE setEncryptionAccountPickle)
 public:
-    template <typename... ArgTs>
-    explicit AccountSettings(const QString& accountId, ArgTs&&... qsettingsArgs)
-        : SettingsGroup("Accounts/" + accountId,
-                        std::forward<ArgTs>(qsettingsArgs)...)
+    explicit AccountSettings(const QString& accountId, QObject* parent = nullptr)
+        : SettingsGroup("Accounts/" + accountId, parent)
     {}
 
     QString userId() const;
@@ -147,11 +142,7 @@ public:
     QUrl homeserver() const;
     void setHomeserver(const QUrl& url);
 
-    /** \deprecated \sa setToken */
-    QString accessToken() const;
-    /** \deprecated Storing accessToken in QSettings is unsafe,
-     * see quotient-im/Quaternion#181 */
-    void setAccessToken(const QString& accessToken);
+    Q_DECL_DEPRECATED_X("Access tokens are not stored in QSettings any more")
     Q_INVOKABLE void clearAccessToken();
 
     QByteArray encryptionAccountPickle();

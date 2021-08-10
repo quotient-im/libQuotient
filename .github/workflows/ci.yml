@@ -18,13 +18,27 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
+        platform: [ '' ]
         qt-version: [ '5.12.10' ]
+        qt-arch: [ '' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
+        include:
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
+          update-api: update-api
 
     steps:
     - uses: actions/checkout@v2
@@ -36,15 +50,16 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}-Qt${{ matrix.qt-version }}-cache
+        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
         version: ${{ matrix.qt-version }}
+        arch: ${{ matrix.qt-arch }}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Install Ninja (macOS)
+    - name: Install Ninja (macOS/Windows)
       if: ${{ !startsWith(matrix.os, 'ubuntu') }}
       uses: seanmiddleditch/gha-setup-ninja@v3
 
@@ -57,12 +72,17 @@ jobs:
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-            if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-9'; fi
-            echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
-            echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
-        else
-            echo "CC=clang" >>$GITHUB_ENV
-            echo "CXX=clang++" >>$GITHUB_ENV
+            CXX_VERSION_POSTFIX='-10'
+            echo "CC=gcc$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=g++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+        elif [[ '${{ matrix.compiler }}' == 'Clang' ]]; then
+            if [[ '${{ runner.os }}' == 'Linux' ]]; then
+                CXX_VERSION_POSTFIX='-11'
+                # Do CodeQL analysis on one of Linux branches
+                echo "CODEQL_ANALYSIS=true" >>$GITHUB_ENV
+            fi
+            echo "CC=clang$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=clang++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
         fi
         if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
             VERSION="$(git describe --tags)"
@@ -76,10 +96,16 @@ jobs:
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
 
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      if: matrix.compiler == 'MSVC'
+      with:
+        arch: ${{ matrix.platform }}
+
     - name: Build and install olm
       if: matrix.e2ee
       run: |
-        cd ${{ runner.workspace }}
+        cd ..
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         cmake -S olm -B olm/build $CMAKE_ARGS
         cmake --build olm/build --target install
@@ -88,18 +114,35 @@ jobs:
     - name: Pull CS API and build GTAD
       if: matrix.update-api
       run: |
-        cd ${{ runner.workspace }}
+        cd ..
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        cmake -S gtad -B gtad $CMAKE_ARGS
+        cmake -S gtad -B gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
         cmake --build gtad
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
-                                     -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=$GITHUB_WORKSPACE/../matrix-doc \
+                                     -DGTAD_PATH=$GITHUB_WORKSPACE/../gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
+    
+    - name: Initialize CodeQL tools
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+        # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Configure libQuotient
-      run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+      run: |
+        if [[ '${{ runner.os }}' == 'Windows' ]]; then
+            BIN_DIR=.
+        else
+            BIN_DIR=bin
+        fi
+        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
+        cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
 
     - name: Regenerate API code
       if: matrix.update-api
@@ -108,7 +151,7 @@ jobs:
     - name: Build and install libQuotient
       run: |
         cmake --build build --target install
-        ls ~/.local/bin/quotest
+        ls ~/.local/$BIN_DIR/quotest
 
     - name: Run tests
       env:
@@ -117,3 +160,7 @@ jobs:
       run: |
         [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
+    
+    - name: Perform CodeQL analysis
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/analyze@v1

@@ -12,9 +12,7 @@ class EncryptionEventContent : public EventContent::Base {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
-    explicit EncryptionEventContent(EncryptionType et = Undefined)
-        : encryption(et)
-    {}
+    explicit EncryptionEventContent(EncryptionType et = Undefined);
     explicit EncryptionEventContent(const QJsonObject& json);
 
     EncryptionType encryption;

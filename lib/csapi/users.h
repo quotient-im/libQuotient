@@ -41,7 +41,7 @@ public:
         /// The display name of the user, if one exists.
         QString displayName;
         /// The avatar url, as an MXC, if one exists.
-        QString avatarUrl;
+        QUrl avatarUrl;
     };
 
     // Construction/destruction
@@ -66,10 +66,7 @@ public:
     }
 
     /// Indicates if the result list has been truncated by the limit.
-    bool limited() const
-    {
-        return loadFromJson<bool>("limited"_ls);
-    }
+    bool limited() const { return loadFromJson<bool>("limited"_ls); }
 };
 
 template <>

@@ -4,8 +4,6 @@
 
 #include "cross_signing.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 UploadCrossSigningKeysJob::UploadCrossSigningKeysJob(
@@ -13,8 +11,7 @@ UploadCrossSigningKeysJob::UploadCrossSigningKeysJob(
     const Omittable<CrossSigningKey>& selfSigningKey,
     const Omittable<CrossSigningKey>& userSigningKey)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadCrossSigningKeysJob"),
-              QStringLiteral("/_matrix/client/r0")
-                  % "/keys/device_signing/upload")
+              makePath("/_matrix/client/r0", "/keys/device_signing/upload"))
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("master_key"), masterKey);
@@ -28,7 +25,7 @@ UploadCrossSigningKeysJob::UploadCrossSigningKeysJob(
 UploadCrossSigningSignaturesJob::UploadCrossSigningSignaturesJob(
     const QHash<QString, QHash<QString, QJsonObject>>& signatures)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadCrossSigningSignaturesJob"),
-              QStringLiteral("/_matrix/client/r0") % "/keys/signatures/upload")
+              makePath("/_matrix/client/r0", "/keys/signatures/upload"))
 {
-    setRequestData(Data(toJson(signatures)));
+    setRequestData(RequestData(toJson(signatures)));
 }

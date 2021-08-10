@@ -4,20 +4,17 @@
 
 #include "login.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/_matrix/client/r0")
-                                       % "/login");
+                                   makePath("/_matrix/client/r0", "/login"));
 }
 
 GetLoginFlowsJob::GetLoginFlowsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetLoginFlowsJob"),
-              QStringLiteral("/_matrix/client/r0") % "/login", false)
+              makePath("/_matrix/client/r0", "/login"), false)
 {}
 
 LoginJob::LoginJob(const QString& type,
@@ -26,7 +23,7 @@ LoginJob::LoginJob(const QString& type,
                    const QString& deviceId,
                    const QString& initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"),
-              QStringLiteral("/_matrix/client/r0") % "/login", false)
+              makePath("/_matrix/client/r0", "/login"), false)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("type"), type);

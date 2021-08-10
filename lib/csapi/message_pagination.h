@@ -66,26 +66,17 @@ public:
 
     /// The token the pagination starts from. If `dir=b` this will be
     /// the token supplied in `from`.
-    QString begin() const
-    {
-        return loadFromJson<QString>("start"_ls);
-    }
+    QString begin() const { return loadFromJson<QString>("start"_ls); }
 
     /// The token the pagination ends at. If `dir=b` this token should
     /// be used again to request even earlier events.
-    QString end() const
-    {
-        return loadFromJson<QString>("end"_ls);
-    }
+    QString end() const { return loadFromJson<QString>("end"_ls); }
 
     /// A list of room events. The order depends on the `dir` parameter.
     /// For `dir=b` events will be in reverse-chronological order,
     /// for `dir=f` in chronological order, so that events start
     /// at the `from` point.
-    RoomEvents chunk()
-    {
-        return takeFromJson<RoomEvents>("chunk"_ls);
-    }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 
     /// A list of state events relevant to showing the `chunk`. For example, if
     /// `lazy_load_members` is enabled in the filter then this may contain
@@ -95,10 +86,7 @@ public:
     /// may remove membership events which would have already been
     /// sent to the client in prior calls to this endpoint, assuming
     /// the membership of those members has not changed.
-    StateEvents state()
-    {
-        return takeFromJson<StateEvents>("state"_ls);
-    }
+    StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
 };
 
 } // namespace Quotient

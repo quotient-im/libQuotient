@@ -59,10 +59,7 @@ public:
     // Result properties
 
     /// Device information
-    Device device() const
-    {
-        return fromJson<Device>(jsonData());
-    }
+    Device device() const { return fromJson<Device>(jsonData()); }
 };
 
 /*! \brief Update a device

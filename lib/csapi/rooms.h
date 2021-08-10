@@ -38,11 +38,7 @@ public:
     // Result properties
 
     /// The full event.
-    EventPtr event()
-
-    {
-        return fromJson<EventPtr>(jsonData());
-    }
+    EventPtr event() { return fromJson<EventPtr>(jsonData()); }
 };
 
 /*! \brief Get the state identified by the type and key.
@@ -103,11 +99,7 @@ public:
     // Result properties
 
     /// The current state of the room
-    StateEvents events()
-
-    {
-        return fromJson<StateEvents>(jsonData());
-    }
+    StateEvents events() { return fromJson<StateEvents>(jsonData()); }
 };
 
 /*! \brief Get the m.room.member events for the room.
@@ -183,7 +175,7 @@ public:
         /// The display name of the user this object is representing.
         QString displayName;
         /// The mxc avatar url of the user this object is representing.
-        QString avatarUrl;
+        QUrl avatarUrl;
     };
 
     // Construction/destruction

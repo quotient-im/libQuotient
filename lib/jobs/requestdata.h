@@ -35,5 +35,3 @@ private:
     std::unique_ptr<QIODevice> _source;
 };
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;
