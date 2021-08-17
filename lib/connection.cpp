@@ -798,8 +798,13 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
             return;
         }
+        const auto decryptedEvent = sessionDecryptMessage(event);
+        if(!decryptedEvent) {
+            qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+            return;
+        }
 
-        visit(*sessionDecryptMessage(event),
+        visit(*decryptedEvent,
             [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
