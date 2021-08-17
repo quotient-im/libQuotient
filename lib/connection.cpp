@@ -634,7 +634,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 #ifdef Quotient_E2EE_ENABLED
     if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys() && !d->isUploadingKeys) {
         d->isUploadingKeys = true;
-        d->olmAccount->generateOneTimeKeys(d->olmAccount->maxNumberOfOneTimeKeys() - data.deviceOneTimeKeysCount()["signed_curve25519"]);
+        d->olmAccount->generateOneTimeKeys(d->olmAccount->maxNumberOfOneTimeKeys() / 2 - data.deviceOneTimeKeysCount()["signed_curve25519"]);
         auto keys = d->olmAccount->oneTimeKeys();
         auto job = d->olmAccount->createUploadKeyRequest(keys);
         run(job, ForegroundRequest);

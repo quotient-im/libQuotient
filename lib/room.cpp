@@ -372,7 +372,7 @@ public:
     std::map<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
 
     void loadMegOlmSessions() {
-        QFile file { connection->stateCacheDir().filePath("megolmsessions.json") };
+        QFile file { connection->stateCacheDir().filePath(QStringLiteral("megolm/%1.json").arg(id)) };
         if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
             qCDebug(E2EE) << "No megolm sessions cache exists.";
             return;
@@ -387,7 +387,7 @@ public:
 #endif
             ;
         if (json.isEmpty()) {
-            qCWarning(MAIN) << "Megolm sessions cache is empty";
+            qCWarning(E2EE) << "Megolm sessions cache is empty";
             return;
         }
         for(const auto &s : json["sessions"].toArray()) {
@@ -403,7 +403,8 @@ public:
         }
     }
     void saveMegOlmSessions() {
-        QFile outFile { connection->stateCacheDir().filePath("megolmsessions.json") };
+        connection->stateCacheDir().mkdir("megolm");
+        QFile outFile { connection->stateCacheDir().filePath(QStringLiteral("megolm/%1.json").arg(id))};
         if (!outFile.open(QFile::WriteOnly)) {
             qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                             << outFile.errorString();
@@ -521,6 +522,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         return this == r; // loadedRoomState fires only once per room
     });
     qCDebug(STATE) << "New" << initialJoinState << "Room:" << id;
+
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [=](){
         connection->encryptionUpdate(this);

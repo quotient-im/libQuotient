@@ -125,8 +125,8 @@ public:
             if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
                 qCDebug(E2EE) << "Found inbound session";
                 const auto result = session.second->decrypt(message);
+                saveSessions();
                 if(std::holds_alternative<QString>(result)) {
-                    saveSessions();
                     return std::get<QString>(result);
                 } else {
                     qCDebug(E2EE) << "Failed to decrypt prekey message";
@@ -145,8 +145,8 @@ public:
         olmAccount->removeOneTimeKeys(newSession);
         const auto result = newSession->decrypt(message);
         sessions[senderKey] = std::move(newSession);
+        saveSessions();
         if(std::holds_alternative<QString>(result)) {
-            saveSessions();
             return std::get<QString>(result);
         } else {
             qCDebug(E2EE) << "Failed to decrypt prekey message with new session";
