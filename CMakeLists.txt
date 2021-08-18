@@ -109,6 +109,8 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     endif()
 endif()
 
+find_package(Qt${QT_MAJOR_VERSION}Keychain REQUIRED)
+
 # Set up source files
 list(APPEND lib_SRCS
     lib/quotient_common.h
@@ -325,7 +327,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     find_dependency(OpenSSL)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

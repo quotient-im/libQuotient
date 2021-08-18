@@ -21,6 +21,10 @@
 
 #include <functional>
 
+#ifdef Quotient_E2EE_ENABLED
+#include "crypto/e2ee.h"
+#endif
+
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
@@ -650,6 +654,7 @@ public Q_SLOTS:
 
 #ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
+    PicklingMode picklingMode() const;
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed

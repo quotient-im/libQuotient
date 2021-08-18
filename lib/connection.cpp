@@ -39,6 +39,7 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "crypto/qolmaccount.h"
+#    include "crypto/qolmutils.h"
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -54,6 +55,13 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
+
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
 
 using namespace Quotient;
 
@@ -108,6 +116,7 @@ public:
     QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>> deviceKeys;
     QueryKeysJob *currentQueryKeysJob = nullptr;
     bool encryptionUpdateRequired = false;
+    PicklingMode picklingMode = Unencrypted {};
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -457,10 +466,40 @@ void Connection::Private::completeSetup(const QString& mxId)
 #else // Quotient_E2EE_ENABLED
     AccountSettings accountSettings(data->userId());
 
+    QKeychain::ReadPasswordJob job(qAppName());
+    job.setAutoDelete(false);
+    job.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
+    QEventLoop loop;
+    QKeychain::ReadPasswordJob::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+    job.start();
+    loop.exec();
+
+    if (job.error() == QKeychain::Error::EntryNotFound) {
+        picklingMode = Encrypted { getRandom(128) };
+        QKeychain::WritePasswordJob job(qAppName());
+        job.setAutoDelete(false);
+        job.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
+        job.setBinaryData(std::get<Encrypted>(picklingMode).key);
+        QEventLoop loop;
+        QKeychain::WritePasswordJob::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+        job.start();
+        loop.exec();
+
+        if (job.error()) {
+            qCWarning(E2EE) << "Could not save pickling key to keychain: " << job.errorString();
+        }
+    } else if(job.error() != QKeychain::Error::NoError) {
+        //TODO Error, do something
+        qCWarning(E2EE) << "Error loading pickling key from keychain:" << job.error();
+    } else {
+        qCDebug(E2EE) << "Successfully loaded pickling key from keychain";
+        picklingMode = Encrypted { job.binaryData() };
+    }
+
     // init olmAccount
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, [=](){
-        auto pickle = olmAccount->pickle(Unencrypted{});
+        auto pickle = olmAccount->pickle(picklingMode);
         AccountSettings(data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
         //TODO handle errors
     });
@@ -476,7 +515,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     } else {
         // account already existing
         auto pickle = accountSettings.encryptionAccountPickle();
-        olmAccount->unpickle(pickle, Unencrypted{});
+        olmAccount->unpickle(pickle, picklingMode);
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
@@ -1981,5 +2020,10 @@ void Connection::Private::loadDevicesList()
             loadOutdatedUserDevices();
         }
     });
+}
+
+PicklingMode Connection::picklingMode() const
+{
+    return d->picklingMode;
 }
 #endif

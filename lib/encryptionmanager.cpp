@@ -71,7 +71,7 @@ public:
         }
         for(const auto &senderKey : json["sessions"].toObject().keys()) {
             auto pickle = json["sessions"].toObject()[senderKey].toString();
-            auto sessionResult = QOlmSession::unpickle(pickle.toLatin1(), Unencrypted{});
+            auto sessionResult = QOlmSession::unpickle(pickle.toLatin1(), static_cast<Connection *>(q->parent())->picklingMode());
             if(std::holds_alternative<QOlmError>(sessionResult)) {
                 qCWarning(E2EE) << "Failed to unpickle olm session";
                 continue;
@@ -97,7 +97,7 @@ public:
         {
             QJsonObject sessionsJson;
             for (const auto &session : sessions) {
-                auto pickleResult = session.second->pickle(Unencrypted{});
+                auto pickleResult = session.second->pickle(static_cast<Connection *>(q->parent())->picklingMode());
                 if(std::holds_alternative<QOlmError>(pickleResult)) {
                     qCWarning(E2EE) << "Failed to pickle session";
                     continue;

@@ -394,7 +394,7 @@ public:
             auto pickle = s.toObject()["pickle"].toString().toLatin1();
             auto senderKey = s.toObject()["sender_key"].toString();
             auto sessionId = s.toObject()["session_id"].toString();
-            auto sessionResult = QOlmInboundGroupSession::unpickle(pickle, Unencrypted{});
+            auto sessionResult = QOlmInboundGroupSession::unpickle(pickle, connection->picklingMode());
             if(std::holds_alternative<QOlmError>(sessionResult)) {
                 qCWarning(E2EE) << "Failed to unpickle olm session";
                 continue;
@@ -421,7 +421,7 @@ public:
         {
             QJsonArray sessionsJson;
             for (const auto &session : groupSessions) {
-                auto pickleResult = session.second->pickle(Unencrypted{});
+                auto pickleResult = session.second->pickle(connection->picklingMode());
                 sessionsJson += QJsonObject {
                     {QStringLiteral("sender_key"), session.first.first},
                     {QStringLiteral("session_id"), session.first.second},
@@ -2659,7 +2659,6 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     //TODO should this be done before dropDuplicateEvents?
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            qDebug() << "Encrypted Event";
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
                 events[i] = std::move(decrypted);
