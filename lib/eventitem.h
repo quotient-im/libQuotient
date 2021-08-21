@@ -11,9 +11,9 @@
 namespace Quotient {
 class StateEventBase;
 
-class EventStatus {
-    Q_GADGET
-public:
+namespace EventStatus {
+    Q_NAMESPACE
+
     /** Special marks an event can assume
      *
      * This is used to hint at a special status of some events in UI.
@@ -32,8 +32,8 @@ public:
         Hidden = 0x100, //< The event should not be shown in the timeline
     };
     Q_DECLARE_FLAGS(Status, Code)
-    Q_FLAG(Status)
-};
+    Q_FLAG_NS(Status)
+} // namespace EventStatus
 
 class EventItemBase {
 public:
@@ -148,4 +148,4 @@ inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
     return d;
 }
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::EventStatus)
+//Q_DECLARE_METATYPE(Quotient::EventStatus)
