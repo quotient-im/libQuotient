@@ -148,4 +148,3 @@ inline QDebug& operator<<(QDebug& d, const TimelineItem& ti)
     return d;
 }
 } // namespace Quotient
-//Q_DECLARE_METATYPE(Quotient::EventStatus)
