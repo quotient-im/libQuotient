@@ -82,7 +82,7 @@ bool User::isGuest() const
     Q_ASSERT(!d->id.isEmpty() && d->id.startsWith('@'));
     auto it = std::find_if_not(d->id.cbegin() + 1, d->id.cend(),
                                [](QChar c) { return c.isDigit(); });
-    Q_ASSERT(it != d->id.end());
+    Q_ASSERT(it != d->id.cend());
     return *it == ':';
 }
 
