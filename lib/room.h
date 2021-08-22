@@ -192,7 +192,7 @@ public:
     QList<User*> membersLeft() const;
 
     Q_INVOKABLE QList<Quotient::User*> users() const;
-    [[deprecated("Use safeMemberNames() or htmlSafeMemberNames() instead")]]
+    Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
     QStringList memberNames() const;
     QStringList safeMemberNames() const;
     QStringList htmlSafeMemberNames() const;
@@ -235,13 +235,12 @@ public:
     /**
      * \brief Check the join state of a given user in this room
      *
-     * \deprecated Use memberState and check against a mask
-     *
      * \note Banned and invited users are not tracked separately for now (Leave
      *       will be returned for them).
      *
      * \return Join if the user is a room member; Leave otherwise
      */
+    Q_DECL_DEPRECATED_X("Use memberState and check against the mask") //
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
 
     //! \brief Check the join state of a given user in this room
@@ -254,18 +253,11 @@ public:
     //! \sa safeMemberName, htmlSafeMemberName
     Q_INVOKABLE QString memberName(const QString& mxId) const;
 
-    /*!
-     * \brief Get a disambiguated name for the given user in the room context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for the given user in the room context
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
-    /*!
-     * \brief Get a disambiguated name for a user with this id in the room
-     * context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for a user with this id in the room
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
     /*!
@@ -552,7 +544,7 @@ public Q_SLOTS:
 
     QString postFile(const QString& plainText, EventContent::TypedBase* content);
 #if QT_VERSION_MAJOR < 6
-    /// \deprecated Use postFile(QString, MessageEventType, EventContent) instead
+    Q_DECL_DEPRECATED_X("Use postFile(QString, MessageEventType, EventContent)") //
     QString postFile(const QString& plainText, const QUrl& localPath,
                      bool asGenericFile = false);
 #endif
