@@ -70,7 +70,10 @@ public:
     };
     Q_ENUM(StatusCode)
 
-    using Data Q_DECL_DEPRECATED_X("Use Quotient::RequestData instead") //
+    using Data
+#ifndef Q_CC_MSVC
+        Q_DECL_DEPRECATED_X("Use Quotient::RequestData instead")
+#endif
         = RequestData;
 
     /*!
