@@ -138,15 +138,6 @@ public:
     explicit Connection(const QUrl& server, QObject* parent = nullptr);
     ~Connection() override;
 
-    /// Get all Invited and Joined rooms
-    /*!
-     * \return a hashmap from a composite key - room name and whether
-     *         it's an Invite rather than Join - to room pointers
-     * \sa allRooms, rooms, roomsWithTag
-     */
-    [[deprecated("Use allRooms(), roomsWithTag() or rooms(joinStates) instead")]]
-    QHash<QPair<QString, bool>, Room*> roomMap() const;
-
     /// Get all rooms known within this Connection
     /*!
      * This includes Invite, Join and Leave rooms, in no particular order.
@@ -524,30 +515,12 @@ public Q_SLOTS:
      */
     void assumeIdentity(const QString& mxId, const QString& accessToken,
                         const QString& deviceId);
-    /*! \deprecated Use loginWithPassword instead */
-    void connectToServer(const QString& userId, const QString& password,
-                         const QString& initialDeviceName,
-                         const QString& deviceId = {})
-    {
-        loginWithPassword(userId, password, initialDeviceName, deviceId);
-    }
-    /*! \deprecated
-     * Use assumeIdentity() if you have an access token or
-     * loginWithToken() if you have a login token.
-     */
-    void connectWithToken(const QString& userId, const QString& accessToken,
-                          const QString& deviceId)
-    {
-        assumeIdentity(userId, accessToken, deviceId);
-    }
     /// Explicitly request capabilities from the server
     void reloadCapabilities();
 
     /// Find out if capabilites are still loading from the server
     bool loadingCapabilities() const;
 
-    /** @deprecated Use stopSync() instead */
-    void disconnectFromServer() { stopSync(); }
     void logout();
 
     void sync(int timeout = -1);
@@ -662,24 +635,7 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
-    // Old API that will be abolished any time soon. DO NOT USE.
-
-    /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead
-     */
-    virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
-
 Q_SIGNALS:
-    /**
-     * @deprecated
-     * This was a signal resulting from a successful resolveServer().
-     * Since Connection now provides setHomeserver(), the HS URL
-     * may change even without resolveServer() invocation. Use
-     * loginFLowsChanged() instead of resolved(). You can also use
-     * loginWith*() and assumeIdentity() without the HS URL set in
-     * advance (i.e. without calling resolveServer), as they trigger
-     * server name resolution from MXID if the server URL is not valid.
-     */
-    void resolved();
     void resolveError(QString error);
 
     void homeserverChanged(QUrl baseUrl);
@@ -687,7 +643,6 @@ Q_SIGNALS:
     void capabilitiesLoaded();
 
     void connected();
-    void reconnected(); //< \deprecated Use connected() instead
     void loggedOut();
     /** Login data or state have changed
      *

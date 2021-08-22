@@ -52,8 +52,6 @@ public:
         IncorrectRequestError = IncorrectRequest,
         IncorrectResponse,
         IncorrectResponseError = IncorrectResponse,
-        JsonParseError //< \deprecated Use IncorrectResponse instead
-        = IncorrectResponse,
         TooManyRequests,
         TooManyRequestsError = TooManyRequests,
         RateLimited = TooManyRequests,
