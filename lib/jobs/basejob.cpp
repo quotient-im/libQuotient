@@ -71,8 +71,8 @@ public:
 
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-    Private(HttpVerb v, QString endpoint, const QUrlQuery& q, Data&& data,
-            bool nt)
+    Private(HttpVerb v, QString endpoint, const QUrlQuery& q,
+            RequestData&& data, bool nt)
         : verb(v)
         , apiEndpoint(std::move(endpoint))
         , requestQuery(q)
@@ -109,7 +109,7 @@ public:
     QString apiEndpoint;
     QHash<QByteArray, QByteArray> requestHeaders;
     QUrlQuery requestQuery;
-    Data requestData;
+    RequestData requestData;
     bool needsToken;
 
     bool inBackground = false;
@@ -168,11 +168,11 @@ public:
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
                  bool needsToken)
-    : BaseJob(verb, name, endpoint, QUrlQuery {}, Data {}, needsToken)
+    : BaseJob(verb, name, endpoint, QUrlQuery {}, RequestData {}, needsToken)
 {}
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                 const QUrlQuery &query, Data&& data, bool needsToken)
+                 const QUrlQuery& query, RequestData&& data, bool needsToken)
     : d(new Private(verb, endpoint, query, std::move(data), needsToken))
 {
     setObjectName(name);
@@ -224,9 +224,12 @@ void BaseJob::setRequestQuery(const QUrlQuery& query)
     d->requestQuery = query;
 }
 
-const BaseJob::Data& BaseJob::requestData() const { return d->requestData; }
+const RequestData& BaseJob::requestData() const { return d->requestData; }
 
-void BaseJob::setRequestData(Data&& data) { std::swap(d->requestData, data); }
+void BaseJob::setRequestData(RequestData&& data)
+{
+    std::swap(d->requestData, data);
+}
 
 const QByteArrayList& BaseJob::expectedContentTypes() const
 {
