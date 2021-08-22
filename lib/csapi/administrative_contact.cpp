@@ -89,7 +89,7 @@ RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(
                   % "/account/3pid/email/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }
 
 RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
@@ -99,5 +99,5 @@ RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
                   % "/account/3pid/msisdn/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }

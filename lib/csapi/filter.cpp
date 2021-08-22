@@ -13,7 +13,7 @@ DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
               QStringLiteral("/_matrix/client/r0") % "/user/" % userId
                   % "/filter")
 {
-    setRequestData(Data(toJson(filter)));
+    setRequestData(RequestData(toJson(filter)));
     addExpectedKey("filter_id");
 }
 
