@@ -590,9 +590,14 @@ JoinState Room::memberJoinState(User* user) const
                                                           : JoinState::Leave;
 }
 
-Membership Room::memberState(User* user) const
+Membership Room::memberState(const QString& userId) const
 {
-    return d->getCurrentState<RoomMemberEvent>(user->id())->membership();
+    return d->getCurrentState<RoomMemberEvent>(userId)->membership();
+}
+
+bool Room::isMember(const QString& userId) const
+{
+    return memberState(userId) == Membership::Join;
 }
 
 JoinState Room::joinState() const { return d->joinState; }
@@ -2698,11 +2703,10 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     et.start();
     if (auto* evt = eventCast<TypingEvent>(event)) {
         d->usersTyping.clear();
-        for (const auto& userId : evt->users()) {
-            auto u = user(userId);
-            if (memberJoinState(u) == JoinState::Join)
-                d->usersTyping.append(u);
-        }
+        for (const auto& userId : evt->users())
+            if (isMember(userId))
+                d->usersTyping.append(user(userId));
+
         if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
             qCDebug(PROFILER) << "*** Room::processEphemeralEvent(typing):"
                               << evt->users().size() << "users," << et;
@@ -2726,9 +2730,9 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
-                    auto u = user(r.userId);
-                    if (memberJoinState(u) == JoinState::Join)
-                        changes |= d->promoteReadMarker(u, newMarker);
+                    if (isMember(r.userId))
+                        changes |=
+                            d->promoteReadMarker(user(r.userId), newMarker);
                 }
             } else {
                 qCDebug(EPHEMERAL) << "Event" << p.evtId
@@ -2740,9 +2744,10 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 for (const Receipt& r : p.receipts) {
                     if (r.userId == connection()->userId())
                         continue; // FIXME, #185
+                    if (!isMember(r.userId))
+                        continue;
                     auto u = user(r.userId);
-                    if (memberJoinState(u) == JoinState::Join
-                        && readMarker(u) == historyEdge())
+                    if (readMarker(u) == historyEdge())
                         changes |= d->setLastReadEvent(u, p.evtId);
                 }
             }

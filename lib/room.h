@@ -240,13 +240,16 @@ public:
      *
      * \return Join if the user is a room member; Leave otherwise
      */
-    Q_DECL_DEPRECATED_X("Use memberState and check against the mask") //
+    Q_DECL_DEPRECATED_X("Use isMember() instead")
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
 
     //! \brief Check the join state of a given user in this room
     //!
     //! \return the given user's state with respect to the room
-    Q_INVOKABLE Quotient::Membership memberState(User* user) const;
+    Q_INVOKABLE Quotient::Membership memberState(const QString& userId) const;
+
+    //! Check whether a user with the given id is a member of the room
+    Q_INVOKABLE bool isMember(const QString& userId) const;
 
     //! \brief Get a display name (without disambiguation) for the given member
     //!
