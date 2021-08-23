@@ -93,8 +93,6 @@ QString User::name(const Room* room) const
     return room ? room->memberName(id()) : d->defaultName;
 }
 
-QString User::rawName(const Room* room) const { return name(room); }
-
 void User::rename(const QString& newName)
 {
     const auto actualNewName = sanitized(newName);
@@ -184,8 +182,6 @@ QString User::fullName(const Room* room) const
     const auto displayName = name(room);
     return displayName.isEmpty() ? id() : (displayName % " (" % id() % ')');
 }
-
-QString User::bridged() const { return {}; }
 
 const Avatar& User::avatarObject(const Room* room) const
 {

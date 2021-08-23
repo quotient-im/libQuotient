@@ -14,6 +14,6 @@ SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType,
               QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
                   % "/send/" % eventType % "/" % txnId)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
     addExpectedKey("event_id");
 }

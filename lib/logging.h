@@ -67,8 +67,6 @@ inline qint64 profilerMinNsecs()
         * 1000;
 }
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;
 
 inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {

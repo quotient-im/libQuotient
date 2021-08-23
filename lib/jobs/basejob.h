@@ -52,8 +52,6 @@ public:
         IncorrectRequestError = IncorrectRequest,
         IncorrectResponse,
         IncorrectResponseError = IncorrectResponse,
-        JsonParseError //< \deprecated Use IncorrectResponse instead
-        = IncorrectResponse,
         TooManyRequests,
         TooManyRequestsError = TooManyRequests,
         RateLimited = TooManyRequests,
@@ -72,7 +70,11 @@ public:
     };
     Q_ENUM(StatusCode)
 
-    using Data = RequestData;
+    using Data
+#ifndef Q_CC_MSVC
+        Q_DECL_DEPRECATED_X("Use Quotient::RequestData instead")
+#endif
+        = RequestData;
 
     /*!
      * This structure stores the status of a server call job. The status
@@ -125,7 +127,8 @@ public:
     BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
             bool needsToken = true);
     BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-            const QUrlQuery& query, Data&& data = {}, bool needsToken = true);
+            const QUrlQuery& query, RequestData&& data = {},
+            bool needsToken = true);
 
     QUrl requestUrl() const;
     bool isBackground() const;
@@ -330,8 +333,8 @@ protected:
     void setRequestHeaders(const headers_t& headers);
     const QUrlQuery& query() const;
     void setRequestQuery(const QUrlQuery& query);
-    const Data& requestData() const;
-    void setRequestData(Data&& data);
+    const RequestData& requestData() const;
+    void setRequestData(RequestData&& data);
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);

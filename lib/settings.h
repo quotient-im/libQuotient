@@ -131,8 +131,6 @@ class AccountSettings : public SettingsGroup {
     QTNT_DECLARE_SETTING(QString, deviceId, setDeviceId)
     QTNT_DECLARE_SETTING(QString, deviceName, setDeviceName)
     QTNT_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
-    /** \deprecated \sa setAccessToken */
-    Q_PROPERTY(QString accessToken READ accessToken WRITE setAccessToken)
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
                    WRITE setEncryptionAccountPickle)
 public:
@@ -147,11 +145,7 @@ public:
     QUrl homeserver() const;
     void setHomeserver(const QUrl& url);
 
-    /** \deprecated \sa setToken */
-    QString accessToken() const;
-    /** \deprecated Storing accessToken in QSettings is unsafe,
-     * see quotient-im/Quaternion#181 */
-    void setAccessToken(const QString& accessToken);
+    Q_DECL_DEPRECATED_X("Access tokens are not stored in QSettings any more")
     Q_INVOKABLE void clearAccessToken();
 
     QByteArray encryptionAccountPickle();

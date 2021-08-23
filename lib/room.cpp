@@ -1236,7 +1236,7 @@ QList<User*> Room::membersLeft() const { return d->membersLeft; }
 
 QList<User*> Room::users() const { return d->membersMap.values(); }
 
-[[deprecated]] QStringList Room::memberNames() const
+QStringList Room::memberNames() const
 {
     return safeMemberNames();
 }
@@ -1507,7 +1507,7 @@ QString Room::disambiguatedMemberName(const QString& mxId) const
 
 QString Room::safeMemberName(const QString& userId) const
 {
-    return sanitized(roomMembername(userId));
+    return sanitized(disambiguatedMemberName(userId));
 }
 
 QString Room::htmlSafeMemberName(const QString& userId) const

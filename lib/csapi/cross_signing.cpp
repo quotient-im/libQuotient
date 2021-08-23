@@ -30,5 +30,5 @@ UploadCrossSigningSignaturesJob::UploadCrossSigningSignaturesJob(
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadCrossSigningSignaturesJob"),
               QStringLiteral("/_matrix/client/r0") % "/keys/signatures/upload")
 {
-    setRequestData(Data(toJson(signatures)));
+    setRequestData(RequestData(toJson(signatures)));
 }

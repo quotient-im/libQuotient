@@ -100,10 +100,6 @@ public:
         visitor(_content);
         editJson()[ContentKeyL] = _content.toJson();
     }
-    [[deprecated("Use prevContent instead")]] const ContentT* prev_content() const
-    {
-        return prevContent();
-    }
     const ContentT* prevContent() const
     {
         return _prev ? &_prev->content : nullptr;

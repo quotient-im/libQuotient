@@ -44,7 +44,7 @@ RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(
                   % "/register/email/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }
 
 RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
@@ -54,7 +54,7 @@ RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
                   % "/register/msisdn/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }
 
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
@@ -78,7 +78,7 @@ RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
                   % "/account/password/email/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
@@ -89,7 +89,7 @@ RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
                   % "/account/password/msisdn/requestToken",
               false)
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }
 
 DeactivateAccountJob::DeactivateAccountJob(

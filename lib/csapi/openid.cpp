@@ -14,5 +14,5 @@ RequestOpenIdTokenJob::RequestOpenIdTokenJob(const QString& userId,
               QStringLiteral("/_matrix/client/r0") % "/user/" % userId
                   % "/openid/request_token")
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
 }

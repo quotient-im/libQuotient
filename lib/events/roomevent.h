@@ -14,7 +14,9 @@ class RedactionEvent;
 class RoomEvent : public Event {
     Q_GADGET
     Q_PROPERTY(QString id READ id)
-    Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
+    //! \deprecated Use originTimestamp instead
+    Q_PROPERTY(QDateTime timestamp READ originTimestamp CONSTANT)
+    Q_PROPERTY(QDateTime originTimestamp READ originTimestamp CONSTANT)
     Q_PROPERTY(QString roomId READ roomId CONSTANT)
     Q_PROPERTY(QString senderId READ senderId CONSTANT)
     Q_PROPERTY(QString redactionReason READ redactionReason)
@@ -32,9 +34,6 @@ public:
 
     QString id() const;
     QDateTime originTimestamp() const;
-    [[deprecated("Use originTimestamp()")]] QDateTime timestamp() const {
-        return originTimestamp();
-    }
     QString roomId() const;
     QString senderId() const;
     //! \brief Determine whether the event has been replaced

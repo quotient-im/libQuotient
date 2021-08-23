@@ -14,7 +14,7 @@ SetAccountDataJob::SetAccountDataJob(const QString& userId, const QString& type,
               QStringLiteral("/_matrix/client/r0") % "/user/" % userId
                   % "/account_data/" % type)
 {
-    setRequestData(Data(toJson(content)));
+    setRequestData(RequestData(toJson(content)));
 }
 
 QUrl GetAccountDataJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
@@ -39,7 +39,7 @@ SetAccountDataPerRoomJob::SetAccountDataPerRoomJob(const QString& userId,
               QStringLiteral("/_matrix/client/r0") % "/user/" % userId
                   % "/rooms/" % roomId % "/account_data/" % type)
 {
-    setRequestData(Data(toJson(content)));
+    setRequestData(RequestData(toJson(content)));
 }
 
 QUrl GetAccountDataPerRoomJob::makeRequestUrl(QUrl baseUrl,

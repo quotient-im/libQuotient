@@ -314,8 +314,6 @@ void Connection::resolveServer(const QString& mxid)
             setHomeserver(maybeBaseUrl);
         }
         Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
-        connect(d->loginFlowsJob, &BaseJob::success, this,
-                &Connection::resolved);
         connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
             qCWarning(MAIN) << "Homeserver base URL sanity check failed";
             emit resolveError(tr("The homeserver doesn't seem to be working"));
@@ -795,11 +793,6 @@ void Connection::stopSync()
 
 QString Connection::nextBatchToken() const { return d->data->lastEvent(); }
 
-PostReceiptJob* Connection::postReceipt(Room* room, RoomEvent* event)
-{
-    return callApi<PostReceiptJob>(room->id(), "m.read", event->id());
-}
-
 JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames)
 {
@@ -1237,20 +1230,6 @@ SyncJob* Connection::syncJob() const { return d->syncJob; }
 int Connection::millisToReconnect() const
 {
     return d->syncJob ? d->syncJob->millisToRetry() : 0;
-}
-
-QHash<QPair<QString, bool>, Room*> Connection::roomMap() const
-{
-    // Copy-on-write-and-remove-elements is faster than copying elements one by
-    // one.
-    QHash<QPair<QString, bool>, Room*> roomMap = d->roomMap;
-    for (auto it = roomMap.begin(); it != roomMap.end();) {
-        if (it.value()->joinState() == JoinState::Leave)
-            it = roomMap.erase(it);
-        else
-            ++it;
-    }
-    return roomMap;
 }
 
 QVector<Room*> Connection::allRooms() const

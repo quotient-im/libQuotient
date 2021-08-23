@@ -42,5 +42,3 @@ private:
     std::unique_ptr<Private> d;
 };
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;

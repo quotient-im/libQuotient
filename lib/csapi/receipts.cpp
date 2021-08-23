@@ -15,5 +15,5 @@ PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& receiptType
               QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
                   % "/receipt/" % receiptType % "/" % eventId)
 {
-    setRequestData(Data(toJson(receipt)));
+    setRequestData(RequestData(toJson(receipt)));
 }
