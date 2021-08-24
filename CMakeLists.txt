@@ -4,7 +4,7 @@ cmake_policy(SET CMP0092 NEW)
 endif()
 
 set(API_VERSION "0.6")
-project(Quotient VERSION "${API_VERSION}.7" LANGUAGES CXX)
+project(Quotient VERSION "${API_VERSION}.8" LANGUAGES CXX)
 
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest (former qmc-example) application" ON)
 # https://github.com/quotient-im/libQuotient/issues/369
