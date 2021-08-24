@@ -128,7 +128,14 @@ jobs:
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Configure libQuotient
-      run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+      run: |
+        if [[ '${{ runner.os }}' == 'Windows' ]]; then
+            BIN_DIR=.
+        else
+            BIN_DIR=bin
+        fi
+        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
+        cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
 
     - name: Regenerate API code
       if: matrix.update-api
@@ -137,7 +144,7 @@ jobs:
     - name: Build and install libQuotient
       run: |
         cmake --build build --target install
-        ls ~/.local/bin/quotest
+        ls ~/.local/$BIN_DIR/quotest
 
     - name: Run tests
       env:
