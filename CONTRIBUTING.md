@@ -24,8 +24,8 @@ For general discussion, feel free to use our Matrix room:
 [#quotient:matrix.org](https://matrix.to/#/#quotient:matrix.org).
 
 If you're new to the project (or FLOSS in general),
-[issues tagged as easy](https://github.com/quotient-im/libQuotient/labels/easy)
-are smaller tasks that don't require much knowledge about the project.
+[this is a list of good first issues](https://github.com/quotient-im/libQuotient/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+that don't require much knowledge about the project.
 You are welcome aboard!
 
 ### Pull requests and different branches recommended
@@ -317,7 +317,7 @@ some considerable time (200 microseconds by default, 20 microseconds for
 tighter parts). It's possible to override this limit library-wide by passing
 the new value (in microseconds) in `PROFILER_LOG_USECS` definition to
 the compiler; I don't think anybody ever used this facility. If you used it,
-and are reading this text - let me (`@kitsune`) know.
+and are reading this text - let me (`@kitsune:matrix.org`) know.
 
 ### Generated C++ code for CS API
 The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
@@ -350,11 +350,12 @@ that also briefly touches on GTAD.
    the official repo; it's recommended though to instead
    `git clone https://github.com/quotient-im/matrix-doc.git` - this repo closely
    follows the official one, with an additional guarantee that you can always
-   generate working Quotient code from its HEAD commit. And of course you
-   can use your own repository if you need to change the API definition.
+   generate working code for the main libQuotient branch from its HEAD commit.
+   And of course you can use your own repository if you need to change the API
+   definition.
 4. If you plan to submit a PR or just would like the generated code to be
    properly formatted, you should either ensure you have clang-format
-   (version 6 at least) in your PATH or pass the _absolute_ path to it by adding
+   (version 9 at least) in your PATH or pass the _absolute_ path to it by adding
    `-DCLANG_FORMAT=<absolute path>` to the CMake invocation below.
 
 #### Generating CS API contents
@@ -453,7 +454,7 @@ of Qt Creator). Most of clazy checks are relevant to our code, except:
 If you changed the API definitions, the path to upstream becomes somewhat
 intricate, as you have to coordinate with two projects, making up to 4 PRs along
 the way. The recommended sequence depends on whether or not you have to
-[write an Matrix Spec Change aka MSC](https://matrix.org/docs/spec/proposals).
+[write a Matrix Spec Change aka MSC](https://matrix.org/docs/spec/proposals).
 Usually you have to, unless your API changes keep API semantics intact.
 In that case:
 1. Submit an MSC before submitting changes to the API definition files and

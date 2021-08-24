@@ -137,13 +137,8 @@ the standard variables coming with CMake. On top of them, Quotient introduces:
   to get the contents of `#quotient:matrix.org`; this is being fixed in
   [#401](https://github.com/quotient-im/libQuotient/issues/401).
 - `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default - enable work-in-progress
-  E2EE code in the library. As of 0.6, this code is very incomplete and leaks
-  memory; only set this to `ON` if you want to help making this code work.
-  Switching this on will define `Quotient_E2EE_ENABLED` macro (note
-  the difference from the CMake switch) for compiler invocations on all
-  Quotient and Quotient-dependent (if it uses `find_package(Quotient 0.6)`)
-  code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code using
-  E2EE parts of Quotient.
+  E2EE code in the library. Do NOT use this: as of 0.6, the code is very
+  incomplete and leaks memory; 0.7 will have a different E2EE implementation.
 - `MATRIX_DOC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix
