@@ -156,8 +156,8 @@ public:
     {
         // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
         static const auto verbs =
-            to_array({ QStringLiteral("GET"), QStringLiteral("PUT"),
-                       QStringLiteral("POST"), QStringLiteral("DELETE") });
+            make_array(QStringLiteral("GET"), QStringLiteral("PUT"),
+                       QStringLiteral("POST"), QStringLiteral("DELETE"));
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % ' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
