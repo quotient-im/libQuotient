@@ -18,13 +18,21 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
+        platform: [ '' ]
         qt-version: [ '5.12.10' ]
+        qt-arch: [ '' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
+        include:
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
 
     steps:
     - uses: actions/checkout@v2
@@ -36,15 +44,16 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}-Qt${{ matrix.qt-version }}-cache
+        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
         version: ${{ matrix.qt-version }}
+        arch: ${{ matrix.qt-arch }}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Install Ninja (macOS)
+    - name: Install Ninja (macOS/Windows)
       if: ${{ !startsWith(matrix.os, 'ubuntu') }}
       uses: seanmiddleditch/gha-setup-ninja@v3
 
@@ -60,9 +69,13 @@ jobs:
             if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-9'; fi
             echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
             echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
-        else
+        elif [[ '${{ matrix.compiler }}' == 'Clang' ]]; then
             echo "CC=clang" >>$GITHUB_ENV
             echo "CXX=clang++" >>$GITHUB_ENV
+            if [[ '${{ runner.os }}' == 'Linux' ]]; then
+                # Do CodeQL analysis on one of Linux branches
+                echo "CODEQL_ANALYSIS=true" >>$GITHUB_ENV
+            fi
         fi
         if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
             VERSION="$(git describe --tags)"
@@ -75,6 +88,12 @@ jobs:
         echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
+
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      if: matrix.compiler == 'MSVC'
+      with:
+        arch: ${{ matrix.platform }}
 
     - name: Build and install olm
       if: matrix.e2ee
@@ -97,6 +116,16 @@ jobs:
                                      -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
+    
+    - name: Initialize CodeQL tools
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+        # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Configure libQuotient
       run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
@@ -117,3 +146,7 @@ jobs:
       run: |
         [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
+    
+    - name: Perform CodeQL analysis
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/analyze@v1
