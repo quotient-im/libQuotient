@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 
 # This CMakeLists file assumes that the library is installed to CMAKE_INSTALL_PREFIX
 # and ignores the in-tree library code. You can use this to start work on your own client.
