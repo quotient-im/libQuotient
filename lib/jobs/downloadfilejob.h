@@ -14,6 +14,9 @@ public:
     DownloadFileJob(const QString& serverName, const QString& mediaId,
                     const QString& localFilename = {});
 
+#ifdef Quotient_E2EE_ENABLED
+    DownloadFileJob(const QString& serverName, const QString& mediaId, const QString& key, const QString& iv, const QString& sha256, const QString& localFilename = {});
+#endif
     QString targetFileName() const;
 
 private:

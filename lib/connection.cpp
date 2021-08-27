@@ -1017,6 +1017,21 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
     return job;
 }
 
+#ifdef Quotient_E2EE_ENABLED
+DownloadFileJob* Connection::downloadFile(const QUrl& url,
+                                          const QString& key,
+                                          const QString& iv,
+                                          const QString& sha256,
+                                          const QString& localFilename)
+{
+    auto mediaId = url.authority() + url.path();
+    auto idParts = splitMediaId(mediaId);
+    auto* job =
+        callApi<DownloadFileJob>(idParts.front(), idParts.back(), key, iv, sha256, localFilename);
+    return job;
+}
+#endif
+
 CreateRoomJob*
 Connection::createRoom(RoomVisibility visibility, const QString& alias,
                        const QString& name, const QString& topic,

@@ -7,8 +7,25 @@
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>
 
-using namespace Quotient;
+#ifdef Quotient_E2EE_ENABLED
+#   include <QCryptographicHash>
+#   include <openssl/evp.h>
 
+QByteArray decrypt(const QByteArray &ciphertext, const QByteArray &key, const QByteArray &iv)
+{
+    QByteArray plaintext(ciphertext.size(), 0);
+    EVP_CIPHER_CTX *ctx;
+    int length;
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const unsigned char *)key.data(), (const unsigned char *)iv.data());
+    EVP_DecryptUpdate(ctx, (unsigned char *)plaintext.data(), &length, (const unsigned char *)ciphertext.data(), ciphertext.size());
+    EVP_DecryptFinal_ex(ctx, (unsigned char *)plaintext.data() + length, &length);
+    EVP_CIPHER_CTX_free(ctx);
+    return plaintext;
+}
+#endif
+
+using namespace Quotient;
 class DownloadFileJob::Private {
 public:
     Private() : tempFile(new QTemporaryFile()) {}
@@ -20,6 +37,12 @@ public:
 
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
+
+#ifdef Quotient_E2EE_ENABLED
+    QByteArray key;
+    QByteArray iv;
+    QByteArray sha256;
+#endif
 };
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
@@ -37,6 +60,23 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
+#ifdef Quotient_E2EE_ENABLED
+DownloadFileJob::DownloadFileJob(const QString& serverName,
+                                 const QString& mediaId,
+                                 const QString& key,
+                                 const QString& iv,
+                                 const QString& sha256,
+                                 const QString& localFilename)
+    : GetContentJob(serverName, mediaId)
+    , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
+{
+    setObjectName(QStringLiteral("DownloadFileJob"));
+    auto _key = key;
+    d->key = QByteArray::fromBase64(_key.replace(QLatin1Char('_'), QLatin1Char('/')).replace(QLatin1Char('-'), QLatin1Char('+')).toLatin1());
+    d->iv = QByteArray::fromBase64(iv.toLatin1());
+    d->sha256 = QByteArray::fromBase64(sha256.toLatin1());
+}
+#endif
 QString DownloadFileJob::targetFileName() const
 {
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
@@ -51,7 +91,7 @@ void DownloadFileJob::doPrepare()
         setStatus(FileError, "Could not open the target file for writing");
         return;
     }
-    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly)) {
+    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::ReadWrite)) {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the temporary download file");
@@ -99,18 +139,51 @@ void DownloadFileJob::beforeAbandon()
 BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
-        d->targetFile->close();
-        if (!d->targetFile->remove()) {
-            qCWarning(JOBS) << "Failed to remove the target file placeholder";
-            return { FileError, "Couldn't finalise the download" };
+#ifdef Quotient_E2EE_ENABLED
+        if(d->key.size() != 0) {
+            d->tempFile->seek(0);
+            QByteArray encrypted = d->tempFile->readAll();
+            if(d->sha256 != QCryptographicHash::hash(encrypted, QCryptographicHash::Sha256)) {
+                qCWarning(E2EE) << "Hash verification failed for file";
+                return IncorrectResponse;
+            }
+            auto decrypted = decrypt(encrypted, d->key, d->iv);
+            d->targetFile->write(decrypted);
+            d->targetFile->remove();
+        } else {
+#endif
+            d->targetFile->close();
+            if (!d->targetFile->remove()) {
+                qCWarning(JOBS) << "Failed to remove the target file placeholder";
+                return { FileError, "Couldn't finalise the download" };
+            }
+            if (!d->tempFile->rename(d->targetFile->fileName())) {
+                qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
+                                << "to" << d->targetFile->fileName();
+                return { FileError, "Couldn't finalise the download" };
+            }
+#ifdef Quotient_E2EE_ENABLED
         }
-        if (!d->tempFile->rename(d->targetFile->fileName())) {
-            qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
-                            << "to" << d->targetFile->fileName();
-            return { FileError, "Couldn't finalise the download" };
+#endif
+    } else {
+#ifdef Quotient_E2EE_ENABLED
+        if(d->key.size() != 0) {
+            d->tempFile->seek(0);
+            auto encrypted = d->tempFile->readAll();
+
+            if(d->sha256 != QCryptographicHash::hash(encrypted, QCryptographicHash::Sha256)) {
+                qCWarning(E2EE) << "Hash verification failed for file";
+                return IncorrectResponse;
+            }
+            auto decrypted = decrypt(encrypted, d->key, d->iv);
+            d->tempFile->write(decrypted);
+        } else {
+#endif
+            d->tempFile->close();
+#ifdef Quotient_E2EE_ENABLED
         }
-    } else
-        d->tempFile->close();
+#endif
+    }
     qCDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;
 }

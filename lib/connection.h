@@ -567,6 +567,11 @@ public Q_SLOTS:
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const QString& localFilename = {});
 
+#ifdef Quotient_E2EE_ENABLED
+    DownloadFileJob* downloadFile(const QUrl& url, const QString &key,
+                                  const QString& iv, const QString& sha256,
+                                  const QString& localFilename = {});
+#endif
     /**
      * \brief Create a room (generic method)
      * This method allows to customize room entirely to your liking,

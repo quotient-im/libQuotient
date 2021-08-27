@@ -852,6 +852,9 @@ public Q_SLOTS:
                     const QString& overrideContentType = {});
     // If localFilename is empty a temporary file is created
     void downloadFile(const QString& eventId, const QUrl& localFilename = {});
+#ifdef Quotient_E2EE_ENABLED
+    void downloadFile(const QString& eventId, const QString& key, const QString &iv, const QString &sha256, const QUrl& localFilename = {});
+#endif
     void cancelFileTransfer(const QString& id);
 
     //! \brief Set a given event as last read and post a read receipt on it
