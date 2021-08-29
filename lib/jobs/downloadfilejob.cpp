@@ -149,7 +149,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             }
             auto decrypted = decrypt(encrypted, d->key, d->iv);
             d->targetFile->write(decrypted);
-            d->targetFile->remove();
+            d->tempFile->remove();
         } else {
 #endif
             d->targetFile->close();

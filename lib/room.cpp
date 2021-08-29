@@ -2405,65 +2405,17 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         filePath = QDir::tempPath() % '/' % filePath;
         qDebug(MAIN) << "File path:" << filePath;
     }
-    auto job = connection()->downloadFile(fileUrl, filePath);
-    if (isJobPending(job)) {
-        // If there was a previous transfer (completed or failed), overwrite it.
-        d->fileTransfers[eventId] = { job, job->targetFileName() };
-        connect(job, &BaseJob::downloadProgress, this,
-                [this, eventId](qint64 received, qint64 total) {
-                    d->fileTransfers[eventId].update(received, total);
-                    emit fileTransferProgress(eventId, received, total);
-                });
-        connect(job, &BaseJob::success, this, [this, eventId, fileUrl, job] {
-            d->fileTransfers[eventId].status = FileTransferInfo::Completed;
-            emit fileTransferCompleted(
-                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()));
-        });
-        connect(job, &BaseJob::failure, this,
-                std::bind(&Private::failedTransfer, d, eventId,
-                          job->errorString()));
-    } else
-        d->failedTransfer(eventId);
-}
-
+    DownloadFileJob *job = nullptr;
 #ifdef Quotient_E2EE_ENABLED
-void Room::downloadFile(const QString& eventId, const QString& key, const QString& iv, const QString& sha256, const QUrl& localFilename)
-{
-    if (auto ongoingTransfer = d->fileTransfers.constFind(eventId);
-        ongoingTransfer != d->fileTransfers.cend()
-        && ongoingTransfer->status == FileTransferInfo::Started) {
-        qCWarning(MAIN) << "Transfer for" << eventId
-                        << "is ongoing; download won't start";
-        return;
+    if(fileInfo->file.has_value()) {
+        auto file = *fileInfo->file;
+        job = connection()->downloadFile(fileUrl, file.key.k, file.iv, file.hashes["sha256"], filePath);
+    } else {
+#endif
+    job = connection()->downloadFile(fileUrl, filePath);
+#ifdef Quotient_E2EE_ENABLED
     }
-
-    Q_ASSERT_X(localFilename.isEmpty() || localFilename.isLocalFile(),
-               __FUNCTION__, "localFilename should point at a local file");
-    const auto* event = d->getEventWithFile(eventId);
-    if (!event) {
-        qCCritical(MAIN)
-            << eventId << "is not in the local timeline or has no file content";
-        Q_ASSERT(false);
-        return;
-    }
-    if (!event->contentJson().contains(QStringLiteral("file"))) {
-        qCWarning(MAIN) << "Event" << eventId
-                        << "has an empty or malformed mxc URL; won't download";
-        return;
-    }
-    const auto fileUrl = QUrl(event->contentJson()["file"]["url"].toString());
-    auto filePath = localFilename.toLocalFile();
-    if (filePath.isEmpty()) { // Setup default file path
-        filePath =
-            fileUrl.path().mid(1) % '_' % d->fileNameToDownload(event);
-
-        if (filePath.size() > 200) // If too long, elide in the middle
-            filePath.replace(128, filePath.size() - 192, "---");
-
-        filePath = QDir::tempPath() % '/' % filePath;
-        qDebug(MAIN) << "File path:" << filePath;
-    }
-    auto job = connection()->downloadFile(fileUrl, key, iv, sha256, filePath);
+#endif
     if (isJobPending(job)) {
         // If there was a previous transfer (completed or failed), overwrite it.
         d->fileTransfers[eventId] = { job, job->targetFileName() };
@@ -2483,7 +2435,6 @@ void Room::downloadFile(const QString& eventId, const QString& key, const QStrin
     } else
         d->failedTransfer(eventId);
 }
-#endif
 
 void Room::cancelFileTransfer(const QString& id)
 {
