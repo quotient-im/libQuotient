@@ -260,7 +260,6 @@ public:
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
 {
-    d->encryptionManager = new EncryptionManager(this);
     d->q = this; // All d initialization should occur before this line
 }
 
