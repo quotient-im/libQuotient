@@ -121,6 +121,14 @@ jobs:
         cmake --build olm/build --target install
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
+    - name: Build and install QtKeychain
+      if: matrix.e2ee
+      run: |
+        cd ${{ runner.workspace }}
+        git clone https://github.com/frankosterfeld/qtkeychain.git
+        cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
+        cmake --build qtkeychain/build --target install
+
     - name: Pull CS API and build GTAD
       if: matrix.update-api
       run: |
