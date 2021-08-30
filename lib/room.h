@@ -85,6 +85,7 @@ class Room : public QObject {
     Q_PROPERTY(QStringList altAliases READ altAliases NOTIFY namesChanged)
     Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
+    Q_PROPERTY(QString displayNameForHtml READ displayNameForHtml NOTIFY displaynameChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
                    STORED false)
@@ -183,6 +184,7 @@ public:
     //! Get a list of both canonical and alternative aliases
     QStringList aliases() const;
     QString displayName() const;
+    QString displayNameForHtml() const;
     QString topic() const;
     QString avatarMediaId() const;
     QUrl avatarUrl() const;

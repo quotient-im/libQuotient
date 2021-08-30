@@ -549,6 +549,11 @@ QString Room::canonicalAlias() const
 
 QString Room::displayName() const { return d->displayname; }
 
+QString Room::displayNameForHtml() const
+{
+    return displayName().toHtmlEscaped();
+}
+
 void Room::refreshDisplayName() { d->updateDisplayname(); }
 
 QString Room::topic() const
