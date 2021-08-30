@@ -78,9 +78,8 @@ protected:
 
 class SettingsGroup : public Settings {
 public:
-    template <typename... ArgTs>
-    explicit SettingsGroup(QString path, ArgTs&&... qsettingsArgs)
-        : Settings(std::forward<ArgTs>(qsettingsArgs)...)
+    explicit SettingsGroup(QString path, QObject* parent = nullptr)
+        : Settings(parent)
         , groupPath(std::move(path))
     {}
 
@@ -134,10 +133,8 @@ class AccountSettings : public SettingsGroup {
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
                    WRITE setEncryptionAccountPickle)
 public:
-    template <typename... ArgTs>
-    explicit AccountSettings(const QString& accountId, ArgTs&&... qsettingsArgs)
-        : SettingsGroup("Accounts/" + accountId,
-                        std::forward<ArgTs>(qsettingsArgs)...)
+    explicit AccountSettings(const QString& accountId, QObject* parent = nullptr)
+        : SettingsGroup("Accounts/" + accountId, parent)
     {}
 
     QString userId() const;
