@@ -648,7 +648,9 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
+#ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
+#endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
     ///

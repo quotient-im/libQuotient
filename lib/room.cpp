@@ -466,6 +466,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
+#ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [=](){
         connection->encryptionUpdate(this);
     });
@@ -474,6 +475,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             connection->encryptionUpdate(this);
         }
     });
+#endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
 
