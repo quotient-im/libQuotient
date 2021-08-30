@@ -9,7 +9,7 @@
 
 namespace Quotient {
 class Room;
-class Connection;
+
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:

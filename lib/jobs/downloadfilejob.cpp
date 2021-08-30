@@ -9,20 +9,8 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #   include <QCryptographicHash>
-#   include <openssl/evp.h>
-
-QByteArray decrypt(const QByteArray &ciphertext, const QByteArray &key, const QByteArray &iv)
-{
-    QByteArray plaintext(ciphertext.size(), 0);
-    EVP_CIPHER_CTX *ctx;
-    int length;
-    ctx = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const unsigned char *)key.data(), (const unsigned char *)iv.data());
-    EVP_DecryptUpdate(ctx, (unsigned char *)plaintext.data(), &length, (const unsigned char *)ciphertext.data(), ciphertext.size());
-    EVP_DecryptFinal_ex(ctx, (unsigned char *)plaintext.data() + length, &length);
-    EVP_CIPHER_CTX_free(ctx);
-    return plaintext;
-}
+#   include "encryptionmanager.h"
+#   include "events/encryptedfile.h"
 #endif
 
 using namespace Quotient;
@@ -39,9 +27,7 @@ public:
     QScopedPointer<QFile> tempFile;
 
 #ifdef Quotient_E2EE_ENABLED
-    QByteArray key;
-    QByteArray iv;
-    QByteArray sha256;
+    Omittable<EncryptedFile> encryptedFile;
 #endif
 };
 
@@ -63,18 +49,13 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
 #ifdef Quotient_E2EE_ENABLED
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
-                                 const QString& key,
-                                 const QString& iv,
-                                 const QString& sha256,
+                                 const EncryptedFile file,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
     , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
 {
     setObjectName(QStringLiteral("DownloadFileJob"));
-    auto _key = key;
-    d->key = QByteArray::fromBase64(_key.replace(QLatin1Char('_'), QLatin1Char('/')).replace(QLatin1Char('-'), QLatin1Char('+')).toLatin1());
-    d->iv = QByteArray::fromBase64(iv.toLatin1());
-    d->sha256 = QByteArray::fromBase64(sha256.toLatin1());
+    d->encryptedFile = file;
 }
 #endif
 QString DownloadFileJob::targetFileName() const
@@ -140,14 +121,12 @@ BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
 #ifdef Quotient_E2EE_ENABLED
-        if(d->key.size() != 0) {
+        if (d->encryptedFile.has_value()) {
             d->tempFile->seek(0);
             QByteArray encrypted = d->tempFile->readAll();
-            if(d->sha256 != QCryptographicHash::hash(encrypted, QCryptographicHash::Sha256)) {
-                qCWarning(E2EE) << "Hash verification failed for file";
-                return IncorrectResponse;
-            }
-            auto decrypted = decrypt(encrypted, d->key, d->iv);
+
+            EncryptedFile file = *d->encryptedFile;
+            auto decrypted = EncryptionManager::decryptFile(encrypted, &file);
             d->targetFile->write(decrypted);
             d->tempFile->remove();
         } else {
@@ -167,15 +146,12 @@ BaseJob::Status DownloadFileJob::prepareResult()
 #endif
     } else {
 #ifdef Quotient_E2EE_ENABLED
-        if(d->key.size() != 0) {
+        if (d->encryptedFile.has_value()) {
             d->tempFile->seek(0);
             auto encrypted = d->tempFile->readAll();
 
-            if(d->sha256 != QCryptographicHash::hash(encrypted, QCryptographicHash::Sha256)) {
-                qCWarning(E2EE) << "Hash verification failed for file";
-                return IncorrectResponse;
-            }
-            auto decrypted = decrypt(encrypted, d->key, d->iv);
+            EncryptedFile file = *d->encryptedFile;
+            auto decrypted = EncryptionManager::decryptFile(encrypted, &file);
             d->tempFile->write(decrypted);
         } else {
 #endif

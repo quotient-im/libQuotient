@@ -568,8 +568,7 @@ public Q_SLOTS:
                                   const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob* downloadFile(const QUrl& url, const QString &key,
-                                  const QString& iv, const QString& sha256,
+    DownloadFileJob* downloadFile(const QUrl& url, const EncryptedFile file,
                                   const QString& localFilename = {});
 #endif
     /**

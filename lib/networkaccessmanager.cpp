@@ -12,6 +12,12 @@
 #include <QtCore/QThreadStorage>
 #include <QtCore/QSettings>
 #include <QtNetwork/QNetworkReply>
+#include "accountregistry.h"
+#include "mxcreply.h"
+#include "connection.h"
+#include "events/eventcontent.h"
+
+#include "room.h"
 
 using namespace Quotient;
 

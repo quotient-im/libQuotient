@@ -2409,7 +2409,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 #ifdef Quotient_E2EE_ENABLED
     if(fileInfo->file.has_value()) {
         auto file = *fileInfo->file;
-        job = connection()->downloadFile(fileUrl, file.key.k, file.iv, file.hashes["sha256"], filePath);
+        job = connection()->downloadFile(fileUrl, file, filePath);
     } else {
 #endif
     job = connection()->downloadFile(fileUrl, filePath);

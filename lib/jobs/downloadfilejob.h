@@ -4,6 +4,7 @@
 #pragma once
 
 #include "csapi/content-repo.h"
+#include "events/encryptedfile.h"
 
 namespace Quotient {
 class DownloadFileJob : public GetContentJob {
@@ -15,7 +16,7 @@ public:
                     const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob(const QString& serverName, const QString& mediaId, const QString& key, const QString& iv, const QString& sha256, const QString& localFilename = {});
+    DownloadFileJob(const QString& serverName, const QString& mediaId, const EncryptedFile file, const QString& localFilename = {});
 #endif
     QString targetFileName() const;
 
