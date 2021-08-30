@@ -633,6 +633,7 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
+    void encryptionUpdate(Room *room);
 Q_SIGNALS:
     void resolveError(QString error);
 
