@@ -318,4 +318,9 @@ qreal stringToHueF(const QString& s);
 
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
+
+QString versionString();
+int majorVersion();
+int minorVersion();
+int patchVersion();
 } // namespace Quotient

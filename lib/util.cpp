@@ -119,6 +119,26 @@ QString Quotient::serverPart(const QString& mxId)
     return parser.match(mxId).captured(1);
 }
 
+QString Quotient::versionString()
+{
+    return QStringLiteral(Quotient_VERSION_STRING);
+}
+
+int Quotient::majorVersion()
+{
+    return Quotient_VERSION_MAJOR;
+}
+
+int Quotient::minorVersion()
+{
+    return Quotient_VERSION_MINOR;
+}
+
+int Quotient::patchVersion()
+{
+    return Quotient_VERSION_PATCH;
+}
+
 // Tests for function_traits<>
 
 using namespace Quotient;
