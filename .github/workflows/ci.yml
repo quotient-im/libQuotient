@@ -33,6 +33,12 @@ jobs:
           platform: x64
           qt-version: '5.12.10'
           qt-arch: win64_msvc2017_64
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
+          update-api: update-api
 
     steps:
     - uses: actions/checkout@v2
