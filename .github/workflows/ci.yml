@@ -104,7 +104,7 @@ jobs:
     - name: Build and install olm
       if: matrix.e2ee
       run: |
-        cd ${{ runner.workspace }}
+        cd ..
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         cmake -S olm -B olm/build $CMAKE_ARGS
         cmake --build olm/build --target install
@@ -113,13 +113,13 @@ jobs:
     - name: Pull CS API and build GTAD
       if: matrix.update-api
       run: |
-        cd ${{ runner.workspace }}
+        cd ..
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        cmake -S gtad -B gtad $CMAKE_ARGS
+        cmake -S gtad -B gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
         cmake --build gtad
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
-                                     -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=$GITHUB_WORKSPACE/../matrix-doc \
+                                     -DGTAD_PATH=$GITHUB_WORKSPACE/../gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
     
