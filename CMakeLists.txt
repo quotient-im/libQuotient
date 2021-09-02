@@ -177,7 +177,7 @@ set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
 if (GTAD_PATH AND MATRIX_DOC_PATH)
-    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
+    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" PROGRAM PROGRAM_ARGS GTAD_ARGS)
     if (EXISTS ${ABS_GTAD_PATH})
         get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/data/api" REALPATH)
         if (NOT IS_DIRECTORY ${ABS_API_DEF_PATH})
@@ -199,7 +199,7 @@ if (API_GENERATION_ENABLED)
     if (NOT CLANG_FORMAT)
         set(CLANG_FORMAT clang-format)
     endif()
-    get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM)
+    get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM PROGRAM_ARGS CLANG_FORMAT_ARGS)
     if (ABS_CLANG_FORMAT)
         set(API_FORMATTING_ENABLED 1)
         message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
@@ -228,6 +228,7 @@ if (API_GENERATION_ENABLED)
             old_sync.yaml- room_initial_sync.yaml- # deprecated
             key_backup.yaml- # immature and buggy in terms of API definition
             sync.yaml- # we have a better handcrafted implementation
+            ${GTAD_ARGS}
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
         SOURCES gtad/gtad.yaml
                 gtad/data.h.mustache

@@ -10,22 +10,17 @@
 namespace Quotient {
 Q_NAMESPACE
 
-namespace impl {
-    template <class T, std::size_t N, std::size_t... I>
-    constexpr std::array<std::remove_cv_t<T>, N>
-        to_array_impl(T (&&a)[N], std::index_sequence<I...>)
-    {
-        return { {std::move(a[I])...} };
-    }
-}
 // std::array {} needs explicit template parameters on macOS because
-// Apple stdlib doesn't have deduction guides for std::array; to alleviate that,
-// to_array() is borrowed from C++20 (thanks to cppreference for the possible
-// implementation: https://en.cppreference.com/w/cpp/container/array/to_array)
-template <typename T, size_t N>
-constexpr auto to_array(T (&& items)[N])
+// Apple stdlib doesn't have deduction guides for std::array. C++20 has
+// to_array() but that can't be borrowed, this time because of MSVC:
+// https://developercommunity.visualstudio.com/t/vc-ice-p1-initc-line-3652-from-stdto-array/1464038
+// Therefore a simpler (but also slightly more wobbly - it resolves the element
+// type using std::common_type<>) make_array facility is implemented here.
+template <typename... Ts>
+constexpr auto make_array(Ts&&... items)
 {
-    return impl::to_array_impl(std::move(items), std::make_index_sequence<N>{});
+    return std::array<std::common_type_t<Ts...>, sizeof...(items)>(
+        { std::forward<Ts>(items)... });
 }
 
 // TODO: code like this should be generated from the CS API definition
@@ -49,9 +44,9 @@ enum class Membership : unsigned int {
 Q_DECLARE_FLAGS(MembershipMask, Membership)
 Q_FLAG_NS(MembershipMask)
 
-constexpr inline auto MembershipStrings = to_array(
+constexpr inline auto MembershipStrings = make_array(
     // The order MUST be the same as the order in the original enum
-    { "join", "leave", "invite", "knock", "ban" });
+    "join", "leave", "invite", "knock", "ban");
 
 //! \brief Local user join-state names
 //!
@@ -68,10 +63,10 @@ enum class JoinState : std::underlying_type_t<Membership> {
 Q_DECLARE_FLAGS(JoinStates, JoinState)
 Q_FLAG_NS(JoinStates)
 
-constexpr inline auto JoinStateStrings = to_array({
+constexpr inline auto JoinStateStrings = make_array(
     MembershipStrings[0], MembershipStrings[1], MembershipStrings[2],
     MembershipStrings[3] /* same as MembershipStrings, sans "ban" */
-});
+);
 
 //! \brief Network job running policy flags
 //!
