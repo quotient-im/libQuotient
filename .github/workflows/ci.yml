@@ -72,16 +72,17 @@ jobs:
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-            if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-9'; fi
-            echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
-            echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
+            CXX_VERSION_POSTFIX='-10'
+            echo "CC=gcc$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=g++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
         elif [[ '${{ matrix.compiler }}' == 'Clang' ]]; then
-            echo "CC=clang" >>$GITHUB_ENV
-            echo "CXX=clang++" >>$GITHUB_ENV
             if [[ '${{ runner.os }}' == 'Linux' ]]; then
+                CXX_VERSION_POSTFIX='-11'
                 # Do CodeQL analysis on one of Linux branches
                 echo "CODEQL_ANALYSIS=true" >>$GITHUB_ENV
             fi
+            echo "CC=clang$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=clang++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
         fi
         if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
             VERSION="$(git describe --tags)"
