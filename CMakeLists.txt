@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+# Officially CMake 3.16+ is needed but LGTM.com still sits on eoan that only
+# has CMake 3.13
+cmake_minimum_required(VERSION 3.13)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -207,15 +209,14 @@ if (API_GENERATION_ENABLED)
         message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
     endif ()
 
-    if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12.0")
-        # We use globbing with CONFIGURE_DEPENDS to produce two file lists:
-        # one of all API files for clang-format and another of just .cpp
-        # files to supply for library source files. Since we expect these
-        # file lists to only change due to GTAD invocation, we only use
-        # CONFIGURE_DEPENDS when pre-requisites to update API are met.
-        # Read comments next to each file(GLOB_RECURSE) for caveats.
-        set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
-    endif()
+    # We use globbing with CONFIGURE_DEPENDS to produce two file lists:
+    # one of all API files for clang-format and another of just .cpp
+    # files to supply for library source files. Since we expect these
+    # file lists to only change due to GTAD invocation, we only use
+    # CONFIGURE_DEPENDS when pre-requisites to update API are met.
+    # Read comments next to each file(GLOB_RECURSE) for caveats.
+    set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
+
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${FULL_CSAPI_SRC_DIR}/*.yaml
@@ -280,14 +281,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS QT
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
     ${PROJECT_NAME}_VERSION_MINOR=${PROJECT_VERSION_MINOR} ${PROJECT_NAME}_VERSION_PATCH=${PROJECT_VERSION_PATCH}
     ${PROJECT_NAME}_VERSION_STRING=\"${PROJECT_VERSION}\")
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
-        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
-    target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
-endif ()
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 20
+    CXX_EXTENSIONS OFF
     VERSION "${PROJECT_VERSION}"
     SOVERSION ${API_VERSION}
     INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${API_VERSION}
@@ -295,7 +294,15 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
              COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
 
+# C++17 required, C++20 desired (see above)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
+# TODO: Bump the CMake requirement and drop the version check here once
+# LGTM upgrades
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
+        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
+    target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
+endif ()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
