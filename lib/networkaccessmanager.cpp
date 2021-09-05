@@ -5,6 +5,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QThreadStorage>
 #include "accountregistry.h"
 #include "mxcreply.h"
 #include "connection.h"
@@ -52,8 +53,11 @@ static NetworkAccessManager* createNam()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
-    static auto* nam = createNam();
-    return nam;
+    static QThreadStorage<NetworkAccessManager *> storage;
+    if(!storage.hasLocalData()) {
+        storage.setLocalData(createNam());
+    }
+    return storage.localData();
 }
 
 NetworkAccessManager::~NetworkAccessManager() = default;
