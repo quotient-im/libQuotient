@@ -23,6 +23,7 @@ MxcReply::MxcReply(QNetworkReply* reply)
     d->m_reply = reply;
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
+        setOpenMode(ReadOnly);
         Q_EMIT finished();
     });
 }
@@ -34,6 +35,7 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     d->m_reply = reply;
     connect(d->m_reply, &QNetworkReply::finished, this, [this, eventId]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
+        setOpenMode(ReadOnly);
         Q_EMIT finished();
     });
 }
