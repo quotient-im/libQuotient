@@ -12,6 +12,7 @@
 namespace Quotient {
 class Connection;
 class QOlmAccount;
+struct EncryptedFile;
 
 class EncryptionManager : public QObject {
     Q_OBJECT
@@ -21,6 +22,7 @@ public:
     ~EncryptionManager();
     QString sessionDecryptMessage(const QJsonObject& personalCipherObject,
                                   const QByteArray& senderKey, std::unique_ptr<QOlmAccount>& account);
+    static QByteArray decryptFile(const QByteArray &ciphertext, EncryptedFile* encryptedFile);
 
 private:
     class Private;
