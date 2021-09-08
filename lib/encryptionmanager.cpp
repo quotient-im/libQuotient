@@ -7,11 +7,13 @@
 
 #include "connection.h"
 #include "crypto/e2ee.h"
+#include "events/encryptedfile.h"
 
 #include "csapi/keys.h"
 
 #include <QtCore/QHash>
 #include <QtCore/QStringBuilder>
+#include <QtCore/QCryptographicHash>
 
 #include "crypto/qolmaccount.h"
 #include "crypto/qolmsession.h"
@@ -20,6 +22,8 @@
 #include "crypto/qolmutils.h"
 #include <functional>
 #include <memory>
+
+#include <openssl/evp.h>
 
 using namespace Quotient;
 using std::move;
@@ -118,5 +122,25 @@ QString EncryptionManager::sessionDecryptMessage(
         decrypted = d->sessionDecryptGeneral(message, senderKey);
     }
     return decrypted;
+}
+
+QByteArray EncryptionManager::decryptFile(const QByteArray &ciphertext, EncryptedFile* file)
+{
+    const auto key = QByteArray::fromBase64(file->key.k.replace(QLatin1Char('_'), QLatin1Char('/')).replace(QLatin1Char('-'), QLatin1Char('+')).toLatin1());
+    const auto iv =  QByteArray::fromBase64(file->iv.toLatin1());
+    const auto sha256 = QByteArray::fromBase64(file->hashes["sha256"].toLatin1());
+    if(sha256 != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
+        qCWarning(E2EE) << "Hash verification failed for file";
+        return QByteArray();
+    }
+    QByteArray plaintext(ciphertext.size(), 0);
+    EVP_CIPHER_CTX *ctx;
+    int length;
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, (const unsigned char *)key.data(), (const unsigned char *)iv.data());
+    EVP_DecryptUpdate(ctx, (unsigned char *)plaintext.data(), &length, (const unsigned char *)ciphertext.data(), ciphertext.size());
+    EVP_DecryptFinal_ex(ctx, (unsigned char *)plaintext.data() + length, &length);
+    EVP_CIPHER_CTX_free(ctx);
+    return plaintext;
 }
 #endif // Quotient_E2EE_ENABLED
