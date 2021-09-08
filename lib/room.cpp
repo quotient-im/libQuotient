@@ -701,23 +701,24 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     if (fullyReadMarker < from)
         return NoChange; // What's arrived is already fully read
 
+    // If there's no read marker in the whole room, initialise it
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
-        --fullyReadMarker; // No read marker in the whole room, initialise it
-    if (fullyReadMarker < to) {
-        // Catch a special case when the last fully read event id refers to an
-        // event that has just arrived. In this case we should recalculate
-        // unreadMessages to get an exact number instead of an estimation
-        // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
-        // For the same reason (switching from the estimation to the exact
-        // number) this branch always emits unreadMessagesChanged() and returns
-        // UnreadNotifsChange, even if the estimation luckily matched the exact
-        // result.
-        return recalculateUnreadCount(true);
-    }
+        return setFullyReadMarker(timeline.front()->id());
 
-    // Fully read marker is somewhere beyond the most historical message from
-    // the arrived batch - add up newly arrived messages to the current counter,
-    // instead of a complete recalculation.
+    // Catch a special case when the last fully read event id refers to an
+    // event that has just arrived. In this case we should recalculate
+    // unreadMessages to get an exact number instead of an estimation
+    // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
+    // For the same reason (switching from the estimation to the exact
+    // number) this branch always emits unreadMessagesChanged() and returns
+    // UnreadNotifsChange, even if the estimation luckily matched the exact
+    // result.
+    if (fullyReadMarker < to)
+        return recalculateUnreadCount(true);
+
+    // At this point the fully read marker is somewhere beyond the "oldest"
+    // message from the arrived batch - add up newly arrived messages to
+    // the current counter, instead of a complete recalculation.
     Q_ASSERT(to <= fullyReadMarker);
 
     QElapsedTimer et;
@@ -786,7 +787,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
 
     const auto prevFullyReadId = std::exchange(fullyReadUntilEventId, eventId);
     qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
-                      << "moved to" << fullyReadUntilEventId;
+                      << "set to" << fullyReadUntilEventId;
     emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
 
     Changes changes = ReadMarkerChange;
