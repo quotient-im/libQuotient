@@ -712,7 +712,8 @@ Q_SIGNALS:
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
     void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
     void fileTransferFailed(QString id, QString errorMessage = {});
-    void fileTransferCancelled(QString id);
+    // fileTransferCancelled() is no more here; use fileTransferFailed() and
+    // check the transfer status instead
 
     void callEvent(Quotient::Room* room, const Quotient::RoomEvent* event);
 

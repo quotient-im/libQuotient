@@ -1708,6 +1708,12 @@ QString Room::retryMessage(const QString& txnId)
     return d->doSendEvent(it->event());
 }
 
+// Lambda defers actual tr() invocation to the moment when translations are
+// initialised
+const auto FileTransferCancelledMsg = [] {
+    return Room::tr("File transfer cancelled");
+};
+
 void Room::discardMessage(const QString& txnId)
 {
     auto it = std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
@@ -1722,7 +1728,7 @@ void Room::discardMessage(const QString& txnId)
         if (isJobPending(transferIt->job)) {
             transferIt->status = FileTransferInfo::Cancelled;
             transferIt->job->abandon();
-            emit fileTransferFailed(txnId, tr("File upload cancelled"));
+            emit fileTransferFailed(txnId, FileTransferCancelledMsg());
         } else if (transferIt->status == FileTransferInfo::Completed) {
             qCWarning(MAIN)
                 << "File for transaction" << txnId
@@ -1790,7 +1796,7 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
                                        "cancelled";
                 }
             });
-    connect(q, &Room::fileTransferCancelled, transferJob,
+    connect(q, &Room::fileTransferFailed, transferJob,
             [this, txnId](const QString& tId) {
                 if (tId != txnId)
                     return;
@@ -2079,16 +2085,16 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
 
 void Room::cancelFileTransfer(const QString& id)
 {
-    const auto it = d->fileTransfers.constFind(id);
-    if (it == d->fileTransfers.cend()) {
+    const auto it = d->fileTransfers.find(id);
+    if (it == d->fileTransfers.end()) {
         qCWarning(MAIN) << "No information on file transfer" << id << "in room"
                         << d->id;
         return;
     }
     if (isJobPending(it->job))
         it->job->abandon();
-    d->fileTransfers.remove(id);
-    emit fileTransferCancelled(id);
+    it->status = FileTransferInfo::Cancelled;
+    emit fileTransferFailed(id, FileTransferCancelledMsg());
 }
 
 void Room::Private::dropDuplicateEvents(RoomEvents& events) const
