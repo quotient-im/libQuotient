@@ -53,7 +53,7 @@ static NetworkAccessManager* createNam()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
-    static QThreadStorage<NetworkAccessManager *> storage;
+    static QThreadStorage<NetworkAccessManager*> storage;
     if(!storage.hasLocalData()) {
         storage.setLocalData(createNam());
     }
