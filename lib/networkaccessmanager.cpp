@@ -69,7 +69,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
         const auto fragment = request.url().fragment();
         const auto fragmentParts = fragment.split(QLatin1Char('/'));
         const auto mediaId = request.url().toString(QUrl::RemoveScheme | QUrl::RemoveFragment);
-        if(fragmentParts.size() == 3) {
+        if (fragmentParts.size() == 3) {
             auto connection = AccountRegistry::instance().get(fragmentParts[0]);
             if(!connection) {
                 qWarning() << "Connection not found";
