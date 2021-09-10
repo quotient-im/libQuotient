@@ -4,6 +4,7 @@
 #include "mxcreply.h"
 
 #include <QtCore/QBuffer>
+#include <QtCore/QTimer>
 #include "connection.h"
 #include "room.h"
 #include "networkaccessmanager.h"
@@ -36,6 +37,20 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     connect(d->m_reply, &QNetworkReply::finished, this, [this, eventId]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
         setOpenMode(ReadOnly);
+        Q_EMIT finished();
+    });
+}
+
+MxcReply::MxcReply()
+{
+    QTimer::singleShot(0, this, [this](){
+        setError(QNetworkReply::ProtocolInvalidOperationError, QStringLiteral("Invalid Request"));
+        setFinished(true);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        Q_EMIT errorOccurred(QNetworkReply::ProtocolInvalidOperationError);
+#else
+        Q_EMIT error(QNetworkReply::ProtocolInvalidOperationError);
+#endif
         Q_EMIT finished();
     });
 }

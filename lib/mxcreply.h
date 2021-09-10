@@ -14,6 +14,7 @@ class MxcReply : public QNetworkReply
 public:
     MxcReply(QNetworkReply* reply, Room* room, const QString &eventId);
     MxcReply(QNetworkReply* reply);
+    MxcReply();
 
     bool isSequential() const override;
 

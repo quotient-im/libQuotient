@@ -73,12 +73,12 @@ QNetworkReply* NetworkAccessManager::createRequest(
             auto connection = AccountRegistry::instance().get(fragmentParts[0]);
             if(!connection) {
                 qWarning() << "Connection not found";
-                return nullptr;
+                return new MxcReply();
             }
             auto room = connection->room(fragmentParts[1]);
             if(!room) {
                 qWarning() << "Room not found";
-                return nullptr;
+                return new MxcReply();
             }
             QNetworkRequest r(request);
             r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2").arg(connection->homeserver().toString(), mediaId)));
@@ -88,7 +88,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             auto connection = AccountRegistry::instance().get(fragment);
             if(!connection) {
                 qWarning() << "Connection not found";
-                return nullptr;
+                return new MxcReply();
             }
             QNetworkRequest r(request);
             r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2").arg(connection->homeserver().toString(), mediaId)));
@@ -96,7 +96,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             return new MxcReply(reply);
         } else {
             qWarning() << "Invalid request";
-            return nullptr;
+            return new MxcReply();
         }
     }
     auto reply = QNetworkAccessManager::createRequest(op, request, outgoingData);
