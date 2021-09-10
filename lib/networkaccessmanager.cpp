@@ -70,7 +70,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
         const auto fragmentParts = fragment.split(QLatin1Char('/'));
         const auto mediaId = request.url().toString(QUrl::RemoveScheme | QUrl::RemoveFragment);
         if (fragmentParts.size() == 3) {
-            auto connection = AccountRegistry::instance().get(fragmentParts[0]);
+            auto connection = AccountRegistry::instance().get(QUrl::fromPercentEncoding(fragmentParts[0].toLatin1()));
             if(!connection) {
                 qWarning() << "Connection not found";
                 return new MxcReply();
@@ -83,7 +83,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             QNetworkRequest r(request);
             r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2").arg(connection->homeserver().toString(), mediaId)));
             auto reply = createRequest(QNetworkAccessManager::GetOperation, r);
-            return new MxcReply(reply, room, fragmentParts[2]);
+            return new MxcReply(reply, room, QUrl::fromPercentEncoding(fragmentParts[2].toLatin1()));
         } else if(fragmentParts.size() == 1) {
             auto connection = AccountRegistry::instance().get(fragment);
             if(!connection) {
@@ -113,10 +113,10 @@ QStringList NetworkAccessManager::supportedSchemesImplementation() const
 
 QUrl NetworkAccessManager::urlForRoomEvent(Room *room, const QString &eventId, const QString &mediaId)
 {
-    return QUrl(QStringLiteral("mxc:%1#%2/%3/%4").arg(mediaId, room->connection()->userId(), room->id(), eventId));
+    return QUrl(QStringLiteral("mxc:%1#%2/%3/%4").arg(mediaId, QString(QUrl::toPercentEncoding(room->connection()->userId())), room->id(), QString(QUrl::toPercentEncoding(eventId))));
 }
 
 QUrl NetworkAccessManager::urlForFile(Connection *connection, const QString &mediaId)
 {
-    return QUrl(QStringLiteral("mxc:%1#%2").arg(mediaId, connection->userId()));
+    return QUrl(QStringLiteral("mxc:%1#%2").arg(mediaId, QString(QUrl::toPercentEncoding(connection->userId()))));
 }
