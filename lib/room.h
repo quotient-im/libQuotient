@@ -458,6 +458,9 @@ public:
     /// Get the list of users this room is a direct chat with
     QList<User*> directChatUsers() const;
 
+    Q_INVOKABLE QUrl makeMediaUrl(const QString& eventId,
+                                  const QUrl &mxcUrl) const;
+
     Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
     Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
 

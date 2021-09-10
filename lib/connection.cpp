@@ -836,6 +836,15 @@ inline auto splitMediaId(const QString& mediaId)
     return idParts;
 }
 
+QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
+{
+    Q_ASSERT(mxcUrl.scheme() == "mxc");
+    QUrlQuery q(mxcUrl.query());
+    q.addQueryItem(QStringLiteral("user_id"), userId());
+    mxcUrl.setQuery(q);
+    return mxcUrl;
+}
+
 MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,
                                             QSize requestedSize,
                                             RunningPolicy policy)

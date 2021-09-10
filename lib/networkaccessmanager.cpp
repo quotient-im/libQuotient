@@ -3,24 +3,43 @@
 
 #include "networkaccessmanager.h"
 
-#include <QtCore/QCoreApplication>
-#include <QtNetwork/QNetworkReply>
-#include <QtCore/QThreadStorage>
+#include "connection.h"
+#include "room.h"
 #include "accountregistry.h"
 #include "mxcreply.h"
-#include "connection.h"
 
-#include "room.h"
+#include <QtCore/QCoreApplication>
+#include <QtCore/QThreadStorage>
+#include <QtCore/QSettings>
+#include <QtNetwork/QNetworkReply>
 
 using namespace Quotient;
 
 class NetworkAccessManager::Private {
 public:
+    explicit Private(NetworkAccessManager* q)
+        : q(q)
+    {}
+
+    QNetworkReply* createImplRequest(Operation op,
+                                     const QNetworkRequest& outerRequest,
+                                     Connection* connection)
+    {
+        Q_ASSERT(outerRequest.url().scheme() == "mxc");
+        QNetworkRequest r(outerRequest);
+        r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2")
+                          .arg(connection->homeserver().toString(),
+                               outerRequest.url().authority()
+                                   + outerRequest.url().path())));
+        return q->createRequest(op, r);
+    }
+
+    NetworkAccessManager* q;
     QList<QSslError> ignoredSslErrors;
 };
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent), d(std::make_unique<Private>())
+    : QNetworkAccessManager(parent), d(std::make_unique<Private>(this))
 {}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
@@ -54,6 +73,8 @@ static NetworkAccessManager* createNam()
 NetworkAccessManager* NetworkAccessManager::instance()
 {
     static QThreadStorage<NetworkAccessManager*> storage;
+    // FIXME: createNam() returns an object parented to
+    // QCoreApplication::instance() that lives in the main thread
     if(!storage.hasLocalData()) {
         storage.setLocalData(createNam());
     }
@@ -65,38 +86,38 @@ NetworkAccessManager::~NetworkAccessManager() = default;
 QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
-    if(request.url().scheme() == QStringLiteral("mxc")) {
-        const auto fragment = request.url().fragment();
-        const auto fragmentParts = fragment.split(QLatin1Char('/'));
-        const auto mediaId = request.url().toString(QUrl::RemoveScheme | QUrl::RemoveFragment);
-        if (fragmentParts.size() == 3) {
-            auto connection = AccountRegistry::instance().get(QUrl::fromPercentEncoding(fragmentParts[0].toLatin1()));
-            if(!connection) {
-                qWarning() << "Connection not found";
+    const auto& mxcUrl = request.url();
+    if (mxcUrl.scheme() == "mxc") {
+        const QUrlQuery query(mxcUrl.query());
+        const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
+        if (accountId.isEmpty()) {
+            // Using QSettings here because Quotient::NetworkSettings
+            // doesn't provide multithreading guarantees
+            static thread_local QSettings s;
+            if (!s.value("Network/allow_direct_media_requests").toBool()) {
                 return new MxcReply();
             }
-            auto room = connection->room(fragmentParts[1]);
-            if(!room) {
-                qWarning() << "Room not found";
-                return new MxcReply();
-            }
-            QNetworkRequest r(request);
-            r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2").arg(connection->homeserver().toString(), mediaId)));
-            auto reply = createRequest(QNetworkAccessManager::GetOperation, r);
-            return new MxcReply(reply, room, QUrl::fromPercentEncoding(fragmentParts[2].toLatin1()));
-        } else if(fragmentParts.size() == 1) {
-            auto connection = AccountRegistry::instance().get(fragment);
-            if(!connection) {
-                qWarning() << "Connection not found";
-                return new MxcReply();
-            }
-            QNetworkRequest r(request);
-            r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2").arg(connection->homeserver().toString(), mediaId)));
-            auto reply = createRequest(QNetworkAccessManager::GetOperation, r);
-            return new MxcReply(reply);
+            // TODO: Make the best effort with a direct unauthenticated request
+            // to the media server
         } else {
-            qWarning() << "Invalid request";
-            return new MxcReply();
+            auto* const connection = AccountRegistry::instance().get(accountId);
+            if (!connection) {
+                qCWarning(NETWORK) << "Connection not found";
+                return new MxcReply();
+            }
+            const auto roomId = query.queryItemValue(QStringLiteral("room_id"));
+            if (!roomId.isEmpty()) {
+                auto room = connection->room(roomId);
+                if (!room) {
+                    qCWarning(NETWORK) << "Room not found";
+                    return new MxcReply();
+                }
+                return new MxcReply(
+                    d->createImplRequest(op, request, connection), room,
+                    query.queryItemValue(QStringLiteral("event_id")));
+            }
+            return new MxcReply(
+                d->createImplRequest(op, request, connection));
         }
     }
     auto reply = QNetworkAccessManager::createRequest(op, request, outgoingData);
@@ -109,14 +130,4 @@ QStringList NetworkAccessManager::supportedSchemesImplementation() const
     auto schemes = QNetworkAccessManager::supportedSchemesImplementation();
     schemes += QStringLiteral("mxc");
     return schemes;
-}
-
-QUrl NetworkAccessManager::urlForRoomEvent(Room *room, const QString &eventId, const QString &mediaId)
-{
-    return QUrl(QStringLiteral("mxc:%1#%2/%3/%4").arg(mediaId, QString(QUrl::toPercentEncoding(room->connection()->userId())), room->id(), QString(QUrl::toPercentEncoding(eventId))));
-}
-
-QUrl NetworkAccessManager::urlForFile(Connection *connection, const QString &mediaId)
-{
-    return QUrl(QStringLiteral("mxc:%1#%2").arg(mediaId, QString(QUrl::toPercentEncoding(connection->userId()))));
 }

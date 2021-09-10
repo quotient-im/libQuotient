@@ -1116,6 +1116,17 @@ QList<User*> Room::directChatUsers() const
     return connection()->directChatUsers(this);
 }
 
+QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
+{
+    auto url = connection()->makeMediaUrl(mxcUrl);
+    QUrlQuery q(url.query());
+    Q_ASSERT(q.hasQueryItem("user_id"));
+    q.addQueryItem("room_id", id());
+    q.addQueryItem("event_id", eventId);
+    url.setQuery(q);
+    return url;
+}
+
 QString safeFileName(QString rawName)
 {
     return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");

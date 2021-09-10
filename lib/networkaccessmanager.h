@@ -25,8 +25,7 @@ public:
 
 public Q_SLOTS:
     QStringList supportedSchemesImplementation() const;
-    QUrl urlForRoomEvent(Room *room, const QString &eventId, const QString &mediaId);
-    QUrl urlForFile(Connection *connection, const QString &mediaId);
+
 private:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
                                  QIODevice* outgoingData = Q_NULLPTR) override;
