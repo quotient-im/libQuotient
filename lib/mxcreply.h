@@ -8,21 +8,20 @@
 
 namespace Quotient {
 class Room;
-class Connection;
+
 class MxcReply : public QNetworkReply
 {
 public:
-    MxcReply(QNetworkReply* reply, Room* room, const QString &eventId);
-    MxcReply(QNetworkReply* reply);
-    MxcReply();
+    explicit MxcReply();
+    explicit MxcReply(QNetworkReply *reply);
+    MxcReply(QNetworkReply* reply, Room* room, const QString& eventId);
 
-    bool isSequential() const override;
-
-public slots:
+public Q_SLOTS:
     void abort() override;
 
 protected:
     qint64 readData(char *data, qint64 maxSize) override;
+
 private:
     class Private;
     std::unique_ptr<Private> d;

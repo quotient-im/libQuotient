@@ -3,12 +3,7 @@
 
 #include "mxcreply.h"
 
-#include <QtCore/QBuffer>
-#include <QtCore/QTimer>
-#include "connection.h"
 #include "room.h"
-#include "networkaccessmanager.h"
-#include "events/stickerevent.h"
 
 using namespace Quotient;
 
@@ -34,30 +29,32 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
 {
     reply->setParent(this);
     d->m_reply = reply;
-    connect(d->m_reply, &QNetworkReply::finished, this, [this, eventId]() {
+    connect(d->m_reply, &QNetworkReply::finished, this, [this, room, eventId]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
         setOpenMode(ReadOnly);
-        Q_EMIT finished();
+        emit finished();
     });
 }
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+#define ERROR_SIGNAL errorOccurred
+#else
+#define ERROR_SIGNAL error
+#endif
 
 MxcReply::MxcReply()
 {
-    QTimer::singleShot(0, this, [this](){
-        setError(QNetworkReply::ProtocolInvalidOperationError, QStringLiteral("Invalid Request"));
-        setFinished(true);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-        Q_EMIT errorOccurred(QNetworkReply::ProtocolInvalidOperationError);
-#else
-        Q_EMIT error(QNetworkReply::ProtocolInvalidOperationError);
-#endif
-        Q_EMIT finished();
-    });
-}
-
-bool MxcReply::isSequential() const
-{
-    return true;
+    static const auto BadRequestPhrase = tr("Bad Request");
+    QMetaObject::invokeMethod(this, [this]() {
+            setAttribute(QNetworkRequest::HttpStatusCodeAttribute, 400);
+            setAttribute(QNetworkRequest::HttpReasonPhraseAttribute,
+                         BadRequestPhrase);
+            setError(QNetworkReply::ProtocolInvalidOperationError,
+                     BadRequestPhrase);
+            setFinished(true);
+            emit ERROR_SIGNAL(QNetworkReply::ProtocolInvalidOperationError);
+            emit finished();
+        }, Qt::QueuedConnection);
 }
 
 qint64 MxcReply::readData(char *data, qint64 maxSize)
