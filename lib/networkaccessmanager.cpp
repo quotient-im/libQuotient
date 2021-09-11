@@ -59,7 +59,7 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 static NetworkAccessManager* createNam()
 {
-    auto nam = new NetworkAccessManager(QCoreApplication::instance());
+    auto nam = new NetworkAccessManager();
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
     // See #109; in newer Qt, bearer management is deprecated altogether
     NetworkAccessManager::connect(nam,
@@ -73,8 +73,6 @@ static NetworkAccessManager* createNam()
 NetworkAccessManager* NetworkAccessManager::instance()
 {
     static QThreadStorage<NetworkAccessManager*> storage;
-    // FIXME: createNam() returns an object parented to
-    // QCoreApplication::instance() that lives in the main thread
     if(!storage.hasLocalData()) {
         storage.setLocalData(createNam());
     }
