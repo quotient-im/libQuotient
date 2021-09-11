@@ -604,6 +604,12 @@ public Q_SLOTS:
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 
+    /**
+     * Activates encryption for this room.
+     * Warning: Cannot be undone
+     */
+    void activateEncryption();
+
 Q_SIGNALS:
     /// Initial set of state events has been loaded
     /**
