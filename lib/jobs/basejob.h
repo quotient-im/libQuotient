@@ -325,13 +325,15 @@ Q_SIGNALS:
 protected:
     using headers_t = QHash<QByteArray, QByteArray>;
 
+    Q_DECL_DEPRECATED_X("Deprecated due to being unused")
     const QString& apiEndpoint() const;
+    Q_DECL_DEPRECATED_X("Deprecated due to being unused")
     void setApiEndpoint(const QString& apiEndpoint);
     const headers_t& requestHeaders() const;
     void setRequestHeader(const headers_t::key_type& headerName,
                           const headers_t::mapped_type& headerValue);
     void setRequestHeaders(const headers_t& headers);
-    const QUrlQuery& query() const;
+    QUrlQuery query() const;
     void setRequestQuery(const QUrlQuery& query);
     const RequestData& requestData() const;
     void setRequestData(RequestData&& data);

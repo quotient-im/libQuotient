@@ -194,12 +194,12 @@ QUrl BaseJob::requestUrl() const { return d->reply ? d->reply->url() : QUrl(); }
 
 bool BaseJob::isBackground() const { return d->inBackground; }
 
-const QString& BaseJob::apiEndpoint() const { return d->apiEndpoint; }
+//const QString& BaseJob::apiEndpoint() const { return d->apiUrl.path(); }
 
-void BaseJob::setApiEndpoint(const QString& apiEndpoint)
-{
-    d->apiEndpoint = apiEndpoint;
-}
+//void BaseJob::setApiEndpoint(const QString& apiEndpoint)
+//{
+//    d->apiEndpoint = apiEndpoint;
+//}
 
 const BaseJob::headers_t& BaseJob::requestHeaders() const
 {
@@ -217,7 +217,7 @@ void BaseJob::setRequestHeaders(const BaseJob::headers_t& headers)
     d->requestHeaders = headers;
 }
 
-const QUrlQuery& BaseJob::query() const { return d->requestQuery; }
+QUrlQuery BaseJob::query() const { return d->requestQuery; }
 
 void BaseJob::setRequestQuery(const QUrlQuery& query)
 {
@@ -262,14 +262,10 @@ QNetworkReply* BaseJob::reply() { return d->reply.data(); }
 QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
                              const QUrlQuery& query)
 {
-    auto pathBase = baseUrl.path();
-    // QUrl::adjusted(QUrl::StripTrailingSlashes) doesn't help with root '/'
-    while (pathBase.endsWith('/'))
-        pathBase.chop(1);
-    if (!path.startsWith('/')) // Normally API files do start with '/'
-        pathBase.push_back('/'); // so this shouldn't be needed these days
-
-    baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
+    // Make sure the added path is relative even if it's not (the official
+    // API definitions have the leading slash though it's not really correct).
+    baseUrl = baseUrl.resolved(
+        QUrl(path.mid(path.startsWith('/')), QUrl::TolerantMode));
     baseUrl.setQuery(query);
     return baseUrl;
 }
