@@ -3020,3 +3020,12 @@ bool MemberSorter::operator()(User* u1, QStringView u2name) const
 
     return n1.localeAwareCompare(n2) < 0;
 }
+
+void Room::activateEncryption()
+{
+    if(usesEncryption()) {
+        qCWarning(E2EE) << "Room" << objectName() << "is already encrypted";
+        return;
+    }
+    setState<EncryptionEvent>(EncryptionEventContent::MegolmV1AesSha2);
+}

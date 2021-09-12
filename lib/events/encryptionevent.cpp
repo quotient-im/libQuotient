@@ -39,6 +39,14 @@ EncryptionEventContent::EncryptionEventContent(const QJsonObject& json)
     , rotationPeriodMsgs(json[RotationPeriodMsgsKeyL].toInt(100))
 {}
 
+EncryptionEventContent::EncryptionEventContent(EncryptionType et)
+    : encryption(et)
+{
+    if(encryption != Undefined) {
+        algorithm = encryptionStrings[encryption];
+    }
+}
+
 void EncryptionEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
