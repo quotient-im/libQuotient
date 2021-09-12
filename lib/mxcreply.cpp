@@ -10,13 +10,16 @@ using namespace Quotient;
 class MxcReply::Private
 {
 public:
-    QNetworkReply *m_reply = nullptr;
+    explicit Private(QNetworkReply* r = nullptr)
+        : m_reply(r)
+    {}
+    QNetworkReply* m_reply;
 };
 
 MxcReply::MxcReply(QNetworkReply* reply)
+    : d(std::make_unique<Private>(reply))
 {
     reply->setParent(this);
-    d->m_reply = reply;
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
         setOpenMode(ReadOnly);
@@ -25,10 +28,9 @@ MxcReply::MxcReply(QNetworkReply* reply)
 }
 
 MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
-    : d(std::make_unique<Private>())
+    : d(std::make_unique<Private>(reply))
 {
     reply->setParent(this);
-    d->m_reply = reply;
     connect(d->m_reply, &QNetworkReply::finished, this, [this, room, eventId]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
         setOpenMode(ReadOnly);
