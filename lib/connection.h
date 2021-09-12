@@ -529,6 +529,8 @@ public Q_SLOTS:
     void stopSync();
     QString nextBatchToken() const;
 
+    Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
+
     virtual MediaThumbnailJob*
     getThumbnail(const QString& mediaId, QSize requestedSize,
                  RunningPolicy policy = BackgroundRequest);

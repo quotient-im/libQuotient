@@ -13,6 +13,7 @@
 #include "room.h"
 #include "settings.h"
 #include "user.h"
+#include "accountregistry.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp"
@@ -258,6 +259,7 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
+    AccountRegistry::instance().drop(this);
 }
 
 void Connection::resolveServer(const QString& mxid)
@@ -441,6 +443,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
+    AccountRegistry::instance().add(q);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -834,6 +837,15 @@ inline auto splitMediaId(const QString& mediaId)
                ("'" + mediaId + "' doesn't look like 'serverName/localMediaId'")
                    .toLatin1());
     return idParts;
+}
+
+QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
+{
+    Q_ASSERT(mxcUrl.scheme() == "mxc");
+    QUrlQuery q(mxcUrl.query());
+    q.addQueryItem(QStringLiteral("user_id"), userId());
+    mxcUrl.setQuery(q);
+    return mxcUrl;
 }
 
 MediaThumbnailJob* Connection::getThumbnail(const QString& mediaId,

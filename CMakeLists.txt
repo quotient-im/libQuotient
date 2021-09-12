@@ -143,6 +143,7 @@ list(APPEND lib_SRCS
     lib/encryptionmanager.cpp
     lib/eventitem.cpp
     lib/accountregistry.cpp
+    lib/mxcreply.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
     lib/events/stateevent.cpp

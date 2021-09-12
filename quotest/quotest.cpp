@@ -5,6 +5,7 @@
 #include "room.h"
 #include "user.h"
 #include "uriresolver.h"
+#include "networkaccessmanager.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
@@ -20,6 +21,8 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QTimer>
+#include <QtConcurrent/QtConcurrent>
+#include <QtNetwork/QNetworkReply>
 
 #include <functional>
 #include <iostream>
@@ -435,6 +438,39 @@ TEST_IMPL(sendFile)
     return false;
 }
 
+// Can be replaced with a lambda once QtConcurrent is able to resolve return
+// types from lambda invocations (Qt 6 can, not sure about earlier)
+struct DownloadRunner {
+    QUrl url;
+
+    using result_type = QNetworkReply::NetworkError;
+
+    QNetworkReply::NetworkError operator()(int) const
+    {
+        QEventLoop el;
+        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply {
+            NetworkAccessManager::instance()->get(QNetworkRequest(url))
+        };
+        QObject::connect(
+            reply.data(), &QNetworkReply::finished, &el, [&el] { el.exit(); },
+            Qt::QueuedConnection);
+        el.exec();
+        return reply->error();
+    }
+};
+
+bool testDownload(const QUrl& url)
+{
+    // Move out actual test from the multithreaded code
+    // to help debugging
+    auto results = QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 },
+                                                DownloadRunner { url });
+    return std::all_of(results.cbegin(), results.cend(),
+                        [](QNetworkReply::NetworkError ne) {
+                            return ne == QNetworkReply::NoError;
+                        });
+}
+
 bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                                         const QString& txnId,
                                         const QString& fileName)
@@ -465,14 +501,15 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
             return visit(
                 *evt,
                 [&](const RoomMessageEvent& e) {
-                    // TODO: actually try to download it to check, e.g., #366
-                    // (and #368 would help to test against bad file names).
+                    // TODO: check #366 once #368 is implemented
                     FINISH_TEST(
                         !e.id().isEmpty()
-                            && pendingEvents[size_t(pendingIdx)]->transactionId()
-                                   == txnId
-                            && e.hasFileContent()
-                            && e.content()->fileInfo()->originalName == fileName);
+                        && pendingEvents[size_t(pendingIdx)]->transactionId()
+                               == txnId
+                        && e.hasFileContent()
+                        && e.content()->fileInfo()->originalName == fileName
+                        && testDownload(targetRoom->connection()->makeMediaUrl(
+                            e.content()->fileInfo()->url)));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
