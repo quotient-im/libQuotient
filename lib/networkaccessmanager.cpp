@@ -93,6 +93,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             // doesn't provide multithreading guarantees
             static thread_local QSettings s;
             if (!s.value("Network/allow_direct_media_requests").toBool()) {
+                qCWarning(NETWORK) << "No connection specified";
                 return new MxcReply();
             }
             // TODO: Make the best effort with a direct unauthenticated request
@@ -100,14 +101,14 @@ QNetworkReply* NetworkAccessManager::createRequest(
         } else {
             auto* const connection = AccountRegistry::instance().get(accountId);
             if (!connection) {
-                qCWarning(NETWORK) << "Connection not found";
+                qCWarning(NETWORK) << "Connection" << accountId << "not found";
                 return new MxcReply();
             }
             const auto roomId = query.queryItemValue(QStringLiteral("room_id"));
             if (!roomId.isEmpty()) {
                 auto room = connection->room(roomId);
                 if (!room) {
-                    qCWarning(NETWORK) << "Room not found";
+                    qCWarning(NETWORK) << "Room" << roomId << "not found";
                     return new MxcReply();
                 }
                 return new MxcReply(
