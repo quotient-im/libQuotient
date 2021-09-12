@@ -445,11 +445,14 @@ struct DownloadRunner {
 
     using result_type = QNetworkReply::NetworkError;
 
-    QNetworkReply::NetworkError operator()(int) const {
+    QNetworkReply::NetworkError operator()(int) const
+    {
         QEventLoop el;
-        auto reply = NetworkAccessManager::instance()->get(QNetworkRequest(url));
+        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply {
+            NetworkAccessManager::instance()->get(QNetworkRequest(url))
+        };
         QObject::connect(
-            reply, &QNetworkReply::finished, &el, [&el] { el.exit(); },
+            reply.data(), &QNetworkReply::finished, &el, [&el] { el.exit(); },
             Qt::QueuedConnection);
         el.exec();
         return reply->error();
