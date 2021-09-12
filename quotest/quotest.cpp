@@ -51,7 +51,7 @@ private:
     QByteArrayList running {}, succeeded {}, failed {};
 };
 
-using TestToken = QByteArray; // return value of QMetaMethod::name
+using TestToken = decltype(std::declval<QMetaMethod>().name());
 Q_DECLARE_METATYPE(TestToken)
 
 // For now, the token itself is the test name but that may change.
