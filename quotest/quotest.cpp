@@ -438,21 +438,30 @@ TEST_IMPL(sendFile)
     return false;
 }
 
+// Can be replaced with a lambda once QtConcurrent is able to resolve return
+// types from lambda invocations (Qt 6 can, not sure about earlier)
+struct DownloadRunner {
+    QUrl url;
+
+    using result_type = QNetworkReply::NetworkError;
+
+    QNetworkReply::NetworkError operator()(int) const {
+        QEventLoop el;
+        auto reply = NetworkAccessManager::instance()->get(QNetworkRequest(url));
+        QObject::connect(
+            reply, &QNetworkReply::finished, &el, [&el] { el.exit(); },
+            Qt::QueuedConnection);
+        el.exec();
+        return reply->error();
+    }
+};
+
 bool testDownload(const QUrl& url)
 {
     // Move out actual test from the multithreaded code
     // to help debugging
-    auto results =
-        QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 }, [url](int) {
-            QEventLoop el;
-            auto reply =
-                NetworkAccessManager::instance()->get(QNetworkRequest(url));
-            QObject::connect(
-                reply, &QNetworkReply::finished, &el, [&el] { el.exit(); },
-                Qt::QueuedConnection);
-            el.exec();
-            return reply->error();
-        });
+    auto results = QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 },
+                                                DownloadRunner { url });
     return std::all_of(results.cbegin(), results.cend(),
                         [](QNetworkReply::NetworkError ne) {
                             return ne == QNetworkReply::NoError;
