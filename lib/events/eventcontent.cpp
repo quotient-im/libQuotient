@@ -30,11 +30,12 @@ FileInfo::FileInfo(const QFileInfo &fi)
 }
 
 FileInfo::FileInfo(QUrl u, qint64 payloadSize, const QMimeType& mimeType,
-                   QString originalFilename)
+                   Omittable<EncryptedFile> file, QString originalFilename)
     : mimeType(mimeType)
     , url(move(u))
     , payloadSize(payloadSize)
     , originalName(move(originalFilename))
+    , file(file)
 {
     if (!isValid())
         qCWarning(MESSAGES)
@@ -44,6 +45,7 @@ FileInfo::FileInfo(QUrl u, qint64 payloadSize, const QMimeType& mimeType,
 }
 
 FileInfo::FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
+                   const Omittable<EncryptedFile> &file,
                    QString originalFilename)
     : originalInfoJson(infoJson)
     , mimeType(
@@ -51,7 +53,11 @@ FileInfo::FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
     , url(move(mxcUrl))
     , payloadSize(fromJson<qint64>(infoJson["size"_ls]))
     , originalName(move(originalFilename))
+    , file(file)
 {
+    if(url.isEmpty() && file.has_value()) {
+        url = file->url;
+    }
     if (!mimeType.isValid())
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
 }
@@ -76,14 +82,15 @@ ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)
 {}
 
 ImageInfo::ImageInfo(const QUrl& mxcUrl, qint64 fileSize, const QMimeType& type,
-                     QSize imageSize, const QString& originalFilename)
-    : FileInfo(mxcUrl, fileSize, type, originalFilename)
+                     QSize imageSize, const Omittable<EncryptedFile> &file, const QString& originalFilename)
+    : FileInfo(mxcUrl, fileSize, type, file, originalFilename)
     , imageSize(imageSize)
 {}
 
 ImageInfo::ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
+                     const Omittable<EncryptedFile> &file,
                      const QString& originalFilename)
-    : FileInfo(mxcUrl, infoJson, originalFilename)
+    : FileInfo(mxcUrl, infoJson, file, originalFilename)
     , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
 {}
 
@@ -96,9 +103,10 @@ void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
         infoJson->insert(QStringLiteral("h"), imageSize.height());
 }
 
-Thumbnail::Thumbnail(const QJsonObject& infoJson)
+Thumbnail::Thumbnail(const QJsonObject& infoJson, const Omittable<EncryptedFile> &file)
     : ImageInfo(QUrl(infoJson["thumbnail_url"_ls].toString()),
-                infoJson["thumbnail_info"_ls].toObject())
+                infoJson["thumbnail_info"_ls].toObject(),
+                file)
 {}
 
 void Thumbnail::fillInfoJson(QJsonObject* infoJson) const

@@ -25,7 +25,7 @@ public:
                              const QSize& imageSize = {},
                              const QString& originalFilename = {})
         : RoomAvatarEvent(EventContent::ImageContent {
-            mxcUrl, fileSize, mimeType, imageSize, originalFilename })
+            mxcUrl, fileSize, mimeType, imageSize, none, originalFilename })
     {}
 
     QUrl url() const { return content().url; }
