@@ -12,6 +12,8 @@
 #include <QtCore/QUrl>
 #include <QtCore/QMetaType>
 
+#include "encryptedfile.h"
+
 class QFileInfo;
 
 namespace Quotient {
@@ -80,8 +82,10 @@ namespace EventContent {
         explicit FileInfo(const QFileInfo& fi);
         explicit FileInfo(QUrl mxcUrl, qint64 payloadSize = -1,
                           const QMimeType& mimeType = {},
+                          Omittable<EncryptedFile> file = none,
                           QString originalFilename = {});
         FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
+                 const Omittable<EncryptedFile> &file,
                  QString originalFilename = {});
 
         bool isValid() const;
@@ -103,6 +107,7 @@ namespace EventContent {
         QUrl url;
         qint64 payloadSize;
         QString originalName;
+        Omittable<EncryptedFile> file = none;
     };
 
     template <typename InfoT>
@@ -122,8 +127,10 @@ namespace EventContent {
         explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
         explicit ImageInfo(const QUrl& mxcUrl, qint64 fileSize = -1,
                            const QMimeType& type = {}, QSize imageSize = {},
+                           const Omittable<EncryptedFile> &file = none,
                            const QString& originalFilename = {});
         ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
+                  const Omittable<EncryptedFile> &encryptedFile,
                   const QString& originalFilename = {});
 
         void fillInfoJson(QJsonObject* infoJson) const;
@@ -142,7 +149,7 @@ namespace EventContent {
     class Thumbnail : public ImageInfo {
     public:
         Thumbnail() = default; // Allow empty thumbnails
-        Thumbnail(const QJsonObject& infoJson);
+        Thumbnail(const QJsonObject& infoJson, const Omittable<EncryptedFile> &file = none);
         Thumbnail(const ImageInfo& info) : ImageInfo(info) {}
         using ImageInfo::ImageInfo;
 
@@ -182,7 +189,7 @@ namespace EventContent {
         explicit UrlBasedContent(const QJsonObject& json)
             : TypedBase(json)
             , InfoT(QUrl(json["url"].toString()), json["info"].toObject(),
-                    json["filename"].toString())
+                    fromJson<Omittable<EncryptedFile>>(json["file"]), json["filename"].toString())
         {
             // A small hack to facilitate links creation in QML.
             originalJson.insert("mediaId", InfoT::mediaId());
@@ -196,7 +203,11 @@ namespace EventContent {
         void fillJson(QJsonObject* json) const override
         {
             Q_ASSERT(json);
-            json->insert("url", InfoT::url.toString());
+            if (!InfoT::file.has_value()) {
+                json->insert("url", InfoT::url.toString());
+            } else {
+                json->insert("file", Quotient::toJson(*InfoT::file));
+            }
             if (!InfoT::originalName.isEmpty())
                 json->insert("filename", InfoT::originalName);
             json->insert("info", toInfoJson<InfoT>(*this));
