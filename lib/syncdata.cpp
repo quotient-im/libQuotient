@@ -184,11 +184,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     auto rooms = json.value("rooms"_ls).toObject();
     auto totalRooms = 0;
     auto totalEvents = 0;
-    // The first comparison shortcuts the loop when not all states are there
-    // in the response (anything except "join" is only occasional, and "join"
-    // intentionally comes first in the enum).
-    for (size_t i = 0; int(i) < rooms.size() && i < JoinStateStrings.size();
-         ++i) {
+    for (size_t i = 0; i < JoinStateStrings.size(); ++i) {
         // This assumes that JoinState values go over powers of 2: 1,2,4,...
         const auto joinState = JoinState(1U << i);
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
