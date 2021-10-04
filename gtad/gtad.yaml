@@ -140,7 +140,7 @@ mustache:
     # Syntax elements used by GTAD
 #    _quote: '"' # Common quote for left and right
 #    _leftQuote: '"'
-#    _rightQuote: '"'
+#    _rightQuote: '"_ls'
     _comment: '//'
     copyrightName: Kitsune Ral
     copyrightEmail: <kitsune-ral@users.sf.net>
