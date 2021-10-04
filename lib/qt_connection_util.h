@@ -106,6 +106,11 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                               ContextT* context, const FunctorT& slot,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
+#if QT_VERSION_MAJOR >= 6
+    return QObject::connect(sender, signal, context, slot,
+                            Qt::ConnectionType(connType
+                                               | Qt::SingleShotConnection));
+#else
     return _impl::connectSingleShot(
         sender, signal, context, _impl::wrap_in_function(slot), connType);
 }
@@ -125,6 +130,7 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                                             (receiver->*slot)(args...);
                                         }),
                                     connType);
+#endif
 }
 
 /*! \brief A guard pointer that disconnects an interested object upon destruction
