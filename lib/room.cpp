@@ -1180,9 +1180,8 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
         if (event->hasThumbnail()) {
             auto* thumbnail = event->content()->thumbnailInfo();
             Q_ASSERT(thumbnail != nullptr);
-            return MediaThumbnailJob::makeRequestUrl(connection()->homeserver(),
-                                                     thumbnail->url,
-                                                     thumbnail->imageSize);
+            return connection()->getUrlForApi<MediaThumbnailJob>(
+                thumbnail->url, thumbnail->imageSize);
         }
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
@@ -1193,8 +1192,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
     if (auto* event = d->getEventWithFile(eventId)) {
         auto* fileInfo = event->content()->fileInfo();
         Q_ASSERT(fileInfo != nullptr);
-        return DownloadFileJob::makeRequestUrl(connection()->homeserver(),
-                                               fileInfo->url);
+        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url);
     }
     return {};
 }
