@@ -102,6 +102,7 @@ private slots:
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
     TEST_DECL(visitResources)
+    TEST_DECL(prettyPrintTests)
     // Add more tests above here
 
 public:
@@ -134,7 +135,7 @@ private:
 // connectUntil() to break the QMetaObject::Connection upon finishing the test
 // item.
 #define FINISH_TEST(Condition) \
-    return (finishTest(thisTest, Condition, __FILE__, __LINE__), true)
+    return (finishTest(thisTest, (Condition), __FILE__, __LINE__), true)
 
 #define FAIL_TEST() FINISH_TEST(false)
 
@@ -777,6 +778,52 @@ TEST_IMPL(visitResources)
         return true;
     // TODO: negative cases
     FINISH_TEST(true);
+}
+
+bool checkPrettyPrint(
+    std::initializer_list<std::pair<const char*, const char*>> tests)
+{
+    bool result = true;
+    for (const auto& [test, etalon] : tests) {
+        const auto is = prettyPrint(test).toStdString();
+        const auto shouldBe = std::string("<span style='white-space:pre-wrap'>")
+                              + etalon + "</span>";
+        if (is == shouldBe)
+            continue;
+        clog << is << " != " << shouldBe << endl;
+        result = false;
+    }
+    return result;
+}
+
+TEST_IMPL(prettyPrintTests)
+{
+    const bool prettyPrintTestResult = checkPrettyPrint(
+        { { "https://www.matrix.org",
+            R"(<a href="https://www.matrix.org">https://www.matrix.org</a>)" },
+//          { "www.matrix.org", // Doesn't work yet
+//             R"(<a href="https://www.matrix.org">www.matrix.org</a>)" },
+          { "smb://somewhere/file", "smb://somewhere/file" }, // Disallowed scheme
+          { "https:/something", "https:/something" }, // Malformed URL
+          { "https://matrix.to/#/!roomid:example.org",
+            R"(<a href="https://matrix.to/#/!roomid:example.org">https://matrix.to/#/!roomid:example.org</a>)" },
+          { "https://matrix.to/#/@user_id:example.org",
+            R"(<a href="https://matrix.to/#/@user_id:example.org">https://matrix.to/#/@user_id:example.org</a>)" },
+          { "https://matrix.to/#/#roomalias:example.org",
+            R"(<a href="https://matrix.to/#/#roomalias:example.org">https://matrix.to/#/#roomalias:example.org</a>)" },
+          { "https://matrix.to/#/##ircroomalias:example.org",
+            R"(<a href="https://matrix.to/#/##ircroomalias:example.org">https://matrix.to/#/##ircroomalias:example.org</a>)" },
+          { "me@example.org",
+            R"(<a href="mailto:me@example.org">me@example.org</a>)" },
+          { "mailto:me@example.org",
+            R"(<a href="mailto:me@example.org">mailto:me@example.org</a>)" },
+          { "!room_id:example.org",
+            R"(<a href="https://matrix.to/#/!room_id:example.org">!room_id:example.org</a>)" },
+          { "@user_id:example.org",
+            R"(<a href="https://matrix.to/#/@user_id:example.org">@user_id:example.org</a>)" },
+          { "#room_alias:example.org",
+            R"(<a href="https://matrix.to/#/#room_alias:example.org">#room_alias:example.org</a>)" } });
+    FINISH_TEST(prettyPrintTestResult);
 }
 
 void TestManager::conclude()
