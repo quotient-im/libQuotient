@@ -92,7 +92,7 @@ enum RoomType {
     Space,
     Undefined,
 };
-Q_ENUM_NS(RoomType);
+Q_ENUM_NS(RoomType)
 
 constexpr inline auto RoomTypeStrings = make_array(
     "m.space"
