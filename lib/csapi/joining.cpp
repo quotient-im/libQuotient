@@ -4,15 +4,13 @@
 
 #include "joining.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 JoinRoomByIdJob::JoinRoomByIdJob(
     const QString& roomId, const Omittable<ThirdPartySigned>& thirdPartySigned,
     const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomByIdJob"),
-              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId % "/join")
+              makePath("/_matrix/client/r0", "/rooms/", roomId, "/join"))
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("third_party_signed"),
@@ -34,7 +32,7 @@ JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias,
                          const Omittable<ThirdPartySigned>& thirdPartySigned,
                          const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomJob"),
-              QStringLiteral("/_matrix/client/r0") % "/join/" % roomIdOrAlias,
+              makePath("/_matrix/client/r0", "/join/", roomIdOrAlias),
               queryToJoinRoom(serverName))
 {
     QJsonObject _data;

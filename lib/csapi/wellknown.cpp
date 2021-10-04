@@ -4,18 +4,15 @@
 
 #include "wellknown.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/.well-known")
-                                       % "/matrix/client");
+                                   makePath("/.well-known", "/matrix/client"));
 }
 
 GetWellknownJob::GetWellknownJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetWellknownJob"),
-              QStringLiteral("/.well-known") % "/matrix/client", false)
+              makePath("/.well-known", "/matrix/client"), false)
 {}

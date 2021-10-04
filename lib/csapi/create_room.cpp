@@ -4,8 +4,6 @@
 
 #include "create_room.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 CreateRoomJob::CreateRoomJob(const QString& visibility,
@@ -18,7 +16,7 @@ CreateRoomJob::CreateRoomJob(const QString& visibility,
                              const QString& preset, Omittable<bool> isDirect,
                              const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, QStringLiteral("CreateRoomJob"),
-              QStringLiteral("/_matrix/client/r0") % "/createRoom")
+              makePath("/_matrix/client/r0", "/createRoom"))
 {
     QJsonObject _data;
     addParam<IfNotEmpty>(_data, QStringLiteral("visibility"), visibility);

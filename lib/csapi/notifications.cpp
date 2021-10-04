@@ -4,8 +4,6 @@
 
 #include "notifications.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 auto queryToGetNotifications(const QString& from, Omittable<int> limit,
@@ -23,8 +21,8 @@ QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                          const QString& only)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/_matrix/client/r0")
-                                       % "/notifications",
+                                   makePath("/_matrix/client/r0",
+                                            "/notifications"),
                                    queryToGetNotifications(from, limit, only));
 }
 
@@ -32,7 +30,7 @@ GetNotificationsJob::GetNotificationsJob(const QString& from,
                                          Omittable<int> limit,
                                          const QString& only)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
-              QStringLiteral("/_matrix/client/r0") % "/notifications",
+              makePath("/_matrix/client/r0", "/notifications"),
               queryToGetNotifications(from, limit, only))
 {
     addExpectedKey("notifications");
