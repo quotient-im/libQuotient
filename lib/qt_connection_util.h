@@ -19,12 +19,7 @@ namespace _impl {
                      decorated_slot_tt<ArgTs...> decoratedSlot,
                      Qt::ConnectionType connType)
     {
-        // See https://bugreports.qt.io/browse/QTBUG-60339
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
-        auto pc = std::make_shared<QMetaObject::Connection>();
-#else
         auto pc = std::make_unique<QMetaObject::Connection>();
-#endif
         auto& c = *pc; // Resolve a reference before pc is moved to lambda
 
         // Perfect forwarding doesn't work through signal-slot connections -
