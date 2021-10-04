@@ -33,7 +33,7 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // comma or dot
     static const QRegularExpression FullUrlRegExp(
         QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp|magnet|matrix):(//)?)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp):(//)?\w|(magnet|matrix):)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
         RegExpOptions);
     // email address:
     // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
