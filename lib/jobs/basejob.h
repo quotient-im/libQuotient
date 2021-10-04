@@ -9,6 +9,7 @@
 #include "../converters.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QStringBuilder>
 
 class QNetworkReply;
 class QSslError;
@@ -23,6 +24,14 @@ class BaseJob : public QObject {
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
     Q_PROPERTY(int statusCode READ error NOTIFY statusChanged)
+
+    static QByteArray encodeIfParam(const QString& paramPart);
+    template <int N>
+    static inline auto encodeIfParam(const char (&constPart)[N])
+    {
+        return constPart;
+    }
+
 public:
     /*! The status code of a job
      *
@@ -69,6 +78,12 @@ public:
         UserDefinedError = 256
     };
     Q_ENUM(StatusCode)
+
+    template <typename... StrTs>
+    static QByteArray makePath(StrTs&&... parts)
+    {
+        return (QByteArray() % ... % encodeIfParam(parts));
+    }
 
     using Data
 #ifndef Q_CC_MSVC
@@ -124,9 +139,9 @@ public:
     };
 
 public:
-    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+    BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
             bool needsToken = true);
-    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+    BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
             const QUrlQuery& query, RequestData&& data = {},
             bool needsToken = true);
 
@@ -352,7 +367,7 @@ protected:
      * The function ensures exactly one '/' between the path component of
      * \p baseUrl and \p path. The query component of \p baseUrl is ignored.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
+    static QUrl makeRequestUrl(QUrl baseUrl, const QByteArray &encodedPath,
                                const QUrlQuery& query = {});
 
     /*! Prepares the job for execution

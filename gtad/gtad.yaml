@@ -190,8 +190,8 @@ mustache:
     joinedParamDef: "{{>maybeCrefType}} {{paramName}}{{>cjoin}}"
 
     passPathAndMaybeQuery: >-
-      QStringLiteral("{{basePathWithoutHost}}")
-      {{#pathParts}} % {{_}}{{/pathParts}}{{#queryParams?}},
+      makePath("{{basePathWithoutHost}}"{{#pathParts}},
+        {{_}}{{/pathParts}}){{#queryParams?}},
       queryTo{{camelCaseOperationId}}(
       {{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}){{/queryParams?}}
 

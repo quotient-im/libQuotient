@@ -71,7 +71,7 @@ public:
 
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-    Private(HttpVerb v, QString endpoint, const QUrlQuery& q,
+    Private(HttpVerb v, QByteArray endpoint, const QUrlQuery& q,
             RequestData&& data, bool nt)
         : verb(v)
         , apiEndpoint(std::move(endpoint))
@@ -106,7 +106,7 @@ public:
 
     // Contents for the network request
     HttpVerb verb;
-    QString apiEndpoint;
+    QByteArray apiEndpoint;
     QHash<QByteArray, QByteArray> requestHeaders;
     QUrlQuery requestQuery;
     RequestData requestData;
@@ -166,14 +166,36 @@ public:
     }
 };
 
-BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+inline bool isHex(QChar c)
+{
+    return c.isDigit() || (c >= u'A' && c <= u'F') || (c >= u'a' && c <= u'f');
+}
+
+QByteArray BaseJob::encodeIfParam(const QString& paramPart)
+{
+    const auto percentIndex = paramPart.indexOf('%');
+    if (percentIndex != -1 && paramPart.size() > percentIndex + 2
+        && isHex(paramPart[percentIndex + 1])
+        && isHex(paramPart[percentIndex + 2])) {
+        qCWarning(JOBS)
+            << "Developers, upfront percent-encoding of job parameters is "
+               "deprecated since libQuotient 0.7; the string involved is"
+            << paramPart;
+        return QUrl(paramPart, QUrl::TolerantMode).toEncoded();
+    }
+    return QUrl::toPercentEncoding(paramPart);
+}
+
+BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
                  bool needsToken)
-    : BaseJob(verb, name, endpoint, QUrlQuery {}, RequestData {}, needsToken)
+    : BaseJob(verb, name, std::move(endpoint), QUrlQuery {}, RequestData {},
+              needsToken)
 {}
 
-BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
                  const QUrlQuery& query, RequestData&& data, bool needsToken)
-    : d(new Private(verb, endpoint, query, std::move(data), needsToken))
+    : d(new Private(verb, std::move(endpoint), query, std::move(data),
+                    needsToken))
 {
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
@@ -193,13 +215,6 @@ BaseJob::~BaseJob()
 QUrl BaseJob::requestUrl() const { return d->reply ? d->reply->url() : QUrl(); }
 
 bool BaseJob::isBackground() const { return d->inBackground; }
-
-//const QString& BaseJob::apiEndpoint() const { return d->apiUrl.path(); }
-
-//void BaseJob::setApiEndpoint(const QString& apiEndpoint)
-//{
-//    d->apiEndpoint = apiEndpoint;
-//}
 
 const BaseJob::headers_t& BaseJob::requestHeaders() const
 {
@@ -259,13 +274,17 @@ const QNetworkReply* BaseJob::reply() const { return d->reply.data(); }
 
 QNetworkReply* BaseJob::reply() { return d->reply.data(); }
 
-QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
+QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
                              const QUrlQuery& query)
 {
     // Make sure the added path is relative even if it's not (the official
     // API definitions have the leading slash though it's not really correct).
-    baseUrl = baseUrl.resolved(
-        QUrl(path.mid(path.startsWith('/')), QUrl::TolerantMode));
+    const auto pathUrl =
+        QUrl::fromEncoded(encodedPath.mid(encodedPath.startsWith('/')),
+                          QUrl::StrictMode);
+    Q_ASSERT_X(pathUrl.isValid(), __FUNCTION__,
+               qPrintable(pathUrl.errorString()));
+    baseUrl = baseUrl.resolved(pathUrl);
     baseUrl.setQuery(query);
     return baseUrl;
 }
