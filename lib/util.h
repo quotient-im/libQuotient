@@ -219,18 +219,6 @@ template <typename FnT, int ArgN = 0>
 using fn_arg_t =
     std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
 
-// TODO: get rid of it as soon as Apple Clang gets proper deduction guides
-//       for std::function<>
-//       ...or consider using QtPrivate magic used by QObject::connect()
-//       since wrap_in_function() is actually made for qt_connection_util.h
-//       ...for inspiration, also check a possible std::not_fn implementation at
-//       https://en.cppreference.com/w/cpp/utility/functional/not_fn
-template <typename FnT>
-inline auto wrap_in_function(FnT&& f)
-{
-    return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
-}
-
 inline constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));

@@ -73,6 +73,17 @@ namespace _impl {
                 }),
             connType);
     }
+
+    // TODO: get rid of it as soon as Apple Clang gets proper deduction guides
+    //       for std::function<>
+    //       ...or consider using QtPrivate magic used by QObject::connect()
+    //       ...for inspiration, also check a possible std::not_fn implementation
+    //       at https://en.cppreference.com/w/cpp/utility/functional/not_fn
+    template <typename FnT>
+    inline auto wrap_in_function(FnT&& f)
+    {
+        return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
+    }
 } // namespace _impl
 
 /*! \brief Create a connection that self-disconnects when its "slot" returns true
@@ -90,7 +101,7 @@ inline auto connectUntil(SenderT* sender, SignalT signal, ContextT* context,
                          const FunctorT& slot,
                          Qt::ConnectionType connType = Qt::AutoConnection)
 {
-    return _impl::connectUntil(sender, signal, context, wrap_in_function(slot),
+    return _impl::connectUntil(sender, signal, context, _impl::wrap_in_function(slot),
                                connType);
 }
 
@@ -101,7 +112,7 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
     return _impl::connectSingleShot(
-        sender, signal, context, wrap_in_function(slot), connType);
+        sender, signal, context, _impl::wrap_in_function(slot), connType);
 }
 
 // Specialisation for usual Qt slots passed as pointers-to-members.
@@ -114,7 +125,7 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
 {
     // TODO: when switching to C++20, use std::bind_front() instead
     return _impl::connectSingleShot(sender, signal, receiver,
-                                    wrap_in_function(
+                                    _impl::wrap_in_function(
                                         [receiver, slot](const ArgTs&... args) {
                                             (receiver->*slot)(args...);
                                         }),
