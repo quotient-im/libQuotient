@@ -36,8 +36,7 @@ bool AccountRegistry::contains(Connection *c) const
     return m_accounts.contains(c);
 }
 
-AccountRegistry::AccountRegistry()
-{}
+AccountRegistry::AccountRegistry() = default;
 
 QVariant AccountRegistry::data(const QModelIndex &index, int role) const
 {
