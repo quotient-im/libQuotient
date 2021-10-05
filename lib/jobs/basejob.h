@@ -399,10 +399,12 @@ protected:
      * was not good (usually because of an unsuccessful HTTP code).
      * The base implementation assumes Matrix JSON error object in the body;
      * overrides are strongly recommended to call it for all stock Matrix
-     * responses as early as possible but in addition can process custom errors,
+     * responses as early as possible and only then process custom errors,
      * with JSON or non-JSON payload.
+     *
+     * \return updated (if necessary) job status
      */
-    virtual Status prepareError();
+    virtual Status prepareError(Status currentStatus);
 
     /*! \brief Get direct access to the JSON response object in the job
      *

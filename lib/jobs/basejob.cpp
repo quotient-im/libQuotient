@@ -415,42 +415,42 @@ BaseJob::Status BaseJob::Private::parseJson()
 
 void BaseJob::gotReply()
 {
-    setStatus(checkReply(reply()));
-
-    if (status().good()
-        && d->expectedContentTypes == QByteArrayList { "application/json" }) {
+    // Defer actually updating the status until it's finalised
+    auto statusSoFar = checkReply(reply());
+    if (statusSoFar.good()
+        && d->expectedContentTypes == QByteArrayList { "application/json" }) //
+    {
         d->rawResponse = reply()->readAll();
-        setStatus(d->parseJson());
-        if (status().good() && !expectedKeys().empty()) {
+        statusSoFar = d->parseJson();
+        if (statusSoFar.good() && !expectedKeys().empty()) {
             const auto& responseObject = jsonData();
             QByteArrayList missingKeys;
             for (const auto& k: expectedKeys())
                 if (!responseObject.contains(k))
                     missingKeys.push_back(k);
             if (!missingKeys.empty())
-                setStatus(IncorrectResponse, tr("Required JSON keys missing: ")
-                                                 + missingKeys.join());
+                statusSoFar = { IncorrectResponse,
+                                tr("Required JSON keys missing: ")
+                                    + missingKeys.join() };
         }
+        setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out
             return;
-    } // else {
+    }
     // If the endpoint expects anything else than just (API-related) JSON
     // reply()->readAll() is not performed and the whole reply processing
     // is left to derived job classes: they may read it piecemeal or customise
     // per content type in prepareResult(), or even have read it already
     // (see, e.g., DownloadFileJob).
-    // }
-
-    if (status().good())
+    if (statusSoFar.good()) {
         setStatus(prepareResult());
-    else {
-        d->rawResponse = reply()->readAll();
-        qCDebug(d->logCat).noquote()
-            << "Error body (truncated if long):" << rawDataSample(500);
-        // Parse the error payload and update the status if needed
-        if (const auto newStatus = prepareError(); !newStatus.good())
-            setStatus(newStatus);
+        return;
     }
+
+    d->rawResponse = reply()->readAll();
+    qCDebug(d->logCat).noquote()
+        << "Error body (truncated if long):" << rawDataSample(500);
+    setStatus(prepareError(statusSoFar));
 }
 
 bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
@@ -515,7 +515,7 @@ BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
 
 BaseJob::Status BaseJob::prepareResult() { return Success; }
 
-BaseJob::Status BaseJob::prepareError()
+BaseJob::Status BaseJob::prepareError(Status currentStatus)
 {
     // Try to make sense of the error payload but be prepared for all kinds
     // of unexpected stuff (raw HTML, plain text, foreign JSON among those)
@@ -525,7 +525,7 @@ BaseJob::Status BaseJob::prepareError()
 
     // By now, if d->parseJson() above succeeded then jsonData() will return
     // a valid JSON object - or an empty object otherwise (in which case most
-    // of if's below will fall through to `return NoError` at the end
+    // of if's below will fall through retaining the current status)
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
     if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED") {
@@ -560,9 +560,9 @@ BaseJob::Status BaseJob::prepareError()
 
     // Not localisable on the client side
     if (errorJson.contains("error"_ls)) // Keep the code, update the message
-        return { d->status.code, errorJson.value("error"_ls).toString() };
+        return { currentStatus.code, errorJson.value("error"_ls).toString() };
 
-    return NoError; // Retain the status if the error payload is not recognised
+    return currentStatus; // The error payload is not recognised
 }
 
 QJsonValue BaseJob::takeValueFromJson(const QString& key)
