@@ -245,7 +245,7 @@ void TestManager::setupAndRun()
             clog << "Sync " << ++i << " complete" << endl;
             if (auto* r = testSuite->room()) {
                 clog << "Test room timeline size = " << r->timelineSize();
-                if (r->pendingEvents().empty())
+                if (!r->pendingEvents().empty())
                     clog << ", pending size = " << r->pendingEvents().size();
                 clog << endl;
             }
@@ -939,10 +939,22 @@ void TestManager::conclude()
 
 void TestManager::finalize()
 {
+    if (!c->isUsable() || !c->isLoggedIn()) {
+        clog << "No usable connection reached" << endl;
+        QCoreApplication::exit(-2);
+        return; // NB: QCoreApplication::exit() does return to the caller
+    }
     clog << "Logging out" << endl;
     c->logout();
-    connect(c, &Connection::loggedOut, this,
-            [this] { QCoreApplication::exit(failed.size() + running.size()); },
+    connect(
+        c, &Connection::loggedOut, this,
+        [this] {
+            QCoreApplication::exit(!testSuite ? -3
+                                   : succeeded.empty() && failed.empty()
+                                           && running.empty()
+                                       ? -4
+                                       : failed.size() + running.size());
+        },
         Qt::QueuedConnection);
 }
 
