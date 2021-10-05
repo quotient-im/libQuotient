@@ -341,7 +341,7 @@ void Connection::loginWithPassword(const QString& userId,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    d->checkAndConnect(userId, [=] {
+    d->checkAndConnect(userId, [=,this] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
                          password, /*token*/ "", deviceId, initialDeviceName);
     }, LoginFlows::Password);
@@ -1716,7 +1716,7 @@ void Connection::getTurnServers()
 {
     auto job = callApi<GetTurnServerJob>();
     connect(job, &GetTurnServerJob::success, this,
-            [=] { emit turnServersChanged(job->data()); });
+            [this,job] { emit turnServersChanged(job->data()); });
 }
 
 const QString Connection::SupportedRoomVersion::StableTag =
