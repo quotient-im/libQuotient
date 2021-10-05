@@ -33,6 +33,10 @@ class BaseJob : public QObject {
     }
 
 public:
+#define WITH_DEPRECATED_ERROR_VERSION(Recommended)                  \
+    Recommended, Recommended##Error Q_DECL_ENUMERATOR_DEPRECATED_X( \
+                     "Use " #Recommended) = Recommended
+
     /*! The status code of a job
      *
      * Every job is created in Unprepared status; upon calling prepare()
@@ -43,7 +47,7 @@ public:
      */
     enum StatusCode {
         Success = 0,
-        NoError = Success, // To be compatible with Qt conventions
+        NoError = Success,
         Pending = 1,
         WarningLevel = 20, //< Warnings have codes starting from this
         UnexpectedResponseType = 21,
@@ -52,32 +56,26 @@ public:
         Abandoned = 50, //< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //< Errors have codes starting from this
         NetworkError = 101,
-        Timeout,
-        TimeoutError = Timeout,
+        WITH_DEPRECATED_ERROR_VERSION(Timeout),
         Unauthorised,
         ContentAccessError,
-        NotFoundError,
-        IncorrectRequest,
-        IncorrectRequestError = IncorrectRequest,
-        IncorrectResponse,
-        IncorrectResponseError = IncorrectResponse,
-        TooManyRequests,
-        TooManyRequestsError = TooManyRequests,
+        WITH_DEPRECATED_ERROR_VERSION(NotFound),
+        WITH_DEPRECATED_ERROR_VERSION(IncorrectRequest),
+        WITH_DEPRECATED_ERROR_VERSION(IncorrectResponse),
+        WITH_DEPRECATED_ERROR_VERSION(TooManyRequests),
         RateLimited = TooManyRequests,
-        RequestNotImplemented,
-        RequestNotImplementedError = RequestNotImplemented,
-        UnsupportedRoomVersion,
-        UnsupportedRoomVersionError = UnsupportedRoomVersion,
-        NetworkAuthRequired,
-        NetworkAuthRequiredError = NetworkAuthRequired,
-        UserConsentRequired,
-        UserConsentRequiredError = UserConsentRequired,
+        WITH_DEPRECATED_ERROR_VERSION(RequestNotImplemented),
+        WITH_DEPRECATED_ERROR_VERSION(UnsupportedRoomVersion),
+        WITH_DEPRECATED_ERROR_VERSION(NetworkAuthRequired),
+        WITH_DEPRECATED_ERROR_VERSION(UserConsentRequired),
         CannotLeaveRoom,
         UserDeactivated,
         FileError,
         UserDefinedError = 256
     };
     Q_ENUM(StatusCode)
+
+#undef WITH_DEPRECATED_ERROR_VERSION
 
     template <typename... StrTs>
     static QByteArray makePath(StrTs&&... parts)

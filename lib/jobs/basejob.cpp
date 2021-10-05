@@ -24,7 +24,7 @@ BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
 {
     // Based on https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     if (httpCode / 10 == 41) // 41x errors
-        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+        return httpCode == 410 ? IncorrectRequest : NotFound;
     switch (httpCode) {
     case 401:
         return Unauthorised;
@@ -32,19 +32,19 @@ BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
     case 403: case 407: // clang-format on
         return ContentAccessError;
     case 404:
-        return NotFoundError;
+        return NotFound;
         // clang-format off
     case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
     case 494: // Unofficial nginx "Request header too large"
     case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-        return IncorrectRequestError;
+        return IncorrectRequest;
     case 429:
-        return TooManyRequestsError;
+        return TooManyRequests;
     case 501:
     case 510:
-        return RequestNotImplementedError;
+        return RequestNotImplemented;
     case 511:
-        return NetworkAuthRequiredError;
+        return NetworkAuthRequired;
     default:
         return NetworkError;
     }
@@ -365,7 +365,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         qCCritical(d->logCat)
             << "Developers, ensure the Connection is valid before using it";
         Q_ASSERT(false);
-        setStatus(IncorrectRequestError, tr("Invalid server connection"));
+        setStatus(IncorrectRequest, tr("Invalid server connection"));
     }
     // The status is no good, finalise
     QTimer::singleShot(0, this, &BaseJob::finishJob);
@@ -528,7 +528,7 @@ BaseJob::Status BaseJob::prepareError()
     // of if's below will fall through to `return NoError` at the end
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
-    if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
+    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED") {
         QString msg = tr("Too many requests");
         int64_t retryAfterMs = errorJson.value("retry_after_ms"_ls).toInt(-1);
         if (retryAfterMs >= 0)
@@ -538,16 +538,16 @@ BaseJob::Status BaseJob::prepareError()
 
         d->connection->limitRate(milliseconds(retryAfterMs));
 
-        return { TooManyRequestsError, msg };
+        return { TooManyRequests, msg };
     }
 
     if (errCode == "M_CONSENT_NOT_GIVEN") {
         d->errorUrl = QUrl(errorJson.value("consent_uri"_ls).toString());
-        return { UserConsentRequiredError };
+        return { UserConsentRequired };
     }
     if (errCode == "M_UNSUPPORTED_ROOM_VERSION"
         || errCode == "M_INCOMPATIBLE_ROOM_VERSION")
-        return { UnsupportedRoomVersionError,
+        return { UnsupportedRoomVersion,
                  errorJson.contains("room_version"_ls)
                      ? tr("Requested room version: %1")
                            .arg(errorJson.value("room_version"_ls).toString())
@@ -729,27 +729,27 @@ QString BaseJob::statusCaption() const
         return tr("Request was abandoned");
     case NetworkError:
         return tr("Network problems");
-    case TimeoutError:
+    case Timeout:
         return tr("Request timed out");
     case Unauthorised:
         return tr("Unauthorised request");
     case ContentAccessError:
         return tr("Access error");
-    case NotFoundError:
+    case NotFound:
         return tr("Not found");
-    case IncorrectRequestError:
+    case IncorrectRequest:
         return tr("Invalid request");
-    case IncorrectResponseError:
+    case IncorrectResponse:
         return tr("Response could not be parsed");
-    case TooManyRequestsError:
+    case TooManyRequests:
         return tr("Too many requests");
-    case RequestNotImplementedError:
+    case RequestNotImplemented:
         return tr("Function not implemented by the server");
-    case NetworkAuthRequiredError:
+    case NetworkAuthRequired:
         return tr("Network authentication required");
-    case UserConsentRequiredError:
+    case UserConsentRequired:
         return tr("User consent required");
-    case UnsupportedRoomVersionError:
+    case UnsupportedRoomVersion:
         return tr("The server does not support the needed room version");
     default:
         return tr("Request failed");
@@ -811,7 +811,7 @@ void BaseJob::abandon()
 
 void BaseJob::timeout()
 {
-    setStatus(TimeoutError, "The job has timed out");
+    setStatus(Timeout, "The job has timed out");
     finishJob();
 }
 

@@ -288,7 +288,7 @@ void Connection::resolveServer(const QString& mxid)
         if (d->resolverJob->error() == BaseJob::Abandoned)
             return;
 
-        if (d->resolverJob->error() != BaseJob::NotFoundError) {
+        if (d->resolverJob->error() != BaseJob::NotFound) {
             if (!d->resolverJob->status().good()) {
                 qCWarning(MAIN)
                     << "Fetching .well-known file failed, FAIL_PROMPT";
@@ -401,7 +401,7 @@ void Connection::reloadCapabilities()
                    " disabling version upgrade recommendations to reduce noise";
     });
     connect(d->capabilitiesJob, &BaseJob::failure, this, [this] {
-        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequestError)
+        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequest)
             qCDebug(MAIN) << "Server doesn't support /capabilities;"
                              " version upgrade recommendations won't be issued";
     });
@@ -1058,7 +1058,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
         connect(leaveJob, &BaseJob::result, this,
                 [this, leaveJob, forgetJob, room] {
                     if (leaveJob->error() == BaseJob::Success
-                        || leaveJob->error() == BaseJob::NotFoundError) {
+                        || leaveJob->error() == BaseJob::NotFound) {
                         run(forgetJob);
                         // If the matching /sync response hasn't arrived yet,
                         // mark the room for explicit deletion
@@ -1077,7 +1077,7 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob] {
         // Leave room in case of success, or room not known by server
         if (forgetJob->error() == BaseJob::Success
-            || forgetJob->error() == BaseJob::NotFoundError)
+            || forgetJob->error() == BaseJob::NotFound)
             d->removeRoom(id); // Delete the room from roomMap
         else
             qCWarning(MAIN).nospace() << "Error forgetting room " << id << ": "
