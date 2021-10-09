@@ -2251,8 +2251,13 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
+    const auto &targetReply = target.contentJson()["m.relates_to"].toObject();
+    auto newContent = replacement.contentJson().value("m.new_content"_ls).toObject();
+    if (!targetReply.empty()) {
+        newContent["m.relates_to"] = targetReply;
+    }
     auto originalJson = target.originalJsonObject();
-    originalJson[ContentKeyL] = replacement.contentJson().value("m.new_content"_ls);
+    originalJson[ContentKeyL] = newContent;
 
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
     auto relations = unsignedData.take("m.relations"_ls).toObject();
