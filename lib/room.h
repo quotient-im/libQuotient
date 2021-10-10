@@ -81,11 +81,14 @@ public:
     QString eventId;
     QDateTime timestamp;
 
-    bool operator==(const ReadReceipt& other)
+    bool operator==(const ReadReceipt& other) const
     {
         return eventId == other.eventId && timestamp == other.timestamp;
     }
-    bool operator!=(const ReadReceipt& other) { return !operator==(other); }
+    bool operator!=(const ReadReceipt& other) const
+    {
+        return !operator==(other);
+    }
 };
 inline void swap(ReadReceipt& lhs, ReadReceipt& rhs)
 {
