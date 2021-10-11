@@ -37,11 +37,7 @@ using QDebugManip = QDebug (*)(QDebug);
  */
 inline QDebug formatJson(QDebug debug_object)
 {
-#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
-    return debug_object;
-#else
     return debug_object.noquote();
-#endif
 }
 
 /**
