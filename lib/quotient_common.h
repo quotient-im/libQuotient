@@ -7,6 +7,22 @@
 
 #include <array>
 
+// See https://bugreports.qt.io/browse/QTBUG-82295 - despite the comment that
+// Q_FLAG[_NS] "should" be applied to the enum only, Qt doesn't allow to wrap
+// a flag type into a QVariant then. The macros below define Q_FLAG_NS and on
+// top of that add a part of Q_ENUM() that enables the metatype data but goes
+// under the moc radar to avoid double registration of the same data in the map
+// defined in moc_*.cpp
+#define QUO_DECLARE_FLAGS(Flags, Enum) \
+    Q_DECLARE_FLAGS(Flags, Enum)       \
+    Q_ENUM_IMPL(Enum)                  \
+    Q_FLAG(Flags)
+
+#define QUO_DECLARE_FLAGS_NS(Flags, Enum) \
+    Q_DECLARE_FLAGS(Flags, Enum)          \
+    Q_ENUM_NS_IMPL(Enum)                  \
+    Q_FLAG_NS(Flags)
+
 namespace Quotient {
 Q_NAMESPACE
 
@@ -41,8 +57,7 @@ enum class Membership : unsigned int {
     Ban = 0x10,
     Undefined = Invalid
 };
-Q_DECLARE_FLAGS(MembershipMask, Membership)
-Q_FLAG_NS(MembershipMask)
+QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
 constexpr inline auto MembershipStrings = make_array(
     // The order MUST be the same as the order in the original enum
@@ -60,8 +75,7 @@ enum class JoinState : std::underlying_type_t<Membership> {
     Invite = std::underlying_type_t<Membership>(Membership::Invite),
     Knock = std::underlying_type_t<Membership>(Membership::Knock),
 };
-Q_DECLARE_FLAGS(JoinStates, JoinState)
-Q_FLAG_NS(JoinStates)
+QUO_DECLARE_FLAGS_NS(JoinStates, JoinState)
 
 constexpr inline auto JoinStateStrings = make_array(
     MembershipStrings[0], MembershipStrings[1], MembershipStrings[2],

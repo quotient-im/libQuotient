@@ -148,8 +148,7 @@ public:
         OtherChange = 0x8000,
         AnyChange = 0xFFFF
     };
-    Q_DECLARE_FLAGS(Changes, Change)
-    Q_FLAG(Changes)
+    QUO_DECLARE_FLAGS(Changes, Change)
 
     Room(Connection* connection, QString id, JoinState initialJoinState);
     ~Room() override;
