@@ -138,6 +138,8 @@ public:
     const value_type& operator*() const& { return base_type::operator*(); }
     value_type& operator*() && { return base_type::operator*(); }
 };
+template <typename T>
+Omittable(T&&) -> Omittable<T>;
 
 namespace _impl {
     template <typename T>
