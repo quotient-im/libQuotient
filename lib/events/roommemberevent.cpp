@@ -103,16 +103,14 @@ bool RoomMemberEvent::isUnban() const
 
 bool RoomMemberEvent::isRename() const
 {
-    auto prevName = prevContent() && prevContent()->displayName
-                        ? *prevContent()->displayName
-                        : QString();
-    return newDisplayName() != prevName;
+    return prevContent() && prevContent()->displayName
+               ? newDisplayName() != *prevContent()->displayName
+               : newDisplayName().has_value();
 }
 
 bool RoomMemberEvent::isAvatarUpdate() const
 {
-    auto prevAvatarUrl = prevContent() && prevContent()->avatarUrl
-                             ? *prevContent()->avatarUrl
-                             : QUrl();
-    return newAvatarUrl() != prevAvatarUrl;
+    return prevContent() && prevContent()->avatarUrl
+               ? newAvatarUrl() != *prevContent()->avatarUrl
+               : newAvatarUrl().has_value();
 }
