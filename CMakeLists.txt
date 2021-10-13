@@ -179,6 +179,8 @@ set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
+set(API_GENERATION_ENABLED 0)
+set(API_FORMATTING_ENABLED 0)
 if (GTAD_PATH AND MATRIX_DOC_PATH)
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" PROGRAM PROGRAM_ARGS GTAD_ARGS)
     if (EXISTS ${ABS_GTAD_PATH})
@@ -264,8 +266,10 @@ if (API_GENERATION_ENABLED)
 endif()
 add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
                  "build target update-api")
-add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
-                 "formatting of generated API files with clang-format")
+if (API_GENERATION_ENABLED)
+    add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
+                     "formatting of generated API files with clang-format")
+endif()
 
 # Make no mistake: CMake cannot run gtad first and then populate the list of
 # resulting api_SRCS files. In other words, placing the below statement after
