@@ -479,10 +479,23 @@ public:
     }
 
 public Q_SLOTS:
-    /** Set the homeserver base URL */
+    /// \brief Set the homeserver base URL and retrieve its login flows
+    ///
+    /// \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
     void setHomeserver(const QUrl& baseUrl);
 
-    /** Determine and set the homeserver from MXID */
+    /// \brief Determine and set the homeserver from MXID
+    ///
+    /// This attempts to resolve the homeserver by requesting
+    /// .well-known/matrix/client record from the server taken from the MXID
+    /// serverpart. If there is no record found, the serverpart itself is
+    /// attempted as the homeserver base URL; if the record is there but
+    /// is malformed (e.g., the homeserver base URL cannot be found in it)
+    /// resolveError() is emitted and further processing stops. Otherwise,
+    /// setHomeserver is called, preparing the Connection object for the login
+    /// attempt.
+    /// \param mxid user Matrix ID, such as @someone:example.org
+    /// \sa setHomeserver, homeserverChanged, loginFlowsChanged, resolveError
     void resolveServer(const QString& mxid);
 
     /** \brief Log in using a username and password pair
@@ -638,6 +651,11 @@ public Q_SLOTS:
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
 Q_SIGNALS:
+    /// \brief Initial server resolution has failed
+    ///
+    /// This signal is emitted when resolveServer() did not manage to resolve
+    /// the homeserver using its .well-known/client record or otherwise.
+    /// \sa resolveServer
     void resolveError(QString error);
 
     void homeserverChanged(QUrl baseUrl);
