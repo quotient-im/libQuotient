@@ -623,11 +623,11 @@ Q_SIGNALS:
      */
     void baseStateLoaded();
     void eventsHistoryJobChanged();
-    void aboutToAddHistoricalMessages(RoomEventsRange events);
-    void aboutToAddNewMessages(RoomEventsRange events);
+    void aboutToAddHistoricalMessages(Quotient::RoomEventsRange events);
+    void aboutToAddNewMessages(Quotient::RoomEventsRange events);
     void addedMessages(int fromIndex, int toIndex);
     /// The event is about to be appended to the list of pending events
-    void pendingEventAboutToAdd(RoomEvent* event);
+    void pendingEventAboutToAdd(Quotient::RoomEvent* event);
     /// An event has been appended to the list of pending events
     void pendingEventAdded();
     /// The remote echo has arrived with the sync and will be merged
