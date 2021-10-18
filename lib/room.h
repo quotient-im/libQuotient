@@ -381,8 +381,8 @@ public:
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
     //! \brief Obtain a read receipt of any user
+    //! \deprecated Use lastReadReceipt or fullyReadMarker instead.
     //!
-    //! \deprecated Use lastReadReceipt or fullyReadMarker instead
     //! Historically, readMarker was returning a "converged" read marker
     //! representing both the read receipt and the fully read marker, as
     //! Quotient managed them together. Since 0.6.8, a single-argument call of
@@ -397,16 +397,19 @@ public:
     rev_iter_t readMarker(const User* user) const;
     //! \brief Obtain the local user's fully-read marker
     //! \deprecated Use fullyReadMarker instead
-    //! See the documentation for the single-argument overload
+    //!
+    //! See the documentation for the single-argument overload.
     //! \sa fullyReadMarker
     [[deprecated("Use lastReadReceipt() to get m.read receipt or"
                  " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker() const;
     //! \brief Get the event id for the local user's fully-read marker
     //! \deprecated Use lastFullyReadEventId instead
+    //!
     //! See the readMarker documentation
     [[deprecated("Use lastReadReceipt() to get m.read receipt or"
-                 " fullyReadMarker() to get m.fully_read marker")]] //
+                 " lastFullyReadEventId() to get an event id that"
+                 " m.fully_read marker points to")]] //
     QString readMarkerEventId() const;
 
     //! \brief Get the latest read receipt from a user
