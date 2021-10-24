@@ -552,7 +552,7 @@ void TestOlmAccount::enableEncryption()
 
     auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), {"@bob:localhost"});
     connect(alice.get(), &Connection::newRoom, this, [alice, bob, &joinedRoom, this] (Quotient::Room *room) {
-        room->activateEncryption(); // TODO we should also wait for it
+        room->activateEncryption();
         QSignalSpy spy(room, &Room::encryption);
 
         joinedRoom = room->id();
