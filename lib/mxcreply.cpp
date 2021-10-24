@@ -5,6 +5,12 @@
 
 #include "room.h"
 
+#ifdef Quotient_E2EE_ENABLED
+#include "encryptionmanager.h"
+#include "events/encryptedfile.h"
+#include <QBuffer>
+#endif
+
 using namespace Quotient;
 
 class MxcReply::Private
@@ -14,6 +20,10 @@ public:
         : m_reply(r)
     {}
     QNetworkReply* m_reply;
+    QIODevice *m_device = nullptr;
+#ifdef Quotient_E2EE_ENABLED
+    Omittable<EncryptedFile> m_encryptedFile;
+#endif
 };
 
 MxcReply::MxcReply(QNetworkReply* reply)
@@ -23,6 +33,7 @@ MxcReply::MxcReply(QNetworkReply* reply)
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
         setOpenMode(ReadOnly);
+        d->m_device = d->m_reply;
         Q_EMIT finished();
     });
 }
@@ -31,11 +42,34 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     : d(std::make_unique<Private>(reply))
 {
     reply->setParent(this);
-    connect(d->m_reply, &QNetworkReply::finished, this, [this, room, eventId]() {
+    connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
+
+#ifdef Quotient_E2EE_ENABLED
+        if(!d->m_encryptedFile.has_value()) {
+            d->m_device = d->m_reply;
+        } else {
+            EncryptedFile file = *d->m_encryptedFile;
+            auto buffer = new QBuffer(this);
+            buffer->setData(EncryptionManager::decryptFile(d->m_reply->readAll(), &file));
+            buffer->open(ReadOnly);
+            d->m_device = buffer;
+        }
+#else
+        d->m_device = d->m_reply;
+#endif
+
         setOpenMode(ReadOnly);
         emit finished();
     });
+
+#ifdef Quotient_E2EE_ENABLED
+    auto eventIt = room->findInTimeline(eventId);
+    if(eventIt != room->historyEdge()) {
+        auto event = eventIt->viewAs<RoomMessageEvent>();
+        d->m_encryptedFile = event->content()->fileInfo()->file;
+    }
+#endif
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -61,7 +95,7 @@ MxcReply::MxcReply()
 
 qint64 MxcReply::readData(char *data, qint64 maxSize)
 {
-    return d->m_reply->read(data, maxSize);
+    return d->m_device->read(data, maxSize);
 }
 
 void MxcReply::abort()
