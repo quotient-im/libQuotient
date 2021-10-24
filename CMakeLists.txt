@@ -128,7 +128,6 @@ list(APPEND lib_SRCS
     lib/networksettings.cpp
     lib/converters.cpp
     lib/util.cpp
-    lib/encryptionmanager.cpp
     lib/eventitem.cpp
     lib/accountregistry.cpp
     lib/mxcreply.cpp
@@ -171,6 +170,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         lib/crypto/qolmerrors.cpp
         lib/crypto/qolmsession.cpp
         lib/crypto/qolmmessage.cpp
+        lib/encryptionmanager.cpp
     )
 endif()
 
