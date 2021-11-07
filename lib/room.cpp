@@ -224,6 +224,11 @@ public:
         return evt;
     }
 
+    const QHash<StateEventKey, const StateEventBase*> stateEvents() const
+    {
+        return currentState;
+    }
+
     template <typename EventT>
     const EventT* getCurrentState(const QString& stateKey = {}) const
     {
@@ -1291,6 +1296,11 @@ const StateEventBase* Room::getCurrentState(const QString& evtType,
                                             const QString& stateKey) const
 {
     return d->getCurrentState({ evtType, stateKey });
+}
+
+const QHash<StateEventKey, const StateEventBase*> Room::stateEvents() const
+{
+    return d->stateEvents();
 }
 
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
