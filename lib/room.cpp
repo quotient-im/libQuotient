@@ -54,7 +54,6 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
-#include <QtCore/QMimeDatabase>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder> // for efficient string concats (operator%)
