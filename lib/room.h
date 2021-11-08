@@ -142,10 +142,13 @@ public:
         TagsChange = 0x40,
         MembersChange = 0x80,
         /* = 0x100, */
-        AccountDataChange = 0x200,
+        AccountDataChange Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "AccountDataChange will be merged into OtherChange in 0.8") = 0x200,
         SummaryChange = 0x400,
-        ReadMarkerChange = 0x800,
+        ReadMarkerChange Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "ReadMarkerChange will be merged into OtherChange in 0.8") = 0x800,
         OtherChange = 0x8000,
+        OtherChanges = OtherChange,
         AnyChange = 0xFFFF
     };
     QUO_DECLARE_FLAGS(Changes, Change)
