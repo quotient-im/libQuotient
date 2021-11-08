@@ -77,8 +77,6 @@ public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
         : data(move(connection))
     {}
-    Q_DISABLE_COPY(Private)
-    DISABLE_MOVE(Private)
 
     Connection* q = nullptr;
     std::unique_ptr<ConnectionData> data;

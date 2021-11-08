@@ -76,8 +76,7 @@ public:
 
 private:
     EventTypeRegistry() = default;
-    Q_DISABLE_COPY(EventTypeRegistry)
-    DISABLE_MOVE(EventTypeRegistry)
+    Q_DISABLE_COPY_MOVE(EventTypeRegistry)
 
     static EventTypeRegistry& get()
     {
