@@ -400,8 +400,7 @@ public:
     //!
     //! See the documentation for the single-argument overload.
     //! \sa fullyReadMarker
-    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
-                 " fullyReadMarker() to get m.fully_read marker")]] //
+    [[deprecated("Use localReadReceiptMarker() or fullyReadMarker()")]] //
     rev_iter_t readMarker() const;
     //! \brief Get the event id for the local user's fully-read marker
     //! \deprecated Use lastFullyReadEventId instead
@@ -419,6 +418,19 @@ public:
     //! from them.
     //! \sa usersAtEventId
     ReadReceipt lastReadReceipt(const QString& userId) const;
+
+    //! \brief Get the latest read receipt from the local user
+    //!
+    //! This is a shortcut for <tt>lastReadReceipt(localUserId)</tt>.
+    //! \sa lastReadReceipt
+    ReadReceipt lastLocalReadReceipt() const;
+
+    //! \brief Find the timeline item the local read receipt is at
+    //!
+    //! This is a shortcut for \code
+    //! room->findInTimeline(room->lastLocalReadReceipt().eventId);
+    //! \endcode
+    rev_iter_t localReadReceiptMarker() const;
 
     //! \brief Get the latest event id marked as fully read
     //!

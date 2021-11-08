@@ -1014,6 +1014,16 @@ ReadReceipt Room::lastReadReceipt(const QString& userId) const
     return d->lastReadReceipts.value(userId);
 }
 
+ReadReceipt Room::lastLocalReadReceipt() const
+{
+    return d->lastReadReceipts.value(localUser()->id());
+}
+
+Room::rev_iter_t Room::localReadReceiptMarker() const
+{
+    return findInTimeline(lastLocalReadReceipt().eventId);
+}
+
 QString Room::lastFullyReadEventId() const { return d->fullyReadUntilEventId; }
 
 Room::rev_iter_t Room::fullyReadMarker() const
