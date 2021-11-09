@@ -7,6 +7,7 @@
 #include "requestdata.h"
 #include "../logging.h"
 #include "../converters.h"
+#include "../quotient_common.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>
@@ -33,9 +34,8 @@ class BaseJob : public QObject {
     }
 
 public:
-#define WITH_DEPRECATED_ERROR_VERSION(Recommended)                  \
-    Recommended, Recommended##Error Q_DECL_ENUMERATOR_DEPRECATED_X( \
-                     "Use " #Recommended) = Recommended
+#define WITH_DEPRECATED_ERROR_VERSION(Recommended) \
+    Recommended, DECL_DEPRECATED_ENUMERATOR(Recommended##Error, Recommended)
 
     /*! The status code of a job
      *
