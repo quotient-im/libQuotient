@@ -1596,6 +1596,14 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                                   roomKeyEvent.sessionKey())) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
+        for (unsigned long int i = 0; i < d->timeline.size(); i++) {
+            if (auto encryptedEvent = d->timeline[i].viewAs<EncryptedEvent>()) {
+                auto decrypted = decryptMessage(*encryptedEvent);
+                if(decrypted) {
+                    d->timeline[i].replaceEvent(std::move(decrypted));
+                }
+            }
+        }
     }
 #endif // Quotient_E2EE_ENABLED
 }
