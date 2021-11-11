@@ -12,10 +12,30 @@
 #include <unordered_map>
 #include <optional>
 
-// Along the lines of Q_DISABLE_COPY - the upstream version comes in Qt 5.13
-#define DISABLE_MOVE(_ClassName)               \
-    _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
-    _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
+#ifndef Q_DISABLE_MOVE
+// Q_DISABLE_MOVE was introduced in Q_VERSION_CHECK(5,13,0)
+#    define Q_DISABLE_MOVE(_ClassName)             \
+        _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
+        _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
+#endif
+
+#ifndef Q_DISABLE_COPY_MOVE
+#define Q_DISABLE_COPY_MOVE(Class) \
+    Q_DISABLE_COPY(Class) \
+    Q_DISABLE_MOVE(Class)
+#endif
+
+#define DISABLE_MOVE(_ClassName) \
+static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
+
+#ifndef QT_IGNORE_DEPRECATIONS
+// QT_IGNORE_DEPRECATIONS was introduced in Q_VERSION_CHECK(5,15,0)
+#    define QT_IGNORE_DEPRECATIONS(statement) \
+        QT_WARNING_PUSH                       \
+        QT_WARNING_DISABLE_DEPRECATED         \
+        statement                             \
+        QT_WARNING_POP
+#endif
 
 namespace Quotient {
 /// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
@@ -138,6 +158,8 @@ public:
     const value_type& operator*() const& { return base_type::operator*(); }
     value_type& operator*() && { return base_type::operator*(); }
 };
+template <typename T>
+Omittable(T&&) -> Omittable<T>;
 
 namespace _impl {
     template <typename T>

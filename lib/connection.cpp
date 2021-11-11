@@ -77,8 +77,6 @@ public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
         : data(move(connection))
     {}
-    Q_DISABLE_COPY(Private)
-    DISABLE_MOVE(Private)
 
     Connection* q = nullptr;
     std::unique_ptr<ConnectionData> data;
@@ -316,10 +314,6 @@ void Connection::resolveServer(const QString& mxid)
             setHomeserver(maybeBaseUrl);
         }
         Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
-        connect(d->loginFlowsJob, &BaseJob::failure, this, [this] {
-            qCWarning(MAIN) << "Homeserver base URL sanity check failed";
-            emit resolveError(tr("The homeserver doesn't seem to be working"));
-        });
     });
 }
 
@@ -478,10 +472,11 @@ void Connection::Private::checkAndConnect(const QString& userId,
                         connectFn();
                     else
                         emit q->loginError(
+                            tr("Unsupported login flow"),
                             tr("The homeserver at %1 does not support"
                                " the login flow '%2'")
-                            .arg(data->baseUrl().toDisplayString()),
-                                 flow->type);
+                                .arg(data->baseUrl().toDisplayString(),
+                                     flow->type));
                 });
         else
             connectSingleShot(q, &Connection::homeserverChanged, q, connectFn);

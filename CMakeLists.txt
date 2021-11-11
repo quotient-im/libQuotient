@@ -179,8 +179,12 @@ set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
+set(API_GENERATION_ENABLED 0)
+set(API_FORMATTING_ENABLED 0)
 if (GTAD_PATH AND MATRIX_DOC_PATH)
-    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" PROGRAM PROGRAM_ARGS GTAD_ARGS)
+    # REALPATH resolves ~ (home directory) while PROGRAM doesn't
+    get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
+    get_filename_component(ABS_GTAD_PATH "${ABS_GTAD_PATH}" PROGRAM PROGRAM_ARGS GTAD_ARGS)
     if (EXISTS ${ABS_GTAD_PATH})
         get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/data/api" REALPATH)
         if (NOT IS_DIRECTORY ${ABS_API_DEF_PATH})
@@ -193,7 +197,7 @@ if (GTAD_PATH AND MATRIX_DOC_PATH)
             message( WARNING "${MATRIX_DOC_PATH} doesn't seem to point to a valid matrix-doc repo; disabling API stubs generation")
         endif ()
     else (EXISTS ${ABS_GTAD_PATH})
-        message( WARNING "${GTAD_PATH} doesn't exist; disabling API stubs generation")
+        message( WARNING "${GTAD_PATH} is not executable; disabling API stubs generation")
     endif ()
 endif ()
 if (API_GENERATION_ENABLED)
@@ -264,8 +268,10 @@ if (API_GENERATION_ENABLED)
 endif()
 add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
                  "build target update-api")
-add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
-                 "formatting of generated API files with clang-format")
+if (API_GENERATION_ENABLED)
+    add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
+                     "formatting of generated API files with clang-format")
+endif()
 
 # Make no mistake: CMake cannot run gtad first and then populate the list of
 # resulting api_SRCS files. In other words, placing the below statement after
