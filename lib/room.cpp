@@ -2498,12 +2498,6 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                        << totalInserted << "new events; the last event is now"
                        << timeline.back();
 
-        // The first event in the just-added batch (referred to by `from`)
-        // defines whose read receipt can possibly be promoted any further over
-        // the same author's events newly arrived. Others will need explicit
-        // read receipts from the server - or, for the local user, calling
-        // setLastDisplayedEventId() - to promote their read receipts over
-        // the new message events.
         auto* const firstWriter = q->user((*from)->senderId());
         setLastReadReceipt(firstWriter, rev_iter_t(from + 1));
         if (firstWriter == q->localUser()
@@ -2813,15 +2807,14 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             if (newMarker == historyEdge())
                 qCDebug(EPHEMERAL) << "Event of the read receipt(s) is not "
                                       "found; saving them anyway";
+            // If the event is not found (most likely, because it's too old and
+            // hasn't been fetched from the server yet) but there is a previous
+            // marker for a user, keep the previous marker because read receipts
+            // are not supposed to move backwards. Otherwise, blindly store
+            // the event id for this user and update the read marker when/if
+            // the event is fetched later on.
             for (const Receipt& r : p.receipts)
                 if (isMember(r.userId)) {
-                    // If the event is not found (most likely, because it's
-                    // too old and hasn't been fetched from the server yet)
-                    // but there is a previous marker for a user, keep
-                    // the previous marker because read receipts are not
-                    // supposed to move backwards. Otherwise, blindly
-                    // store the event id for this user and update the read
-                    // marker when/if the event is fetched later on.
                     d->setLastReadReceipt(user(r.userId), newMarker,
                                           { p.evtId, r.timestamp });
                 }
