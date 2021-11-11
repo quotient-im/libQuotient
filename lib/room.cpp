@@ -2813,7 +2813,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             // are not supposed to move backwards. Otherwise, blindly store
             // the event id for this user and update the read marker when/if
             // the event is fetched later on.
-            for (const Receipt& r : p.receipts)
+            for (const auto& r : p.receipts)
                 if (isMember(r.userId)) {
                     d->setLastReadReceipt(user(r.userId), newMarker,
                                           { p.evtId, r.timestamp });
@@ -3021,30 +3021,17 @@ QJsonObject Room::Private::toJson() const
                           { QStringLiteral("events"), accountDataEvents } });
     }
 
-    if (const auto& readReceiptEventId =
-            lastReadReceipts.value(q->localUser()).eventId;
-        !readReceiptEventId.isEmpty()) //
+    if (const auto& readReceipt = q->lastReadReceipt(connection->userId());
+        !readReceipt.eventId.isEmpty()) //
     {
-        // Okay, that's a mouthful; but basically, it's simply placing an m.read
-        // event in the 'ephemeral' section of the cached sync payload.
-        // See also receiptevent.* and m.read example in the spec.
-        // Only the local user's read receipt is saved - others' are really
-        // considered ephemeral but this one is useful in understanding where
-        // the user is in the timeline before any history is loaded.
         result.insert(
             QStringLiteral("ephemeral"),
             QJsonObject {
                 { QStringLiteral("events"),
-                  QJsonArray { QJsonObject {
-                      { TypeKey, ReceiptEvent::matrixTypeId() },
-                      { ContentKey,
-                        QJsonObject {
-                            { readReceiptEventId,
-                              QJsonObject {
-                                  { QStringLiteral("m.read"),
-                                    QJsonObject {
-                                        { connection->userId(),
-                                          QJsonObject {} } } } } } } } } } } });
+                  QJsonArray { ReceiptEvent({ { readReceipt.eventId,
+                                                { { connection->userId(),
+                                                    readReceipt.timestamp } } } })
+                                   .fullJson() } } });
     }
 
     QJsonObject unreadNotifObj { { SyncRoomData::UnreadCountKey,

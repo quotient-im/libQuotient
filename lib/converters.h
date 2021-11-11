@@ -134,7 +134,10 @@ struct JsonConverter<QString> : public TrivialJsonDumper<QString> {
 
 template <>
 struct JsonConverter<QDateTime> {
-    static auto dump(const QDateTime& val) = delete; // not provided yet
+    static auto dump(const QDateTime& val)
+    {
+        return val.isValid() ? val.toMSecsSinceEpoch() : QJsonValue();
+    }
     static auto load(const QJsonValue& jv)
     {
         return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
@@ -143,7 +146,7 @@ struct JsonConverter<QDateTime> {
 
 template <>
 struct JsonConverter<QDate> {
-    static auto dump(const QDate& val) = delete; // not provided yet
+    static auto dump(const QDate& val) { return toJson(QDateTime(val)); }
     static auto load(const QJsonValue& jv)
     {
         return fromJson<QDateTime>(jv).date();
