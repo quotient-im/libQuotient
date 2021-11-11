@@ -242,12 +242,11 @@ struct JsonObjectConverter<QSet<QString>> {
         for (const auto& e : s)
             json.insert(toJson(e), QJsonObject {});
     }
-    static auto fillFrom(const QJsonObject& json, QSet<QString>& s)
+    static void fillFrom(const QJsonObject& json, QSet<QString>& s)
     {
         s.reserve(s.size() + json.size());
         for (auto it = json.begin(); it != json.end(); ++it)
             s.insert(it.key());
-        return s;
     }
 };
 
@@ -260,7 +259,7 @@ struct HashMapFromJson {
     }
     static void fillFrom(const QJsonObject& jo, HashMapT& h)
     {
-        h.reserve(jo.size());
+        h.reserve(h.size() + jo.size());
         for (auto it = jo.begin(); it != jo.end(); ++it)
             h[it.key()] = fromJson<typename HashMapT::mapped_type>(it.value());
     }
