@@ -633,9 +633,12 @@ Room::Changes Room::Private::setLastReadEvent(User* u, QString eventId)
             connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
                                                   storedId);
         emit q->readMarkerMoved(eventId, storedId);
-        // TODO: Drop ReadMarkerChange in 0.8
-        return QT_IGNORE_DEPRECATIONS(Change::ReadMarkerChange)
-               | Change::OtherChange;
+
+        // NB: GCC (at least 10) only accepts QT_IGNORE_DEPRECATIONS around
+        // a statement, not within a statement
+        QT_IGNORE_DEPRECATIONS( // TODO: Drop ReadMarkerChange in 0.8
+            return Change::ReadMarkerChange | Change::OtherChange;
+        )
     }
     return Change::NoChange;
 }
@@ -2816,7 +2819,9 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
                        << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
         // TODO: Drop AccountDataChange in 0.8
-        QT_IGNORE_DEPRECATIONS(changes |= AccountDataChange|OtherChange);
+        // NB: GCC (at least 10) only accepts QT_IGNORE_DEPRECATIONS around
+        // a statement, not within a statement
+        QT_IGNORE_DEPRECATIONS(changes |= AccountDataChange | OtherChange;)
     }
     return changes;
 }
