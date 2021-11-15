@@ -120,14 +120,14 @@ public:
     int notificationCount = 0;
     members_map_t membersMap;
     QList<User*> usersTyping;
-    QHash<QString, QSet<User*>> eventIdReadUsers;
+    QHash<QString, QSet<QString>> eventIdReadUsers;
     QList<User*> usersInvited;
     QList<User*> membersLeft;
     int unreadMessages = 0;
     bool displayed = false;
     QString firstDisplayedEventId;
     QString lastDisplayedEventId;
-    QHash<const User*, ReadReceipt> lastReadReceipts;
+    QHash<QString, ReadReceipt> lastReadReceipts;
     QString fullyReadUntilEventId;
     TagsMap tags;
     UnorderedMap<QString, EventPtr> accountData;
@@ -291,7 +291,7 @@ public:
      */
     void dropDuplicateEvents(RoomEvents& events) const;
 
-    void setLastReadReceipt(User* u, rev_iter_t newMarker,
+    bool setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
                             ReadReceipt newReceipt = {});
     Changes setFullyReadMarker(const QString &eventId);
     Changes updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
@@ -619,60 +619,62 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-void Room::Private::setLastReadReceipt(User* u, rev_iter_t newMarker,
+bool Room::Private::setLastReadReceipt(const QString& userId,
+                                       rev_iter_t newMarker,
                                        ReadReceipt newReceipt)
 {
-    if (!u) {
-        Q_ASSERT(u != nullptr); // For Debug builds
-        qCCritical(MAIN) << "Empty user, skipping read receipt registration";
-        return; // For Release builds
-    }
-    if (!q->isMember(u->id())) {
-        qCWarning(EPHEMERAL)
-            << "Won't record read receipt for non-member" << u->id();
-        return;
-    }
-
-    auto& storedReceipt = lastReadReceipts[u];
-    if (newMarker == timeline.crend() && !newReceipt.eventId.isEmpty())
+    if (newMarker == historyEdge() && !newReceipt.eventId.isEmpty())
         newMarker = q->findInTimeline(newReceipt.eventId);
-    if (newMarker != timeline.crend()) {
-        // NB: with reverse iterators, timeline history >= sync edge
-        if (newMarker >= q->findInTimeline(storedReceipt.eventId)) {
-            qCDebug(EPHEMERAL) << "The new read receipt for" << u->id()
-                               << "is at or behind the old one, skipping";
-            return;
-        }
-
+    if (newMarker != historyEdge()) {
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
-        const auto eagerMarker = find_if(newMarker.base(), timeline.cend(),
+        const auto eagerMarker = find_if(newMarker.base(), syncEdge(),
                                          [=](const TimelineItem& ti) {
-                                             return ti->senderId() != u->id();
-                                         })
-                                 - 1;
-        newReceipt.eventId = (*eagerMarker)->id();
-        if (eagerMarker != newMarker.base() - 1) // &*(rIt.base() - 1) === &*rIt
-            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << u->id()
+                                             return ti->senderId() != userId;
+                                         });
+        // eagerMarker is now just after the desired event for newMarker
+        if (eagerMarker != newMarker.base()) {
+            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << userId
                                << "to" << newReceipt.eventId;
+            newMarker = rev_iter_t(eagerMarker);
+        }
+        // Fill newReceipt with the event (and, if needed, timestamp) from
+        // eagerMarker
+        newReceipt.eventId = (eagerMarker - 1)->event()->id();
+        if (newReceipt.timestamp.isNull())
+            newReceipt.timestamp = QDateTime::currentDateTime();
     }
+    auto& storedReceipt =
+            lastReadReceipts[userId]; // clazy:exclude=detaching-member
+    const auto prevEventId = storedReceipt.eventId;
+    // NB: with reverse iterators, timeline history >= sync edge
+    if (newMarker >= q->findInTimeline(prevEventId))
+        return false;
 
-    if (storedReceipt == newReceipt)
-        return;
     // Finally make the change
-    auto& oldEventReadUsers = eventIdReadUsers[storedReceipt.eventId];
-    oldEventReadUsers.remove(u);
-    if (oldEventReadUsers.isEmpty())
-        eventIdReadUsers.remove(storedReceipt.eventId);
-    eventIdReadUsers[newReceipt.eventId].insert(u);
-    swap(storedReceipt, newReceipt); // Now newReceipt actually stores the old receipt
-    qCDebug(EPHEMERAL) << "The new read receipt for" << u->id() << "is at"
+
+    auto oldEventReadUsersIt =
+        eventIdReadUsers.find(prevEventId); // clazy:exclude=detaching-member
+    if (oldEventReadUsersIt != eventIdReadUsers.end()) {
+        oldEventReadUsersIt->remove(userId);
+        if (oldEventReadUsersIt->isEmpty())
+            eventIdReadUsers.erase(oldEventReadUsersIt);
+    }
+    eventIdReadUsers[newReceipt.eventId].insert(userId);
+    storedReceipt = move(newReceipt);
+    qCDebug(EPHEMERAL) << "The new read receipt for" << userId << "is now at"
                        << storedReceipt.eventId;
-    emit q->lastReadEventChanged(u);
+
+    // TODO: use Room::member() when it becomes a thing and only emit signals
+    //       for actual members, not just any user
+    const auto member = q->user(userId);
+    Q_ASSERT(member != nullptr);
+    emit q->lastReadEventChanged(member);
     // TODO: remove in 0.8
-    if (!isLocalUser(u))
-        emit q->readMarkerForUserMoved(u, newReceipt.eventId,
+    if (!isLocalUser(member))
+        emit q->readMarkerForUserMoved(member, prevEventId,
                                        storedReceipt.eventId);
+    return true;
 }
 
 Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
@@ -777,7 +779,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     Changes changes = ReadMarkerChange;
     if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind
-        setLastReadReceipt(q->localUser(), rm);
+        setLastReadReceipt(connection->userId(), rm);
         changes |= recalculateUnreadCount(); // TODO: updateUnreadCount()?
     }
     return changes;
@@ -785,8 +787,13 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
 
 void Room::setReadReceipt(const QString& atEventId)
 {
-    d->setLastReadReceipt(localUser(), historyEdge(),
-                          { atEventId, QDateTime::currentDateTime() });
+    if (!d->setLastReadReceipt(localUser()->id(), historyEdge(),
+                               { atEventId, QDateTime::currentDateTime() })) {
+        qCDebug(EPHEMERAL) << "The new read receipt for" << localUser()->id()
+                           << "in" << objectName()
+                           << "is at or behind the old one, skipping";
+        return;
+    }
     connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
                                           QStringLiteral("m.read"),
                                           QUrl::toPercentEncoding(atEventId));
@@ -1004,7 +1011,7 @@ QString Room::readMarkerEventId() const { return lastFullyReadEventId(); }
 
 ReadReceipt Room::lastReadReceipt(const QString& userId) const
 {
-    return d->lastReadReceipts.value(user(userId));
+    return d->lastReadReceipts.value(userId);
 }
 
 QString Room::lastFullyReadEventId() const { return d->fullyReadUntilEventId; }
@@ -1014,9 +1021,19 @@ Room::rev_iter_t Room::fullyReadMarker() const
     return findInTimeline(d->fullyReadUntilEventId);
 }
 
-QSet<User*> Room::usersAtEventId(const QString& eventId)
+QSet<QString> Room::userIdsAtEvent(const QString& eventId)
 {
     return d->eventIdReadUsers.value(eventId);
+}
+
+QSet<User*> Room::usersAtEventId(const QString& eventId)
+{
+    const auto& userIds = d->eventIdReadUsers.value(eventId);
+    QSet<User*> users;
+    users.reserve(userIds.size());
+    for (const auto& uId : userIds)
+        users.insert(user(uId));
+    return users;
 }
 
 int Room::notificationCount() const { return d->notificationCount; }
@@ -2498,17 +2515,16 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                        << totalInserted << "new events; the last event is now"
                        << timeline.back();
 
-        auto* const firstWriter = q->user((*from)->senderId());
-        setLastReadReceipt(firstWriter, rev_iter_t(from + 1));
-        if (firstWriter == q->localUser()
+        const auto& firstWriterId = (*from)->senderId();
+        setLastReadReceipt(firstWriterId, rev_iter_t(from + 1));
+        // If the local user's message(s) is/are first in the batch
+        // and the fully read marker was right before it, promote
+        // the fully read marker to the same event as the read receipt.
+        if (firstWriterId == connection->userId()
             && q->fullyReadMarker().base() == from) //
-        {
-            // If the local user's message(s) is/are first in the batch
-            // and the fully read marker was right before it, promote
-            // the fully read marker to the same event as the read receipt.
             roomChanges |=
-                setFullyReadMarker(lastReadReceipts.value(firstWriter).eventId);
-        }
+                setFullyReadMarker(q->lastReadReceipt(firstWriterId).eventId);
+
         roomChanges |= updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
     }
 
@@ -2781,6 +2797,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     et.start();
     if (auto* evt = eventCast<TypingEvent>(event)) {
         d->usersTyping.clear();
+        d->usersTyping.reserve(evt->users().size()); // Assume all are members
         for (const auto& userId : evt->users())
             if (isMember(userId))
                 d->usersTyping.append(user(userId));
@@ -2795,29 +2812,29 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
         const auto& eventsWithReceipts = evt->eventsWithReceipts();
         for (const auto& p : eventsWithReceipts) {
             totalReceipts += p.receipts.size();
-            {
-                if (p.receipts.size() == 1)
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts[0].userId;
-                else
-                    qCDebug(EPHEMERAL) << "Marking" << p.evtId << "as read for"
-                                       << p.receipts.size() << "users";
-            }
             const auto newMarker = findInTimeline(p.evtId);
             if (newMarker == historyEdge())
                 qCDebug(EPHEMERAL) << "Event of the read receipt(s) is not "
-                                      "found; saving them anyway";
+                                      "found; saving anyway";
             // If the event is not found (most likely, because it's too old and
             // hasn't been fetched from the server yet) but there is a previous
             // marker for a user, keep the previous marker because read receipts
             // are not supposed to move backwards. Otherwise, blindly store
             // the event id for this user and update the read marker when/if
             // the event is fetched later on.
-            for (const auto& r : p.receipts)
-                if (isMember(r.userId)) {
-                    d->setLastReadReceipt(user(r.userId), newMarker,
-                                          { p.evtId, r.timestamp });
-                }
+            const auto updatedCount = std::count_if(
+                p.receipts.cbegin(), p.receipts.cend(),
+                [this, &newMarker, &evtId = p.evtId](const auto& r) -> bool {
+                    return d->setLastReadReceipt(r.userId, newMarker,
+                                                 { evtId, r.timestamp });
+                });
+
+            if (p.receipts.size() > 1)
+                qCDebug(EPHEMERAL) << p.evtId << "marked as read for"
+                                   << updatedCount << "user(s)";
+            if (updatedCount < p.receipts.size())
+                qCDebug(EPHEMERAL) << p.receipts.size() - updatedCount
+                                   << "receipts were skipped";
         }
         if (eventsWithReceipts.size() > 3 || totalReceipts > 10
             || et.nsecsElapsed() >= profilerMinNsecs())

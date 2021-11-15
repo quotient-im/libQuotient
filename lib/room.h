@@ -442,10 +442,18 @@ public:
     //! This method is for cases when you need to show users who have read
     //! an event. Calling it on inexistent or empty event id will return
     //! an empty set.
-    //! \sa lastReadReceipt
+    //! \note The returned list may contain ids resolving to users that are
+    //!       not loaded as room members yet (in particular, if members are not
+    //!       yet lazy-loaded). For now this merely means that the user's
+    //!       room-specific name and avatar will not be there; but generally
+    //!       it's recommended to ensure that all room members are loaded
+    //!       before operating on the result of this function.
+    //! \sa lastReadReceipt, allMembersLoaded
+    QSet<QString> userIdsAtEvent(const QString& eventId);
+
+    [[deprecated("Use userIdsAtEvent instead")]]
     QSet<User*> usersAtEventId(const QString& eventId);
 
-    //!
     //! \brief Mark the event with uptoEventId as fully read
     //!
     //! Marks the event with the specified id as fully read locally and also
