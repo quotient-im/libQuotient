@@ -270,6 +270,9 @@ Connection::Connection(const QUrl& server, QObject* parent)
 {
 #ifdef Quotient_E2EE_ENABLED
     d->encryptionManager = new EncryptionManager(this);
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
+        saveOlmAccount();
+    });
 #endif
     d->q = this; // All d initialization should occur before this line
 }
@@ -498,11 +501,8 @@ void Connection::Private::completeSetup(const QString& mxId)
 
     // init olmAccount
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
-    connect(olmAccount.get(), &QOlmAccount::needsSave, q, [=](){
-        auto pickle = olmAccount->pickle(picklingMode);
-        AccountSettings(data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
-        //TODO handle errors
-    });
+    connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
+
     encryptionManager = new EncryptionManager(q);
 
     if (accountSettings.encryptionAccountPickle().isEmpty()) {
@@ -2042,3 +2042,11 @@ PicklingMode Connection::picklingMode() const
     return d->picklingMode;
 }
 #endif
+
+void Connection::saveOlmAccount()
+{
+    qCDebug(E2EE) << "Saving olm account";
+    auto pickle = d->olmAccount->pickle(d->picklingMode);
+    AccountSettings(d->data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
+    //TODO handle errors
+}
