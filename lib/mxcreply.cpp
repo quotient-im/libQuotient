@@ -52,6 +52,7 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
             EncryptedFile file = *d->m_encryptedFile;
             auto buffer = new QBuffer(this);
             buffer->setData(EncryptionManager::decryptFile(d->m_reply->readAll(), &file));
+            buffer->open(ReadOnly);
             d->m_device = buffer;
         }
         setOpenMode(ReadOnly);

@@ -830,33 +830,35 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
 #ifdef Quotient_E2EE_ENABLED
-    qWarning() << "Consuming to device events" << toDeviceEvents.size();
-    if(toDeviceEvents.size() > 0)
-    visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
-        if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-            qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
-            return;
-        }
-        const auto decryptedEvent = sessionDecryptMessage(event);
-        if(!decryptedEvent) {
-            qCWarning(E2EE) << "Failed to decrypt event" << event.id();
-            return;
-        }
+    if(toDeviceEvents.size() > 0) {
+        qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
+        visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
+            if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
+                return;
+            }
+            qWarning() << event.fullJson();
+            const auto decryptedEvent = sessionDecryptMessage(event);
+            if(!decryptedEvent) {
+                qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+                return;
+            }
 
-        visit(*decryptedEvent,
-            [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
-                if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                    detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
-                } else {
-                    qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
-                        << "is not found at the connection" << q->objectName();
-                }
-            },
-            [](const Event& evt) {
-                qCDebug(E2EE) << "Skipping encrypted to_device event, type"
-                              << evt.matrixType();
-            });
-    });
+            visit(*decryptedEvent,
+                [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+                    if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
+                        detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
+                    } else {
+                        qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                            << "is not found at the connection" << q->objectName();
+                    }
+                },
+                [](const Event& evt) {
+                    qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+                                << evt.matrixType();
+                });
+        });
+    }
 #endif
 }
 

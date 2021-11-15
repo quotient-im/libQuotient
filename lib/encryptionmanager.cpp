@@ -137,7 +137,7 @@ public:
         qCDebug(E2EE) << "Creating new inbound session";
         auto newSessionResult = olmAccount->createInboundSessionFrom(senderKey.toUtf8(), message);
         if(std::holds_alternative<QOlmError>(newSessionResult)) {
-            qCWarning(E2EE) << "Failed to create inbound session for" << senderKey;
+            qCWarning(E2EE) << "Failed to create inbound session for" << senderKey << std::get<QOlmError>(newSessionResult);
             return {};
         }
         std::unique_ptr<QOlmSession> newSession = std::move(std::get<std::unique_ptr<QOlmSession>>(newSessionResult));

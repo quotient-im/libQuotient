@@ -46,9 +46,7 @@ std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInbound
 
     if (error == olm_error()) {
         const auto lastErr = lastError(olmSession);
-        if (lastErr == QOlmError::NotEnoughRandom) {
-            qCCritical(E2EE) << "Error when creating inbound session" << lastErr;
-        }
+        qCWarning(E2EE) << "Error when creating inbound session" << lastErr;
         return lastErr;
     }
 

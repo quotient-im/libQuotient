@@ -1600,7 +1600,9 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
             if (auto encryptedEvent = d->timeline[i].viewAs<EncryptedEvent>()) {
                 auto decrypted = decryptMessage(*encryptedEvent);
                 if(decrypted) {
-                    d->timeline[i].replaceEvent(std::move(decrypted));
+                    qWarning() << "decrypted" << decrypted->fullJson();
+                    auto oldEvent = d->timeline[i].replaceEvent(std::move(decrypted));
+                    emit replacedEvent(d->timeline[i].event(), rawPtr(oldEvent));
                 }
             }
         }
