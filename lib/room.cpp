@@ -372,7 +372,7 @@ public:
     std::map<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
 
     void loadMegOlmSessions() {
-        QFile file { connection->stateCacheDir().filePath(QStringLiteral("megolm/%1.json").arg(id)) };
+        QFile file { connection->e2eeDataDir() + QStringLiteral("/%1.json").arg(id) };
         if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
             qCDebug(E2EE) << "No megolm sessions cache exists.";
             return;
@@ -403,8 +403,7 @@ public:
         }
     }
     void saveMegOlmSessions() {
-        connection->stateCacheDir().mkdir("megolm");
-        QFile outFile { connection->stateCacheDir().filePath(QStringLiteral("megolm/%1.json").arg(id))};
+        QFile outFile { connection->e2eeDataDir() + QStringLiteral("/%1.json").arg(id)};
         if (!outFile.open(QFile::WriteOnly)) {
             qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                             << outFile.errorString();

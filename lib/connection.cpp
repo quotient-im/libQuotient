@@ -1949,7 +1949,7 @@ void Connection::Private::saveDevicesList()
     QElapsedTimer et;
     et.start();
 
-    QFile outFile { q->stateCacheDir().filePath("deviceslist.json") };
+    QFile outFile { q->e2eeDataDir() + QStringLiteral("/deviceslist.json") };
     if (!outFile.open(QFile::WriteOnly)) {
         qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                         << outFile.errorString();
@@ -1997,7 +1997,7 @@ void Connection::Private::saveDevicesList()
 
 void Connection::Private::loadDevicesList()
 {
-    QFile file { q->stateCacheDir().filePath("deviceslist.json") };
+    QFile file { q->e2eeDataDir() + QStringLiteral("/deviceslist.json") };
     if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
         qCDebug(E2EE) << "No devicesList cache exists. Creating new";
         return;
@@ -2049,4 +2049,16 @@ void Connection::saveOlmAccount()
     auto pickle = d->olmAccount->pickle(d->picklingMode);
     AccountSettings(d->data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
     //TODO handle errors
+}
+
+QString Connection::e2eeDataDir() const
+{
+    auto safeUserId = userId();
+    safeUserId.replace(':', '_');
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % '/'
+        % safeUserId % '/';
+    QDir dir;
+    if (!dir.exists(path))
+        dir.mkpath(path);
+    return path;
 }

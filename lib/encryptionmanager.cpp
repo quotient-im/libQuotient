@@ -51,7 +51,7 @@ public:
         }
     }
     void loadSessions() {
-        QFile file { static_cast<Connection *>(q->parent())->stateCacheDir().filePath("olmsessions.json") };
+        QFile file { static_cast<Connection *>(q->parent())->e2eeDataDir() + QStringLiteral("/olmsessions.json") };
         if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
             qCDebug(E2EE) << "No sessions cache exists.";
             return;
@@ -80,7 +80,7 @@ public:
         }
     }
     void saveSessions() {
-        QFile outFile { static_cast<Connection *>(q->parent())->stateCacheDir().filePath("olmsessions.json") };
+        QFile outFile { static_cast<Connection *>(q->parent())->e2eeDataDir() + QStringLiteral("/olmsessions.json") };
         if (!outFile.open(QFile::WriteOnly)) {
             qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                             << outFile.errorString();

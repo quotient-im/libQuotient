@@ -399,6 +399,8 @@ public:
     bool lazyLoading() const;
     void setLazyLoading(bool newValue);
 
+    QString e2eeDataDir() const;
+
     /*! Start a pre-created job object on this connection */
     Q_INVOKABLE BaseJob* run(BaseJob* job,
                          RunningPolicy runningPolicy = ForegroundRequest);
