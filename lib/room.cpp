@@ -750,8 +750,7 @@ Room::Changes Room::Private::markMessagesAsRead(rev_iter_t upToMarker)
         if ((*upToMarker)->senderId() != q->localUser()->id()) {
             connection->callApi<PostReceiptJob>(BackgroundRequest,
                                                 id, QStringLiteral("m.read"),
-                                                QUrl::toPercentEncoding(
-                                                    (*upToMarker)->id()));
+                                                (*upToMarker)->id());
             break;
         }
     }
