@@ -572,13 +572,13 @@ QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
         return d->avatar.get(connection(), width, height,
-                             [=] { emit avatarChanged(); });
+                             [this] { emit avatarChanged(); });
 
     // Use the first (excluding self) user's avatar for direct chats
     const auto dcUsers = directChatUsers();
     for (auto* u : dcUsers)
         if (u != localUser())
-            return u->avatar(width, height, this, [=] { emit avatarChanged(); });
+            return u->avatar(width, height, this, [this] { emit avatarChanged(); });
 
     return {};
 }
@@ -860,7 +860,7 @@ void Room::Private::getAllMembers()
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
         id, connection->nextBatchToken(), "join");
     auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
-    connect(allMembersJob, &BaseJob::success, q, [=] {
+    connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
         Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
         auto roomChanges = updateStateFrom(allMembersJob->chunk());
         // Replay member events that arrived after the point for which
@@ -1972,7 +1972,7 @@ void Room::Private::getPreviousContent(int limit, const QString &filter)
     eventsHistoryJob =
         connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit, filter);
     emit q->eventsHistoryJobChanged();
-    connect(eventsHistoryJob, &BaseJob::success, q, [=] {
+    connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         prevBatch = eventsHistoryJob->end();
         addHistoricalMessageEvents(eventsHistoryJob->chunk());
     });
