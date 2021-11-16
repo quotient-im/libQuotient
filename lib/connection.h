@@ -664,6 +664,7 @@ public Q_SLOTS:
 #ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
     PicklingMode picklingMode() const;
+    QJsonObject decryptNotification(const QJsonObject &notification);
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed

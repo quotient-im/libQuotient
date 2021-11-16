@@ -837,7 +837,6 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
                 return;
             }
-            qWarning() << event.fullJson();
             const auto decryptedEvent = sessionDecryptMessage(event);
             if(!decryptedEvent) {
                 qCWarning(E2EE) << "Failed to decrypt event" << event.id();
@@ -2061,4 +2060,15 @@ QString Connection::e2eeDataDir() const
     if (!dir.exists(path))
         dir.mkpath(path);
     return path;
+}
+
+QJsonObject Connection::decryptNotification(const QJsonObject &notification)
+{
+    auto room = provideRoom(notification["room_id"].toString());
+    auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
+    auto decrypted = room->decryptMessage(*event);
+    if(!decrypted) {
+        return QJsonObject();
+    }
+    return decrypted->fullJson();
 }
