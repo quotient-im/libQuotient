@@ -146,7 +146,15 @@ struct JsonConverter<QDateTime> {
 
 template <>
 struct JsonConverter<QDate> {
-    static auto dump(const QDate& val) { return toJson(QDateTime(val)); }
+    static auto dump(const QDate& val) {
+        return toJson(
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+            QDateTime(val)
+#else
+            val.startOfDay()
+#endif
+            );
+    }
     static auto load(const QJsonValue& jv)
     {
         return fromJson<QDateTime>(jv).date();
