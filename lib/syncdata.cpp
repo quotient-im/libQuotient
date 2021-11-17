@@ -103,7 +103,7 @@ SyncData::SyncData(const QString& cacheFileName)
 {
     QFileInfo cacheFileInfo { cacheFileName };
     auto json = loadJson(cacheFileName);
-    auto requiredVersion = std::get<0>(cacheVersion());
+    auto requiredVersion = MajorCacheVersion;
     auto actualVersion =
         json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
@@ -127,6 +127,11 @@ Events&& SyncData::takePresenceData() { return std::move(presenceData); }
 Events&& SyncData::takeAccountData() { return std::move(accountData); }
 
 Events&& SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
+
+std::pair<int, int> SyncData::cacheVersion()
+{
+    return { MajorCacheVersion, 1 };
+}
 
 QJsonObject SyncData::loadJson(const QString& fileName)
 {

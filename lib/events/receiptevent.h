@@ -9,19 +9,20 @@
 #include <QtCore/QVector>
 
 namespace Quotient {
-struct Receipt {
+struct UserTimestamp {
     QString userId;
     QDateTime timestamp;
 };
 struct ReceiptsForEvent {
     QString evtId;
-    QVector<Receipt> receipts;
+    QVector<UserTimestamp> receipts;
 };
 using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
 class ReceiptEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
+    explicit ReceiptEvent(const EventsWithReceipts& ewrs);
     explicit ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
 
     EventsWithReceipts eventsWithReceipts() const;
