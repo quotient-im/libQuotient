@@ -157,26 +157,27 @@ public:
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
-    enum Change : uint {
-        NoChange = 0x0,
-        NameChange = 0x1,
-        AliasesChange = 0x2,
-        CanonicalAliasChange = AliasesChange,
-        TopicChange = 0x4,
-        UnreadNotifsChange = 0x8,
-        AvatarChange = 0x10,
-        JoinStateChange = 0x20,
-        TagsChange = 0x40,
-        MembersChange = 0x80,
+    enum class Change : uint {
+        None = 0x0,
+        Name = 0x1,
+        Aliases = 0x2,
+        CanonicalAlias = Aliases,
+        Topic = 0x4,
+        UnreadNotifs = 0x8,
+        Avatar = 0x10,
+        JoinState = 0x20,
+        Tags = 0x40,
+        Members = 0x80,
         /* = 0x100, */
-        AccountDataChange Q_DECL_ENUMERATOR_DEPRECATED_X(
-            "AccountDataChange will be merged into OtherChange in 0.8") = 0x200,
-        SummaryChange = 0x400,
-        ReadMarkerChange Q_DECL_ENUMERATOR_DEPRECATED_X(
-            "ReadMarkerChange will be merged into OtherChange in 0.8") = 0x800,
-        OtherChange = 0x8000,
-        OtherChanges = OtherChange,
-        AnyChange = 0xFFFF
+        AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "Change::AccountData will be merged into Change::Other in 0.8") =
+            0x200,
+        Summary = 0x400,
+        ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "Change::ReadMarker will be merged into Change::Other in 0.8") =
+            0x800,
+        Other = 0x8000,
+        Any = 0xFFFF
     };
     QUO_DECLARE_FLAGS(Changes, Change)
 

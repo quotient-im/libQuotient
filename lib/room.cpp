@@ -251,15 +251,14 @@ public:
     template <typename EventArrayT>
     Changes updateStateFrom(EventArrayT&& events)
     {
-        Changes changes = NoChange;
+        Changes changes {};
         if (!events.empty()) {
             QElapsedTimer et;
             et.start();
             for (auto&& eptr : events) {
                 const auto& evt = *eptr;
                 Q_ASSERT(evt.isStateEvent());
-                auto change = q->processStateEvent(evt);
-                if (change != NoChange) {
+                if (auto change = q->processStateEvent(evt); change) {
                     changes |= change;
                     baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
                 }
@@ -615,7 +614,6 @@ void Room::setJoinState(JoinState state)
     d->joinState = state;
     qCDebug(STATE) << "Room" << id() << "changed state: " << oldState
                    << "->" << state;
-    emit changed(Change::JoinStateChange);
     emit joinStateChanged(oldState, state);
 }
 
@@ -685,7 +683,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
 
     auto fullyReadMarker = q->fullyReadMarker();
     if (fullyReadMarker < from)
-        return NoChange; // What's arrived is already fully read
+        return Change::None; // What's arrived is already fully read
 
     // If there's no read marker in the whole room, initialise it
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
@@ -717,7 +715,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
                           << q->objectName() << "took" << et;
 
     if (newUnreadMessages == 0)
-        return NoChange;
+        return Change::None;
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
     if (unreadMessages < 0)
@@ -731,7 +729,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
                               : "in total")
                       << unreadMessages << "unread message(s)";
     emit q->unreadMessagesChanged(q);
-    return UnreadNotifsChange;
+    return Change::UnreadNotifs;
 }
 
 Room::Changes Room::Private::recalculateUnreadCount(bool force)
@@ -754,7 +752,7 @@ Room::Changes Room::Private::recalculateUnreadCount(bool force)
         unreadMessages = -1;
 
     if (!force && unreadMessages == oldUnreadCount)
-        return NoChange;
+        return Change::None;
 
     if (unreadMessages == -1)
         qCDebug(MESSAGES)
@@ -763,13 +761,13 @@ Room::Changes Room::Private::recalculateUnreadCount(bool force)
         qCDebug(MESSAGES) << "Room" << displayname << "still has"
                           << unreadMessages << "unread message(s)";
     emit q->unreadMessagesChanged(q);
-    return UnreadNotifsChange;
+    return Change::UnreadNotifs;
 }
 
 Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
 {
     if (fullyReadUntilEventId == eventId)
-        return NoChange;
+        return Change::None;
 
     const auto prevFullyReadId = std::exchange(fullyReadUntilEventId, eventId);
     qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
@@ -778,7 +776,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     // TODO: Remove in 0.8
     emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
 
-    Changes changes = ReadMarkerChange;
+    QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker;)
     if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind
         setLastReadReceipt(connection->userId(), rm);
@@ -927,7 +925,7 @@ void Room::Private::getAllMembers()
                  it != syncEdge(); ++it)
                 if (is<RoomMemberEvent>(**it))
                     roomChanges |= q->processStateEvent(**it);
-        if (roomChanges & MembersChange)
+        if (roomChanges & Change::Members)
             emit q->memberListChanged();
         emit q->allMembersLoaded();
     });
@@ -1442,11 +1440,11 @@ GetRoomEventsJob* Room::eventsHistoryJob() const { return d->eventsHistoryJob; }
 Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
     if (!summary.merge(newSummary))
-        return Change::NoChange;
+        return Change::None;
     qCDebug(STATE).nospace().noquote()
         << "Updated room summary for " << q->objectName() << ": " << summary;
     emit q->memberListChanged();
-    return Change::SummaryChange;
+    return Change::Summary;
 }
 
 void Room::Private::insertMemberIntoMap(User* u)
@@ -1635,7 +1633,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
-    Changes roomChanges = Change::NoChange;
+    Changes roomChanges {};
     for (auto&& event : data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
 
@@ -1643,13 +1641,13 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     // The order of calculation is important - don't merge these lines!
     roomChanges |= d->addNewMessageEvents(move(data.timeline));
 
-    if (roomChanges & TopicChange)
+    if (roomChanges & Change::Topic)
         emit topicChanged();
 
-    if (roomChanges & (NameChange | AliasesChange))
+    if (roomChanges & (Change::Name | Change::Aliases))
         emit namesChanged(this);
 
-    if (roomChanges & MembersChange)
+    if (roomChanges & Change::Members)
         emit memberListChanged();
 
     roomChanges |= d->setSummary(move(data.summary));
@@ -1670,7 +1668,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (merge(d->notificationCount, data.notificationCount))
         emit notificationCountChanged();
 
-    if (roomChanges != Change::NoChange) {
+    if (roomChanges) {
         d->updateDisplayname();
         emit changed(roomChanges);
         if (!fromCache)
@@ -2395,7 +2393,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropDuplicateEvents(events);
     if (events.empty())
-        return Change::NoChange;
+        return Change::None;
 
     QElapsedTimer et;
     et.start();
@@ -2448,7 +2446,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     // clients historically expect. This may eventually change though if we
     // postulate that the current state is only current between syncs but not
     // within a sync.
-    Changes roomChanges = Change::NoChange;
+    Changes roomChanges {};
     for (const auto& eptr : events)
         roomChanges |= q->processStateEvent(*eptr);
 
@@ -2594,7 +2592,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 Room::Changes Room::processStateEvent(const RoomEvent& e)
 {
     if (!e.isStateEvent())
-        return NoChange;
+        return Change::None;
 
     // Find a value (create an empty one if necessary) and get a reference
     // to it. Can't use getCurrentState<>() because it (creates and) returns
@@ -2682,7 +2680,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         , true); // By default, go forward with the state change
     // clang-format on
     if (!proceed)
-        return NoChange;
+        return Change::None;
 
     // Change the state
     const auto* const oldStateEvent =
@@ -2700,7 +2698,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // clang-format off
     const auto result = visit(e
         , [] (const RoomNameEvent&) {
-            return NameChange;
+            return Change::Name;
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
@@ -2719,16 +2717,16 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 newAliases.push_front(cae.alias());
 
             connection()->updateRoomAliases(id(), previousAltAliases, newAliases);
-            return AliasesChange;
+            return Change::Aliases;
             // clang-format off
         }
         , [] (const RoomTopicEvent&) {
-            return TopicChange;
+            return Change::Topic;
         }
         , [this] (const RoomAvatarEvent& evt) {
             if (d->avatar.updateUrl(evt.url()))
                 emit avatarChanged();
-            return AvatarChange;
+            return Change::Avatar;
         }
         , [this,oldStateEvent] (const RoomMemberEvent& evt) {
             // clang-format on
@@ -2767,14 +2765,14 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             case Membership::Undefined:
                 qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
-            return MembersChange;
+            return Change::Members;
             // clang-format off
         }
         , [this] (const EncryptionEvent&) {
             // As encryption can only be switched on once, emit the signal here
             // instead of aggregating and emitting in updateData()
             emit encryption();
-            return OtherChange;
+            return Change::Other;
         }
         , [this] (const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
@@ -2790,18 +2788,18 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                         return true;
                     });
 
-            return OtherChange;
+            return Change::Other;
             // clang-format off
         }
-        , OtherChange);
+        , Change::Other);
     // clang-format on
-    Q_ASSERT(result != NoChange);
+    Q_ASSERT(result != Change::None);
     return result;
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)
 {
-    Changes changes = NoChange;
+    Changes changes {};
     QElapsedTimer et;
     et.start();
     if (auto* evt = eventCast<TypingEvent>(event)) {
@@ -2857,10 +2855,10 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
 
 Room::Changes Room::processAccountDataEvent(EventPtr&& event)
 {
-    Changes changes = NoChange;
+    Changes changes {};
     if (auto* evt = eventCast<TagEvent>(event)) {
         d->setTags(evt->tags());
-        changes |= Change::TagsChange;
+        changes |= Change::Tags;
     }
 
     if (auto* evt = eventCast<const ReadMarkerEvent>(event))
@@ -2879,7 +2877,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         // TODO: Drop AccountDataChange in 0.8
         // NB: GCC (at least 10) only accepts QT_IGNORE_DEPRECATIONS around
         // a statement, not within a statement
-        QT_IGNORE_DEPRECATIONS(changes |= AccountDataChange | OtherChange;)
+        QT_IGNORE_DEPRECATIONS(changes |= Change::AccountData | Change::Other;)
     }
     return changes;
 }
