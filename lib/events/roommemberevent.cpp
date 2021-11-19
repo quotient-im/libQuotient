@@ -17,7 +17,7 @@ struct JsonConverter<Membership> {
         const auto& ms = jv.toString();
         if (ms.isEmpty())
         {
-            qCWarning(EVENTS) << "Empty member state:" << ms;
+            qCWarning(EVENTS) << "Empty membership state";
             return Membership::Invalid;
         }
         const auto it =
