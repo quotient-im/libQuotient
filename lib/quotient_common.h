@@ -118,9 +118,3 @@ constexpr inline auto RoomTypeStrings = make_array(
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::JoinStates)
-
-class QDebug;
-QDebug operator<<(QDebug dbg, Quotient::Membership m);
-QDebug operator<<(QDebug dbg, Quotient::MembershipMask m);
-QDebug operator<<(QDebug dbg, Quotient::JoinState js);
-QDebug operator<<(QDebug dbg, Quotient::JoinStates js);

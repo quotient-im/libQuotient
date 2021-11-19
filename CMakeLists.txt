@@ -124,7 +124,7 @@ endif ()
 
 # Set up source files
 list(APPEND lib_SRCS
-    lib/quotient_common.cpp
+    lib/quotient_common.h
     lib/networkaccessmanager.cpp
     lib/connectiondata.cpp
     lib/connection.cpp

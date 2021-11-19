@@ -461,7 +461,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
-    qCDebug(STATE) << "New" << initialJoinState << "Room:" << id;
+    qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
 
 Room::~Room() { delete d; }
@@ -612,7 +612,7 @@ void Room::setJoinState(JoinState state)
     if (state == oldState)
         return;
     d->joinState = state;
-    qCDebug(STATE) << "Room" << id() << "changed state: " << oldState
+    qCDebug(STATE) << "Room" << id() << "changed state: " << terse << oldState
                    << "->" << state;
     emit joinStateChanged(oldState, state);
 }
