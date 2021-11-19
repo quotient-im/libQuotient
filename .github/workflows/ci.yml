@@ -122,7 +122,6 @@ jobs:
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Build and install QtKeychain
-      if: matrix.e2ee
       run: |
         cd ${{ runner.workspace }}
         git clone https://github.com/frankosterfeld/qtkeychain.git
