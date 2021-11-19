@@ -109,7 +109,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     endif()
 endif()
 
-find_package(Qt${QT_MAJOR_VERSION}Keychain REQUIRED)
+find_package(${Qt}Keychain REQUIRED)
 
 # Set up source files
 list(APPEND lib_SRCS

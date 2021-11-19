@@ -2045,9 +2045,11 @@ PicklingMode Connection::picklingMode() const
 void Connection::saveOlmAccount()
 {
     qCDebug(E2EE) << "Saving olm account";
+#ifdef Quotient_E2EE_ENABLED
     auto pickle = d->olmAccount->pickle(d->picklingMode);
     AccountSettings(d->data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
     //TODO handle errors
+#endif
 }
 
 QString Connection::e2eeDataDir() const
@@ -2062,6 +2064,7 @@ QString Connection::e2eeDataDir() const
     return path;
 }
 
+#ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
     auto room = provideRoom(notification["room_id"].toString());
@@ -2072,3 +2075,4 @@ QJsonObject Connection::decryptNotification(const QJsonObject &notification)
     }
     return decrypted->fullJson();
 }
+#endif
