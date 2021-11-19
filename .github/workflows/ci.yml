@@ -12,6 +12,7 @@ defaults:
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.update-api != '' }} # the current upstream API definitions are expected to fail the test
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -154,7 +155,6 @@ jobs:
         ls ~/.local/$BIN_DIR/quotest
 
     - name: Run tests
-      continue-on-error: ${{ matrix.update-api != '' }} # the current upstream API definitions are expected to fail the test
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
