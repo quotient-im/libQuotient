@@ -9,10 +9,10 @@
 
 // See https://bugreports.qt.io/browse/QTBUG-82295 - despite the comment that
 // Q_FLAG[_NS] "should" be applied to the enum only, Qt doesn't allow to wrap
-// a flag type into a QVariant then. The macros below define Q_FLAG_NS and on
-// top of that add a part of Q_ENUM() that enables the metatype data but goes
-// under the moc radar to avoid double registration of the same data in the map
-// defined in moc_*.cpp
+// a flag type into a QVariant then. The macros below define Q_FLAG[_NS] and on
+// top of that add Q_ENUM[_NS]_IMPL which is a part of Q_ENUM() macro that
+// enables the metatype data but goes under the moc radar to avoid double
+// registration of the same data in the map defined in moc_*.cpp
 #define QUO_DECLARE_FLAGS(Flags, Enum) \
     Q_DECLARE_FLAGS(Flags, Enum)       \
     Q_ENUM_IMPL(Enum)                  \
