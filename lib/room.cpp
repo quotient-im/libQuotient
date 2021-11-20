@@ -369,7 +369,7 @@ public:
     // A map from senderKey to a map of sessionId to InboundGroupSession
     // Not using QMultiHash, because we want to quickly return
     // a number of relations for a given event without enumerating them.
-    std::map<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
+    UnorderedMap<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
 
     void loadMegOlmSessions() {
         QFile file { connection->e2eeDataDir() + QStringLiteral("/%1.json").arg(id) };

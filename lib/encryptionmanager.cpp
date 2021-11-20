@@ -38,7 +38,7 @@ public:
     EncryptionManager* q;
 
     // A map from senderKey to InboundSession
-    std::map<QString, std::unique_ptr<QOlmSession>> sessions; // TODO: cache
+    UnorderedMap<QString, std::unique_ptr<QOlmSession>> sessions; // TODO: cache
     void updateDeviceKeys(
         const QHash<QString,
                     QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
