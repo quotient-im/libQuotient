@@ -123,7 +123,7 @@ jobs:
 
     - name: Build and install QtKeychain
       run: |
-        cd ${{ runner.workspace }}
+        cd ..
         git clone https://github.com/frankosterfeld/qtkeychain.git
         cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
