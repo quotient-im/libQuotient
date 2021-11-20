@@ -176,28 +176,45 @@ public:
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
+    //! \brief Room changes that can be tracked using Room::changed() signal
+    //!
+    //! This enumeration lists kinds of changes that can be tracked with
+    //! a "cumulative" changed() signal instead of using individual signals for
+    //! each change. Specific enumerators mention these individual signals.
+    //! \sa changed
     enum class Change : uint {
-        None = 0x0,
-        Name = 0x1,
-        Aliases = 0x2,
+        None = 0x0, //< No changes occurred in the room
+        Name = 0x1, //< \sa namesChanged, displaynameChanged
+        Aliases = 0x2, //< \sa namesChanged, displaynameChanged
         CanonicalAlias = Aliases,
-        Topic = 0x4,
-        PartiallyReadStats = 0x8,
+        Topic = 0x4, //< \sa topicChanged
+        PartiallyReadStats = 0x8, //< \sa partiallyReadStatsChanged
         DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
-        Avatar = 0x10,
-        JoinState = 0x20,
-        Tags = 0x40,
+        Avatar = 0x10, //< \sa avatarChanged
+        JoinState = 0x20, //< \sa joinStateChanged
+        Tags = 0x40, //< \sa tagsChanged
+        //! \sa userAdded, userRemoved, memberRenamed, memberListChanged,
+        //!     displaynameChanged
         Members = 0x80,
-        UnreadStats = 0x100,
+        UnreadStats = 0x100, //< \sa unreadStatsChanged
         AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::AccountData will be merged into Change::Other in 0.8") =
             0x200,
-        Summary = 0x400,
+        Summary = 0x400, //< \sa summaryChanged, displaynameChanged
         ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::ReadMarker will be merged into Change::Other in 0.8") =
             0x800,
-        Highlights = 0x1000,
+        Highlights = 0x1000, //< \sa highlightCountChanged
+        //! A catch-all value that covers changes not listed above (such as
+        //! encryption turned on or the room having been upgraded), as well as
+        //! changes in the room state that the library is not aware of (e.g.,
+        //! custom state events) and m.read/m.fully_read position changes.
+        //! \sa encryptionChanged, upgraded, accountDataChanged
         Other = 0x8000,
+        //! This is intended to test a Change/Changes value for non-emptiness;
+        //! testFlag(Change::Any) or adding <tt>& Change::Any</tt> has
+        //! the same meaning as !testFlag(Change::None) or adding
+        //! <tt>!= Change::None</tt>.
         Any = 0xFFFF
     };
     QUO_DECLARE_FLAGS(Changes, Change)
@@ -931,12 +948,14 @@ Q_SIGNALS:
                           Quotient::JoinState newState);
     void typingChanged();
 
-    void highlightCountChanged();
-    void notificationCountChanged();
+    void highlightCountChanged(); //< \sa highlightCount
+    void notificationCountChanged(); //< \sa notificationCount
 
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
+    //! The event that m.read receipt points to has changed
+    //! \sa lastReadReceipt
     void lastReadEventChanged(Quotient::User* user);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
     //! \deprecated since 0.7 - use fullyReadMarkerMoved
