@@ -158,6 +158,8 @@ jobs:
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
+        QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
+        QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
         [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
