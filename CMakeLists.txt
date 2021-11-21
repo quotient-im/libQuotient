@@ -135,6 +135,7 @@ list(APPEND lib_SRCS
     lib/avatar.cpp
     lib/uri.cpp
     lib/uriresolver.cpp
+    lib/eventstats.cpp
     lib/syncdata.cpp
     lib/settings.cpp
     lib/networksettings.cpp

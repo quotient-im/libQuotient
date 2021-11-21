@@ -15,6 +15,7 @@
 #include "e2ee.h"
 #include "syncdata.h"
 #include "user.h"
+#include "eventstats.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
 #include "moc_room.cpp"
@@ -118,13 +119,14 @@ public:
     Avatar avatar;
     QHash<QString, Notification> notifications;
     qsizetype serverHighlightCount = 0;
-    int notificationCount = 0;
+    // Starting up with estimate event statistics as there's zero knowledge
+    // about the timeline.
+    EventStats partiallyReadStats {}, unreadStats {};
     members_map_t membersMap;
     QList<User*> usersTyping;
     QHash<QString, QSet<QString>> eventIdReadUsers;
     QList<User*> usersInvited;
     QList<User*> membersLeft;
-    int unreadMessages = 0;
     bool displayed = false;
     QString firstDisplayedEventId;
     QString lastDisplayedEventId;
@@ -267,6 +269,7 @@ public:
     Changes addNewMessageEvents(RoomEvents&& events);
     void addHistoricalMessageEvents(RoomEvents&& events);
 
+    Changes updateStatsFromSyncData(const SyncRoomData &data, bool fromCache);
     void postprocessChanges(Changes changes, bool saveState = true);
 
     /** Move events into the timeline
@@ -286,12 +289,12 @@ public:
      */
     void dropDuplicateEvents(RoomEvents& events) const;
 
-    bool setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
-                            ReadReceipt newReceipt = {});
+    Changes setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
+                               ReadReceipt newReceipt = {},
+                               bool deferStatsUpdate = false);
     Changes setFullyReadMarker(const QString &eventId);
-    Changes updateUnreadCount(const rev_iter_t& from, const rev_iter_t& to);
-    Changes recalculateUnreadCount(bool force = false);
-    void markMessagesAsRead(const rev_iter_t &upToMarker);
+    Changes updateStats(const rev_iter_t& from, const rev_iter_t& to);
+    bool markMessagesAsRead(const rev_iter_t& upToMarker);
 
     void getAllMembers();
 
@@ -613,9 +616,10 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-bool Room::Private::setLastReadReceipt(const QString& userId,
-                                       rev_iter_t newMarker,
-                                       ReadReceipt newReceipt)
+Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
+                                                rev_iter_t newMarker,
+                                                ReadReceipt newReceipt,
+                                                bool deferStatsUpdate)
 {
     if (newMarker == historyEdge() && !newReceipt.eventId.isEmpty())
         newMarker = q->findInTimeline(newReceipt.eventId);
@@ -643,10 +647,11 @@ bool Room::Private::setLastReadReceipt(const QString& userId,
     const auto prevEventId = storedReceipt.eventId;
     // NB: with reverse iterators, timeline history >= sync edge
     if (newMarker >= q->findInTimeline(prevEventId))
-        return false;
+        return Change::None;
 
     // Finally make the change
 
+    Changes changes = Change::Other;
     auto oldEventReadUsersIt =
         eventIdReadUsers.find(prevEventId); // clazy:exclude=detaching-member
     if (oldEventReadUsersIt != eventIdReadUsers.end()) {
@@ -663,21 +668,43 @@ bool Room::Private::setLastReadReceipt(const QString& userId,
     //       for actual members, not just any user
     const auto member = q->user(userId);
     Q_ASSERT(member != nullptr);
+    if (isLocalUser(member) && !deferStatsUpdate) {
+        if (unreadStats.updateOnMarkerMove(q, q->findInTimeline(prevEventId),
+                                           newMarker)) {
+            qCDebug(MESSAGES)
+                << "Updated unread event statistics in" << q->objectName()
+                << "after moving the local read receipt:" << unreadStats;
+            changes |= Change::UnreadStats;
+        }
+        Q_ASSERT(unreadStats.isValidFor(q, newMarker)); // post-check
+    }
     emit q->lastReadEventChanged(member);
     // TODO: remove in 0.8
     if (!isLocalUser(member))
         emit q->readMarkerForUserMoved(member, prevEventId,
                                        storedReceipt.eventId);
-    return true;
+    return changes;
 }
 
-Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
-                                               const rev_iter_t& to)
+Room::Changes Room::Private::updateStats(const rev_iter_t& from,
+                                         const rev_iter_t& to)
 {
     Q_ASSERT(from >= timeline.crbegin() && from <= timeline.crend());
     Q_ASSERT(to >= from && to <= timeline.crend());
 
-    auto fullyReadMarker = q->fullyReadMarker();
+    const auto fullyReadMarker = q->fullyReadMarker();
+    auto readReceiptMarker = q->localReadReceiptMarker();
+    Changes changes = Change::None;
+    // Correct the read receipt to never be behind the fully read marker
+    if (readReceiptMarker > fullyReadMarker
+        && setLastReadReceipt(connection->userId(), fullyReadMarker, {}, true)) {
+        changes |= Change::Other;
+        readReceiptMarker = q->localReadReceiptMarker();
+        qCInfo(MESSAGES) << "The local m.read receipt was behind m.fully_read "
+                            "marker - it's now corrected to be at index"
+                         << readReceiptMarker->index();
+    }
+
     if (fullyReadMarker < from)
         return Change::None; // What's arrived is already fully read
 
@@ -685,79 +712,70 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
         return setFullyReadMarker(timeline.front()->id());
 
-    // Catch a special case when the last fully read event id refers to an
-    // event that has just arrived. In this case we should recalculate
-    // unreadMessages to get an exact number instead of an estimation
-    // (see https://github.com/quotient-im/libQuotient/wiki/unread_count).
-    // For the same reason (switching from the estimation to the exact
-    // number) this branch always emits unreadMessagesChanged() and returns
-    // UnreadNotifsChange, even if the estimation luckily matched the exact
-    // result.
-    if (fullyReadMarker < to)
-        return recalculateUnreadCount(true);
+    // Catch a case when the id in the last fully read marker or the local read
+    // receipt refers to an event that has just arrived. In this case either
+    // one (unreadStats) or both statistics should be recalculated to get
+    // an exact number instead of an estimation (see documentation on
+    // EventStats::isEstimate). For the same reason (switching from the
+    // estimate to the exact number) this branch forces returning
+    // Change::UnreadStats and also possibly Change::PartiallyReadStats, even if
+    // the estimation luckily matched the exact result.
+    if (readReceiptMarker < to || changes /*i.e. read receipt was corrected*/) {
+        unreadStats = EventStats::fromMarker(q, readReceiptMarker);
+        Q_ASSERT(!unreadStats.isEstimate);
+        qCDebug(MESSAGES).nospace() << "Recalculated unread event statistics in"
+                                    << q->objectName() << ": " << unreadStats;
+        changes |= Change::UnreadStats;
+        if (fullyReadMarker < to) {
+            // Add up to unreadStats instead of counting same events again
+            partiallyReadStats = EventStats::fromRange(q, readReceiptMarker,
+                                                       q->fullyReadMarker(),
+                                                       unreadStats);
+            Q_ASSERT(!partiallyReadStats.isEstimate);
 
-    // At this point the fully read marker is somewhere beyond the "oldest"
-    // message from the arrived batch - add up newly arrived messages to
-    // the current counter, instead of a complete recalculation.
-    Q_ASSERT(to <= fullyReadMarker);
+            qCDebug(MESSAGES).nospace()
+                    << "Recalculated partially read event statistics in "
+                    << q->objectName() << ": " << partiallyReadStats;
+            return Change::PartiallyReadStats | Change::UnreadStats;
+        }
+    }
 
-    QElapsedTimer et;
-    et.start();
-    const auto newUnreadMessages =
-        count_if(from, to,
-                 std::bind(&Room::isEventNotable, q, _1));
-    if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-        qCDebug(PROFILER) << "Counting gained unread messages in"
-                          << q->objectName() << "took" << et;
+    // As of here, at least the fully read marker (but maybe also read receipt)
+    // points to somewhere beyond the "oldest" message from the arrived batch -
+    // add up newly arrived messages to the current stats, instead of a complete
+    // recalculation.
+    Q_ASSERT(fullyReadMarker >= to);
 
-    if (newUnreadMessages == 0)
-        return Change::None;
+    const auto newStats = EventStats::fromRange(q, from, to);
+    Q_ASSERT(!newStats.isEstimate);
+    if (newStats.notableCount == 0 || newStats.highlightCount == 0)
+        return changes;
 
-    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-    if (unreadMessages < 0)
-        unreadMessages = 0;
+    const auto doAddStats = [this, &changes, newStats](EventStats& s,
+                                                       const rev_iter_t& marker,
+                                                       Change c) {
+        s.notableCount += newStats.notableCount;
+        s.highlightCount += newStats.highlightCount;
+        if (!s.isEstimate)
+            s.isEstimate = marker == historyEdge();
+        changes |= c;
+    };
 
-    unreadMessages += newUnreadMessages;
-    qCDebug(MESSAGES) << "Room" << q->objectName() << "has gained"
-                      << newUnreadMessages << "unread message(s),"
-                      << (q->fullyReadMarker() == timeline.crend()
-                              ? "in total at least"
-                              : "in total")
-                      << unreadMessages << "unread message(s)";
-    emit q->unreadMessagesChanged(q);
-    return Change::UnreadNotifs;
-}
+    doAddStats(partiallyReadStats, fullyReadMarker, Change::PartiallyReadStats);
+    if (readReceiptMarker >= to) {
+        // readReceiptMarker < to branch shouldn't have been entered
+        Q_ASSERT(!changes.testFlag(Change::UnreadStats));
+        doAddStats(unreadStats, readReceiptMarker, Change::UnreadStats);
+    }
+    qCDebug(MESSAGES) << "Room" << q->objectName() << "has gained" << newStats
+                      << "notable/highlighted event(s); total statistics:"
+                      << partiallyReadStats << "since the fully read marker,"
+                      << unreadStats << "since read receipt";
 
-Room::Changes Room::Private::recalculateUnreadCount(bool force)
-{
-    // The recalculation logic assumes that the fully read marker points at
-    // a specific position in the timeline
-    Q_ASSERT(q->fullyReadMarker() != timeline.crend());
-    const auto oldUnreadCount = unreadMessages;
-    QElapsedTimer et;
-    et.start();
-    unreadMessages =
-        int(count_if(timeline.crbegin(), q->fullyReadMarker(),
-                     [this](const auto& ti) { return q->isEventNotable(ti); }));
-    if (et.nsecsElapsed() > profilerMinNsecs() / 10)
-        qCDebug(PROFILER) << "Recounting unread messages in" << q->objectName()
-                          << "took" << et;
-
-    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-    if (unreadMessages == 0)
-        unreadMessages = -1;
-
-    if (!force && unreadMessages == oldUnreadCount)
-        return Change::None;
-
-    if (unreadMessages == -1)
-        qCDebug(MESSAGES)
-            << "Room" << displayname << "has no more unread messages";
-    else
-        qCDebug(MESSAGES) << "Room" << displayname << "still has"
-                          << unreadMessages << "unread message(s)";
-    emit q->unreadMessagesChanged(q);
-    return Change::UnreadNotifs;
+    // Check invariants
+    Q_ASSERT(partiallyReadStats.isValidFor(q, fullyReadMarker));
+    Q_ASSERT(unreadStats.isValidFor(q, readReceiptMarker));
+    return changes;
 }
 
 Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
@@ -765,45 +783,59 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     if (fullyReadUntilEventId == eventId)
         return Change::None;
 
+    const auto prevReadMarker = q->fullyReadMarker();
+    const auto newReadMarker = q->findInTimeline(eventId);
+    if (newReadMarker > prevReadMarker)
+        return Change::None;
+
     const auto prevFullyReadId = std::exchange(fullyReadUntilEventId, eventId);
     qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
                       << "set to" << fullyReadUntilEventId;
+
+    QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker|Change::Other;)
+    if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
+        // Pull read receipt if it's behind, and update statistics
+        changes |= setLastReadReceipt(connection->userId(), rm);
+        if (partiallyReadStats.updateOnMarkerMove(q, prevReadMarker, rm)) {
+            changes |= Change::PartiallyReadStats;
+            qCDebug(MESSAGES)
+                << "Updated partially read event statistics in"
+                << q->objectName()
+                << "after moving m.fully_read marker: " << partiallyReadStats;
+        }
+        Q_ASSERT(partiallyReadStats.isValidFor(q, rm)); // post-check
+    }
     emit q->fullyReadMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
     // TODO: Remove in 0.8
     emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
-
-    QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker;)
-    if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
-        // Pull read receipt if it's behind
-        setLastReadReceipt(connection->userId(), rm);
-        changes |= recalculateUnreadCount(); // TODO: updateUnreadCount()?
-    }
     return changes;
 }
 
 void Room::setReadReceipt(const QString& atEventId)
 {
-    if (!d->setLastReadReceipt(localUser()->id(), historyEdge(),
-                               { atEventId, QDateTime::currentDateTime() })) {
+    if (const auto changes = d->setLastReadReceipt(localUser()->id(),
+                                                   historyEdge(),
+                                                   { atEventId })) {
+        connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
+                                              QStringLiteral("m.read"),
+                                              QUrl::toPercentEncoding(atEventId));
+        d->postprocessChanges(changes);
+    } else
         qCDebug(EPHEMERAL) << "The new read receipt for" << localUser()->id()
                            << "in" << objectName()
                            << "is at or behind the old one, skipping";
-        return;
-    }
-    connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
-                                          QStringLiteral("m.read"),
-                                          QUrl::toPercentEncoding(atEventId));
 }
 
 bool Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
-    if (setFullyReadMarker(upToMarker->event()->id())) {
+    if (const auto changes = setFullyReadMarker(upToMarker->event()->id())) {
         // The assumption below is that if a read receipt was sent on a newer
         // event, the homeserver will keep it there instead of reverting to
         // m.fully_read
         connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
                                               fullyReadUntilEventId,
                                               fullyReadUntilEventId);
+        postprocessChanges(changes);
         return true;
     }
     if (upToMarker != q->historyEdge())
@@ -863,9 +895,18 @@ Notification Room::checkForNotifications(const TimelineItem &ti)
     return { Notification::None };
 }
 
-bool Room::hasUnreadMessages() const { return unreadCount() >= 0; }
+bool Room::hasUnreadMessages() const { return !d->partiallyReadStats.empty(); }
 
-int Room::unreadCount() const { return d->unreadMessages; }
+int countFromStats(const EventStats& s)
+{
+    return s.empty() ? -1 : int(s.notableCount);
+}
+
+int Room::unreadCount() const { return countFromStats(partiallyReadStats()); }
+
+EventStats Room::partiallyReadStats() const { return d->partiallyReadStats; }
+
+EventStats Room::unreadStats() const { return d->unreadStats; }
 
 Room::rev_iter_t Room::historyEdge() const { return d->historyEdge(); }
 
@@ -1071,13 +1112,16 @@ QSet<User*> Room::usersAtEventId(const QString& eventId)
     return users;
 }
 
-int Room::notificationCount() const { return d->notificationCount; }
+qsizetype Room::notificationCount() const
+{
+    return d->unreadStats.notableCount;
+}
 
 void Room::resetNotificationCount()
 {
-    if (d->notificationCount == 0)
+    if (d->unreadStats.notableCount == 0)
         return;
-    d->notificationCount = 0;
+    d->unreadStats.notableCount = 0;
     emit notificationCountChanged();
 }
 
@@ -1652,6 +1696,72 @@ QUrl Room::memberAvatarUrl(const QString &mxId) const
         : QUrl();
 }
 
+Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
+                                                     bool fromCache)
+{
+    Changes changes {};
+    if (fromCache) {
+        // Initial load of cached statistics
+        partiallyReadStats =
+            EventStats::fromCachedCounters(data.partiallyReadCount);
+        unreadStats = EventStats::fromCachedCounters(data.unreadCount,
+                                                     data.highlightCount);
+        // Migrate from lib 0.6: -1 in the old unread counter overrides 0
+        // (which loads to an estimate) in notification_count. Next caching will
+        // save -1 in both places, completing the migration.
+        if (data.unreadCount == 0 && data.partiallyReadCount == -1)
+            unreadStats.isEstimate = false;
+        changes |= Change::PartiallyReadStats | Change::UnreadStats;
+        qCDebug(MESSAGES) << "Loaded" << q->objectName()
+                          << "event statistics from cache:" << partiallyReadStats
+                          << "since m.fully_read," << unreadStats
+                          << "since m.read";
+    } else if (timeline.empty()) {
+        // In absence of actual events use statistics from the homeserver
+        if (merge(unreadStats.notableCount, data.unreadCount))
+            changes |= Change::PartiallyReadStats;
+        if (merge(unreadStats.highlightCount, data.highlightCount))
+            changes |= Change::UnreadStats;
+        unreadStats.isEstimate = !data.unreadCount.has_value()
+                                 || *data.unreadCount > 0;
+        qCDebug(MESSAGES)
+            << "Using server-side unread event statistics while the"
+            << q->objectName() << "timeline is empty:" << unreadStats;
+    }
+    bool correctedStats = false;
+    if (unreadStats.highlightCount > partiallyReadStats.highlightCount) {
+        correctedStats = true;
+        partiallyReadStats.highlightCount = unreadStats.highlightCount;
+        partiallyReadStats.isEstimate |= unreadStats.isEstimate;
+    }
+    if (unreadStats.notableCount > partiallyReadStats.notableCount) {
+        correctedStats = true;
+        partiallyReadStats.notableCount = unreadStats.notableCount;
+        partiallyReadStats.isEstimate |= unreadStats.isEstimate;
+    }
+    if (!unreadStats.isEstimate && partiallyReadStats.isEstimate) {
+        correctedStats = true;
+        partiallyReadStats.isEstimate = true;
+    }
+    if (correctedStats)
+        qCDebug(MESSAGES) << "Partially read event statistics in"
+                          << q->objectName() << "were adjusted to"
+                          << partiallyReadStats
+                          << "to be consistent with the m.read receipt";
+    Q_ASSERT(partiallyReadStats.isValidFor(q, q->fullyReadMarker()));
+    Q_ASSERT(unreadStats.isValidFor(q, q->localReadReceiptMarker()));
+
+    // TODO: Once the library learns to count highlights, drop
+    // serverHighlightCount and only use the server-side counter when
+    // the timeline is empty (see the code above).
+    if (merge(serverHighlightCount, data.highlightCount)) {
+        qCDebug(MESSAGES) << "Updated highlights number in" << q->objectName()
+                          << "to" << serverHighlightCount;
+        changes |= Change::Highlights;
+    }
+    return changes;
+}
+
 void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
     if (d->prevBatch.isEmpty())
@@ -1670,24 +1780,13 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     for (auto&& event : data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
 
+    roomChanges |= d->updateStatsFromSyncData(data, fromCache);
+
     if (roomChanges & Change::Topic)
         emit topicChanged();
 
     if (roomChanges & (Change::Name | Change::Aliases))
         emit namesChanged(this);
-
-    // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-    if (merge(d->unreadMessages, data.partiallyReadCount)) {
-        qCDebug(MESSAGES) << "Loaded partially read count:"
-                          << *data.partiallyReadCount << "in" << objectName();
-        emit unreadMessagesChanged(this);
-    }
-
-    if (merge(d->serverHighlightCount, data.highlightCount))
-        emit highlightCountChanged();
-
-    if (merge(d->notificationCount, data.unreadCount))
-        emit notificationCountChanged();
 
     d->postprocessChanges(roomChanges, !fromCache);
 }
@@ -1703,6 +1802,17 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if (changes
         & (Change::Name | Change::Aliases | Change::Members | Change::Summary))
         updateDisplayname();
+
+    if (changes & Change::PartiallyReadStats) {
+        emit q->unreadMessagesChanged(q); // TODO: remove in 0.8
+        emit q->partiallyReadStatsChanged();
+    }
+
+    if (changes & Change::UnreadStats)
+        emit q->unreadStatsChanged();
+
+    if (changes & Change::Highlights)
+        emit q->highlightCountChanged();
 
     qCDebug(MAIN) << terse << changes << "in" << q->objectName();
     emit q->changed(changes);
@@ -2553,17 +2663,16 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                        << totalInserted << "new events; the last event is now"
                        << timeline.back();
 
-        const auto& firstWriterId = (*from)->senderId();
-        setLastReadReceipt(firstWriterId, rev_iter_t(from + 1));
+        roomChanges |= updateStats(timeline.crbegin(), rev_iter_t(from));
+
         // If the local user's message(s) is/are first in the batch
         // and the fully read marker was right before it, promote
         // the fully read marker to the same event as the read receipt.
+        const auto& firstWriterId = (*from)->senderId();
         if (firstWriterId == connection->userId()
-            && q->fullyReadMarker().base() == from) //
+            && q->fullyReadMarker().base() == from)
             roomChanges |=
                 setFullyReadMarker(q->lastReadReceipt(firstWriterId).eventId);
-
-        roomChanges |= updateUnreadCount(timeline.crbegin(), rev_iter_t(from));
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
@@ -2612,17 +2721,12 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             emit q->updatedEvent(relation.eventId);
         }
     }
-    changes |= updateUnreadCount(from, historyEdge());
-    // When there are no unread messages and the read marker is within the
-    // known timeline, unreadMessages == -1
-    // (see https://github.com/quotient-im/libQuotient/wiki/Developer-notes#2-saving-unread-event-counts).
-    Q_ASSERT(unreadMessages != 0 || q->fullyReadMarker() == historyEdge());
-
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
         qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
                           << q->objectName() << "in" << et;
 
+    changes |= updateStats(from, historyEdge());
     if (changes)
         postprocessChanges(changes);
 }
@@ -2860,8 +2964,9 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             totalReceipts += p.receipts.size();
             const auto newMarker = findInTimeline(p.evtId);
             if (newMarker == historyEdge())
-                qCDebug(EPHEMERAL) << "Event of the read receipt(s) is not "
-                                      "found; saving anyway";
+                qCDebug(EPHEMERAL)
+                    << "Event" << p.evtId
+                    << "is not found; saving read receipt(s) anyway";
             // If the event is not found (most likely, because it's too old and
             // hasn't been fetched from the server yet) but there is a previous
             // marker for a user, keep the previous marker because read receipts
@@ -2870,9 +2975,12 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             // the event is fetched later on.
             const auto updatedCount = std::count_if(
                 p.receipts.cbegin(), p.receipts.cend(),
-                [this, &newMarker, &evtId = p.evtId](const auto& r) -> bool {
-                    return d->setLastReadReceipt(r.userId, newMarker,
-                                                 { evtId, r.timestamp });
+                [this, &changes, &newMarker, &evtId = p.evtId](const auto& r) {
+                    const auto change =
+                        d->setLastReadReceipt(r.userId, newMarker,
+                                              { evtId, r.timestamp });
+                    changes |= change;
+                    return change.testFlag(Change::Any);
                 });
 
             if (p.receipts.size() > 1)
@@ -3098,15 +3206,11 @@ QJsonObject Room::Private::toJson() const
                                    .fullJson() } } });
     }
 
-    QJsonObject unreadNotifObj { { PartiallyReadCountKey, unreadMessages } };
-
-    if (serverHighlightCount > 0)
-        unreadNotifObj.insert(HighlightCountKey, serverHighlightCount);
-
-    result.insert(UnreadNotificationsKey, unreadNotifObj);
-
-    if (notificationCount > 0)
-        unreadNotifObj.insert(NewUnreadCountKey, notificationCount);
+    result.insert(UnreadNotificationsKey,
+                  QJsonObject { { PartiallyReadCountKey,
+                                  countFromStats(partiallyReadStats) },
+                                { HighlightCountKey, serverHighlightCount } });
+    result.insert(NewUnreadCountKey, countFromStats(unreadStats));
 
     if (et.elapsed() > 30)
         qCDebug(PROFILER) << "Room::toJson() for" << q->objectName() << "took"
