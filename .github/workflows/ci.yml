@@ -9,6 +9,8 @@ defaults:
   run:
     shell: bash
 
+concurrency: ci-${{ github.ref }}
+
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
@@ -160,7 +162,7 @@ jobs:
         TEST_PWD: ${{ secrets.TEST_PWD }}
       run: |
         [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
-      timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
+      timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
     
     - name: Perform CodeQL analysis
       if: env.CODEQL_ANALYSIS
