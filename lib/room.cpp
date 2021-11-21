@@ -267,6 +267,8 @@ public:
     Changes addNewMessageEvents(RoomEvents&& events);
     void addHistoricalMessageEvents(RoomEvents&& events);
 
+    void postprocessChanges(Changes changes, bool saveState = true);
+
     /** Move events into the timeline
      *
      * Insert events into the timeline, either new or historical.
@@ -793,28 +795,36 @@ void Room::setReadReceipt(const QString& atEventId)
                                           QUrl::toPercentEncoding(atEventId));
 }
 
-void Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
+bool Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
-    if (upToMarker < q->fullyReadMarker()) {
-        setFullyReadMarker((*upToMarker)->id());
-        // Assuming that if a read receipt was sent on a newer event, it will
-        // stay there instead of "un-reading" notifications/mentions from
-        // m.fully_read to m.read
+    if (setFullyReadMarker(upToMarker->event()->id())) {
+        // The assumption below is that if a read receipt was sent on a newer
+        // event, the homeserver will keep it there instead of reverting to
+        // m.fully_read
         connection->callApi<SetReadMarkerJob>(BackgroundRequest, id,
                                               fullyReadUntilEventId,
                                               fullyReadUntilEventId);
+        return true;
     }
+    if (upToMarker != q->historyEdge())
+        qCDebug(MESSAGES) << "Event" << *upToMarker << "in" << q->objectName()
+                          << "is behind the current fully read marker at"
+                          << *q->fullyReadMarker()
+                          << "- won't move fully read marker back in timeline";
+    else
+        qCWarning(MESSAGES) << "Cannot mark an unknown event in"
+                            << q->objectName() << "as fully read";
+    return false;
 }
 
-void Room::markMessagesAsRead(QString uptoEventId)
+void Room::markMessagesAsRead(const QString& uptoEventId)
 {
     d->markMessagesAsRead(findInTimeline(uptoEventId));
 }
 
 void Room::markAllMessagesAsRead()
 {
-    if (!d->timeline.empty())
-        d->markMessagesAsRead(d->timeline.crbegin());
+    d->markMessagesAsRead(d->timeline.crbegin());
 }
 
 bool Room::canSwitchVersions() const
@@ -941,8 +951,7 @@ void Room::Private::getAllMembers()
                  it != syncEdge(); ++it)
                 if (is<RoomMemberEvent>(**it))
                     roomChanges |= q->processStateEvent(**it);
-        if (roomChanges & Change::Members)
-            emit q->memberListChanged();
+        postprocessChanges(roomChanges);
         emit q->allMembersLoaded();
     });
 }
@@ -1459,7 +1468,6 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
         return Change::None;
     qCDebug(STATE).nospace().noquote()
         << "Updated room summary for " << q->objectName() << ": " << summary;
-    emit q->memberListChanged();
     return Change::Summary;
 }
 
@@ -1651,26 +1659,22 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     setJoinState(data.joinState);
 
     Changes roomChanges {};
+    // The order of calculation is important - don't merge the lines!
+    roomChanges |= d->updateStateFrom(data.state);
+    roomChanges |= d->setSummary(move(data.summary));
+    roomChanges |= d->addNewMessageEvents(move(data.timeline));
+
+    for (auto&& ephemeralEvent : data.ephemeral)
+        roomChanges |= processEphemeralEvent(move(ephemeralEvent));
+
     for (auto&& event : data.accountData)
         roomChanges |= processAccountDataEvent(move(event));
-
-    roomChanges |= d->updateStateFrom(data.state);
-    // The order of calculation is important - don't merge these lines!
-    roomChanges |= d->addNewMessageEvents(move(data.timeline));
 
     if (roomChanges & Change::Topic)
         emit topicChanged();
 
     if (roomChanges & (Change::Name | Change::Aliases))
         emit namesChanged(this);
-
-    if (roomChanges & Change::Members)
-        emit memberListChanged();
-
-    roomChanges |= d->setSummary(move(data.summary));
-
-    for (auto&& ephemeralEvent : data.ephemeral)
-        roomChanges |= processEphemeralEvent(move(ephemeralEvent));
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
     if (merge(d->unreadMessages, data.partiallyReadCount)) {
@@ -1685,12 +1689,25 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (merge(d->notificationCount, data.unreadCount))
         emit notificationCountChanged();
 
-    if (roomChanges) {
-        d->updateDisplayname();
-        emit changed(roomChanges);
-        if (!fromCache)
-            connection()->saveRoomState(this);
-    }
+    d->postprocessChanges(roomChanges, !fromCache);
+}
+
+void Room::Private::postprocessChanges(Changes changes, bool saveState)
+{
+    if (!changes)
+        return;
+
+    if (changes & Change::Members)
+        emit q->memberListChanged();
+
+    if (changes
+        & (Change::Name | Change::Aliases | Change::Members | Change::Summary))
+        updateDisplayname();
+
+    qCDebug(MAIN) << terse << changes << "in" << q->objectName();
+    emit q->changed(changes);
+    if (saveState)
+        connection->saveRoomState(q);
 }
 
 RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
@@ -2566,6 +2583,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     if (events.empty())
         return;
 
+    Changes changes {};
     // In case of lazy-loading new members may be loaded with historical
     // messages. Also, the cache doesn't store events with empty content;
     // so when such events show up in the timeline they should be properly
@@ -2574,7 +2592,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         const auto& e = *eptr;
         if (e.isStateEvent()
             && !currentState.contains({ e.matrixType(), e.stateKey() })) {
-            q->processStateEvent(e);
+            changes |= q->processStateEvent(e);
         }
     }
 
@@ -2594,7 +2612,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             emit q->updatedEvent(relation.eventId);
         }
     }
-    updateUnreadCount(from, historyEdge());
+    changes |= updateUnreadCount(from, historyEdge());
     // When there are no unread messages and the read marker is within the
     // known timeline, unreadMessages == -1
     // (see https://github.com/quotient-im/libQuotient/wiki/Developer-notes#2-saving-unread-event-counts).
@@ -2604,6 +2622,9 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
         qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
                           << q->objectName() << "in" << et;
+
+    if (changes)
+        postprocessChanges(changes);
 }
 
 Room::Changes Room::processStateEvent(const RoomEvent& e)

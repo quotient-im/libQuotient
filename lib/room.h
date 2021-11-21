@@ -492,7 +492,7 @@ public:
     //! the current m.fully_read marker or is not loaded, to prevent
     //! accidentally trying to move the marker back in the timeline.
     //! \sa markAllMessagesAsRead, fullyReadMarker
-    Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
+    Q_INVOKABLE void markMessagesAsRead(const QString& uptoEventId);
 
     //! \brief Determine whether an event should be counted as unread
     //!
