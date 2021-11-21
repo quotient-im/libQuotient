@@ -117,7 +117,7 @@ public:
     QString displayname;
     Avatar avatar;
     QHash<QString, Notification> notifications;
-    int highlightCount = 0;
+    qsizetype serverHighlightCount = 0;
     int notificationCount = 0;
     members_map_t membersMap;
     QList<User*> usersTyping;
@@ -1072,13 +1072,13 @@ void Room::resetNotificationCount()
     emit notificationCountChanged();
 }
 
-int Room::highlightCount() const { return d->highlightCount; }
+qsizetype Room::highlightCount() const { return d->serverHighlightCount; }
 
 void Room::resetHighlightCount()
 {
-    if (d->highlightCount == 0)
+    if (d->serverHighlightCount == 0)
         return;
-    d->highlightCount = 0;
+    d->serverHighlightCount = 0;
     emit highlightCountChanged();
 }
 
@@ -1673,16 +1673,16 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         roomChanges |= processEphemeralEvent(move(ephemeralEvent));
 
     // See https://github.com/quotient-im/libQuotient/wiki/unread_count
-    if (merge(d->unreadMessages, data.unreadCount)) {
-        qCDebug(MESSAGES) << "Loaded unread_count:" << *data.unreadCount //
-                          << "in" << objectName();
+    if (merge(d->unreadMessages, data.partiallyReadCount)) {
+        qCDebug(MESSAGES) << "Loaded partially read count:"
+                          << *data.partiallyReadCount << "in" << objectName();
         emit unreadMessagesChanged(this);
     }
 
-    if (merge(d->highlightCount, data.highlightCount))
+    if (merge(d->serverHighlightCount, data.highlightCount))
         emit highlightCountChanged();
 
-    if (merge(d->notificationCount, data.notificationCount))
+    if (merge(d->notificationCount, data.unreadCount))
         emit notificationCountChanged();
 
     if (roomChanges) {
@@ -3077,16 +3077,15 @@ QJsonObject Room::Private::toJson() const
                                    .fullJson() } } });
     }
 
-    QJsonObject unreadNotifObj { { SyncRoomData::UnreadCountKey,
-                                   unreadMessages } };
+    QJsonObject unreadNotifObj { { PartiallyReadCountKey, unreadMessages } };
 
-    if (highlightCount > 0)
-        unreadNotifObj.insert(QStringLiteral("highlight_count"), highlightCount);
+    if (serverHighlightCount > 0)
+        unreadNotifObj.insert(HighlightCountKey, serverHighlightCount);
+
+    result.insert(UnreadNotificationsKey, unreadNotifObj);
+
     if (notificationCount > 0)
-        unreadNotifObj.insert(QStringLiteral("notification_count"),
-                              notificationCount);
-
-    result.insert(QStringLiteral("unread_notifications"), unreadNotifObj);
+        unreadNotifObj.insert(NewUnreadCountKey, notificationCount);
 
     if (et.elapsed() > 30)
         qCDebug(PROFILER) << "Room::toJson() for" << q->objectName() << "took"

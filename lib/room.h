@@ -149,10 +149,10 @@ class Room : public QObject {
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
                    unreadMessagesChanged STORED false)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
-    Q_PROPERTY(int highlightCount READ highlightCount NOTIFY
-                   highlightCountChanged RESET resetHighlightCount)
-    Q_PROPERTY(int notificationCount READ notificationCount NOTIFY
-                   notificationCountChanged RESET resetNotificationCount)
+    Q_PROPERTY(qsizetype highlightCount READ highlightCount
+                   NOTIFY highlightCountChanged)
+    Q_PROPERTY(qsizetype notificationCount READ notificationCount
+                   NOTIFY notificationCountChanged)
     Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
@@ -538,9 +538,21 @@ public:
      */
     int unreadCount() const;
 
-    Q_INVOKABLE int notificationCount() const;
+    //! \brief Get the number of notifications since the last read receipt
+    //!
+    //! \sa lastLocalReadReceipt
+    qsizetype notificationCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in notification count
     Q_INVOKABLE void resetNotificationCount();
-    Q_INVOKABLE int highlightCount() const;
+
+    //! \brief Get the number of highlights since the last read receipt
+    //!
+    //! As of 0.7, this is defined by the homeserver as Quotient doesn't process
+    //! push rules.
+    qsizetype highlightCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in highlightCount
     Q_INVOKABLE void resetHighlightCount();
 
     /** Check whether the room has account data of the given type
