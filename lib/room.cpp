@@ -1814,7 +1814,11 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if (changes & Change::Highlights)
         emit q->highlightCountChanged();
 
-    qCDebug(MAIN) << terse << changes << "in" << q->objectName();
+    qCDebug(MAIN) << terse << changes << "= hex" <<
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+        Qt::
+#endif
+            hex << uint(changes) << "in" << q->objectName();
     emit q->changed(changes);
     if (saveState)
         connection->saveRoomState(q);
