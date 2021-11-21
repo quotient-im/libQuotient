@@ -116,6 +116,7 @@ public:
     QHash<QPair<QString, QString>, RelatedEvents> relations;
     QString displayname;
     Avatar avatar;
+    QHash<QString, Notification> notifications;
     int highlightCount = 0;
     int notificationCount = 0;
     members_map_t membersMap;
@@ -240,13 +241,6 @@ public:
 //            return evt->content();
 //        return EventT::content_type()
 //    }
-
-    bool isEventNotable(const TimelineItem& ti) const
-    {
-        return !ti->isRedacted() && ti->senderId() != connection->userId()
-               && is<RoomMessageEvent>(*ti)
-               && ti.viewAs<RoomMessageEvent>()->replacedEvent().isEmpty();
-    }
 
     template <typename EventArrayT>
     Changes updateStateFrom(EventArrayT&& events)
@@ -709,7 +703,7 @@ Room::Changes Room::Private::updateUnreadCount(const rev_iter_t& from,
     et.start();
     const auto newUnreadMessages =
         count_if(from, to,
-                 std::bind(&Room::Private::isEventNotable, this, _1));
+                 std::bind(&Room::isEventNotable, q, _1));
     if (et.nsecsElapsed() > profilerMinNsecs() / 10)
         qCDebug(PROFILER) << "Counting gained unread messages in"
                           << q->objectName() << "took" << et;
@@ -742,7 +736,7 @@ Room::Changes Room::Private::recalculateUnreadCount(bool force)
     et.start();
     unreadMessages =
         int(count_if(timeline.crbegin(), q->fullyReadMarker(),
-                     [this](const auto& ti) { return isEventNotable(ti); }));
+                     [this](const auto& ti) { return q->isEventNotable(ti); }));
     if (et.nsecsElapsed() > profilerMinNsecs() / 10)
         qCDebug(PROFILER) << "Recounting unread messages in" << q->objectName()
                           << "took" << et;
@@ -835,6 +829,28 @@ bool Room::canSwitchVersions() const
         return currentUserLevel >= tombstonePowerLevel;
     }
     return true;
+}
+
+bool Room::isEventNotable(const TimelineItem &ti) const
+{
+    const auto& evt = *ti;
+    const auto* rme = ti.viewAs<RoomMessageEvent>();
+    return !evt.isRedacted()
+           && (is<RoomTopicEvent>(evt) || is<RoomNameEvent>(evt)
+               || is<RoomAvatarEvent>(evt) || is<RoomTombstoneEvent>(evt)
+               || (rme && rme->msgtype() != MessageEventType::Notice
+                   && rme->replacedEvent().isEmpty()))
+           && evt.senderId() != localUser()->id();
+}
+
+Notification Room::notificationFor(const TimelineItem &ti) const
+{
+    return d->notifications.value(ti->id());
+}
+
+Notification Room::checkForNotifications(const TimelineItem &ti)
+{
+    return { Notification::None };
 }
 
 bool Room::hasUnreadMessages() const { return unreadCount() >= 0; }
@@ -1548,11 +1564,12 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
             !eventsIndex.contains(eId), __FUNCTION__,
             makeErrorStr(*e, "Event is already in the timeline; "
                              "incoming events were not properly deduplicated"));
-        if (placement == Older)
-            timeline.emplace_front(move(e), --index);
-        else
-            timeline.emplace_back(move(e), ++index);
+        const auto& ti = placement == Older
+                             ? timeline.emplace_front(move(e), --index)
+                             : timeline.emplace_back(move(e), ++index);
         eventsIndex.insert(eId, index);
+        if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
+            notifications.insert(e->id(), n);
         Q_ASSERT(q->findInTimeline(eId)->event()->id() == eId);
     }
     const auto insertedSize = (index - baseIndex) * placement;

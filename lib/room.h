@@ -96,6 +96,18 @@ inline void swap(ReadReceipt& lhs, ReadReceipt& rhs)
     swap(lhs.timestamp, rhs.timestamp);
 }
 
+struct Notification
+{
+    enum Type { None = 0, Basic, Highlight };
+    Q_ENUM(Notification)
+
+    Type type = None;
+
+private:
+    Q_GADGET
+    Q_PROPERTY(Type type MEMBER type CONSTANT)
+};
+
 class Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
@@ -481,6 +493,29 @@ public:
     //! accidentally trying to move the marker back in the timeline.
     //! \sa markAllMessagesAsRead, fullyReadMarker
     Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
+
+    //! \brief Determine whether an event should be counted as unread
+    //!
+    //! The criteria of including an event in unread counters are described in
+    //! [MSC2654](https://github.com/matrix-org/matrix-doc/pull/2654); according
+    //! to these, the event should be counted as unread (or, in libQuotient
+    //! parlance, is "notable") if it is:
+    //! - either
+    //!   - a message event that is not m.notice, or
+    //!   - a state event with type being one of:
+    //!     `m.room.topic`, `m.room.name`, `m.room.avatar`, `m.room.tombstone`;
+    //! - neither redacted, nor an edit (redactions cause the redacted event
+    //!   to stop being notable, while edits are not notable themselves while
+    //!   the original event usually is);
+    //! - from a non-local user (events from other devices of the local
+    //!   user are not notable).
+    virtual bool isEventNotable(const TimelineItem& ti) const;
+
+    //! \brief Get notification details for an event
+    //!
+    //! This allows to get details on the kind of notification that should
+    //! generated for \p evt.
+    Notification notificationFor(const TimelineItem& ti) const;
 
     //! Check whether there are unread messages in the room
     bool hasUnreadMessages() const;
@@ -873,6 +908,7 @@ protected:
     {}
     virtual QJsonObject toJson() const;
     virtual void updateData(SyncRoomData&& data, bool fromCache = false);
+    virtual Notification checkForNotifications(const TimelineItem& ti);
 
 private:
     friend class Connection;
