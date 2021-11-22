@@ -736,7 +736,7 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
             qCDebug(MESSAGES).nospace()
                     << "Recalculated partially read event statistics in "
                     << q->objectName() << ": " << partiallyReadStats;
-            return Change::PartiallyReadStats | Change::UnreadStats;
+            return changes | Change::PartiallyReadStats;
         }
     }
 
@@ -748,7 +748,7 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
 
     const auto newStats = EventStats::fromRange(q, from, to);
     Q_ASSERT(!newStats.isEstimate);
-    if (newStats.notableCount == 0 || newStats.highlightCount == 0)
+    if (newStats.empty())
         return changes;
 
     const auto doAddStats = [this, &changes, newStats](EventStats& s,
