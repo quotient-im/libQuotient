@@ -828,7 +828,10 @@ void Room::setReadReceipt(const QString& atEventId)
 
 bool Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
 {
-    if (const auto changes = setFullyReadMarker(upToMarker->event()->id())) {
+    if (upToMarker == q->historyEdge())
+        qCWarning(MESSAGES) << "Cannot mark an unknown event in"
+                            << q->objectName() << "as fully read";
+    else if (const auto changes = setFullyReadMarker(upToMarker->event()->id())) {
         // The assumption below is that if a read receipt was sent on a newer
         // event, the homeserver will keep it there instead of reverting to
         // m.fully_read
@@ -837,15 +840,11 @@ bool Room::Private::markMessagesAsRead(const rev_iter_t &upToMarker)
                                               fullyReadUntilEventId);
         postprocessChanges(changes);
         return true;
-    }
-    if (upToMarker != q->historyEdge())
+    } else
         qCDebug(MESSAGES) << "Event" << *upToMarker << "in" << q->objectName()
                           << "is behind the current fully read marker at"
                           << *q->fullyReadMarker()
                           << "- won't move fully read marker back in timeline";
-    else
-        qCWarning(MESSAGES) << "Cannot mark an unknown event in"
-                            << q->objectName() << "as fully read";
     return false;
 }
 
