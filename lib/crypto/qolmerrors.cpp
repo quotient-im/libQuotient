@@ -6,15 +6,15 @@
 #include "qolmerrors.h"
 
 Quotient::QOlmError Quotient::fromString(const std::string &error_raw) {
-    if (error_raw.compare("BAD_ACCOUNT_KEY")) {
+    if (!error_raw.compare("BAD_ACCOUNT_KEY")) {
         return QOlmError::BadAccountKey;
-    } else if (error_raw.compare("BAD_MESSAGE_KEY_ID")) {
+    } else if (!error_raw.compare("BAD_MESSAGE_KEY_ID")) {
         return QOlmError::BadMessageKeyId;
-    } else if (error_raw.compare("INVALID_BASE64")) {
+    } else if (!error_raw.compare("INVALID_BASE64")) {
         return QOlmError::InvalidBase64;
-    } else if (error_raw.compare("NOT_ENOUGH_RANDOM")) {
+    } else if (!error_raw.compare("NOT_ENOUGH_RANDOM")) {
         return QOlmError::NotEnoughRandom;
-    } else if (error_raw.compare("OUTPUT_BUFFER_TOO_SMALL")) {
+    } else if (!error_raw.compare("OUTPUT_BUFFER_TOO_SMALL")) {
         return QOlmError::OutputBufferTooSmall;
     } else {
         return QOlmError::Unknown;
