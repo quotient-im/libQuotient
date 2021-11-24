@@ -37,7 +37,14 @@ public:
     //! the previous run of the client).
     bool isEstimate = true;
 
-    bool operator==(const EventStats& rhs) const& = default;
+    // TODO: replace with = default once C++20 becomes a requirement on clients
+    bool operator==(const EventStats& rhs) const
+    {
+        return notableCount == rhs.notableCount
+               && highlightCount == rhs.highlightCount
+               && isEstimate == rhs.isEstimate;
+    }
+    bool operator!=(const EventStats& rhs) const { return !operator==(rhs); }
 
     //! \brief Check whether the event statistics are empty
     //!
