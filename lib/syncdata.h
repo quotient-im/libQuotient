@@ -8,6 +8,12 @@
 #include "events/stateevent.h"
 
 namespace Quotient {
+
+constexpr auto UnreadNotificationsKey = "unread_notifications"_ls;
+constexpr auto PartiallyReadCountKey = "x-quotient.since_fully_read_count"_ls;
+constexpr auto NewUnreadCountKey = "org.matrix.msc2654.unread_count"_ls;
+constexpr auto HighlightCountKey = "highlight_count"_ls;
+
 /// Room summary, as defined in MSC688
 /**
  * Every member of this structure is an Omittable; as per the MSC, only
@@ -29,7 +35,6 @@ struct RoomSummary {
 };
 QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 
-
 template <>
 struct JsonObjectConverter<RoomSummary> {
     static void dumpTo(QJsonObject& jo, const RoomSummary& rs);
@@ -48,16 +53,14 @@ public:
 
     bool timelineLimited;
     QString timelinePrevBatch;
+    Omittable<int> partiallyReadCount;
     Omittable<int> unreadCount;
     Omittable<int> highlightCount;
-    Omittable<int> notificationCount;
 
-    SyncRoomData(const QString& roomId, JoinState joinState_,
-                 const QJsonObject& room_);
+    SyncRoomData(QString roomId, JoinState joinState,
+                 const QJsonObject& roomJson);
     SyncRoomData(SyncRoomData&&) = default;
     SyncRoomData& operator=(SyncRoomData&&) = default;
-
-    static const QString UnreadCountKey;
 };
 
 // QVector cannot work with non-copyable objects, std::vector can.

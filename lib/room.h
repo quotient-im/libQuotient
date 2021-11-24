@@ -79,7 +79,7 @@ class ReadReceipt {
     Q_PROPERTY(QDateTime timestamp MEMBER timestamp CONSTANT)
 public:
     QString eventId;
-    QDateTime timestamp;
+    QDateTime timestamp = {};
 
     bool operator==(const ReadReceipt& other) const
     {
@@ -95,6 +95,20 @@ inline void swap(ReadReceipt& lhs, ReadReceipt& rhs)
     swap(lhs.eventId, rhs.eventId);
     swap(lhs.timestamp, rhs.timestamp);
 }
+
+struct EventStats;
+
+struct Notification
+{
+    enum Type { None = 0, Basic, Highlight };
+    Q_ENUM(Notification)
+
+    Type type = None;
+
+private:
+    Q_GADGET
+    Q_PROPERTY(Type type MEMBER type CONSTANT)
+};
 
 class Room : public QObject {
     Q_OBJECT
@@ -134,13 +148,18 @@ class Room : public QObject {
                    markMessagesAsRead NOTIFY readMarkerMoved)
     Q_PROPERTY(QString lastFullyReadEventId READ lastFullyReadEventId WRITE
                    markMessagesAsRead NOTIFY fullyReadMarkerMoved)
+    //! \deprecated since 0.7
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
-                   unreadMessagesChanged STORED false)
-    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
-    Q_PROPERTY(int highlightCount READ highlightCount NOTIFY
-                   highlightCountChanged RESET resetHighlightCount)
-    Q_PROPERTY(int notificationCount READ notificationCount NOTIFY
-                   notificationCountChanged RESET resetNotificationCount)
+                   partiallyReadStatsChanged STORED false)
+    //! \deprecated since 0.7
+    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY partiallyReadStatsChanged
+                   STORED false)
+    Q_PROPERTY(qsizetype highlightCount READ highlightCount
+                   NOTIFY highlightCountChanged)
+    Q_PROPERTY(qsizetype notificationCount READ notificationCount
+                   NOTIFY notificationCountChanged)
+    Q_PROPERTY(EventStats partiallyReadStats READ partiallyReadStats NOTIFY partiallyReadStatsChanged)
+    Q_PROPERTY(EventStats unreadStats READ unreadStats NOTIFY unreadStatsChanged)
     Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
@@ -157,26 +176,45 @@ public:
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
+    //! \brief Room changes that can be tracked using Room::changed() signal
+    //!
+    //! This enumeration lists kinds of changes that can be tracked with
+    //! a "cumulative" changed() signal instead of using individual signals for
+    //! each change. Specific enumerators mention these individual signals.
+    //! \sa changed
     enum class Change : uint {
-        None = 0x0,
-        Name = 0x1,
-        Aliases = 0x2,
+        None = 0x0, //< No changes occurred in the room
+        Name = 0x1, //< \sa namesChanged, displaynameChanged
+        Aliases = 0x2, //< \sa namesChanged, displaynameChanged
         CanonicalAlias = Aliases,
-        Topic = 0x4,
-        UnreadNotifs = 0x8,
-        Avatar = 0x10,
-        JoinState = 0x20,
-        Tags = 0x40,
+        Topic = 0x4, //< \sa topicChanged
+        PartiallyReadStats = 0x8, //< \sa partiallyReadStatsChanged
+        DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
+        Avatar = 0x10, //< \sa avatarChanged
+        JoinState = 0x20, //< \sa joinStateChanged
+        Tags = 0x40, //< \sa tagsChanged
+        //! \sa userAdded, userRemoved, memberRenamed, memberListChanged,
+        //!     displaynameChanged
         Members = 0x80,
-        /* = 0x100, */
+        UnreadStats = 0x100, //< \sa unreadStatsChanged
         AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::AccountData will be merged into Change::Other in 0.8") =
             0x200,
-        Summary = 0x400,
+        Summary = 0x400, //< \sa summaryChanged, displaynameChanged
         ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::ReadMarker will be merged into Change::Other in 0.8") =
             0x800,
+        Highlights = 0x1000, //< \sa highlightCountChanged
+        //! A catch-all value that covers changes not listed above (such as
+        //! encryption turned on or the room having been upgraded), as well as
+        //! changes in the room state that the library is not aware of (e.g.,
+        //! custom state events) and m.read/m.fully_read position changes.
+        //! \sa encryptionChanged, upgraded, accountDataChanged
         Other = 0x8000,
+        //! This is intended to test a Change/Changes value for non-emptiness;
+        //! testFlag(Change::Any) or adding <tt>& Change::Any</tt> has
+        //! the same meaning as !testFlag(Change::None) or adding
+        //! <tt>!= Change::None</tt>.
         Any = 0xFFFF
     };
     QUO_DECLARE_FLAGS(Changes, Change)
@@ -480,32 +518,124 @@ public:
     //! the current m.fully_read marker or is not loaded, to prevent
     //! accidentally trying to move the marker back in the timeline.
     //! \sa markAllMessagesAsRead, fullyReadMarker
-    Q_INVOKABLE void markMessagesAsRead(QString uptoEventId);
+    Q_INVOKABLE void markMessagesAsRead(const QString& uptoEventId);
 
-    //! Check whether there are unread messages in the room
+    //! \brief Determine whether an event should be counted as unread
+    //!
+    //! The criteria of including an event in unread counters are described in
+    //! [MSC2654](https://github.com/matrix-org/matrix-doc/pull/2654); according
+    //! to these, the event should be counted as unread (or, in libQuotient
+    //! parlance, is "notable") if it is:
+    //! - either
+    //!   - a message event that is not m.notice, or
+    //!   - a state event with type being one of:
+    //!     `m.room.topic`, `m.room.name`, `m.room.avatar`, `m.room.tombstone`;
+    //! - neither redacted, nor an edit (redactions cause the redacted event
+    //!   to stop being notable, while edits are not notable themselves while
+    //!   the original event usually is);
+    //! - from a non-local user (events from other devices of the local
+    //!   user are not notable).
+    //! \sa partiallyReadStats, unreadStats
+    virtual bool isEventNotable(const TimelineItem& ti) const;
+
+    //! \brief Get notification details for an event
+    //!
+    //! This allows to get details on the kind of notification that should
+    //! generated for \p evt.
+    Notification notificationFor(const TimelineItem& ti) const;
+
+    //! \brief Get event statistics since the fully read marker
+    //!
+    //! This call returns a structure containing:
+    //! - the number of notable unread events since the fully read marker;
+    //!   depending on the fully read marker state with respect to the local
+    //!   timeline, this number may be either exact or estimated
+    //!   (see EventStats::isEstimate);
+    //! - the number of highlights (TODO).
+    //!
+    //! Note that this is different from the unread count defined by MSC2654
+    //! and from the notification/highlight numbers defined by the spec in that
+    //! it counts events since the fully read marker, not since the last
+    //! read receipt position.
+    //!
+    //! As E2EE is not supported in the library, the returned result will always
+    //! be an estimate (<tt>isEstimate == true</tt>) for encrypted rooms;
+    //! moreover, since the library doesn't know how to tackle push rules yet
+    //! the number of highlights returned here will always be zero (there's no
+    //! good substitute for that now).
+    //!
+    //! \sa isEventNotable, fullyReadMarker, unreadStats, EventStats
+    EventStats partiallyReadStats() const;
+
+    //! \brief Get event statistics since the last read receipt
+    //!
+    //! This call returns a structure that contains the following three numbers,
+    //! all counted on the timeline segment between the event pointed to by
+    //! the m.fully_read marker and the sync edge:
+    //! - the number of unread events - depending on the read receipt state
+    //!   with respect to the local timeline, this number may be either precise
+    //!   or estimated (see EventStats::isEstimate);
+    //! - the number of highlights (TODO).
+    //!
+    //! As E2EE is not supported in the library, the returned result will always
+    //! be an estimate (<tt>isEstimate == true</tt>) for encrypted rooms;
+    //! moreover, since the library doesn't know how to tackle push rules yet
+    //! the number of highlights returned here will always be zero - use
+    //! highlightCount() for now.
+    //!
+    //! \sa isEventNotable, lastLocalReadReceipt, partiallyReadStats,
+    //!     highlightCount
+    EventStats unreadStats() const;
+
+    [[deprecated(
+        "Use partiallyReadStats/unreadStats() and EventStats::empty()")]]
     bool hasUnreadMessages() const;
 
-    /** Get the number of unread messages in the room
-     * Depending on the read marker state, this call may return either
-     * a precise or an estimate number of unread events. Only "notable"
-     * events (non-redacted message events from users other than local)
-     * are counted.
-     *
-     * In a case when readMarker() == historyEdge() (the local read
-     * marker is beyond the local timeline) only the bottom limit of
-     * the unread messages number can be estimated (and even that may
-     * be slightly off due to, e.g., redactions of events not loaded
-     * to the local timeline).
-     *
-     * If all messages are read, this function will return -1 (_not_ 0,
-     * as zero may mean "zero or more unread messages" in a situation
-     * when the read marker is outside the local timeline.
-     */
+    //! \brief Get the number of notable events since the fully read marker
+    //!
+    //! \deprecated Since 0.7 there are two ways to count unread events: since
+    //! the fully read marker (used by libQuotient pre-0.7) and since the last
+    //! read receipt (as used by most of Matrix ecosystem, including the spec
+    //! and MSCs). This function currently returns a value derived from
+    //! partiallyReadStats() for compatibility with libQuotient 0.6; it will be
+    //! removed due to ambiguity. Use unreadStats() to obtain the spec-compliant
+    //! count of unread events and the highlight count; partiallyReadStats() to
+    //! obtain the unread events count since the fully read marker.
+    //!
+    //! \return -1 (_not 0_) when all messages are known to have been fully read,
+    //!         i.e. the fully read marker points to _the latest notable_ event
+    //!         loaded in the local timeline (which may be different from
+    //!         the latest event in the local timeline as that might not be
+    //!         notable);
+    //!         0 when there may be unread messages but the current local
+    //!         timeline doesn't have any notable ones (often but not always
+    //!         because it's entirely empty yet);
+    //!         a positive integer when there is (or estimated to be) a number
+    //!         of unread notable events as described above.
+    //!
+    //! \sa partiallyReadStats, unreadStats
+    [[deprecated("Use partiallyReadStats() or unreadStats() instead")]] //
     int unreadCount() const;
 
-    Q_INVOKABLE int notificationCount() const;
+    //! \brief Get the number of notifications since the last read receipt
+    //!
+    //! This is the same as <tt>unreadStats().notableCount</tt>.
+    //!
+    //! \sa unreadStats, lastLocalReadReceipt
+    qsizetype notificationCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in notification count
     Q_INVOKABLE void resetNotificationCount();
-    Q_INVOKABLE int highlightCount() const;
+
+    //! \brief Get the number of highlights since the last read receipt
+    //!
+    //! As of 0.7, this is defined by the homeserver as Quotient doesn't process
+    //! push rules.
+    //!
+    //! \sa unreadStats, lastLocalReadReceipt
+    qsizetype highlightCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in highlightCount
     Q_INVOKABLE void resetHighlightCount();
 
     /** Check whether the room has account data of the given type
@@ -818,12 +948,14 @@ Q_SIGNALS:
                           Quotient::JoinState newState);
     void typingChanged();
 
-    void highlightCountChanged();
-    void notificationCountChanged();
+    void highlightCountChanged(); //< \sa highlightCount
+    void notificationCountChanged(); //< \sa notificationCount
 
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
+    //! The event that m.read receipt points to has changed
+    //! \sa lastReadReceipt
     void lastReadEventChanged(Quotient::User* user);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
     //! \deprecated since 0.7 - use fullyReadMarkerMoved
@@ -831,7 +963,11 @@ Q_SIGNALS:
     //! \deprecated since 0.7 - use lastReadEventChanged
     void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
                                 QString toEventId);
+    //! \deprecated since 0.7 - use either partiallyReadStatsChanged
+    //!             or unreadStatsChanged
     void unreadMessagesChanged(Quotient::Room* room);
+    void partiallyReadStatsChanged();
+    void unreadStatsChanged();
 
     void accountDataAboutToChange(QString type);
     void accountDataChanged(QString type);
@@ -873,6 +1009,7 @@ protected:
     {}
     virtual QJsonObject toJson() const;
     virtual void updateData(SyncRoomData&& data, bool fromCache = false);
+    virtual Notification checkForNotifications(const TimelineItem& ti);
 
 private:
     friend class Connection;
