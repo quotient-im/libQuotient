@@ -1589,7 +1589,8 @@ void Room::Private::removeMemberFromMap(User* u)
 
 inline auto makeErrorStr(const Event& e, QByteArray msg)
 {
-    return msg.append("; event dump follows:\n").append(e.originalJson());
+    return msg.append("; event dump follows:\n")
+        .append(QJsonDocument(e.fullJson()).toJson());
 }
 
 Room::Timeline::size_type
@@ -2363,7 +2364,7 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
 RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
-    auto originalJson = target.originalJsonObject();
+    auto originalJson = target.fullJson();
     // clang-format off
     static const QStringList keepKeys {
         EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey,
@@ -2409,7 +2410,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         originalJson.insert(ContentKey, content);
     }
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
-    unsignedData[RedactedCauseKeyL] = redaction.originalJsonObject();
+    unsignedData[RedactedCauseKeyL] = redaction.fullJson();
     originalJson.insert(QStringLiteral("unsigned"), unsignedData);
 
     return loadEvent<RoomEvent>(originalJson);
@@ -2479,7 +2480,7 @@ RoomEventPtr makeReplaced(const RoomEvent& target,
     if (!targetReply.empty()) {
         newContent["m.relates_to"] = targetReply;
     }
-    auto originalJson = target.originalJsonObject();
+    auto originalJson = target.fullJson();
     originalJson[ContentKeyL] = newContent;
 
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();

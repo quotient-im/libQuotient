@@ -210,7 +210,10 @@ public:
 
     Type type() const { return _type; }
     QString matrixType() const;
+    [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
+                 "or by other means")]]
     QByteArray originalJson() const;
+    [[deprecated("Use fullJson() instead")]] //
     QJsonObject originalJsonObject() const { return fullJson(); }
 
     const QJsonObject& fullJson() const { return _json; }
