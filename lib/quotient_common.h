@@ -90,7 +90,6 @@ constexpr inline auto JoinStateStrings = make_array(
 //! So far only background/foreground flags are available.
 //! \sa Connection::callApi, Connection::run
 enum RunningPolicy { ForegroundRequest = 0x0, BackgroundRequest = 0x1 };
-
 Q_ENUM_NS(RunningPolicy)
 
 //! \brief The result of URI resolution using UriResolver

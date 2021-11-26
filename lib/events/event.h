@@ -195,9 +195,6 @@ inline auto registerEventType()
 // === Event ===
 
 class Event {
-    Q_GADGET
-    Q_PROPERTY(Type type READ type CONSTANT)
-    Q_PROPERTY(QJsonObject contentJson READ contentJson CONSTANT)
 public:
     using Type = event_type_t;
     using factory_t = EventFactory<Event>;

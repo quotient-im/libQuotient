@@ -18,10 +18,6 @@ namespace MessageEventContent = EventContent; // Back-compatibility
  */
 class RoomMessageEvent : public RoomEvent {
     Q_GADGET
-    Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
-    Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
-    Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
-    Q_PROPERTY(const EventContent::TypedBase* content READ content CONSTANT)
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
 

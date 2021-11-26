@@ -18,8 +18,6 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
 }
 
 class StateEventBase : public RoomEvent {
-    Q_GADGET
-    Q_PROPERTY(QString stateKey READ stateKey CONSTANT)
 public:
     using factory_t = EventFactory<StateEventBase>;
 

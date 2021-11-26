@@ -9,7 +9,6 @@
 #include <utility>
 
 namespace Quotient {
-class StateEventBase;
 
 namespace EventStatus {
     Q_NAMESPACE
@@ -31,8 +30,7 @@ namespace EventStatus {
         Replaced = 0x10, //< The event has been replaced
         Hidden = 0x100, //< The event should not be shown in the timeline
     };
-    Q_DECLARE_FLAGS(Status, Code)
-    Q_FLAG_NS(Status)
+    Q_ENUM_NS(Code)
 } // namespace EventStatus
 
 class EventItemBase {
@@ -106,7 +104,6 @@ inline const CallEventBase* EventItemBase::viewAs<CallEventBase>() const
 }
 
 class PendingEventItem : public EventItemBase {
-    Q_GADGET
 public:
     using EventItemBase::EventItemBase;
 

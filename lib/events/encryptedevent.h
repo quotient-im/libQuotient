@@ -7,7 +7,6 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class Room;
 /*
  * While the specification states:
  *
@@ -27,7 +26,6 @@ class Room;
  * one and doesn't add new restrictions, just provides additional features.
  */
 class EncryptedEvent : public RoomEvent {
-    Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encrypted", EncryptedEvent)
 
