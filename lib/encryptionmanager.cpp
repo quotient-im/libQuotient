@@ -107,12 +107,7 @@ public:
             rootObj.insert(QStringLiteral("sessions"), sessionsJson);
         }
 
-    #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
         const auto data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-    #else
-        QJsonDocument json { rootObj };
-        const auto data = json.toJson(QJsonDocument::Compact);
-    #endif
 
         outFile.write(data.data(), data.size());
         qCDebug(E2EE) << "Sessions saved to" << outFile.fileName();

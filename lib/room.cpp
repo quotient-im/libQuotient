@@ -430,12 +430,7 @@ public:
             rootObj.insert(QStringLiteral("sessions"), sessionsJson);
         }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
         const auto data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-#else
-        QJsonDocument json { rootObj };
-        const auto data = json.toJson(QJsonDocument::Compact);
-#endif
 
         outFile.write(data.data(), data.size());
         qCDebug(E2EE) << "Megolm sessions saved to" << outFile.fileName();
@@ -476,26 +471,26 @@ public:
                              "this message";
             return QString();
         }
-        auto& senderSession = *groupSessionIt;
+        auto& senderSession = groupSessionIt->second;
         auto decryptResult = senderSession->decrypt(cipher);
         if(std::holds_alternative<QOlmError>(decryptResult)) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
             << "with matching megolm session:" << std::get<QOlmError>(decryptResult);
             return QString();
         }
-        std::pair<QString, uint32_t> decrypted = std::get<std::pair<QString, uint32_t>>(decryptResult);
-        QPair<QString, QDateTime> properties = groupSessionIndexRecord.value(qMakePair(senderSession->sessionId(), decrypted.second));
-        if (properties.first.isEmpty()) {
-            groupSessionIndexRecord.insert(qMakePair(senderSession->sessionId(), decrypted.second), qMakePair(eventId, timestamp));
+        const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
+        const auto& [recordEventId, ts] = groupSessionIndexRecord.value({senderSession->sessionId(), index});
+        if (eventId.isEmpty()) {
+            groupSessionIndexRecord.insert({senderSession->sessionId(), index}, {recordEventId, timestamp});
         } else {
-            if ((properties.first != eventId) || (properties.second != timestamp)) {
+            if ((eventId != recordEventId) || (ts != timestamp)) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
                 return QString();
             }
         }
         //TODO is this necessary?
         saveMegOlmSessions();
-        return decrypted.first;
+        return content;
     }
 #endif // Quotient_E2EE_ENABLED
 
@@ -2673,7 +2668,6 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     QElapsedTimer et;
     et.start();
 
-    //TODO should this be done before dropDuplicateEvents?
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             auto decrypted = q->decryptMessage(*encrypted);
@@ -2836,7 +2830,6 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     Changes changes {};
 
-    //TODO should this be done before dropDuplicateEvents?
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             qDebug() << "Encrypted Event";
