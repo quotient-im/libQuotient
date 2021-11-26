@@ -2835,8 +2835,11 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         }
         , true); // By default, go forward with the state change
     // clang-format on
-    if (!proceed)
+    if (!proceed) {
+        if (!curStateEvent) // Remove the empty placeholder if one was created
+            d->currentState.remove({ e.matrixType(), e.stateKey() });
         return Change::None;
+    }
 
     // Change the state
     const auto* const oldStateEvent =
