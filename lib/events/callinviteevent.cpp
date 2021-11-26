@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "callinviteevent.h"
+#include "logging.h"
 
 /*
 m.call.invite

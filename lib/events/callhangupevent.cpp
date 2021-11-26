@@ -6,6 +6,7 @@
  */
 
 #include "callhangupevent.h"
+#include "logging.h"
 
 /*
 m.call.hangup
