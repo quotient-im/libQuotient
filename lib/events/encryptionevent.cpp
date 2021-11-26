@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptionevent.h"
-#include "logging.h"
 
 #include "e2ee.h"
 

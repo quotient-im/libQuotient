@@ -4,6 +4,7 @@
 #pragma once
 
 #include "converters.h"
+#include "logging.h"
 
 namespace Quotient {
 // === event_ptr_tt<> and type casting facilities ===
@@ -161,8 +162,6 @@ private:
     }
 };
 
-void logFactorySetup(event_mtype_t eventTypeId);
-
 /** Add a type to its default factory
  * Adds a standard factory method (via makeEvent<>) for a given
  * type to EventT::factory_t factory class so that it can be
@@ -175,7 +174,7 @@ void logFactorySetup(event_mtype_t eventTypeId);
 template <typename EventT>
 inline auto setupFactory()
 {
-    logFactorySetup(EventT::matrixTypeId());
+    qDebug(EVENTS) << "Adding factory method for" << EventT::matrixTypeId();
     return EventT::factory_t::addMethod([](const QJsonObject& json,
                                            const QString& jsonMatrixType) {
         return EventT::matrixTypeId() == jsonMatrixType ? makeEvent<EventT>(json)

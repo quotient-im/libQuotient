@@ -37,11 +37,17 @@ public:
     /* In case with Megolm, device_id and session_id are required */
     explicit EncryptedEvent(QByteArray ciphertext, const QString& senderKey,
                             const QString& deviceId, const QString& sessionId);
-    explicit EncryptedEvent(const QJsonObject& obj)
-        : RoomEvent(typeId(), obj)
-    {}
+    explicit EncryptedEvent(const QJsonObject& obj);
 
-    QString algorithm() const;
+    QString algorithm() const
+    {
+        QString algo = content<QString>(AlgorithmKeyL);
+        if (!SupportedAlgorithms.contains(algo)) {
+            qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
+                           << "is not supported";
+        }
+        return algo;
+    }
     QByteArray ciphertext() const
     {
         return content<QString>(CiphertextKeyL).toLatin1();
