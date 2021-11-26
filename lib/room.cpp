@@ -632,9 +632,9 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
                                          });
         // eagerMarker is now just after the desired event for newMarker
         if (eagerMarker != newMarker.base()) {
-            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << userId
-                               << "to" << newReceipt.eventId;
             newMarker = rev_iter_t(eagerMarker);
+            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << userId
+                               << "to" << *newMarker;
         }
         // Fill newReceipt with the event (and, if needed, timestamp) from
         // eagerMarker
@@ -645,8 +645,11 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
     auto& storedReceipt =
             lastReadReceipts[userId]; // clazy:exclude=detaching-member
     const auto prevEventId = storedReceipt.eventId;
-    // NB: with reverse iterators, timeline history >= sync edge
-    if (newMarker >= q->findInTimeline(prevEventId))
+    // Check that either the new marker is actually "newer" than the current one
+    // or, if both markers are at historyEdge(), event ids are different.
+    // NB: with reverse iterators, timeline history edge >= sync edge
+    if (prevEventId == newReceipt.eventId
+        || newMarker > q->findInTimeline(prevEventId))
         return Change::None;
 
     // Finally make the change
@@ -661,8 +664,15 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
     }
     eventIdReadUsers[newReceipt.eventId].insert(userId);
     storedReceipt = move(newReceipt);
-    qCDebug(EPHEMERAL) << "The new read receipt for" << userId << "is now at"
-                       << storedReceipt.eventId;
+
+    {
+        auto dbg = qDebug(EPHEMERAL); // This trick needs qDebug, not qCDebug
+        dbg << "The new read receipt for" << userId << "is now at";
+        if (newMarker == historyEdge())
+            dbg << storedReceipt.eventId;
+        else
+            dbg << *newMarker;
+    }
 
     // TODO: use Room::member() when it becomes a thing and only emit signals
     //       for actual members, not just any user
@@ -2984,7 +2994,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                         d->setLastReadReceipt(r.userId, newMarker,
                                               { evtId, r.timestamp });
                     changes |= change;
-                    return change.testFlag(Change::Any);
+                    return change & Change::Any;
                 });
 
             if (p.receipts.size() > 1)

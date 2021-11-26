@@ -212,9 +212,10 @@ public:
         //! \sa encryptionChanged, upgraded, accountDataChanged
         Other = 0x8000,
         //! This is intended to test a Change/Changes value for non-emptiness;
-        //! testFlag(Change::Any) or adding <tt>& Change::Any</tt> has
-        //! the same meaning as !testFlag(Change::None) or adding
-        //! <tt>!= Change::None</tt>.
+        //! adding <tt>& Change::Any</tt> has the same meaning as
+        //! !testFlag(Change::None) or adding <tt>!= Change::None</tt>
+        //! \note testFlag(Change::Any) tests that _all_ bits are on and
+        //!       will always return false.
         Any = 0xFFFF
     };
     QUO_DECLARE_FLAGS(Changes, Change)
