@@ -51,7 +51,7 @@ public:
         }
     }
     void loadSessions() {
-        QFile file { static_cast<Connection *>(q->parent())->e2eeDataDir() + QStringLiteral("/olmsessions.json") };
+        QFile file { static_cast<Connection *>(q->parent())->e2eeDataDir() % "/olmsessions.json" };
         if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
             qCDebug(E2EE) << "No sessions cache exists.";
             return;

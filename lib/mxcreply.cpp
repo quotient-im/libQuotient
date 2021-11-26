@@ -3,8 +3,7 @@
 
 #include "mxcreply.h"
 
-#include <algorithm>
-#include <QBuffer>
+#include <QtCore/QBuffer>
 #include "accountregistry.h"
 #include "connection.h"
 #include "room.h"

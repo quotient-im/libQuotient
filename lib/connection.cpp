@@ -57,7 +57,7 @@
 #include <QtNetwork/QDnsLookup>
 
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
 #else
 #    include <qt5keychain/keychain.h>
@@ -830,7 +830,7 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
 #ifdef Quotient_E2EE_ENABLED
-    if(toDeviceEvents.size() > 0) {
+    if (!toDeviceEvents.empty()) {
         qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
         visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
             if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
@@ -1020,7 +1020,7 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 
 #ifdef Quotient_E2EE_ENABLED
 DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const EncryptedFile file,
+                                          const EncryptedFile& file,
                                           const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
@@ -1996,7 +1996,7 @@ void Connection::Private::saveDevicesList()
 
 void Connection::Private::loadDevicesList()
 {
-    QFile file { q->e2eeDataDir() + QStringLiteral("/deviceslist.json") };
+    QFile file { q->e2eeDataDir() % "/deviceslist.json" };
     if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
         qCDebug(E2EE) << "No devicesList cache exists. Creating new";
         return;

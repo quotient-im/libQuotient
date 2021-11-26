@@ -49,7 +49,7 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
 #ifdef Quotient_E2EE_ENABLED
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
-                                 const EncryptedFile file,
+                                 const EncryptedFile& file,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
     , d(localFilename.isEmpty() ? new Private : new Private(localFilename))

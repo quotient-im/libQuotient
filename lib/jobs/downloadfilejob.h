@@ -16,7 +16,7 @@ public:
                     const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob(const QString& serverName, const QString& mediaId, const EncryptedFile file, const QString& localFilename = {});
+    DownloadFileJob(const QString& serverName, const QString& mediaId, const EncryptedFile& file, const QString& localFilename = {});
 #endif
     QString targetFileName() const;
 

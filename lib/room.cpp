@@ -456,7 +456,7 @@ public:
             return false;
         }
         qCWarning(E2EE) << "Adding inbound session";
-        groupSessions[qMakePair(senderKey, sessionId)] = std::move(megolmSession);
+        groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
         saveMegOlmSessions();
         return true;
     }
@@ -469,13 +469,14 @@ public:
     {
         QPair<QString, QString> senderSessionPairKey =
             qMakePair(senderKey, sessionId);
-        if (groupSessions.find(senderSessionPairKey) == groupSessions.end()) {
+        auto groupSessionIt = groupSessions.find(senderSessionPairKey);
+        if (groupSessionIt == groupSessions.end()) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
                           << "The sender's device has not sent us the keys for "
                              "this message";
             return QString();
         }
-        auto& senderSession = groupSessions[senderSessionPairKey];
+        auto& senderSession = *groupSessionIt;
         auto decryptResult = senderSession->decrypt(cipher);
         if(std::holds_alternative<QOlmError>(decryptResult)) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
@@ -520,8 +521,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             emit baseStateLoaded();
         return this == r; // loadedRoomState fires only once per room
     });
-    qCDebug(STATE) << "New" << initialJoinState << "Room:" << id;
-
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [=](){
         connection->encryptionUpdate(this);
@@ -1555,7 +1554,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
             qCWarning(E2EE) << "Encrypted message is empty";
             return {};
         }
-        QJsonObject eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
+        auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
         eventObject["event_id"] = encryptedEvent.id();
         eventObject["sender"] = encryptedEvent.senderId();
         eventObject["origin_server_ts"] = encryptedEvent.originTimestamp().toMSecsSinceEpoch();
