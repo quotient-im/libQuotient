@@ -48,11 +48,10 @@ static const auto PrevContentKeyL = "prev_content"_ls;
 static const auto StateKeyKeyL = "state_key"_ls;
 
 /// Make a minimal correct Matrix event JSON
-template <typename StrT>
-inline QJsonObject basicEventJson(StrT matrixType, const QJsonObject& content)
+inline QJsonObject basicEventJson(const QString& matrixType,
+                                  const QJsonObject& content)
 {
-    return { { TypeKey, std::forward<StrT>(matrixType) },
-             { ContentKey, content } };
+    return { { TypeKey, matrixType }, { ContentKey, content } };
 }
 
 // === Event types and event types registry ===
