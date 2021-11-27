@@ -38,7 +38,7 @@ public:
     EncryptionManager* q;
 
     // A map from senderKey to InboundSession
-    UnorderedMap<QString, std::unique_ptr<QOlmSession>> sessions; // TODO: cache
+    UnorderedMap<QString, QOlmSessionPtr> sessions;
     void updateDeviceKeys(
         const QHash<QString,
                     QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
@@ -76,7 +76,7 @@ public:
                 qCWarning(E2EE) << "Failed to unpickle olm session";
                 continue;
             }
-            sessions[senderKey] = std::move(std::get<std::unique_ptr<QOlmSession>>(sessionResult));
+            sessions[senderKey] = std::move(std::get<QOlmSessionPtr>(sessionResult));
         }
     }
     void saveSessions() {
@@ -135,9 +135,11 @@ public:
             qCWarning(E2EE) << "Failed to create inbound session for" << senderKey << std::get<QOlmError>(newSessionResult);
             return {};
         }
-        std::unique_ptr<QOlmSession> newSession = std::move(std::get<std::unique_ptr<QOlmSession>>(newSessionResult));
-        // TODO Error handling?
-        olmAccount->removeOneTimeKeys(newSession);
+        auto newSession = std::move(std::get<QOlmSessionPtr>(newSessionResult));
+        auto error = olmAccount->removeOneTimeKeys(newSession);
+        if (error) {
+            qWarning(E2EE) << "Failed to remove one time key for session" << newSession->sessionId();
+        }
         const auto result = newSession->decrypt(message);
         sessions[senderKey] = std::move(newSession);
         saveSessions();

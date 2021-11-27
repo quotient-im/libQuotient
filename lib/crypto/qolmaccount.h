@@ -19,6 +19,8 @@ namespace Quotient {
 class QOlmSession;
 class Connection;
 
+using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
+
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}
 //! const auto olmAccount = new QOlmAccount(this);
@@ -77,22 +79,22 @@ public:
     DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
-    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const;
+    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const QOlmSessionPtr &session) const;
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param message An Olm pre-key message that was encrypted for this account.
-    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInboundSession(const QOlmMessage &preKeyMessage);
+    std::variant<QOlmSessionPtr, QOlmError> createInboundSession(const QOlmMessage &preKeyMessage);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
-    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
+    std::variant<QOlmSessionPtr, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
-    std::variant<std::unique_ptr<QOlmSession>, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
+    std::variant<QOlmSessionPtr, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
 
     void markKeysAsPublished();
 

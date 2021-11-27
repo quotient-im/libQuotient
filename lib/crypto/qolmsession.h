@@ -74,7 +74,6 @@ private:
     OlmSession* m_session;
 };
 
-
-//using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
+using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 } //namespace Quotient

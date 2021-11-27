@@ -27,7 +27,7 @@ OlmSession* QOlmSession::create()
     return olm_session(new uint8_t[olm_session_size()]);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInbound(QOlmAccount *account, const QOlmMessage &preKeyMessage, bool from, const QString &theirIdentityKey)
+std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInbound(QOlmAccount *account, const QOlmMessage &preKeyMessage, bool from, const QString &theirIdentityKey)
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
         qCCritical(E2EE) << "The message is not a pre-key in when creating inbound session" << BadMessageFormat;
@@ -53,17 +53,17 @@ std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInbound
     return std::make_unique<QOlmSession>(olmSession);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInboundSession(QOlmAccount *account, const QOlmMessage &preKeyMessage)
+std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInboundSession(QOlmAccount *account, const QOlmMessage &preKeyMessage)
 {
     return createInbound(account, preKeyMessage);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createInboundSessionFrom(QOlmAccount *account, const QString &theirIdentityKey, const QOlmMessage &preKeyMessage)
+std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInboundSessionFrom(QOlmAccount *account, const QString &theirIdentityKey, const QOlmMessage &preKeyMessage)
 {
     return createInbound(account, preKeyMessage, true, theirIdentityKey);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::createOutboundSession(QOlmAccount *account, const QString &theirIdentityKey, const QString &theirOneTimeKey)
+std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createOutboundSession(QOlmAccount *account, const QString &theirIdentityKey, const QString &theirOneTimeKey)
 {
     auto *olmOutboundSession = create();
     const auto randomLen = olm_create_outbound_session_random_length(olmOutboundSession);
@@ -105,7 +105,7 @@ std::variant<QByteArray, QOlmError> QOlmSession::pickle(const PicklingMode &mode
     return pickledBuf;
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
+std::variant<QOlmSessionPtr, QOlmError> QOlmSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmSession = create();

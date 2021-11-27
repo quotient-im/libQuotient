@@ -509,7 +509,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         // create new account and save unpickle data
         olmAccount->createNewAccount();
         auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
-        connect(job, &BaseJob::failure, q, [=]{
+        connect(job, &BaseJob::failure, q, [job]{
             qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
         });
     } else {
@@ -677,10 +677,10 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         auto keys = d->olmAccount->oneTimeKeys();
         auto job = d->olmAccount->createUploadKeyRequest(keys);
         run(job, ForegroundRequest);
-        connect(job, &BaseJob::success, this, [=](){
+        connect(job, &BaseJob::success, this, [this](){
             d->olmAccount->markKeysAsPublished();
         });
-        connect(job, &BaseJob::result, this, [=](){
+        connect(job, &BaseJob::result, this, [this](){
             d->isUploadingKeys = false;
         });
     }
@@ -1903,7 +1903,7 @@ void Connection::Private::loadOutdatedUserDevices()
     }
     auto queryKeysJob = q->callApi<QueryKeysJob>(users);
     currentQueryKeysJob = queryKeysJob;
-    connect(queryKeysJob, &BaseJob::success, q, [=](){
+    connect(queryKeysJob, &BaseJob::success, q, [this, queryKeysJob](){
         currentQueryKeysJob = nullptr;
         const auto data = queryKeysJob->deviceKeys();
         for(const auto &[user, keys] : asKeyValueRange(data)) {
@@ -2024,7 +2024,7 @@ void Connection::Private::loadDevicesList()
     deviceKeys = fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(json["devices_list"].toObject());
     auto oldToken = json["sync_token"].toString();
     auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
-    connect(changesJob, &BaseJob::success, q, [=](){
+    connect(changesJob, &BaseJob::success, q, [this, changesJob](){
         bool hasNewOutdatedUser = false;
         for(const auto &user : changesJob->changed()) {
             outdatedUsers += user;

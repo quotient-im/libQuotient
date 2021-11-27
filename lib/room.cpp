@@ -514,10 +514,10 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         return this == r; // loadedRoomState fires only once per room
     });
 #ifdef Quotient_E2EE_ENABLED
-    connectSingleShot(this, &Room::encryption, this, [=](){
+    connectSingleShot(this, &Room::encryption, this, [this, connection](){
         connection->encryptionUpdate(this);
     });
-    connect(this, &Room::userAdded, this, [=](){
+    connect(this, &Room::userAdded, this, [this, connection](){
         if(usesEncryption()) {
             connection->encryptionUpdate(this);
         }

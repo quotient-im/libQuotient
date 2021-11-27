@@ -179,13 +179,13 @@ OneTimeKeys QOlmAccount::oneTimeKeys() const
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     OneTimeKeys oneTimeKeys;
 
-    for (const QJsonValue &key1 : json.keys()) {
-        auto oneTimeKeyObject = json[key1.toString()].toObject();
+    for (const QString& key1 : json.keys()) {
+        auto oneTimeKeyObject = json[key1].toObject();
         auto keyMap = QMap<QString, QString>();
         for (const QString &key2 : oneTimeKeyObject.keys()) {
             keyMap[key2] = oneTimeKeyObject[key2].toString();
         }
-        oneTimeKeys.keys[key1.toString()] = keyMap;
+        oneTimeKeys.keys[key1] = keyMap;
     }
     return oneTimeKeys;
 }
@@ -215,7 +215,7 @@ QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
     return sign(j.toJson(QJsonDocument::Compact));
 }
 
-std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const std::unique_ptr<QOlmSession> &session) const
+std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const QOlmSessionPtr &session) const
 {
     const auto error = olm_remove_one_time_keys(m_account, session->raw());
 
@@ -266,19 +266,19 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
     return new UploadKeysJob(keys, oneTimeKeysSigned);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
+std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
+std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
 }
 
-std::variant<std::unique_ptr<QOlmSession>, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
+std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
 {
     return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
 }
