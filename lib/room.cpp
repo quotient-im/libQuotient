@@ -226,6 +226,17 @@ public:
         return evt;
     }
 
+    QVector<const StateEventBase*> stateEventsOfType(const QString& evtType) const
+    {
+        QVector<const StateEventBase*> vals = QVector<const StateEventBase*>();
+        for (const auto* val : currentState) {
+            if (val->matrixType() == evtType) {
+                vals.append(val);
+            }
+        }
+        return vals;
+    }
+
     template <typename EventT>
     const EventT* getCurrentState(const QString& stateKey = {}) const
     {
@@ -1453,6 +1464,17 @@ const StateEventBase* Room::getCurrentState(const QString& evtType,
                                             const QString& stateKey) const
 {
     return d->getCurrentState({ evtType, stateKey });
+}
+
+const QVector<const StateEventBase*>
+Room::stateEventsOfType(const QString& evtType) const
+{
+    return d->stateEventsOfType(evtType);
+}
+
+const QHash<StateEventKey, const StateEventBase*>& Room::currentState() const
+{
+    return d->currentState;
 }
 
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
