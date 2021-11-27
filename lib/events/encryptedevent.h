@@ -61,6 +61,7 @@ public:
     /* device_id and session_id are required with Megolm */
     QString deviceId() const { return contentPart<QString>(DeviceIdKeyL); }
     QString sessionId() const { return contentPart<QString>(SessionIdKeyL); }
+    RoomEventPtr createDecrypted(const QString &decrypted) const;
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 

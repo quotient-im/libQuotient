@@ -366,9 +366,7 @@ public:
     // A map from <sessionId, messageIndex> to <event_id, origin_server_ts>
     QHash<QPair<QString, uint32_t>, QPair<QString, QDateTime>>
         groupSessionIndexRecord; // TODO: cache
-    // A map from senderKey to a map of sessionId to InboundGroupSession
-    // Not using QMultiHash, because we want to quickly return
-    // a number of relations for a given event without enumerating them.
+    // A map from (senderKey, sessionId) to InboundGroupSession
     UnorderedMap<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
 
     void loadMegOlmSessions() {
@@ -399,7 +397,7 @@ public:
                 qCWarning(E2EE) << "Failed to unpickle olm session";
                 continue;
             }
-            groupSessions[qMakePair(senderKey, sessionId)] = std::move(std::get<std::unique_ptr<QOlmInboundGroupSession>>(sessionResult));
+            groupSessions[{senderKey, sessionId}] = std::move(std::get<std::unique_ptr<QOlmInboundGroupSession>>(sessionResult));
         }
     }
     void saveMegOlmSessions() {
@@ -438,7 +436,7 @@ public:
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
     {
-        if (groupSessions.find(qMakePair(senderKey, sessionId)) != groupSessions.end()) {
+        if (groupSessions.find({senderKey, sessionId}) != groupSessions.end()) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId
                           << "with senderKey" << senderKey << "already exists";
             return false;
@@ -462,8 +460,7 @@ public:
                                        const QString& eventId,
                                        QDateTime timestamp)
     {
-        QPair<QString, QString> senderSessionPairKey =
-            qMakePair(senderKey, sessionId);
+        const auto senderSessionPairKey = qMakePair(senderKey, sessionId);
         auto groupSessionIt = groupSessions.find(senderSessionPairKey);
         if (groupSessionIt == groupSessions.end()) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
@@ -1540,36 +1537,20 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return {};
 #else // Quotient_E2EE_ENABLED
-    if (encryptedEvent.algorithm() == MegolmV1AesSha2AlgoKey) {
-        QString decrypted = d->groupSessionDecryptMessage(
-            encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
-            encryptedEvent.sessionId(), encryptedEvent.id(),
-            encryptedEvent.originTimestamp());
-        if (decrypted.isEmpty()) {
-            qCWarning(E2EE) << "Encrypted message is empty";
-            return {};
-        }
-        auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
-        eventObject["event_id"] = encryptedEvent.id();
-        eventObject["sender"] = encryptedEvent.senderId();
-        eventObject["origin_server_ts"] = encryptedEvent.originTimestamp().toMSecsSinceEpoch();
-        if(encryptedEvent.contentJson().contains("m.relates_to")) {
-            auto relates = encryptedEvent.contentJson()["m.relates_to"].toObject();
-            auto content = eventObject["content"].toObject();
-            content["m.relates_to"] = relates;
-            eventObject["content"] = content;
-        }
-        if(encryptedEvent.unsignedJson().contains("redacts")) {
-            auto redacts = encryptedEvent.unsignedJson()["redacts"].toString();
-            auto unsign = eventObject["unsigned"].toObject();
-            unsign["redacts"] = redacts;
-            eventObject["unsigned"] = unsign;
-        }
-        return makeEvent<RoomMessageEvent>(eventObject);
+    if (encryptedEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
+        qWarning(E2EE) << "Algorithm of the encrypted event with id"
+                    << encryptedEvent.id() << "is not decryptable by the current device";
+        return {};
     }
-    qCDebug(E2EE) << "Algorithm of the encrypted event with id"
-                  << encryptedEvent.id() << "is not decryptable by the current device";
-    return {};
+    QString decrypted = d->groupSessionDecryptMessage(
+        encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
+        encryptedEvent.sessionId(), encryptedEvent.id(),
+        encryptedEvent.originTimestamp());
+    if (decrypted.isEmpty()) {
+        qCWarning(E2EE) << "Encrypted message is empty";
+        return {};
+    }
+    return encryptedEvent.createDecrypted(decrypted);
 #endif // Quotient_E2EE_ENABLED
 }
 

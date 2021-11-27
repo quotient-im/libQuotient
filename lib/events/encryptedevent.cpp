@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptedevent.h"
+#include "roommessageevent.h"
 
 using namespace Quotient;
 
@@ -29,4 +30,25 @@ EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj)
 {
     qCDebug(E2EE) << "Encrypted event from" << senderId();
+}
+
+RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
+{
+    auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
+    eventObject["event_id"] = id();
+    eventObject["sender"] = senderId();
+    eventObject["origin_server_ts"] = originTimestamp().toMSecsSinceEpoch();
+    if(contentJson().contains("m.relates_to")) {
+        auto relates = contentJson()["m.relates_to"].toObject();
+        auto content = eventObject["content"].toObject();
+        content["m.relates_to"] = relates;
+        eventObject["content"] = content;
+    }
+    if(unsignedJson().contains("redacts")) {
+        auto redacts = unsignedJson()["redacts"].toString();
+        auto unsign = eventObject["unsigned"].toObject();
+        unsign["redacts"] = redacts;
+        eventObject["unsigned"] = unsign;
+    }
+    return makeEvent<RoomMessageEvent>(eventObject);
 }
