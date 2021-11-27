@@ -228,12 +228,11 @@ public:
 
     QVector<const StateEventBase*> stateEventsOfType(const QString& evtType) const
     {
-        QVector<const StateEventBase*> vals = QVector<const StateEventBase*>();
-        for (const auto* val : currentState) {
-            if (val->matrixType() == evtType) {
-                vals.append(val);
-            }
-        }
+        auto vals = QVector<const StateEventBase*>();
+        for (auto it = currentState.cbegin(); it != currentState.cend(); ++it)
+            if (it.key().first == evtType)
+                vals.append(it.value());
+
         return vals;
     }
 
