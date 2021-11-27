@@ -512,7 +512,14 @@ public:
     /*! This method returns all known state events that have occured in
      * the room, as a mapping from the event type and state key to value.
      */
-    Q_INVOKABLE const QHash<StateEventKey, const StateEventBase*> stateEvents() const;
+    const QHash<StateEventKey, const StateEventBase*>& currentState() const;
+
+    /// Get all state events in the room of a certain type.
+    /*! This method returns all known state events that have occured in
+     * the room of the given type.
+     */
+    Q_INVOKABLE const QVector<const StateEventBase*>
+    stateEventsOfType(const QString& evtType) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
