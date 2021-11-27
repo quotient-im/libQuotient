@@ -46,6 +46,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        fetch-depth: 0
         submodules: ${{ matrix.e2ee != '' }}
 
     - name: Cache Qt
@@ -126,7 +127,7 @@ jobs:
                                      -DGTAD_PATH=$GITHUB_WORKSPACE/../gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
-    
+
     - name: Initialize CodeQL tools
       if: env.CODEQL_ANALYSIS
       uses: github/codeql-action/init@v1
