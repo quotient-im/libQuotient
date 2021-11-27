@@ -25,17 +25,17 @@ public:
 
     QJsonArray candidates() const
     {
-        return content<QJsonArray>("candidates"_ls);
+        return contentPart<QJsonArray>("candidates"_ls);
     }
 
     QString callId() const
     {
-        return content<QString>("call_id");
+        return contentPart<QString>("call_id");
     }
 
     int version() const
     {
-        return content<int>("version");
+        return contentPart<int>("version");
     }
 };
 

@@ -47,7 +47,7 @@ public:
     explicit ReactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj) {}
     EventRelation relation() const
     {
-        return content<EventRelation>(QStringLiteral("m.relates_to"));
+        return contentPart<EventRelation>("m.relates_to"_ls);
     }
 };
 REGISTER_EVENT_TYPE(ReactionEvent)

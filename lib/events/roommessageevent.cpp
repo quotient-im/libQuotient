@@ -204,12 +204,12 @@ RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 
 QString RoomMessageEvent::rawMsgtype() const
 {
-    return contentJson()[MsgTypeKeyL].toString();
+    return contentPart<QString>(MsgTypeKeyL);
 }
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentJson()[BodyKeyL].toString();
+    return contentPart<QString>(BodyKeyL);
 }
 
 QMimeType RoomMessageEvent::mimeType() const

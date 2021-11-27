@@ -224,16 +224,23 @@ public:
     const QJsonObject contentJson() const;
     const QJsonObject unsignedJson() const;
 
-    template <typename T>
-    T content(const QString& key) const
+    template <typename T = QJsonValue>
+    const T contentPart(const QString& key) const
+    {
+        return fromJson<T>(contentJson()[key]);
+    }
+
+    template <typename T = QJsonValue>
+    const T contentPart(QLatin1String key) const
     {
         return fromJson<T>(contentJson()[key]);
     }
 
     template <typename T>
-    T content(QLatin1String key) const
+    [[deprecated("Use contentPart() to get a part of the event content")]] //
+    T content(const QString& key) const
     {
-        return fromJson<T>(contentJson()[key]);
+        return contentPart<T>(key);
     }
 
     friend QDebug operator<<(QDebug dbg, const Event& e)

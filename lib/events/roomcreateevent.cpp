@@ -23,17 +23,17 @@ struct Quotient::JsonConverter<RoomType> {
 
 bool RoomCreateEvent::isFederated() const
 {
-    return fromJson<bool>(contentJson()["m.federate"_ls]);
+    return contentPart<bool>("m.federate"_ls);
 }
 
 QString RoomCreateEvent::version() const
 {
-    return fromJson<QString>(contentJson()["room_version"_ls]);
+    return contentPart<QString>("room_version"_ls);
 }
 
 RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
 {
-    const auto predJson = contentJson()["predecessor"_ls].toObject();
+    const auto predJson = contentPart<QJsonObject>("predecessor"_ls);
     return { fromJson<QString>(predJson[RoomIdKeyL]),
              fromJson<QString>(predJson[EventIdKeyL]) };
 }
@@ -45,5 +45,5 @@ bool RoomCreateEvent::isUpgrade() const
 
 RoomType RoomCreateEvent::roomType() const
 {
-    return fromJson<RoomType>(contentJson()["type"_ls]);
+    return contentPart<RoomType>("type"_ls);
 }

@@ -12,7 +12,7 @@ StickerEvent::StickerEvent(const QJsonObject &obj)
 
 QString StickerEvent::body() const
 {
-    return content<QString>("body"_ls);
+    return contentPart<QString>("body"_ls);
 }
 
 const EventContent::ImageContent &StickerEvent::image() const

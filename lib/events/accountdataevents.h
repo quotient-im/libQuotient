@@ -63,7 +63,7 @@ using TagsMap = QHash<QString, TagRecord>;
         {}                                                                   \
         auto _ContentKey() const                                             \
         {                                                                    \
-            return content<content_type>(#_ContentKey##_ls);                 \
+            return contentPart<content_type>(#_ContentKey##_ls);             \
         }                                                                    \
     };                                                                       \
     REGISTER_EVENT_TYPE(_Name)                                               \

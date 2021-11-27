@@ -78,8 +78,8 @@ public:
     ~CallEventBase() override = default;
     bool isCallEvent() const override { return true; }
 
-    QString callId() const { return content<QString>("call_id"_ls); }
-    int version() const { return content<int>("version"_ls); }
+    QString callId() const { return contentPart<QString>("call_id"_ls); }
+    int version() const { return contentPart<int>("version"_ls); }
 };
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
