@@ -8,7 +8,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #ifdef Quotient_E2EE_ENABLED
-#   include <QCryptographicHash>
+#   include <QtCore/QCryptographicHash>
 #   include "encryptionmanager.h"
 #   include "events/encryptedfile.h"
 #endif

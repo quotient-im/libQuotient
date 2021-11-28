@@ -30,7 +30,7 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
         throw "Wrong first message type received, can't create session";
     }
     auto inbound = std::get<QOlmSessionPtr>(accountB.createInboundSession(preKey));
-    return std::make_pair<QOlmSessionPtr, QOlmSessionPtr>(std::move(inbound), std::move(outbound));
+    return { std::move(inbound), std::move(outbound) };
 }
 
 void TestOlmSession::olmOutboundSessionCreation()

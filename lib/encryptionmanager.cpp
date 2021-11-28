@@ -80,7 +80,7 @@ public:
         }
     }
     void saveSessions() {
-        QFile outFile { static_cast<Connection *>(q->parent())->e2eeDataDir() + QStringLiteral("/olmsessions.json") };
+        QFile outFile { static_cast<Connection *>(q->parent())->e2eeDataDir() % "/olmsessions.json" };
         if (!outFile.open(QFile::WriteOnly)) {
             qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                             << outFile.errorString();

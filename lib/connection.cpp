@@ -56,7 +56,6 @@
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
 
-
 #if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
 #else
@@ -1948,7 +1947,7 @@ void Connection::Private::saveDevicesList()
     QElapsedTimer et;
     et.start();
 
-    QFile outFile { q->e2eeDataDir() + QStringLiteral("/deviceslist.json") };
+    QFile outFile { q->e2eeDataDir() % "/deviceslist.json" };
     if (!outFile.open(QFile::WriteOnly)) {
         qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
                         << outFile.errorString();
