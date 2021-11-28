@@ -24,6 +24,21 @@ struct JsonObjectConverter {
     static void fillFrom(const QJsonObject& jo, T& pod) { pod = T(jo); }
 };
 
+//! \brief The switchboard for extra conversion algorithms behind from/toJson
+//!
+//! This template is mainly intended for partial conversion specialisations
+//! since from/toJson are functions and cannot be partially specialised;
+//! another case for JsonConverter is to insulate types that can be constructed
+//! from basic types - namely, QVariant and QUrl can be directly constructed
+//! from QString and having an overload or specialisation for those leads to
+//! ambiguity between these and QJsonValue. For trivial (converting
+//! QJsonObject/QJsonValue) and most simple cases such as primitive types or
+//! QString this class is not needed.
+//!
+//! Do NOT call the functions of this class directly unless you know what you're
+//! doing; and do not try to specialise basic things unless you're really sure
+//! that they are not supported and it's not feasible to support those by means
+//! of overloading toJson() and specialising fromJson().
 template <typename T>
 struct JsonConverter {
     static QJsonObject dump(const T& pod)
@@ -42,13 +57,17 @@ struct JsonConverter {
     static T load(const QJsonDocument& jd) { return doLoad(jd.object()); }
 };
 
-template <typename T>
+template <typename T,
+          typename = std::enable_if_t<!std::is_constructible_v<QJsonValue, T>>>
 inline auto toJson(const T& pod)
+// -> can return anything from which QJsonValue or, in some cases, QJsonDocument
+//    is constructible
 {
     return JsonConverter<T>::dump(pod);
 }
 
 inline auto toJson(const QJsonObject& jo) { return jo; }
+inline auto toJson(const QJsonValue& jv) { return jv; }
 
 template <typename T>
 inline void fillJson(QJsonObject& json, const T& data)
@@ -98,90 +117,69 @@ inline void fillFromJson(const QJsonValue& jv, T& pod)
 
 // JsonConverter<> specialisations
 
-template <typename T>
-struct TrivialJsonDumper {
-    // Works for: QJsonValue (and all things it can consume),
-    // QJsonObject, QJsonArray
-    static auto dump(const T& val) { return val; }
-};
+template<>
+inline bool fromJson(const QJsonValue& jv) { return jv.toBool(); }
 
 template <>
-struct JsonConverter<bool> : public TrivialJsonDumper<bool> {
-    static auto load(const QJsonValue& jv) { return jv.toBool(); }
-};
+inline int fromJson(const QJsonValue& jv) { return jv.toInt(); }
 
 template <>
-struct JsonConverter<int> : public TrivialJsonDumper<int> {
-    static auto load(const QJsonValue& jv) { return jv.toInt(); }
-};
+inline double fromJson(const QJsonValue& jv) { return jv.toDouble(); }
 
 template <>
-struct JsonConverter<double> : public TrivialJsonDumper<double> {
-    static auto load(const QJsonValue& jv) { return jv.toDouble(); }
-};
+inline float fromJson(const QJsonValue& jv) { return float(jv.toDouble()); }
 
 template <>
-struct JsonConverter<float> : public TrivialJsonDumper<float> {
-    static auto load(const QJsonValue& jv) { return float(jv.toDouble()); }
-};
+inline qint64 fromJson(const QJsonValue& jv) { return qint64(jv.toDouble()); }
 
 template <>
-struct JsonConverter<qint64> : public TrivialJsonDumper<qint64> {
-    static auto load(const QJsonValue& jv) { return qint64(jv.toDouble()); }
-};
+inline QString fromJson(const QJsonValue& jv) { return jv.toString(); }
 
 template <>
-struct JsonConverter<QString> : public TrivialJsonDumper<QString> {
-    static auto load(const QJsonValue& jv) { return jv.toString(); }
-};
+inline QJsonArray fromJson(const QJsonValue& jv) { return jv.toArray(); }
 
 template <>
-struct JsonConverter<QDateTime> {
-    static auto dump(const QDateTime& val)
-    {
-        return val.isValid() ? val.toMSecsSinceEpoch() : QJsonValue();
-    }
-    static auto load(const QJsonValue& jv)
-    {
-        return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
-    }
-};
+inline QJsonArray fromJson(const QJsonDocument& jd) { return jd.array(); }
 
+inline QJsonValue toJson(const QDateTime& val)
+{
+    return val.isValid() ? val.toMSecsSinceEpoch() : QJsonValue();
+}
 template <>
-struct JsonConverter<QDate> {
-    static auto dump(const QDate& val) {
-        return toJson(
+inline QDateTime fromJson(const QJsonValue& jv)
+{
+    return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
+}
+
+inline QJsonValue toJson(const QDate& val) {
+    return toJson(
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-            QDateTime(val)
+        QDateTime(val)
 #else
-            val.startOfDay()
+        val.startOfDay()
 #endif
-            );
-    }
-    static auto load(const QJsonValue& jv)
-    {
-        return fromJson<QDateTime>(jv).date();
-    }
-};
+    );
+}
+template <>
+inline QDate fromJson(const QJsonValue& jv)
+{
+    return fromJson<QDateTime>(jv).date();
+}
+
+// Insulate QVariant and QUrl conversions into JsonConverter so that they don't
+// interfere with toJson(const QJsonValue&) over QString, since both types are
+// constructible from QString (even if QUrl requires explicit construction).
 
 template <>
 struct JsonConverter<QUrl> {
     static auto load(const QJsonValue& jv)
     {
-        // QT_NO_URL_CAST_FROM_STRING makes this a bit more verbose
-        QUrl url;
-        url.setUrl(jv.toString());
-        return url;
+        return QUrl(jv.toString());
     }
     static auto dump(const QUrl& url)
     {
         return url.toString(QUrl::FullyEncoded);
     }
-};
-
-template <>
-struct JsonConverter<QJsonArray> : public TrivialJsonDumper<QJsonArray> {
-    static auto load(const QJsonValue& jv) { return jv.toArray(); }
 };
 
 template <>
@@ -206,15 +204,11 @@ struct JsonConverter<Omittable<T>> {
 
 template <typename VectorT, typename T = typename VectorT::value_type>
 struct JsonArrayConverter {
-    static void dumpTo(QJsonArray& ar, const VectorT& vals)
-    {
-        for (const auto& v : vals)
-            ar.push_back(toJson(v));
-    }
     static auto dump(const VectorT& vals)
     {
         QJsonArray ja;
-        dumpTo(ja, vals);
+        for (const auto& v : vals)
+            ja.push_back(toJson(v));
         return ja;
     }
     static auto load(const QJsonArray& ja)
@@ -254,7 +248,7 @@ struct JsonObjectConverter<QSet<QString>> {
     static void dumpTo(QJsonObject& json, const QSet<QString>& s)
     {
         for (const auto& e : s)
-            json.insert(toJson(e), QJsonObject {});
+            json.insert(e, QJsonObject {});
     }
     static void fillFrom(const QJsonObject& json, QSet<QString>& s)
     {
@@ -287,11 +281,9 @@ template <typename T>
 struct JsonObjectConverter<QHash<QString, T>>
     : public HashMapFromJson<QHash<QString, T>> {};
 
+QJsonObject toJson(const QVariantHash& vh);
 template <>
-struct JsonConverter<QVariantHash> {
-    static QJsonObject dump(const QVariantHash& vh);
-    static QVariantHash load(const QJsonValue& jv);
-};
+QVariantHash fromJson(const QJsonValue& jv);
 
 // Conditional insertion into a QJsonObject
 

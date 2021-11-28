@@ -5,24 +5,23 @@
 
 #include <QtCore/QVariant>
 
-using namespace Quotient;
-
-QJsonValue JsonConverter<QVariant>::dump(const QVariant& v)
+QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 {
     return QJsonValue::fromVariant(v);
 }
 
-QVariant JsonConverter<QVariant>::load(const QJsonValue& jv)
+QVariant Quotient::JsonConverter<QVariant>::load(const QJsonValue& jv)
 {
     return jv.toVariant();
 }
 
-QJsonObject JsonConverter<QVariantHash>::dump(const QVariantHash& vh)
+QJsonObject Quotient::toJson(const QVariantHash& vh)
 {
     return QJsonObject::fromVariantHash(vh);
 }
 
-QVariantHash JsonConverter<QVariantHash>::load(const QJsonValue& jv)
+template<>
+QVariantHash Quotient::fromJson(const QJsonValue& jv)
 {
     return jv.toObject().toVariantHash();
 }
