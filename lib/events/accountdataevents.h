@@ -55,11 +55,11 @@ using TagsMap = QHash<QString, TagRecord>;
     public:                                                                  \
         using content_type = _ContentType;                                   \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                  \
-        explicit _Name(QJsonObject obj) : Event(typeId(), std::move(obj)) {} \
-        explicit _Name(_ContentType content)                                 \
+        explicit _Name(const QJsonObject& obj) : Event(typeId(), obj) {}     \
+        explicit _Name(const content_type& content)                          \
             : Event(typeId(), matrixTypeId(),                                \
-                    QJsonObject { { QStringLiteral(#_ContentKey),            \
-                                    toJson(std::move(content)) } })          \
+                    QJsonObject {                                            \
+                        { QStringLiteral(#_ContentKey), toJson(content) } }) \
         {}                                                                   \
         auto _ContentKey() const                                             \
         {                                                                    \
