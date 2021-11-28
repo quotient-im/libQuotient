@@ -19,7 +19,7 @@ RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
-    if (const auto redaction = unsignedJson()[RedactedCauseKeyL];
+    if (const auto redaction = unsignedPart(RedactedCauseKeyL);
         redaction.isObject())
         _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
 }
@@ -45,14 +45,14 @@ QString RoomEvent::senderId() const
 
 bool RoomEvent::isReplaced() const
 {
-    return unsignedJson()["m.relations"_ls].toObject().contains("m.replace");
+    return unsignedPart<QJsonObject>("m.relations"_ls).contains("m.replace");
 }
 
 QString RoomEvent::replacedBy() const
 {
     // clang-format off
-    return unsignedJson()["m.relations"_ls].toObject()
-            .value("m.replace").toObject()
+    return unsignedPart<QJsonObject>("m.relations"_ls)
+            .value("m.replace"_ls).toObject()
             .value(EventIdKeyL).toString();
     // clang-format on
 }
@@ -64,7 +64,7 @@ QString RoomEvent::redactionReason() const
 
 QString RoomEvent::transactionId() const
 {
-    return unsignedJson()["transaction_id"_ls].toString();
+    return unsignedPart<QString>("transaction_id"_ls);
 }
 
 QString RoomEvent::stateKey() const

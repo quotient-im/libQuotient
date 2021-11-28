@@ -28,22 +28,22 @@ StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
 
 bool StateEventBase::repeatsState() const
 {
-    const auto prevContentJson = unsignedJson().value(PrevContentKeyL);
+    const auto prevContentJson = unsignedPart(PrevContentKeyL);
     return fullJson().value(ContentKeyL) == prevContentJson;
 }
 
 QString StateEventBase::replacedState() const
 {
-    return unsignedJson().value("replaces_state"_ls).toString();
+    return unsignedPart<QString>("replaces_state"_ls);
 }
 
 void StateEventBase::dumpTo(QDebug dbg) const
 {
     if (!stateKey().isEmpty())
         dbg << '<' << stateKey() << "> ";
-    if (unsignedJson().contains(PrevContentKeyL))
-        dbg << QJsonDocument(unsignedJson()[PrevContentKeyL].toObject())
-                   .toJson(QJsonDocument::Compact)
+    if (const auto prevContentJson = unsignedPart<QJsonObject>(PrevContentKeyL);
+        !prevContentJson.isEmpty())
+        dbg << QJsonDocument(prevContentJson).toJson(QJsonDocument::Compact)
             << " -> ";
     RoomEvent::dumpTo(dbg);
 }

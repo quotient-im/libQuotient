@@ -221,18 +221,11 @@ public:
     // different types, we're implementing it per-event type.
 
     const QJsonObject contentJson() const;
-    const QJsonObject unsignedJson() const;
 
-    template <typename T = QJsonValue>
-    const T contentPart(const QString& key) const
+    template <typename T = QJsonValue, typename KeyT>
+    const T contentPart(KeyT&& key) const
     {
-        return fromJson<T>(contentJson()[key]);
-    }
-
-    template <typename T = QJsonValue>
-    const T contentPart(QLatin1String key) const
-    {
-        return fromJson<T>(contentJson()[key]);
+        return fromJson<T>(contentJson()[std::forward<KeyT>(key)]);
     }
 
     template <typename T>
@@ -240,6 +233,14 @@ public:
     T content(const QString& key) const
     {
         return contentPart<T>(key);
+    }
+
+    const QJsonObject unsignedJson() const;
+
+    template <typename T = QJsonValue, typename KeyT>
+    const T unsignedPart(KeyT&& key) const
+    {
+        return fromJson<T>(unsignedJson()[std::forward<KeyT>(key)]);
     }
 
     friend QDebug operator<<(QDebug dbg, const Event& e)
