@@ -62,6 +62,8 @@ inline T fromJson(const QJsonValue& jv)
     return JsonConverter<T>::load(jv);
 }
 
+inline QJsonValue fromJson(const QJsonValue& jv) { return jv; }
+
 template <typename T>
 inline T fromJson(const QJsonDocument& jd)
 {
