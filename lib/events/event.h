@@ -220,6 +220,9 @@ public:
     // a "content" object; but since its structure is different for
     // different types, we're implementing it per-event type.
 
+    // NB: const return types below are meant to catch accidental attempts
+    //     to change event JSON (e.g., consider contentJson()["inexistentKey"]).
+
     const QJsonObject contentJson() const;
 
     template <typename T = QJsonValue, typename KeyT>
