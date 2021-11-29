@@ -217,6 +217,7 @@ public:
                                                             evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
+                qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
             }
             evt = stubbedState[evtKey].get();
             Q_ASSERT(evt);
