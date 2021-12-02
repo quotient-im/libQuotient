@@ -290,7 +290,7 @@ using Events = EventsArray<Event>;
     }                                                             \
     // End of macro
 
-// === is<>(), eventCast<>() and visit<>() ===
+// === is<>(), eventCast<>() and switchOnType<>() ===
 
 template <class EventT>
 inline bool is(const Event& e)
@@ -312,12 +312,12 @@ inline auto eventCast(const BasePtrT& eptr)
                                            : nullptr;
 }
 
-// A single generic catch-all visitor
+// A trivial generic catch-all "switch"
 template <class BaseEventT, typename FnT>
-inline auto visit(const BaseEventT& event, FnT&& visitor)
-    -> decltype(visitor(event))
+inline auto switchOnType(const BaseEventT& event, FnT&& fn)
+    -> decltype(fn(event))
 {
-    return visitor(event);
+    return fn(event);
 }
 
 namespace _impl {
@@ -328,52 +328,60 @@ namespace _impl {
         && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
 }
 
-// A single type-specific void visitor
+// A trivial type-specific "switch" for a void function
 template <class BaseT, typename FnT>
-inline auto visit(const BaseT& event, FnT&& visitor)
+inline auto switchOnType(const BaseT& event, FnT&& fn)
     -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>
                         && std::is_void_v<fn_return_t<FnT>>>
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))
-        visitor(static_cast<event_type>(event));
+        fn(static_cast<event_type>(event));
 }
 
-// A single type-specific non-void visitor with an optional default value
-// non-voidness is guarded by defaultValue type
+// A trivial type-specific "switch" for non-void functions with an optional
+// default value; non-voidness is guarded by defaultValue type
 template <class BaseT, typename FnT>
-inline auto visit(const BaseT& event, FnT&& visitor,
-                  fn_return_t<FnT>&& defaultValue = {})
+inline auto switchOnType(const BaseT& event, FnT&& fn,
+                         fn_return_t<FnT>&& defaultValue = {})
     -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>, fn_return_t<FnT>>
 {
     using event_type = fn_arg_t<FnT>;
     if (is<std::decay_t<event_type>>(event))
-        return visitor(static_cast<event_type>(event));
-    return std::forward<fn_return_t<FnT>>(defaultValue);
+        return fn(static_cast<event_type>(event));
+    return std::move(defaultValue);
 }
 
-// A chain of 2 or more visitors
+// A switch for a chain of 2 or more functions
 template <class BaseT, typename FnT1, typename FnT2, typename... FnTs>
-inline std::common_type_t<fn_return_t<FnT1>, fn_return_t<FnT2>> visit(
-        const BaseT& event, FnT1&& visitor1, FnT2&& visitor2,
-        FnTs&&... visitors)
+inline std::common_type_t<fn_return_t<FnT1>, fn_return_t<FnT2>>
+switchOnType(const BaseT& event, FnT1&& fn1, FnT2&& fn2, FnTs&&... fns)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
-        return visitor1(static_cast<event_type1&>(event));
-    return visit(event, std::forward<FnT2>(visitor2),
-                 std::forward<FnTs>(visitors)...);
+        return fn1(static_cast<event_type1&>(event));
+    return switchOnType(event, std::forward<FnT2>(fn2),
+                        std::forward<FnTs>(fns)...);
 }
 
-// A facility overload that calls void-returning visit() on each event
+template <class BaseT, typename... FnTs>
+[[deprecated("The new name for visit() is switchOnType()")]] //
+inline std::common_type_t<fn_return_t<FnTs>...>
+visit(const BaseT& event, FnTs&&... fns)
+{
+    return switchOnType(event, std::forward<FnTs>(fns)...);
+}
+
+    // A facility overload that calls void-returning switchOnType() on each event
 // over a range of event pointers
+// TODO: replace with ranges::for_each once all standard libraries have it
 template <typename RangeT, typename... FnTs>
-inline auto visitEach(RangeT&& events, FnTs&&... visitors)
+inline auto visitEach(RangeT&& events, FnTs&&... fns)
     -> std::enable_if_t<std::is_void_v<
-            decltype(visit(**begin(events), std::forward<FnTs>(visitors)...))>>
+        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>>
 {
     for (auto&& evtPtr: events)
-        visit(*evtPtr, std::forward<FnTs>(visitors)...);
+        switchOnType(*evtPtr, std::forward<FnTs>(fns)...);
 }
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::Event*)

@@ -498,8 +498,8 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
 
             clog << "File event " << txnId.toStdString()
                  << " arrived in the timeline" << endl;
-            // This part tests visit()
-            return visit(
+            // This part tests switchOnType()
+            return switchOnType(
                 *evt,
                 [&](const RoomMessageEvent& e) {
                     // TODO: check #366 once #368 is implemented

@@ -2779,7 +2779,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     auto& curStateEvent = d->currentState[{ e.matrixType(), e.stateKey() }];
     // Prepare for the state change
     // clang-format off
-    const bool proceed = visit(e
+    const bool proceed = switchOnType(e
         , [this, curStateEvent](const RoomMemberEvent& rme) {
             // clang-format on
             auto* oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
@@ -2877,7 +2877,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // Update internal structures as per the change and work out the return value
 
     // clang-format off
-    const auto result = visit(e
+    const auto result = switchOnType(e
         , [] (const RoomNameEvent&) {
             return Change::Name;
         }
@@ -2885,7 +2885,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             // clang-format on
             setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
             const auto* oldCae =
-                    static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent);
+                static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent);
             QStringList previousAltAliases {};
             if (oldCae) {
                 previousAltAliases = oldCae->altAliases();
@@ -2897,7 +2897,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             if (!cae.alias().isEmpty())
                 newAliases.push_front(cae.alias());
 
-            connection()->updateRoomAliases(id(), previousAltAliases, newAliases);
+            connection()->updateRoomAliases(id(), previousAltAliases,
+                                            newAliases);
             return Change::Aliases;
             // clang-format off
         }

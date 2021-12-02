@@ -659,7 +659,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
     // After running this loop, the account data events not saved in
     // accountData (see the end of the loop body) are auto-cleaned away
     for (auto&& eventPtr: accountDataEvents) {
-        visit(*eventPtr,
+        switchOnType(*eventPtr,
             [this](const DirectChatEvent& dce) {
                 // https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
@@ -760,7 +760,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                       << ee.senderId();
         // encryptionManager->updateDeviceKeys();
 
-        visit(*sessionDecryptMessage(ee),
+        switchOnType(*sessionDecryptMessage(ee),
             [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                 if (auto* detectedRoom = q->room(roomKeyEvent.roomId()))
                     detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
