@@ -8,11 +8,11 @@
 using namespace Quotient;
 
 int f_();
-static_assert(std::is_same<fn_return_t<decltype(f_)>, int>::value,
+static_assert(std::is_same_v<fn_return_t<decltype(f_)>, int>,
               "Test fn_return_t<>");
 
 void f1_(int, float);
-static_assert(std::is_same<fn_arg_t<decltype(f1_), 1>, float>::value,
+static_assert(std::is_same_v<fn_arg_t<decltype(f1_), 1>, float>,
               "Test fn_arg_t<>");
 
 struct Fo {
@@ -43,7 +43,7 @@ static_assert(std::is_same_v<fn_return_t<decltype(&Fo::field2)>, const double&>,
 struct Fo1 {
     void operator()(int);
 };
-static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
+static_assert(std::is_same_v<fn_arg_t<Fo1>, int>,
               "Test fn_arg_t defaulting to first argument");
 
 template <typename T>

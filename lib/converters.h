@@ -27,8 +27,8 @@ struct JsonObjectConverter {
 //! \brief The switchboard for extra conversion algorithms behind from/toJson
 //!
 //! This template is mainly intended for partial conversion specialisations
-//! since from/toJson are functions and cannot be partially specialised;
-//! another case for JsonConverter is to insulate types that can be constructed
+//! since from/toJson are functions and cannot be partially specialised.
+//! Another case for JsonConverter is to insulate types that can be constructed
 //! from basic types - namely, QVariant and QUrl can be directly constructed
 //! from QString and having an overload or specialisation for those leads to
 //! ambiguity between these and QJsonValue. For trivial (converting
