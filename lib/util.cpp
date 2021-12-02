@@ -135,35 +135,3 @@ int Quotient::patchVersion()
 {
     return Quotient_VERSION_PATCH;
 }
-
-// Tests for function_traits<>
-
-using namespace Quotient;
-
-int f_();
-static_assert(std::is_same<fn_return_t<decltype(f_)>, int>::value,
-              "Test fn_return_t<>");
-
-void f1_(int, QString);
-static_assert(std::is_same<fn_arg_t<decltype(f1_), 1>, QString>::value,
-              "Test fn_arg_t<>");
-
-struct Fo {
-    int operator()();
-    static constexpr auto l = [] { return 0.0f; };
-};
-static_assert(std::is_same<fn_return_t<Fo>, int>::value,
-              "Test return type of function object");
-static_assert(std::is_same<fn_return_t<decltype(Fo::l)>, float>::value,
-              "Test return type of lambda");
-
-struct Fo1 {
-    void operator()(int);
-};
-static_assert(std::is_same<fn_arg_t<Fo1>, int>(),
-              "Test fn_arg_t defaulting to first argument");
-
-template <typename T>
-static QString ft(T&&);
-static_assert(std::is_same<fn_arg_t<decltype(ft<QString>)>, QString&&>(),
-              "Test function templates");

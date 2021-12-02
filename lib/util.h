@@ -189,58 +189,6 @@ inline auto merge(T1& lhs, const Omittable<T2>& rhs)
     return true;
 }
 
-namespace _impl {
-    template <typename AlwaysVoid, typename>
-    struct fn_traits {};
-}
-
-/// Determine traits of an arbitrary function/lambda/functor
-/*!
- * Doesn't work with generic lambdas and function objects that have
- * operator() overloaded.
- * \sa
- * https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
- */
-template <typename T>
-struct function_traits
-    : public _impl::fn_traits<void, std::remove_reference_t<T>> {};
-
-// Specialisation for a function
-template <typename ReturnT, typename... ArgTs>
-struct function_traits<ReturnT(ArgTs...)> {
-    using return_type = ReturnT;
-    using arg_types = std::tuple<ArgTs...>;
-    // Doesn't (and there's no plan to make it) work for "classic"
-    // member functions (i.e. outside of functors).
-    // See also the comment for wrap_in_function() below
-    using function_type = std::function<ReturnT(ArgTs...)>;
-};
-
-namespace _impl {
-    // Specialisation for function objects with (non-overloaded) operator()
-    // (this includes non-generic lambdas)
-    template <typename T>
-    struct fn_traits<decltype(void(&T::operator())), T>
-        : public fn_traits<void, decltype(&T::operator())> {};
-
-    // Specialisation for a member function
-    template <typename ReturnT, typename ClassT, typename... ArgTs>
-    struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...)>
-        : function_traits<ReturnT(ArgTs...)> {};
-
-    // Specialisation for a const member function
-    template <typename ReturnT, typename ClassT, typename... ArgTs>
-    struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...) const>
-        : function_traits<ReturnT(ArgTs...)> {};
-} // namespace _impl
-
-template <typename FnT>
-using fn_return_t = typename function_traits<FnT>::return_type;
-
-template <typename FnT, int ArgN = 0>
-using fn_arg_t =
-    std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
-
 inline constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));
