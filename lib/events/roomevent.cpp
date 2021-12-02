@@ -3,7 +3,6 @@
 
 #include "roomevent.h"
 
-#include "converters.h"
 #include "logging.h"
 #include "redactionevent.h"
 

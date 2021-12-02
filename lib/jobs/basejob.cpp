@@ -5,11 +5,9 @@
 #include "basejob.h"
 
 #include "connectiondata.h"
-#include "quotient_common.h"
 
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
-#include <QtCore/QStringBuilder>
 #include <QtCore/QMetaEnum>
 #include <QtCore/QPointer>
 #include <QtNetwork/QNetworkAccessManager>

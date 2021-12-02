@@ -4,7 +4,6 @@
 #include "eventcontent.h"
 
 #include "converters.h"
-#include "util.h"
 #include "logging.h"
 
 #include <QtCore/QMimeDatabase>

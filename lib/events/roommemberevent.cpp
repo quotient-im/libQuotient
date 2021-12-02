@@ -4,7 +4,6 @@
 
 #include "roommemberevent.h"
 
-#include "converters.h"
 #include "logging.h"
 
 #include <QtCore/QtAlgorithms>
