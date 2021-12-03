@@ -4,7 +4,6 @@
 #pragma once
 
 #include "event.h"
-#include "eventcontent.h"
 
 namespace Quotient {
 constexpr const char* FavouriteTag = "m.favourite";
@@ -16,12 +15,12 @@ struct TagRecord {
 
     order_type order;
 
-    TagRecord(order_type order = none) : order(std::move(order)) {}
+    TagRecord(order_type order = none) : order(order) {}
 
     bool operator<(const TagRecord& other) const
     {
         // Per The Spec, rooms with no order should be after those with order,
-        // against optional<>::operator<() convention.
+        // against std::optional<>::operator<() convention.
         return order && (!other.order || *order < *other.order);
     }
 };

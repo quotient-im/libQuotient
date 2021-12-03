@@ -8,8 +8,7 @@
 namespace Quotient {
 namespace EventContent {
     template <typename T>
-    class SimpleContent {
-    public:
+    struct SimpleContent {
         using value_type = T;
 
         // The constructor is templated to enable perfect forwarding
@@ -25,11 +24,8 @@ namespace EventContent {
             return { { key, Quotient::toJson(value) } };
         }
 
-    public:
         T value;
-
-    protected:
-        QString key;
+        const QString key;
     };
 } // namespace EventContent
 
@@ -64,10 +60,6 @@ public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj, QStringLiteral("aliases"))
-    {}
-    RoomAliasesEvent(const QString& server, const QStringList& aliases)
-        : StateEvent(typeId(), matrixTypeId(), server,
-                     QStringLiteral("aliases"), aliases)
     {}
     QString server() const { return stateKey(); }
     QStringList aliases() const { return content().value; }
