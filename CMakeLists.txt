@@ -149,13 +149,16 @@ list(APPEND lib_SRCS
     lib/events/event.h lib/events/event.cpp
     lib/events/roomevent.h lib/events/roomevent.cpp
     lib/events/stateevent.h lib/events/stateevent.cpp
+    lib/events/simplestateevents.h
     lib/events/eventcontent.h lib/events/eventcontent.cpp
     lib/events/roomcreateevent.h lib/events/roomcreateevent.cpp
     lib/events/roomtombstoneevent.h lib/events/roomtombstoneevent.cpp
     lib/events/roommessageevent.h lib/events/roommessageevent.cpp
     lib/events/roommemberevent.h lib/events/roommemberevent.cpp
+    lib/events/roomavatarevent.h
     lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
     lib/events/typingevent.h lib/events/typingevent.cpp
+    lib/events/accountdataevents.h
     lib/events/receiptevent.h lib/events/receiptevent.cpp
     lib/events/reactionevent.h lib/events/reactionevent.cpp
     lib/events/callanswerevent.h lib/events/callanswerevent.cpp
