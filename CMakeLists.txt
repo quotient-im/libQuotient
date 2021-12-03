@@ -182,7 +182,6 @@ set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
 set(API_GENERATION_ENABLED 0)
-set(API_FORMATTING_ENABLED 0)
 if (GTAD_PATH AND MATRIX_DOC_PATH)
     # REALPATH resolves ~ (home directory) while PROGRAM doesn't
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
@@ -209,11 +208,8 @@ if (API_GENERATION_ENABLED)
         set(CLANG_FORMAT clang-format)
     endif()
     get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM PROGRAM_ARGS CLANG_FORMAT_ARGS)
-    if (ABS_CLANG_FORMAT)
-        set(API_FORMATTING_ENABLED 1)
-        message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
-    else ()
-        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
+    if (NOT ABS_CLANG_FORMAT)
+        message( WARNING "${CLANG_FORMAT} is NOT FOUND; API files won't be formatted")
     endif ()
 
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
@@ -237,28 +233,6 @@ if (API_GENERATION_ENABLED)
                 ${API_DEFS}
         VERBATIM
     )
-    add_custom_target(update-api DEPENDS generate-unformatted-api)
-    if (EXISTS ${ABS_CLANG_FORMAT})
-        set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
-        # FIXME: the list of files should be produced after GTAD has run.
-        # For now it's produced at CMake invocation. If file() hasn't found
-        # any files at that moment, clang-format will be called with an empty
-        # list of files and choke. Taking outfiles.txt from GTAD could be
-        # an option but this, too, must be done during the build stage, and
-        # there's no crossplatform way to use the contents of a file as
-        # input for a build target command.
-        file(GLOB_RECURSE api_ALL_SRCS ${add_CONFIGURE_DEPENDS}
-             ${FULL_CSAPI_DIR}/*.*
-             lib/${ASAPI_DEF_DIR}/*.*
-             lib/${ISAPI_DEF_DIR}/*.*)
-        if (api_ALL_SRCS)
-            add_custom_target(format-api
-                ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_ALL_SRCS}
-                DEPENDS generate-unformatted-api
-                VERBATIM)
-            add_dependencies(update-api format-api)
-        endif()
-    endif()
 endif()
 add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
                  "build target update-api")
