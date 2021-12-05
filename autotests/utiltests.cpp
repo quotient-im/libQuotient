@@ -3,7 +3,9 @@
 
 #include "omittable.h"
 
-// Omittable<> tests
+#include <QtTest/QtTest>
+
+// compile-time Omittable<> tests
 using namespace Quotient;
 
 Omittable<int> testFn(bool) { return 0; }
@@ -32,3 +34,12 @@ static_assert(
 static_assert(std::is_same_v<Omittable<bool>,
                              decltype(lift(visitTestFn, Omittable<int>(),
                                            Omittable<bool>()))>);
+
+class TestUtils : public QObject {
+    Q_OBJECT
+private Q_SLOTS:
+    // TODO
+};
+
+QTEST_APPLESS_MAIN(TestUtils)
+#include "utiltests.moc"

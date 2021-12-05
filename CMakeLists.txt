@@ -127,7 +127,7 @@ list(APPEND lib_SRCS
     lib/quotient_common.h
     lib/quotient_export.h
     lib/function_traits.h lib/function_traits.cpp
-    lib/omittable.h lib/omittable.cpp
+    lib/omittable.h
     lib/networkaccessmanager.h lib/networkaccessmanager.cpp
     lib/connectiondata.h lib/connectiondata.cpp
     lib/connection.h lib/connection.cpp
