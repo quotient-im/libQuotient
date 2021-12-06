@@ -3,6 +3,7 @@
 
 #include "encryptedevent.h"
 #include "roommessageevent.h"
+#include "events/eventloader.h"
 
 using namespace Quotient;
 

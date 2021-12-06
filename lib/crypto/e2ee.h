@@ -49,6 +49,12 @@ struct Encrypted {
 
 using PicklingMode = std::variant<Unencrypted, Encrypted>;
 
+class QOlmSession;
+using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
+
+class QOlmInboundGroupSession;
+using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
+
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 

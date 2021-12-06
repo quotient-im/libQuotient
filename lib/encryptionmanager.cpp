@@ -8,6 +8,7 @@
 #include "connection.h"
 #include "crypto/e2ee.h"
 #include "events/encryptedfile.h"
+#include "database.h"
 
 #include "csapi/keys.h"
 
@@ -37,90 +38,28 @@ public:
 
     EncryptionManager* q;
 
-    // A map from senderKey to InboundSession
-    UnorderedMap<QString, QOlmSessionPtr> sessions;
-    void updateDeviceKeys(
-        const QHash<QString,
-                    QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
-    {
-        for (auto userId : deviceKeys.keys()) {
-            for (auto deviceId : deviceKeys.value(userId).keys()) {
-                auto info = deviceKeys.value(userId).value(deviceId);
-                // TODO: ed25519Verify, etc
-            }
-        }
-    }
+    // A map from SenderKey to vector of InboundSession
+    UnorderedMap<QString, std::vector<QOlmSessionPtr>> sessions;
+
     void loadSessions() {
-        QFile file { static_cast<Connection *>(q->parent())->e2eeDataDir() % "/olmsessions.json" };
-        if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
-            qCDebug(E2EE) << "No sessions cache exists.";
-            return;
-        }
-        auto data = file.readAll();
-        const auto json = data.startsWith('{')
-            ? QJsonDocument::fromJson(data).object()
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-            : QCborValue::fromCbor(data).toJsonValue().toObject()
-#else
-            : QJsonDocument::fromBinaryData(data).object()
-#endif
-            ;
-        if (json.isEmpty()) {
-            qCWarning(MAIN) << "Sessions cache is empty";
-            return;
-        }
-        for(const auto &senderKey : json["sessions"].toObject().keys()) {
-            auto pickle = json["sessions"].toObject()[senderKey].toString();
-            auto sessionResult = QOlmSession::unpickle(pickle.toLatin1(), static_cast<Connection *>(q->parent())->picklingMode());
-            if(std::holds_alternative<QOlmError>(sessionResult)) {
-                qCWarning(E2EE) << "Failed to unpickle olm session";
-                continue;
-            }
-            sessions[senderKey] = std::move(std::get<QOlmSessionPtr>(sessionResult));
-        }
+        sessions = Database::instance().loadOlmSessions(static_cast<Connection *>(q->parent())->userId(), static_cast<Connection *>(q->parent())->picklingMode());
     }
-    void saveSessions() {
-        QFile outFile { static_cast<Connection *>(q->parent())->e2eeDataDir() % "/olmsessions.json" };
-        if (!outFile.open(QFile::WriteOnly)) {
-            qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
-                            << outFile.errorString();
-            qCWarning(E2EE) << "Failed to write olm sessions";
+    void saveSession(QOlmSessionPtr& session, const QString &senderKey) {
+        auto pickleResult = session->pickle(static_cast<Connection *>(q->parent())->picklingMode());
+        if (std::holds_alternative<QOlmError>(pickleResult)) {
+            qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
             return;
         }
-
-        QJsonObject rootObj {
-            { QStringLiteral("cache_version"),
-            QJsonObject {
-                { QStringLiteral("major"), 1 },
-                { QStringLiteral("minor"), 0 } } }
-        };
-        {
-            QJsonObject sessionsJson;
-            for (const auto &session : sessions) {
-                auto pickleResult = session.second->pickle(static_cast<Connection *>(q->parent())->picklingMode());
-                if(std::holds_alternative<QOlmError>(pickleResult)) {
-                    qCWarning(E2EE) << "Failed to pickle session";
-                    continue;
-                }
-                sessionsJson[session.first] = QString(std::get<QByteArray>(pickleResult));
-            }
-            rootObj.insert(QStringLiteral("sessions"), sessionsJson);
-        }
-
-        const auto data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-
-        outFile.write(data.data(), data.size());
-        qCDebug(E2EE) << "Sessions saved to" << outFile.fileName();
+        Database::instance().saveOlmSession(static_cast<Connection *>(q->parent())->userId(), senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
     }
     QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
     {
         Q_ASSERT(message.type() == QOlmMessage::PreKey);
-        for(auto& session : sessions) {
-            const auto matches = session.second->matchesInboundSessionFrom(senderKey, message);
+        for(auto& session : sessions[senderKey]) {
+            const auto matches = session->matchesInboundSessionFrom(senderKey, message);
             if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
                 qCDebug(E2EE) << "Found inbound session";
-                const auto result = session.second->decrypt(message);
-                saveSessions();
+                const auto result = session->decrypt(message);
                 if(std::holds_alternative<QString>(result)) {
                     return std::get<QString>(result);
                 } else {
@@ -141,8 +80,8 @@ public:
             qWarning(E2EE) << "Failed to remove one time key for session" << newSession->sessionId();
         }
         const auto result = newSession->decrypt(message);
-        sessions[senderKey] = std::move(newSession);
-        saveSessions();
+        saveSession(newSession, senderKey);
+        sessions[senderKey].push_back(std::move(newSession));
         if(std::holds_alternative<QString>(result)) {
             return std::get<QString>(result);
         } else {
@@ -153,10 +92,9 @@ public:
     QString sessionDecryptGeneral(const QOlmMessage& message, const QString &senderKey)
     {
         Q_ASSERT(message.type() == QOlmMessage::General);
-        for(auto& session : sessions) {
-            const auto result = session.second->decrypt(message);
+        for(auto& session : sessions[senderKey]) {
+            const auto result = session->decrypt(message);
             if(std::holds_alternative<QString>(result)) {
-                saveSessions();
                 return std::get<QString>(result);
             }
         }

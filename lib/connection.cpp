@@ -62,6 +62,8 @@
 #    include <qt5keychain/keychain.h>
 #endif
 
+#include "database.h"
+
 using namespace Quotient;
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
@@ -274,6 +276,7 @@ Connection::Connection(const QUrl& server, QObject* parent)
     });
 #endif
     d->q = this; // All d initialization should occur before this line
+    Database::instance();
 }
 
 Connection::Connection(QObject* parent) : Connection({}, parent) {}
@@ -439,6 +442,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     auto loginJob =
             q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
     connect(loginJob, &BaseJob::success, q, [this, loginJob] {
+        Database::instance().clear(loginJob->userId());
         data->setToken(loginJob->accessToken().toLatin1());
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
@@ -504,7 +508,7 @@ void Connection::Private::completeSetup(const QString& mxId)
 
     encryptionManager = new EncryptionManager(q);
 
-    if (accountSettings.encryptionAccountPickle().isEmpty()) {
+    if (Database::instance().accountPickle(data->userId()).isEmpty()) {
         // create new account and save unpickle data
         olmAccount->createNewAccount();
         auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
@@ -513,7 +517,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         });
     } else {
         // account already existing
-        auto pickle = accountSettings.encryptionAccountPickle();
+        auto pickle = Database::instance().accountPickle(data->userId());
         olmAccount->unpickle(pickle, picklingMode);
     }
 #endif // Quotient_E2EE_ENABLED
@@ -1978,15 +1982,9 @@ void Connection::Private::saveDevicesList()
         rootObj.insert(QStringLiteral("sync_token"), q->nextBatchToken());
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    const auto data =
-        cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
-                         : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-#else
+
     QJsonDocument json { rootObj };
-    const auto data = cacheToBinary ? json.toBinaryData()
-                                       : json.toJson(QJsonDocument::Compact);
-#endif
+    const auto data = json.toJson();
     qCDebug(PROFILER) << "DeviceList generated in" << et;
 
     outFile.write(data.data(), data.size());
@@ -2043,11 +2041,10 @@ PicklingMode Connection::picklingMode() const
 
 void Connection::saveOlmAccount()
 {
-    qCDebug(E2EE) << "Saving olm account";
+    qDebug() << "Saving olm account";
 #ifdef Quotient_E2EE_ENABLED
     auto pickle = d->olmAccount->pickle(d->picklingMode);
-    AccountSettings(d->data->userId()).setEncryptionAccountPickle(std::get<QByteArray>(pickle));
-    //TODO handle errors
+    Database::instance().setAccountPickle(userId(), std::get<QByteArray>(pickle));
 #endif
 }
 

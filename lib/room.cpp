@@ -70,6 +70,8 @@
 #include "crypto/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED
 
+#include "database.h"
+
 using namespace Quotient;
 using namespace std::placeholders;
 using std::move;
@@ -363,75 +365,11 @@ public:
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 
 #ifdef Quotient_E2EE_ENABLED
-    // A map from <sessionId, messageIndex> to <event_id, origin_server_ts>
-    QHash<QPair<QString, uint32_t>, QPair<QString, QDateTime>>
-        groupSessionIndexRecord; // TODO: cache
     // A map from (senderKey, sessionId) to InboundGroupSession
-    UnorderedMap<QPair<QString, QString>, std::unique_ptr<QOlmInboundGroupSession>> groupSessions;
+    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
 
     void loadMegOlmSessions() {
-        QFile file { connection->e2eeDataDir() + QStringLiteral("/%1.json").arg(id) };
-        if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
-            qCDebug(E2EE) << "No megolm sessions cache exists.";
-            return;
-        }
-        auto data = file.readAll();
-        const auto json = data.startsWith('{')
-            ? QJsonDocument::fromJson(data).object()
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-            : QCborValue::fromCbor(data).toJsonValue().toObject()
-#else
-            : QJsonDocument::fromBinaryData(data).object()
-#endif
-            ;
-        if (json.isEmpty()) {
-            qCWarning(E2EE) << "Megolm sessions cache is empty";
-            return;
-        }
-        for(const auto &s : json["sessions"].toArray()) {
-            auto pickle = s.toObject()["pickle"].toString().toLatin1();
-            auto senderKey = s.toObject()["sender_key"].toString();
-            auto sessionId = s.toObject()["session_id"].toString();
-            auto sessionResult = QOlmInboundGroupSession::unpickle(pickle, connection->picklingMode());
-            if(std::holds_alternative<QOlmError>(sessionResult)) {
-                qCWarning(E2EE) << "Failed to unpickle olm session";
-                continue;
-            }
-            groupSessions[{senderKey, sessionId}] = std::move(std::get<std::unique_ptr<QOlmInboundGroupSession>>(sessionResult));
-        }
-    }
-    void saveMegOlmSessions() {
-        QFile outFile { connection->e2eeDataDir() + QStringLiteral("/%1.json").arg(id)};
-        if (!outFile.open(QFile::WriteOnly)) {
-            qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
-                            << outFile.errorString();
-            qCWarning(E2EE) << "Failed to write megolm sessions";
-            return;
-        }
-
-        QJsonObject rootObj {
-            { QStringLiteral("cache_version"),
-            QJsonObject {
-                { QStringLiteral("major"), 1 },
-                { QStringLiteral("minor"), 0 } } }
-        };
-        {
-            QJsonArray sessionsJson;
-            for (const auto &session : groupSessions) {
-                auto pickleResult = session.second->pickle(connection->picklingMode());
-                sessionsJson += QJsonObject {
-                    {QStringLiteral("sender_key"), session.first.first},
-                    {QStringLiteral("session_id"), session.first.second},
-                    {QStringLiteral("pickle"), QString(pickleResult)}
-                };
-            }
-            rootObj.insert(QStringLiteral("sessions"), sessionsJson);
-        }
-
-        const auto data = QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-
-        outFile.write(data.data(), data.size());
-        qCDebug(E2EE) << "Megolm sessions saved to" << outFile.fileName();
+        groupSessions = Database::instance().loadMegolmSessions(q->localUser()->id(), q->id(), q->connection()->picklingMode());
     }
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
@@ -449,8 +387,8 @@ public:
             return false;
         }
         qCWarning(E2EE) << "Adding inbound session";
+        Database::instance().saveMegolmSession(q->localUser()->id(), q->id(), senderKey, sessionId, megolmSession->pickle(q->connection()->picklingMode()));
         groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
-        saveMegOlmSessions();
         return true;
     }
 
@@ -476,17 +414,15 @@ public:
             return QString();
         }
         const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
-        const auto& [recordEventId, ts] = groupSessionIndexRecord.value({senderSession->sessionId(), index});
-        if (eventId.isEmpty()) {
-            groupSessionIndexRecord.insert({senderSession->sessionId(), index}, {recordEventId, timestamp});
+        const auto& [recordEventId, ts] = Database::instance().groupSessionIndexRecord(q->localUser()->id(), q->id(), senderSession->sessionId(), index);
+        if (recordEventId.isEmpty()) {
+            Database::instance().addGroupSessionIndexRecord(q->localUser()->id(), q->id(), senderSession->sessionId(), index, eventId, timestamp.toMSecsSinceEpoch());
         } else {
-            if ((eventId != recordEventId) || (ts != timestamp)) {
+            if ((eventId != recordEventId) || (ts != timestamp.toMSecsSinceEpoch())) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
                 return QString();
             }
         }
-        //TODO is this necessary?
-        saveMegOlmSessions();
         return content;
     }
 #endif // Quotient_E2EE_ENABLED

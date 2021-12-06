@@ -83,7 +83,7 @@ else()
     set(QtExtraModules "Multimedia") # See #483
 endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql ${QtExtraModules})
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
@@ -133,6 +133,7 @@ list(APPEND lib_SRCS
     lib/eventitem.cpp
     lib/accountregistry.cpp
     lib/mxcreply.cpp
+    lib/database.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
     lib/events/stateevent.cpp
@@ -327,7 +328,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     find_dependency(OpenSSL)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${Qt}::Sql ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

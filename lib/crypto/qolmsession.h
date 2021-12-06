@@ -73,7 +73,4 @@ private:
     static std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInbound(QOlmAccount *account, const QOlmMessage& preKeyMessage, bool from = false, const QString& theirIdentityKey = "");
     OlmSession* m_session;
 };
-
-using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
-
 } //namespace Quotient

@@ -72,7 +72,7 @@ QByteArray QOlmInboundGroupSession::pickle(const PicklingMode &mode) const
     return pickledBuf;
 }
 
-std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> QOlmInboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> QOlmInboundGroupSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     const auto groupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);

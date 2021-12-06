@@ -27,7 +27,7 @@ public:
     QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> unpickle(QByteArray &picked, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> unpickle(const QByteArray &picked, const PicklingMode &mode);
     //! Decrypts ciphertext received for this group session.
     std::variant<std::pair<QString, uint32_t>, QOlmError> decrypt(const QByteArray &message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
