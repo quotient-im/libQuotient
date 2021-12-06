@@ -154,7 +154,7 @@ jobs:
 
     - name: Build and install libQuotient
       run: |
-        cmake --build build --target install
+        cmake --build build --target all install
         ls ~/.local/$BIN_DIR/quotest
 
     - name: Run tests
@@ -164,6 +164,8 @@ jobs:
         QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
+        cd build
+        ctest --output-on-failure
         [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
     
