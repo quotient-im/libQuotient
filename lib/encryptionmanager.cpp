@@ -31,11 +31,6 @@ using std::move;
 
 class EncryptionManager::Private {
 public:
-    explicit Private()
-    {
-    }
-    ~Private() = default;
-
     EncryptionManager* q;
 
     // A map from SenderKey to vector of InboundSession
