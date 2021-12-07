@@ -6,8 +6,8 @@
 #pragma once
 
 #include "olm/olm.h"
-#include "crypto/qolmerrors.h"
-#include "crypto/e2ee.h"
+#include "e2ee/qolmerrors.h"
+#include "e2ee/e2ee.h"
 #include <memory>
 
 namespace Quotient {

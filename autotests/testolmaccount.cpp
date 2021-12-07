@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testolmaccount.h"
-#include <crypto/qolmaccount.h>
-#include <crypto/qolmutility.h>
+#include <e2ee/qolmaccount.h>
+#include <e2ee/qolmutility.h>
 #include <connection.h>
 #include <events/encryptedfile.h>
 #include <networkaccessmanager.h>

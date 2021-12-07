@@ -5,8 +5,8 @@
 #include "qolmaccount.h"
 #include "connection.h"
 #include "csapi/keys.h"
-#include "crypto/qolmutils.h"
-#include "crypto/qolmutility.h"
+#include "e2ee/qolmutils.h"
+#include "e2ee/qolmutility.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDebug>

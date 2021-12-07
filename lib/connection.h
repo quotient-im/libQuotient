@@ -22,7 +22,7 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/e2ee.h"
+#include "e2ee/e2ee.h"
 #endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)

@@ -6,7 +6,7 @@
 
 #include <QObject>
 #include <variant>
-#include "crypto/qolmerrors.h"
+#include "e2ee/qolmerrors.h"
 
 struct OlmUtility;
 

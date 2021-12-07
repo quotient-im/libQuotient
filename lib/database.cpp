@@ -10,9 +10,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 
-#include "crypto/e2ee.h"
-#include "crypto/qolmsession.h"
-#include "crypto/qolminboundsession.h"
+#include "e2ee/e2ee.h"
+#include "e2ee/qolmsession.h"
+#include "e2ee/qolminboundsession.h"
 
 //TODO: delete room specific data when leaving room
 

@@ -6,10 +6,10 @@
 
 #include <QDebug>
 #include <olm/olm.h> // FIXME: OlmSession
-#include "crypto/e2ee.h"
-#include "crypto/qolmmessage.h"
-#include "crypto/qolmerrors.h"
-#include "crypto/qolmaccount.h"
+#include "e2ee/e2ee.h"
+#include "e2ee/qolmmessage.h"
+#include "e2ee/qolmerrors.h"
+#include "e2ee/qolmaccount.h"
 
 namespace Quotient {
 

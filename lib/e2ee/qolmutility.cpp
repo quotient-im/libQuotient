@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "crypto/qolmutility.h"
+#include "e2ee/qolmutility.h"
 #include "olm/olm.h"
 #include <QDebug>
 

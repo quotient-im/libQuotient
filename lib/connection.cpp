@@ -38,8 +38,8 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "crypto/qolmaccount.h"
-#    include "crypto/qolmutils.h"
+#    include "e2ee/qolmaccount.h"
+#    include "e2ee/qolmutils.h"
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)

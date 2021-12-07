@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "crypto/qolminboundsession.h"
+#include "e2ee/qolminboundsession.h"
 #include <iostream>
 #include <cstring>
 using namespace Quotient;

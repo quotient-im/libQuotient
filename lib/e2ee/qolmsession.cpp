@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolmsession.h"
-#include "crypto/qolmutils.h"
+#include "e2ee/qolmutils.h"
 #include "logging.h"
 #include <cstring>
 #include <QDebug>

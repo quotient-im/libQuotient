@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "qolmoutboundsession.h"
-#include "crypto/qolmutils.h"
+#include "e2ee/qolmoutboundsession.h"
+#include "e2ee/qolmutils.h"
 
 using namespace Quotient;
 

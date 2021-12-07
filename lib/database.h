@@ -7,7 +7,7 @@
 #include <QtSql/QSqlQuery>
 #include <QtCore/QVector>
 
-#include "crypto/e2ee.h"
+#include "e2ee/e2ee.h"
 
 namespace Quotient {
 class Database : public QObject

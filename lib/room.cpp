@@ -12,7 +12,6 @@
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
-#include "crypto/e2ee.h"
 #include "syncdata.h"
 #include "user.h"
 #include "eventstats.h"
@@ -65,9 +64,10 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include "crypto/qolmaccount.h"
-#include "crypto/qolmerrors.h"
-#include "crypto/qolminboundsession.h"
+#include "e2ee/e2ee.h"
+#include "e2ee/qolmaccount.h"
+#include "e2ee/qolmerrors.h"
+#include "e2ee/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED
 
 #include "database.h"

@@ -6,10 +6,10 @@
 #pragma once
 
 #include "csapi/keys.h"
-#include "crypto/e2ee.h"
-#include "crypto/qolmerrors.h"
-#include "crypto/qolmmessage.h"
-#include "crypto/qolmsession.h"
+#include "e2ee/e2ee.h"
+#include "e2ee/qolmerrors.h"
+#include "e2ee/qolmmessage.h"
+#include "e2ee/qolmsession.h"
 #include <QObject>
 
 struct OlmAccount;

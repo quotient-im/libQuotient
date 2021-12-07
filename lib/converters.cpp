@@ -4,7 +4,7 @@
 #include "converters.h"
 
 #include <QVariant>
-#include "crypto/e2ee.h"
+#include "e2ee/e2ee.h"
 
 QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 {

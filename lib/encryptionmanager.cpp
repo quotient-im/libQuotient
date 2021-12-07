@@ -6,7 +6,6 @@
 #include "encryptionmanager.h"
 
 #include "connection.h"
-#include "crypto/e2ee.h"
 #include "events/encryptedfile.h"
 #include "database.h"
 
@@ -16,11 +15,12 @@
 #include <QtCore/QStringBuilder>
 #include <QtCore/QCryptographicHash>
 
-#include "crypto/qolmaccount.h"
-#include "crypto/qolmsession.h"
-#include "crypto/qolmmessage.h"
-#include "crypto/qolmerrors.h"
-#include "crypto/qolmutils.h"
+#include "e2ee/e2ee.h"
+#include "e2ee/qolmaccount.h"
+#include "e2ee/qolmsession.h"
+#include "e2ee/qolmmessage.h"
+#include "e2ee/qolmerrors.h"
+#include "e2ee/qolmutils.h"
 #include <functional>
 #include <memory>
 

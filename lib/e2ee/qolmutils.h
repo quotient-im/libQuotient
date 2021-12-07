@@ -6,7 +6,7 @@
 
 #include <QByteArray>
 
-#include "crypto/e2ee.h"
+#include "e2ee/e2ee.h"
 
 namespace Quotient {
 // Convert PicklingMode to key

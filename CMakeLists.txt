@@ -164,15 +164,15 @@ list(APPEND lib_SRCS
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
-        lib/crypto/qolmaccount.cpp
-        lib/crypto/qolmsession.cpp
-        lib/crypto/qolminboundsession.cpp
-        lib/crypto/qolmoutboundsession.cpp
-        lib/crypto/qolmutils.cpp
-        lib/crypto/qolmutility.cpp
-        lib/crypto/qolmerrors.cpp
-        lib/crypto/qolmsession.cpp
-        lib/crypto/qolmmessage.cpp
+        lib/e2ee/qolmaccount.cpp
+        lib/e2ee/qolmsession.cpp
+        lib/e2ee/qolminboundsession.cpp
+        lib/e2ee/qolmoutboundsession.cpp
+        lib/e2ee/qolmutils.cpp
+        lib/e2ee/qolmutility.cpp
+        lib/e2ee/qolmerrors.cpp
+        lib/e2ee/qolmsession.cpp
+        lib/e2ee/qolmmessage.cpp
         lib/encryptionmanager.cpp
     )
 endif()

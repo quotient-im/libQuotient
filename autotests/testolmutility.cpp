@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testolmutility.h"
-#include "crypto/qolmaccount.h"
-#include "crypto/qolmutility.h"
+#include "e2ee/qolmaccount.h"
+#include "e2ee/qolmutility.h"
 
 using namespace Quotient;
 
