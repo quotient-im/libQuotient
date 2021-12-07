@@ -71,7 +71,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get -qq install ninja-build valgrind
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=quotest/.valgrind.supp" >>$GITHUB_ENV
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=${{ runner.workspace }}/quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
@@ -108,8 +108,8 @@ jobs:
 
     - name: Build and install olm
       if: matrix.e2ee
+      working-directory: '..'
       run: |
-        cd ..
         git clone https://gitlab.matrix.org/matrix-org/olm.git
         cmake -S olm -B olm/build $CMAKE_ARGS
         cmake --build olm/build --target install
@@ -117,8 +117,8 @@ jobs:
 
     - name: Pull CS API and build GTAD
       if: matrix.update-api
+      working-directory: '..'
       run: |
-        cd ..
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
         cmake -S gtad -B gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
@@ -163,10 +163,10 @@ jobs:
         TEST_PWD: ${{ secrets.TEST_PWD }}
         QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
+      working-directory: build
       run: |
-        cd build
         ctest --output-on-failure
-        [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+        [[ -z "$TEST_USER" ]] || $VALGRIND quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
     
     - name: Perform CodeQL analysis
