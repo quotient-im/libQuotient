@@ -99,6 +99,7 @@ jobs:
         echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
         cmake -E make_directory ${{ runner.workspace }}/build
+        echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
     - name: Setup MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
@@ -108,23 +109,23 @@ jobs:
 
     - name: Build and install olm
       if: matrix.e2ee
-      working-directory: '..'
+      working-directory: ${{ runner.workspace }}
       run: |
         git clone https://gitlab.matrix.org/matrix-org/olm.git
-        cmake -S olm -B olm/build $CMAKE_ARGS
-        cmake --build olm/build --target install
+        cmake -S olm -B build/olm $CMAKE_ARGS
+        cmake --build build/olm --target install
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Pull CS API and build GTAD
       if: matrix.update-api
-      working-directory: '..'
+      working-directory: ${{ runner.workspace }}
       run: |
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        cmake -S gtad -B gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
-        cmake --build gtad
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=$GITHUB_WORKSPACE/../matrix-doc \
-                                     -DGTAD_PATH=$GITHUB_WORKSPACE/../gtad/gtad" \
+        cmake -S gtad -B build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+        cmake --build build/gtad
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
+                                     -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
 
@@ -146,15 +147,15 @@ jobs:
             BIN_DIR=bin
         fi
         echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
-        cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
 
     - name: Regenerate API code
       if: matrix.update-api
-      run: cmake --build build --target update-api
+      run: cmake --build ../build/libQuotient --target update-api
 
     - name: Build and install libQuotient
       run: |
-        cmake --build build --target all install
+        cmake --build $BUILD_PATH --target all install
         ls ~/.local/$BIN_DIR/quotest
 
     - name: Run tests
@@ -163,9 +164,9 @@ jobs:
         TEST_PWD: ${{ secrets.TEST_PWD }}
         QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
-      working-directory: build
+      working-directory: ../build/libQuotient
       run: |
-        ctest --output-on-failure
+        ctest --test-dir $BUILD_PATH --output-on-failure
         [[ -z "$TEST_USER" ]] || $VALGRIND quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
     
