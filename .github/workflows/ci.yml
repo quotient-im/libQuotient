@@ -98,8 +98,16 @@ jobs:
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
         echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
                          -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
+
+        if [[ '${{ runner.os }}' != 'Windows' ]]; then
+            BIN_DIR=/bin
+        fi
+        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
+        echo "~/.local$BIN_DIR" >>$GITHUB_PATH
+
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$Qt5_DIR/lib:$LD_LIBRARY_PATH" >>$GITHUB_ENV
 
     - name: Setup MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
@@ -141,13 +149,8 @@ jobs:
 
     - name: Configure libQuotient
       run: |
-        if [[ '${{ runner.os }}' == 'Windows' ]]; then
-            BIN_DIR=.
-        else
-            BIN_DIR=bin
-        fi
-        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
-        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS \
+              -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }} -DQuotient_INSTALL_TESTS=ON
 
     - name: Regenerate API code
       if: matrix.update-api
@@ -164,10 +167,10 @@ jobs:
         TEST_PWD: ${{ secrets.TEST_PWD }}
         QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
-      working-directory: ../build/libQuotient
       run: |
         ctest --test-dir $BUILD_PATH --output-on-failure
-        [[ -z "$TEST_USER" ]] || $VALGRIND quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+        [[ -z "$TEST_USER" ]] || \
+            $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
     
     - name: Perform CodeQL analysis
