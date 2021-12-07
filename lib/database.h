@@ -27,9 +27,9 @@ public:
     QSqlQuery execute(const QString &queryString);
     QSqlQuery execute(QSqlQuery &query);
 
-    QByteArray accountPickle(const QString &id);
-    void setAccountPickle(const QString &id, const QByteArray &pickle);
-    void clear(const QString &id);
+    QByteArray accountPickle(const QString &matrixId);
+    void setAccountPickle(const QString &matrixId, const QByteArray &pickle);
+    void clear(const QString &matrixId);
     void saveOlmSession(const QString& matrixId, const QString& senderKey, const QString& sessionId, const QByteArray &pickle);
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const QString& matrixId, const PicklingMode& picklingMode);
     UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& matrixId, const QString& roomId, const PicklingMode& picklingMode);

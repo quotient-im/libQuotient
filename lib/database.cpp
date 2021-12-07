@@ -89,11 +89,11 @@ void Database::migrateTo1()
     commit();
 }
 
-QByteArray Database::accountPickle(const QString &id)
+QByteArray Database::accountPickle(const QString &matrixId)
 {
     QSqlQuery query;
     query.prepare(QStringLiteral("SELECT pickle FROM Accounts WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", id);
+    query.bindValue(":matrixId", matrixId);
     execute(query);
     if (query.next()) {
         return query.value(QStringLiteral("pickle")).toByteArray();
@@ -101,30 +101,30 @@ QByteArray Database::accountPickle(const QString &id)
     return {};
 }
 
-void Database::setAccountPickle(const QString &id, const QByteArray &pickle)
+void Database::setAccountPickle(const QString &matrixId, const QByteArray &pickle)
 {
     QSqlQuery query;
     query.prepare(QStringLiteral("INSERT INTO Accounts(matrixId, pickle) VALUES(:matrixId, :pickle) ON CONFLICT (matrixId) DO UPDATE SET pickle=:pickle WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", id);
+    query.bindValue(":matrixId", matrixId);
     query.bindValue(":pickle", pickle);
     transaction();
     execute(query);
     commit();
 }
 
-void Database::clear(const QString &id)
+void Database::clear(const QString &matrixId)
 {
     QSqlQuery query;
     query.prepare(QStringLiteral("DELETE FROM Accounts(matrixId, pickle) WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", id);
+    query.bindValue(":matrixId", matrixId);
 
     QSqlQuery sessionsQuery;
     sessionsQuery.prepare(QStringLiteral("DELETE FROM OlmSessions WHERE matrixId=:matrixId;"));
-    sessionsQuery.bindValue(":matrixId", id);
+    sessionsQuery.bindValue(":matrixId", matrixId);
 
     QSqlQuery megolmSessionsQuery;
     megolmSessionsQuery.prepare(QStringLiteral("DELETE FROM InboundMegolmSessions WHERE matrixId=:matrixId;"));
-    megolmSessionsQuery.bindValue(":matrixId", id);
+    megolmSessionsQuery.bindValue(":matrixId", matrixId);
 
     QSqlQuery groupSessionIndexRecordQuery;
     groupSessionIndexRecordQuery.prepare(QStringLiteral("DELETE FROM GroupSessionIndexRecord WHERE matrixId=:matrixId;"));
