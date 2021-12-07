@@ -401,9 +401,9 @@ public:
         const auto senderSessionPairKey = qMakePair(senderKey, sessionId);
         auto groupSessionIt = groupSessions.find(senderSessionPairKey);
         if (groupSessionIt == groupSessions.end()) {
-            qCWarning(E2EE) << "Unable to decrypt event" << eventId
-                          << "The sender's device has not sent us the keys for "
-                             "this message";
+            // qCWarning(E2EE) << "Unable to decrypt event" << eventId
+            //               << "The sender's device has not sent us the keys for "
+            //                  "this message";
             return QString();
         }
         auto& senderSession = groupSessionIt->second;
@@ -1483,7 +1483,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         encryptedEvent.sessionId(), encryptedEvent.id(),
         encryptedEvent.originTimestamp());
     if (decrypted.isEmpty()) {
-        qCWarning(E2EE) << "Encrypted message is empty";
+        // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
     }
     return encryptedEvent.createDecrypted(decrypted);
@@ -2749,7 +2749,6 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            qDebug() << "Encrypted Event";
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
                 events[i] = std::move(decrypted);

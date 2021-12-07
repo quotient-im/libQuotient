@@ -115,7 +115,7 @@ void Database::setAccountPickle(const QString &matrixId, const QByteArray &pickl
 void Database::clear(const QString &matrixId)
 {
     QSqlQuery query;
-    query.prepare(QStringLiteral("DELETE FROM Accounts(matrixId, pickle) WHERE matrixId=:matrixId;"));
+    query.prepare(QStringLiteral("DELETE FROM Accounts WHERE matrixId=:matrixId;"));
     query.bindValue(":matrixId", matrixId);
 
     QSqlQuery sessionsQuery;
