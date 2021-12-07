@@ -71,7 +71,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get -qq install ninja-build valgrind
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=${{ runner.workspace }}/quotest/.valgrind.supp" >>$GITHUB_ENV
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
