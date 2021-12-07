@@ -138,6 +138,8 @@ public:
     QString prevBatch;
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
+    // Map from megolm sessionId to set of eventIds
+    UnorderedMap<QString, QSet<QString>> undecryptedEvents;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -1506,12 +1508,17 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                                   roomKeyEvent.sessionKey())) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
-        for (unsigned long int i = 0; i < d->timeline.size(); i++) {
-            if (auto encryptedEvent = d->timeline[i].viewAs<EncryptedEvent>()) {
+        for (const auto& eventId : d->undecryptedEvents[roomKeyEvent.sessionId()]) {
+            if (!d->eventsIndex.contains(eventId)) {
+                continue;
+            }
+            auto event = d->timeline.rend() - (d->eventsIndex.value(eventId) - minTimelineIndex() + 1);
+            if (auto encryptedEvent = event->viewAs<EncryptedEvent>()) {
                 auto decrypted = decryptMessage(*encryptedEvent);
                 if(decrypted) {
-                    auto oldEvent = d->timeline[i].replaceEvent(std::move(decrypted));
-                    emit replacedEvent(d->timeline[i].event(), rawPtr(oldEvent));
+                    auto oldEvent = event->replaceEvent(std::move(decrypted));
+                    emit replacedEvent(event->event(), rawPtr(oldEvent));
+                    d->undecryptedEvents[roomKeyEvent.sessionId()] -= eventId;
                 }
             }
         }
@@ -2590,6 +2597,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
                 events[i] = std::move(decrypted);
+            } else {
+                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
             }
         }
     }
@@ -2752,6 +2761,8 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
                 events[i] = std::move(decrypted);
+            } else {
+                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
             }
         }
     }
