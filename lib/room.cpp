@@ -1517,6 +1517,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                 auto decrypted = decryptMessage(*encryptedEvent);
                 if(decrypted) {
                     auto oldEvent = event->replaceEvent(std::move(decrypted));
+                    decrypted->setOriginalEvent(std::move(oldEvent));
                     emit replacedEvent(event->event(), rawPtr(oldEvent));
                     d->undecryptedEvents[roomKeyEvent.sessionId()] -= eventId;
                 }
@@ -2596,7 +2597,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
-                events[i] = std::move(decrypted);
+                auto oldEvent = std::exchange(events[i], std::move(decrypted));
+                events[i]->setOriginalEvent(std::move(oldEvent));
             } else {
                 undecryptedEvents[encrypted->sessionId()] += encrypted->id();
             }
@@ -2760,7 +2762,8 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             auto decrypted = q->decryptMessage(*encrypted);
             if(decrypted) {
-                events[i] = std::move(decrypted);
+                auto oldEvent = std::exchange(events[i], std::move(decrypted));
+                events[i]->setOriginalEvent(std::move(oldEvent));
             } else {
                 undecryptedEvents[encrypted->sessionId()] += encrypted->id();
             }

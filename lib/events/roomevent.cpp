@@ -126,3 +126,16 @@ CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
     if (callId().isEmpty())
         qCWarning(EVENTS) << id() << "is a call event with an empty call id";
 }
+
+void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent)
+{
+    _originalEvent = std::move(originalEvent);
+}
+
+const QJsonObject RoomEvent::encryptedJson() const
+{
+    if(!_originalEvent) {
+        return {};
+    }
+    return _originalEvent->fullJson();
+}

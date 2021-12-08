@@ -60,11 +60,15 @@ public:
     //! callback for that in RoomEvent.
     void addId(const QString& newId);
 
+    void setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent);
+    const QJsonObject encryptedJson() const;
+
 protected:
     void dumpTo(QDebug dbg) const override;
 
 private:
     event_ptr_tt<RedactionEvent> _redactedBecause;
+    event_ptr_tt<RoomEvent> _originalEvent;
 };
 using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
