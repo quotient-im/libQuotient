@@ -64,6 +64,14 @@ jobs:
         cmake -S olm -B olm/build $CMAKE_ARGS
         cmake --build olm/build --target install
 
+    - name: Build and install qtKeychain
+      if: matrix.e2ee
+      run: |
+        cd ..
+        git clone https://github.com/frankosterfeld/qtkeychain.git
+        cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
+        cmake --build qtkeychain/build --target install
+
     - name: Pull CS API and build GTAD
       if: matrix.update-api
       run: |
