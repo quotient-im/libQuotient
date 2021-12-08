@@ -36,7 +36,7 @@ int Database::version()
     if (query.next()) {
         bool ok;
         int value = query.value(0).toInt(&ok);
-        qDebug() << "Database version" << value;
+        qCDebug(DATABASE) << "Database version" << value;
         if (ok)
             return value;
     } else {
@@ -78,7 +78,7 @@ void Database::commit()
 
 void Database::migrateTo1()
 {
-    qDebug() << "Migrating database to version 1";
+    qCDebug(DATABASE) << "Migrating database to version 1";
     transaction();
     execute(QStringLiteral("CREATE TABLE accounts (matrixId TEXT UNIQUE, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE olm_sessions (matrixId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
