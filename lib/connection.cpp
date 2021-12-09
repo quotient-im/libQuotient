@@ -39,6 +39,12 @@
 #    include "e2ee/qolmutils.h"
 #    include "encryptionmanager.h"
 #    include "database.h"
+
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -54,12 +60,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
-
-#if QT_VERSION_MAJOR >= 6
-#    include <qt6keychain/keychain.h>
-#else
-#    include <qt5keychain/keychain.h>
-#endif
 
 
 using namespace Quotient;
