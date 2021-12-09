@@ -13,7 +13,7 @@ void TestOlmSession::groupSessionPicklingValid()
 {
     auto ogs = QOlmOutboundGroupSession::create();
     const auto ogsId = ogs->sessionId();
-    QVERIFY(QByteArray::fromBase64Encoding(ogsId).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
+    QVERIFY(QByteArray::fromBase64(ogsId).size() > 0);
     QCOMPARE(0, ogs->sessionMessageIndex());
 
     auto ogsPickled = std::get<QByteArray>(ogs->pickle(Unencrypted {}));
@@ -23,7 +23,7 @@ void TestOlmSession::groupSessionPicklingValid()
     auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
     const auto igsId = igs->sessionId();
     // ID is valid base64?
-    QVERIFY(QByteArray::fromBase64Encoding(igsId).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
+    QVERIFY(QByteArray::fromBase64(igsId).size() > 0);
 
     //// no messages have been sent yet
     QCOMPARE(0, igs->firstKnownIndex());
@@ -42,7 +42,7 @@ void TestOlmSession::groupSessionCryptoValid()
     const auto plainText = QStringLiteral("Hello world!");
     const auto ciphertext = std::get<QByteArray>(ogs->encrypt(plainText));
     // ciphertext valid base64?
-    QVERIFY(QByteArray::fromBase64Encoding(ciphertext).decodingStatus == QByteArray::Base64DecodingStatus::Ok);
+    QVERIFY(QByteArray::fromBase64(ciphertext).size() > 0);
 
     const auto decryptionResult = std::get<std::pair<QString, uint32_t>>(igs->decrypt(ciphertext));
 
