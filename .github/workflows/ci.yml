@@ -97,7 +97,8 @@ jobs:
         fi
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
         echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
-                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
+                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local\
+                         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON" >>$GITHUB_ENV
 
         if [[ '${{ runner.os }}' != 'Windows' ]]; then
             BIN_DIR=/bin
@@ -107,7 +108,6 @@ jobs:
 
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
-        echo "LD_LIBRARY_PATH=$Qt5_DIR/lib:$LD_LIBRARY_PATH" >>$GITHUB_ENV
 
     - name: Setup MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
@@ -159,7 +159,7 @@ jobs:
     - name: Build and install libQuotient
       run: |
         cmake --build $BUILD_PATH --target all install
-        ls ~/.local/$BIN_DIR/quotest
+        ls ~/.local$BIN_DIR/quotest
 
     - name: Run tests
       env:
