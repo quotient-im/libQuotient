@@ -2041,7 +2041,7 @@ PicklingMode Connection::picklingMode() const
 
 void Connection::saveOlmAccount()
 {
-    qDebug() << "Saving olm account";
+    qCDebug(E2EE) << "Saving olm account";
 #ifdef Quotient_E2EE_ENABLED
     auto pickle = d->olmAccount->pickle(d->picklingMode);
     Database::instance().setAccountPickle(userId(), std::get<QByteArray>(pickle));
