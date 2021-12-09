@@ -127,6 +127,7 @@ CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
         qCWarning(EVENTS) << id() << "is a call event with an empty call id";
 }
 
+#ifdef Quotient_E2EE_ENABLED
 void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent)
 {
     _originalEvent = std::move(originalEvent);
@@ -139,3 +140,4 @@ const QJsonObject RoomEvent::encryptedJson() const
     }
     return _originalEvent->fullJson();
 }
+#endif

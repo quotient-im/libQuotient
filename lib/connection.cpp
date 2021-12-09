@@ -7,9 +7,6 @@
 #include "connection.h"
 
 #include "connectiondata.h"
-#ifdef Quotient_E2EE_ENABLED
-#    include "encryptionmanager.h"
-#endif // Quotient_E2EE_ENABLED
 #include "room.h"
 #include "settings.h"
 #include "user.h"
@@ -40,6 +37,8 @@
 #ifdef Quotient_E2EE_ENABLED
 #    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolmutils.h"
+#    include "encryptionmanager.h"
+#    include "database.h"
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -62,7 +61,6 @@
 #    include <qt5keychain/keychain.h>
 #endif
 
-#include "database.h"
 
 using namespace Quotient;
 
@@ -274,9 +272,9 @@ Connection::Connection(const QUrl& server, QObject* parent)
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
         saveOlmAccount();
     });
+    Database::instance();
 #endif
     d->q = this; // All d initialization should occur before this line
-    Database::instance();
 }
 
 Connection::Connection(QObject* parent) : Connection({}, parent) {}
@@ -442,15 +440,13 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     auto loginJob =
             q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
     connect(loginJob, &BaseJob::success, q, [this, loginJob] {
-        Database::instance().clear(loginJob->userId());
         data->setToken(loginJob->accessToken().toLatin1());
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        //encryptionManager->uploadIdentityKeys(q);
-        //encryptionManager->uploadOneTimeKeys(q);
+        Database::instance().clear(loginJob->userId());
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {

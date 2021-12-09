@@ -60,15 +60,20 @@ public:
     //! callback for that in RoomEvent.
     void addId(const QString& newId);
 
+#ifdef Quotient_E2EE_ENABLED
     void setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent);
     const QJsonObject encryptedJson() const;
+#endif
 
 protected:
     void dumpTo(QDebug dbg) const override;
 
 private:
     event_ptr_tt<RedactionEvent> _redactedBecause;
+
+#ifdef Quotient_E2EE_ENABLED
     event_ptr_tt<RoomEvent> _originalEvent;
+#endif
 };
 using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;

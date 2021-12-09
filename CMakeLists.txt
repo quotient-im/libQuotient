@@ -83,11 +83,12 @@ else()
     set(QtExtraModules "Multimedia") # See #483
 endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql ${QtExtraModules})
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
+    find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
     find_package(Olm 3.2.1 REQUIRED)
     set_package_properties(Olm PROPERTIES
         DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
@@ -107,9 +108,9 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     if (OpenSSL_FOUND)
         message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
     endif()
+    find_package(${Qt}Keychain REQUIRED)
 endif()
 
-find_package(${Qt}Keychain REQUIRED)
 
 # Set up source files
 list(APPEND lib_SRCS
@@ -133,7 +134,6 @@ list(APPEND lib_SRCS
     lib/eventitem.cpp
     lib/accountregistry.cpp
     lib/mxcreply.cpp
-    lib/database.cpp
     lib/events/event.cpp
     lib/events/roomevent.cpp
     lib/events/stateevent.cpp
@@ -164,6 +164,7 @@ list(APPEND lib_SRCS
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
+        lib/database.cpp
         lib/e2ee/qolmaccount.cpp
         lib/e2ee/qolmsession.cpp
         lib/e2ee/qolminboundsession.cpp
@@ -323,12 +324,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
-        OpenSSL::SSL)
+        OpenSSL::SSL
+        ${Qt}::Sql
+        ${QTKEYCHAIN_LIBRARIES})
     set(FIND_DEPS "find_dependency(Olm)
     find_dependency(OpenSSL)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${Qt}::Sql ${QTKEYCHAIN_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

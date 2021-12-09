@@ -68,9 +68,9 @@
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolminboundsession.h"
+#include "database.h"
 #endif // Quotient_E2EE_ENABLED
 
-#include "database.h"
 
 using namespace Quotient;
 using namespace std::placeholders;
@@ -2593,6 +2593,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     QElapsedTimer et;
     et.start();
 
+#ifdef Quotient_E2EE_ENABLED
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             auto decrypted = q->decryptMessage(*encrypted);
@@ -2604,6 +2605,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
         }
     }
+#endif
 
     {
         // Pre-process redactions and edits so that events that get
@@ -2758,6 +2760,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     Changes changes {};
 
+#ifdef Quotient_E2EE_ENABLED
     for(long unsigned int i = 0; i < events.size(); i++) {
         if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
             auto decrypted = q->decryptMessage(*encrypted);
@@ -2769,6 +2772,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
             }
         }
     }
+#endif
 
     // In case of lazy-loading new members may be loaded with historical
     // messages. Also, the cache doesn't store events with empty content;
