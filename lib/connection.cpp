@@ -116,6 +116,7 @@ public:
     QueryKeysJob *currentQueryKeysJob = nullptr;
     bool encryptionUpdateRequired = false;
     PicklingMode picklingMode = Unencrypted {};
+    Database *database = nullptr;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -268,11 +269,9 @@ Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
 {
 #ifdef Quotient_E2EE_ENABLED
-    d->encryptionManager = new EncryptionManager(this);
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
         saveOlmAccount();
     });
-    Database::instance();
 #endif
     d->q = this; // All d initialization should occur before this line
 }
@@ -446,7 +445,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        Database::instance().clear(loginJob->userId());
+        database = new Database(loginJob->userId(), q);
+        database->clear();
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -502,9 +502,13 @@ void Connection::Private::completeSetup(const QString& mxId)
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
 
+    if (!database) {
+        database = new Database(data->userId(), q);
+    }
+
     encryptionManager = new EncryptionManager(q);
 
-    if (Database::instance().accountPickle(data->userId()).isEmpty()) {
+    if (database->accountPickle().isEmpty()) {
         // create new account and save unpickle data
         olmAccount->createNewAccount();
         auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
@@ -513,7 +517,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         });
     } else {
         // account already existing
-        auto pickle = Database::instance().accountPickle(data->userId());
+        auto pickle = database->accountPickle();
         olmAccount->unpickle(pickle, picklingMode);
     }
 #endif // Quotient_E2EE_ENABLED
@@ -2040,7 +2044,7 @@ void Connection::saveOlmAccount()
     qCDebug(E2EE) << "Saving olm account";
 #ifdef Quotient_E2EE_ENABLED
     auto pickle = d->olmAccount->pickle(d->picklingMode);
-    Database::instance().setAccountPickle(userId(), std::get<QByteArray>(pickle));
+    d->database->setAccountPickle(std::get<QByteArray>(pickle));
 #endif
 }
 
@@ -2066,5 +2070,10 @@ QJsonObject Connection::decryptNotification(const QJsonObject &notification)
         return QJsonObject();
     }
     return decrypted->fullJson();
+}
+
+Database* Connection::database()
+{
+    return d->database;
 }
 #endif

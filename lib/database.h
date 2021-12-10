@@ -15,32 +15,28 @@ class Database : public QObject
     Q_OBJECT
 
 public:
-    static Database &instance()
-    {
-        static Database _instance;
-        return _instance;
-    }
+    Database(const QString& matrixId, QObject* parent);
 
     int version();
     void transaction();
     void commit();
     QSqlQuery execute(const QString &queryString);
     QSqlQuery execute(QSqlQuery &query);
+    QSqlDatabase database();
+    QSqlQuery prepareQuery(const QString& quaryString);
 
-    QByteArray accountPickle(const QString &matrixId);
-    void setAccountPickle(const QString &matrixId, const QByteArray &pickle);
-    void clear(const QString &matrixId);
-    void saveOlmSession(const QString& matrixId, const QString& senderKey, const QString& sessionId, const QByteArray &pickle);
-    UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const QString& matrixId, const PicklingMode& picklingMode);
-    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& matrixId, const QString& roomId, const PicklingMode& picklingMode);
-    void saveMegolmSession(const QString& matrixId, const QString& roomId, const QString& senderKey, const QString& sessionKey, const QByteArray& pickle);
-    void addGroupSessionIndexRecord(const QString& matrixId, const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
-    QPair<QString, qint64> groupSessionIndexRecord(const QString& matrixId, const QString& roomId, const QString& sessionId, qint64 index);
-
+    QByteArray accountPickle();
+    void setAccountPickle(const QByteArray &pickle);
+    void clear();
+    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle);
+    UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const PicklingMode& picklingMode);
+    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
+    void saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionKey, const QByteArray& pickle);
+    void addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
+    QPair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
 
 private:
-    Database();
-
     void migrateTo1();
+    QString m_matrixId;
 };
 }

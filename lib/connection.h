@@ -47,6 +47,7 @@ class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
+class Database;
 
 class QOlmAccount;
 
@@ -313,6 +314,7 @@ public:
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
+    Database* database();
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;

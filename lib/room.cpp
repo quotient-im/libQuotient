@@ -371,7 +371,7 @@ public:
     UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
 
     void loadMegOlmSessions() {
-        groupSessions = Database::instance().loadMegolmSessions(q->localUser()->id(), q->id(), q->connection()->picklingMode());
+        groupSessions = q->connection()->database()->loadMegolmSessions(q->id(), q->connection()->picklingMode());
     }
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
@@ -389,7 +389,7 @@ public:
             return false;
         }
         qCWarning(E2EE) << "Adding inbound session";
-        Database::instance().saveMegolmSession(q->localUser()->id(), q->id(), senderKey, sessionId, megolmSession->pickle(q->connection()->picklingMode()));
+        q->connection()->database()->saveMegolmSession(q->id(), senderKey, sessionId, megolmSession->pickle(q->connection()->picklingMode()));
         groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
         return true;
     }
@@ -416,9 +416,9 @@ public:
             return QString();
         }
         const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
-        const auto& [recordEventId, ts] = Database::instance().groupSessionIndexRecord(q->localUser()->id(), q->id(), senderSession->sessionId(), index);
+        const auto& [recordEventId, ts] = q->connection()->database()->groupSessionIndexRecord(q->id(), senderSession->sessionId(), index);
         if (recordEventId.isEmpty()) {
-            Database::instance().addGroupSessionIndexRecord(q->localUser()->id(), q->id(), senderSession->sessionId(), index, eventId, timestamp.toMSecsSinceEpoch());
+            q->connection()->database()->addGroupSessionIndexRecord(q->id(), senderSession->sessionId(), index, eventId, timestamp.toMSecsSinceEpoch());
         } else {
             if ((eventId != recordEventId) || (ts != timestamp.toMSecsSinceEpoch())) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;

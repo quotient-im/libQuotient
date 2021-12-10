@@ -33,19 +33,21 @@ class EncryptionManager::Private {
 public:
     EncryptionManager* q;
 
+    Connection* connection;
+
     // A map from SenderKey to vector of InboundSession
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> sessions;
 
     void loadSessions() {
-        sessions = Database::instance().loadOlmSessions(static_cast<Connection *>(q->parent())->userId(), static_cast<Connection *>(q->parent())->picklingMode());
+        sessions = connection->database()->loadOlmSessions(connection->picklingMode());
     }
     void saveSession(QOlmSessionPtr& session, const QString &senderKey) {
-        auto pickleResult = session->pickle(static_cast<Connection *>(q->parent())->picklingMode());
+        auto pickleResult = session->pickle(connection->picklingMode());
         if (std::holds_alternative<QOlmError>(pickleResult)) {
             qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
             return;
         }
-        Database::instance().saveOlmSession(static_cast<Connection *>(q->parent())->userId(), senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
+        connection->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
     }
     QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
     {
@@ -103,6 +105,7 @@ EncryptionManager::EncryptionManager(QObject* parent)
     , d(std::make_unique<Private>())
 {
     d->q = this;
+    d->connection = static_cast<Connection *>(parent);
     d->loadSessions();
 }
 

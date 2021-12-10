@@ -17,13 +17,16 @@
 //TODO: delete room specific data when leaving room
 
 using namespace Quotient;
-Database::Database()
+Database::Database(const QString& matrixId, QObject* parent)
+    : QObject(parent)
+    , m_matrixId(matrixId)
 {
-    QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), QStringLiteral("Quotient"));
-    QString databasePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    m_matrixId.replace(':', '_');
+    QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), QStringLiteral("Quotient_%1").arg(m_matrixId));
+    QString databasePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/%1").arg(m_matrixId);
     QDir(databasePath).mkpath(databasePath);
-    QSqlDatabase::database(QStringLiteral("Quotient")).setDatabaseName(databasePath + QStringLiteral("/quotient.db3"));
-    QSqlDatabase::database(QStringLiteral("Quotient")).open();
+    database().setDatabaseName(databasePath + QStringLiteral("/quotient.db3"));
+    database().open();
 
     switch(version()) {
         case 0: migrateTo1();
@@ -47,7 +50,7 @@ int Database::version()
 
 QSqlQuery Database::execute(const QString &queryString)
 {
-    auto query = QSqlDatabase::database(QStringLiteral("Quotient")).exec(queryString);
+    auto query = database().exec(queryString);
     if (query.lastError().type() != QSqlError::NoError) {
         qCritical() << "Failed to execute query";
         qCritical() << query.lastQuery();
@@ -68,32 +71,30 @@ QSqlQuery Database::execute(QSqlQuery &query)
 
 void Database::transaction()
 {
-    QSqlDatabase::database(QStringLiteral("Quotient")).transaction();
+    database().transaction();
 }
 
 void Database::commit()
 {
-    QSqlDatabase::database(QStringLiteral("Quotient")).commit();
+    database().commit();
 }
 
 void Database::migrateTo1()
 {
     qCDebug(DATABASE) << "Migrating database to version 1";
     transaction();
-    execute(QStringLiteral("CREATE TABLE accounts (matrixId TEXT UNIQUE, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE olm_sessions (matrixId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (matrixId TEXT, roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (matrixId TEXT, roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE group_session_record_index (matrixId TEXT, roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
+    execute(QStringLiteral("CREATE TABLE accounts (pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE olm_sessions (senderKey TEXT, sessionId TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
     execute(QStringLiteral("PRAGMA user_version = 1;"));
     commit();
 }
 
-QByteArray Database::accountPickle(const QString &matrixId)
+QByteArray Database::accountPickle()
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("SELECT pickle FROM accounts WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", matrixId);
+    auto query = prepareQuery(QStringLiteral("SELECT pickle FROM accounts;"));
     execute(query);
     if (query.next()) {
         return query.value(QStringLiteral("pickle")).toByteArray();
@@ -101,34 +102,23 @@ QByteArray Database::accountPickle(const QString &matrixId)
     return {};
 }
 
-void Database::setAccountPickle(const QString &matrixId, const QByteArray &pickle)
+void Database::setAccountPickle(const QByteArray &pickle)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("INSERT INTO accounts(matrixId, pickle) VALUES(:matrixId, :pickle) ON CONFLICT (matrixId) DO UPDATE SET pickle=:pickle WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", matrixId);
+    auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
+    auto query = prepareQuery(QStringLiteral("INSERT INTO accounts(pickle) VALUES(:pickle);"));
     query.bindValue(":pickle", pickle);
     transaction();
+    execute(deleteQuery);
     execute(query);
     commit();
 }
 
-void Database::clear(const QString &matrixId)
+void Database::clear()
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("DELETE FROM accounts WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", matrixId);
-
-    QSqlQuery sessionsQuery(QSqlDatabase::database(QStringLiteral("Quotient")));
-    sessionsQuery.prepare(QStringLiteral("DELETE FROM olm_sessions WHERE matrixId=:matrixId;"));
-    sessionsQuery.bindValue(":matrixId", matrixId);
-
-    QSqlQuery megolmSessionsQuery(QSqlDatabase::database(QStringLiteral("Quotient")));
-    megolmSessionsQuery.prepare(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE matrixId=:matrixId;"));
-    megolmSessionsQuery.bindValue(":matrixId", matrixId);
-
-    QSqlQuery groupSessionIndexRecordQuery(QSqlDatabase::database(QStringLiteral("Quotient")));
-    groupSessionIndexRecordQuery.prepare(QStringLiteral("DELETE FROM group_session_record_index WHERE matrixId=:matrixId;"));
-    groupSessionIndexRecordQuery.bindValue(":matrixId", matrixId);
+    auto query = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
+    auto sessionsQuery = prepareQuery(QStringLiteral("DELETE FROM olm_sessions;"));
+    auto megolmSessionsQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions;"));
+    auto groupSessionIndexRecordQuery = prepareQuery(QStringLiteral("DELETE FROM group_session_record_index;"));
 
     transaction();
     execute(query);
@@ -139,11 +129,9 @@ void Database::clear(const QString &matrixId)
 
 }
 
-void Database::saveOlmSession(const QString& matrixId, const QString& senderKey, const QString& sessionId, const QByteArray &pickle)
+void Database::saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("INSERT INTO olm_sessions(matrixId, senderKey, sessionId, pickle) VALUES(:matrixId, :senderKey, :sessionId, :pickle);"));
-    query.bindValue(":matrixId", matrixId);
+    auto query = prepareQuery(QStringLiteral("INSERT INTO olm_sessions(senderKey, sessionId, pickle) VALUES(:senderKey, :sessionId, :pickle);"));
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":pickle", pickle);
@@ -152,11 +140,9 @@ void Database::saveOlmSession(const QString& matrixId, const QString& senderKey,
     commit();
 }
 
-UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const QString& matrixId, const PicklingMode& picklingMode)
+UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const PicklingMode& picklingMode)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("SELECT * FROM olm_sessions WHERE matrixId=:matrixId;"));
-    query.bindValue(":matrixId", matrixId);
+    QSqlQuery query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions;"));
     transaction();
     execute(query);
     commit();
@@ -172,11 +158,9 @@ UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(con
     return sessions;
 }
 
-UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(const QString& matrixId, const QString& roomId, const PicklingMode& picklingMode)
+UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE matrixId=:matrixId AND roomId=:roomId;"));
-    query.bindValue(":matrixId", matrixId);
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
     query.bindValue(":roomId", roomId);
     transaction();
     execute(query);
@@ -193,11 +177,9 @@ UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Database::load
     return sessions;
 }
 
-void Database::saveMegolmSession(const QString& matrixId, const QString& roomId, const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
+void Database::saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("INSERT INTO inbound_megolm_sessions(matrixId, roomId, senderKey, sessionId, pickle) VALUES(:matrixId, :roomId, :senderKey, :sessionId, :pickle);"));
-    query.bindValue(":matrixId", matrixId);
+    auto query = prepareQuery(QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, senderKey, sessionId, pickle) VALUES(:roomId, :senderKey, :sessionId, :pickle);"));
     query.bindValue(":roomId", roomId);
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
@@ -207,11 +189,9 @@ void Database::saveMegolmSession(const QString& matrixId, const QString& roomId,
     commit();
 }
 
-void Database::addGroupSessionIndexRecord(const QString& matrixId, const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts)
+void Database::addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare("INSERT INTO group_session_record_index(matrixId, roomId, sessionId, i, eventId, ts) VALUES(:matrixId, :roomId, :sessionId, :index, :eventId, :ts);");
-    query.bindValue(":matrixId", matrixId);
+    QSqlQuery query = prepareQuery("INSERT INTO group_session_record_index(roomId, sessionId, i, eventId, ts) VALUES(:roomId, :sessionId, :index, :eventId, :ts);");
     query.bindValue(":roomId", roomId);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":index", index);
@@ -222,11 +202,10 @@ void Database::addGroupSessionIndexRecord(const QString& matrixId, const QString
     commit();
 }
 
-QPair<QString, qint64> Database::groupSessionIndexRecord(const QString& matrixId, const QString& roomId, const QString& sessionId, qint64 index)
+QPair<QString, qint64> Database::groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index)
 {
-    QSqlQuery query(QSqlDatabase::database(QStringLiteral("Quotient")));
-    query.prepare(QStringLiteral("SELECT * FROM group_session_record_index WHERE matrixId=:matrixId AND roomId=:roomId AND sessionId=:sessionId AND i=:index;"));
-    query.bindValue(":matrixId", matrixId);
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral("SELECT * FROM group_session_record_index WHERE roomId=:roomId AND sessionId=:sessionId AND i=:index;"));
     query.bindValue(":roomId", roomId);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":index", index);
@@ -237,4 +216,16 @@ QPair<QString, qint64> Database::groupSessionIndexRecord(const QString& matrixId
         return {};
     }
     return {query.value("eventId").toString(), query.value("ts").toLongLong()};
+}
+
+QSqlDatabase Database::database()
+{
+    return QSqlDatabase::database(QStringLiteral("Quotient_%1").arg(m_matrixId));
+}
+
+QSqlQuery Database::prepareQuery(const QString& queryString)
+{
+    QSqlQuery query(database());
+    query.prepare(queryString);
+    return query;
 }
