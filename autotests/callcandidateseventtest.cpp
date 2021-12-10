@@ -53,5 +53,5 @@ void TestCallCandidatesEvent::fromJson()
              QStringLiteral("candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0"));
 }
 
-QTEST_MAIN(TestCallCandidatesEvent)
+QTEST_APPLESS_MAIN(TestCallCandidatesEvent)
 #include "callcandidateseventtest.moc"
