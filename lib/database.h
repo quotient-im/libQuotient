@@ -34,6 +34,7 @@ public:
     void saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionKey, const QByteArray& pickle);
     void addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
     QPair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
+    void clearRoomData(const QString& roomId);
 
 private:
     void migrateTo1();

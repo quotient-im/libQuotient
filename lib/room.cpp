@@ -461,6 +461,10 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         }
     });
     d->loadMegOlmSessions();
+
+    connect(this, &Room::beforeDestruction, this, [=](){
+        connection->database()->clearRoomData(id);
+    });
 #endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }

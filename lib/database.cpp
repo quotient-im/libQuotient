@@ -14,8 +14,6 @@
 #include "e2ee/qolmsession.h"
 #include "e2ee/qolminboundsession.h"
 
-//TODO: delete room specific data when leaving room
-
 using namespace Quotient;
 Database::Database(const QString& matrixId, QObject* parent)
     : QObject(parent)
@@ -228,4 +226,16 @@ QSqlQuery Database::prepareQuery(const QString& queryString)
     QSqlQuery query(database());
     query.prepare(queryString);
     return query;
+}
+
+void Database::clearRoomData(const QString& roomId)
+{
+    auto query = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
+    auto query2 = prepareQuery(QStringLiteral("DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId;"));
+    auto query3 = prepareQuery(QStringLiteral("DELETE FROM group_session_record_index WHERE roomId=:roomId;"));
+    transaction();
+    execute(query);
+    execute(query2);
+    execute(query3);
+    commit();
 }
