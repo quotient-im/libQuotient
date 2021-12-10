@@ -36,10 +36,12 @@ protected:
 
 class QUOTIENT_API RoomPowerLevelsEvent
     : public StateEvent<PowerLevelsEventContent> {
-    Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.power_levels", RoomPowerLevelsEvent)
 
+    explicit RoomPowerLevelsEvent(PowerLevelsEventContent&& content)
+        : StateEvent(typeId(), matrixTypeId(), QString(), std::move(content))
+    {}
     explicit RoomPowerLevelsEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
     {}
