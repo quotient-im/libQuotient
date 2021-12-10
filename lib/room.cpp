@@ -1509,16 +1509,18 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         for (const auto& eventId : d->undecryptedEvents[roomKeyEvent.sessionId()]) {
-            if (!d->eventsIndex.contains(eventId)) {
+            const auto pIdx = d->eventsIndex.constFind(eventId);
+            if (pIdx == d->eventsIndex.cend())
                 continue;
-            }
-            auto event = d->timeline.rend() - (d->eventsIndex.value(eventId) - minTimelineIndex() + 1);
-            if (auto encryptedEvent = event->viewAs<EncryptedEvent>()) {
+            auto& ti = d->timeline[Timeline::size_type(*pIdx - minTimelineIndex())];
+            if (auto encryptedEvent = ti.viewAs<EncryptedEvent>()) {
                 auto decrypted = decryptMessage(*encryptedEvent);
                 if(decrypted) {
-                    auto oldEvent = event->replaceEvent(std::move(decrypted));
-                    decrypted->setOriginalEvent(std::move(oldEvent));
-                    emit replacedEvent(event->event(), rawPtr(oldEvent));
+                    // The reference will survive the pointer being moved
+                    auto& decryptedEvent = *decrypted;
+                    auto oldEvent = ti.replaceEvent(std::move(decrypted));
+                    decryptedEvent.setOriginalEvent(std::move(oldEvent));
+                    emit replacedEvent(ti.event(), decrypted->originalEvent());
                     d->undecryptedEvents[roomKeyEvent.sessionId()] -= eventId;
                 }
             }
