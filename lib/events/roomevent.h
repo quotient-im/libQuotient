@@ -61,7 +61,8 @@ public:
     void addId(const QString& newId);
 
 #ifdef Quotient_E2EE_ENABLED
-    void setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent);
+    void setOriginalEvent(event_ptr_tt<RoomEvent>&& originalEvent);
+    const RoomEvent* originalEvent() { return _originalEvent.get(); }
     const QJsonObject encryptedJson() const;
 #endif
 

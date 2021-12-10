@@ -128,7 +128,7 @@ CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
 }
 
 #ifdef Quotient_E2EE_ENABLED
-void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent> originalEvent)
+void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent>&& originalEvent)
 {
     _originalEvent = std::move(originalEvent);
 }
