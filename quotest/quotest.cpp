@@ -214,6 +214,7 @@ TestManager::TestManager(int& argc, char** argv)
 
     // Big countdown watchdog
     QTimer::singleShot(180000, this, [this] {
+        clog << "Time is up, stopping the session";
         if (testSuite)
             conclude();
         else
@@ -537,14 +538,32 @@ TEST_IMPL(setTopic)
 
 TEST_IMPL(changeName)
 {
-    auto* const localUser = connection()->user();
-    const auto& newName = connection()->generateTxnId(); // See setTopic()
-    clog << "Renaming the user to " << newName.toStdString() << endl;
-    localUser->rename(newName);
-    connectUntil(localUser, &User::defaultNameChanged, this,
-                 [this, thisTest, localUser, newName] {
-                     FINISH_TEST(localUser->name() == newName);
-                 });
+    connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
+        auto* const localUser = connection()->user();
+        const auto& newName = connection()->generateTxnId(); // See setTopic()
+        clog << "Renaming the user to " << newName.toStdString()
+             << " in the target room" << endl;
+        localUser->rename(newName, targetRoom);
+        connectUntil(targetRoom, &Room::memberRenamed, this,
+                     [this, thisTest, localUser, newName](const User* u) {
+                         if (localUser != u)
+                             return false;
+                         if (localUser->name(targetRoom) != newName)
+                             FAIL_TEST();
+
+                         clog
+                             << "Member rename successful, renaming the account"
+                             << endl;
+                         const auto newN = newName.mid(0, 5);
+                         localUser->rename(newN);
+                         connectUntil(localUser, &User::defaultNameChanged,
+                                      this, [this, thisTest, localUser, newN] {
+                                          targetRoom->localUser()->rename({});
+                                          FINISH_TEST(localUser->name() == newN);
+                                      });
+                         return true;
+                     });
+    });
     return false;
 }
 
