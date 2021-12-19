@@ -214,7 +214,7 @@ TestManager::TestManager(int& argc, char** argv)
 
     // Big countdown watchdog
     QTimer::singleShot(180000, this, [this] {
-        clog << "Time is up, stopping the session";
+        clog << "Time is up, stopping the session\n";
         if (testSuite)
             conclude();
         else
