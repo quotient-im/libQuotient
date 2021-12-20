@@ -147,6 +147,7 @@ list(APPEND lib_SRCS
     lib/accountregistry.h lib/accountregistry.cpp
     lib/mxcreply.h lib/mxcreply.cpp
     lib/events/event.h lib/events/event.cpp
+    lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
     lib/events/stateevent.h lib/events/stateevent.cpp
     lib/events/simplestateevents.h
