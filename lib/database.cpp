@@ -202,8 +202,7 @@ void Database::addGroupSessionIndexRecord(const QString& roomId, const QString& 
 
 QPair<QString, qint64> Database::groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index)
 {
-    QSqlQuery query(database());
-    query.prepare(QStringLiteral("SELECT * FROM group_session_record_index WHERE roomId=:roomId AND sessionId=:sessionId AND i=:index;"));
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM group_session_record_index WHERE roomId=:roomId AND sessionId=:sessionId AND i=:index;"));
     query.bindValue(":roomId", roomId);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":index", index);
