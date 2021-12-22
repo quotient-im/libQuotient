@@ -110,94 +110,90 @@ inline event_type_t typeId()
 
 inline event_type_t unknownEventTypeId() { return typeId<void>(); }
 
-// === EventFactory ===
+// === Event creation facilities ===
 
-/** Create an event of arbitrary type from its arguments */
+//! Create an event of arbitrary type from its arguments
 template <typename EventT, typename... ArgTs>
 inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 {
     return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
 }
 
-template <typename BaseEventT>
-class EventFactory {
-public:
-    template <typename FnT>
-    static auto addMethod(FnT&& method)
+namespace _impl {
+    template <class EventT, class BaseEventT>
+    event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
+                                           const QString& matrixType)
     {
-        factories().emplace_back(std::forward<FnT>(method));
-        return 0;
+        return QLatin1String(EventT::matrixTypeId()) == matrixType
+                   ? makeEvent<EventT>(json)
+                   : nullptr;
     }
 
-    /** Chain two type factories
-     * Adds the factory class of EventT2 (EventT2::factory_t) to
-     * the list in factory class of EventT1 (EventT1::factory_t) so
-     * that when EventT1::factory_t::make() is invoked, types of
-     * EventT2 factory are looked through as well. This is used
-     * to include RoomEvent types into the more general Event factory,
-     * and state event types into the RoomEvent factory.
-     */
-    template <typename EventT>
-    static auto chainFactory()
-    {
-        return addMethod(&EventT::factory_t::make);
-    }
+    //! \brief A family of event factories to create events from CS API responses
+    //!
+    //! Each of these factories, as instantiated by event base types (Event,
+    //! RoomEvent etc.) is capable of producing an event object derived from
+    //! \p BaseEventT, using the JSON payload and the event type passed to its
+    //! make() method. Don't use these directly to make events; use loadEvent()
+    //! overloads as the frontend for these. Never instantiate new factories
+    //! outside of base event classes.
+    //! \sa loadEvent, setupFactory, Event::factory, RoomEvent::factory,
+    //!     StateEventBase::factory
+    template <typename BaseEventT>
+    class EventFactory
+        : private std::vector<event_ptr_tt<BaseEventT> (*)(const QJsonObject&,
+                                                           const QString&)> {
+        // Actual makeIfMatches specialisations will differ in the first
+        // template parameter but that doesn't affect the function type
+    public:
+        explicit EventFactory(const char* name = "")
+            : name(name)
+        {
+            static auto yetToBeConstructed = true;
+            Q_ASSERT(yetToBeConstructed);
+            if (!yetToBeConstructed) // For Release builds that pass Q_ASSERT
+                qCritical(EVENTS)
+                    << "Another EventFactory for the same base type is being "
+                       "created - event creation logic will be splintered";
+            yetToBeConstructed = false;
+        }
+        EventFactory(const EventFactory&) = delete;
 
-    static event_ptr_tt<BaseEventT> make(const QJsonObject& json,
-                                         const QString& matrixType)
-    {
-        for (const auto& f : factories())
-            if (auto e = f(json, matrixType))
-                return e;
-        return nullptr;
-    }
+        //! \brief Add a method to create events of a given type
+        //!
+        //! Adds a standard factory method (makeIfMatches) for \p EventT so that
+        //! event objects of this type can be created dynamically by loadEvent.
+        //! The caller is responsible for ensuring this method is called only
+        //! once per type.
+        //! \sa makeIfMatches, loadEvent, Quotient::loadEvent
+        template <class EventT>
+        bool addMethod()
+        {
+            this->emplace_back(&makeIfMatches<EventT, BaseEventT>);
+            qDebug(EVENTS) << "Added factory method for"
+                           << EventT::matrixTypeId() << "events;" << this->size()
+                           << "methods in the" << name << "chain by now";
+            return true;
+        }
 
-private:
-    static auto& factories()
-    {
-        using inner_factory_tt = std::function<event_ptr_tt<BaseEventT>(
-            const QJsonObject&, const QString&)>;
-        static std::vector<inner_factory_tt> _factories {};
-        return _factories;
-    }
-};
+        auto loadEvent(const QJsonObject& json, const QString& matrixType)
+        {
+            for (const auto& f : *this)
+                if (auto e = f(json, matrixType))
+                    return e;
+            return makeEvent<BaseEventT>(unknownEventTypeId(), json);
+        }
 
-/** Add a type to its default factory
- * Adds a standard factory method (via makeEvent<>) for a given
- * type to EventT::factory_t factory class so that it can be
- * created dynamically from loadEvent<>().
- *
- * \tparam EventT the type to enable dynamic creation of
- * \return the registered type id
- * \sa loadEvent, Event::type
- */
-template <typename EventT>
-inline auto setupFactory()
-{
-    qDebug(EVENTS) << "Adding factory method for" << EventT::matrixTypeId();
-    return EventT::factory_t::addMethod([](const QJsonObject& json,
-                                           const QString& jsonMatrixType) {
-        return EventT::matrixTypeId() == jsonMatrixType ? makeEvent<EventT>(json)
-                                                        : nullptr;
-    });
-}
-
-template <typename EventT>
-inline auto registerEventType()
-{
-    // Initialise exactly once, even if this function is called twice for
-    // the same type (for whatever reason - you never know the ways of
-    // static initialisation is done).
-    static const auto _ = setupFactory<EventT>();
-    return _; // Only to facilitate usage in static initialisation
-}
+        const char* const name;
+    };
+} // namespace _impl
 
 // === Event ===
 
 class Event {
 public:
     using Type = event_type_t;
-    using factory_t = EventFactory<Event>;
+    static inline _impl::EventFactory<Event> factory { "Event" };
 
     explicit Event(Type type, const QJsonObject& json);
     explicit Event(Type type, event_mtype_t matrixType,
@@ -272,7 +268,7 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
-// === Macros used with event class definitions ===
+// === Facilities for event class definitions ===
 
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
@@ -284,12 +280,26 @@ using Events = EventsArray<Event>;
 // This macro should be put after an event class definition (in .h or .cpp)
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(_Type)                                \
-    namespace {                                                   \
-        [[maybe_unused]] static const auto _factoryAdded##_Type = \
-            registerEventType<_Type>();                           \
-    }                                                             \
+#define REGISTER_EVENT_TYPE(_Type)                            \
+    [[maybe_unused]] inline const auto _factoryAdded##_Type = \
+        _Type::factory.addMethod<_Type>();                    \
     // End of macro
+
+// === Event loading ===
+// (see also event_loader.h)
+
+//! \brief Point of customisation to dynamically load events
+//!
+//! The default specialisation of this calls BaseEventT::factory and if that
+//! fails (i.e. returns nullptr) creates an unknown event of BaseEventT.
+//! Other specialisations may reuse other factories, add validations common to
+//! BaseEventT, and so on
+template <class BaseEventT>
+event_ptr_tt<BaseEventT> doLoadEvent(const QJsonObject& json,
+                                     const QString& matrixType)
+{
+    return BaseEventT::factory.loadEvent(json, matrixType);
+}
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
 
