@@ -9,9 +9,6 @@
 
 using namespace Quotient;
 
-[[maybe_unused]] static auto roomEventTypeInitialised =
-    Event::factory_t::chainFactory<RoomEvent>();
-
 RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
                      const QJsonObject& contentJson)
     : Event(type, matrixType, contentJson)
