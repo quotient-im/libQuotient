@@ -140,7 +140,7 @@ void Database::saveOlmSession(const QString& senderKey, const QString& sessionId
 
 UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const PicklingMode& picklingMode)
 {
-    QSqlQuery query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions;"));
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions;"));
     transaction();
     execute(query);
     commit();
@@ -189,7 +189,7 @@ void Database::saveMegolmSession(const QString& roomId, const QString& senderKey
 
 void Database::addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts)
 {
-    QSqlQuery query = prepareQuery("INSERT INTO group_session_record_index(roomId, sessionId, i, eventId, ts) VALUES(:roomId, :sessionId, :index, :eventId, :ts);");
+    auto query = prepareQuery("INSERT INTO group_session_record_index(roomId, sessionId, i, eventId, ts) VALUES(:roomId, :sessionId, :index, :eventId, :ts);");
     query.bindValue(":roomId", roomId);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":index", index);
