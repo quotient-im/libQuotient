@@ -21,8 +21,7 @@ class StateEventBase : public RoomEvent {
 public:
     static inline _impl::EventFactory<StateEventBase> factory { "StateEvent" };
 
-    StateEventBase(Type type, const QJsonObject& json) : RoomEvent(type, json)
-    {}
+    StateEventBase(Type type, const QJsonObject& json);
     StateEventBase(Type type, event_mtype_t matrixType,
                    const QString& stateKey = {},
                    const QJsonObject& contentJson = {});
