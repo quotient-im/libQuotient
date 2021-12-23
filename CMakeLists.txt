@@ -328,7 +328,8 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         ${Qt}::Sql
         ${QTKEYCHAIN_LIBRARIES})
     set(FIND_DEPS "find_dependency(Olm)
-    find_dependency(OpenSSL)") # For QuotientConfig.cmake.in
+    find_dependency(OpenSSL)
+    find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
 endif()
 
 target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
