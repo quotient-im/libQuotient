@@ -49,22 +49,9 @@ else()
     endforeach ()
 endif()
 
-if (WIN32)
-    if (NOT CMAKE_INSTALL_LIBDIR)
-        set(CMAKE_INSTALL_LIBDIR ".")
-    endif ()
+include(GNUInstallDirs)
+set(INCLUDEDIR_INIT ${PROJECT_NAME})
 
-    if (NOT CMAKE_INSTALL_BINDIR)
-        set(CMAKE_INSTALL_BINDIR ".")
-    endif ()
-
-    if (NOT CMAKE_INSTALL_INCLUDEDIR)
-        set(CMAKE_INSTALL_INCLUDEDIR "include")
-    endif ()
-else()
-    include(GNUInstallDirs)
-    set(INCLUDEDIR_INIT ${PROJECT_NAME})
-endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
