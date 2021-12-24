@@ -21,16 +21,21 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
-        platform: [ '' ]
         qt-version: [ '5.12.10' ]
-        qt-arch: [ '' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
+        sonar: [ '' ]
+        platform: [ '' ]
+        qt-arch: [ '' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
         include:
+        - os: ubuntu-latest
+          compiler: GCC
+          qt-version: '5.12.10'
+          sonar: 'sonar'
         - os: windows-2019
           compiler: MSVC
           platform: x64
@@ -42,6 +47,9 @@ jobs:
           qt-version: '5.12.10'
           qt-arch: win64_msvc2017_64
           update-api: update-api
+
+    env:
+      SONAR_SERVER_URL: 'https://sonarcloud.io'
 
     steps:
     - uses: actions/checkout@v2
@@ -96,9 +104,19 @@ jobs:
             VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
         fi
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
-                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local\
-                         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON" >>$GITHUB_ENV
+
+        CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                    -DBUILD_SHARED_LIBS=false \
+                    -DCMAKE_INSTALL_PREFIX=~/.local \
+                    -DCMAKE_PREFIX_PATH=~/.local \
+                    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+
+        if [ -n "${{ matrix.sonar }}" ]; then
+            mkdir -p $HOME/.sonar
+            CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
+            echo "COV=gcov$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+        fi
+        echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
 
         if [[ '${{ runner.os }}' != 'Windows' ]]; then
             BIN_DIR=/bin
@@ -114,6 +132,20 @@ jobs:
       if: matrix.compiler == 'MSVC'
       with:
         arch: ${{ matrix.platform }}
+
+    - name: Download and set up Sonar Cloud tools
+      if: matrix.sonar != ''
+      env:
+        SONAR_SCANNER_VERSION: 4.6.2.2472
+      run: |
+        pushd $HOME/.sonar
+        curl -sSL --remote-name-all \
+            $SONAR_SERVER_URL/static/cpp/build-wrapper-linux-x86.zip \
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+        unzip -o build-wrapper*.zip
+        echo "BUILD_WRAPPER=$HOME/.sonar/build-wrapper-linux-x86/build-wrapper-linux* --out-dir $BUILD_PATH/sonar" >>$GITHUB_ENV
+        unzip -o sonar-scanner-cli*.zip
+        popd
 
     - name: Build and install olm
       if: matrix.e2ee
@@ -158,7 +190,8 @@ jobs:
 
     - name: Build and install libQuotient
       run: |
-        cmake --build $BUILD_PATH --target all install
+        $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
+        cmake --build $BUILD_PATH --target install
         ls ~/.local$BIN_DIR/quotest
 
     - name: Run tests
@@ -172,7 +205,23 @@ jobs:
         [[ -z "$TEST_USER" ]] || \
             $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
-    
+
     - name: Perform CodeQL analysis
       if: env.CODEQL_ANALYSIS
       uses: github/codeql-action/analyze@v1
+
+    - name: Run sonar-scanner
+      if: matrix.sonar != ''
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mkdir .coverage && pushd .coverage
+        find $BUILD_PATH/CMakeFiles/Quotient.dir/lib -name '*.gcda' -print0 \
+            | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
+        popd
+        $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
+            -Dsonar.host.url="$SONAR_SERVER_URL" \
+            -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
+            -Dsonar.cfamily.threads=2 \
+            -Dsonar.cfamily.gcov.reportsPath=.coverage
