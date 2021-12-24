@@ -114,6 +114,7 @@ jobs:
         if [ -n "${{ matrix.sonar }}" ]; then
             mkdir -p $HOME/.sonar
             CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
+            echo "COV=gcov$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
         fi
         echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
 
@@ -215,7 +216,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
+        mkdir .coverage && pushd .coverage
+        find $BUILD_PATH/CMakeFiles/Quotient.dir/lib -name '*.gcda' -print0 \
+            | xargs -0 $COV -s $GITHUB_WORKSPACE/lib -pr
+        popd
         $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
-            -Dsonar.cfamily.gcov.reportsPath="$BUILD_PATH/coverage"
+            -Dsonar.cfamily.gcov.reportsPath=.coverage
