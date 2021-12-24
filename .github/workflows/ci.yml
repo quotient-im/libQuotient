@@ -223,4 +223,5 @@ jobs:
         $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
+            -Dsonar.cfamily.threads=2 \
             -Dsonar.cfamily.gcov.reportsPath=.coverage
