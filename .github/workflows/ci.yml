@@ -218,7 +218,7 @@ jobs:
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH/CMakeFiles/Quotient.dir/lib -name '*.gcda' -print0 \
-            | xargs -0 $COV -s $GITHUB_WORKSPACE/lib -pr
+            | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
         popd
         $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
