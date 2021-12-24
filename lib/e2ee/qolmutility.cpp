@@ -10,7 +10,7 @@ using namespace Quotient;
 
 // Convert olm error to enum
 QOlmError lastError(OlmUtility *utility) {
-    const std::string error_raw = olm_utility_last_error(utility);
+    const auto error_raw = olm_utility_last_error(utility);
 
     return fromString(error_raw);
 }

@@ -3,7 +3,7 @@
 
 #include "converters.h"
 
-#include <QVariant>
+#include <QtCore/QVariant>
 #include "e2ee/e2ee.h"
 
 QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)

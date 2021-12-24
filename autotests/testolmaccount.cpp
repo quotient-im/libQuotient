@@ -12,13 +12,6 @@
 #include <room.h>
 #include <csapi/joining.h>
 
-// for sleep
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
 using namespace Quotient;
 
 void TestOlmAccount::pickleUnpickledTest()

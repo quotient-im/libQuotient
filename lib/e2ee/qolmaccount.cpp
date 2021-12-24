@@ -34,7 +34,7 @@ bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
 
 // Convert olm error to enum
 QOlmError lastError(OlmAccount *account) {
-    const std::string error_raw = olm_account_last_error(account);
+    const auto error_raw = olm_account_last_error(account);
 
     return fromString(error_raw);
 }

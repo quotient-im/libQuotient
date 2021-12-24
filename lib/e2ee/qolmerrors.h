@@ -23,6 +23,6 @@ enum QOlmError
     Unknown,
 };
 
-QOlmError fromString(const std::string &error_raw);
+QOlmError fromString(const char* error_raw);
 
 } //namespace Quotient

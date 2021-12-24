@@ -8,7 +8,7 @@
 using namespace Quotient;
 
 QOlmError lastError(OlmInboundGroupSession *session) {
-    const std::string error_raw = olm_inbound_group_session_last_error(session);
+    const auto error_raw = olm_inbound_group_session_last_error(session);
 
     return fromString(error_raw);
 }
@@ -27,9 +27,8 @@ QOlmInboundGroupSession::~QOlmInboundGroupSession()
 std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const QByteArray &key)
 {
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
-    const auto temp = key;
     const auto error = olm_init_inbound_group_session(olmInboundGroupSession,
-            reinterpret_cast<const uint8_t *>(temp.data()), temp.size());
+            reinterpret_cast<const uint8_t *>(key.constData()), key.size());
 
     if (error == olm_error()) {
         throw lastError(olmInboundGroupSession);
