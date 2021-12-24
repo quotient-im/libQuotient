@@ -217,9 +217,11 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         mkdir .coverage && pushd .coverage
-        find $BUILD_PATH/CMakeFiles/Quotient.dir/lib -name '*.gcda' -print0 \
+        find $BUILD_PATH -name '*.gcda' -print0 \
             | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
         popd
+        # Drop coverage of the test source code, which is obviously 100%
+        rm -f quotest* autotests*
         $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
