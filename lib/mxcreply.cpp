@@ -29,6 +29,7 @@ public:
 MxcReply::MxcReply(QNetworkReply* reply)
     : d(std::make_unique<Private>(reply))
 {
+    d->m_device = d->m_reply;
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
