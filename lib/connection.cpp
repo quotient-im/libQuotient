@@ -1982,9 +1982,16 @@ void Connection::Private::saveDevicesList()
         rootObj.insert(QStringLiteral("sync_token"), q->nextBatchToken());
     }
 
-
-    QJsonDocument json { rootObj };
-    const auto data = json.toJson();
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        const auto data =
+            cacheToBinary
+                ? QCborValue::fromJsonValue(rootObj).toCbor()
+                : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
+#else
+        QJsonDocument json { rootObj };
+        const auto data = cacheToBinary ? json.toBinaryData()
+                                           : json.toJson(QJsonDocument::Compact);
+#endif
     qCDebug(PROFILER) << "DeviceList generated in" << et;
 
     outFile.write(data.data(), data.size());
