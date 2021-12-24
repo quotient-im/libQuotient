@@ -24,7 +24,7 @@ jobs:
         qt-version: [ '5.12.10' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
-        update-api: [ '' ] #, 'update-api' ]
+        update-api: [ '', 'update-api' ]
         sonar: [ '' ]
         platform: [ '' ]
         qt-arch: [ '' ]
