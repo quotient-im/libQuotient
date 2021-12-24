@@ -215,12 +215,13 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # Coverage of the test source code is not tracked, as it is obviously 100%
+      # (if it's not, some tests failed and break the build at an earlier stage)
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH -name '*.gcda' -print0 \
             | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
         popd
-        # Drop coverage of the test source code, which is obviously 100%
         rm -f quotest* autotests*
         $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
