@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         qt-version: [ '5.12.10' ]
-        e2ee: [ '', 'e2ee' ]
-        update-api: [ '', 'update-api' ]
+        e2ee: [ 'e2ee' ]
+        update-api: [ '' ]
 
     env:
       SONAR_SCANNER_VERSION: 4.6.2.2472
