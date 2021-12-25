@@ -112,7 +112,7 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     QSet<QString> trackedUsers;
     QSet<QString> outdatedUsers;
-    QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>> deviceKeys;
+    QHash<QString, QHash<QString, DeviceKeys>> deviceKeys;
     QueryKeysJob *currentQueryKeysJob = nullptr;
     bool encryptionUpdateRequired = false;
     PicklingMode picklingMode = Unencrypted {};
@@ -1975,7 +1975,7 @@ void Connection::Private::saveDevicesList()
         }
         rootObj.insert(QStringLiteral("tracked_users"), trackedUsersJson);
         rootObj.insert(QStringLiteral("outdated_users"), outdatedUsersJson);
-        QJsonObject devicesList = toJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(deviceKeys);
+        const auto devicesList = toJson(deviceKeys);
         rootObj.insert(QStringLiteral("devices_list"), devicesList);
         rootObj.insert(QStringLiteral("sync_token"), q->nextBatchToken());
     }
@@ -2023,7 +2023,7 @@ void Connection::Private::loadDevicesList()
         outdatedUsers += user.toString();
     }
 
-    deviceKeys = fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(json["devices_list"].toObject());
+    fromJson(json["devices_list"], deviceKeys);
     auto oldToken = json["sync_token"].toString();
     auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
     connect(changesJob, &BaseJob::success, q, [this, changesJob](){
