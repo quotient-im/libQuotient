@@ -4,18 +4,20 @@
 
 
 #include "qolmerrors.h"
-#include <cstring>
+#include "util.h"
+#include <QtCore/QLatin1String>
 
 Quotient::QOlmError Quotient::fromString(const char* error_raw) {
-    if (!strncmp(error_raw, "BAD_ACCOUNT_KEY", 15)) {
+    const QLatin1String error { error_raw };
+    if (error_raw == "BAD_ACCOUNT_KEY"_ls) {
         return QOlmError::BadAccountKey;
-    } else if (!strncmp(error_raw, "BAD_MESSAGE_KEY_ID", 18)) {
+    } else if (error_raw == "BAD_MESSAGE_KEY_ID"_ls) {
         return QOlmError::BadMessageKeyId;
-    } else if (!strncmp(error_raw, "INVALID_BASE64", 14)) {
+    } else if (error_raw == "INVALID_BASE64"_ls) {
         return QOlmError::InvalidBase64;
-    } else if (!strncmp(error_raw, "NOT_ENOUGH_RANDOM", 17)) {
+    } else if (error_raw == "NOT_ENOUGH_RANDOM"_ls) {
         return QOlmError::NotEnoughRandom;
-    } else if (!strncmp(error_raw, "OUTPUT_BUFFER_TOO_SMALL", 23)) {
+    } else if (error_raw == "OUTPUT_BUFFER_TOO_SMALL"_ls) {
         return QOlmError::OutputBufferTooSmall;
     } else {
         return QOlmError::Unknown;

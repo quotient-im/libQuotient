@@ -8,9 +8,7 @@
 using namespace Quotient;
 
 QOlmError lastError(OlmOutboundGroupSession *session) {
-    const auto error_raw = olm_outbound_group_session_last_error(session);
-
-    return fromString(error_raw);
+    return fromString(olm_outbound_group_session_last_error(session));
 }
 
 QOlmOutboundGroupSession::QOlmOutboundGroupSession(OlmOutboundGroupSession *session)

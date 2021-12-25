@@ -34,9 +34,7 @@ bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
 
 // Convert olm error to enum
 QOlmError lastError(OlmAccount *account) {
-    const auto error_raw = olm_account_last_error(account);
-
-    return fromString(error_raw);
+    return fromString(olm_account_last_error(account));
 }
 
 QByteArray getRandom(size_t bufferSize)

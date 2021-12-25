@@ -11,9 +11,7 @@
 using namespace Quotient;
 
 QOlmError lastError(OlmSession* session) {
-    const auto error_raw = olm_session_last_error(session);
-
-    return fromString(error_raw);
+    return fromString(olm_session_last_error(session));
 }
 
 Quotient::QOlmSession::~QOlmSession()

@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <string>
-
 namespace Quotient {
 //! All errors that could be caused by an operation regarding Olm
 //! Errors are named exactly like the ones in libolm.
