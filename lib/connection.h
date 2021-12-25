@@ -124,6 +124,7 @@ class Connection : public QObject {
     Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
+    Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
 
 public:
     using UsersToDevicesToEvents =
