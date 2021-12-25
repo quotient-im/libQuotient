@@ -64,7 +64,6 @@ std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::pickle(const Pickl
     return pickledBuf;
 }
 
-
 std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
