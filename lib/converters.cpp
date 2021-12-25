@@ -8,21 +8,11 @@
 
 QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 {
-    if (v.canConvert<SignedOneTimeKey>()) {
-        return toJson(v.value<SignedOneTimeKey>());
-    }
     return QJsonValue::fromVariant(v);
 }
 
 QVariant Quotient::JsonConverter<QVariant>::load(const QJsonValue& jv)
 {
-    if (jv.isObject()) {
-        const QJsonObject obj = jv.toObject();
-        if (obj.contains(QLatin1String("key")) && obj.contains(QLatin1String("signatures"))) {
-            SignedOneTimeKey signedOneTimeKeys;
-            signedOneTimeKeys.key = obj[QLatin1String("key")].toString();
-        }
-    }
     return jv.toVariant();
 }
 
