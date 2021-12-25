@@ -19,7 +19,6 @@ QOlmOutboundGroupSession::QOlmOutboundGroupSession(OlmOutboundGroupSession *sess
 QOlmOutboundGroupSession::~QOlmOutboundGroupSession()
 {
     olm_clear_outbound_group_session(m_groupSession);
-    Q_ASSERT(sizeof(m_groupSession) == olm_outbound_group_session_size());
     delete[](reinterpret_cast<uint8_t *>(m_groupSession));
 }
 
