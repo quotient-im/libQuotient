@@ -269,9 +269,7 @@ Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
 {
 #ifdef Quotient_E2EE_ENABLED
-    connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
-        saveOlmAccount();
-    });
+    //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
 #endif
     d->q = this; // All d initialization should occur before this line
 }
