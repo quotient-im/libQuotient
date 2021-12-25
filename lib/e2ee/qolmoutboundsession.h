@@ -12,7 +12,6 @@
 
 namespace Quotient {
 
-
 //! An out-bound group session is responsible for encrypting outgoing
 //! communication in a Megolm session.
 class QOlmOutboundGroupSession
