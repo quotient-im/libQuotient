@@ -29,24 +29,24 @@ inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 
 // === Standard Matrix key names and basicEventJson() ===
 
-static const auto TypeKey = QStringLiteral("type");
-static const auto BodyKey = QStringLiteral("body");
-static const auto ContentKey = QStringLiteral("content");
-static const auto EventIdKey = QStringLiteral("event_id");
-static const auto SenderKey = QStringLiteral("sender");
-static const auto RoomIdKey = QStringLiteral("room_id");
-static const auto UnsignedKey = QStringLiteral("unsigned");
-static const auto StateKeyKey = QStringLiteral("state_key");
-static const auto TypeKeyL = "type"_ls;
-static const auto BodyKeyL = "body"_ls;
-static const auto ContentKeyL = "content"_ls;
-static const auto EventIdKeyL = "event_id"_ls;
-static const auto SenderKeyL = "sender"_ls;
-static const auto RoomIdKeyL = "room_id"_ls;
-static const auto UnsignedKeyL = "unsigned"_ls;
-static const auto RedactedCauseKeyL = "redacted_because"_ls;
-static const auto PrevContentKeyL = "prev_content"_ls;
-static const auto StateKeyKeyL = "state_key"_ls;
+constexpr auto TypeKeyL = "type"_ls;
+constexpr auto BodyKeyL = "body"_ls;
+constexpr auto ContentKeyL = "content"_ls;
+constexpr auto EventIdKeyL = "event_id"_ls;
+constexpr auto SenderKeyL = "sender"_ls;
+constexpr auto RoomIdKeyL = "room_id"_ls;
+constexpr auto UnsignedKeyL = "unsigned"_ls;
+constexpr auto RedactedCauseKeyL = "redacted_because"_ls;
+constexpr auto PrevContentKeyL = "prev_content"_ls;
+constexpr auto StateKeyKeyL = "state_key"_ls;
+const QString TypeKey { TypeKeyL };
+const QString BodyKey { BodyKeyL };
+const QString ContentKey { ContentKeyL };
+const QString EventIdKey { EventIdKeyL };
+const QString SenderKey { SenderKeyL };
+const QString RoomIdKey { RoomIdKeyL };
+const QString UnsignedKey { UnsignedKeyL };
+const QString StateKeyKey { StateKeyKeyL };
 
 /// Make a minimal correct Matrix event JSON
 inline QJsonObject basicEventJson(const QString& matrixType,
