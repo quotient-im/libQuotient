@@ -1513,8 +1513,8 @@ room_factory_t Connection::roomFactory() { return _roomFactory; }
 
 user_factory_t Connection::userFactory() { return _userFactory; }
 
-room_factory_t Connection::_roomFactory = defaultRoomFactory<>();
-user_factory_t Connection::_userFactory = defaultUserFactory<>();
+room_factory_t Connection::_roomFactory = defaultRoomFactory<>;
+user_factory_t Connection::_userFactory = defaultUserFactory<>;
 
 QByteArray Connection::generateTxnId() const
 {

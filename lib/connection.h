@@ -81,11 +81,9 @@ using user_factory_t = std::function<User*(Connection*, const QString&)>;
  * \sa Connection::setRoomFactory, Connection::setRoomType
  */
 template <typename T = Room>
-static inline room_factory_t defaultRoomFactory()
+auto defaultRoomFactory(Connection* c, const QString& id, JoinState js)
 {
-    return [](Connection* c, const QString& id, JoinState js) {
-        return new T(c, id, js);
-    };
+    return new T(c, id, js);
 }
 
 /** The default factory to create user objects
@@ -94,9 +92,9 @@ static inline room_factory_t defaultRoomFactory()
  * \sa Connection::setUserFactory, Connection::setUserType
  */
 template <typename T = User>
-static inline user_factory_t defaultUserFactory()
+auto defaultUserFactory(Connection* c, const QString& id)
 {
-    return [](Connection* c, const QString& id) { return new T(id, c); };
+    return new T(id, c);
 }
 
 // Room ids, rather than room pointers, are used in the direct chat
@@ -469,14 +467,14 @@ public:
     template <typename T>
     static void setRoomType()
     {
-        setRoomFactory(defaultRoomFactory<T>());
+        setRoomFactory(defaultRoomFactory<T>);
     }
 
     /// Set the user factory to default with the overriden user type
     template <typename T>
     static void setUserType()
     {
-        setUserFactory(defaultUserFactory<T>());
+        setUserFactory(defaultUserFactory<T>);
     }
 
 public Q_SLOTS:
