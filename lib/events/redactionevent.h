@@ -17,7 +17,7 @@ public:
     {
         return fullJson()["redacts"_ls].toString();
     }
-    QString reason() const { return contentJson()["reason"_ls].toString(); }
+    QString reason() const { return contentPart<QString>("reason"_ls); }
 };
 REGISTER_EVENT_TYPE(RedactionEvent)
 } // namespace Quotient

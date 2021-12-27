@@ -8,6 +8,8 @@
 #include <memory>
 
 namespace Quotient {
+class Room;
+class Connection;
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
@@ -20,6 +22,9 @@ public:
 
     /** Get a pointer to the singleton */
     static NetworkAccessManager* instance();
+
+public Q_SLOTS:
+    QStringList supportedSchemesImplementation() const;
 
 private:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,

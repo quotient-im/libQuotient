@@ -6,7 +6,6 @@
 #pragma once
 
 #include "ssosession.h"
-#include "joinstate.h"
 #include "qt_connection_util.h"
 #include "quotient_common.h"
 
@@ -82,11 +81,9 @@ using user_factory_t = std::function<User*(Connection*, const QString&)>;
  * \sa Connection::setRoomFactory, Connection::setRoomType
  */
 template <typename T = Room>
-static inline room_factory_t defaultRoomFactory()
+auto defaultRoomFactory(Connection* c, const QString& id, JoinState js)
 {
-    return [](Connection* c, const QString& id, JoinState js) {
-        return new T(c, id, js);
-    };
+    return new T(c, id, js);
 }
 
 /** The default factory to create user objects
@@ -95,9 +92,9 @@ static inline room_factory_t defaultRoomFactory()
  * \sa Connection::setUserFactory, Connection::setUserType
  */
 template <typename T = User>
-static inline user_factory_t defaultUserFactory()
+auto defaultUserFactory(Connection* c, const QString& id)
 {
-    return [](Connection* c, const QString& id) { return new T(id, c); };
+    return new T(id, c);
 }
 
 // Room ids, rather than room pointers, are used in the direct chat
@@ -125,6 +122,7 @@ class Connection : public QObject {
     Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
+    Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
 
 public:
     using UsersToDevicesToEvents =
@@ -138,15 +136,6 @@ public:
     explicit Connection(QObject* parent = nullptr);
     explicit Connection(const QUrl& server, QObject* parent = nullptr);
     ~Connection() override;
-
-    /// Get all Invited and Joined rooms
-    /*!
-     * \return a hashmap from a composite key - room name and whether
-     *         it's an Invite rather than Join - to room pointers
-     * \sa allRooms, rooms, roomsWithTag
-     */
-    [[deprecated("Use allRooms(), roomsWithTag() or rooms(joinStates) instead")]]
-    QHash<QPair<QString, bool>, Room*> roomMap() const;
 
     /// Get all rooms known within this Connection
     /*!
@@ -478,21 +467,34 @@ public:
     template <typename T>
     static void setRoomType()
     {
-        setRoomFactory(defaultRoomFactory<T>());
+        setRoomFactory(defaultRoomFactory<T>);
     }
 
     /// Set the user factory to default with the overriden user type
     template <typename T>
     static void setUserType()
     {
-        setUserFactory(defaultUserFactory<T>());
+        setUserFactory(defaultUserFactory<T>);
     }
 
 public Q_SLOTS:
-    /** Set the homeserver base URL */
+    /// \brief Set the homeserver base URL and retrieve its login flows
+    ///
+    /// \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
     void setHomeserver(const QUrl& baseUrl);
 
-    /** Determine and set the homeserver from MXID */
+    /// \brief Determine and set the homeserver from MXID
+    ///
+    /// This attempts to resolve the homeserver by requesting
+    /// .well-known/matrix/client record from the server taken from the MXID
+    /// serverpart. If there is no record found, the serverpart itself is
+    /// attempted as the homeserver base URL; if the record is there but
+    /// is malformed (e.g., the homeserver base URL cannot be found in it)
+    /// resolveError() is emitted and further processing stops. Otherwise,
+    /// setHomeserver is called, preparing the Connection object for the login
+    /// attempt.
+    /// \param mxid user Matrix ID, such as @someone:example.org
+    /// \sa setHomeserver, homeserverChanged, loginFlowsChanged, resolveError
     void resolveServer(const QString& mxid);
 
     /** \brief Log in using a username and password pair
@@ -525,30 +527,12 @@ public Q_SLOTS:
      */
     void assumeIdentity(const QString& mxId, const QString& accessToken,
                         const QString& deviceId);
-    /*! \deprecated Use loginWithPassword instead */
-    void connectToServer(const QString& userId, const QString& password,
-                         const QString& initialDeviceName,
-                         const QString& deviceId = {})
-    {
-        loginWithPassword(userId, password, initialDeviceName, deviceId);
-    }
-    /*! \deprecated
-     * Use assumeIdentity() if you have an access token or
-     * loginWithToken() if you have a login token.
-     */
-    void connectWithToken(const QString& userId, const QString& accessToken,
-                          const QString& deviceId)
-    {
-        assumeIdentity(userId, accessToken, deviceId);
-    }
     /// Explicitly request capabilities from the server
     void reloadCapabilities();
 
     /// Find out if capabilites are still loading from the server
     bool loadingCapabilities() const;
 
-    /** @deprecated Use stopSync() instead */
-    void disconnectFromServer() { stopSync(); }
     void logout();
 
     void sync(int timeout = -1);
@@ -556,6 +540,8 @@ public Q_SLOTS:
 
     void stopSync();
     QString nextBatchToken() const;
+
+    Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
 
     virtual MediaThumbnailJob*
     getThumbnail(const QString& mediaId, QSize requestedSize,
@@ -663,24 +649,12 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
-    // Old API that will be abolished any time soon. DO NOT USE.
-
-    /** @deprecated Use callApi<PostReceiptJob>() or Room::postReceipt() instead
-     */
-    virtual PostReceiptJob* postReceipt(Room* room, RoomEvent* event);
-
 Q_SIGNALS:
-    /**
-     * @deprecated
-     * This was a signal resulting from a successful resolveServer().
-     * Since Connection now provides setHomeserver(), the HS URL
-     * may change even without resolveServer() invocation. Use
-     * loginFLowsChanged() instead of resolved(). You can also use
-     * loginWith*() and assumeIdentity() without the HS URL set in
-     * advance (i.e. without calling resolveServer), as they trigger
-     * server name resolution from MXID if the server URL is not valid.
-     */
-    void resolved();
+    /// \brief Initial server resolution has failed
+    ///
+    /// This signal is emitted when resolveServer() did not manage to resolve
+    /// the homeserver using its .well-known/client record or otherwise.
+    /// \sa resolveServer
     void resolveError(QString error);
 
     void homeserverChanged(QUrl baseUrl);
@@ -688,7 +662,6 @@ Q_SIGNALS:
     void capabilitiesLoaded();
 
     void connected();
-    void reconnected(); //< \deprecated Use connected() instead
     void loggedOut();
     /** Login data or state have changed
      *

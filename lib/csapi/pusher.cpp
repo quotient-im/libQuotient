@@ -4,20 +4,17 @@
 
 #include "pusher.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/_matrix/client/r0")
-                                       % "/pushers");
+                                   makePath("/_matrix/client/r0", "/pushers"));
 }
 
 GetPushersJob::GetPushersJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPushersJob"),
-              QStringLiteral("/_matrix/client/r0") % "/pushers")
+              makePath("/_matrix/client/r0", "/pushers"))
 {}
 
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
@@ -26,7 +23,7 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& lang, const PusherData& data,
                              const QString& profileTag, Omittable<bool> append)
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
-              QStringLiteral("/_matrix/client/r0") % "/pushers/set")
+              makePath("/_matrix/client/r0", "/pushers/set"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("pushkey"), pushkey);

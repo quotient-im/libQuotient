@@ -4,16 +4,13 @@
 
 #include "read_markers.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 SetReadMarkerJob::SetReadMarkerJob(const QString& roomId,
                                    const QString& mFullyRead,
                                    const QString& mRead)
     : BaseJob(HttpVerb::Post, QStringLiteral("SetReadMarkerJob"),
-              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
-                  % "/read_markers")
+              makePath("/_matrix/client/r0", "/rooms/", roomId, "/read_markers"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("m.fully_read"), mFullyRead);

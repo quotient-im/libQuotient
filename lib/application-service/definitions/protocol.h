@@ -40,7 +40,7 @@ struct ProtocolInstance {
     /// provided at the higher level Protocol object.
     QString icon;
 
-    /// Preset values for ``fields`` the client may use to search by.
+    /// Preset values for `fields` the client may use to search by.
     QJsonObject fields;
 
     /// A unique identifier across all instances.
@@ -81,10 +81,9 @@ struct ThirdPartyProtocol {
     /// A content URI representing an icon for the third party protocol.
     QString icon;
 
-    /// The type definitions for the fields defined in the ``user_fields`` and
-    /// ``location_fields``. Each entry in those arrays MUST have an entry here.
-    /// The
-    /// ``string`` key for this object is field name itself.
+    /// The type definitions for the fields defined in the `user_fields` and
+    /// `location_fields`. Each entry in those arrays MUST have an entry here.
+    /// The `string` key for this object is field name itself.
     ///
     /// May be an empty object if no fields are defined.
     QHash<QString, FieldType> fieldTypes;

@@ -13,10 +13,10 @@ public:
 
     explicit RoomKeyEvent(const QJsonObject& obj);
 
-    QString algorithm() const { return content<QString>("algorithm"_ls); }
-    QString roomId() const { return content<QString>(RoomIdKeyL); }
-    QString sessionId() const { return content<QString>("session_id"_ls); }
-    QString sessionKey() const { return content<QString>("session_key"_ls); }
+    QString algorithm() const { return contentPart<QString>("algorithm"_ls); }
+    QString roomId() const { return contentPart<QString>(RoomIdKeyL); }
+    QString sessionId() const { return contentPart<QString>("session_id"_ls); }
+    QString sessionKey() const { return contentPart<QString>("session_key"_ls); }
 };
 REGISTER_EVENT_TYPE(RoomKeyEvent)
 } // namespace Quotient

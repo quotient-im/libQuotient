@@ -42,23 +42,29 @@ public:
     UriResolveResult visitResource(Connection* account, const Uri& uri);
 
 protected:
+    virtual ~UriResolverBase() = 0;
+
     /// Called by visitResource() when the passed URI identifies a Matrix user
     /*!
      * \return IncorrectAction if the action is not correct or not supported;
      *         UriResolved if it is accepted; other values are disallowed
      */
-    virtual UriResolveResult visitUser(User* user, const QString& action)
+    virtual UriResolveResult visitUser(User* user [[maybe_unused]],
+                                       const QString& action [[maybe_unused]])
     {
         return IncorrectAction;
     }
     /// Called by visitResource() when the passed URI identifies a room or
     /// an event in a room
-    virtual void visitRoom(Room* room, const QString& eventId) {}
+    virtual void visitRoom(Room* room [[maybe_unused]],
+                           const QString& eventId [[maybe_unused]])
+    {}
     /// Called by visitResource() when the passed URI has `action() == "join"`
     /// and identifies a room that the user defined by the Connection argument
     /// is not a member of
-    virtual void joinRoom(Connection* account, const QString& roomAliasOrId,
-                          const QStringList& viaServers = {})
+    virtual void joinRoom(Connection* account [[maybe_unused]],
+                          const QString& roomAliasOrId [[maybe_unused]],
+                          const QStringList& viaServers [[maybe_unused]] = {})
     {}
     /// Called by visitResource() when the passed URI has `type() == NonMatrix`
     /*!
@@ -67,7 +73,10 @@ protected:
      * `return QDesktopServices::openUrl(url);` but it's strongly advised to
      * ask for a user confirmation beforehand.
      */
-    virtual bool visitNonMatrix(const QUrl& url) { return false; }
+    virtual bool visitNonMatrix(const QUrl& url [[maybe_unused]])
+    {
+        return false;
+    }
 };
 
 /*! \brief Resolve the resource and invoke an action on it, via function objects

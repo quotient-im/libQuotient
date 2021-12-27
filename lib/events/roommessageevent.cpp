@@ -10,7 +10,9 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
-#include <QtMultimedia/QMediaResource>
+#if QT_VERSION_MAJOR < 6
+#    include <QtMultimedia/QMediaResource>
+#endif
 
 using namespace Quotient;
 using namespace EventContent;
@@ -133,6 +135,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
 {}
 
+#if QT_VERSION_MAJOR < 6
 TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
 {
     auto filePath = file.absoluteFilePath();
@@ -142,21 +145,21 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
         auto mimeTypeName = mimeType.name();
         if (mimeTypeName.startsWith("image/"))
             return new ImageContent(localUrl, file.size(), mimeType,
-                                    QImageReader(filePath).size(),
+                                    QImageReader(filePath).size(), none,
                                     file.fileName());
 
         // duration can only be obtained asynchronously and can only be reliably
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
             return new VideoContent(localUrl, file.size(), mimeType,
-                                    QMediaResource(localUrl).resolution(),
+                                    QMediaResource(localUrl).resolution(), none,
                                     file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
-            return new AudioContent(localUrl, file.size(), mimeType,
+            return new AudioContent(localUrl, file.size(), mimeType, none,
                                     file.fileName());
     }
-    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
+    return new FileContent(localUrl, file.size(), mimeType, none, file.fileName());
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
@@ -166,6 +169,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                      : rawMsgTypeForFile(file),
                        contentFromFile(file, asGenericFile))
 {}
+#endif
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj), _content(nullptr)
@@ -200,12 +204,12 @@ RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 
 QString RoomMessageEvent::rawMsgtype() const
 {
-    return contentJson()[MsgTypeKeyL].toString();
+    return contentPart<QString>(MsgTypeKeyL);
 }
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentJson()[BodyKeyL].toString();
+    return contentPart<QString>(BodyKeyL);
 }
 
 QMimeType RoomMessageEvent::mimeType() const

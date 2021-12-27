@@ -14,7 +14,7 @@ namespace Quotient {
  *
  * Gets discovery information about the domain. The file may include
  * additional keys, which MUST follow the Java package naming convention,
- * e.g. ``com.example.myapp.property``. This ensures property names are
+ * e.g. `com.example.myapp.property`. This ensures property names are
  * suitably namespaced for each application and reduces the risk of
  * clashes.
  *

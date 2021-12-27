@@ -7,27 +7,26 @@
 #include "converters.h"
 #include "logging.h"
 
-#include <array>
-
-static const std::array<QString, 5> membershipStrings = {
-    { QStringLiteral("invite"), QStringLiteral("join"), QStringLiteral("knock"),
-      QStringLiteral("leave"), QStringLiteral("ban") }
-};
+#include <QtCore/QtAlgorithms>
 
 namespace Quotient {
 template <>
-struct JsonConverter<MembershipType> {
-    static MembershipType load(const QJsonValue& jv)
+struct JsonConverter<Membership> {
+    static Membership load(const QJsonValue& jv)
     {
-        const auto& membershipString = jv.toString();
-        for (auto it = membershipStrings.begin(); it != membershipStrings.end();
-             ++it)
-            if (membershipString == *it)
-                return MembershipType(it - membershipStrings.begin());
+        const auto& ms = jv.toString();
+        if (ms.isEmpty())
+        {
+            qCWarning(EVENTS) << "Empty membership state";
+            return Membership::Invalid;
+        }
+        const auto it =
+            std::find(MembershipStrings.begin(), MembershipStrings.end(), ms);
+        if (it != MembershipStrings.end())
+            return Membership(1U << (it - MembershipStrings.begin()));
 
-        if (!membershipString.isEmpty())
-            qCWarning(EVENTS) << "Unknown MembershipType: " << membershipString;
-        return MembershipType::Undefined;
+        qCWarning(EVENTS) << "Unknown Membership value: " << ms;
+        return Membership::Invalid;
     }
 };
 } // namespace Quotient
@@ -35,7 +34,7 @@ struct JsonConverter<MembershipType> {
 using namespace Quotient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
-    : membership(fromJson<MembershipType>(json["membership"_ls]))
+    : membership(fromJson<Membership>(json["membership"_ls]))
     , isDirect(json["is_direct"_ls].toBool())
     , displayName(fromJson<Omittable<QString>>(json["displayname"_ls]))
     , avatarUrl(fromJson<Omittable<QString>>(json["avatar_url"_ls]))
@@ -48,10 +47,10 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
 void MemberEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
-    Q_ASSERT_X(membership != MembershipType::Undefined, __FUNCTION__,
-               "The key 'membership' must be explicit in MemberEventContent");
-    if (membership != MembershipType::Undefined)
-        o->insert(QStringLiteral("membership"), membershipStrings[membership]);
+    if (membership != Membership::Invalid)
+        o->insert(QStringLiteral("membership"),
+                  MembershipStrings[qCountTrailingZeroBits(
+                      std::underlying_type_t<Membership>(membership))]);
     if (displayName)
         o->insert(QStringLiteral("displayname"), *displayName);
     if (avatarUrl && avatarUrl->isValid())
@@ -67,51 +66,49 @@ bool RoomMemberEvent::changesMembership() const
 
 bool RoomMemberEvent::isInvite() const
 {
-    return membership() == MembershipType::Invite && changesMembership();
+    return membership() == Membership::Invite && changesMembership();
 }
 
 bool RoomMemberEvent::isRejectedInvite() const
 {
-    return membership() == MembershipType::Leave && prevContent()
-           && prevContent()->membership == MembershipType::Invite;
+    return membership() == Membership::Leave && prevContent()
+           && prevContent()->membership == Membership::Invite;
 }
 
 bool RoomMemberEvent::isJoin() const
 {
-    return membership() == MembershipType::Join && changesMembership();
+    return membership() == Membership::Join && changesMembership();
 }
 
 bool RoomMemberEvent::isLeave() const
 {
-    return membership() == MembershipType::Leave && prevContent()
+    return membership() == Membership::Leave && prevContent()
            && prevContent()->membership != membership()
-           && prevContent()->membership != MembershipType::Ban
-           && prevContent()->membership != MembershipType::Invite;
+           && prevContent()->membership != Membership::Ban
+           && prevContent()->membership != Membership::Invite;
 }
 
 bool RoomMemberEvent::isBan() const
 {
-    return membership() == MembershipType::Ban && changesMembership();
+    return membership() == Membership::Ban && changesMembership();
 }
 
 bool RoomMemberEvent::isUnban() const
 {
-    return membership() == MembershipType::Leave && prevContent()
-           && prevContent()->membership == MembershipType::Ban;
+    return membership() == Membership::Leave && prevContent()
+           && prevContent()->membership == Membership::Ban;
 }
 
 bool RoomMemberEvent::isRename() const
 {
-    auto prevName = prevContent() && prevContent()->displayName
-                        ? *prevContent()->displayName
-                        : QString();
-    return newDisplayName() != prevName;
+    return prevContent() && prevContent()->displayName
+               ? newDisplayName() != *prevContent()->displayName
+               : newDisplayName().has_value();
 }
 
 bool RoomMemberEvent::isAvatarUpdate() const
 {
-    auto prevAvatarUrl = prevContent() && prevContent()->avatarUrl
-                             ? *prevContent()->avatarUrl
-                             : QUrl();
-    return newAvatarUrl() != prevAvatarUrl;
+    return prevContent() && prevContent()->avatarUrl
+               ? newAvatarUrl() != *prevContent()->avatarUrl
+               : newAvatarUrl().has_value();
 }

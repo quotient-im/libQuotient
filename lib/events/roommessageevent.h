@@ -18,10 +18,6 @@ namespace MessageEventContent = EventContent; // Back-compatibility
  */
 class RoomMessageEvent : public RoomEvent {
     Q_GADGET
-    Q_PROPERTY(QString msgType READ rawMsgtype CONSTANT)
-    Q_PROPERTY(QString plainBody READ plainBody CONSTANT)
-    Q_PROPERTY(QMimeType mimeType READ mimeType STORED false CONSTANT)
-    Q_PROPERTY(const EventContent::TypedBase* content READ content CONSTANT)
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
 
@@ -42,8 +38,12 @@ public:
     explicit RoomMessageEvent(const QString& plainBody,
                               MsgType msgType = MsgType::Text,
                               EventContent::TypedBase* content = nullptr);
+#if QT_VERSION_MAJOR < 6
+    [[deprecated("Create an EventContent object on the client side"
+                 " and pass it to other constructors")]] //
     explicit RoomMessageEvent(const QString& plainBody, const QFileInfo& file,
                               bool asGenericFile = false);
+#endif
     explicit RoomMessageEvent(const QJsonObject& obj);
 
     MsgType msgtype() const;
@@ -58,9 +58,26 @@ public:
                                                       _content.data());
     }
     QMimeType mimeType() const;
+    //! \brief Determine whether the message has text content
+    //!
+    //! \return true, if the message type is one of m.text, m.notice, m.emote,
+    //!         or the message type is unspecified (in which case plainBody()
+    //!         can still be examined); false otherwise
     bool hasTextContent() const;
+    //! \brief Determine whether the message has a file/attachment
+    //!
+    //! \return true, if the message has a data structure corresponding to
+    //!         a file (such as m.file or m.audio); false otherwise
     bool hasFileContent() const;
+    //! \brief Determine whether the message has a thumbnail
+    //!
+    //! \return true, if the message has a data structure corresponding to
+    //!         a thumbnail (the message type may be one for visual content,
+    //!         such as m.image, or generic binary content, i.e. m.file);
+    //!         false otherwise
     bool hasThumbnail() const;
+    //! \brief Obtain id of an event replaced by the current one
+    //! \sa RoomEvent::isReplaced, RoomEvent::replacedBy
     QString replacedEvent() const;
 
     static QString rawMsgTypeForUrl(const QUrl& url);

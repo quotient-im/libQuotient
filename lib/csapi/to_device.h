@@ -32,7 +32,7 @@ public:
      */
     explicit SendToDeviceJob(
         const QString& eventType, const QString& txnId,
-        const QHash<QString, QHash<QString, QJsonObject>>& messages = {});
+        const QHash<QString, QHash<QString, QJsonObject>>& messages);
 };
 
 } // namespace Quotient

@@ -25,6 +25,27 @@ Example of a Receipt Event:
 
 using namespace Quotient;
 
+// The library loads the event-ids-to-receipts JSON map into a vector because
+// map lookups are not used and vectors are massively faster. Same goes for
+// de-/serialization of ReceiptsForEvent::receipts.
+// (XXX: would this be generally preferred across CS API JSON maps?..)
+QJsonObject toJson(const EventsWithReceipts& ewrs)
+{
+    QJsonObject json;
+    for (const auto& e : ewrs) {
+        QJsonObject receiptsJson;
+        for (const auto& r : e.receipts)
+            receiptsJson.insert(r.userId,
+                                QJsonObject { { "ts"_ls, toJson(r.timestamp) } });
+        json.insert(e.evtId, QJsonObject { { "m.read"_ls, receiptsJson } });
+    }
+    return json;
+}
+
+ReceiptEvent::ReceiptEvent(const EventsWithReceipts &ewrs)
+    : Event(typeId(), matrixTypeId(), toJson(ewrs))
+{}
+
 EventsWithReceipts ReceiptEvent::eventsWithReceipts() const
 {
     EventsWithReceipts result;
@@ -39,14 +60,14 @@ EventsWithReceipts ReceiptEvent::eventsWithReceipts() const
         }
         const auto reads =
             eventIt.value().toObject().value("m.read"_ls).toObject();
-        QVector<Receipt> receipts;
-        receipts.reserve(reads.size());
+        QVector<UserTimestamp> usersAtEvent;
+        usersAtEvent.reserve(reads.size());
         for (auto userIt = reads.begin(); userIt != reads.end(); ++userIt) {
             const auto user = userIt.value().toObject();
-            receipts.push_back(
+            usersAtEvent.push_back(
                 { userIt.key(), fromJson<QDateTime>(user["ts"_ls]) });
         }
-        result.push_back({ eventIt.key(), std::move(receipts) });
+        result.push_back({ eventIt.key(), std::move(usersAtEvent) });
     }
     return result;
 }

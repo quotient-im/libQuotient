@@ -16,6 +16,8 @@ Q_DECLARE_LOGGING_CATEGORY(EPHEMERAL)
 Q_DECLARE_LOGGING_CATEGORY(E2EE)
 Q_DECLARE_LOGGING_CATEGORY(JOBS)
 Q_DECLARE_LOGGING_CATEGORY(SYNCJOB)
+Q_DECLARE_LOGGING_CATEGORY(THUMBNAILJOB)
+Q_DECLARE_LOGGING_CATEGORY(NETWORK)
 Q_DECLARE_LOGGING_CATEGORY(PROFILER)
 
 namespace Quotient {
@@ -35,24 +37,18 @@ using QDebugManip = QDebug (*)(QDebug);
  */
 inline QDebug formatJson(QDebug debug_object)
 {
-#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
-    return debug_object;
-#else
     return debug_object.noquote();
-#endif
 }
 
-/**
- * @brief A helper operator to facilitate usage of formatJson (and possibly
- * other manipulators)
- *
- * @param debug_object to output the json to
- * @param qdm a QDebug manipulator
- * @return a copy of debug_object that has its mode altered by qdm
- */
-inline QDebug operator<<(QDebug debug_object, QDebugManip qdm)
+//! Suppress full qualification of enums/QFlags when logging
+inline QDebug terse(QDebug dbg)
 {
-    return qdm(debug_object);
+    return
+#if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+        dbg.setVerbosity(0), dbg;
+#else
+        dbg.verbosity(QDebug::MinimumVerbosity);
+#endif
 }
 
 inline qint64 profilerMinNsecs()
@@ -66,8 +62,19 @@ inline qint64 profilerMinNsecs()
         * 1000;
 }
 } // namespace Quotient
-/// \deprecated Use namespace Quotient instead
-namespace QMatrixClient = Quotient;
+
+/**
+ * @brief A helper operator to facilitate usage of formatJson (and possibly
+ * other manipulators)
+ *
+ * @param debug_object to output the json to
+ * @param qdm a QDebug manipulator
+ * @return a copy of debug_object that has its mode altered by qdm
+ */
+inline QDebug operator<<(QDebug debug_object, Quotient::QDebugManip qdm)
+{
+    return qdm(debug_object);
+}
 
 inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
 {

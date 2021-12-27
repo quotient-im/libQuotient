@@ -18,13 +18,10 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
 }
 
 class StateEventBase : public RoomEvent {
-    Q_GADGET
-    Q_PROPERTY(QString stateKey READ stateKey CONSTANT)
 public:
-    using factory_t = EventFactory<StateEventBase>;
+    static inline _impl::EventFactory<StateEventBase> factory { "StateEvent" };
 
-    StateEventBase(Type type, const QJsonObject& json) : RoomEvent(type, json)
-    {}
+    StateEventBase(Type type, const QJsonObject& json);
     StateEventBase(Type type, event_mtype_t matrixType,
                    const QString& stateKey = {},
                    const QJsonObject& contentJson = {});
@@ -38,6 +35,22 @@ public:
 };
 using StateEventPtr = event_ptr_tt<StateEventBase>;
 using StateEvents = EventsArray<StateEventBase>;
+
+//! \brief Override RoomEvent factory with that from StateEventBase if JSON has
+//! stateKey
+//!
+//! This means in particular that an event with a type known to RoomEvent but
+//! having stateKey set (even to an empty value) will be treated as a state
+//! event and most likely end up as unknown (consider, e.g., m.room.message
+//! that has stateKey set).
+template <>
+inline RoomEventPtr doLoadEvent(const QJsonObject& json,
+                                const QString& matrixType)
+{
+    if (json.contains(StateKeyKeyL))
+        return StateEventBase::factory.loadEvent(json, matrixType);
+    return RoomEvent::factory.loadEvent(json, matrixType);
+}
 
 template <>
 inline bool is<StateEventBase>(const Event& e)
@@ -99,10 +112,6 @@ public:
     {
         visitor(_content);
         editJson()[ContentKeyL] = _content.toJson();
-    }
-    [[deprecated("Use prevContent instead")]] const ContentT* prev_content() const
-    {
-        return prevContent();
     }
     const ContentT* prevContent() const
     {

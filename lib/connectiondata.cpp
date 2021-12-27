@@ -118,18 +118,6 @@ void ConnectionData::setToken(QByteArray token)
     d->accessToken = std::move(token);
 }
 
-void ConnectionData::setHost(QString host)
-{
-    d->baseUrl.setHost(host);
-    qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
-}
-
-void ConnectionData::setPort(int port)
-{
-    d->baseUrl.setPort(port);
-    qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
-}
-
 const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 const QString& ConnectionData::userId() const { return d->userId; }

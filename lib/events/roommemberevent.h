@@ -7,23 +7,21 @@
 
 #include "eventcontent.h"
 #include "stateevent.h"
+#include "quotient_common.h"
 
 namespace Quotient {
 class MemberEventContent : public EventContent::Base {
 public:
-    enum MembershipType : unsigned char {
-        Invite = 0,
-        Join,
-        Knock,
-        Leave,
-        Ban,
-        Undefined
-    };
+    using MembershipType
+        [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
-    explicit MemberEventContent(MembershipType mt = Join) : membership(mt) {}
+    explicit MemberEventContent(Membership ms = Membership::Join)
+        : membership(ms)
+    {}
     explicit MemberEventContent(const QJsonObject& json);
 
-    MembershipType membership;
+    Membership membership;
+    /// (Only for invites) Whether the invite is to a direct chat
     bool isDirect = false;
     Omittable<QString> displayName;
     Omittable<QUrl> avatarUrl;
@@ -33,15 +31,15 @@ protected:
     void fillJson(QJsonObject* o) const override;
 };
 
-using MembershipType = MemberEventContent::MembershipType;
+using MembershipType [[deprecated("Use Membership instead")]] = Membership;
 
 class RoomMemberEvent : public StateEvent<MemberEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
 
-    using MembershipType = MemberEventContent::MembershipType;
-    Q_ENUM(MembershipType)
+    using MembershipType
+        [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
     explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
@@ -51,21 +49,20 @@ public:
                      std::forward<ArgTs>(contentArgs)...)
     {}
 
-    /// A special constructor to create unknown RoomMemberEvents
-    /**
-     * This is needed in order to use RoomMemberEvent as a "base event
-     * class" in cases like GetMembersByRoomJob when RoomMemberEvents
-     * (rather than RoomEvents or StateEvents) are resolved from JSON.
-     * For such cases loadEvent<> requires an underlying class to be
-     * constructible with unknownTypeId() instead of its genuine id.
-     * Don't use it directly.
-     * \sa GetMembersByRoomJob, loadEvent, unknownTypeId
-     */
+    //! \brief A special constructor to create unknown RoomMemberEvents
+    //!
+    //! This is needed in order to use RoomMemberEvent as a "base event class"
+    //! in cases like GetMembersByRoomJob when RoomMemberEvents (rather than
+    //! RoomEvents or StateEvents) are resolved from JSON. For such cases
+    //! loadEvent\<> requires an underlying class to have a specialisation of
+    //! EventFactory\<> and be constructible with unknownTypeId() instead of
+    //! its genuine id. Don't use directly.
+    //! \sa EventFactory, loadEvent, GetMembersByRoomJob
     RoomMemberEvent(Type type, const QJsonObject& fullJson)
         : StateEvent(type, fullJson)
     {}
 
-    MembershipType membership() const { return content().membership; }
+    Membership membership() const { return content().membership; }
     QString userId() const { return stateKey(); }
     bool isDirect() const { return content().isDirect; }
     Omittable<QString> newDisplayName() const { return content().displayName; }
@@ -91,14 +88,13 @@ public:
 };
 
 template <>
-class EventFactory<RoomMemberEvent> {
-public:
-    static event_ptr_tt<RoomMemberEvent> make(const QJsonObject& json,
-                                              const QString&)
-    {
+inline event_ptr_tt<RoomMemberEvent>
+doLoadEvent<RoomMemberEvent>(const QJsonObject& json, const QString& matrixType)
+{
+    if (matrixType == QLatin1String(RoomMemberEvent::matrixTypeId()))
         return makeEvent<RoomMemberEvent>(json);
-    }
-};
+    return makeEvent<RoomMemberEvent>(unknownEventTypeId(), json);
+}
 
 REGISTER_EVENT_TYPE(RoomMemberEvent)
 } // namespace Quotient

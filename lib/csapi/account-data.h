@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * Set some account_data for the client. This config is only visible to the user
  * that set the account_data. The config will be synced to clients in the
- * top-level ``account_data``.
+ * top-level `account_data`.
  */
 class SetAccountDataJob : public BaseJob {
 public:
@@ -65,7 +65,7 @@ public:
  *
  * Set some account_data for the client on a given room. This config is only
  * visible to the user that set the account_data. The config will be synced to
- * clients in the per-room ``account_data``.
+ * clients in the per-room `account_data`.
  */
 class SetAccountDataPerRoomJob : public BaseJob {
 public:

@@ -8,14 +8,13 @@
 [![](https://img.shields.io/cii/percentage/1023.svg?label=CII%20best%20practices)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
 ![](https://img.shields.io/github/commit-activity/y/quotient-im/libQuotient.svg)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/quotient-im/libQuotient.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/quotient-im/libQuotient/context:cpp)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![merge-chance-badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fmerge-chance.info%2Fbadge%3Frepo%3Dquotient-im/libquotient)](https://merge-chance.info/target?repo=quotient-im/libquotient)
 
 The Quotient project aims to produce a Qt5-based SDK to develop applications
 for [Matrix](https://matrix.org). libQuotient is a library that enables client
 applications. It is the backbone of
 [Quaternion](https://github.com/quotient-im/Quaternion),
-[Spectral](https://matrix.org/docs/projects/client/spectral.html) and
-other projects.
+[NeoChat](https://matrix.org/docs/projects/client/neo-chat) and other projects.
 Versions 0.5.x and older use the previous name - libQMatrixClient.
 
 ## Contacts
@@ -38,61 +37,62 @@ and bundle it with your application.
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions are known to work;
   mobile operating systems where Qt is available might work too)
-  - Recent enough Linux examples: Debian Buster; Fedora 28; openSUSE Leap 15;
-    Ubuntu Bionic Beaver.
-- Qt 5 (either Open Source or Commercial), 5.9 or higher;
-  5.12 is recommended, especially if you use qmake
-- A build configuration tool (CMake is recommended, qmake is supported):
-  - CMake 3.10 or newer (from your package management system or
-    [the official website](https://cmake.org/download/))
-  - or qmake (comes with Qt)
-- A C++ toolchain with _reasonably complete_ C++17 support:
-  - GCC 7 (Windows, Linux, macOS), Clang 6 (Linux), Apple Clang 10 (macOS)
-    and Visual Studio 2017 (Windows) are the oldest officially supported.
-- Any build system that works with CMake and/or qmake should be fine:
-  GNU Make, ninja (any platform), NMake, jom (Windows) are known to work.
+  - Recent enough Linux examples: Debian Bullseye; Fedora 33; openSUSE Leap 15.3;
+    Ubuntu Focal Fossa.
+- Qt 5 (either Open Source or Commercial), 5.12 or higher
+- CMake 3.16 or newer (from your package management system or
+  [the official website](https://cmake.org/download/))
+- A C++ toolchain with complete (as much as possible) C++17 and basic C++20:
+  - GCC 10 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
+    and Visual Studio 2019 (Windows) are the oldest officially supported.
+- Any build system that works with CMake should be fine:
+  GNU Make and ninja on any platform, NMake and jom on Windows are known to work.
+  Ninja is recommended.
 
 #### Linux
-Just install things from the list above using your preferred package manager. If your Qt package base is fine-grained you might want to run cmake/qmake and look at error messages. The library is entirely offscreen (QtCore and QtNetwork are essential) but it also depends on QtGui in order to handle avatar thumbnails.
+Just install things from the list above using your preferred package manager.
+If your Qt package base is fine-grained you might want to run cmake and look
+at error messages. The library is entirely offscreen but aside from QtCore and
+QtNetwork it also depends on QtGui in order to handle avatar thumbnails.
 
 #### macOS
-`brew install qt5` should get you a recent Qt5. If you plan to use CMake, you will need to tell it about the path to Qt by passing `-DCMAKE_PREFIX_PATH=$(brew --prefix qt5)`
+`brew install qt5` should get you a recent Qt5. You may need to pass
+`-DCMAKE_PREFIX_PATH=$(brew --prefix qt5)` to make it aware of the Qt location.
 
 #### Windows
-Install Qt5, using their official installer; if you plan to build with CMake,
-make sure to tick the CMake box in the list of installed components.
+Install Qt5 using their official installer; make sure to tick the CMake box
+in the list of installed components unless you already have it installed.
 
-The commands in further sections imply that cmake/qmake is in your PATH,
-otherwise you have to prepend those commands with actual paths. As an option
-it's a good idea to run a `qtenv2.bat` script that can be found in
-`C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`);
-the only thing it does is adding necessary paths to PATH. You might not want
-to run that script on system startup but it's very handy to setup
-the environment before building. For CMake you can alternatively point
-`CMAKE_PREFIX_PATH` to your Qt installation and leave PATH unchanged; but
-in that case you'll have to supply the full path to CMake when calling it.
+The commands in further sections imply that cmake is in your PATH, otherwise
+you have to prepend those commands with actual paths. It's a good idea to run
+a `qtenv2.bat` script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin`
+(assuming you installed Qt to `C:\Qt`) if you're building from the command line;
+the script adds necessary paths to PATH. You might not want to run that script
+on system startup but it's very handy to setup the environment before building.
+Alternatively you can add the Qt path to `CMAKE_PREFIX_PATH` and leave PATH
+unchanged.
 
 ### Using the library
-If you use CMake, `find_package(Quotient)` sets up the client code to use
-libQuotient, assuming the library development files are installed. There's no
-documented procedure to use a preinstalled library with qmake; consider
-introducing a submodule in your source tree and build it along with the rest
-of the application for now. Note also that qmake is considered for phase-out
-in Qt 6 so you should probably think of moving over to CMake eventually.
+If you're just starting a project using libQuotient from scratch, you can copy
+`quotest/CMakeLists.txt` to your project and change `quotest` to your
+project name. If you already have an existing CMakeLists.txt, you need to insert
+a `find_package(Quotient REQUIRED)` line to an appropriate place in it (use
+`find_package(Quotient)` if libQuotient is not a hard dependency for you) and
+then add `Quotient` to your `target_link_libraries()` line.
 
 Building with dynamic linkage is only tested on Linux at the moment and is
 a recommended way of linking your application with libQuotient on this platform.
 Static linkage is the default on Windows/macOS; feel free to experiment
 with dynamic linking and submit PRs if you get reusable results.
 
-[Quotest](quotest), the test application that comes with libQuotient, includes
-most common use cases such as sending messages, uploading files,
-setting room state etc.; for more extensive usage check out the source code
-of [Quaternion](https://github.com/quotient-im/Quaternion)
-(the reference client of Quotient) or [Spectral](https://gitlab.com/b0/spectral).
-
-To ease the first step, `quotest/CMakeLists.txt` is a good starting point
-for your own CMake-based project using libQuotient.
+As for the actual API usage, a (very basic) overview can be found at
+[the respective wiki page](https://github.com/quotient-im/libQuotient/wiki/libQuotient-overview).
+Beyond that, looking at [Quotest](quotest) - the test application that comes
+with libQuotient - may help you with most common use cases such as sending
+messages, uploading files, setting room state etc. For more extensive usage
+feel free to check out (and copy, with appropriate attribution) the source code
+of [Quaternion](https://github.com/quotient-im/Quaternion) (the reference client
+for libQuotient) or [NeoChat](https://invent.kde.org/network/neochat).
 
 ## Building the library
 [The source code is at GitHub](https://github.com/quotient-im/libQuotient).
@@ -101,28 +101,29 @@ along with submodules is strongly recommended. If you want to hack on
 the library as a part of another project (e.g. you are working on Quaternion
 but need to do some changes to the library code), it makes sense
 to make a recursive check out of that project (in this case, Quaternion)
-and update the library submodule (also recursively) to its master branch.
+and update the library submodule (also recursively) within the appropriate
+branch. Be mindful of API compatibility restrictions: e.g., Quaternion 0.0.95
+will not build with the master branch of libQuotient.
 
 Tags consisting of digits and periods represent released versions; tags ending
 with `-betaN` or `-rcN` mark pre-releases. If/when packaging pre-releases,
 it is advised to replace a dash with a tilde.
 
-### CMake-based
-In the root directory of the project sources:
+The following commands issued in the root directory of the project sources:
 ```shell script
 mkdir build_dir
 cd build_dir
 cmake .. # [-D<cmake-variable>=<value>...], see below
 cmake --build . --target all
 ```
-This will get you the compiled library in `build_dir` inside your project
-sources. Static builds are tested on all supported platforms, building
-the library as a shared object (aka dynamic library) is supported on Linux
-and macOS but is very likely to be broken on Windows.
+will get you a compiled library in `build_dir` inside your project sources.
+Static builds are tested on all supported platforms, building the library as
+a shared object (aka dynamic library) is supported on Linux and macOS but is
+very likely to be broken on Windows.
 
-The first CMake invocation configures the build. You can pass CMake variables,
-such as `-DCMAKE_PREFIX_PATH="path1;path2;..."` and
-`-DCMAKE_INSTALL_PREFIX=path` here if needed.
+The first CMake invocation above configures the build. You can pass CMake
+variables (such as `-DCMAKE_PREFIX_PATH="path1;path2;..."` and
+`-DCMAKE_INSTALL_PREFIX=path`) here if needed.
 [CMake documentation](https://cmake.org/cmake/help/latest/index.html)
 (pick the CMake version at the top of the page that you use) describes
 the standard variables coming with CMake. On top of them, Quotient introduces:
@@ -160,22 +161,6 @@ with the _installed_ library. Installation of the `quotest` binary
 along with the rest of the library can be skipped
 by setting `Quotient_INSTALL_TESTS` to `OFF`.
 
-### qmake-based
-The library provides a .pri file with an intention to be included from a bigger project's .pro file. As a starting point you can use `quotest.pro` that will build a minimal example of library usage for you. In the root directory of the project sources:
-```shell script
-qmake quotest.pro
-make all
-```
-This will get you `debug/quotest` and `release/quotest`
-console executables that login to the Matrix server at matrix.org with
-credentials of your choosing (pass the username and password as arguments),
-run a sync long-polling loop and do some tests of the library API. Note that
-qmake didn't really know about C++17 until Qt 5.12 so if your Qt is older
-you may have quite a bit of warnings during the compilation process.
-
-Installing the standalone library with qmake is not implemented yet; PRs are
-welcome though.
-
 ## Troubleshooting
 
 #### Building fails
@@ -196,11 +181,11 @@ libQuotient uses Qt's logging categories to make switching certain types of logg
 quotient.<category>.<level>=<flag>
 ```
 where
-- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `events`, `events.state`
-  (covering both the "usual" room state and account data), `events.messages`,
-  `events.ephemeral`, `e2ee` and `profiler` (you can always find the full list
-  in `lib/logging.cpp`)
-- `<level>` is one of `debug`, `info`, and `warning`
+- `<category>` is one of: `main`, `jobs`, `jobs.sync`, `jobs.thumbnail`,
+  `events`, `events.state` (covering both the "usual" room state and account
+  data), `events.messages`, `events.ephemeral`, `e2ee` and `profiler` (you can
+  always find the full list in `lib/logging.cpp`);
+- `<level>` is one of `debug`, `info`, and `warning`;
 - `<flag>` is either `true` or `false`.
 
 `*` can be used as a wildcard for any part between two dots, and semicolon is used for a separator. Latter statements override former ones, so if you want to switch on all debug logs except `jobs` you can set

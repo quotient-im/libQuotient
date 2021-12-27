@@ -6,16 +6,6 @@
 #include "stateevent.h"
 
 namespace Quotient {
-namespace _impl {
-    template <typename BaseEventT>
-    static inline auto loadEvent(const QJsonObject& json,
-                                 const QString& matrixType)
-    {
-        if (auto e = EventFactory<BaseEventT>::make(json, matrixType))
-            return e;
-        return makeEvent<BaseEventT>(unknownEventTypeId(), json);
-    }
-} // namespace _impl
 
 /*! Create an event with proper type from a JSON object
  *
@@ -26,7 +16,7 @@ namespace _impl {
 template <typename BaseEventT>
 inline event_ptr_tt<BaseEventT> loadEvent(const QJsonObject& fullJson)
 {
-    return _impl::loadEvent<BaseEventT>(fullJson, fullJson[TypeKeyL].toString());
+    return doLoadEvent<BaseEventT>(fullJson, fullJson[TypeKeyL].toString());
 }
 
 /*! Create an event from a type string and content JSON
@@ -39,8 +29,8 @@ template <typename BaseEventT>
 inline event_ptr_tt<BaseEventT> loadEvent(const QString& matrixType,
                                           const QJsonObject& content)
 {
-    return _impl::loadEvent<BaseEventT>(basicEventJson(matrixType, content),
-                                        matrixType);
+    return doLoadEvent<BaseEventT>(basicEventJson(matrixType, content),
+                                   matrixType);
 }
 
 /*! Create a state event from a type string, content JSON and state key
@@ -53,7 +43,7 @@ inline StateEventPtr loadStateEvent(const QString& matrixType,
                                     const QJsonObject& content,
                                     const QString& stateKey = {})
 {
-    return _impl::loadEvent<StateEventBase>(
+    return doLoadEvent<StateEventBase>(
         basicStateEventJson(matrixType, content, stateKey), matrixType);
 }
 

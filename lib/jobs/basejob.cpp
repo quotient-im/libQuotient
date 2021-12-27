@@ -5,6 +5,7 @@
 #include "basejob.h"
 
 #include "connectiondata.h"
+#include "quotient_common.h"
 
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
@@ -15,8 +16,6 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
-#include <array>
-
 using namespace Quotient;
 using std::chrono::seconds, std::chrono::milliseconds;
 using namespace std::chrono_literals;
@@ -25,7 +24,7 @@ BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
 {
     // Based on https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     if (httpCode / 10 == 41) // 41x errors
-        return httpCode == 410 ? IncorrectRequestError : NotFoundError;
+        return httpCode == 410 ? IncorrectRequest : NotFound;
     switch (httpCode) {
     case 401:
         return Unauthorised;
@@ -33,19 +32,19 @@ BaseJob::StatusCode BaseJob::Status::fromHttpCode(int httpCode)
     case 403: case 407: // clang-format on
         return ContentAccessError;
     case 404:
-        return NotFoundError;
+        return NotFound;
         // clang-format off
     case 400: case 405: case 406: case 426: case 428: case 505: // clang-format on
     case 494: // Unofficial nginx "Request header too large"
     case 497: // Unofficial nginx "HTTP request sent to HTTPS port"
-        return IncorrectRequestError;
+        return IncorrectRequest;
     case 429:
-        return TooManyRequestsError;
+        return TooManyRequests;
     case 501:
     case 510:
-        return RequestNotImplementedError;
+        return RequestNotImplemented;
     case 511:
-        return NetworkAuthRequiredError;
+        return NetworkAuthRequired;
     default:
         return NetworkError;
     }
@@ -63,12 +62,6 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     return dbg << ": " << message;
 }
 
-template <typename... Ts>
-constexpr auto make_array(Ts&&... items)
-{
-    return std::array<std::common_type_t<Ts...>, sizeof...(Ts)>({items...});
-}
-
 class BaseJob::Private {
 public:
     struct JobTimeoutConfig {
@@ -78,8 +71,8 @@ public:
 
     // Using an idiom from clang-tidy:
     // http://clang.llvm.org/extra/clang-tidy/checks/modernize-pass-by-value.html
-    Private(HttpVerb v, QString endpoint, const QUrlQuery& q, Data&& data,
-            bool nt)
+    Private(HttpVerb v, QByteArray endpoint, const QUrlQuery& q,
+            RequestData&& data, bool nt)
         : verb(v)
         , apiEndpoint(std::move(endpoint))
         , requestQuery(q)
@@ -113,10 +106,10 @@ public:
 
     // Contents for the network request
     HttpVerb verb;
-    QString apiEndpoint;
+    QByteArray apiEndpoint;
     QHash<QByteArray, QByteArray> requestHeaders;
     QUrlQuery requestQuery;
-    Data requestData;
+    RequestData requestData;
     bool needsToken;
 
     bool inBackground = false;
@@ -173,14 +166,36 @@ public:
     }
 };
 
-BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+inline bool isHex(QChar c)
+{
+    return c.isDigit() || (c >= u'A' && c <= u'F') || (c >= u'a' && c <= u'f');
+}
+
+QByteArray BaseJob::encodeIfParam(const QString& paramPart)
+{
+    const auto percentIndex = paramPart.indexOf('%');
+    if (percentIndex != -1 && paramPart.size() > percentIndex + 2
+        && isHex(paramPart[percentIndex + 1])
+        && isHex(paramPart[percentIndex + 2])) {
+        qCWarning(JOBS)
+            << "Developers, upfront percent-encoding of job parameters is "
+               "deprecated since libQuotient 0.7; the string involved is"
+            << paramPart;
+        return QUrl(paramPart, QUrl::TolerantMode).toEncoded();
+    }
+    return QUrl::toPercentEncoding(paramPart);
+}
+
+BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
                  bool needsToken)
-    : BaseJob(verb, name, endpoint, Query {}, Data {}, needsToken)
+    : BaseJob(verb, name, std::move(endpoint), QUrlQuery {}, RequestData {},
+              needsToken)
 {}
 
-BaseJob::BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-                 const Query& query, Data&& data, bool needsToken)
-    : d(new Private(verb, endpoint, query, std::move(data), needsToken))
+BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
+                 const QUrlQuery& query, RequestData&& data, bool needsToken)
+    : d(new Private(verb, std::move(endpoint), query, std::move(data),
+                    needsToken))
 {
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);
@@ -201,13 +216,6 @@ QUrl BaseJob::requestUrl() const { return d->reply ? d->reply->url() : QUrl(); }
 
 bool BaseJob::isBackground() const { return d->inBackground; }
 
-const QString& BaseJob::apiEndpoint() const { return d->apiEndpoint; }
-
-void BaseJob::setApiEndpoint(const QString& apiEndpoint)
-{
-    d->apiEndpoint = apiEndpoint;
-}
-
 const BaseJob::headers_t& BaseJob::requestHeaders() const
 {
     return d->requestHeaders;
@@ -224,16 +232,19 @@ void BaseJob::setRequestHeaders(const BaseJob::headers_t& headers)
     d->requestHeaders = headers;
 }
 
-const QUrlQuery& BaseJob::query() const { return d->requestQuery; }
+QUrlQuery BaseJob::query() const { return d->requestQuery; }
 
 void BaseJob::setRequestQuery(const QUrlQuery& query)
 {
     d->requestQuery = query;
 }
 
-const BaseJob::Data& BaseJob::requestData() const { return d->requestData; }
+const RequestData& BaseJob::requestData() const { return d->requestData; }
 
-void BaseJob::setRequestData(Data&& data) { std::swap(d->requestData, data); }
+void BaseJob::setRequestData(RequestData&& data)
+{
+    std::swap(d->requestData, data);
+}
 
 const QByteArrayList& BaseJob::expectedContentTypes() const
 {
@@ -263,17 +274,17 @@ const QNetworkReply* BaseJob::reply() const { return d->reply.data(); }
 
 QNetworkReply* BaseJob::reply() { return d->reply.data(); }
 
-QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QString& path,
+QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
                              const QUrlQuery& query)
 {
-    auto pathBase = baseUrl.path();
-    // QUrl::adjusted(QUrl::StripTrailingSlashes) doesn't help with root '/'
-    while (pathBase.endsWith('/'))
-        pathBase.chop(1);
-    if (!path.startsWith('/')) // Normally API files do start with '/'
-        pathBase.push_back('/'); // so this shouldn't be needed these days
-
-    baseUrl.setPath(pathBase + path, QUrl::TolerantMode);
+    // Make sure the added path is relative even if it's not (the official
+    // API definitions have the leading slash though it's not really correct).
+    const auto pathUrl =
+        QUrl::fromEncoded(encodedPath.mid(encodedPath.startsWith('/')),
+                          QUrl::StrictMode);
+    Q_ASSERT_X(pathUrl.isValid(), __FUNCTION__,
+               qPrintable(pathUrl.errorString()));
+    baseUrl = baseUrl.resolved(pathUrl);
     baseUrl.setQuery(query);
     return baseUrl;
 }
@@ -288,7 +299,8 @@ void BaseJob::Private::sendRequest()
         req.setRawHeader("Authorization",
                          QByteArray("Bearer ") + connection->accessToken());
     req.setAttribute(QNetworkRequest::BackgroundRequestAttribute, inBackground);
-    req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
     req.setMaximumRedirectsAllowed(10);
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     req.setAttribute(
@@ -353,7 +365,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         qCCritical(d->logCat)
             << "Developers, ensure the Connection is valid before using it";
         Q_ASSERT(false);
-        setStatus(IncorrectRequestError, tr("Invalid server connection"));
+        setStatus(IncorrectRequest, tr("Invalid server connection"));
     }
     // The status is no good, finalise
     QTimer::singleShot(0, this, &BaseJob::finishJob);
@@ -403,42 +415,42 @@ BaseJob::Status BaseJob::Private::parseJson()
 
 void BaseJob::gotReply()
 {
-    setStatus(checkReply(reply()));
-
-    if (status().good()
-        && d->expectedContentTypes == QByteArrayList { "application/json" }) {
+    // Defer actually updating the status until it's finalised
+    auto statusSoFar = checkReply(reply());
+    if (statusSoFar.good()
+        && d->expectedContentTypes == QByteArrayList { "application/json" }) //
+    {
         d->rawResponse = reply()->readAll();
-        setStatus(d->parseJson());
-        if (status().good() && !expectedKeys().empty()) {
+        statusSoFar = d->parseJson();
+        if (statusSoFar.good() && !expectedKeys().empty()) {
             const auto& responseObject = jsonData();
             QByteArrayList missingKeys;
             for (const auto& k: expectedKeys())
                 if (!responseObject.contains(k))
                     missingKeys.push_back(k);
             if (!missingKeys.empty())
-                setStatus(IncorrectResponse, tr("Required JSON keys missing: ")
-                                                 + missingKeys.join());
+                statusSoFar = { IncorrectResponse,
+                                tr("Required JSON keys missing: ")
+                                    + missingKeys.join() };
         }
+        setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out
             return;
-    } // else {
+    }
     // If the endpoint expects anything else than just (API-related) JSON
     // reply()->readAll() is not performed and the whole reply processing
     // is left to derived job classes: they may read it piecemeal or customise
     // per content type in prepareResult(), or even have read it already
     // (see, e.g., DownloadFileJob).
-    // }
-
-    if (status().good())
+    if (statusSoFar.good()) {
         setStatus(prepareResult());
-    else {
-        d->rawResponse = reply()->readAll();
-        qCDebug(d->logCat).noquote()
-            << "Error body (truncated if long):" << rawDataSample(500);
-        // Parse the error payload and update the status if needed
-        if (const auto newStatus = prepareError(); !newStatus.good())
-            setStatus(newStatus);
+        return;
     }
+
+    d->rawResponse = reply()->readAll();
+    qCDebug(d->logCat).noquote()
+        << "Error body (truncated if long):" << rawDataSample(500);
+    setStatus(prepareError(statusSoFar));
 }
 
 bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
@@ -503,7 +515,7 @@ BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
 
 BaseJob::Status BaseJob::prepareResult() { return Success; }
 
-BaseJob::Status BaseJob::prepareError()
+BaseJob::Status BaseJob::prepareError(Status currentStatus)
 {
     // Try to make sense of the error payload but be prepared for all kinds
     // of unexpected stuff (raw HTML, plain text, foreign JSON among those)
@@ -513,10 +525,10 @@ BaseJob::Status BaseJob::prepareError()
 
     // By now, if d->parseJson() above succeeded then jsonData() will return
     // a valid JSON object - or an empty object otherwise (in which case most
-    // of if's below will fall through to `return NoError` at the end
+    // of if's below will fall through retaining the current status)
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
-    if (error() == TooManyRequestsError || errCode == "M_LIMIT_EXCEEDED") {
+    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED") {
         QString msg = tr("Too many requests");
         int64_t retryAfterMs = errorJson.value("retry_after_ms"_ls).toInt(-1);
         if (retryAfterMs >= 0)
@@ -526,16 +538,16 @@ BaseJob::Status BaseJob::prepareError()
 
         d->connection->limitRate(milliseconds(retryAfterMs));
 
-        return { TooManyRequestsError, msg };
+        return { TooManyRequests, msg };
     }
 
     if (errCode == "M_CONSENT_NOT_GIVEN") {
         d->errorUrl = QUrl(errorJson.value("consent_uri"_ls).toString());
-        return { UserConsentRequiredError };
+        return { UserConsentRequired };
     }
     if (errCode == "M_UNSUPPORTED_ROOM_VERSION"
         || errCode == "M_INCOMPATIBLE_ROOM_VERSION")
-        return { UnsupportedRoomVersionError,
+        return { UnsupportedRoomVersion,
                  errorJson.contains("room_version"_ls)
                      ? tr("Requested room version: %1")
                            .arg(errorJson.value("room_version"_ls).toString())
@@ -548,9 +560,9 @@ BaseJob::Status BaseJob::prepareError()
 
     // Not localisable on the client side
     if (errorJson.contains("error"_ls)) // Keep the code, update the message
-        return { d->status.code, errorJson.value("error"_ls).toString() };
+        return { currentStatus.code, errorJson.value("error"_ls).toString() };
 
-    return NoError; // Retain the status if the error payload is not recognised
+    return currentStatus; // The error payload is not recognised
 }
 
 QJsonValue BaseJob::takeValueFromJson(const QString& key)
@@ -717,27 +729,27 @@ QString BaseJob::statusCaption() const
         return tr("Request was abandoned");
     case NetworkError:
         return tr("Network problems");
-    case TimeoutError:
+    case Timeout:
         return tr("Request timed out");
     case Unauthorised:
         return tr("Unauthorised request");
     case ContentAccessError:
         return tr("Access error");
-    case NotFoundError:
+    case NotFound:
         return tr("Not found");
-    case IncorrectRequestError:
+    case IncorrectRequest:
         return tr("Invalid request");
-    case IncorrectResponseError:
+    case IncorrectResponse:
         return tr("Response could not be parsed");
-    case TooManyRequestsError:
+    case TooManyRequests:
         return tr("Too many requests");
-    case RequestNotImplementedError:
+    case RequestNotImplemented:
         return tr("Function not implemented by the server");
-    case NetworkAuthRequiredError:
+    case NetworkAuthRequired:
         return tr("Network authentication required");
-    case UserConsentRequiredError:
+    case UserConsentRequired:
         return tr("User consent required");
-    case UnsupportedRoomVersionError:
+    case UnsupportedRoomVersion:
         return tr("The server does not support the needed room version");
     default:
         return tr("Request failed");
@@ -799,7 +811,7 @@ void BaseJob::abandon()
 
 void BaseJob::timeout()
 {
-    setStatus(TimeoutError, "The job has timed out");
+    setStatus(Timeout, "The job has timed out");
     finishJob();
 }
 

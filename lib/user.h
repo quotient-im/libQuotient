@@ -22,7 +22,6 @@ class User : public QObject {
     Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
     Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
-    Q_PROPERTY(QString bridgeName READ bridged NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY defaultAvatarChanged STORED false)
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
@@ -40,17 +39,9 @@ public:
      * This may be empty if the user didn't choose the name or cleared
      * it. If the user is bridged, the bridge postfix (such as '(IRC)')
      * is stripped out. No disambiguation for the room is done.
-     * \sa displayName, rawName
+     * \sa displayName
      */
     QString name(const Room* room = nullptr) const;
-
-    /** Get the user name along with the bridge postfix
-     * This function is similar to name() but appends the bridge postfix
-     * (such as '(IRC)') to the user name. No disambiguation is done.
-     * \sa name, displayName
-     */
-    [[deprecated("Bridge postfixes exist no more, use name() instead")]]
-    QString rawName(const Room* room = nullptr) const;
 
     /** Get the displayed user name
      * When \p room is null, this method returns result of name() if
@@ -69,13 +60,6 @@ public:
      * \sa displayName, Room::roomMembername
      */
     QString fullName(const Room* room = nullptr) const;
-
-    /**
-     * Returns the name of bridge the user is connected from or empty.
-     */
-    [[deprecated("Bridged status is no more supported; this always returns"
-                 " an empty string")]]
-    QString bridged() const;
 
     /** Whether the user is a guest
      * As of now, the function relies on the convention used in Synapse
@@ -99,11 +83,11 @@ public:
      */
     const Avatar& avatarObject(const Room* room = nullptr) const;
     Q_INVOKABLE QImage avatar(int dimension,
-                              const Quotient::Room* room = nullptr);
+                              const Quotient::Room* room = nullptr) const;
     Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
-                              const Quotient::Room* room = nullptr);
+                              const Quotient::Room* room = nullptr) const;
     QImage avatar(int width, int height, const Room* room,
-                  const Avatar::get_callback_t& callback);
+                  const Avatar::get_callback_t& callback) const;
 
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;

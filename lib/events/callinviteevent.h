@@ -18,11 +18,11 @@ public:
 
     int lifetime() const
     {
-        return content<int>("lifetime"_ls);
+        return contentPart<int>("lifetime"_ls);
     } // FIXME: Omittable<>?
     QString sdp() const
     {
-        return contentJson()["offer"_ls].toObject().value("sdp"_ls).toString();
+        return contentPart<QJsonObject>("offer"_ls).value("sdp"_ls).toString();
     }
 };
 

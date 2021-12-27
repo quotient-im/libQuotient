@@ -8,8 +8,7 @@
 namespace Quotient {
 namespace EventContent {
     template <typename T>
-    class SimpleContent {
-    public:
+    struct SimpleContent {
         using value_type = T;
 
         // The constructor is templated to enable perfect forwarding
@@ -25,11 +24,8 @@ namespace EventContent {
             return { { key, Quotient::toJson(value) } };
         }
 
-    public:
         T value;
-
-    protected:
-        QString key;
+        const QString key;
     };
 } // namespace EventContent
 
@@ -57,19 +53,16 @@ DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
 DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages", QStringList, pinnedEvents)
 
-class RoomAliasesEvent
-    : public StateEvent<EventContent::SimpleContent<QStringList>> {
+class [[deprecated(
+    "m.room.aliases events are deprecated by the Matrix spec; use"
+    " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")]] //
+RoomAliasesEvent : public StateEvent<EventContent::SimpleContent<QStringList>> {
 public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj, QStringLiteral("aliases"))
     {}
-    RoomAliasesEvent(const QString& server, const QStringList& aliases)
-        : StateEvent(typeId(), matrixTypeId(), server,
-                     QStringLiteral("aliases"), aliases)
-    {}
     QString server() const { return stateKey(); }
     QStringList aliases() const { return content().value; }
 };
-REGISTER_EVENT_TYPE(RoomAliasesEvent)
 } // namespace Quotient

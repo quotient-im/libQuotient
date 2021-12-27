@@ -21,15 +21,15 @@ struct DeviceKeys {
     QStringList algorithms;
 
     /// Public identity keys. The names of the properties should be in the
-    /// format ``<algorithm>:<device_id>``. The keys themselves should be
+    /// format `<algorithm>:<device_id>`. The keys themselves should be
     /// encoded as specified by the key algorithm.
     QHash<QString, QString> keys;
 
     /// Signatures for the device key object. A map from user ID, to a map from
-    /// ``<algorithm>:<device_id>`` to the signature.
+    /// `<algorithm>:<device_id>` to the signature.
     ///
-    /// The signature is calculated using the process described at `Signing
-    /// JSON`_.
+    /// The signature is calculated using the process described at [Signing
+    /// JSON](/appendices/#signing-json).
     QHash<QString, QHash<QString, QString>> signatures;
 };
 

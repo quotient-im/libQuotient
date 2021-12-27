@@ -9,27 +9,52 @@ defaults:
   run:
     shell: bash
 
+concurrency: ci-${{ github.ref }}
+
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.update-api != '' }} # the current upstream API definitions are expected to fail the test
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
+        qt-version: [ '5.12.10' ]
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ '', 'E2EE' ]
+        e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
+        sonar: [ '' ]
+        platform: [ '' ]
+        qt-arch: [ '' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
-        - e2ee: '' # Somewhat reduce the number of combinations to check
-          update-api: 'update-api'
+        include:
+        - os: ubuntu-latest
+          compiler: GCC
+          qt-version: '5.12.10'
+          sonar: 'sonar'
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
+        - os: windows-2019
+          compiler: MSVC
+          platform: x64
+          qt-version: '5.12.10'
+          qt-arch: win64_msvc2017_64
+          update-api: update-api
+
+    env:
+      SONAR_SERVER_URL: 'https://sonarcloud.io'
 
     steps:
     - uses: actions/checkout@v2
       with:
+        fetch-depth: 0
         submodules: ${{ matrix.e2ee != '' }}
 
     - name: Cache Qt
@@ -37,15 +62,16 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}-QtCache
+        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.11.1
       with:
-        version: '5.9.9'
+        version: ${{ matrix.qt-version }}
+        arch: ${{ matrix.qt-arch }}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
-    - name: Install Ninja (macOS)
+    - name: Install Ninja (macOS/Windows)
       if: ${{ !startsWith(matrix.os, 'ubuntu') }}
       uses: seanmiddleditch/gha-setup-ninja@v3
 
@@ -53,17 +79,22 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get -qq install ninja-build valgrind
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=quotest/.valgrind.supp" >>$GITHUB_ENV
+        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup build environment
       run: |
         if [ "${{ matrix.compiler }}" == "GCC" ]; then
-            if [ -n "${{ matrix.update-api }}" ]; then VERSION_POSTFIX='-9'; fi
-            echo "CC=gcc$VERSION_POSTFIX" >>$GITHUB_ENV
-            echo "CXX=g++$VERSION_POSTFIX" >>$GITHUB_ENV
-        else
-            echo "CC=clang" >>$GITHUB_ENV
-            echo "CXX=clang++" >>$GITHUB_ENV
+            CXX_VERSION_POSTFIX='-10'
+            echo "CC=gcc$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=g++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+        elif [[ '${{ matrix.compiler }}' == 'Clang' ]]; then
+            if [[ '${{ runner.os }}' == 'Linux' ]]; then
+                CXX_VERSION_POSTFIX='-11'
+                # Do CodeQL analysis on one of Linux branches
+                echo "CODEQL_ANALYSIS=true" >>$GITHUB_ENV
+            fi
+            echo "CC=clang$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+            echo "CXX=clang++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
         fi
         if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
             VERSION="$(git describe --tags)"
@@ -73,48 +104,127 @@ jobs:
             VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
         fi
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-        echo "CMAKE_ARGS=-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=false \
-                         -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_PREFIX_PATH=~/.local" >>$GITHUB_ENV
+
+        CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                    -DBUILD_SHARED_LIBS=false \
+                    -DCMAKE_INSTALL_PREFIX=~/.local \
+                    -DCMAKE_PREFIX_PATH=~/.local \
+                    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+
+        if [ -n "${{ matrix.sonar }}" ]; then
+            mkdir -p $HOME/.sonar
+            CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
+            echo "COV=gcov$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
+        fi
+        echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
+
+        if [[ '${{ runner.os }}' != 'Windows' ]]; then
+            BIN_DIR=/bin
+        fi
+        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
+        echo "~/.local$BIN_DIR" >>$GITHUB_PATH
+
         cmake -E make_directory ${{ runner.workspace }}/build
+        echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
+
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      if: matrix.compiler == 'MSVC'
+      with:
+        arch: ${{ matrix.platform }}
+
+    - name: Download and set up Sonar Cloud tools
+      if: matrix.sonar != ''
+      env:
+        SONAR_SCANNER_VERSION: 4.6.2.2472
+      run: |
+        pushd $HOME/.sonar
+        curl -sSL --remote-name-all \
+            $SONAR_SERVER_URL/static/cpp/build-wrapper-linux-x86.zip \
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+        unzip -o build-wrapper*.zip
+        echo "BUILD_WRAPPER=$HOME/.sonar/build-wrapper-linux-x86/build-wrapper-linux* --out-dir $BUILD_PATH/sonar" >>$GITHUB_ENV
+        unzip -o sonar-scanner-cli*.zip
+        popd
 
     - name: Build and install olm
       if: matrix.e2ee
+      working-directory: ${{ runner.workspace }}
       run: |
-        cd ${{ runner.workspace }}
         git clone https://gitlab.matrix.org/matrix-org/olm.git
-        cmake -S olm -B olm/build $CMAKE_ARGS
-        cmake --build olm/build --target install
+        cmake -S olm -B build/olm $CMAKE_ARGS
+        cmake --build build/olm --target install
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Pull CS API and build GTAD
       if: matrix.update-api
+      working-directory: ${{ runner.workspace }}
       run: |
-        cd ${{ runner.workspace }}
         git clone https://github.com/matrix-org/matrix-doc.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
-        cmake -S gtad -B gtad $CMAKE_ARGS
-        cmake --build gtad
+        cmake -S gtad -B build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+        cmake --build build/gtad
         echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
-                                     -DGTAD_PATH=${{ runner.workspace }}/gtad/gtad" \
+                                     -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
-        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN and API files regeneration" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
+
+    - name: Initialize CodeQL tools
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+        # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Configure libQuotient
-      run: cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }}
+      run: |
+        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS \
+              -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }} -DQuotient_INSTALL_TESTS=ON
 
     - name: Regenerate API code
       if: matrix.update-api
-      run: cmake --build build --target update-api
+      run: cmake --build ../build/libQuotient --target update-api
 
     - name: Build and install libQuotient
       run: |
-        cmake --build build --target install
-        ls ~/.local/bin/quotest
+        $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
+        cmake --build $BUILD_PATH --target install
+        ls ~/.local$BIN_DIR/quotest
 
     - name: Run tests
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
+        QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
+        QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
-        [[ -z "$TEST_USER" ]] || $VALGRIND build/quotest/quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
-      timeout-minutes: 5 # quotest is supposed to finish within 3 minutes, actually
+        ctest --test-dir $BUILD_PATH --output-on-failure
+        [[ -z "$TEST_USER" ]] || \
+            $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+      timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
+
+    - name: Perform CodeQL analysis
+      if: env.CODEQL_ANALYSIS
+      uses: github/codeql-action/analyze@v1
+
+    - name: Run sonar-scanner
+      if: matrix.sonar != ''
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mkdir .coverage && pushd .coverage
+        find $BUILD_PATH -name '*.gcda' -print0 \
+            | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
+        # Coverage of the test source code is not tracked, as it is always 100%
+        # (if not, some tests failed and broke the build at an earlier stage)
+        rm -f quotest* autotests*
+        popd
+        $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
+            -Dsonar.host.url="$SONAR_SERVER_URL" \
+            -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
+            -Dsonar.cfamily.threads=2 \
+            -Dsonar.cfamily.gcov.reportsPath=.coverage

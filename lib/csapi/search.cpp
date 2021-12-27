@@ -4,13 +4,11 @@
 
 #include "search.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 auto queryToSearch(const QString& nextBatch)
 {
-    BaseJob::Query _q;
+    QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("next_batch"), nextBatch);
     return _q;
 }
@@ -18,7 +16,7 @@ auto queryToSearch(const QString& nextBatch)
 SearchJob::SearchJob(const Categories& searchCategories,
                      const QString& nextBatch)
     : BaseJob(HttpVerb::Post, QStringLiteral("SearchJob"),
-              QStringLiteral("/_matrix/client/r0") % "/search",
+              makePath("/_matrix/client/r0", "/search"),
               queryToSearch(nextBatch))
 {
     QJsonObject _data;

@@ -12,10 +12,30 @@
 #include <unordered_map>
 #include <optional>
 
-// Along the lines of Q_DISABLE_COPY - the upstream version comes in Qt 5.13
-#define DISABLE_MOVE(_ClassName)               \
-    _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
-    _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
+#ifndef Q_DISABLE_MOVE
+// Q_DISABLE_MOVE was introduced in Q_VERSION_CHECK(5,13,0)
+#    define Q_DISABLE_MOVE(_ClassName)             \
+        _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
+        _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
+#endif
+
+#ifndef Q_DISABLE_COPY_MOVE
+#define Q_DISABLE_COPY_MOVE(Class) \
+    Q_DISABLE_COPY(Class) \
+    Q_DISABLE_MOVE(Class)
+#endif
+
+#define DISABLE_MOVE(_ClassName) \
+static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
+
+#ifndef QT_IGNORE_DEPRECATIONS
+// QT_IGNORE_DEPRECATIONS was introduced in Q_VERSION_CHECK(5,15,0)
+#    define QT_IGNORE_DEPRECATIONS(statement) \
+        QT_WARNING_PUSH                       \
+        QT_WARNING_DISABLE_DEPRECATED         \
+        statement                             \
+        QT_WARNING_POP
+#endif
 
 namespace Quotient {
 /// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
@@ -29,6 +49,13 @@ struct HashQ {
 /// A wrapper around std::unordered_map compatible with types that have qHash
 template <typename KeyT, typename ValT>
 using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
+
+namespace _impl {
+    template <typename TT>
+    constexpr inline auto IsOmittableValue = false;
+    template <typename TT>
+    constexpr inline auto IsOmittable = IsOmittableValue<std::decay_t<TT>>;
+}
 
 constexpr auto none = std::nullopt;
 
@@ -107,18 +134,18 @@ public:
         return !this->has_value();
     }
 
-    /// Merge the value from another Omittable
-    /// \return true if \p other is not omitted and the value of
-    ///         the current Omittable was different (or omitted);
-    ///         in other words, if the current Omittable has changed;
-    ///         false otherwise
+    //! Merge the value from another Omittable
+    //! \return true if \p other is not omitted and the value of
+    //!         the current Omittable was different (or omitted),
+    //!         in other words, if the current Omittable has changed;
+    //!         false otherwise
     template <typename T1>
     auto merge(const Omittable<T1>& other)
-        -> std::enable_if_t<std::is_convertible<T1, T>::value, bool>
+        -> std::enable_if_t<std::is_convertible_v<T1, T>, bool>
     {
         if (!other || (this->has_value() && **this == *other))
             return false;
-        *this = other;
+        emplace(*other);
         return true;
     }
 
@@ -131,72 +158,38 @@ public:
     const value_type& operator*() const& { return base_type::operator*(); }
     value_type& operator*() && { return base_type::operator*(); }
 };
-
-namespace _impl {
-    template <typename AlwaysVoid, typename>
-    struct fn_traits {};
-}
-
-/// Determine traits of an arbitrary function/lambda/functor
-/*!
- * Doesn't work with generic lambdas and function objects that have
- * operator() overloaded.
- * \sa
- * https://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda#7943765
- */
 template <typename T>
-struct function_traits
-    : public _impl::fn_traits<void, std::remove_reference_t<T>> {};
-
-// Specialisation for a function
-template <typename ReturnT, typename... ArgTs>
-struct function_traits<ReturnT(ArgTs...)> {
-    using return_type = ReturnT;
-    using arg_types = std::tuple<ArgTs...>;
-    // Doesn't (and there's no plan to make it) work for "classic"
-    // member functions (i.e. outside of functors).
-    // See also the comment for wrap_in_function() below
-    using function_type = std::function<ReturnT(ArgTs...)>;
-};
+Omittable(T&&) -> Omittable<T>;
 
 namespace _impl {
-    // Specialisation for function objects with (non-overloaded) operator()
-    // (this includes non-generic lambdas)
     template <typename T>
-    struct fn_traits<decltype(void(&T::operator())), T>
-        : public fn_traits<void, decltype(&T::operator())> {};
-
-    // Specialisation for a member function
-    template <typename ReturnT, typename ClassT, typename... ArgTs>
-    struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...)>
-        : function_traits<ReturnT(ArgTs...)> {};
-
-    // Specialisation for a const member function
-    template <typename ReturnT, typename ClassT, typename... ArgTs>
-    struct fn_traits<void, ReturnT (ClassT::*)(ArgTs...) const>
-        : function_traits<ReturnT(ArgTs...)> {};
-} // namespace _impl
-
-template <typename FnT>
-using fn_return_t = typename function_traits<FnT>::return_type;
-
-template <typename FnT, int ArgN = 0>
-using fn_arg_t =
-    std::tuple_element_t<ArgN, typename function_traits<FnT>::arg_types>;
-
-// TODO: get rid of it as soon as Apple Clang gets proper deduction guides
-//       for std::function<>
-//       ...or consider using QtPrivate magic used by QObject::connect()
-//       since wrap_in_function() is actually made for qt_connection_util.h
-//       ...for inspiration, also check a possible std::not_fn implementation at
-//       https://en.cppreference.com/w/cpp/utility/functional/not_fn
-template <typename FnT>
-inline auto wrap_in_function(FnT&& f)
-{
-    return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
+    constexpr inline auto IsOmittableValue<Omittable<T>> = true;
 }
 
-inline auto operator"" _ls(const char* s, std::size_t size)
+template <typename T1, typename T2>
+inline auto merge(Omittable<T1>& lhs, T2&& rhs)
+{
+    return lhs.merge(std::forward<T2>(rhs));
+}
+
+//! \brief Merge the value from an Omittable
+//! This is an adaptation of Omittable::merge() to the case when the value
+//! on the left hand side is not an Omittable.
+//! \return true if \p rhs is not omitted and the \p lhs value was different,
+//!         in other words, if \p lhs has changed;
+//!         false otherwise
+template <typename T1, typename T2>
+inline auto merge(T1& lhs, const Omittable<T2>& rhs)
+    -> std::enable_if_t<!_impl::IsOmittable<T1>
+                            && std::is_convertible_v<T2, T1>, bool>
+{
+    if (!rhs || lhs == *rhs)
+        return false;
+    lhs = *rhs;
+    return true;
+}
+
+inline constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));
 }
@@ -283,4 +276,9 @@ qreal stringToHueF(const QString& s);
 
 /** Extract the serverpart from MXID */
 QString serverPart(const QString& mxId);
+
+QString versionString();
+int majorVersion();
+int minorVersion();
+int patchVersion();
 } // namespace Quotient

@@ -7,5 +7,5 @@ using namespace Quotient;
 
 QStringList TypingEvent::users() const
 {
-    return fromJson<QStringList>(contentJson()["user_ids"_ls]);
+    return contentPart<QStringList>("user_ids"_ls);
 }

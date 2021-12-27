@@ -14,8 +14,8 @@ namespace Quotient {
  *
  * Note that, as with the rest of the Client-Server API,
  * Application Services may masquerade as users within their
- * namespace by giving a ``user_id`` query parameter. In this
- * situation, the server should verify that the given ``user_id``
+ * namespace by giving a `user_id` query parameter. In this
+ * situation, the server should verify that the given `user_id`
  * is registered by the appservice, and return it in the response
  * body.
  */
@@ -33,8 +33,14 @@ public:
 
     // Result properties
 
-    /// The user id that owns the access token.
+    /// The user ID that owns the access token.
     QString userId() const { return loadFromJson<QString>("user_id"_ls); }
+
+    /// Device ID associated with the access token. If no device
+    /// is associated with the access token (such as in the case
+    /// of application services) then this field can be omitted.
+    /// Otherwise this is required.
+    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
 };
 
 } // namespace Quotient

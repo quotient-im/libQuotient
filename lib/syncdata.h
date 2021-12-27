@@ -3,11 +3,17 @@
 
 #pragma once
 
-#include "joinstate.h"
+#include "quotient_common.h"
 
 #include "events/stateevent.h"
 
 namespace Quotient {
+
+constexpr auto UnreadNotificationsKey = "unread_notifications"_ls;
+constexpr auto PartiallyReadCountKey = "x-quotient.since_fully_read_count"_ls;
+constexpr auto NewUnreadCountKey = "org.matrix.msc2654.unread_count"_ls;
+constexpr auto HighlightCountKey = "highlight_count"_ls;
+
 /// Room summary, as defined in MSC688
 /**
  * Every member of this structure is an Omittable; as per the MSC, only
@@ -29,7 +35,6 @@ struct RoomSummary {
 };
 QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 
-
 template <>
 struct JsonObjectConverter<RoomSummary> {
     static void dumpTo(QJsonObject& jo, const RoomSummary& rs);
@@ -48,16 +53,14 @@ public:
 
     bool timelineLimited;
     QString timelinePrevBatch;
-    int unreadCount;
-    int highlightCount;
-    int notificationCount;
+    Omittable<int> partiallyReadCount;
+    Omittable<int> unreadCount;
+    Omittable<int> highlightCount;
 
-    SyncRoomData(const QString& roomId, JoinState joinState_,
-                 const QJsonObject& room_);
+    SyncRoomData(QString roomId, JoinState joinState,
+                 const QJsonObject& roomJson);
     SyncRoomData(SyncRoomData&&) = default;
     SyncRoomData& operator=(SyncRoomData&&) = default;
-
-    static const QString UnreadCountKey;
 };
 
 // QVector cannot work with non-copyable objects, std::vector can.
@@ -87,7 +90,8 @@ public:
 
     QStringList unresolvedRooms() const { return unresolvedRoomIds; }
 
-    static std::pair<int, int> cacheVersion() { return { 11, 0 }; }
+    static constexpr int MajorCacheVersion = 11;
+    static std::pair<int, int> cacheVersion();
     static QString fileNameForRoom(QString roomId);
 
 private:

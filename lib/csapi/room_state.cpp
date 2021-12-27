@@ -4,8 +4,6 @@
 
 #include "room_state.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
@@ -13,9 +11,9 @@ SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
                                                const QString& stateKey,
                                                const QJsonObject& body)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomStateWithKeyJob"),
-              QStringLiteral("/_matrix/client/r0") % "/rooms/" % roomId
-                  % "/state/" % eventType % "/" % stateKey)
+              makePath("/_matrix/client/r0", "/rooms/", roomId, "/state/",
+                       eventType, "/", stateKey))
 {
-    setRequestData(Data(toJson(body)));
+    setRequestData(RequestData(toJson(body)));
     addExpectedKey("event_id");
 }

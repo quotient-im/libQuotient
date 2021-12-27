@@ -93,14 +93,14 @@ struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
  *
  * Adds contact information to the user's account.
  *
- * This endpoint is deprecated in favour of the more specific ``/3pid/add``
- * and ``/3pid/bind`` endpoints.
+ * This endpoint is deprecated in favour of the more specific `/3pid/add`
+ * and `/3pid/bind` endpoints.
  *
- * .. Note::
- *    Previously this endpoint supported a ``bind`` parameter. This parameter
- *    has been removed, making this endpoint behave as though it was ``false``.
- *    This results in this endpoint being an equivalent to ``/3pid/bind`` rather
- *    than dual-purpose.
+ * **Note:**
+ * Previously this endpoint supported a `bind` parameter. This parameter
+ * has been removed, making this endpoint behave as though it was `false`.
+ * This results in this endpoint being an equivalent to `/3pid/bind` rather
+ * than dual-purpose.
  */
 class Post3PIDsJob : public BaseJob {
 public:
@@ -144,7 +144,8 @@ struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
 
 /*! \brief Adds contact information to the user's account.
  *
- * This API endpoint uses the `User-Interactive Authentication API`_.
+ * This API endpoint uses the [User-Interactive Authentication
+ * API](/client-server-api/#user-interactive-authentication-api).
  *
  * Adds contact information to the user's account. Homeservers should use 3PIDs
  * added through this endpoint for password resets instead of relying on the
@@ -206,7 +207,7 @@ public:
  * Removes a third party identifier from the user's account. This might not
  * cause an unbind of the identifier from the identity server.
  *
- * Unlike other endpoints, this endpoint does not take an ``id_access_token``
+ * Unlike other endpoints, this endpoint does not take an `id_access_token`
  * parameter because the homeserver is expected to sign the request to the
  * identity server instead.
  */
@@ -222,9 +223,9 @@ public:
      *
      * \param idServer
      *   The identity server to unbind from. If not provided, the homeserver
-     *   MUST use the ``id_server`` the identifier was added through. If the
-     *   homeserver does not know the original ``id_server``, it MUST return
-     *   a ``id_server_unbind_result`` of ``no-support``.
+     *   MUST use the `id_server` the identifier was added through. If the
+     *   homeserver does not know the original `id_server`, it MUST return
+     *   a `id_server_unbind_result` of `no-support`.
      */
     explicit Delete3pidFromAccountJob(const QString& medium,
                                       const QString& address,
@@ -233,8 +234,8 @@ public:
     // Result properties
 
     /// An indicator as to whether or not the homeserver was able to unbind
-    /// the 3PID from the identity server. ``success`` indicates that the
-    /// indentity server has unbound the identifier whereas ``no-support``
+    /// the 3PID from the identity server. `success` indicates that the
+    /// indentity server has unbound the identifier whereas `no-support`
     /// indicates that the identity server refuses to support the request
     /// or the homeserver was not able to determine an identity server to
     /// unbind from.
@@ -249,7 +250,7 @@ public:
  * Removes a user's third party identifier from the provided identity server
  * without removing it from the homeserver.
  *
- * Unlike other endpoints, this endpoint does not take an ``id_access_token``
+ * Unlike other endpoints, this endpoint does not take an `id_access_token`
  * parameter because the homeserver is expected to sign the request to the
  * identity server instead.
  */
@@ -265,9 +266,9 @@ public:
      *
      * \param idServer
      *   The identity server to unbind from. If not provided, the homeserver
-     *   MUST use the ``id_server`` the identifier was added through. If the
-     *   homeserver does not know the original ``id_server``, it MUST return
-     *   a ``id_server_unbind_result`` of ``no-support``.
+     *   MUST use the `id_server` the identifier was added through. If the
+     *   homeserver does not know the original `id_server`, it MUST return
+     *   a `id_server_unbind_result` of `no-support`.
      */
     explicit Unbind3pidFromAccountJob(const QString& medium,
                                       const QString& address,
@@ -276,8 +277,8 @@ public:
     // Result properties
 
     /// An indicator as to whether or not the identity server was able to unbind
-    /// the 3PID. ``success`` indicates that the identity server has unbound the
-    /// identifier whereas ``no-support`` indicates that the identity server
+    /// the 3PID. `success` indicates that the identity server has unbound the
+    /// identifier whereas `no-support` indicates that the identity server
     /// refuses to support the request or the homeserver was not able to
     /// determine an identity server to unbind from.
     QString idServerUnbindResult() const
@@ -293,7 +294,9 @@ public:
  * already associated with an account on this homeserver. This API should
  * be used to request validation tokens when adding an email address to an
  * account. This API's parameters and response are identical to that of
- * the |/register/email/requestToken|_ endpoint. The homeserver should validate
+ * the
+ * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+ * endpoint. The homeserver should validate
  * the email itself, either by sending a validation email itself or by using
  * a service it has control over.
  */
@@ -307,9 +310,11 @@ public:
      *   already associated with an account on this homeserver. This API should
      *   be used to request validation tokens when adding an email address to an
      *   account. This API's parameters and response are identical to that of
-     *   the |/register/email/requestToken|_ endpoint. The homeserver should
-     * validate the email itself, either by sending a validation email itself or
-     * by using a service it has control over.
+     *   the
+     * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+     *   endpoint. The homeserver should validate
+     *   the email itself, either by sending a validation email itself or by
+     * using a service it has control over.
      */
     explicit RequestTokenTo3PIDEmailJob(const EmailValidationData& body);
 
@@ -331,7 +336,9 @@ public:
  * already associated with an account on this homeserver. This API should
  * be used to request validation tokens when adding a phone number to an
  * account. This API's parameters and response are identical to that of
- * the |/register/msisdn/requestToken|_ endpoint. The homeserver should validate
+ * the
+ * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+ * endpoint. The homeserver should validate
  * the phone number itself, either by sending a validation message itself or by
  * using a service it has control over.
  */
@@ -345,9 +352,11 @@ public:
      *   already associated with an account on this homeserver. This API should
      *   be used to request validation tokens when adding a phone number to an
      *   account. This API's parameters and response are identical to that of
-     *   the |/register/msisdn/requestToken|_ endpoint. The homeserver should
-     * validate the phone number itself, either by sending a validation message
-     * itself or by using a service it has control over.
+     *   the
+     * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+     *   endpoint. The homeserver should validate
+     *   the phone number itself, either by sending a validation message itself
+     * or by using a service it has control over.
      */
     explicit RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData& body);
 

@@ -30,7 +30,8 @@ public:
      *
      * \param reason
      *   The reason the user has been banned. This will be supplied as the
-     * ``reason`` on the target's updated `m.room.member`_ event.
+     * `reason` on the target's updated
+     * [`m.room.member`](/client-server-api/#mroommember) event.
      */
     explicit BanJob(const QString& roomId, const QString& userId,
                     const QString& reason = {});
@@ -54,8 +55,13 @@ public:
      *
      * \param userId
      *   The fully qualified user ID of the user being unbanned.
+     *
+     * \param reason
+     *   Optional reason to be included as the `reason` on the subsequent
+     *   membership event.
      */
-    explicit UnbanJob(const QString& roomId, const QString& userId);
+    explicit UnbanJob(const QString& roomId, const QString& userId,
+                      const QString& reason = {});
 };
 
 } // namespace Quotient

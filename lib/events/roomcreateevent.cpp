@@ -5,19 +5,35 @@
 
 using namespace Quotient;
 
+template <>
+struct Quotient::JsonConverter<RoomType> {
+    static RoomType load(const QJsonValue& jv)
+    {
+        const auto& roomTypeString = jv.toString();
+        for (auto it = RoomTypeStrings.begin(); it != RoomTypeStrings.end();
+             ++it)
+            if (roomTypeString == *it)
+                return RoomType(it - RoomTypeStrings.begin());
+
+        if (!roomTypeString.isEmpty())
+            qCWarning(EVENTS) << "Unknown Room Type: " << roomTypeString;
+        return RoomType::Undefined;
+    }
+};
+
 bool RoomCreateEvent::isFederated() const
 {
-    return fromJson<bool>(contentJson()["m.federate"_ls]);
+    return contentPart<bool>("m.federate"_ls);
 }
 
 QString RoomCreateEvent::version() const
 {
-    return fromJson<QString>(contentJson()["room_version"_ls]);
+    return contentPart<QString>("room_version"_ls);
 }
 
 RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
 {
-    const auto predJson = contentJson()["predecessor"_ls].toObject();
+    const auto predJson = contentPart<QJsonObject>("predecessor"_ls);
     return { fromJson<QString>(predJson[RoomIdKeyL]),
              fromJson<QString>(predJson[EventIdKeyL]) };
 }
@@ -25,4 +41,9 @@ RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
 bool RoomCreateEvent::isUpgrade() const
 {
     return contentJson().contains("predecessor"_ls);
+}
+
+RoomType RoomCreateEvent::roomType() const
+{
+    return contentPart<RoomType>("type"_ls);
 }

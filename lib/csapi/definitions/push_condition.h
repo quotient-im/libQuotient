@@ -9,26 +9,27 @@
 namespace Quotient {
 
 struct PushCondition {
-    /// The kind of condition to apply. See `conditions <#conditions>`_ for
-    /// more information on the allowed kinds and how they work.
+    /// The kind of condition to apply. See
+    /// [conditions](/client-server-api/#conditions) for more information on the
+    /// allowed kinds and how they work.
     QString kind;
 
-    /// Required for ``event_match`` conditions. The dot-separated field of the
+    /// Required for `event_match` conditions. The dot-separated field of the
     /// event to match.
     ///
-    /// Required for ``sender_notification_permission`` conditions. The field in
+    /// Required for `sender_notification_permission` conditions. The field in
     /// the power level event the user needs a minimum power level for. Fields
-    /// must be specified under the ``notifications`` property in the power
-    /// level event's ``content``.
+    /// must be specified under the `notifications` property in the power level
+    /// event's `content`.
     QString key;
 
-    /// Required for ``event_match`` conditions. The glob-style pattern to
+    /// Required for `event_match` conditions. The glob-style pattern to
     /// match against. Patterns with no special glob characters should be
     /// treated as having asterisks prepended and appended when testing the
     /// condition.
     QString pattern;
 
-    /// Required for ``room_member_count`` conditions. A decimal integer
+    /// Required for `room_member_count` conditions. A decimal integer
     /// optionally prefixed by one of, ==, <, >, >= or <=. A prefix of < matches
     /// rooms where the member count is strictly less than the given number and
     /// so forth. If no prefix is present, this parameter defaults to ==.

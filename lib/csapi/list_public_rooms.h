@@ -170,7 +170,7 @@ public:
      *
      * \param thirdPartyInstanceId
      *   The specific third party network/protocol to request from the
-     *   homeserver. Can only be used if ``include_all_networks`` is false.
+     *   homeserver. Can only be used if `include_all_networks` is false.
      */
     explicit QueryPublicRoomsJob(const QString& server = {},
                                  Omittable<int> limit = none,

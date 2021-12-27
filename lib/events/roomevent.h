@@ -12,16 +12,8 @@ class RedactionEvent;
 
 /** This class corresponds to m.room.* events */
 class RoomEvent : public Event {
-    Q_GADGET
-    Q_PROPERTY(QString id READ id)
-    Q_PROPERTY(QDateTime timestamp READ timestamp CONSTANT)
-    Q_PROPERTY(QString roomId READ roomId CONSTANT)
-    Q_PROPERTY(QString senderId READ senderId CONSTANT)
-    Q_PROPERTY(QString redactionReason READ redactionReason)
-    Q_PROPERTY(bool isRedacted READ isRedacted)
-    Q_PROPERTY(QString transactionId READ transactionId WRITE setTransactionId)
 public:
-    using factory_t = EventFactory<RoomEvent>;
+    static inline _impl::EventFactory<RoomEvent> factory { "RoomEvent" };
 
     // RedactionEvent is an incomplete type here so we cannot inline
     // constructors and destructors and we cannot use 'using'.
@@ -32,11 +24,12 @@ public:
 
     QString id() const;
     QDateTime originTimestamp() const;
-    [[deprecated("Use originTimestamp()")]] QDateTime timestamp() const {
-        return originTimestamp();
-    }
     QString roomId() const;
     QString senderId() const;
+    //! \brief Determine whether the event has been replaced
+    //!
+    //! \return true if this event has been overridden by another event
+    //!         with `"rel_type": "m.replace"`; false otherwise
     bool isReplaced() const;
     QString replacedBy() const;
     bool isRedacted() const { return bool(_redactedBecause); }
@@ -48,28 +41,23 @@ public:
     QString transactionId() const;
     QString stateKey() const;
 
+    //! \brief Fill the pending event object with the room id
     void setRoomId(const QString& roomId);
+    //! \brief Fill the pending event object with the sender id
     void setSender(const QString& senderId);
-
-    /**
-     * Sets the transaction id for locally created events. This should be
-     * done before the event is exposed to any code using the respective
-     * Q_PROPERTY.
-     *
-     * \param txnId - transaction id, normally obtained from
-     * Connection::generateTxnId()
-     */
+    //! \brief Fill the pending event object with the transaction id
+    //! \param txnId - transaction id, normally obtained from
+    //!        Connection::generateTxnId()
     void setTransactionId(const QString& txnId);
 
-    /**
-     * Sets event id for locally created events
-     *
-     * When a new event is created locally, it has no server id yet.
-     * This function allows to add the id once the confirmation from
-     * the server is received. There should be no id set previously
-     * in the event. It's the responsibility of the code calling addId()
-     * to notify clients that use Q_PROPERTY(id) about its change
-     */
+    //! \brief Add an event id to locally created events after they are sent
+    //!
+    //! When a new event is created locally, it has no id; the homeserver
+    //! assigns it once the event is sent. This function allows to add the id
+    //! once the confirmation from the server is received. There should be no id
+    //! set previously in the event. It's the responsibility of the code calling
+    //! addId() to notify clients about the change; there's no signal or
+    //! callback for that in RoomEvent.
     void addId(const QString& newId);
 
 protected:
@@ -90,8 +78,8 @@ public:
     ~CallEventBase() override = default;
     bool isCallEvent() const override { return true; }
 
-    QString callId() const { return content<QString>("call_id"_ls); }
-    int version() const { return content<int>("version"_ls); }
+    QString callId() const { return contentPart<QString>("call_id"_ls); }
+    int version() const { return contentPart<int>("version"_ls); }
 };
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)

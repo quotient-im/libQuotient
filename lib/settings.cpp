@@ -21,7 +21,9 @@ void Settings::setLegacyNames(const QString& organizationName,
 
 Settings::Settings(QObject* parent) : QSettings(parent)
 {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     setIniCodec("UTF-8");
+#endif
 }
 
 void Settings::setValue(const QString& key, const QVariant& value)
@@ -123,19 +125,6 @@ void AccountSettings::setHomeserver(const QUrl& url)
 }
 
 QString AccountSettings::userId() const { return group().section('/', -1); }
-
-QString AccountSettings::accessToken() const
-{
-    return value(AccessTokenKey).toString();
-}
-
-void AccountSettings::setAccessToken(const QString& accessToken)
-{
-    qCWarning(MAIN) << "Saving access_token to QSettings is insecure."
-                       " Developers, do it manually or contribute to share "
-                       "QtKeychain logic to libQuotient.";
-    setValue(AccessTokenKey, accessToken);
-}
 
 void AccountSettings::clearAccessToken()
 {

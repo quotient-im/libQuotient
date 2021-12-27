@@ -4,20 +4,17 @@
 
 #include "list_joined_rooms.h"
 
-#include <QtCore/QStringBuilder>
-
 using namespace Quotient;
 
 QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   QStringLiteral("/_matrix/client/r0")
-                                       % "/joined_rooms");
+    return BaseJob::makeRequestUrl(
+        std::move(baseUrl), makePath("/_matrix/client/r0", "/joined_rooms"));
 }
 
 GetJoinedRoomsJob::GetJoinedRoomsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetJoinedRoomsJob"),
-              QStringLiteral("/_matrix/client/r0") % "/joined_rooms")
+              makePath("/_matrix/client/r0", "/joined_rooms"))
 {
     addExpectedKey("joined_rooms");
 }

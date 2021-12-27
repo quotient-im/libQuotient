@@ -18,7 +18,7 @@ namespace Quotient {
  * OpenID.
  *
  * The access token generated is only valid for the OpenID API. It cannot
- * be used to request another OpenID access token or call ``/sync``, for
+ * be used to request another OpenID access token or call `/sync`, for
  * example.
  */
 class RequestOpenIdTokenJob : public BaseJob {
@@ -38,9 +38,10 @@ public:
     // Result properties
 
     /// OpenID token information. This response is nearly compatible with the
-    /// response documented in the `OpenID Connect 1.0 Specification
-    /// <http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse>`_
-    /// with the only difference being the lack of an ``id_token``. Instead,
+    /// response documented in the
+    /// [OpenID Connect 1.0
+    /// Specification](http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse)
+    /// with the only difference being the lack of an `id_token`. Instead,
     /// the Matrix homeserver's name is provided.
     OpenidToken tokenData() const { return fromJson<OpenidToken>(jsonData()); }
 };

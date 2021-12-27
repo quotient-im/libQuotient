@@ -7,7 +7,6 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class Room;
 /*
  * While the specification states:
  *
@@ -27,7 +26,6 @@ class Room;
  * one and doesn't add new restrictions, just provides additional features.
  */
 class EncryptedEvent : public RoomEvent {
-    Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encrypted", EncryptedEvent)
 
@@ -43,7 +41,7 @@ public:
 
     QString algorithm() const
     {
-        QString algo = content<QString>(AlgorithmKeyL);
+        QString algo = contentPart<QString>(AlgorithmKeyL);
         if (!SupportedAlgorithms.contains(algo)) {
             qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
                            << "is not supported";
@@ -52,17 +50,17 @@ public:
     }
     QByteArray ciphertext() const
     {
-        return content<QString>(CiphertextKeyL).toLatin1();
+        return contentPart<QString>(CiphertextKeyL).toLatin1();
     }
     QJsonObject ciphertext(const QString& identityKey) const
     {
-        return content<QJsonObject>(CiphertextKeyL).value(identityKey).toObject();
+        return contentPart<QJsonObject>(CiphertextKeyL).value(identityKey).toObject();
     }
-    QString senderKey() const { return content<QString>(SenderKeyKeyL); }
+    QString senderKey() const { return contentPart<QString>(SenderKeyKeyL); }
 
     /* device_id and session_id are required with Megolm */
-    QString deviceId() const { return content<QString>(DeviceIdKeyL); }
-    QString sessionId() const { return content<QString>(SessionIdKeyL); }
+    QString deviceId() const { return contentPart<QString>(DeviceIdKeyL); }
+    QString sessionId() const { return contentPart<QString>(SessionIdKeyL); }
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 

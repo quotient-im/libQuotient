@@ -11,7 +11,7 @@
 
 #include "connection.h"
 #include "eventitem.h"
-#include "joinstate.h"
+#include "quotient_common.h"
 
 #include "csapi/message_pagination.h"
 
@@ -71,6 +71,45 @@ public:
     bool failed() const { return status == Failed; }
 };
 
+//! \brief Data structure for a room member's read receipt
+//! \sa Room::lastReadReceipt
+class ReadReceipt {
+    Q_GADGET
+    Q_PROPERTY(QString eventId MEMBER eventId CONSTANT)
+    Q_PROPERTY(QDateTime timestamp MEMBER timestamp CONSTANT)
+public:
+    QString eventId;
+    QDateTime timestamp = {};
+
+    bool operator==(const ReadReceipt& other) const
+    {
+        return eventId == other.eventId && timestamp == other.timestamp;
+    }
+    bool operator!=(const ReadReceipt& other) const
+    {
+        return !operator==(other);
+    }
+};
+inline void swap(ReadReceipt& lhs, ReadReceipt& rhs)
+{
+    swap(lhs.eventId, rhs.eventId);
+    swap(lhs.timestamp, rhs.timestamp);
+}
+
+struct EventStats;
+
+struct Notification
+{
+    enum Type { None = 0, Basic, Highlight };
+    Q_ENUM(Notification)
+
+    Type type = None;
+
+private:
+    Q_GADGET
+    Q_PROPERTY(Type type MEMBER type CONSTANT)
+};
+
 class Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
@@ -87,6 +126,7 @@ class Room : public QObject {
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
     Q_PROPERTY(QStringList pinnedEventIds READ pinnedEventIds WRITE setPinnedEvents
                    NOTIFY pinnedEventsChanged)
+    Q_PROPERTY(QString displayNameForHtml READ displayNameForHtml NOTIFY displaynameChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
                    STORED false)
@@ -95,7 +135,6 @@ class Room : public QObject {
 
     Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
     Q_PROPERTY(QStringList memberNames READ safeMemberNames NOTIFY memberListChanged)
-    Q_PROPERTY(int memberCount READ memberCount NOTIFY memberListChanged)
     Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
     Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
@@ -106,21 +145,28 @@ class Room : public QObject {
                    setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
     Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE
                    setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
-
+    //! \deprecated since 0.7
     Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE
                    markMessagesAsRead NOTIFY readMarkerMoved)
+    Q_PROPERTY(QString lastFullyReadEventId READ lastFullyReadEventId WRITE
+                   markMessagesAsRead NOTIFY fullyReadMarkerMoved)
+    //! \deprecated since 0.7
     Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
-                   unreadMessagesChanged)
-    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadMessagesChanged)
-    Q_PROPERTY(int highlightCount READ highlightCount NOTIFY
-                   highlightCountChanged RESET resetHighlightCount)
-    Q_PROPERTY(int notificationCount READ notificationCount NOTIFY
-                   notificationCountChanged RESET resetNotificationCount)
+                   partiallyReadStatsChanged STORED false)
+    //! \deprecated since 0.7
+    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY partiallyReadStatsChanged
+                   STORED false)
+    Q_PROPERTY(qsizetype highlightCount READ highlightCount
+                   NOTIFY highlightCountChanged)
+    Q_PROPERTY(qsizetype notificationCount READ notificationCount
+                   NOTIFY notificationCountChanged)
+    Q_PROPERTY(EventStats partiallyReadStats READ partiallyReadStats NOTIFY partiallyReadStatsChanged)
+    Q_PROPERTY(EventStats unreadStats READ unreadStats NOTIFY unreadStatsChanged)
     Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
-    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged)
-    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged)
+    Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
+    Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged STORED false)
 
     Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
                    eventsHistoryJobChanged)
@@ -132,26 +178,49 @@ public:
     using rev_iter_t = Timeline::const_reverse_iterator;
     using timeline_iter_t = Timeline::const_iterator;
 
-    enum Change : uint {
-        NoChange = 0x0,
-        NameChange = 0x1,
-        AliasesChange = 0x2,
-        CanonicalAliasChange = AliasesChange,
-        TopicChange = 0x4,
-        UnreadNotifsChange = 0x8,
-        AvatarChange = 0x10,
-        JoinStateChange = 0x20,
-        TagsChange = 0x40,
-        MembersChange = 0x80,
-        /* = 0x100, */
-        AccountDataChange = 0x200,
-        SummaryChange = 0x400,
-        ReadMarkerChange = 0x800,
-        OtherChange = 0x8000,
-        AnyChange = 0xFFFF
+    //! \brief Room changes that can be tracked using Room::changed() signal
+    //!
+    //! This enumeration lists kinds of changes that can be tracked with
+    //! a "cumulative" changed() signal instead of using individual signals for
+    //! each change. Specific enumerators mention these individual signals.
+    //! \sa changed
+    enum class Change : uint {
+        None = 0x0, //< No changes occurred in the room
+        Name = 0x1, //< \sa namesChanged, displaynameChanged
+        Aliases = 0x2, //< \sa namesChanged, displaynameChanged
+        CanonicalAlias = Aliases,
+        Topic = 0x4, //< \sa topicChanged
+        PartiallyReadStats = 0x8, //< \sa partiallyReadStatsChanged
+        DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
+        Avatar = 0x10, //< \sa avatarChanged
+        JoinState = 0x20, //< \sa joinStateChanged
+        Tags = 0x40, //< \sa tagsChanged
+        //! \sa userAdded, userRemoved, memberRenamed, memberListChanged,
+        //!     displaynameChanged
+        Members = 0x80,
+        UnreadStats = 0x100, //< \sa unreadStatsChanged
+        AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "Change::AccountData will be merged into Change::Other in 0.8") =
+            0x200,
+        Summary = 0x400, //< \sa summaryChanged, displaynameChanged
+        ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "Change::ReadMarker will be merged into Change::Other in 0.8") =
+            0x800,
+        Highlights = 0x1000, //< \sa highlightCountChanged
+        //! A catch-all value that covers changes not listed above (such as
+        //! encryption turned on or the room having been upgraded), as well as
+        //! changes in the room state that the library is not aware of (e.g.,
+        //! custom state events) and m.read/m.fully_read position changes.
+        //! \sa encryptionChanged, upgraded, accountDataChanged
+        Other = 0x8000,
+        //! This is intended to test a Change/Changes value for non-emptiness;
+        //! adding <tt>& Change::Any</tt> has the same meaning as
+        //! !testFlag(Change::None) or adding <tt>!= Change::None</tt>
+        //! \note testFlag(Change::Any) tests that _all_ bits are on and
+        //!       will always return false.
+        Any = 0xFFFF
     };
-    Q_DECLARE_FLAGS(Changes, Change)
-    Q_FLAG(Changes)
+    QUO_DECLARE_FLAGS(Changes, Change)
 
     Room(Connection* connection, QString id, JoinState initialJoinState);
     ~Room() override;
@@ -181,21 +250,15 @@ public:
     Room* successor(JoinStates statesFilter = JoinState::Invite
                                               | JoinState::Join) const;
     QString name() const;
-    /// Room aliases defined on the current user's server
-    /// \sa remoteAliases, setLocalAliases
-    [[deprecated("Use aliases()")]]
-    QStringList localAliases() const;
-    /// Room aliases defined on other servers
-    /// \sa localAliases
-    [[deprecated("Use aliases()")]]
-    QStringList remoteAliases() const;
     QString canonicalAlias() const;
     QStringList altAliases() const;
+    //! Get a list of both canonical and alternative aliases
     QStringList aliases() const;
     QString displayName() const;
     QStringList pinnedEventIds() const;
     // Returns events available locally, use pinnedEventIds() for full list
     QVector<const RoomEvent*> pinnedEvents() const;
+    QString displayNameForHtml() const;
     QString topic() const;
     QString avatarMediaId() const;
     QUrl avatarUrl() const;
@@ -205,12 +268,10 @@ public:
     QList<User*> membersLeft() const;
 
     Q_INVOKABLE QList<Quotient::User*> users() const;
-    [[deprecated("Use safeMemberNames() or htmlSafeMemberNames() instead")]]
+    Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
     QStringList memberNames() const;
     QStringList safeMemberNames() const;
     QStringList htmlSafeMemberNames() const;
-    [[deprecated("Use joinedCount(), invitedCount(), totalMemberCount()")]]
-    int memberCount() const;
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
@@ -255,24 +316,27 @@ public:
      *
      * \return Join if the user is a room member; Leave otherwise
      */
+    Q_DECL_DEPRECATED_X("Use isMember() instead")
     Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
+
+    //! \brief Check the join state of a given user in this room
+    //!
+    //! \return the given user's state with respect to the room
+    Q_INVOKABLE Quotient::Membership memberState(const QString& userId) const;
+
+    //! Check whether a user with the given id is a member of the room
+    Q_INVOKABLE bool isMember(const QString& userId) const;
 
     //! \brief Get a display name (without disambiguation) for the given member
     //!
     //! \sa safeMemberName, htmlSafeMemberName
     Q_INVOKABLE QString memberName(const QString& mxId) const;
 
-    /*!
-     * \brief Get a disambiguated name for the given user in the room context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for the given user in the room context
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
-    /*!
-     * \brief Get a disambiguated name for a user with this id in the room context
-     *
-     * \deprecated use safeMemberName() instead
-     */
+    //! \brief Get a disambiguated name for a user with this id in the room
+    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
     /*!
@@ -319,8 +383,6 @@ public:
      * arrived event; same as messageEvents().cend()
      */
     Timeline::const_iterator syncEdge() const;
-    /// \deprecated Use historyEdge instead
-    rev_iter_t timelineEdge() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;
     Q_INVOKABLE bool
@@ -337,9 +399,13 @@ public:
                                       const char* relType) const;
 
     const RoomCreateEvent* creation() const
-    { return getCurrentState<RoomCreateEvent>(); }
+    {
+        return getCurrentState<RoomCreateEvent>();
+    }
     const RoomTombstoneEvent* tombstone() const
-    { return getCurrentState<RoomTombstoneEvent>(); }
+    {
+        return getCurrentState<RoomTombstoneEvent>();
+    }
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -359,44 +425,223 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
+    //! \brief Obtain a read receipt of any user
+    //! \deprecated Use lastReadReceipt or fullyReadMarker instead.
+    //!
+    //! Historically, readMarker was returning a "converged" read marker
+    //! representing both the read receipt and the fully read marker, as
+    //! Quotient managed them together. Since 0.6.8, a single-argument call of
+    //! readMarker returns the last read receipt position (for any room member)
+    //! and a call without arguments returns the last _fully read_ position,
+    //! to provide access to both positions separately while maintaining API
+    //! stability guarantees. 0.7 has separate methods to return read receipts
+    //! and the fully read marker - use them instead.
+    //! \sa lastReadReceipt
+    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
+                 " fullyReadMarker() to get m.fully_read marker")]] //
     rev_iter_t readMarker(const User* user) const;
+    //! \brief Obtain the local user's fully-read marker
+    //! \deprecated Use fullyReadMarker instead
+    //!
+    //! See the documentation for the single-argument overload.
+    //! \sa fullyReadMarker
+    [[deprecated("Use localReadReceiptMarker() or fullyReadMarker()")]] //
     rev_iter_t readMarker() const;
+    //! \brief Get the event id for the local user's fully-read marker
+    //! \deprecated Use lastFullyReadEventId instead
+    //!
+    //! See the readMarker documentation
+    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
+                 " lastFullyReadEventId() to get an event id that"
+                 " m.fully_read marker points to")]] //
     QString readMarkerEventId() const;
-    QList<User*> usersAtEventId(const QString& eventId);
-    /**
-     * \brief Mark the event with uptoEventId as read
-     *
-     * Finds in the timeline and marks as read the event with
-     * the specified id; also posts a read receipt to the server either
-     * for this message or, if it's from the local user, for
-     * the nearest non-local message before. uptoEventId must be non-empty.
-     */
-    void markMessagesAsRead(QString uptoEventId);
 
-    /// Check whether there are unread messages in the room
+    //! \brief Get the latest read receipt from a user
+    //!
+    //! The user id must be valid. A read receipt with an empty event id
+    //! is returned if the user id is valid but there was no read receipt
+    //! from them.
+    //! \sa usersAtEventId
+    ReadReceipt lastReadReceipt(const QString& userId) const;
+
+    //! \brief Get the latest read receipt from the local user
+    //!
+    //! This is a shortcut for <tt>lastReadReceipt(localUserId)</tt>.
+    //! \sa lastReadReceipt
+    ReadReceipt lastLocalReadReceipt() const;
+
+    //! \brief Find the timeline item the local read receipt is at
+    //!
+    //! This is a shortcut for \code
+    //! room->findInTimeline(room->lastLocalReadReceipt().eventId);
+    //! \endcode
+    rev_iter_t localReadReceiptMarker() const;
+
+    //! \brief Get the latest event id marked as fully read
+    //!
+    //! This can be either the event id pointed to by the actual latest
+    //! m.fully_read event, or the latest event id marked locally as fully read
+    //! if markMessagesAsRead or markAllMessagesAsRead has been called and
+    //! the homeserver didn't return an updated m.fully_read event yet.
+    //! \sa markMessagesAsRead, markAllMessagesAsRead, fullyReadMarker
+    QString lastFullyReadEventId() const;
+
+    //! \brief Get the iterator to the latest timeline item marked as fully read
+    //!
+    //! This method calls findInTimeline on the result of lastFullyReadEventId.
+    //! If the fully read marker turns out to be outside the timeline (because
+    //! the event marked as fully read is too far back in the history) the
+    //! returned value will be equal to historyEdge.
+    //!
+    //! Be sure to read the caveats on iterators returned by findInTimeline.
+    //! \sa lastFullyReadEventId, findInTimeline
+    rev_iter_t fullyReadMarker() const;
+
+    //! \brief Get users whose latest read receipts point to the event
+    //!
+    //! This method is for cases when you need to show users who have read
+    //! an event. Calling it on inexistent or empty event id will return
+    //! an empty set.
+    //! \note The returned list may contain ids resolving to users that are
+    //!       not loaded as room members yet (in particular, if members are not
+    //!       yet lazy-loaded). For now this merely means that the user's
+    //!       room-specific name and avatar will not be there; but generally
+    //!       it's recommended to ensure that all room members are loaded
+    //!       before operating on the result of this function.
+    //! \sa lastReadReceipt, allMembersLoaded
+    QSet<QString> userIdsAtEvent(const QString& eventId);
+
+    [[deprecated("Use userIdsAtEvent instead")]]
+    QSet<User*> usersAtEventId(const QString& eventId);
+
+    //! \brief Mark the event with uptoEventId as fully read
+    //!
+    //! Marks the event with the specified id as fully read locally and also
+    //! sends an update to m.fully_read account data to the server either
+    //! for this message or, if it's from the local user, for
+    //! the nearest non-local message before. uptoEventId must point to a known
+    //! event in the timeline; the method will do nothing if the event is behind
+    //! the current m.fully_read marker or is not loaded, to prevent
+    //! accidentally trying to move the marker back in the timeline.
+    //! \sa markAllMessagesAsRead, fullyReadMarker
+    Q_INVOKABLE void markMessagesAsRead(const QString& uptoEventId);
+
+    //! \brief Determine whether an event should be counted as unread
+    //!
+    //! The criteria of including an event in unread counters are described in
+    //! [MSC2654](https://github.com/matrix-org/matrix-doc/pull/2654); according
+    //! to these, the event should be counted as unread (or, in libQuotient
+    //! parlance, is "notable") if it is:
+    //! - either
+    //!   - a message event that is not m.notice, or
+    //!   - a state event with type being one of:
+    //!     `m.room.topic`, `m.room.name`, `m.room.avatar`, `m.room.tombstone`;
+    //! - neither redacted, nor an edit (redactions cause the redacted event
+    //!   to stop being notable, while edits are not notable themselves while
+    //!   the original event usually is);
+    //! - from a non-local user (events from other devices of the local
+    //!   user are not notable).
+    //! \sa partiallyReadStats, unreadStats
+    virtual bool isEventNotable(const TimelineItem& ti) const;
+
+    //! \brief Get notification details for an event
+    //!
+    //! This allows to get details on the kind of notification that should
+    //! generated for \p evt.
+    Notification notificationFor(const TimelineItem& ti) const;
+
+    //! \brief Get event statistics since the fully read marker
+    //!
+    //! This call returns a structure containing:
+    //! - the number of notable unread events since the fully read marker;
+    //!   depending on the fully read marker state with respect to the local
+    //!   timeline, this number may be either exact or estimated
+    //!   (see EventStats::isEstimate);
+    //! - the number of highlights (TODO).
+    //!
+    //! Note that this is different from the unread count defined by MSC2654
+    //! and from the notification/highlight numbers defined by the spec in that
+    //! it counts events since the fully read marker, not since the last
+    //! read receipt position.
+    //!
+    //! As E2EE is not supported in the library, the returned result will always
+    //! be an estimate (<tt>isEstimate == true</tt>) for encrypted rooms;
+    //! moreover, since the library doesn't know how to tackle push rules yet
+    //! the number of highlights returned here will always be zero (there's no
+    //! good substitute for that now).
+    //!
+    //! \sa isEventNotable, fullyReadMarker, unreadStats, EventStats
+    EventStats partiallyReadStats() const;
+
+    //! \brief Get event statistics since the last read receipt
+    //!
+    //! This call returns a structure that contains the following three numbers,
+    //! all counted on the timeline segment between the event pointed to by
+    //! the m.fully_read marker and the sync edge:
+    //! - the number of unread events - depending on the read receipt state
+    //!   with respect to the local timeline, this number may be either precise
+    //!   or estimated (see EventStats::isEstimate);
+    //! - the number of highlights (TODO).
+    //!
+    //! As E2EE is not supported in the library, the returned result will always
+    //! be an estimate (<tt>isEstimate == true</tt>) for encrypted rooms;
+    //! moreover, since the library doesn't know how to tackle push rules yet
+    //! the number of highlights returned here will always be zero - use
+    //! highlightCount() for now.
+    //!
+    //! \sa isEventNotable, lastLocalReadReceipt, partiallyReadStats,
+    //!     highlightCount
+    EventStats unreadStats() const;
+
+    [[deprecated(
+        "Use partiallyReadStats/unreadStats() and EventStats::empty()")]]
     bool hasUnreadMessages() const;
 
-    /** Get the number of unread messages in the room
-     * Depending on the read marker state, this call may return either
-     * a precise or an estimate number of unread events. Only "notable"
-     * events (non-redacted message events from users other than local)
-     * are counted.
-     *
-     * In a case when readMarker() == timelineEdge() (the local read
-     * marker is beyond the local timeline) only the bottom limit of
-     * the unread messages number can be estimated (and even that may
-     * be slightly off due to, e.g., redactions of events not loaded
-     * to the local timeline).
-     *
-     * If all messages are read, this function will return -1 (_not_ 0,
-     * as zero may mean "zero or more unread messages" in a situation
-     * when the read marker is outside the local timeline.
-     */
+    //! \brief Get the number of notable events since the fully read marker
+    //!
+    //! \deprecated Since 0.7 there are two ways to count unread events: since
+    //! the fully read marker (used by libQuotient pre-0.7) and since the last
+    //! read receipt (as used by most of Matrix ecosystem, including the spec
+    //! and MSCs). This function currently returns a value derived from
+    //! partiallyReadStats() for compatibility with libQuotient 0.6; it will be
+    //! removed due to ambiguity. Use unreadStats() to obtain the spec-compliant
+    //! count of unread events and the highlight count; partiallyReadStats() to
+    //! obtain the unread events count since the fully read marker.
+    //!
+    //! \return -1 (_not 0_) when all messages are known to have been fully read,
+    //!         i.e. the fully read marker points to _the latest notable_ event
+    //!         loaded in the local timeline (which may be different from
+    //!         the latest event in the local timeline as that might not be
+    //!         notable);
+    //!         0 when there may be unread messages but the current local
+    //!         timeline doesn't have any notable ones (often but not always
+    //!         because it's entirely empty yet);
+    //!         a positive integer when there is (or estimated to be) a number
+    //!         of unread notable events as described above.
+    //!
+    //! \sa partiallyReadStats, unreadStats
+    [[deprecated("Use partiallyReadStats() or unreadStats() instead")]] //
     int unreadCount() const;
 
-    Q_INVOKABLE int notificationCount() const;
+    //! \brief Get the number of notifications since the last read receipt
+    //!
+    //! This is the same as <tt>unreadStats().notableCount</tt>.
+    //!
+    //! \sa unreadStats, lastLocalReadReceipt
+    qsizetype notificationCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in notification count
     Q_INVOKABLE void resetNotificationCount();
-    Q_INVOKABLE int highlightCount() const;
+
+    //! \brief Get the number of highlights since the last read receipt
+    //!
+    //! As of 0.7, this is defined by the homeserver as Quotient doesn't process
+    //! push rules.
+    //!
+    //! \sa unreadStats, lastLocalReadReceipt
+    qsizetype highlightCount() const;
+
+    //! \deprecated Use setReadReceipt() to drive changes in highlightCount
     Q_INVOKABLE void resetHighlightCount();
 
     /** Check whether the room has account data of the given type
@@ -466,6 +711,9 @@ public:
     /// Get the list of users this room is a direct chat with
     QList<User*> directChatUsers() const;
 
+    Q_INVOKABLE QUrl makeMediaUrl(const QString& eventId,
+                                  const QUrl &mxcUrl) const;
+
     Q_INVOKABLE QUrl urlToThumbnail(const QString& eventId) const;
     Q_INVOKABLE QUrl urlToDownload(const QString& eventId) const;
 
@@ -514,6 +762,19 @@ public:
     Q_INVOKABLE const Quotient::StateEventBase*
     getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
 
+    /// Get all state events in the room.
+    /*! This method returns all known state events that have occured in
+     * the room, as a mapping from the event type and state key to value.
+     */
+    const QHash<StateEventKey, const StateEventBase*>& currentState() const;
+
+    /// Get all state events in the room of a certain type.
+    /*! This method returns all known state events that have occured in
+     * the room of the given type.
+     */
+    Q_INVOKABLE const QVector<const StateEventBase*>
+    stateEventsOfType(const QString& evtType) const;
+
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
      * its Matrix name.
@@ -554,8 +815,13 @@ public Q_SLOTS:
     QString postHtmlText(const QString& plainText, const QString& html);
     /// Send a reaction on a given event with a given key
     QString postReaction(const QString& eventId, const QString& key);
+
+    QString postFile(const QString& plainText, EventContent::TypedBase* content);
+#if QT_VERSION_MAJOR < 6
+    Q_DECL_DEPRECATED_X("Use postFile(QString, MessageEventType, EventContent)") //
     QString postFile(const QString& plainText, const QUrl& localPath,
                      bool asGenericFile = false);
+#endif
     /** Post a pre-created room message event
      *
      * Takes ownership of the event, deleting it once the matching one
@@ -594,7 +860,12 @@ public Q_SLOTS:
     void downloadFile(const QString& eventId, const QUrl& localFilename = {});
     void cancelFileTransfer(const QString& id);
 
-    /// Mark all messages in the room as read
+    //! \brief Set a given event as last read and post a read receipt on it
+    //!
+    //! Does nothing if the event is behind the current read receipt.
+    //! \sa lastReadReceipt, markMessagesAsRead, markAllMessagesAsRead
+    void setReadReceipt(const QString& atEventId);
+    //! Put the fully-read marker at the latest message in the room
     void markAllMessagesAsRead();
 
     /// Switch the room's version (aka upgrade)
@@ -608,6 +879,12 @@ public Q_SLOTS:
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 
+    /**
+     * Activates encryption for this room.
+     * Warning: Cannot be undone
+     */
+    void activateEncryption();
+
 Q_SIGNALS:
     /// Initial set of state events has been loaded
     /**
@@ -619,11 +896,11 @@ Q_SIGNALS:
      */
     void baseStateLoaded();
     void eventsHistoryJobChanged();
-    void aboutToAddHistoricalMessages(RoomEventsRange events);
-    void aboutToAddNewMessages(RoomEventsRange events);
+    void aboutToAddHistoricalMessages(Quotient::RoomEventsRange events);
+    void aboutToAddNewMessages(Quotient::RoomEventsRange events);
     void addedMessages(int fromIndex, int toIndex);
     /// The event is about to be appended to the list of pending events
-    void pendingEventAboutToAdd(RoomEvent* event);
+    void pendingEventAboutToAdd(Quotient::RoomEvent* event);
     /// An event has been appended to the list of pending events
     void pendingEventAdded();
     /// The remote echo has arrived with the sync and will be merged
@@ -692,17 +969,26 @@ Q_SIGNALS:
                           Quotient::JoinState newState);
     void typingChanged();
 
-    void highlightCountChanged();
-    void notificationCountChanged();
+    void highlightCountChanged(); //< \sa highlightCount
+    void notificationCountChanged(); //< \sa notificationCount
 
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
+    //! The event that m.read receipt points to has changed
+    //! \sa lastReadReceipt
     void lastReadEventChanged(Quotient::User* user);
+    void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
+    //! \deprecated since 0.7 - use fullyReadMarkerMoved
     void readMarkerMoved(QString fromEventId, QString toEventId);
+    //! \deprecated since 0.7 - use lastReadEventChanged
     void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
                                 QString toEventId);
+    //! \deprecated since 0.7 - use either partiallyReadStatsChanged
+    //!             or unreadStatsChanged
     void unreadMessagesChanged(Quotient::Room* room);
+    void partiallyReadStatsChanged();
+    void unreadStatsChanged();
 
     void accountDataAboutToChange(QString type);
     void accountDataChanged(QString type);
@@ -717,7 +1003,8 @@ Q_SIGNALS:
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
     void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
     void fileTransferFailed(QString id, QString errorMessage = {});
-    void fileTransferCancelled(QString id);
+    // fileTransferCancelled() is no more here; use fileTransferFailed() and
+    // check the transfer status instead
 
     void callEvent(Quotient::Room* room, const Quotient::RoomEvent* event);
 
@@ -743,6 +1030,7 @@ protected:
     {}
     virtual QJsonObject toJson() const;
     virtual void updateData(SyncRoomData&& data, bool fromCache = false);
+    virtual Notification checkForNotifications(const TimelineItem& ti);
 
 private:
     friend class Connection;
@@ -761,7 +1049,7 @@ public:
     explicit MemberSorter(const Room* r) : room(r) {}
 
     bool operator()(User* u1, User* u2) const;
-    bool operator()(User* u1, const QString& u2name) const;
+    bool operator()(User* u1, QStringView u2name) const;
 
     template <typename ContT, typename ValT>
     typename ContT::size_type lowerBoundIndex(const ContT& c, const ValT& v) const
@@ -774,4 +1062,5 @@ private:
 };
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::FileTransferInfo)
+Q_DECLARE_METATYPE(Quotient::ReadReceipt)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::Room::Changes)

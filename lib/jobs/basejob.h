@@ -7,8 +7,10 @@
 #include "requestdata.h"
 #include "../logging.h"
 #include "../converters.h"
+#include "../quotient_common.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QStringBuilder>
 
 class QNetworkReply;
 class QSslError;
@@ -23,7 +25,18 @@ class BaseJob : public QObject {
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
     Q_PROPERTY(int statusCode READ error NOTIFY statusChanged)
+
+    static QByteArray encodeIfParam(const QString& paramPart);
+    template <int N>
+    static inline auto encodeIfParam(const char (&constPart)[N])
+    {
+        return constPart;
+    }
+
 public:
+#define WITH_DEPRECATED_ERROR_VERSION(Recommended) \
+    Recommended, DECL_DEPRECATED_ENUMERATOR(Recommended##Error, Recommended)
+
     /*! The status code of a job
      *
      * Every job is created in Unprepared status; upon calling prepare()
@@ -34,7 +47,7 @@ public:
      */
     enum StatusCode {
         Success = 0,
-        NoError = Success, // To be compatible with Qt conventions
+        NoError = Success,
         Pending = 1,
         WarningLevel = 20, //< Warnings have codes starting from this
         UnexpectedResponseType = 21,
@@ -43,28 +56,18 @@ public:
         Abandoned = 50, //< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //< Errors have codes starting from this
         NetworkError = 101,
-        Timeout,
-        TimeoutError = Timeout,
+        WITH_DEPRECATED_ERROR_VERSION(Timeout),
         Unauthorised,
         ContentAccessError,
-        NotFoundError,
-        IncorrectRequest,
-        IncorrectRequestError = IncorrectRequest,
-        IncorrectResponse,
-        IncorrectResponseError = IncorrectResponse,
-        JsonParseError //< \deprecated Use IncorrectResponse instead
-        = IncorrectResponse,
-        TooManyRequests,
-        TooManyRequestsError = TooManyRequests,
+        WITH_DEPRECATED_ERROR_VERSION(NotFound),
+        WITH_DEPRECATED_ERROR_VERSION(IncorrectRequest),
+        WITH_DEPRECATED_ERROR_VERSION(IncorrectResponse),
+        WITH_DEPRECATED_ERROR_VERSION(TooManyRequests),
         RateLimited = TooManyRequests,
-        RequestNotImplemented,
-        RequestNotImplementedError = RequestNotImplemented,
-        UnsupportedRoomVersion,
-        UnsupportedRoomVersionError = UnsupportedRoomVersion,
-        NetworkAuthRequired,
-        NetworkAuthRequiredError = NetworkAuthRequired,
-        UserConsentRequired,
-        UserConsentRequiredError = UserConsentRequired,
+        WITH_DEPRECATED_ERROR_VERSION(RequestNotImplemented),
+        WITH_DEPRECATED_ERROR_VERSION(UnsupportedRoomVersion),
+        WITH_DEPRECATED_ERROR_VERSION(NetworkAuthRequired),
+        WITH_DEPRECATED_ERROR_VERSION(UserConsentRequired),
         CannotLeaveRoom,
         UserDeactivated,
         FileError,
@@ -72,21 +75,19 @@ public:
     };
     Q_ENUM(StatusCode)
 
-    /**
-     * A simple wrapper around QUrlQuery that allows its creation from
-     * a list of string pairs
-     */
-    class Query : public QUrlQuery {
-    public:
-        using QUrlQuery::QUrlQuery;
-        Query() = default;
-        Query(const std::initializer_list<QPair<QString, QString>>& l)
-        {
-            setQueryItems(l);
-        }
-    };
+#undef WITH_DEPRECATED_ERROR_VERSION
 
-    using Data = RequestData;
+    template <typename... StrTs>
+    static QByteArray makePath(StrTs&&... parts)
+    {
+        return (QByteArray() % ... % encodeIfParam(parts));
+    }
+
+    using Data
+#ifndef Q_CC_MSVC
+        Q_DECL_DEPRECATED_X("Use Quotient::RequestData instead")
+#endif
+        = RequestData;
 
     /*!
      * This structure stores the status of a server call job. The status
@@ -136,10 +137,11 @@ public:
     };
 
 public:
-    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
+    BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
             bool needsToken = true);
-    BaseJob(HttpVerb verb, const QString& name, const QString& endpoint,
-            const Query& query, Data&& data = {}, bool needsToken = true);
+    BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
+            const QUrlQuery& query, RequestData&& data = {},
+            bool needsToken = true);
 
     QUrl requestUrl() const;
     bool isBackground() const;
@@ -194,7 +196,7 @@ public:
      * If there's no top-level JSON object in the response or if there's
      * no node with the key \p keyName, \p defaultValue is returned.
      */
-    template <typename T, typename StrT> // Waiting for QStringViews...
+    template <typename T, typename StrT>
     T loadFromJson(const StrT& keyName, T&& defaultValue = {}) const
     {
         const auto& jv = jsonData().value(keyName);
@@ -336,16 +338,18 @@ Q_SIGNALS:
 protected:
     using headers_t = QHash<QByteArray, QByteArray>;
 
+    Q_DECL_DEPRECATED_X("Deprecated due to being unused")
     const QString& apiEndpoint() const;
+    Q_DECL_DEPRECATED_X("Deprecated due to being unused")
     void setApiEndpoint(const QString& apiEndpoint);
     const headers_t& requestHeaders() const;
     void setRequestHeader(const headers_t::key_type& headerName,
                           const headers_t::mapped_type& headerValue);
     void setRequestHeaders(const headers_t& headers);
-    const QUrlQuery& query() const;
+    QUrlQuery query() const;
     void setRequestQuery(const QUrlQuery& query);
-    const Data& requestData() const;
-    void setRequestData(Data&& data);
+    const RequestData& requestData() const;
+    void setRequestData(RequestData&& data);
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
@@ -361,7 +365,7 @@ protected:
      * The function ensures exactly one '/' between the path component of
      * \p baseUrl and \p path. The query component of \p baseUrl is ignored.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& path,
+    static QUrl makeRequestUrl(QUrl baseUrl, const QByteArray &encodedPath,
                                const QUrlQuery& query = {});
 
     /*! Prepares the job for execution
@@ -395,10 +399,12 @@ protected:
      * was not good (usually because of an unsuccessful HTTP code).
      * The base implementation assumes Matrix JSON error object in the body;
      * overrides are strongly recommended to call it for all stock Matrix
-     * responses as early as possible but in addition can process custom errors,
+     * responses as early as possible and only then process custom errors,
      * with JSON or non-JSON payload.
+     *
+     * \return updated (if necessary) job status
      */
-    virtual Status prepareError();
+    virtual Status prepareError(Status currentStatus);
 
     /*! \brief Get direct access to the JSON response object in the job
      *

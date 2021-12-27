@@ -10,9 +10,6 @@
 
 using namespace Quotient;
 
-const QString SyncRoomData::UnreadCountKey =
-    QStringLiteral("x-quotient.unread_count");
-
 bool RoomSummary::isEmpty() const
 {
     return !joinedMemberCount && !invitedMemberCount && !heroes;
@@ -64,23 +61,23 @@ inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
     return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
 
-SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
-                           const QJsonObject& room_)
-    : roomId(roomId_)
-    , joinState(joinState_)
-    , summary(fromJson<RoomSummary>(room_["summary"_ls]))
-    , state(load<StateEvents>(room_, joinState == JoinState::Invite
+SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
+                           const QJsonObject& roomJson)
+    : roomId(std::move(roomId_))
+    , joinState(joinState)
+    , summary(fromJson<RoomSummary>(roomJson["summary"_ls]))
+    , state(load<StateEvents>(roomJson, joinState == JoinState::Invite
                                          ? "invite_state"_ls
                                          : "state"_ls))
 {
     switch (joinState) {
     case JoinState::Join:
-        ephemeral = load<Events>(room_, "ephemeral"_ls);
+        ephemeral = load<Events>(roomJson, "ephemeral"_ls);
         [[fallthrough]];
     case JoinState::Leave: {
-        accountData = load<Events>(room_, "account_data"_ls);
-        timeline = load<RoomEvents>(room_, "timeline"_ls);
-        const auto timelineJson = room_.value("timeline"_ls).toObject();
+        accountData = load<Events>(roomJson, "account_data"_ls);
+        timeline = load<RoomEvents>(roomJson, "timeline"_ls);
+        const auto timelineJson = roomJson.value("timeline"_ls).toObject();
         timelineLimited = timelineJson.value("limited"_ls).toBool();
         timelinePrevBatch = timelineJson.value("prev_batch"_ls).toString();
 
@@ -89,21 +86,24 @@ SyncRoomData::SyncRoomData(const QString& roomId_, JoinState joinState_,
     default: /* nothing on top of state */;
     }
 
-    const auto unreadJson = room_.value("unread_notifications"_ls).toObject();
-    unreadCount = unreadJson.value(UnreadCountKey).toInt(-2);
-    highlightCount = unreadJson.value("highlight_count"_ls).toInt();
-    notificationCount = unreadJson.value("notification_count"_ls).toInt();
-    if (highlightCount > 0 || notificationCount > 0)
-        qCDebug(SYNCJOB) << "Room" << roomId_
-                         << "has highlights:" << highlightCount
-                         << "and notifications:" << notificationCount;
+    const auto unreadJson = roomJson.value(UnreadNotificationsKey).toObject();
+
+    fromJson(unreadJson.value(PartiallyReadCountKey), partiallyReadCount);
+    if (!partiallyReadCount.has_value())
+        fromJson(unreadJson.value("x-quotient.unread_count"_ls),
+                 partiallyReadCount);
+
+    fromJson(roomJson.value(NewUnreadCountKey), unreadCount);
+    if (!unreadCount.has_value())
+        fromJson(unreadJson.value("notification_count"_ls), unreadCount);
+    fromJson(unreadJson.value(HighlightCountKey), highlightCount);
 }
 
 SyncData::SyncData(const QString& cacheFileName)
 {
     QFileInfo cacheFileInfo { cacheFileName };
     auto json = loadJson(cacheFileName);
-    auto requiredVersion = std::get<0>(cacheVersion());
+    auto requiredVersion = MajorCacheVersion;
     auto actualVersion =
         json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
@@ -127,6 +127,11 @@ Events&& SyncData::takePresenceData() { return std::move(presenceData); }
 Events&& SyncData::takeAccountData() { return std::move(accountData); }
 
 Events&& SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
+
+std::pair<int, int> SyncData::cacheVersion()
+{
+    return { MajorCacheVersion, 2 };
+}
 
 QJsonObject SyncData::loadJson(const QString& fileName)
 {
@@ -171,13 +176,14 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
              deviceOneTimeKeysCount_);
 
     auto rooms = json.value("rooms"_ls).toObject();
-    JoinStates::Int ii = 1; // ii is used to make a JoinState value
     auto totalRooms = 0;
     auto totalEvents = 0;
-    for (size_t i = 0; i < JoinStateStrings.size(); ++i, ii <<= 1) {
+    for (size_t i = 0; i < JoinStateStrings.size(); ++i) {
+        // This assumes that MemberState values go over powers of 2: 1,2,4,...
+        const auto joinState = JoinState(1U << i);
         const auto rs = rooms.value(JoinStateStrings[i]).toObject();
         // We have a Qt container on the right and an STL one on the left
-        roomData.reserve(static_cast<size_t>(rs.size()));
+        roomData.reserve(roomData.size() + static_cast<size_t>(rs.size()));
         for (auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt) {
             auto roomJson =
                 roomIt->isObject()
@@ -187,7 +193,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
                 unresolvedRoomIds.push_back(roomIt.key());
                 continue;
             }
-            roomData.emplace_back(roomIt.key(), JoinState(ii), roomJson);
+            roomData.emplace_back(roomIt.key(), joinState, roomJson);
             const auto& r = roomData.back();
             totalEvents += r.state.size() + r.ephemeral.size()
                            + r.accountData.size() + r.timeline.size();
