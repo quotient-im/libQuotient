@@ -13,7 +13,7 @@ class RedactionEvent;
 /** This class corresponds to m.room.* events */
 class QUOTIENT_API RoomEvent : public Event {
 public:
-    static inline _impl::EventFactory<RoomEvent> factory { "RoomEvent" };
+    static inline EventFactory<RoomEvent> factory { "RoomEvent" };
 
     // RedactionEvent is an incomplete type here so we cannot inline
     // constructors and destructors and we cannot use 'using'.

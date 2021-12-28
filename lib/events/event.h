@@ -120,80 +120,93 @@ inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 }
 
 namespace _impl {
-    template <class EventT, class BaseEventT>
-    event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
-                                           const QString& matrixType)
+    class QUOTIENT_API EventFactoryBase {
+    public:
+        EventFactoryBase(const EventFactoryBase&) = delete;
+
+    protected: // This class is only to inherit from
+        explicit EventFactoryBase(const char* name)
+            : name(name)
+        {}
+        void logAddingMethod(event_mtype_t mtypeId, size_t newSize);
+
+    private:
+        const char* const name;
+    };
+} // namespace _impl
+
+//! \brief A family of event factories to create events from CS API responses
+//!
+//! Each of these factories, as instantiated by event base types (Event,
+//! RoomEvent etc.) is capable of producing an event object derived from
+//! \p BaseEventT, using the JSON payload and the event type passed to its
+//! make() method. Don't use these directly to make events; use loadEvent()
+//! overloads as the frontend for these. Never instantiate new factories
+//! outside of base event classes.
+//! \sa loadEvent, setupFactory, Event::factory, RoomEvent::factory,
+//!     StateEventBase::factory
+template <typename BaseEventT>
+class EventFactory : public _impl::EventFactoryBase {
+private:
+    std::vector<event_ptr_tt<BaseEventT> (*)(const QJsonObject&, const QString&)>
+        methods {};
+
+    template <class EventT>
+    static event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
+                                                  const QString& matrixType)
     {
         return QLatin1String(EventT::matrixTypeId()) == matrixType
                    ? makeEvent<EventT>(json)
                    : nullptr;
     }
 
-    //! \brief A family of event factories to create events from CS API responses
+public:
+    explicit EventFactory(const char* fName)
+        : EventFactoryBase { fName }
+    {}
+
+    //! \brief Add a method to create events of a given type
     //!
-    //! Each of these factories, as instantiated by event base types (Event,
-    //! RoomEvent etc.) is capable of producing an event object derived from
-    //! \p BaseEventT, using the JSON payload and the event type passed to its
-    //! make() method. Don't use these directly to make events; use loadEvent()
-    //! overloads as the frontend for these. Never instantiate new factories
-    //! outside of base event classes.
-    //! \sa loadEvent, setupFactory, Event::factory, RoomEvent::factory,
-    //!     StateEventBase::factory
-    template <typename BaseEventT>
-    class EventFactory
-        : private std::vector<event_ptr_tt<BaseEventT> (*)(const QJsonObject&,
-                                                           const QString&)> {
-        // Actual makeIfMatches specialisations will differ in the first
-        // template parameter but that doesn't affect the function type
-    public:
-        explicit EventFactory(const char* name = "")
-            : name(name)
-        {
-            static auto yetToBeConstructed = true;
-            Q_ASSERT(yetToBeConstructed);
-            if (!yetToBeConstructed) // For Release builds that pass Q_ASSERT
-                qCritical(EVENTS)
-                    << "Another EventFactory for the same base type is being "
-                       "created - event creation logic will be splintered";
-            yetToBeConstructed = false;
-        }
-        EventFactory(const EventFactory&) = delete;
+    //! Adds a standard factory method (makeIfMatches) for \p EventT so that
+    //! event objects of this type can be created dynamically by loadEvent.
+    //! The caller is responsible for ensuring this method is called only
+    //! once per type.
+    //! \sa loadEvent, Quotient::loadEvent
+    template <class EventT>
+    const auto& addMethod()
+    {
+        logAddingMethod(EventT::matrixTypeId(), methods.size() + 1);
+        return methods.emplace_back(&makeIfMatches<EventT>);
+    }
 
-        //! \brief Add a method to create events of a given type
-        //!
-        //! Adds a standard factory method (makeIfMatches) for \p EventT so that
-        //! event objects of this type can be created dynamically by loadEvent.
-        //! The caller is responsible for ensuring this method is called only
-        //! once per type.
-        //! \sa makeIfMatches, loadEvent, Quotient::loadEvent
-        template <class EventT>
-        bool addMethod()
-        {
-            this->emplace_back(&makeIfMatches<EventT, BaseEventT>);
-            qDebug(EVENTS) << "Added factory method for"
-                           << EventT::matrixTypeId() << "events;" << this->size()
-                           << "methods in the" << name << "chain by now";
-            return true;
-        }
+    auto loadEvent(const QJsonObject& json, const QString& matrixType)
+    {
+        for (const auto& f : methods)
+            if (auto e = f(json, matrixType))
+                return e;
+        return makeEvent<BaseEventT>(unknownEventTypeId(), json);
+    }
+};
 
-        auto loadEvent(const QJsonObject& json, const QString& matrixType)
-        {
-            for (const auto& f : *this)
-                if (auto e = f(json, matrixType))
-                    return e;
-            return makeEvent<BaseEventT>(unknownEventTypeId(), json);
-        }
-
-        const char* const name;
-    };
-} // namespace _impl
+//! \brief Point of customisation to dynamically load events
+//!
+//! The default specialisation of this calls BaseEventT::factory.loadEvent()
+//! and if that fails (i.e. returns nullptr) creates an unknown event of
+//! BaseEventT. Other specialisations may reuse other factories, add validations
+//! common to BaseEventT events, and so on.
+template <class BaseEventT>
+event_ptr_tt<BaseEventT> doLoadEvent(const QJsonObject& json,
+                                     const QString& matrixType)
+{
+    return BaseEventT::factory.loadEvent(json, matrixType);
+}
 
 // === Event ===
 
 class QUOTIENT_API Event {
 public:
     using Type = event_type_t;
-    static inline _impl::EventFactory<Event> factory { "Event" };
+    static inline EventFactory<Event> factory { "Event" };
 
     explicit Event(Type type, const QJsonObject& json);
     explicit Event(Type type, event_mtype_t matrixType,
@@ -273,36 +286,20 @@ using Events = EventsArray<Event>;
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
 #define DEFINE_EVENT_TYPEID(_Id, _Type)                                        \
-    static QUOTIENT_EXPORT constexpr event_mtype_t matrixTypeId()              \
+    static QUOTIENT_API constexpr event_mtype_t matrixTypeId()              \
     {                                                                          \
         return _Id;                                                            \
     }                                                                          \
-    static QUOTIENT_EXPORT auto typeId() { return Quotient::typeId<_Type>(); } \
+    static QUOTIENT_API auto typeId() { return Quotient::typeId<_Type>(); } \
     // End of macro
 
 // This macro should be put after an event class definition (in .h or .cpp)
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(_Type)                                         \
-    [[maybe_unused]] QUOTIENT_API inline const auto _factoryAdded##_Type = \
-        _Type::factory.addMethod<_Type>();                                 \
+#define REGISTER_EVENT_TYPE(Type_)                                             \
+    [[maybe_unused]] QUOTIENT_API inline const auto& factoryMethodFor##Type_ = \
+        Type_::factory.addMethod<Type_>();                                     \
     // End of macro
-
-// === Event loading ===
-// (see also event_loader.h)
-
-//! \brief Point of customisation to dynamically load events
-//!
-//! The default specialisation of this calls BaseEventT::factory and if that
-//! fails (i.e. returns nullptr) creates an unknown event of BaseEventT.
-//! Other specialisations may reuse other factories, add validations common to
-//! BaseEventT, and so on
-template <class BaseEventT>
-event_ptr_tt<BaseEventT> doLoadEvent(const QJsonObject& json,
-                                     const QString& matrixType)
-{
-    return BaseEventT::factory.loadEvent(json, matrixType);
-}
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
 

@@ -27,6 +27,14 @@ QString EventTypeRegistry::getMatrixType(event_type_t typeId)
                                             : QString();
 }
 
+void _impl::EventFactoryBase::logAddingMethod(event_mtype_t matrixType,
+                                              size_t newSize)
+{
+    qDebug(EVENTS) << "Adding factory method for" << matrixType << "events;"
+                   << newSize << "methods will be in the" << name
+                   << "chain";
+}
+
 Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
 {
     if (!json.contains(ContentKeyL)
