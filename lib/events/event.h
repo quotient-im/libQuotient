@@ -55,60 +55,32 @@ inline QJsonObject basicEventJson(const QString& matrixType,
     return { { TypeKey, matrixType }, { ContentKey, content } };
 }
 
-// === Event types and event types registry ===
+// === Event types ===
 
-using event_type_t = size_t;
+using event_type_t = QLatin1String;
 using event_mtype_t = const char*;
 
 class QUOTIENT_API EventTypeRegistry {
 public:
     ~EventTypeRegistry() = default;
 
-    static event_type_t initializeTypeId(event_mtype_t matrixTypeId);
-
-    template <typename EventT>
-    static event_type_t initializeTypeId()
-    {
-        return initializeTypeId(EventT::matrixTypeId());
-    }
-
+    [[deprecated("event_type_t is a string now, use it directly instead")]]
     static QString getMatrixType(event_type_t typeId);
 
 private:
     EventTypeRegistry() = default;
     Q_DISABLE_COPY_MOVE(EventTypeRegistry)
-
-    static EventTypeRegistry& get()
-    {
-        static EventTypeRegistry etr;
-        return etr;
-    }
-
-    std::vector<event_mtype_t> eventTypes;
-};
-
-template <>
-inline event_type_t EventTypeRegistry::initializeTypeId<void>()
-{
-    return initializeTypeId("");
-}
-
-template <typename EventT>
-struct EventTypeTraits {
-    static event_type_t id()
-    {
-        static const auto id = EventTypeRegistry::initializeTypeId<EventT>();
-        return id;
-    }
 };
 
 template <typename EventT>
 inline event_type_t typeId()
 {
-    return EventTypeTraits<std::decay_t<EventT>>::id();
+    return std::decay_t<EventT>::TypeId;
 }
 
-inline event_type_t unknownEventTypeId() { return typeId<void>(); }
+constexpr inline event_type_t UnknownEventTypeId = "?"_ls;
+[[deprecated("Use UnknownEventTypeId")]]
+constexpr inline event_type_t unknownEventTypeId() { return UnknownEventTypeId; }
 
 // === Event creation facilities ===
 
@@ -128,7 +100,7 @@ namespace _impl {
         explicit EventFactoryBase(const char* name)
             : name(name)
         {}
-        void logAddingMethod(event_mtype_t mtypeId, size_t newSize);
+        void logAddingMethod(event_type_t TypeId, size_t newSize);
 
     private:
         const char* const name;
@@ -155,9 +127,9 @@ private:
     static event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
                                                   const QString& matrixType)
     {
-        return QLatin1String(EventT::matrixTypeId()) == matrixType
-                   ? makeEvent<EventT>(json)
-                   : nullptr;
+        // If your matrix event type is not all ASCII, it's your problem
+        // (see https://github.com/matrix-org/matrix-doc/pull/2758)
+        return EventT::TypeId == matrixType ? makeEvent<EventT>(json) : nullptr;
     }
 
 public:
@@ -175,7 +147,7 @@ public:
     template <class EventT>
     const auto& addMethod()
     {
-        logAddingMethod(EventT::matrixTypeId(), methods.size() + 1);
+        logAddingMethod(EventT::TypeId, methods.size() + 1);
         return methods.emplace_back(&makeIfMatches<EventT>);
     }
 
@@ -184,7 +156,7 @@ public:
         for (const auto& f : methods)
             if (auto e = f(json, matrixType))
                 return e;
-        return makeEvent<BaseEventT>(unknownEventTypeId(), json);
+        return makeEvent<BaseEventT>(UnknownEventTypeId, json);
     }
 };
 
@@ -285,12 +257,12 @@ using Events = EventsArray<Event>;
 
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
-#define DEFINE_EVENT_TYPEID(_Id, _Type)                                        \
-    static QUOTIENT_API constexpr event_mtype_t matrixTypeId()              \
-    {                                                                          \
-        return _Id;                                                            \
-    }                                                                          \
-    static QUOTIENT_API auto typeId() { return Quotient::typeId<_Type>(); } \
+#define DEFINE_EVENT_TYPEID(Id_, Type_)                           \
+    static inline constexpr event_type_t TypeId = Id_##_ls;       \
+    [[deprecated("Use _Type::TypeId directly instead")]]          \
+    static constexpr event_mtype_t matrixTypeId() { return Id_; } \
+    [[deprecated("Use _Type::TypeId directly instead")]]          \
+    static event_type_t typeId() { return TypeId; }               \
     // End of macro
 
 // This macro should be put after an event class definition (in .h or .cpp)
@@ -311,7 +283,7 @@ inline bool is(const Event& e)
 
 inline bool isUnknown(const Event& e)
 {
-    return e.type() == unknownEventTypeId();
+    return e.type() == UnknownEventTypeId;
 }
 
 template <class EventT, typename BasePtrT>
