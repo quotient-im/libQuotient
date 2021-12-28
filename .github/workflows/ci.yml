@@ -105,8 +105,10 @@ jobs:
         fi
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
 
+        # Build libQuotient as a shared library for the sonar-enabled run
+        # to have this configuration also covered
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                    -DBUILD_SHARED_LIBS=false \
+                    -DBUILD_SHARED_LIBS=${{ matrix.sonar }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
