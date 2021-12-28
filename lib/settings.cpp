@@ -102,11 +102,11 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QTNT_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
                    setDeviceId)
-QTNT_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
                    setDeviceName)
-QTNT_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
+QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
 static const auto HomeserverKey = QStringLiteral("homeserver");
