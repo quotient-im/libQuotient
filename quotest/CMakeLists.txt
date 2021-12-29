@@ -8,6 +8,11 @@ find_package(${Qt} COMPONENTS Concurrent)
 add_executable(quotest ${quotest_SRCS})
 target_link_libraries(quotest PRIVATE ${Qt}::Core ${Qt}::Test ${Qt}::Concurrent ${PROJECT_NAME})
 
+set_target_properties(quotest PROPERTIES
+    VISIBILITY_INLINES_HIDDEN ON
+    CXX_VISIBILITY_PRESET hidden
+)
+
 if (MSVC)
     target_compile_options(quotest PUBLIC /EHsc /W4
         /wd4100 /wd4127 /wd4242 /wd4244 /wd4245 /wd4267 /wd4365 /wd4456 /wd4459
