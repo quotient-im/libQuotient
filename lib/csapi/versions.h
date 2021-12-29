@@ -31,7 +31,7 @@ namespace Quotient {
  * upgrade appropriately. Additionally, clients should avoid using unstable
  * features in their stable releases.
  */
-class GetVersionsJob : public BaseJob {
+class QUOTIENT_API GetVersionsJob : public BaseJob {
 public:
     /// Gets the versions of the specification supported by the server.
     explicit GetVersionsJob();

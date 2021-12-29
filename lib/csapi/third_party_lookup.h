@@ -18,7 +18,7 @@ namespace Quotient {
  * homeserver. Includes both the available protocols and all fields
  * required for queries against each protocol.
  */
-class GetProtocolsJob : public BaseJob {
+class QUOTIENT_API GetProtocolsJob : public BaseJob {
 public:
     /// Retrieve metadata about all protocols that a homeserver supports.
     explicit GetProtocolsJob();
@@ -45,7 +45,7 @@ public:
  * Fetches the metadata from the homeserver about a particular third party
  * protocol.
  */
-class GetProtocolMetadataJob : public BaseJob {
+class QUOTIENT_API GetProtocolMetadataJob : public BaseJob {
 public:
     /*! \brief Retrieve metadata about a specific protocol that the homeserver
      * supports.
@@ -82,7 +82,7 @@ public:
  * identifier. It should attempt to canonicalise the identifier as much
  * as reasonably possible given the network type.
  */
-class QueryLocationByProtocolJob : public BaseJob {
+class QUOTIENT_API QueryLocationByProtocolJob : public BaseJob {
 public:
     /*! \brief Retrieve Matrix-side portals rooms leading to a third party
      * location.
@@ -119,7 +119,7 @@ public:
  * Retrieve a Matrix User ID linked to a user on the third party service, given
  * a set of user parameters.
  */
-class QueryUserByProtocolJob : public BaseJob {
+class QUOTIENT_API QueryUserByProtocolJob : public BaseJob {
 public:
     /*! \brief Retrieve the Matrix User ID of a corresponding third party user.
      *
@@ -155,7 +155,7 @@ public:
  * Retrieve an array of third party network locations from a Matrix room
  * alias.
  */
-class QueryLocationByAliasJob : public BaseJob {
+class QUOTIENT_API QueryLocationByAliasJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party locations given a Matrix room alias.
      *
@@ -184,7 +184,7 @@ public:
  *
  * Retrieve an array of third party users from a Matrix User ID.
  */
-class QueryUserByIDJob : public BaseJob {
+class QUOTIENT_API QueryUserByIDJob : public BaseJob {
 public:
     /*! \brief Reverse-lookup third party users given a Matrix User ID.
      *

@@ -15,7 +15,7 @@ namespace Quotient {
  * Get a single event based on `roomId/eventId`. You must have permission to
  * retrieve this event e.g. by being a member in the room for this event.
  */
-class GetOneRoomEventJob : public BaseJob {
+class QUOTIENT_API GetOneRoomEventJob : public BaseJob {
 public:
     /*! \brief Get a single event by event ID.
      *
@@ -48,7 +48,7 @@ public:
  * state of the room. If the user has left the room then the state is
  * taken from the state of the room when they left.
  */
-class GetRoomStateWithKeyJob : public BaseJob {
+class QUOTIENT_API GetRoomStateWithKeyJob : public BaseJob {
 public:
     /*! \brief Get the state identified by the type and key.
      *
@@ -80,7 +80,7 @@ public:
  *
  * Get the state events for the current state of a room.
  */
-class GetRoomStateJob : public BaseJob {
+class QUOTIENT_API GetRoomStateJob : public BaseJob {
 public:
     /*! \brief Get all state events in the current state of a room.
      *
@@ -106,7 +106,7 @@ public:
  *
  * Get the list of members for this room.
  */
-class GetMembersByRoomJob : public BaseJob {
+class QUOTIENT_API GetMembersByRoomJob : public BaseJob {
 public:
     /*! \brief Get the m.room.member events for the room.
      *
@@ -161,7 +161,7 @@ public:
  * respond than `/members` as it can be implemented more efficiently on the
  * server.
  */
-class GetJoinedMembersByRoomJob : public BaseJob {
+class QUOTIENT_API GetJoinedMembersByRoomJob : public BaseJob {
 public:
     // Inner data structures
 

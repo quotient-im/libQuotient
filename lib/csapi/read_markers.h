@@ -13,7 +13,7 @@ namespace Quotient {
  * Sets the position of the read marker for a given room, and optionally
  * the read receipt's location.
  */
-class SetReadMarkerJob : public BaseJob {
+class QUOTIENT_API SetReadMarkerJob : public BaseJob {
 public:
     /*! \brief Set the position of the read marker for a room.
      *

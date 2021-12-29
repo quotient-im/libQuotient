@@ -17,7 +17,7 @@ namespace Quotient {
  * This API endpoint uses the [User-Interactive Authentication
  * API](/client-server-api/#user-interactive-authentication-api).
  */
-class UploadCrossSigningKeysJob : public BaseJob {
+class QUOTIENT_API UploadCrossSigningKeysJob : public BaseJob {
 public:
     /*! \brief Upload cross-signing keys.
      *
@@ -47,7 +47,7 @@ public:
  * Publishes cross-signing signatures for the user.  The request body is a
  * map from user ID to key ID to signed JSON object.
  */
-class UploadCrossSigningSignaturesJob : public BaseJob {
+class QUOTIENT_API UploadCrossSigningSignaturesJob : public BaseJob {
 public:
     /*! \brief Upload cross-signing signatures.
      *

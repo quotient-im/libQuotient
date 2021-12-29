@@ -25,7 +25,7 @@ namespace Quotient {
  * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
  * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
  */
-class JoinRoomByIdJob : public BaseJob {
+class QUOTIENT_API JoinRoomByIdJob : public BaseJob {
 public:
     /*! \brief Start the requesting user participating in a particular room.
      *
@@ -67,7 +67,7 @@ public:
  * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
  * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
  */
-class JoinRoomJob : public BaseJob {
+class QUOTIENT_API JoinRoomJob : public BaseJob {
 public:
     /*! \brief Start the requesting user participating in a particular room.
      *

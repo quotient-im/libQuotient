@@ -14,7 +14,7 @@ namespace Quotient {
  *
  * Gets the visibility of a given room on the server's public room directory.
  */
-class GetRoomVisibilityOnDirectoryJob : public BaseJob {
+class QUOTIENT_API GetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Gets the visibility of a room in the directory
      *
@@ -48,7 +48,7 @@ public:
  * here, for instance that room visibility can only be changed by
  * the room creator or a server administrator.
  */
-class SetRoomVisibilityOnDirectoryJob : public BaseJob {
+class QUOTIENT_API SetRoomVisibilityOnDirectoryJob : public BaseJob {
 public:
     /*! \brief Sets the visibility of a room in the room directory
      *
@@ -70,7 +70,7 @@ public:
  * This API returns paginated responses. The rooms are ordered by the number
  * of joined members, with the largest rooms first.
  */
-class GetPublicRoomsJob : public BaseJob {
+class QUOTIENT_API GetPublicRoomsJob : public BaseJob {
 public:
     /*! \brief Lists the public rooms on the server.
      *
@@ -133,7 +133,7 @@ public:
  * This API returns paginated responses. The rooms are ordered by the number
  * of joined members, with the largest rooms first.
  */
-class QueryPublicRoomsJob : public BaseJob {
+class QUOTIENT_API QueryPublicRoomsJob : public BaseJob {
 public:
     // Inner data structures
 

@@ -19,7 +19,7 @@ namespace Quotient {
  * `/pushrules/global/`. This will return a subset of this data under the
  * specified key e.g. the `global` key.
  */
-class GetPushRulesJob : public BaseJob {
+class QUOTIENT_API GetPushRulesJob : public BaseJob {
 public:
     /// Retrieve all push rulesets.
     explicit GetPushRulesJob();
@@ -44,7 +44,7 @@ public:
  *
  * Retrieve a single specified push rule.
  */
-class GetPushRuleJob : public BaseJob {
+class QUOTIENT_API GetPushRuleJob : public BaseJob {
 public:
     /*! \brief Retrieve a push rule.
      *
@@ -79,7 +79,7 @@ public:
  *
  * This endpoint removes the push rule defined in the path.
  */
-class DeletePushRuleJob : public BaseJob {
+class QUOTIENT_API DeletePushRuleJob : public BaseJob {
 public:
     /*! \brief Delete a push rule.
      *
@@ -112,7 +112,7 @@ public:
  *
  * When creating push rules, they MUST be enabled by default.
  */
-class SetPushRuleJob : public BaseJob {
+class QUOTIENT_API SetPushRuleJob : public BaseJob {
 public:
     /*! \brief Add or change a push rule.
      *
@@ -160,7 +160,7 @@ public:
  *
  * This endpoint gets whether the specified push rule is enabled.
  */
-class IsPushRuleEnabledJob : public BaseJob {
+class QUOTIENT_API IsPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Get whether a push rule is enabled
      *
@@ -195,7 +195,7 @@ public:
  *
  * This endpoint allows clients to enable or disable the specified push rule.
  */
-class SetPushRuleEnabledJob : public BaseJob {
+class QUOTIENT_API SetPushRuleEnabledJob : public BaseJob {
 public:
     /*! \brief Enable or disable a push rule.
      *
@@ -219,7 +219,7 @@ public:
  *
  * This endpoint get the actions for the specified push rule.
  */
-class GetPushRuleActionsJob : public BaseJob {
+class QUOTIENT_API GetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief The actions for a push rule
      *
@@ -258,7 +258,7 @@ public:
  * This endpoint allows clients to change the actions of a push rule.
  * This can be used to change the actions of builtin rules.
  */
-class SetPushRuleActionsJob : public BaseJob {
+class QUOTIENT_API SetPushRuleActionsJob : public BaseJob {
 public:
     /*! \brief Set the actions for a push rule.
      *

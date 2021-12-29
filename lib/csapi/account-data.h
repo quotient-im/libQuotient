@@ -14,7 +14,7 @@ namespace Quotient {
  * that set the account_data. The config will be synced to clients in the
  * top-level `account_data`.
  */
-class SetAccountDataJob : public BaseJob {
+class QUOTIENT_API SetAccountDataJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
@@ -38,7 +38,7 @@ public:
  * Get some account_data for the client. This config is only visible to the user
  * that set the account_data.
  */
-class GetAccountDataJob : public BaseJob {
+class QUOTIENT_API GetAccountDataJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
      *
@@ -67,7 +67,7 @@ public:
  * visible to the user that set the account_data. The config will be synced to
  * clients in the per-room `account_data`.
  */
-class SetAccountDataPerRoomJob : public BaseJob {
+class QUOTIENT_API SetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Set some account_data for the user.
      *
@@ -95,7 +95,7 @@ public:
  * Get some account_data for the client on a given room. This config is only
  * visible to the user that set the account_data.
  */
-class GetAccountDataPerRoomJob : public BaseJob {
+class QUOTIENT_API GetAccountDataPerRoomJob : public BaseJob {
 public:
     /*! \brief Get some account_data for the user.
      *

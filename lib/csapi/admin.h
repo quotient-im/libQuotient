@@ -16,7 +16,7 @@ namespace Quotient {
  * up, or by a server admin. Server-local administrator privileges are not
  * specified in this document.
  */
-class GetWhoIsJob : public BaseJob {
+class QUOTIENT_API GetWhoIsJob : public BaseJob {
 public:
     // Inner data structures
 

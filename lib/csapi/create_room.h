@@ -53,7 +53,7 @@ namespace Quotient {
  * requesting user as the creator, alongside other keys provided in the
  * `creation_content`.
  */
-class CreateRoomJob : public BaseJob {
+class QUOTIENT_API CreateRoomJob : public BaseJob {
 public:
     // Inner data structures
 

@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * This API returns a list of the user's current rooms.
  */
-class GetJoinedRoomsJob : public BaseJob {
+class QUOTIENT_API GetJoinedRoomsJob : public BaseJob {
 public:
     /// Lists the user's current rooms.
     explicit GetJoinedRoomsJob();
