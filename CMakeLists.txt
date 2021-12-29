@@ -40,7 +40,7 @@ if (MSVC)
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
     foreach (FLAG Wall Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments fvisibility-inlines-hidden)
+            Wno-gnu-zero-variadic-macro-arguments)
         CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
         if ( COMPILER_${FLAG}_SUPPORTED AND
                 NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
@@ -254,6 +254,12 @@ file(GLOB_RECURSE api_ALL_SRCS CONFIGURE_DEPENDS
      ${FULL_CSAPI_DIR}/*.* lib/${ASAPI_DEF_DIR}/*.* lib/${ISAPI_DEF_DIR}/*.*)
 
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_ALL_SRCS})
+# Set BUILDING_SHARED_QUOTIENT if building as a shared library
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,SHARED_LIBRARY>:BUILDING_SHARED_QUOTIENT>)
+# Set QUOTIENT_STATIC in a static library setting
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,STATIC_LIBRARY>:QUOTIENT_STATIC>)
 target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS QT_NO_URL_CAST_FROM_STRING QT_NO_CAST_TO_ASCII)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
@@ -265,6 +271,8 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
+    VISIBILITY_INLINES_HIDDEN ON
+    CXX_VISIBILITY_PRESET hidden
     VERSION "${PROJECT_VERSION}"
     SOVERSION ${API_VERSION}
     INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${API_VERSION}
