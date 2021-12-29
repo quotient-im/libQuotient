@@ -11,7 +11,7 @@ namespace Quotient {
 class RedactionEvent;
 
 /** This class corresponds to m.room.* events */
-class RoomEvent : public Event {
+class QUOTIENT_API RoomEvent : public Event {
 public:
     static inline _impl::EventFactory<RoomEvent> factory { "RoomEvent" };
 
@@ -70,7 +70,7 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-class CallEventBase : public RoomEvent {
+class QUOTIENT_API CallEventBase : public RoomEvent {
 public:
     CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
                   int version, const QJsonObject& contentJson = {});

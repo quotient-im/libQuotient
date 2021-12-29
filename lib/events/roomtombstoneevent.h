@@ -6,7 +6,7 @@
 #include "stateevent.h"
 
 namespace Quotient {
-class RoomTombstoneEvent : public StateEventBase {
+class QUOTIENT_API RoomTombstoneEvent : public StateEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.room.tombstone", RoomTombstoneEvent)
 

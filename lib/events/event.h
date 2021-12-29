@@ -60,14 +60,14 @@ inline QJsonObject basicEventJson(const QString& matrixType,
 using event_type_t = size_t;
 using event_mtype_t = const char*;
 
-class EventTypeRegistry {
+class QUOTIENT_API EventTypeRegistry {
 public:
     ~EventTypeRegistry() = default;
 
     static event_type_t initializeTypeId(event_mtype_t matrixTypeId);
 
     template <typename EventT>
-    static inline event_type_t initializeTypeId()
+    static event_type_t initializeTypeId()
     {
         return initializeTypeId(EventT::matrixTypeId());
     }
@@ -190,7 +190,7 @@ namespace _impl {
 
 // === Event ===
 
-class Event {
+class QUOTIENT_API Event {
 public:
     using Type = event_type_t;
     static inline _impl::EventFactory<Event> factory { "Event" };
@@ -243,7 +243,7 @@ public:
         return fromJson<T>(unsignedJson()[std::forward<KeyT>(key)]);
     }
 
-    friend QDebug operator<<(QDebug dbg, const Event& e)
+    friend QUOTIENT_API QDebug operator<<(QDebug dbg, const Event& e)
     {
         QDebugStateSaver _dss { dbg };
         dbg.noquote().nospace() << e.matrixType() << '(' << e.type() << "): ";
@@ -272,17 +272,20 @@ using Events = EventsArray<Event>;
 
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
-#define DEFINE_EVENT_TYPEID(_Id, _Type)                           \
-    static constexpr event_mtype_t matrixTypeId() { return _Id; } \
-    static auto typeId() { return Quotient::typeId<_Type>(); }    \
+#define DEFINE_EVENT_TYPEID(_Id, _Type)                                        \
+    static QUOTIENT_EXPORT constexpr event_mtype_t matrixTypeId()              \
+    {                                                                          \
+        return _Id;                                                            \
+    }                                                                          \
+    static QUOTIENT_EXPORT auto typeId() { return Quotient::typeId<_Type>(); } \
     // End of macro
 
 // This macro should be put after an event class definition (in .h or .cpp)
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(_Type)                            \
-    [[maybe_unused]] inline const auto _factoryAdded##_Type = \
-        _Type::factory.addMethod<_Type>();                    \
+#define REGISTER_EVENT_TYPE(_Type)                                         \
+    [[maybe_unused]] QUOTIENT_API inline const auto _factoryAdded##_Type = \
+        _Type::factory.addMethod<_Type>();                                 \
     // End of macro
 
 // === Event loading ===

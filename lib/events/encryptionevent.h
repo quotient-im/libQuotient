@@ -8,7 +8,7 @@
 #include "stateevent.h"
 
 namespace Quotient {
-class EncryptionEventContent : public EventContent::Base {
+class QUOTIENT_API EncryptionEventContent : public EventContent::Base {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
@@ -26,7 +26,7 @@ protected:
 
 using EncryptionType = EncryptionEventContent::EncryptionType;
 
-class EncryptionEvent : public StateEvent<EncryptionEventContent> {
+class QUOTIENT_API EncryptionEvent : public StateEvent<EncryptionEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
@@ -51,6 +51,5 @@ public:
     int rotationPeriodMs() const { return content().rotationPeriodMs; }
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
 };
-
 REGISTER_EVENT_TYPE(EncryptionEvent)
 } // namespace Quotient

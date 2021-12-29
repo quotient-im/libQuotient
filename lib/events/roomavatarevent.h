@@ -7,7 +7,8 @@
 #include "stateevent.h"
 
 namespace Quotient {
-class RoomAvatarEvent : public StateEvent<EventContent::ImageContent> {
+class QUOTIENT_API RoomAvatarEvent
+    : public StateEvent<EventContent::ImageContent> {
     // It's a bit of an overkill to use a full-fledged ImageContent
     // because in reality m.room.avatar usually only has a single URL,
     // without a thumbnail. But The Spec says there be thumbnails, and

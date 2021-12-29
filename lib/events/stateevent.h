@@ -17,7 +17,7 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
              { ContentKey, content } };
 }
 
-class StateEventBase : public RoomEvent {
+class QUOTIENT_API StateEventBase : public RoomEvent {
 public:
     static inline _impl::EventFactory<StateEventBase> factory { "StateEvent" };
 

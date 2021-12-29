@@ -4,6 +4,7 @@
 #pragma once
 
 #include "events/stateevent.h"
+#include "quotient_common.h"
 
 #include <any>
 #include <utility>
@@ -11,7 +12,7 @@
 namespace Quotient {
 
 namespace EventStatus {
-    Q_NAMESPACE
+    QUO_NAMESPACE
 
     /** Special marks an event can assume
      *
@@ -33,7 +34,7 @@ namespace EventStatus {
     Q_ENUM_NS(Code)
 } // namespace EventStatus
 
-class EventItemBase {
+class QUOTIENT_API EventItemBase {
 public:
     explicit EventItemBase(RoomEventPtr&& e) : evt(std::move(e))
     {
@@ -74,7 +75,7 @@ private:
     std::any data;
 };
 
-class TimelineItem : public EventItemBase {
+class QUOTIENT_API TimelineItem : public EventItemBase {
 public:
     // For compatibility with Qt containers, even though we use
     // a std:: container now for the room timeline
@@ -103,7 +104,7 @@ inline const CallEventBase* EventItemBase::viewAs<CallEventBase>() const
     return evt->isCallEvent() ? weakPtrCast<const CallEventBase>(evt) : nullptr;
 }
 
-class PendingEventItem : public EventItemBase {
+class QUOTIENT_API PendingEventItem : public EventItemBase {
 public:
     using EventItemBase::EventItemBase;
 

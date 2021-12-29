@@ -3,13 +3,15 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtNetwork/QNetworkReply>
 #include <memory>
 
 namespace Quotient {
 class Room;
 
-class MxcReply : public QNetworkReply
+class QUOTIENT_API MxcReply : public QNetworkReply
 {
 public:
     explicit MxcReply();

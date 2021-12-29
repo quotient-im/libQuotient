@@ -16,7 +16,7 @@ namespace Quotient {
 //! \note It's just a simple grouping of counters and is not automatically
 //! updated from the room as subsequent syncs arrive.
 //! \sa Room::unreadStats, Room::partiallyReadStats, Room::isEventNotable
-struct EventStats {
+struct QUOTIENT_API EventStats {
     Q_GADGET
     Q_PROPERTY(qsizetype notableCount MEMBER notableCount CONSTANT)
     Q_PROPERTY(qsizetype highlightCount MEMBER highlightCount CONSTANT)
@@ -109,6 +109,6 @@ public:
     bool isValidFor(const Room* room, const marker_t& marker) const;
 };
 
-QDebug operator<<(QDebug dbg, const EventStats& es);
+QUOTIENT_API QDebug operator<<(QDebug dbg, const EventStats& es);
 
 }

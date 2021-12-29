@@ -11,7 +11,7 @@ namespace Quotient {
 /// Sticker messages are specialised image messages that are displayed without
 /// controls (e.g. no "download" link, or light-box view on click, as would be
 /// displayed for for m.image events).
-class StickerEvent : public RoomEvent
+class QUOTIENT_API StickerEvent : public RoomEvent
 {
 public:
     DEFINE_EVENT_TYPEID("m.sticker", StickerEvent)

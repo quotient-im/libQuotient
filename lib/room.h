@@ -45,7 +45,7 @@ class RedactEventJob;
  * This is specifically tuned to work with QML exposing all traits as
  * Q_PROPERTY values.
  */
-class FileTransferInfo {
+class QUOTIENT_API FileTransferInfo {
     Q_GADGET
     Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
     Q_PROPERTY(bool active READ active CONSTANT)
@@ -73,7 +73,7 @@ public:
 
 //! \brief Data structure for a room member's read receipt
 //! \sa Room::lastReadReceipt
-class ReadReceipt {
+class QUOTIENT_API ReadReceipt {
     Q_GADGET
     Q_PROPERTY(QString eventId MEMBER eventId CONSTANT)
     Q_PROPERTY(QDateTime timestamp MEMBER timestamp CONSTANT)
@@ -110,7 +110,7 @@ private:
     Q_PROPERTY(Type type MEMBER type CONSTANT)
 };
 
-class Room : public QObject {
+class QUOTIENT_API Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
@@ -1037,7 +1037,7 @@ private:
     void setJoinState(JoinState state);
 };
 
-class MemberSorter {
+class QUOTIENT_API MemberSorter {
 public:
     explicit MemberSorter(const Room* r) : room(r) {}
 

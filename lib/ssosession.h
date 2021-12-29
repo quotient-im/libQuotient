@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QUrl>
 #include <QtCore/QObject>
 
@@ -29,7 +31,7 @@ class Connection;
  *     connection->prepareForSso(initialDeviceName)->ssoUrl());
  * \endcode
  */
-class SsoSession : public QObject {
+class QUOTIENT_API SsoSession : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl ssoUrl READ ssoUrl CONSTANT)
     Q_PROPERTY(QUrl callbackUrl READ callbackUrl CONSTANT)

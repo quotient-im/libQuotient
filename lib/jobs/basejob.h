@@ -20,7 +20,7 @@ class ConnectionData;
 
 enum class HttpVerb { Get, Put, Post, Delete };
 
-class BaseJob : public QObject {
+class QUOTIENT_API BaseJob : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
@@ -470,7 +470,7 @@ private:
     QScopedPointer<Private> d;
 };
 
-inline bool isJobPending(BaseJob* job)
+inline bool QUOTIENT_API isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }

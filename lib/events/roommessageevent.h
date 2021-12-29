@@ -16,7 +16,7 @@ namespace MessageEventContent = EventContent; // Back-compatibility
 /**
  * The event class corresponding to m.room.message events
  */
-class RoomMessageEvent : public RoomEvent {
+class QUOTIENT_API RoomMessageEvent : public RoomEvent {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
@@ -120,7 +120,7 @@ namespace EventContent {
      * Available fields: mimeType, body. The body can be either rich text
      * or plain text, depending on what mimeType specifies.
      */
-    class TextContent : public TypedBase {
+    class QUOTIENT_API TextContent : public TypedBase {
     public:
         TextContent(QString text, const QString& contentType,
                     Omittable<RelatesTo> relatesTo = none);
@@ -149,7 +149,7 @@ namespace EventContent {
      *   - thumbnail.mimeType
      *   - thumbnail.imageSize
      */
-    class LocationContent : public TypedBase {
+    class QUOTIENT_API LocationContent : public TypedBase {
     public:
         LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
         explicit LocationContent(const QJsonObject& json);
@@ -168,7 +168,7 @@ namespace EventContent {
      * A base class for info types that include duration: audio and video
      */
     template <typename ContentT>
-    class PlayableContent : public ContentT {
+    class QUOTIENT_API PlayableContent : public ContentT {
     public:
         using ContentT::ContentT;
         PlayableContent(const QJsonObject& json)

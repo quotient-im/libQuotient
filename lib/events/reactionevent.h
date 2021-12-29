@@ -7,7 +7,7 @@
 
 namespace Quotient {
 
-struct EventRelation {
+struct QUOTIENT_API EventRelation {
     using reltypeid_t = const char*;
     static constexpr reltypeid_t Reply() { return "m.in_reply_to"; }
     static constexpr reltypeid_t Annotation() { return "m.annotation"; }
@@ -31,12 +31,12 @@ struct EventRelation {
     }
 };
 template <>
-struct JsonObjectConverter<EventRelation> {
+struct QUOTIENT_API JsonObjectConverter<EventRelation> {
     static void dumpTo(QJsonObject& jo, const EventRelation& pod);
     static void fillFrom(const QJsonObject& jo, EventRelation& pod);
 };
 
-class ReactionEvent : public RoomEvent {
+class QUOTIENT_API ReactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.reaction", ReactionEvent)
 
