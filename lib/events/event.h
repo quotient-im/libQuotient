@@ -78,9 +78,9 @@ inline event_type_t typeId()
     return std::decay_t<EventT>::TypeId;
 }
 
-constexpr inline event_type_t UnknownEventTypeId = "?"_ls;
+constexpr event_type_t UnknownEventTypeId = "?"_ls;
 [[deprecated("Use UnknownEventTypeId")]]
-constexpr inline event_type_t unknownEventTypeId() { return UnknownEventTypeId; }
+constexpr event_type_t unknownEventTypeId() { return UnknownEventTypeId; }
 
 // === Event creation facilities ===
 
@@ -258,7 +258,7 @@ using Events = EventsArray<Event>;
 // This macro should be used in a public section of an event class to
 // provide matrixTypeId() and typeId().
 #define DEFINE_EVENT_TYPEID(Id_, Type_)                           \
-    static inline constexpr event_type_t TypeId = Id_##_ls;       \
+    static constexpr event_type_t TypeId = Id_##_ls;              \
     [[deprecated("Use _Type::TypeId directly instead")]]          \
     static constexpr event_mtype_t matrixTypeId() { return Id_; } \
     [[deprecated("Use _Type::TypeId directly instead")]]          \
