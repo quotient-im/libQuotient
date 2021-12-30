@@ -13,6 +13,7 @@ public:
 
     DownloadFileJob(const QString& serverName, const QString& mediaId,
                     const QString& localFilename = {});
+    ~DownloadFileJob() override;
 
     QString targetFileName() const;
 

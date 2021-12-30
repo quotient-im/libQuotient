@@ -13,10 +13,12 @@ class Room;
 
 class QUOTIENT_API MxcReply : public QNetworkReply
 {
+    Q_OBJECT
 public:
     explicit MxcReply();
     explicit MxcReply(QNetworkReply *reply);
     MxcReply(QNetworkReply* reply, Room* room, const QString& eventId);
+    ~MxcReply() override;
 
 public Q_SLOTS:
     void abort() override;

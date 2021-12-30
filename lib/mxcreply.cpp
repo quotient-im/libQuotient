@@ -38,6 +38,8 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     });
 }
 
+MxcReply::~MxcReply() = default;
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
 #define ERROR_SIGNAL errorOccurred
 #else
