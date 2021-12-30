@@ -120,8 +120,9 @@ namespace _impl {
 template <typename BaseEventT>
 class EventFactory : public _impl::EventFactoryBase {
 private:
-    std::vector<event_ptr_tt<BaseEventT> (*)(const QJsonObject&, const QString&)>
-        methods {};
+    using method_t = event_ptr_tt<BaseEventT> (*)(const QJsonObject&,
+                                                  const QString&);
+    std::vector<method_t> methods {};
 
     template <class EventT>
     static event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
