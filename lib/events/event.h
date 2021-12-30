@@ -73,7 +73,7 @@ private:
 };
 
 template <typename EventT>
-inline event_type_t typeId()
+constexpr event_type_t typeId()
 {
     return std::decay_t<EventT>::TypeId;
 }
@@ -147,8 +147,12 @@ public:
     template <class EventT>
     const auto& addMethod()
     {
+        const auto m = &makeIfMatches<EventT>;
+        const auto it = std::find(methods.cbegin(), methods.cend(), m);
+        if (it != methods.cend())
+            return *it;
         logAddingMethod(EventT::TypeId, methods.size() + 1);
-        return methods.emplace_back(&makeIfMatches<EventT>);
+        return methods.emplace_back(m);
     }
 
     auto loadEvent(const QJsonObject& json, const QString& matrixType)
@@ -268,9 +272,9 @@ using Events = EventsArray<Event>;
 // This macro should be put after an event class definition (in .h or .cpp)
 // to enable its deserialisation from a /sync and other
 // polymorphic event arrays
-#define REGISTER_EVENT_TYPE(Type_)                                             \
-    [[maybe_unused]] QUOTIENT_API inline const auto& factoryMethodFor##Type_ = \
-        Type_::factory.addMethod<Type_>();                                     \
+#define REGISTER_EVENT_TYPE(Type_)                                \
+    [[maybe_unused]] inline const auto& factoryMethodFor##Type_ = \
+        Type_::factory.addMethod<Type_>();                        \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
