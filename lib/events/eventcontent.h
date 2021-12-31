@@ -105,7 +105,7 @@ namespace EventContent {
         QJsonObject originalInfoJson;
         QMimeType mimeType;
         QUrl url;
-        qint64 payloadSize;
+        qint64 payloadSize = 0;
         QString originalName;
         Omittable<EncryptedFile> file = none;
     };

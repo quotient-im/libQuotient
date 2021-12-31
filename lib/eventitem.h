@@ -57,7 +57,7 @@ public:
     }
 
     /// Store arbitrary data with the event item
-    void setUserData(std::any userData) { data = userData; }
+    void setUserData(std::any userData) { data = std::move(userData); }
     /// Obtain custom data previously stored with the event item
     const std::any& userdata() const { return data; }
     std::any& userData() { return data; }

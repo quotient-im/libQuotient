@@ -146,7 +146,7 @@ namespace _impl {
         // Actual makeIfMatches specialisations will differ in the first
         // template parameter but that doesn't affect the function type
     public:
-        explicit EventFactory(const char* name = "")
+        explicit EventFactory(const char* name)
             : name(name)
         {
             static auto yetToBeConstructed = true;

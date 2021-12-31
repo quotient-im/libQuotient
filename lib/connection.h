@@ -51,11 +51,11 @@ class LeaveRoomJob;
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 /// Predefined login flows
-struct LoginFlows {
-    static inline const LoginFlow Password { "m.login.password" };
-    static inline const LoginFlow SSO { "m.login.sso" };
-    static inline const LoginFlow Token { "m.login.token" };
-};
+namespace LoginFlows {
+    inline const LoginFlow Password { "m.login.password" };
+    inline const LoginFlow SSO { "m.login.sso" };
+    inline const LoginFlow Token { "m.login.token" };
+}
 
 // To simplify comparisons of LoginFlows
 
