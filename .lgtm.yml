@@ -15,4 +15,4 @@ extraction:
 #    - cmake --build build
 #    - popd
     configure:
-      command: "cmake . -GNinja" # -DOlm_DIR=olm/build"
+      command: "CXX=clang++-9 cmake . -GNinja" # -DOlm_DIR=olm/build"
