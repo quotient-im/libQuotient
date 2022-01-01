@@ -105,10 +105,10 @@ jobs:
         fi
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
 
-        # Build libQuotient as a shared library for the sonar-enabled run
-        # to have this configuration also covered
+        # Build libQuotient as a shared library across platforms but also
+        # check the static configuration somewhere
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                    -DBUILD_SHARED_LIBS=${{ matrix.sonar }} \
+                    -DBUILD_SHARED_LIBS=${{ !matrix.sonar }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
@@ -122,6 +122,7 @@ jobs:
 
         if [[ '${{ runner.os }}' != 'Windows' ]]; then
             BIN_DIR=/bin
+            echo "LIB_PATH=$HOME/.local/lib" >>$GITHUB_ENV
         fi
         echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
         echo "~/.local$BIN_DIR" >>$GITHUB_PATH
@@ -205,6 +206,7 @@ jobs:
       run: |
         ctest --test-dir $BUILD_PATH --output-on-failure
         [[ -z "$TEST_USER" ]] || \
+            LD_LIBRARY_PATH=$LIB_PATH \
             $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
 
