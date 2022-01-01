@@ -51,6 +51,7 @@ namespace EventContent {
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
+DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages", QStringList, pinnedEvents)
 
 class [[deprecated(
     "m.room.aliases events are deprecated by the Matrix spec; use"
