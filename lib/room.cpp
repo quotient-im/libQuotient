@@ -2925,7 +2925,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
         }
         , [this] (const RoomPinnedEvent&) {
             emit pinnedEventsChanged();
-            return OtherChange;
+            return Change::Other;
         }
         , [] (const RoomTopicEvent&) {
             return Change::Topic;
