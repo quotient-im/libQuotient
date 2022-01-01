@@ -198,7 +198,7 @@ jobs:
       env:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
-        QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true'
+        QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true;quotient.events.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
         ctest --test-dir $BUILD_PATH --output-on-failure
