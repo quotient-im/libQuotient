@@ -21,7 +21,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
         compiler: [ GCC, Clang ]
-        qt-version: [ '5.12.10' ]
+        qt-version: [ '5.12.12' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
         update-api: [ '', 'update-api' ]
@@ -34,17 +34,17 @@ jobs:
         include:
         - os: ubuntu-latest
           compiler: GCC
-          qt-version: '5.12.10'
+          qt-version: '5.12.12'
           sonar: 'sonar'
         - os: windows-2019
           compiler: MSVC
           platform: x64
-          qt-version: '5.12.10'
+          qt-version: '5.12.12'
           qt-arch: win64_msvc2017_64
         - os: windows-2019
           compiler: MSVC
           platform: x64
-          qt-version: '5.12.10'
+          qt-version: '5.12.12'
           qt-arch: win64_msvc2017_64
           update-api: update-api
 
