@@ -101,7 +101,7 @@ struct EventStats;
 struct Notification
 {
     enum Type { None = 0, Basic, Highlight };
-    Q_ENUM(Notification)
+    Q_ENUM(Type)
 
     Type type = None;
 
