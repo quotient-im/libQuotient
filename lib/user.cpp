@@ -46,7 +46,7 @@ public:
 decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(new Private(move(userId)))
+    : QObject(connection), d(makeImpl<Private>(move(userId)))
 {
     setObjectName(id());
     if (connection->userId() == id()) {
@@ -60,8 +60,6 @@ Connection* User::connection() const
     Q_ASSERT(parent());
     return static_cast<Connection*>(parent());
 }
-
-User::~User() = default;
 
 void User::load()
 {

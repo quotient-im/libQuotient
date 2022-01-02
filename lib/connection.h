@@ -844,7 +844,7 @@ protected Q_SLOTS:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;

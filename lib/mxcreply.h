@@ -3,10 +3,9 @@
 
 #pragma once
 
-#include "quotient_export.h"
+#include "util.h"
 
 #include <QtNetwork/QNetworkReply>
-#include <memory>
 
 namespace Quotient {
 class Room;
@@ -18,7 +17,6 @@ public:
     explicit MxcReply();
     explicit MxcReply(QNetworkReply *reply);
     MxcReply(QNetworkReply* reply, Room* room, const QString& eventId);
-    ~MxcReply() override;
 
 public Q_SLOTS:
     void abort() override;
@@ -28,6 +26,6 @@ protected:
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 }

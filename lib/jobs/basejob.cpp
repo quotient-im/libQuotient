@@ -194,8 +194,8 @@ BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
 
 BaseJob::BaseJob(HttpVerb verb, const QString& name, QByteArray endpoint,
                  const QUrlQuery& query, RequestData&& data, bool needsToken)
-    : d(new Private(verb, std::move(endpoint), query, std::move(data),
-                    needsToken))
+    : d(makeImpl<Private>(verb, std::move(endpoint), query, std::move(data),
+                          needsToken))
 {
     setObjectName(name);
     connect(&d->timer, &QTimer::timeout, this, &BaseJob::timeout);

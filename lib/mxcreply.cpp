@@ -17,7 +17,7 @@ public:
 };
 
 MxcReply::MxcReply(QNetworkReply* reply)
-    : d(std::make_unique<Private>(reply))
+    : d(makeImpl<Private>(reply))
 {
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
@@ -28,7 +28,7 @@ MxcReply::MxcReply(QNetworkReply* reply)
 }
 
 MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
-    : d(std::make_unique<Private>(reply))
+    : d(makeImpl<Private>(reply))
 {
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this, room, eventId]() {
@@ -38,8 +38,6 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     });
 }
 
-MxcReply::~MxcReply() = default;
-
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
 #define ERROR_SIGNAL errorOccurred
 #else
@@ -47,6 +45,7 @@ MxcReply::~MxcReply() = default;
 #endif
 
 MxcReply::MxcReply()
+    : d(ZeroImpl<Private>())
 {
     static const auto BadRequestPhrase = tr("Bad Request");
     QMetaObject::invokeMethod(this, [this]() {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "avatar.h"
-#include "quotient_export.h"
+#include "util.h"
 
 #include <QtCore/QObject>
 
@@ -27,7 +27,6 @@ class QUOTIENT_API User : public QObject {
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
     User(QString userId, Connection* connection);
-    ~User() override;
 
     Connection* connection() const;
 
@@ -126,7 +125,7 @@ Q_SIGNALS:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     template <typename SourceT>
     bool doSetAvatar(SourceT&& source);
