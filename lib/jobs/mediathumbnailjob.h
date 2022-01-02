@@ -8,7 +8,7 @@
 #include <QtGui/QPixmap>
 
 namespace Quotient {
-class MediaThumbnailJob : public GetContentThumbnailJob {
+class QUOTIENT_API MediaThumbnailJob : public GetContentThumbnailJob {
 public:
     using GetContentThumbnailJob::makeRequestUrl;
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,

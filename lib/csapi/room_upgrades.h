@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * Upgrades the given room to a particular room version.
  */
-class UpgradeRoomJob : public BaseJob {
+class QUOTIENT_API UpgradeRoomJob : public BaseJob {
 public:
     /*! \brief Upgrades a room to a new room version.
      *

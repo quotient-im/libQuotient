@@ -15,7 +15,7 @@ namespace Quotient {
  * Alternatively, if `typing` is `false`, it tells the server that the
  * user has stopped typing.
  */
-class SetTypingJob : public BaseJob {
+class QUOTIENT_API SetTypingJob : public BaseJob {
 public:
     /*! \brief Informs the server that the user has started or stopped typing.
      *

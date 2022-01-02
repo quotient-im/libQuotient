@@ -13,7 +13,7 @@ namespace Quotient {
  * This API updates the marker for the given receipt type to the event ID
  * specified.
  */
-class PostReceiptJob : public BaseJob {
+class QUOTIENT_API PostReceiptJob : public BaseJob {
 public:
     /*! \brief Send a receipt for the given event ID.
      *

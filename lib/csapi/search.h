@@ -15,7 +15,7 @@ namespace Quotient {
  *
  * Performs a full text search across different categories.
  */
-class SearchJob : public BaseJob {
+class QUOTIENT_API SearchJob : public BaseJob {
 public:
     // Inner data structures
 

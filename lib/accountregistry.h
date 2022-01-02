@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QList>
 #include <QtCore/QAbstractListModel>
@@ -11,7 +13,7 @@
 namespace Quotient {
 class Connection;
 
-class AccountRegistry : public QAbstractListModel {
+class QUOTIENT_API AccountRegistry : public QAbstractListModel {
     Q_OBJECT
 public:
     enum EventRoles {

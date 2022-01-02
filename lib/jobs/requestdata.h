@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QByteArray>
 
 #include <memory>
@@ -19,7 +21,7 @@ namespace Quotient {
  * as well as JSON (and possibly other structures in the future) to
  * a QByteArray consumed by QNetworkAccessManager request methods.
  */
-class RequestData {
+class QUOTIENT_API RequestData {
 public:
     RequestData(const QByteArray& a = {});
     RequestData(const QJsonObject& jo);

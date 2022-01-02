@@ -19,7 +19,7 @@ struct ReceiptsForEvent {
 };
 using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
-class ReceiptEvent : public Event {
+class QUOTIENT_API ReceiptEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
     explicit ReceiptEvent(const EventsWithReceipts& ewrs);

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QLatin1String>
 #include <QtCore/QHashFunctions>
 
@@ -244,26 +246,26 @@ inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
 }
 
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
-void linkifyUrls(QString& htmlEscapedText);
+QUOTIENT_API void linkifyUrls(QString& htmlEscapedText);
 
 /** Sanitize the text before showing in HTML
  *
  * This does toHtmlEscaped() and removes Unicode BiDi marks.
  */
-QString sanitized(const QString& plainText);
+QUOTIENT_API QString sanitized(const QString& plainText);
 
 /** Pretty-print plain text into HTML
  *
  * This includes HTML escaping of <,>,",& and calling linkifyUrls()
  */
-QString prettyPrint(const QString& plainText);
+QUOTIENT_API QString prettyPrint(const QString& plainText);
 
 /** Return a path to cache directory after making sure that it exists
  *
  * The returned path has a trailing slash, clients don't need to append it.
  * \param dir path to cache directory relative to the standard cache path
  */
-QString cacheLocation(const QString& dirName);
+QUOTIENT_API QString cacheLocation(const QString& dirName);
 
 /** Hue color component of based of the hash of the string.
  *
@@ -272,13 +274,13 @@ QString cacheLocation(const QString& dirName);
  * Naming and range are the same as QColor's hueF method:
  * https://doc.qt.io/qt-5/qcolor.html#integer-vs-floating-point-precision
  */
-qreal stringToHueF(const QString& s);
+QUOTIENT_API qreal stringToHueF(const QString& s);
 
 /** Extract the serverpart from MXID */
-QString serverPart(const QString& mxId);
+QUOTIENT_API QString serverPart(const QString& mxId);
 
-QString versionString();
-int majorVersion();
-int minorVersion();
-int patchVersion();
+QUOTIENT_API QString versionString();
+QUOTIENT_API int majorVersion();
+QUOTIENT_API int minorVersion();
+QUOTIENT_API int patchVersion();
 } // namespace Quotient

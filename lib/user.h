@@ -5,6 +5,7 @@
 #pragma once
 
 #include "avatar.h"
+#include "quotient_export.h"
 
 #include <QtCore/QObject>
 
@@ -13,7 +14,7 @@ class Connection;
 class Room;
 class RoomMemberEvent;
 
-class User : public QObject {
+class QUOTIENT_API User : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)

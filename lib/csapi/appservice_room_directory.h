@@ -21,7 +21,8 @@ namespace Quotient {
  * instead of a typical client's access_token. This API cannot be invoked by
  * users who are not identified as application services.
  */
-class UpdateAppserviceRoomDirectoryVisibilityJob : public BaseJob {
+class QUOTIENT_API UpdateAppserviceRoomDirectoryVisibilityJob
+    : public BaseJob {
 public:
     /*! \brief Updates a room's visibility in the application service's room
      * directory.

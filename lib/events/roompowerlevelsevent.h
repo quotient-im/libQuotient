@@ -7,7 +7,7 @@
 #include "stateevent.h"
 
 namespace Quotient {
-class PowerLevelsEventContent : public EventContent::Base {
+class QUOTIENT_API PowerLevelsEventContent : public EventContent::Base {
 public:
     struct Notifications {
         int room;
@@ -34,7 +34,8 @@ protected:
     void fillJson(QJsonObject* o) const override;
 };
 
-class RoomPowerLevelsEvent : public StateEvent<PowerLevelsEventContent> {
+class QUOTIENT_API RoomPowerLevelsEvent
+    : public StateEvent<PowerLevelsEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.power_levels", RoomPowerLevelsEvent)
@@ -61,9 +62,6 @@ public:
     int powerLevelForEvent(const QString& eventId) const;
     int powerLevelForState(const QString& eventId) const;
     int powerLevelForUser(const QString& userId) const;
-
-private:
 };
-
 REGISTER_EVENT_TYPE(RoomPowerLevelsEvent)
 } // namespace Quotient

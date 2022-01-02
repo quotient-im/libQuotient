@@ -27,7 +27,7 @@ namespace Quotient {
  * The knock will appear as an entry in the response of the
  * [`/sync`](/client-server-api/#get_matrixclientr0sync) API.
  */
-class KnockRoomJob : public BaseJob {
+class QUOTIENT_API KnockRoomJob : public BaseJob {
 public:
     /*! \brief Knock on a room, requesting permission to join.
      *

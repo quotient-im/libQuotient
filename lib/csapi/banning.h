@@ -18,7 +18,7 @@ namespace Quotient {
  * The caller must have the required power level in order to perform this
  * operation.
  */
-class BanJob : public BaseJob {
+class QUOTIENT_API BanJob : public BaseJob {
 public:
     /*! \brief Ban a user in the room.
      *
@@ -46,7 +46,7 @@ public:
  * The caller must have the required power level in order to perform this
  * operation.
  */
-class UnbanJob : public BaseJob {
+class QUOTIENT_API UnbanJob : public BaseJob {
 public:
     /*! \brief Unban a user from the room.
      *

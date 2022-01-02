@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * List the tags set by a user on a room.
  */
-class GetRoomTagsJob : public BaseJob {
+class QUOTIENT_API GetRoomTagsJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -68,7 +68,7 @@ struct JsonObjectConverter<GetRoomTagsJob::Tag> {
  *
  * Add a tag to the room.
  */
-class SetRoomTagJob : public BaseJob {
+class QUOTIENT_API SetRoomTagJob : public BaseJob {
 public:
     /*! \brief Add a tag to a room.
      *
@@ -98,7 +98,7 @@ public:
  *
  * Remove a tag from the room.
  */
-class DeleteRoomTagJob : public BaseJob {
+class QUOTIENT_API DeleteRoomTagJob : public BaseJob {
 public:
     /*! \brief Remove a tag from the room.
      *

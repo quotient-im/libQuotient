@@ -9,22 +9,14 @@
 
 using namespace Quotient;
 
-event_type_t EventTypeRegistry::initializeTypeId(event_mtype_t matrixTypeId)
-{
-    const auto id = get().eventTypes.size();
-    get().eventTypes.push_back(matrixTypeId);
-    if (strncmp(matrixTypeId, "", 1) == 0)
-        qDebug(EVENTS) << "Initialized unknown event type with id" << id;
-    else
-        qDebug(EVENTS) << "Initialized event type" << matrixTypeId << "with id"
-                       << id;
-    return id;
-}
+QString EventTypeRegistry::getMatrixType(event_type_t typeId) { return typeId; }
 
-QString EventTypeRegistry::getMatrixType(event_type_t typeId)
+void _impl::EventFactoryBase::logAddingMethod(event_type_t TypeId,
+                                              size_t newSize)
 {
-    return typeId < get().eventTypes.size() ? get().eventTypes[typeId]
-                                            : QString();
+    qDebug(EVENTS) << "Adding factory method for" << TypeId << "events;"
+                   << newSize << "methods will be in the" << name
+                   << "chain";
 }
 
 Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)

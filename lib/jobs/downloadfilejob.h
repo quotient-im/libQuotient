@@ -6,13 +6,14 @@
 #include "csapi/content-repo.h"
 
 namespace Quotient {
-class DownloadFileJob : public GetContentJob {
+class QUOTIENT_API DownloadFileJob : public GetContentJob {
 public:
     using GetContentJob::makeRequestUrl;
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri);
 
     DownloadFileJob(const QString& serverName, const QString& mediaId,
                     const QString& localFilename = {});
+    ~DownloadFileJob() override;
 
     QString targetFileName() const;
 

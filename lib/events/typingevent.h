@@ -6,7 +6,7 @@
 #include "event.h"
 
 namespace Quotient {
-class TypingEvent : public Event {
+class QUOTIENT_API TypingEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
 

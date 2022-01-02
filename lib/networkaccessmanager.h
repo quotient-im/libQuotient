@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtNetwork/QNetworkAccessManager>
 
 #include <memory>
@@ -10,7 +12,7 @@
 namespace Quotient {
 class Room;
 class Connection;
-class NetworkAccessManager : public QNetworkAccessManager {
+class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
     NetworkAccessManager(QObject* parent = nullptr);

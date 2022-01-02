@@ -13,7 +13,7 @@ namespace Quotient {
  * Gets information about the server's supported feature set
  * and other relevant capabilities.
  */
-class GetCapabilitiesJob : public BaseJob {
+class QUOTIENT_API GetCapabilitiesJob : public BaseJob {
 public:
     // Inner data structures
 
