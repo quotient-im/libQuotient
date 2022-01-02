@@ -26,7 +26,7 @@ namespace Quotient {
  * If the user was invited to the room, the homeserver will append a
  * `m.room.member` event to the room.
  */
-class InviteUserJob : public BaseJob {
+class QUOTIENT_API InviteUserJob : public BaseJob {
 public:
     /*! \brief Invite a user to participate in a particular room.
      *

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <qobjectdefs.h>
 
 #include <array>
@@ -26,8 +28,21 @@
 #define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
     Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+// The first line forward-declares the namespace static metaobject with
+// QUOTIENT_API so that dynamically linked clients could serialise flag/enum
+// values from the namespace; Qt before 5.14 doesn't help with that. The second
+// line is needed for moc to do its job on the namespace.
+#define QUO_NAMESPACE \
+    extern QUOTIENT_API const QMetaObject staticMetaObject; \
+    Q_NAMESPACE
+#else
+// Since Qt 5.14.0, it's all packed in a single macro
+#define QUO_NAMESPACE Q_NAMESPACE_EXPORT(QUOTIENT_API)
+#endif
+
 namespace Quotient {
-Q_NAMESPACE
+QUO_NAMESPACE
 
 // std::array {} needs explicit template parameters on macOS because
 // Apple stdlib doesn't have deduction guides for std::array. C++20 has

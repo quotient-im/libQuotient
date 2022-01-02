@@ -37,6 +37,8 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
+DownloadFileJob::~DownloadFileJob() = default;
+
 QString DownloadFileJob::targetFileName() const
 {
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();

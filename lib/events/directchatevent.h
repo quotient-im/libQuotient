@@ -6,7 +6,7 @@
 #include "event.h"
 
 namespace Quotient {
-class DirectChatEvent : public Event {
+class QUOTIENT_API DirectChatEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
 

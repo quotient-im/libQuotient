@@ -21,7 +21,7 @@ namespace Quotient {
  * names preferably using a collation determined based upon the
  * `Accept-Language` header provided in the request, if present.
  */
-class SearchUserDirectoryJob : public BaseJob {
+class QUOTIENT_API SearchUserDirectoryJob : public BaseJob {
 public:
     // Inner data structures
 

@@ -24,7 +24,7 @@ namespace Quotient {
  * Identifiers in this list may be used by the homeserver as, for example,
  * identifiers that it will accept to reset the user's account password.
  */
-class GetAccount3PIDsJob : public BaseJob {
+class QUOTIENT_API GetAccount3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -102,7 +102,7 @@ struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
  * This results in this endpoint being an equivalent to `/3pid/bind` rather
  * than dual-purpose.
  */
-class Post3PIDsJob : public BaseJob {
+class QUOTIENT_API Post3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -154,7 +154,7 @@ struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
  * Homeservers should prevent the caller from adding a 3PID to their account if
  * it has already been added to another user's account on the homeserver.
  */
-class Add3PIDJob : public BaseJob {
+class QUOTIENT_API Add3PIDJob : public BaseJob {
 public:
     /*! \brief Adds contact information to the user's account.
      *
@@ -182,7 +182,7 @@ public:
  *
  * Homeservers should track successful binds so they can be unbound later.
  */
-class Bind3PIDJob : public BaseJob {
+class QUOTIENT_API Bind3PIDJob : public BaseJob {
 public:
     /*! \brief Binds a 3PID to the user's account through an Identity Service.
      *
@@ -211,7 +211,7 @@ public:
  * parameter because the homeserver is expected to sign the request to the
  * identity server instead.
  */
-class Delete3pidFromAccountJob : public BaseJob {
+class QUOTIENT_API Delete3pidFromAccountJob : public BaseJob {
 public:
     /*! \brief Deletes a third party identifier from the user's account
      *
@@ -254,7 +254,7 @@ public:
  * parameter because the homeserver is expected to sign the request to the
  * identity server instead.
  */
-class Unbind3pidFromAccountJob : public BaseJob {
+class QUOTIENT_API Unbind3pidFromAccountJob : public BaseJob {
 public:
     /*! \brief Removes a user's third party identifier from an identity server.
      *
@@ -300,7 +300,7 @@ public:
  * the email itself, either by sending a validation email itself or by using
  * a service it has control over.
  */
-class RequestTokenTo3PIDEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenTo3PIDEmailJob : public BaseJob {
 public:
     /*! \brief Begins the validation process for an email address for
      * association with the user's account.
@@ -342,7 +342,7 @@ public:
  * the phone number itself, either by sending a validation message itself or by
  * using a service it has control over.
  */
-class RequestTokenTo3PIDMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenTo3PIDMSISDNJob : public BaseJob {
 public:
     /*! \brief Begins the validation process for a phone number for association
      * with the user's account.

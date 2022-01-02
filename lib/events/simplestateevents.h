@@ -30,7 +30,8 @@ namespace EventContent {
 } // namespace EventContent
 
 #define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey)     \
-    class _Name : public StateEvent<EventContent::SimpleContent<_ValueType>> { \
+    class QUOTIENT_API _Name                                                \
+        : public StateEvent<EventContent::SimpleContent<_ValueType>> {         \
     public:                                                                    \
         using value_type = content_type::value_type;                           \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                    \

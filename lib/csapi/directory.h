@@ -11,7 +11,7 @@ namespace Quotient {
 /*! \brief Create a new mapping from room alias to room ID.
  *
  */
-class SetRoomAliasJob : public BaseJob {
+class QUOTIENT_API SetRoomAliasJob : public BaseJob {
 public:
     /*! \brief Create a new mapping from room alias to room ID.
      *
@@ -32,7 +32,7 @@ public:
  * domain part of the alias does not correspond to the server's own
  * domain.
  */
-class GetRoomIdByAliasJob : public BaseJob {
+class QUOTIENT_API GetRoomIdByAliasJob : public BaseJob {
 public:
     /*! \brief Get the room ID corresponding to this room alias.
      *
@@ -76,7 +76,7 @@ public:
  * return a successful response even if the user does not have permission to
  * update the `m.room.canonical_alias` event.
  */
-class DeleteRoomAliasJob : public BaseJob {
+class QUOTIENT_API DeleteRoomAliasJob : public BaseJob {
 public:
     /*! \brief Remove a mapping of room alias to room ID.
      *
@@ -112,7 +112,7 @@ public:
  * as they are not curated, unlike those listed in the `m.room.canonical_alias`
  * state event.
  */
-class GetLocalAliasesJob : public BaseJob {
+class QUOTIENT_API GetLocalAliasesJob : public BaseJob {
 public:
     /*! \brief Get a list of local aliases on a given room.
      *

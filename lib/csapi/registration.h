@@ -59,7 +59,7 @@ namespace Quotient {
  * Any user ID returned by this API must conform to the grammar given in the
  * [Matrix specification](/appendices/#user-identifiers).
  */
-class RegisterJob : public BaseJob {
+class QUOTIENT_API RegisterJob : public BaseJob {
 public:
     /*! \brief Register for an account on this homeserver.
      *
@@ -143,7 +143,7 @@ public:
  * should validate the email itself, either by sending a validation email
  * itself or by using a service it has control over.
  */
-class RequestTokenToRegisterEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenToRegisterEmailJob : public BaseJob {
 public:
     /*! \brief Begins the validation process for an email to be used during
      * registration.
@@ -175,7 +175,7 @@ public:
  * should validate the phone number itself, either by sending a validation
  * message itself or by using a service it has control over.
  */
-class RequestTokenToRegisterMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenToRegisterMSISDNJob : public BaseJob {
 public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of registering an account
@@ -215,7 +215,7 @@ public:
  * access token provided in the request. Whether other access tokens for
  * the user are revoked depends on the request parameters.
  */
-class ChangePasswordJob : public BaseJob {
+class QUOTIENT_API ChangePasswordJob : public BaseJob {
 public:
     /*! \brief Changes a user's password.
      *
@@ -257,7 +257,7 @@ public:
  * The homeserver should validate the email itself, either by sending a
  * validation email itself or by using a service it has control over.
  */
-class RequestTokenToResetPasswordEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenToResetPasswordEmailJob : public BaseJob {
 public:
     /*! \brief Requests a validation token be sent to the given email address
      * for the purpose of resetting a user's password
@@ -309,7 +309,7 @@ public:
  * The homeserver should validate the phone number itself, either by sending a
  * validation message itself or by using a service it has control over.
  */
-class RequestTokenToResetPasswordMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenToResetPasswordMSISDNJob : public BaseJob {
 public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of resetting a user's password.
@@ -361,7 +361,7 @@ public:
  * parameter because the homeserver is expected to sign the request to the
  * identity server instead.
  */
-class DeactivateAccountJob : public BaseJob {
+class QUOTIENT_API DeactivateAccountJob : public BaseJob {
 public:
     /*! \brief Deactivate a user's account.
      *
@@ -411,7 +411,7 @@ public:
  * reserve the username. This can mean that the username becomes unavailable
  * between checking its availability and attempting to register it.
  */
-class CheckUsernameAvailabilityJob : public BaseJob {
+class QUOTIENT_API CheckUsernameAvailabilityJob : public BaseJob {
 public:
     /*! \brief Checks to see if a username is available on the server.
      *

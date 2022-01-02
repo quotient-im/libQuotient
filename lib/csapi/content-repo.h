@@ -14,7 +14,7 @@ namespace Quotient {
 /*! \brief Upload some content to the content repository.
  *
  */
-class UploadContentJob : public BaseJob {
+class QUOTIENT_API UploadContentJob : public BaseJob {
 public:
     /*! \brief Upload some content to the content repository.
      *
@@ -40,7 +40,7 @@ public:
 /*! \brief Download content from the content repository.
  *
  */
-class GetContentJob : public BaseJob {
+class QUOTIENT_API GetContentJob : public BaseJob {
 public:
     /*! \brief Download content from the content repository.
      *
@@ -87,7 +87,7 @@ public:
  * the previous endpoint) but replace the target file name with the one
  * provided by the caller.
  */
-class GetContentOverrideNameJob : public BaseJob {
+class QUOTIENT_API GetContentOverrideNameJob : public BaseJob {
 public:
     /*! \brief Download content from the content repository overriding the file
      * name
@@ -142,7 +142,7 @@ public:
  * See the [Thumbnails](/client-server-api/#thumbnails) section for more
  * information.
  */
-class GetContentThumbnailJob : public BaseJob {
+class QUOTIENT_API GetContentThumbnailJob : public BaseJob {
 public:
     /*! \brief Download a thumbnail of content from the content repository
      *
@@ -204,7 +204,7 @@ public:
  * do not want to share with the homeserver, and this can mean that the URLs
  * being shared should also not be shared with the homeserver.
  */
-class GetUrlPreviewJob : public BaseJob {
+class QUOTIENT_API GetUrlPreviewJob : public BaseJob {
 public:
     /*! \brief Get information about a URL for a client
      *
@@ -252,7 +252,7 @@ public:
  * content repository APIs, for example, proxies may enforce a lower upload size
  * limit than is advertised by the server on this endpoint.
  */
-class GetConfigJob : public BaseJob {
+class QUOTIENT_API GetConfigJob : public BaseJob {
 public:
     /// Get the configuration for the content repository.
     explicit GetConfigJob();

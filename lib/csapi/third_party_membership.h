@@ -52,7 +52,7 @@ namespace Quotient {
  * If a token is requested from the identity server, the homeserver will
  * append a `m.room.third_party_invite` event to the room.
  */
-class InviteBy3PIDJob : public BaseJob {
+class QUOTIENT_API InviteBy3PIDJob : public BaseJob {
 public:
     /*! \brief Invite a user to participate in a particular room.
      *

@@ -13,7 +13,7 @@ namespace Quotient {
  * This API sets the given user's display name. You must have permission to
  * set this user's display name, e.g. you need to have their `access_token`.
  */
-class SetDisplayNameJob : public BaseJob {
+class QUOTIENT_API SetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Set the user's display name.
      *
@@ -33,7 +33,7 @@ public:
  * own displayname or to query the name of other users; either locally or
  * on remote homeservers.
  */
-class GetDisplayNameJob : public BaseJob {
+class QUOTIENT_API GetDisplayNameJob : public BaseJob {
 public:
     /*! \brief Get the user's display name.
      *
@@ -63,7 +63,7 @@ public:
  * This API sets the given user's avatar URL. You must have permission to
  * set this user's avatar URL, e.g. you need to have their `access_token`.
  */
-class SetAvatarUrlJob : public BaseJob {
+class QUOTIENT_API SetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Set the user's avatar URL.
      *
@@ -82,7 +82,7 @@ public:
  * own avatar URL or to query the URL of other users; either locally or
  * on remote homeservers.
  */
-class GetAvatarUrlJob : public BaseJob {
+class QUOTIENT_API GetAvatarUrlJob : public BaseJob {
 public:
     /*! \brief Get the user's avatar URL.
      *
@@ -111,7 +111,7 @@ public:
  * locally or on remote homeservers. This API may return keys which are not
  * limited to `displayname` or `avatar_url`.
  */
-class GetUserProfileJob : public BaseJob {
+class QUOTIENT_API GetUserProfileJob : public BaseJob {
 public:
     /*! \brief Get this user's profile information.
      *

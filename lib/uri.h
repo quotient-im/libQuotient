@@ -23,7 +23,7 @@ namespace Quotient {
  * its type, and obtain components, also in either unencoded (for displaying)
  * or encoded (for APIs) form.
  */
-class Uri : private QUrl {
+class QUOTIENT_API Uri : private QUrl {
     Q_GADGET
 public:
     enum Type : char {

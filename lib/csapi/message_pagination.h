@@ -18,7 +18,7 @@ namespace Quotient {
  * [Lazy-loading room members](/client-server-api/#lazy-loading-room-members)
  * for more information.
  */
-class GetRoomEventsJob : public BaseJob {
+class QUOTIENT_API GetRoomEventsJob : public BaseJob {
 public:
     /*! \brief Get a list of events for this room
      *

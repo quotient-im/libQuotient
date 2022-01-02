@@ -25,7 +25,7 @@ namespace Quotient {
  * in general. It's possible, because RoomEvent interface is similar to Event's
  * one and doesn't add new restrictions, just provides additional features.
  */
-class EncryptedEvent : public RoomEvent {
+class QUOTIENT_API EncryptedEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.room.encrypted", EncryptedEvent)
 

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QUrl>
 #include <QtGui/QIcon>
 
@@ -12,7 +14,7 @@
 namespace Quotient {
 class Connection;
 
-class Avatar {
+class QUOTIENT_API Avatar {
 public:
     explicit Avatar();
     explicit Avatar(QUrl url);

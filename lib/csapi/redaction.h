@@ -22,7 +22,7 @@ namespace Quotient {
  *
  * Server administrators may redact events sent by users on their server.
  */
-class RedactEventJob : public BaseJob {
+class QUOTIENT_API RedactEventJob : public BaseJob {
 public:
     /*! \brief Strips all non-integrity-critical information out of an event.
      *

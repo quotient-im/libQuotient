@@ -7,7 +7,7 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class CallHangupEvent : public CallEventBase {
+class QUOTIENT_API CallHangupEvent : public CallEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
 

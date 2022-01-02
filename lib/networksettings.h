@@ -10,7 +10,7 @@
 Q_DECLARE_METATYPE(QNetworkProxy::ProxyType)
 
 namespace Quotient {
-class NetworkSettings : public SettingsGroup {
+class QUOTIENT_API NetworkSettings : public SettingsGroup {
     Q_OBJECT
     QUO_DECLARE_SETTING(QNetworkProxy::ProxyType, proxyType, setProxyType)
     QUO_DECLARE_SETTING(QString, proxyHostName, setProxyHostName)

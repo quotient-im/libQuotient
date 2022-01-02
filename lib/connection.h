@@ -105,7 +105,7 @@ using DirectChatsMap = QMultiHash<const User*, QString>;
 using DirectChatUsersMap = QMultiHash<QString, User*>;
 using IgnoredUsersList = IgnoredUsersEvent::content_type;
 
-class Connection : public QObject {
+class QUOTIENT_API Connection : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)

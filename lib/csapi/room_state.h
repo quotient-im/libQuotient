@@ -29,7 +29,7 @@ namespace Quotient {
  * state event is to be sent. Servers do not validate aliases which are
  * being removed or are already present in the state event.
  */
-class SetRoomStateWithKeyJob : public BaseJob {
+class QUOTIENT_API SetRoomStateWithKeyJob : public BaseJob {
 public:
     /*! \brief Send a state event to the given room.
      *

@@ -6,7 +6,7 @@
 #include "event.h"
 
 namespace Quotient {
-class RoomKeyEvent : public Event
+class QUOTIENT_API RoomKeyEvent : public Event
 {
 public:
     DEFINE_EVENT_TYPEID("m.room_key", RoomKeyEvent)

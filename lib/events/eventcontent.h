@@ -6,13 +6,14 @@
 // This file contains generic event content definitions, applicable to room
 // message events as well as other events (e.g., avatars).
 
+#include "encryptedfile.h"
+#include "quotient_export.h"
+
 #include <QtCore/QJsonObject>
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
 #include <QtCore/QMetaType>
-
-#include "encryptedfile.h"
 
 class QFileInfo;
 
@@ -28,7 +29,7 @@ namespace EventContent {
      * assumed but not required that a content object can also be created
      * from plain data.
      */
-    class Base {
+    class QUOTIENT_API Base {
     public:
         explicit Base(QJsonObject o = {}) : originalJson(std::move(o)) {}
         virtual ~Base() = default;
@@ -76,7 +77,7 @@ namespace EventContent {
      *
      * This class is not polymorphic.
      */
-    class FileInfo {
+    class QUOTIENT_API FileInfo {
     public:
         FileInfo() = default;
         explicit FileInfo(const QFileInfo& fi);
@@ -121,7 +122,7 @@ namespace EventContent {
     /**
      * A content info class for image content types: image, thumbnail, video
      */
-    class ImageInfo : public FileInfo {
+    class QUOTIENT_API ImageInfo : public FileInfo {
     public:
         ImageInfo() = default;
         explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
@@ -146,7 +147,7 @@ namespace EventContent {
      * the JSON representation of event content; namely,
      * "info/thumbnail_url" and "info/thumbnail_info" fields are used.
      */
-    class Thumbnail : public ImageInfo {
+    class QUOTIENT_API Thumbnail : public ImageInfo {
     public:
         Thumbnail() = default; // Allow empty thumbnails
         Thumbnail(const QJsonObject& infoJson, const Omittable<EncryptedFile> &file = none);
@@ -160,7 +161,7 @@ namespace EventContent {
         void fillInfoJson(QJsonObject* infoJson) const;
     };
 
-    class TypedBase : public Base {
+    class QUOTIENT_API TypedBase : public Base {
     public:
         virtual QMimeType type() const = 0;
         virtual const FileInfo* fileInfo() const { return nullptr; }
@@ -183,7 +184,7 @@ namespace EventContent {
      * \tparam InfoT base info class
      */
     template <class InfoT>
-    class UrlBasedContent : public TypedBase, public InfoT {
+    class QUOTIENT_API UrlBasedContent : public TypedBase, public InfoT {
     public:
         using InfoT::InfoT;
         explicit UrlBasedContent(const QJsonObject& json)
@@ -215,7 +216,7 @@ namespace EventContent {
     };
 
     template <typename InfoT>
-    class UrlWithThumbnailContent : public UrlBasedContent<InfoT> {
+    class QUOTIENT_API UrlWithThumbnailContent : public UrlBasedContent<InfoT> {
     public:
         // NB: when using inherited constructors, thumbnail has to be
         // initialised separately

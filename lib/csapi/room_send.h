@@ -18,7 +18,7 @@ namespace Quotient {
  * fields in this object will vary depending on the type of event. See
  * [Room Events](/client-server-api/#room-events) for the m. event specification.
  */
-class SendMessageJob : public BaseJob {
+class QUOTIENT_API SendMessageJob : public BaseJob {
 public:
     /*! \brief Send a message event to the given room.
      *

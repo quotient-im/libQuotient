@@ -50,7 +50,7 @@ struct JsonObjectConverter<TagRecord> {
 using TagsMap = QHash<QString, TagRecord>;
 
 #define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey)       \
-    class _Name : public Event {                                             \
+    class QUOTIENT_API _Name : public Event {                             \
     public:                                                                  \
         using content_type = _ContentType;                                   \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                  \

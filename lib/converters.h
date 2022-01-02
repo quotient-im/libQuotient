@@ -183,7 +183,7 @@ struct JsonConverter<QUrl> {
 };
 
 template <>
-struct JsonConverter<QVariant> {
+struct QUOTIENT_API JsonConverter<QVariant> {
     static QJsonValue dump(const QVariant& v);
     static QVariant load(const QJsonValue& jv);
 };
@@ -281,9 +281,9 @@ template <typename T>
 struct JsonObjectConverter<QHash<QString, T>>
     : public HashMapFromJson<QHash<QString, T>> {};
 
-QJsonObject toJson(const QVariantHash& vh);
+QJsonObject QUOTIENT_API toJson(const QVariantHash& vh);
 template <>
-QVariantHash fromJson(const QJsonValue& jv);
+QVariantHash QUOTIENT_API fromJson(const QJsonValue& jv);
 
 // Conditional insertion into a QJsonObject
 

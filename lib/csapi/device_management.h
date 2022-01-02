@@ -15,7 +15,7 @@ namespace Quotient {
  *
  * Gets information about all devices for the current user.
  */
-class GetDevicesJob : public BaseJob {
+class QUOTIENT_API GetDevicesJob : public BaseJob {
 public:
     /// List registered devices for the current user
     explicit GetDevicesJob();
@@ -40,7 +40,7 @@ public:
  *
  * Gets information on a single device, by device id.
  */
-class GetDeviceJob : public BaseJob {
+class QUOTIENT_API GetDeviceJob : public BaseJob {
 public:
     /*! \brief Get a single device
      *
@@ -66,7 +66,7 @@ public:
  *
  * Updates the metadata on the given device.
  */
-class UpdateDeviceJob : public BaseJob {
+class QUOTIENT_API UpdateDeviceJob : public BaseJob {
 public:
     /*! \brief Update a device
      *
@@ -88,7 +88,7 @@ public:
  *
  * Deletes the given device, and invalidates any access token associated with it.
  */
-class DeleteDeviceJob : public BaseJob {
+class QUOTIENT_API DeleteDeviceJob : public BaseJob {
 public:
     /*! \brief Delete a device
      *
@@ -111,7 +111,7 @@ public:
  * Deletes the given devices, and invalidates any access token associated with
  * them.
  */
-class DeleteDevicesJob : public BaseJob {
+class QUOTIENT_API DeleteDevicesJob : public BaseJob {
 public:
     /*! \brief Bulk deletion of devices
      *

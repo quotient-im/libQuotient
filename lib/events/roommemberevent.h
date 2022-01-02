@@ -10,7 +10,7 @@
 #include "quotient_common.h"
 
 namespace Quotient {
-class MemberEventContent : public EventContent::Base {
+class QUOTIENT_API MemberEventContent : public EventContent::Base {
 public:
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
@@ -33,7 +33,7 @@ protected:
 
 using MembershipType [[deprecated("Use Membership instead")]] = Membership;
 
-class RoomMemberEvent : public StateEvent<MemberEventContent> {
+class QUOTIENT_API RoomMemberEvent : public StateEvent<MemberEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
@@ -95,6 +95,5 @@ doLoadEvent<RoomMemberEvent>(const QJsonObject& json, const QString& matrixType)
         return makeEvent<RoomMemberEvent>(json);
     return makeEvent<RoomMemberEvent>(unknownEventTypeId(), json);
 }
-
 REGISTER_EVENT_TYPE(RoomMemberEvent)
 } // namespace Quotient

@@ -17,7 +17,7 @@ namespace Quotient {
  * or present a page which lets the user select an IdP to continue
  * with in the event multiple are supported by the server.
  */
-class RedirectToSSOJob : public BaseJob {
+class QUOTIENT_API RedirectToSSOJob : public BaseJob {
 public:
     /*! \brief Redirect the user's browser to the SSO interface.
      *
@@ -44,7 +44,7 @@ public:
  * The server MUST respond with an HTTP redirect to the SSO interface
  * for that IdP.
  */
-class RedirectToIdPJob : public BaseJob {
+class QUOTIENT_API RedirectToIdPJob : public BaseJob {
 public:
     /*! \brief Redirect the user's browser to the SSO interface for an IdP.
      *

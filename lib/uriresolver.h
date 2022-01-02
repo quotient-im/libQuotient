@@ -25,7 +25,7 @@ class User;
  * gradual implementation. Derived classes are encouraged to override as many
  * of them as possible.
  */
-class UriResolverBase {
+class QUOTIENT_API UriResolverBase {
 public:
     /*! \brief Resolve the resource and dispatch an action depending on its type
      *
@@ -105,7 +105,7 @@ protected:
  *
  * \sa UriResolverBase, UriDispatcher
  */
-UriResolveResult
+QUOTIENT_API UriResolveResult
 visitResource(Connection* account, const Uri& uri,
               std::function<UriResolveResult(User*, QString)> userHandler,
               std::function<void(Room*, QString)> roomEventHandler,
@@ -141,7 +141,7 @@ inline UriResolveResult checkResource(Connection* account, const Uri& uri)
  * synchronously - the returned value is the result of resolving the URI,
  * not acting on it.
  */
-class UriDispatcher : public QObject, public UriResolverBase {
+class QUOTIENT_API UriDispatcher : public QObject, public UriResolverBase {
     Q_OBJECT
 public:
     explicit UriDispatcher(QObject* parent = nullptr) : QObject(parent) {}

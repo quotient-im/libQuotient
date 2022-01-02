@@ -13,7 +13,7 @@ namespace Quotient {
  * This endpoint is used to send send-to-device events to a set of
  * client devices.
  */
-class SendToDeviceJob : public BaseJob {
+class QUOTIENT_API SendToDeviceJob : public BaseJob {
 public:
     /*! \brief Send an event to a given set of devices.
      *

@@ -25,3 +25,7 @@ void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
     }
     setStatus(EventStatus::FileUploaded);
 }
+
+// Not exactly sure why but this helps with the linker not finding
+// Quotient::EventStatus::staticMetaObject when building Quaternion
+#include "moc_eventitem.cpp"
