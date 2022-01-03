@@ -14,6 +14,7 @@
 #include <QtCore/QUrlQuery>
 #include <QtCore/QVector>
 
+#include <type_traits>
 #include <vector>
 
 class QVariant;
@@ -21,9 +22,28 @@ class QVariant;
 namespace Quotient {
 template <typename T>
 struct JsonObjectConverter {
-    static void dumpTo(QJsonObject& jo, const T& pod) { jo = pod.toJson(); }
-    static void fillFrom(const QJsonObject& jo, T& pod) { pod = T(jo); }
+    // To be implemented in specialisations
+    static void dumpTo(QJsonObject&, const T&) = delete;
+    static void fillFrom(const QJsonObject&, T&) = delete;
 };
+
+namespace _impl {
+    template <typename T, typename = void>
+    struct JsonExporter {
+        static QJsonObject dump(const T& data)
+        {
+            QJsonObject jo;
+            JsonObjectConverter<T>::dumpTo(jo, data);
+            return jo;
+        }
+    };
+
+    template <typename T>
+    struct JsonExporter<
+        T, std::enable_if_t<std::is_invocable_v<decltype(&T::toJson), T>>> {
+        static auto dump(const T& data) { return data.toJson(); }
+    };
+}
 
 //! \brief The switchboard for extra conversion algorithms behind from/toJson
 //!
@@ -41,18 +61,25 @@ struct JsonObjectConverter {
 //! that they are not supported and it's not feasible to support those by means
 //! of overloading toJson() and specialising fromJson().
 template <typename T>
-struct JsonConverter {
-    static QJsonObject dump(const T& pod)
-    {
-        QJsonObject jo;
-        JsonObjectConverter<T>::dumpTo(jo, pod);
-        return jo;
-    }
+struct JsonConverter : _impl::JsonExporter<T> {
+    // Unfortunately, if constexpr doesn't work with dump() and T::toJson
+    // because trying to check invocability of T::toJson hits a hard
+    // (non-SFINAE) compilation error if the member is not there. Hence a bit
+    // more verbose SFINAE construct in _impl::JsonExporter.
+
     static T doLoad(const QJsonObject& jo)
     {
-        T pod;
-        JsonObjectConverter<T>::fillFrom(jo, pod);
-        return pod;
+        // 'else' below are required to suppress code generation for unused
+        // branches - 'return' is not enough
+        if constexpr (std::is_same_v<T, QJsonObject>)
+            return jo;
+        else if constexpr (std::is_constructible_v<T, QJsonObject>)
+            return T(jo);
+        else {
+            T pod;
+            JsonObjectConverter<T>::fillFrom(jo, pod);
+            return pod;
+        }
     }
     static T load(const QJsonValue& jv) { return doLoad(jv.toObject()); }
     static T load(const QJsonDocument& jd) { return doLoad(jd.object()); }
