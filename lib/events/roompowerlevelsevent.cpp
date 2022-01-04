@@ -21,17 +21,17 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
 {
 }
 
-void PowerLevelsEventContent::fillJson(QJsonObject* o) const {
-    o->insert(QStringLiteral("invite"), invite);
-    o->insert(QStringLiteral("kick"), kick);
-    o->insert(QStringLiteral("ban"), ban);
-    o->insert(QStringLiteral("redact"), redact);
-    o->insert(QStringLiteral("events"), Quotient::toJson(events));
-    o->insert(QStringLiteral("events_default"), eventsDefault);
-    o->insert(QStringLiteral("state_default"), stateDefault);
-    o->insert(QStringLiteral("users"), Quotient::toJson(users));
-    o->insert(QStringLiteral("users_default"), usersDefault);
-    o->insert(QStringLiteral("notifications"), QJsonObject{{"room", notifications.room}});
+void PowerLevelsEventContent::fillJson(QJsonObject& o) const {
+    o.insert(QStringLiteral("invite"), invite);
+    o.insert(QStringLiteral("kick"), kick);
+    o.insert(QStringLiteral("ban"), ban);
+    o.insert(QStringLiteral("redact"), redact);
+    o.insert(QStringLiteral("events"), Quotient::toJson(events));
+    o.insert(QStringLiteral("events_default"), eventsDefault);
+    o.insert(QStringLiteral("state_default"), stateDefault);
+    o.insert(QStringLiteral("users"), Quotient::toJson(users));
+    o.insert(QStringLiteral("users_default"), usersDefault);
+    o.insert(QStringLiteral("notifications"), QJsonObject{{"room", notifications.room}});
 }
 
 int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {

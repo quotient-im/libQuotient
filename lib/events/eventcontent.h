@@ -40,7 +40,7 @@ namespace EventContent {
         Base(const Base&) = default;
         Base(Base&&) = default;
 
-        virtual void fillJson(QJsonObject* o) const = 0;
+        virtual void fillJson(QJsonObject& o) const = 0;
     };
 
     // The below structures fairly follow CS spec 11.2.1.6. The overall
@@ -50,12 +50,14 @@ namespace EventContent {
 
     // A quick classes inheritance structure follows (the definitions are
     // spread across eventcontent.h and roommessageevent.h):
+    // UrlBasedContent<InfoT> : InfoT + url and thumbnail data
+    //   PlayableContent<InfoT> : + duration attribute
     // FileInfo
-    //   FileContent : UrlWithThumbnailContent<FileInfo>
-    //   AudioContent : PlayableContent<UrlBasedContent<FileInfo>>
+    //   FileContent = UrlBasedContent<FileInfo>
+    //   AudioContent = PlayableContent<FileInfo>
     //   ImageInfo : FileInfo + imageSize attribute
-    //     ImageContent : UrlWithThumbnailContent<ImageInfo>
-    //     VideoContent : PlayableContent<UrlWithThumbnailContent<ImageInfo>>
+    //     ImageContent = UrlBasedContent<ImageInfo>
+    //     VideoContent = PlayableContent<ImageInfo>
 
     //! \brief Mix-in class representing `info` subobject in content JSON
     //!
@@ -117,13 +119,7 @@ namespace EventContent {
         Omittable<EncryptedFile> file = none;
     };
 
-    template <typename InfoT>
-    QJsonObject toInfoJson(const InfoT& info)
-    {
-        QJsonObject infoJson;
-        info.fillInfoJson(&infoJson);
-        return infoJson;
-    }
+    QUOTIENT_API QJsonObject toInfoJson(const FileInfo& info);
 
     //! \brief A content info class for image/video content types and thumbnails
     class QUOTIENT_API ImageInfo : public FileInfo {
@@ -138,11 +134,11 @@ namespace EventContent {
                   Omittable<EncryptedFile> encryptedFile,
                   const QString& originalFilename = {});
 
-        void fillInfoJson(QJsonObject* infoJson) const;
-
     public:
         QSize imageSize;
     };
+
+    QUOTIENT_API QJsonObject toInfoJson(const ImageInfo& info);
 
     //! \brief An auxiliary class for an info type that carries a thumbnail
     //!
@@ -156,7 +152,7 @@ namespace EventContent {
                   Omittable<EncryptedFile> encryptedFile = none);
 
         //! \brief Add thumbnail information to the passed `info` JSON object
-        void fillInfoJson(QJsonObject* infoJson) const;
+        void dumpTo(QJsonObject& infoJson) const;
     };
 
     class QUOTIENT_API TypedBase : public Base {
@@ -185,57 +181,41 @@ namespace EventContent {
         explicit UrlBasedContent(const QJsonObject& json)
             : TypedBase(json)
             , InfoT(QUrl(json["url"].toString()), json["info"].toObject(),
-                    fromJson<Omittable<EncryptedFile>>(json["file"]), json["filename"].toString())
+                    fromJson<Omittable<EncryptedFile>>(json["file"]),
+                    json["filename"].toString())
+            , thumbnail(FileInfo::originalInfoJson)
         {
-            // A small hack to facilitate links creation in QML.
+            // Two small hacks on originalJson to expose mediaIds to QML
             originalJson.insert("mediaId", InfoT::mediaId());
+            originalJson.insert("thumbnailMediaId", thumbnail.mediaId());
         }
 
         QMimeType type() const override { return InfoT::mimeType; }
         const FileInfo* fileInfo() const override { return this; }
         FileInfo* fileInfo() override { return this; }
-
-    protected:
-        void fillJson(QJsonObject* json) const override
-        {
-            Q_ASSERT(json);
-            if (!InfoT::file.has_value()) {
-                json->insert("url", InfoT::url.toString());
-            } else {
-                json->insert("file", Quotient::toJson(*InfoT::file));
-            }
-            if (!InfoT::originalName.isEmpty())
-                json->insert("filename", InfoT::originalName);
-            json->insert("info", toInfoJson<InfoT>(*this));
-        }
-    };
-
-    template <typename InfoT>
-    class QUOTIENT_API UrlWithThumbnailContent : public UrlBasedContent<InfoT> {
-    public:
-        // NB: when using inherited constructors, thumbnail has to be
-        // initialised separately
-        using UrlBasedContent<InfoT>::UrlBasedContent;
-        explicit UrlWithThumbnailContent(const QJsonObject& json)
-            : UrlBasedContent<InfoT>(json), thumbnail(InfoT::originalInfoJson)
-        {
-            // Another small hack, to simplify making a thumbnail link
-            UrlBasedContent<InfoT>::originalJson.insert("thumbnailMediaId",
-                                                        thumbnail.mediaId());
-        }
-
         const Thumbnail* thumbnailInfo() const override { return &thumbnail; }
 
     public:
         Thumbnail thumbnail;
 
     protected:
-        void fillJson(QJsonObject* json) const override
+        virtual void fillInfoJson(QJsonObject& infoJson [[maybe_unused]]) const
+        {}
+
+        void fillJson(QJsonObject& json) const override
         {
-            UrlBasedContent<InfoT>::fillJson(json);
-            auto infoJson = json->take("info").toObject();
-            thumbnail.fillInfoJson(&infoJson);
-            json->insert("info", infoJson);
+            if (!InfoT::file.has_value()) {
+                json.insert("url", InfoT::url.toString());
+            } else {
+                json.insert("file", Quotient::toJson(*InfoT::file));
+            }
+            if (!InfoT::originalName.isEmpty())
+                json.insert("filename", InfoT::originalName);
+            auto infoJson = toInfoJson(*this);
+            if (thumbnail.isValid())
+                thumbnail.dumpTo(infoJson);
+            fillInfoJson(infoJson);
+            json.insert("info", infoJson);
         }
     };
 

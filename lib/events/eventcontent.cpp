@@ -15,7 +15,7 @@ using std::move;
 QJsonObject Base::toJson() const
 {
     QJsonObject o;
-    fillJson(&o);
+    fillJson(o);
     return o;
 }
 
@@ -68,14 +68,15 @@ bool FileInfo::isValid() const
            && (url.authority() + url.path()).count('/') == 1;
 }
 
-void FileInfo::fillInfoJson(QJsonObject* infoJson) const
+QJsonObject Quotient::EventContent::toInfoJson(const FileInfo& info)
 {
-    Q_ASSERT(infoJson);
-    if (payloadSize != -1)
-        infoJson->insert(QStringLiteral("size"), payloadSize);
-    if (mimeType.isValid())
-        infoJson->insert(QStringLiteral("mimetype"), mimeType.name());
+    QJsonObject infoJson;
+    if (info.payloadSize != -1)
+        infoJson.insert(QStringLiteral("size"), info.payloadSize);
+    if (info.mimeType.isValid())
+        infoJson.insert(QStringLiteral("mimetype"), info.mimeType.name());
     //TODO add encryptedfile
+    return infoJson;
 }
 
 ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)
@@ -96,13 +97,14 @@ ImageInfo::ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
     , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
 {}
 
-void ImageInfo::fillInfoJson(QJsonObject* infoJson) const
+QJsonObject Quotient::EventContent::toInfoJson(const ImageInfo& info)
 {
-    FileInfo::fillInfoJson(infoJson);
-    if (imageSize.width() != -1)
-        infoJson->insert(QStringLiteral("w"), imageSize.width());
-    if (imageSize.height() != -1)
-        infoJson->insert(QStringLiteral("h"), imageSize.height());
+    auto infoJson = toInfoJson(static_cast<const FileInfo&>(info));
+    if (info.imageSize.width() != -1)
+        infoJson.insert(QStringLiteral("w"), info.imageSize.width());
+    if (info.imageSize.height() != -1)
+        infoJson.insert(QStringLiteral("h"), info.imageSize.height());
+    return infoJson;
 }
 
 Thumbnail::Thumbnail(const QJsonObject& infoJson,
@@ -111,11 +113,11 @@ Thumbnail::Thumbnail(const QJsonObject& infoJson,
                 infoJson["thumbnail_info"_ls].toObject(), move(encryptedFile))
 {}
 
-void Thumbnail::fillInfoJson(QJsonObject* infoJson) const
+void Thumbnail::dumpTo(QJsonObject& infoJson) const
 {
     if (url.isValid())
-        infoJson->insert(QStringLiteral("thumbnail_url"), url.toString());
+        infoJson.insert(QStringLiteral("thumbnail_url"), url.toString());
     if (!imageSize.isEmpty())
-        infoJson->insert(QStringLiteral("thumbnail_info"),
-                         toInfoJson<ImageInfo>(*this));
+        infoJson.insert(QStringLiteral("thumbnail_info"),
+                         toInfoJson(*this));
 }

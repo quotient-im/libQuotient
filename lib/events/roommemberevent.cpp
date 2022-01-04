@@ -43,19 +43,18 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
         displayName = sanitized(*displayName);
 }
 
-void MemberEventContent::fillJson(QJsonObject* o) const
+void MemberEventContent::fillJson(QJsonObject& o) const
 {
-    Q_ASSERT(o);
     if (membership != Membership::Invalid)
-        o->insert(QStringLiteral("membership"),
+        o.insert(QStringLiteral("membership"),
                   MembershipStrings[qCountTrailingZeroBits(
                       std::underlying_type_t<Membership>(membership))]);
     if (displayName)
-        o->insert(QStringLiteral("displayname"), *displayName);
+        o.insert(QStringLiteral("displayname"), *displayName);
     if (avatarUrl && avatarUrl->isValid())
-        o->insert(QStringLiteral("avatar_url"), avatarUrl->toString());
+        o.insert(QStringLiteral("avatar_url"), avatarUrl->toString());
     if (!reason.isEmpty())
-        o->insert(QStringLiteral("reason"), reason);
+        o.insert(QStringLiteral("reason"), reason);
 }
 
 bool RoomMemberEvent::changesMembership() const

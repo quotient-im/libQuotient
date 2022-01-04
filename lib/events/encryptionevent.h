@@ -26,7 +26,7 @@ public:
     int rotationPeriodMsgs;
 
 protected:
-    void fillJson(QJsonObject* o) const override;
+    void fillJson(QJsonObject& o) const override;
 };
 
 using EncryptionType = EncryptionEventContent::EncryptionType;

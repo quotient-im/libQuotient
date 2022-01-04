@@ -26,7 +26,7 @@ public:
     QString reason;
 
 protected:
-    void fillJson(QJsonObject* o) const override;
+    void fillJson(QJsonObject& o) const override;
 };
 
 using MembershipType [[deprecated("Use Membership instead")]] = Membership;

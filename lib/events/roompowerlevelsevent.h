@@ -31,7 +31,7 @@ public:
     Notifications notifications;
 
 protected:
-    void fillJson(QJsonObject* o) const override;
+    void fillJson(QJsonObject& o) const override;
 };
 
 class QUOTIENT_API RoomPowerLevelsEvent
