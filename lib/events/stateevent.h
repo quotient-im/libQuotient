@@ -72,7 +72,7 @@ struct Prev {
     explicit Prev(const QJsonObject& unsignedJson,
                   ContentParamTs&&... contentParams)
         : senderId(unsignedJson.value("prev_sender"_ls).toString())
-        , content(unsignedJson.value(PrevContentKeyL).toObject(),
+        , content(fromJson<ContentT>(unsignedJson.value(PrevContentKeyL)),
                   std::forward<ContentParamTs>(contentParams)...)
     {}
 
@@ -89,7 +89,8 @@ public:
     explicit StateEvent(Type type, const QJsonObject& fullJson,
                         ContentParamTs&&... contentParams)
         : StateEventBase(type, fullJson)
-        , _content(contentJson(), std::forward<ContentParamTs>(contentParams)...)
+        , _content(fromJson<ContentT>(contentJson()),
+                   std::forward<ContentParamTs>(contentParams)...)
     {
         const auto& unsignedData = unsignedJson();
         if (unsignedData.contains(PrevContentKeyL))
@@ -101,9 +102,9 @@ public:
                         const QString& stateKey,
                         ContentParamTs&&... contentParams)
         : StateEventBase(type, matrixType, stateKey)
-        , _content(std::forward<ContentParamTs>(contentParams)...)
+        , _content{std::forward<ContentParamTs>(contentParams)...}
     {
-        editJson().insert(ContentKey, _content.toJson());
+        editJson().insert(ContentKey, toJson(_content));
     }
 
     const ContentT& content() const { return _content; }
@@ -111,7 +112,7 @@ public:
     void editContent(VisitorT&& visitor)
     {
         visitor(_content);
-        editJson()[ContentKeyL] = _content.toJson();
+        editJson()[ContentKeyL] = toJson(_content);
     }
     const ContentT* prevContent() const
     {
