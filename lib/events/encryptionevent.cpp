@@ -47,10 +47,12 @@ EncryptionEventContent::EncryptionEventContent(EncryptionType et)
     }
 }
 
-void EncryptionEventContent::fillJson(QJsonObject& o) const
+QJsonObject EncryptionEventContent::toJson() const
 {
+    QJsonObject o;
     if (encryption != EncryptionType::Undefined)
         o.insert(AlgorithmKey, algorithm);
     o.insert(RotationPeriodMsKey, rotationPeriodMs);
     o.insert(RotationPeriodMsgsKey, rotationPeriodMsgs);
+    return o;
 }

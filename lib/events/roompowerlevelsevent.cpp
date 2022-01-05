@@ -3,8 +3,6 @@
 
 #include "roompowerlevelsevent.h"
 
-#include <QJsonDocument>
-
 using namespace Quotient;
 
 PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
@@ -21,7 +19,9 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
 {
 }
 
-void PowerLevelsEventContent::fillJson(QJsonObject& o) const {
+QJsonObject PowerLevelsEventContent::toJson() const
+{
+    QJsonObject o;
     o.insert(QStringLiteral("invite"), invite);
     o.insert(QStringLiteral("kick"), kick);
     o.insert(QStringLiteral("ban"), ban);
@@ -31,7 +31,9 @@ void PowerLevelsEventContent::fillJson(QJsonObject& o) const {
     o.insert(QStringLiteral("state_default"), stateDefault);
     o.insert(QStringLiteral("users"), Quotient::toJson(users));
     o.insert(QStringLiteral("users_default"), usersDefault);
-    o.insert(QStringLiteral("notifications"), QJsonObject{{"room", notifications.room}});
+    o.insert(QStringLiteral("notifications"),
+             QJsonObject { { "room", notifications.room } });
+    return o;
 }
 
 int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {

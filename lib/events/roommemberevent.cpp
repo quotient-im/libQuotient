@@ -4,8 +4,6 @@
 
 #include "roommemberevent.h"
 
-#include "logging.h"
-
 #include <QtCore/QtAlgorithms>
 
 namespace Quotient {
@@ -43,8 +41,9 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
         displayName = sanitized(*displayName);
 }
 
-void MemberEventContent::fillJson(QJsonObject& o) const
+QJsonObject MemberEventContent::toJson() const
 {
+    QJsonObject o;
     if (membership != Membership::Invalid)
         o.insert(QStringLiteral("membership"),
                   MembershipStrings[qCountTrailingZeroBits(
@@ -55,6 +54,7 @@ void MemberEventContent::fillJson(QJsonObject& o) const
         o.insert(QStringLiteral("avatar_url"), avatarUrl->toString());
     if (!reason.isEmpty())
         o.insert(QStringLiteral("reason"), reason);
+    return o;
 }
 
 bool RoomMemberEvent::changesMembership() const
