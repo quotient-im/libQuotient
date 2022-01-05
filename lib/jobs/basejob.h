@@ -467,7 +467,7 @@ private:
     void finishJob();
 
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 };
 
 inline bool QUOTIENT_API isJobPending(BaseJob* job)

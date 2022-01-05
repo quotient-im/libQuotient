@@ -13,13 +13,12 @@ public:
 
     DownloadFileJob(const QString& serverName, const QString& mediaId,
                     const QString& localFilename = {});
-    ~DownloadFileJob() override;
 
     QString targetFileName() const;
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     void doPrepare() override;
     void onSentRequest(QNetworkReply* reply) override;

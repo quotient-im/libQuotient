@@ -4,9 +4,10 @@
 
 #pragma once
 
+#include "util.h"
+
 #include <QtCore/QUrl>
 
-#include <memory>
 #include <chrono>
 
 class QNetworkAccessManager;
@@ -42,6 +43,6 @@ public:
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 } // namespace Quotient

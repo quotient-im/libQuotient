@@ -47,15 +47,11 @@ public:
     mutable std::vector<get_callback_t> callbacks;
 };
 
-Avatar::Avatar() : d(std::make_unique<Private>()) {}
+Avatar::Avatar()
+    : d(makeImpl<Private>())
+{}
 
-Avatar::Avatar(QUrl url) : d(std::make_unique<Private>(std::move(url))) {}
-
-Avatar::Avatar(Avatar&&) = default;
-
-Avatar::~Avatar() = default;
-
-Avatar& Avatar::operator=(Avatar&&) = default;
+Avatar::Avatar(QUrl url) : d(makeImpl<Private>(std::move(url))) {}
 
 QImage Avatar::get(Connection* connection, int dimension,
                    get_callback_t callback) const

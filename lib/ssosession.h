@@ -3,12 +3,10 @@
 
 #pragma once
 
-#include "quotient_export.h"
+#include "util.h"
 
 #include <QtCore/QUrl>
 #include <QtCore/QObject>
-
-#include <memory>
 
 class QTcpServer;
 class QTcpSocket;
@@ -44,6 +42,6 @@ public:
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 } // namespace Quotient

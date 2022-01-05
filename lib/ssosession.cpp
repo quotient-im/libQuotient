@@ -61,7 +61,7 @@ public:
 SsoSession::SsoSession(Connection* connection, const QString& initialDeviceName,
                        const QString& deviceId)
     : QObject(connection)
-    , d(std::make_unique<Private>(this, initialDeviceName, deviceId, connection))
+    , d(makeImpl<Private>(this, initialDeviceName, deviceId, connection))
 {
     qCDebug(MAIN) << "SSO session constructed";
 }

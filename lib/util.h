@@ -245,6 +245,47 @@ inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
     return std::make_pair(last, sLast);
 }
 
+//! \brief An owning implementation pointer
+//!
+//! This is basically std::unique_ptr<> to hold your pimpl's but without having
+//! to define default constructors/operator=() out of line.
+//! Thanks to https://oliora.github.io/2015/12/29/pimpl-and-rule-of-zero.html
+//! for inspiration
+template <typename ImplType>
+using ImplPtr = std::unique_ptr<ImplType, void (*)(ImplType*)>;
+
+// Why this works (see also the link above): because this defers the moment
+// of requiring sizeof of ImplType to the place where makeImpl is invoked
+// (which is located, necessarily, in the .cpp file after ImplType definition).
+// The stock unique_ptr deleter (std::default_delete) normally needs sizeof
+// at the same spot - as long as you defer definition of the owning type
+// constructors and operator='s to the .cpp file as well. Which means you
+// have to explicitly declare and define them (even if with = default),
+// formally breaking the rule of zero; informally, just adding boilerplate code.
+// The custom deleter itself is instantiated at makeImpl invocation - there's
+// no way earlier to even know how ImplType will be deleted and whether that
+// will need sizeof(ImplType) earlier. In theory it's a tad slower because
+// the deleter is called by the pointer; however, the difference will not
+// be noticeable (if exist at all) for any class with non-trivial contents.
+
+//! \brief make_unique for ImplPtr
+//!
+//! Since std::make_unique is not compatible with ImplPtr, this should be used
+//! in constructors of frontend classes to create implementation instances.
+template <typename ImplType, typename DeleterType = void (*)(ImplType*),
+          typename... ArgTs>
+inline ImplPtr<ImplType> makeImpl(ArgTs&&... args)
+{
+    return ImplPtr<ImplType> { new ImplType(std::forward<ArgTs>(args)...),
+                               [](ImplType* impl) { delete impl; } };
+}
+
+template <typename ImplType>
+const inline ImplPtr<ImplType> ZeroImpl()
+{
+    return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
+}
+
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
 QUOTIENT_API void linkifyUrls(QString& htmlEscapedText);
 

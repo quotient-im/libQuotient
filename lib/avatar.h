@@ -3,13 +3,12 @@
 
 #pragma once
 
-#include "quotient_export.h"
+#include "util.h"
 
 #include <QtCore/QUrl>
 #include <QtGui/QIcon>
 
 #include <functional>
-#include <memory>
 
 namespace Quotient {
 class Connection;
@@ -18,9 +17,6 @@ class QUOTIENT_API Avatar {
 public:
     explicit Avatar();
     explicit Avatar(QUrl url);
-    Avatar(Avatar&&);
-    ~Avatar();
-    Avatar& operator=(Avatar&&);
 
     using get_callback_t = std::function<void()>;
     using upload_callback_t = std::function<void(QUrl)>;
@@ -41,6 +37,6 @@ public:
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 } // namespace Quotient

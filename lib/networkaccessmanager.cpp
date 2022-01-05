@@ -39,7 +39,7 @@ public:
 };
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent), d(std::make_unique<Private>(this))
+    : QNetworkAccessManager(parent), d(makeImpl<Private>(this))
 {}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
@@ -78,8 +78,6 @@ NetworkAccessManager* NetworkAccessManager::instance()
     }
     return storage.localData();
 }
-
-NetworkAccessManager::~NetworkAccessManager() = default;
 
 QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
