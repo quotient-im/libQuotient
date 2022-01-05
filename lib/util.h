@@ -283,7 +283,7 @@ inline ImplPtr<ImplType> makeImpl(ArgTs&&... args)
 template <typename ImplType>
 const inline ImplPtr<ImplType> ZeroImpl()
 {
-    return { nullptr, [](ImplType*) {} };
+    return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
 }
 
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
