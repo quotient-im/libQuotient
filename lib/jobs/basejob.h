@@ -248,7 +248,7 @@ public:
     }
 
 public Q_SLOTS:
-    void initiate(ConnectionData* connData, bool inBackground);
+    void initiate(Quotient::ConnectionData* connData, bool inBackground);
 
     /**
      * Abandons the result of this job, arrived or unarrived.
