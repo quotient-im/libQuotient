@@ -258,7 +258,7 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
-    AccountRegistry::instance().drop(this);
+    Accounts.drop(this);
 }
 
 void Connection::resolveServer(const QString& mxid)
@@ -438,7 +438,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
-    AccountRegistry::instance().add(q);
+    Accounts.add(q);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
