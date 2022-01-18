@@ -77,7 +77,7 @@ enum class Membership : unsigned int {
 };
 QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
-constexpr inline auto MembershipStrings = make_array(
+constexpr auto MembershipStrings = make_array(
     // The order MUST be the same as the order in the original enum
     "join", "leave", "invite", "knock", "ban");
 
@@ -95,7 +95,7 @@ enum class JoinState : std::underlying_type_t<Membership> {
 };
 QUO_DECLARE_FLAGS_NS(JoinStates, JoinState)
 
-constexpr inline auto JoinStateStrings = make_array(
+[[maybe_unused]] constexpr auto JoinStateStrings = make_array(
     MembershipStrings[0], MembershipStrings[1], MembershipStrings[2],
     MembershipStrings[3] /* same as MembershipStrings, sans "ban" */
 );
@@ -125,9 +125,7 @@ enum RoomType {
 };
 Q_ENUM_NS(RoomType)
 
-constexpr inline auto RoomTypeStrings = make_array(
-    "m.space"
-);
+[[maybe_unused]] constexpr auto RoomTypeStrings = make_array("m.space");
 
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)

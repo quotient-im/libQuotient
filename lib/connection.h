@@ -443,6 +443,17 @@ public:
                                     std::forward<JobArgTs>(jobArgs)...);
     }
 
+    //! \brief Start a local HTTP server and generate a single sign-on URL
+    //!
+    //! This call does the preparatory steps to carry out single sign-on
+    //! sequence
+    //! \sa https://matrix.org/docs/guides/sso-for-client-developers
+    //! \return A proxy object holding two URLs: one for SSO on the chosen
+    //!         homeserver and another for the local callback address. Normally
+    //!         you won't need the callback URL unless you proxy the response
+    //!         with a custom UI. You do not need to delete the SsoSession
+    //!         object; the Connection that issued it will dispose of it once
+    //!         the login sequence completes (with any outcome).
     Q_INVOKABLE SsoSession* prepareForSso(const QString& initialDeviceName,
                                           const QString& deviceId = {});
 

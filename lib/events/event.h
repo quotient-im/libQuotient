@@ -264,9 +264,9 @@ using Events = EventsArray<Event>;
 // provide matrixTypeId() and typeId().
 #define DEFINE_EVENT_TYPEID(Id_, Type_)                           \
     static constexpr event_type_t TypeId = Id_##_ls;              \
-    [[deprecated("Use _Type::TypeId directly instead")]]          \
+    [[deprecated("Use " #Type_ "::TypeId directly instead")]]     \
     static constexpr event_mtype_t matrixTypeId() { return Id_; } \
-    [[deprecated("Use _Type::TypeId directly instead")]]          \
+    [[deprecated("Use " #Type_ "::TypeId directly instead")]]     \
     static event_type_t typeId() { return TypeId; }               \
     // End of macro
 
@@ -311,7 +311,7 @@ inline auto switchOnType(const BaseEventT& event, FnT&& fn)
 namespace _impl {
     // Using bool instead of auto below because auto apparently upsets MSVC
     template <class BaseT, typename FnT>
-    inline constexpr bool needs_downcast =
+    constexpr bool needs_downcast =
         std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
         && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
 }

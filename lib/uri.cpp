@@ -3,28 +3,33 @@
 
 #include "uri.h"
 
+#include "util.h"
 #include "logging.h"
 
 #include <QtCore/QRegularExpression>
 
 using namespace Quotient;
 
-struct ReplacePair { QByteArray uriString; char sigil; };
+namespace {
+
+struct ReplacePair { QLatin1String uriString; char sigil; };
 /// \brief Defines bi-directional mapping of path prefixes and sigils
 ///
 /// When there are two prefixes for the same sigil, the first matching
 /// entry for a given sigil is used.
-static const auto replacePairs = {
-    ReplacePair { "u/", '@' },
-    { "user/", '@' },
-    { "roomid/", '!' },
-    { "r/", '#' },
-    { "room/", '#' },
+const ReplacePair replacePairs[] = {
+    { "u/"_ls, '@' },
+    { "user/"_ls, '@' },
+    { "roomid/"_ls, '!' },
+    { "r/"_ls, '#' },
+    { "room/"_ls, '#' },
     // The notation for bare event ids is not proposed in MSC2312 but there's
     // https://github.com/matrix-org/matrix-doc/pull/2644
-    { "e/", '$' },
-    { "event/", '$' }
+    { "e/"_ls, '$' },
+    { "event/"_ls, '$' }
 };
+
+}
 
 Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
 {
@@ -75,7 +80,7 @@ static auto decodeFragmentPart(QStringView part)
     return QUrl::fromPercentEncoding(part.toLatin1()).toUtf8();
 }
 
-static auto matrixToUrlRegexInit()
+static inline auto matrixToUrlRegexInit()
 {
     // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
     const QRegularExpression MatrixToUrlRE {

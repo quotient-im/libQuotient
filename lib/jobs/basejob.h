@@ -28,7 +28,7 @@ class QUOTIENT_API BaseJob : public QObject {
 
     static QByteArray encodeIfParam(const QString& paramPart);
     template <int N>
-    static inline auto encodeIfParam(const char (&constPart)[N])
+    static auto encodeIfParam(const char (&constPart)[N])
     {
         return constPart;
     }
@@ -248,7 +248,7 @@ public:
     }
 
 public Q_SLOTS:
-    void initiate(ConnectionData* connData, bool inBackground);
+    void initiate(Quotient::ConnectionData* connData, bool inBackground);
 
     /**
      * Abandons the result of this job, arrived or unarrived.

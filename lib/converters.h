@@ -355,7 +355,7 @@ namespace _impl {
     };
 } // namespace _impl
 
-static constexpr bool IfNotEmpty = false;
+constexpr bool IfNotEmpty = false;
 
 /*! Add a key-value pair to QJsonObject or QUrlQuery
  *

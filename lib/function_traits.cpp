@@ -47,7 +47,7 @@ static_assert(std::is_same_v<fn_arg_t<Fo1>, int>,
               "Test fn_arg_t defaulting to first argument");
 
 template <typename T>
-static void ft(const std::vector<T>&);
+[[maybe_unused]] static void ft(const std::vector<T>&);
 static_assert(
     std::is_same<fn_arg_t<decltype(ft<double>)>, const std::vector<double>&>(),
     "Test function templates");

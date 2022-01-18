@@ -15,10 +15,10 @@ using namespace Quotient;
 
 class SsoSession::Private {
 public:
-    Private(SsoSession* q, const QString& initialDeviceName = {},
-            const QString& deviceId = {}, Connection* connection = nullptr)
-        : initialDeviceName(initialDeviceName)
-        , deviceId(deviceId)
+    Private(SsoSession* q, QString initialDeviceName = {},
+            QString deviceId = {}, Connection* connection = nullptr)
+        : initialDeviceName(std::move(initialDeviceName))
+        , deviceId(std::move(deviceId))
         , connection(connection)
     {
         auto* server = new QTcpServer(q);
@@ -29,7 +29,7 @@ public:
                           .arg(server->serverPort());
         ssoUrl = connection->getUrlForApi<RedirectToSSOJob>(callbackUrl);
 
-        QObject::connect(server, &QTcpServer::newConnection, q, [this, server] {
+        QObject::connect(server, &QTcpServer::newConnection, q, [this, q, server] {
             qCDebug(MAIN) << "SSO callback initiated";
             socket = server->nextPendingConnection();
             server->close();
@@ -43,8 +43,14 @@ public:
             });
             QObject::connect(socket, &QTcpSocket::disconnected, socket,
                              &QTcpSocket::deleteLater);
+            QObject::connect(socket, &QObject::destroyed, q,
+                             &QObject::deleteLater);
         });
+        qCDebug(MAIN) << "SSO session constructed";
     }
+    ~Private() { qCDebug(MAIN) << "SSO session deconstructed"; }
+    Q_DISABLE_COPY_MOVE(Private)
+
     void processCallback();
     void sendHttpResponse(const QByteArray& code, const QByteArray& msg);
     void onError(const QByteArray& code, const QString& errorMsg);
@@ -62,14 +68,7 @@ SsoSession::SsoSession(Connection* connection, const QString& initialDeviceName,
                        const QString& deviceId)
     : QObject(connection)
     , d(makeImpl<Private>(this, initialDeviceName, deviceId, connection))
-{
-    qCDebug(MAIN) << "SSO session constructed";
-}
-
-SsoSession::~SsoSession()
-{
-    qCDebug(MAIN) << "SSO session deconstructed";
-}
+{}
 
 QUrl SsoSession::ssoUrl() const { return d->ssoUrl; }
 
@@ -82,29 +81,29 @@ void SsoSession::Private::processCallback()
     // (see at https://github.com/clementine-player/Clementine/)
     const auto& requestParts = requestData.split(' ');
     if (requestParts.size() < 2 || requestParts[1].isEmpty()) {
-        onError("400 Bad Request", tr("No login token in SSO callback"));
+        onError("400 Bad Request", tr("Malformed single sign-on callback"));
         return;
     }
     const auto& QueryItemName = QStringLiteral("loginToken");
     QUrlQuery query { QUrl(requestParts[1]).query() };
     if (!query.hasQueryItem(QueryItemName)) {
-        onError("400 Bad Request", tr("Malformed single sign-on callback"));
+        onError("400 Bad Request", tr("No login token in SSO callback"));
+        return;
     }
     qCDebug(MAIN) << "Found the token in SSO callback, logging in";
     connection->loginWithToken(query.queryItemValue(QueryItemName).toLatin1(),
                                initialDeviceName, deviceId);
     connect(connection, &Connection::connected, socket, [this] {
-        const QString msg =
-            "The application '" % QCoreApplication::applicationName()
-            % "' has successfully logged in as a user " % connection->userId()
-            % " with device id " % connection->deviceId()
-            % ". This window can be closed. Thank you.\r\n";
+        const auto msg =
+            tr("The application '%1' has successfully logged in as a user %2 "
+               "with device id %3. This window can be closed. Thank you.\r\n")
+                .arg(QCoreApplication::applicationName(), connection->userId(),
+                     connection->deviceId());
         sendHttpResponse("200 OK", msg.toHtmlEscaped().toUtf8());
         socket->disconnectFromHost();
     });
     connect(connection, &Connection::loginError, socket, [this] {
         onError("401 Unauthorised", tr("Login failed"));
-        socket->disconnectFromHost();
     });
 }
 
@@ -128,4 +127,5 @@ void SsoSession::Private::onError(const QByteArray& code,
     // [kitsune] Yeah, I know, dirty. Maybe the "right" way would be to have
     // an intermediate signal but that seems just a fight for purity.
     emit connection->loginError(errorMsg, requestData);
+    socket->disconnectFromHost();
 }

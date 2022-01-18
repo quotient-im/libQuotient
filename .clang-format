@@ -105,7 +105,7 @@ PenaltyBreakComment: 45
 PenaltyBreakString: 200
 #PenaltyBreakTemplateDeclaration: 10
 PenaltyExcessCharacter: 40
-PenaltyReturnTypeOnItsOwnLine: 100
+PenaltyReturnTypeOnItsOwnLine: 150
 #PointerAlignment: Left
 #ReflowComments: true
 #SortIncludes: true

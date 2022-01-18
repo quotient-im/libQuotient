@@ -562,16 +562,14 @@ QStringList Room::pinnedEventIds() const {
     return d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
 }
 
-QVector< const Quotient::RoomEvent* > Quotient::Room::pinnedEvents() const
+QVector<const Quotient::RoomEvent*> Quotient::Room::pinnedEvents() const
 {
-    QStringList events = d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
+    const auto& pinnedIds = d->getCurrentState<RoomPinnedEvent>()->pinnedEvents();
     QVector<const RoomEvent*> pinnedEvents;
-    QStringList::iterator i;
-    for (i = events.begin(); i != events.end(); ++i) {
-        auto timelineItem = findInTimeline(*i);
-        if (timelineItem != historyEdge())
-            pinnedEvents.append(timelineItem->event());
-    }
+    for (auto&& evtId: pinnedIds)
+        if (const auto& it = findInTimeline(evtId); it != historyEdge())
+            pinnedEvents.append(it->event());
+
     return pinnedEvents;
 }
 

@@ -8,9 +8,6 @@
 #include <QtCore/QUrl>
 #include <QtCore/QObject>
 
-class QTcpServer;
-class QTcpSocket;
-
 namespace Quotient {
 class Connection;
 
@@ -36,7 +33,8 @@ class QUOTIENT_API SsoSession : public QObject {
 public:
     SsoSession(Connection* connection, const QString& initialDeviceName,
                const QString& deviceId = {});
-    ~SsoSession() override;
+    ~SsoSession() override = default;
+
     QUrl ssoUrl() const;
     QUrl callbackUrl() const;
 

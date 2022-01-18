@@ -149,10 +149,8 @@ namespace EventContent {
      */
     class QUOTIENT_API Thumbnail : public ImageInfo {
     public:
-        Thumbnail() = default; // Allow empty thumbnails
-        Thumbnail(const QJsonObject& infoJson, const Omittable<EncryptedFile> &file = none);
-        Thumbnail(const ImageInfo& info) : ImageInfo(info) {}
         using ImageInfo::ImageInfo;
+        Thumbnail(const QJsonObject& infoJson, const Omittable<EncryptedFile> &file = none);
 
         /**
          * Writes thumbnail information to "thumbnail_info" subobject
