@@ -10,12 +10,14 @@
 
 using namespace Quotient;
 
+namespace {
+
 struct ReplacePair { QLatin1String uriString; char sigil; };
 /// \brief Defines bi-directional mapping of path prefixes and sigils
 ///
 /// When there are two prefixes for the same sigil, the first matching
 /// entry for a given sigil is used.
-static const ReplacePair replacePairs[] = {
+const ReplacePair replacePairs[] = {
     { "u/"_ls, '@' },
     { "user/"_ls, '@' },
     { "roomid/"_ls, '!' },
@@ -26,6 +28,8 @@ static const ReplacePair replacePairs[] = {
     { "e/"_ls, '$' },
     { "event/"_ls, '$' }
 };
+
+}
 
 Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
 {

@@ -19,13 +19,15 @@ using namespace EventContent;
 
 using MsgType = RoomMessageEvent::MsgType;
 
-static constexpr auto RelatesToKey = "m.relates_to"_ls;
-static constexpr auto MsgTypeKey = "msgtype"_ls;
-static constexpr auto FormattedBodyKey = "formatted_body"_ls;
-static constexpr auto TextTypeKey = "m.text"_ls;
-static constexpr auto EmoteTypeKey = "m.emote"_ls;
-static constexpr auto NoticeTypeKey = "m.notice"_ls;
-static constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_ls;
+namespace { // Supporting internal definitions
+
+constexpr auto RelatesToKey = "m.relates_to"_ls;
+constexpr auto MsgTypeKey = "msgtype"_ls;
+constexpr auto FormattedBodyKey = "formatted_body"_ls;
+constexpr auto TextTypeKey = "m.text"_ls;
+constexpr auto EmoteTypeKey = "m.emote"_ls;
+constexpr auto NoticeTypeKey = "m.notice"_ls;
+constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_ls;
 
 template <typename ContentT>
 TypedBase* make(const QJsonObject& json)
@@ -86,6 +88,8 @@ inline bool isReplacement(const Omittable<RelatesTo>& rel)
 {
     return rel && rel->type == RelatesTo::ReplacementTypeId();
 }
+
+} // anonymous namespace
 
 QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,

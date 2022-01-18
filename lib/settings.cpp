@@ -110,10 +110,11 @@ QUO_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
 QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
-static constexpr auto HomeserverKey = "homeserver"_ls;
-static constexpr auto AccessTokenKey = "access_token"_ls;
-static constexpr auto EncryptionAccountPickleKey =
-    "encryption_account_pickle"_ls;
+namespace {
+constexpr auto HomeserverKey = "homeserver"_ls;
+constexpr auto AccessTokenKey = "access_token"_ls;
+constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_ls;
+}
 
 QUrl AccountSettings::homeserver() const
 {
