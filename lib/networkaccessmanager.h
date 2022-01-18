@@ -8,8 +8,6 @@
 #include <QtNetwork/QNetworkAccessManager>
 
 namespace Quotient {
-class Room;
-class Connection;
 
 class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
