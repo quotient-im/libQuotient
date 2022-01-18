@@ -54,9 +54,9 @@ using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
 namespace _impl {
     template <typename TT>
-    constexpr inline auto IsOmittableValue = false;
+    constexpr auto IsOmittableValue = false;
     template <typename TT>
-    constexpr inline auto IsOmittable = IsOmittableValue<std::decay_t<TT>>;
+    constexpr auto IsOmittable = IsOmittableValue<std::decay_t<TT>>;
 }
 
 constexpr auto none = std::nullopt;
@@ -165,7 +165,7 @@ Omittable(T&&) -> Omittable<T>;
 
 namespace _impl {
     template <typename T>
-    constexpr inline auto IsOmittableValue<Omittable<T>> = true;
+    constexpr auto IsOmittableValue<Omittable<T>> = true;
 }
 
 template <typename T1, typename T2>
@@ -191,7 +191,7 @@ inline auto merge(T1& lhs, const Omittable<T2>& rhs)
     return true;
 }
 
-inline constexpr auto operator"" _ls(const char* s, std::size_t size)
+constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));
 }

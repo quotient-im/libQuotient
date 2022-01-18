@@ -28,7 +28,7 @@ class QUOTIENT_API BaseJob : public QObject {
 
     static QByteArray encodeIfParam(const QString& paramPart);
     template <int N>
-    static inline auto encodeIfParam(const char (&constPart)[N])
+    static auto encodeIfParam(const char (&constPart)[N])
     {
         return constPart;
     }

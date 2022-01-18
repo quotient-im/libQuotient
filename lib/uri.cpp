@@ -75,7 +75,7 @@ static auto decodeFragmentPart(QStringView part)
     return QUrl::fromPercentEncoding(part.toLatin1()).toUtf8();
 }
 
-static auto matrixToUrlRegexInit()
+static inline auto matrixToUrlRegexInit()
 {
     // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
     const QRegularExpression MatrixToUrlRE {

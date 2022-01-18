@@ -311,7 +311,7 @@ inline auto switchOnType(const BaseEventT& event, FnT&& fn)
 namespace _impl {
     // Using bool instead of auto below because auto apparently upsets MSVC
     template <class BaseT, typename FnT>
-    inline constexpr bool needs_downcast =
+    constexpr bool needs_downcast =
         std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
         && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
 }
