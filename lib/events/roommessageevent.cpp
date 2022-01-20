@@ -95,32 +95,33 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,
                                                   TypedBase* content)
 {
-    auto json = content ? content->toJson() : QJsonObject();
-    if (json.contains(RelatesToKey)) {
+    QJsonObject json;
+    if (content) {
+        // TODO: replace with content->fillJson(json) when it starts working
+        json = content->toJson();
         if (jsonMsgType != TextTypeKey && jsonMsgType != NoticeTypeKey
             && jsonMsgType != EmoteTypeKey) {
-            json.remove(RelatesToKey);
-            qCWarning(EVENTS)
-                << RelatesToKey << "cannot be used in" << jsonMsgType
-                << "messages; the relation has been stripped off";
-        } else {
-            // After the above, we know for sure that the content is TextContent
-            // and that its EventRelation structure is not omitted
-            auto* textContent = static_cast<const TextContent*>(content);
-            Q_ASSERT(textContent && textContent->relatesTo.has_value());
-            if (textContent->relatesTo->type == EventRelation::ReplacementType) {
-                auto newContentJson = json.take("m.new_content"_ls).toObject();
-                newContentJson.insert(BodyKey, plainBody);
-                newContentJson.insert(MsgTypeKey, jsonMsgType);
-                json.insert(QStringLiteral("m.new_content"), newContentJson);
-                json[MsgTypeKey] = jsonMsgType;
-                json[BodyKeyL] = "* " + plainBody;
-                return json;
+            if (json.contains(RelatesToKey)) {
+                json.remove(RelatesToKey);
+                qCWarning(EVENTS)
+                    << RelatesToKey << "cannot be used in" << jsonMsgType
+                    << "messages; the relation has been stripped off";
             }
+        } else if (auto* textContent = static_cast<const TextContent*>(content);
+                   textContent->relatesTo
+                   && textContent->relatesTo->type
+                          == EventRelation::ReplacementType) {
+            auto newContentJson = json.take("m.new_content"_ls).toObject();
+            newContentJson.insert(BodyKey, plainBody);
+            newContentJson.insert(MsgTypeKey, jsonMsgType);
+            json.insert(QStringLiteral("m.new_content"), newContentJson);
+            json[MsgTypeKey] = jsonMsgType;
+            json[BodyKeyL] = "* " + plainBody;
+            return json;
         }
     }
-    json.insert(QStringLiteral("msgtype"), jsonMsgType);
-    json.insert(QStringLiteral("body"), plainBody);
+    json.insert(MsgTypeKey, jsonMsgType);
+    json.insert(BodyKey, plainBody);
     return json;
 }
 
