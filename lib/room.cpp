@@ -996,14 +996,14 @@ Room::findPendingEvent(const QString& txnId) const
                         });
 }
 
-const Room::RelatedEvents Room::relatedEvents(const QString& evtId,
-                                              const char* relType) const
+const Room::RelatedEvents Room::relatedEvents(
+    const QString& evtId, EventRelation::reltypeid_t relType) const
 {
     return d->relations.value({ evtId, relType });
 }
 
-const Room::RelatedEvents Room::relatedEvents(const RoomEvent& evt,
-                                              const char* relType) const
+const Room::RelatedEvents Room::relatedEvents(
+    const RoomEvent& evt, EventRelation::reltypeid_t relType) const
 {
     return relatedEvents(evt.id(), relType);
 }
@@ -2506,8 +2506,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
     }
     if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
         const auto& targetEvtId = reaction->relation().eventId;
-        const auto lookupKey =
-            qMakePair(targetEvtId, EventRelation::Annotation());
+        const QPair lookupKey { targetEvtId, EventRelation::AnnotationType };
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
             emit q->updatedEvent(targetEvtId);
