@@ -381,7 +381,7 @@ TEST_IMPL(sendReaction)
             if (actualTargetEvtId != targetEvtId)
                 return false;
             const auto reactions = targetRoom->relatedEvents(
-                targetEvtId, EventRelation::Annotation());
+                targetEvtId, EventRelation::AnnotationType);
             // It's a test room, assuming no interference there should
             // be exactly one reaction
             if (reactions.size() != 1)

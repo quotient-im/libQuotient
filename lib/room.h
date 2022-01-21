@@ -21,6 +21,7 @@
 #include "events/roommessageevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
+#include "events/eventrelation.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -394,9 +395,9 @@ public:
     PendingEvents::const_iterator findPendingEvent(const QString& txnId) const;
 
     const RelatedEvents relatedEvents(const QString& evtId,
-                                      const char* relType) const;
+                                      EventRelation::reltypeid_t relType) const;
     const RelatedEvents relatedEvents(const RoomEvent& evt,
-                                      const char* relType) const;
+                                      EventRelation::reltypeid_t relType) const;
 
     const RoomCreateEvent* creation() const
     {

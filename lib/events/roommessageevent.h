@@ -6,6 +6,7 @@
 #pragma once
 
 #include "eventcontent.h"
+#include "eventrelation.h"
 #include "roomevent.h"
 
 class QFileInfo;
@@ -97,22 +98,24 @@ REGISTER_EVENT_TYPE(RoomMessageEvent)
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {
-    // Additional event content types
 
-    struct RelatesTo {
-        static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
-        static constexpr const char* ReplacementTypeId() { return "m.replace"; }
-        QString type; // The only supported relation so far
-        QString eventId;
+    struct [[deprecated("Use Quotient::EventRelation instead")]] RelatesTo
+        : EventRelation {
+        static constexpr auto ReplyTypeId() { return Reply(); }
+        static constexpr auto ReplacementTypeId() { return Replacement(); }
     };
-    inline RelatesTo replyTo(QString eventId)
+    [[deprecated("Use EventRelation::replyTo() instead")]]
+    inline auto replyTo(QString eventId)
     {
-        return { RelatesTo::ReplyTypeId(), std::move(eventId) };
+        return EventRelation::replyTo(std::move(eventId));
     }
-    inline RelatesTo replacementOf(QString eventId)
+    [[deprecated("Use EventRelation::replace() instead")]]
+    inline auto replacementOf(QString eventId)
     {
-        return { RelatesTo::ReplacementTypeId(), std::move(eventId) };
+        return EventRelation::replace(std::move(eventId));
     }
+
+    // Additional event content types
 
     /**
      * Rich text content for m.text, m.emote, m.notice
@@ -123,14 +126,14 @@ namespace EventContent {
     class QUOTIENT_API TextContent : public TypedBase {
     public:
         TextContent(QString text, const QString& contentType,
-                    Omittable<RelatesTo> relatesTo = none);
+                    Omittable<EventRelation> relatesTo = none);
         explicit TextContent(const QJsonObject& json);
 
         QMimeType type() const override { return mimeType; }
 
         QMimeType mimeType;
         QString body;
-        Omittable<RelatesTo> relatesTo;
+        Omittable<EventRelation> relatesTo;
 
     protected:
         void fillJson(QJsonObject* json) const override;
