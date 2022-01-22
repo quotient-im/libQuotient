@@ -14,6 +14,7 @@
 #include "events/reactionevent.h"
 #include "events/redactionevent.h"
 #include "events/simplestateevents.h"
+#include "events/roommemberevent.h"
 
 #include <QtTest/QSignalSpy>
 #include <QtCore/QCoreApplication>
@@ -592,25 +593,31 @@ TEST_IMPL(changeName)
         clog << "Renaming the user to " << newName.toStdString()
              << " in the target room" << endl;
         localUser->rename(newName, targetRoom);
-        connectUntil(targetRoom, &Room::memberRenamed, this,
-                     [this, thisTest, localUser, newName](const User* u) {
-                         if (localUser != u)
-                             return false;
-                         if (localUser->name(targetRoom) != newName)
-                             FAIL_TEST();
-
-                         clog
-                             << "Member rename successful, renaming the account"
+        connectUntil(
+            targetRoom, &Room::aboutToAddNewMessages, this,
+            [this, thisTest, localUser, newName](const RoomEventsRange& evts) {
+                for (const auto& e : evts) {
+                    if (const auto* rme = eventCast<const RoomMemberEvent>(e)) {
+                        if (rme->stateKey() != localUser->id()
+                            || !rme->isRename())
+                            continue;
+                        if (!rme->newDisplayName()
+                            || *rme->newDisplayName() != newName)
+                            FAIL_TEST();
+                        clog << "Member rename successful, renaming the account"
                              << endl;
-                         const auto newN = newName.mid(0, 5);
-                         localUser->rename(newN);
-                         connectUntil(localUser, &User::defaultNameChanged,
-                                      this, [this, thisTest, localUser, newN] {
-                                          targetRoom->localUser()->rename({});
-                                          FINISH_TEST(localUser->name() == newN);
-                                      });
-                         return true;
-                     });
+                        const auto newN = newName.mid(0, 5);
+                        localUser->rename(newN);
+                        connectUntil(localUser, &User::defaultNameChanged, this,
+                                     [this, thisTest, localUser, newN] {
+                                         targetRoom->localUser()->rename({});
+                                         FINISH_TEST(localUser->name() == newN);
+                                     });
+                        return true;
+                    }
+                }
+                return false;
+            });
     });
     return false;
 }
