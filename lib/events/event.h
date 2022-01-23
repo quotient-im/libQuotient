@@ -354,8 +354,7 @@ switchOnType(const BaseT& event, FnT1&& fn1, FnT2&& fn2, FnTs&&... fns)
 
 template <class BaseT, typename... FnTs>
 [[deprecated("The new name for visit() is switchOnType()")]] //
-inline std::common_type_t<fn_return_t<FnTs>...>
-visit(const BaseT& event, FnTs&&... fns)
+inline auto visit(const BaseT& event, FnTs&&... fns)
 {
     return switchOnType(event, std::forward<FnTs>(fns)...);
 }
