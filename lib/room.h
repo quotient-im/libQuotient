@@ -781,6 +781,9 @@ public:
     /// \brief Get the current room state
     RoomStateView currentState() const;
 
+    //! Send a request to update the room state with the given event
+    SetRoomStateWithKeyJob* setState(const StateEventBase& evt);
+
     //! \brief Set a state event of the given type with the given arguments
     //!
     //! This typesafe overload attempts to send a state event with the type
@@ -790,7 +793,7 @@ public:
     //! the Matrix event type defined by \p EvT and the event content produced
     //! via EvT::contentJson().
     template <typename EvT, typename... ArgTs>
-    auto setState(ArgTs&&... args) const
+    auto setState(ArgTs&&... args)
     {
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
@@ -824,8 +827,10 @@ public Q_SLOTS:
     QString retryMessage(const QString& txnId);
     void discardMessage(const QString& txnId);
 
-    /// Send a request to update the room state with the given event
-    SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
+    //! Send a request to update the room state based on freeform inputs
+    SetRoomStateWithKeyJob* setState(const QString& evtType,
+                                     const QString& stateKey,
+                                     const QJsonObject& contentJson);
     void setName(const QString& newName);
     void setCanonicalAlias(const QString& newAlias);
     void setPinnedEvents(const QStringList& events);

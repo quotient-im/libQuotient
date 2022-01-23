@@ -96,7 +96,7 @@ public Q_SLOTS:
     /// Set a new name in the global user profile
     void rename(const QString& newName);
     /// Set a new name for the user in one room
-    void rename(const QString& newName, const Room* r);
+    void rename(const QString& newName, Room* r);
     /// Upload the file and use it as an avatar
     bool setAvatar(const QString& fileName);
     /// Upload contents of the QIODevice and set that as an avatar

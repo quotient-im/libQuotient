@@ -297,7 +297,9 @@ public:
     QString doSendEvent(const RoomEvent* pEvent);
     void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
-    SetRoomStateWithKeyJob* requestSetState(const StateEventBase& event)
+    SetRoomStateWithKeyJob* requestSetState(const QString& evtType,
+                                            const QString& stateKey,
+                                            const QJsonObject& contentJson)
     {
         //            if (event.roomId().isEmpty())
         //                event.setRoomId(id);
@@ -305,14 +307,8 @@ public:
         //                event.setSender(connection->userId());
         // TODO: Queue up state events sending (see #133).
         // TODO: Maybe addAsPending() as well, despite having no txnId
-        return connection->callApi<SetRoomStateWithKeyJob>(
-            id, event.matrixType(), event.stateKey(), event.contentJson());
-    }
-
-    template <typename EvT, typename... ArgTs>
-    auto requestSetState(ArgTs&&... args)
-    {
-        return requestSetState(EvT(std::forward<ArgTs>(args)...));
+        return connection->callApi<SetRoomStateWithKeyJob>(id, evtType, stateKey,
+                                                           contentJson);
     }
 
     /*! Apply redaction to the timeline
@@ -2126,33 +2122,41 @@ QString Room::postJson(const QString& matrixType,
     return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
 }
 
-SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt) const
+SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt)
 {
-    return d->requestSetState(evt);
+    return d->requestSetState(evt.matrixType(), evt.stateKey(),
+                              evt.contentJson());
+}
+
+SetRoomStateWithKeyJob* Room::setState(const QString& evtType,
+                                       const QString& stateKey,
+                                       const QJsonObject& contentJson)
+{
+    return d->requestSetState(evtType, stateKey, contentJson);
 }
 
 void Room::setName(const QString& newName)
 {
-    d->requestSetState<RoomNameEvent>(newName);
+    setState<RoomNameEvent>(newName);
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(newAlias, altAliases());
+    setState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
 void Room::setPinnedEvents(const QStringList& events)
 {
-    d->requestSetState<RoomPinnedEvent>(events);
+    setState<RoomPinnedEvent>(events);
 }
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    d->requestSetState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
+    setState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
 {
-    d->requestSetState<RoomTopicEvent>(newTopic);
+    setState<RoomTopicEvent>(newTopic);
 }
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)

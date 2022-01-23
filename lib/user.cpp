@@ -110,7 +110,7 @@ void User::rename(const QString& newName)
             });
 }
 
-void User::rename(const QString& newName, const Room* r)
+void User::rename(const QString& newName, Room* r)
 {
     if (!r) {
         qCWarning(MAIN) << "Passing a null room to two-argument User::rename()"
