@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "omittable.h"
 #include "util.h"
 
 #include <QtCore/QDate>

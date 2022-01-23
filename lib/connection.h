@@ -8,6 +8,7 @@
 #include "ssosession.h"
 #include "qt_connection_util.h"
 #include "quotient_common.h"
+#include "util.h"
 
 #include "csapi/login.h"
 #include "csapi/create_room.h"
