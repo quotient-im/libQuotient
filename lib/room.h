@@ -10,6 +10,7 @@
 #pragma once
 
 #include "connection.h"
+#include "roomstateview.h"
 #include "eventitem.h"
 #include "quotient_common.h"
 
@@ -399,14 +400,8 @@ public:
     const RelatedEvents relatedEvents(const RoomEvent& evt,
                                       EventRelation::reltypeid_t relType) const;
 
-    const RoomCreateEvent* creation() const
-    {
-        return getCurrentState<RoomCreateEvent>();
-    }
-    const RoomTombstoneEvent* tombstone() const
-    {
-        return getCurrentState<RoomTombstoneEvent>();
-    }
+    const RoomCreateEvent* creation() const;
+    const RoomTombstoneEvent* tombstone() const;
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -760,45 +755,40 @@ public:
     /*! This method returns a (potentially empty) state event corresponding
      * to the pair of event type \p evtType and state key \p stateKey.
      */
-    Q_INVOKABLE const Quotient::StateEventBase*
+    [[deprecated("Use currentState().get() instead; "
+                 "make sure to check its result for nullptrs")]] //
+    const Quotient::StateEventBase*
     getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
-
-    /// Get all state events in the room.
-    /*! This method returns all known state events that have occured in
-     * the room, as a mapping from the event type and state key to value.
-     */
-    const QHash<StateEventKey, const StateEventBase*>& currentState() const;
-
-    /// Get all state events in the room of a certain type.
-    /*! This method returns all known state events that have occured in
-     * the room of the given type.
-     */
-    Q_INVOKABLE const QVector<const StateEventBase*>
-    stateEventsOfType(const QString& evtType) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
      * its Matrix name.
      */
     template <typename EvT>
+    [[deprecated("Use currentState().get() instead; "
+                 "make sure to check its result for nullptrs")]] //
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
-        const auto* evt =
-            eventCast<const EvT>(getCurrentState(EvT::matrixTypeId(), stateKey));
+        QT_IGNORE_DEPRECATIONS(
+            const auto* evt = eventCast<const EvT>(
+                getCurrentState(EvT::matrixTypeId(), stateKey));)
         Q_ASSERT(evt);
         Q_ASSERT(evt->matrixTypeId() == EvT::matrixTypeId()
                  && evt->stateKey() == stateKey);
         return evt;
     }
 
-    /// Set a state event of the given type with the given arguments
-    /*! This typesafe overload attempts to send a state event with the type
-     * \p EvT and the content defined by \p args. Specifically, the function
-     * creates a temporary object of type \p EvT passing \p args to
-     * the constructor, and sends a request to the homeserver using
-     * the Matrix event type defined by \p EvT and the event content produced
-     * via EvT::contentJson().
-     */
+    /// \brief Get the current room state
+    RoomStateView currentState() const;
+
+    //! \brief Set a state event of the given type with the given arguments
+    //!
+    //! This typesafe overload attempts to send a state event with the type
+    //! \p EvT and the content defined by \p args. Specifically, the function
+    //! creates a temporary object of type \p EvT passing \p args to
+    //! the constructor, and sends a request to the homeserver using
+    //! the Matrix event type defined by \p EvT and the event content produced
+    //! via EvT::contentJson().
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args) const
     {

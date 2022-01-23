@@ -134,6 +134,7 @@ list(APPEND lib_SRCS
     lib/ssosession.h lib/ssosession.cpp
     lib/logging.h lib/logging.cpp
     lib/room.h lib/room.cpp
+    lib/roomstateview.h lib/roomstateview.cpp
     lib/user.h lib/user.cpp
     lib/avatar.h lib/avatar.cpp
     lib/uri.h lib/uri.cpp
