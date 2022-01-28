@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "omittable.h"
 #include "util.h"
 
 #include <QtCore/QDate>
@@ -287,6 +288,8 @@ QVariantHash QUOTIENT_API fromJson(const QJsonValue& jv);
 
 // Conditional insertion into a QJsonObject
 
+constexpr bool IfNotEmpty = false;
+
 namespace _impl {
     template <typename ValT>
     inline void addTo(QJsonObject& o, const QString& k, ValT&& v)
@@ -332,7 +335,7 @@ namespace _impl {
 
     // This one is for types that have isEmpty() when Force is false
     template <typename ValT>
-    struct AddNode<ValT, false, decltype(std::declval<ValT>().isEmpty())> {
+    struct AddNode<ValT, IfNotEmpty, decltype(std::declval<ValT>().isEmpty())> {
         template <typename ContT, typename ForwardedT>
         static void impl(ContT& container, const QString& key,
                          ForwardedT&& value)
@@ -342,9 +345,9 @@ namespace _impl {
         }
     };
 
-    // This one unfolds Omittable<> (also only when Force is false)
+    // This one unfolds Omittable<> (also only when IfNotEmpty is requested)
     template <typename ValT>
-    struct AddNode<Omittable<ValT>, false> {
+    struct AddNode<Omittable<ValT>, IfNotEmpty> {
         template <typename ContT, typename OmittableT>
         static void impl(ContT& container, const QString& key,
                          const OmittableT& value)
@@ -354,8 +357,6 @@ namespace _impl {
         }
     };
 } // namespace _impl
-
-constexpr bool IfNotEmpty = false;
 
 /*! Add a key-value pair to QJsonObject or QUrlQuery
  *

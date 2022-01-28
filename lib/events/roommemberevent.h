@@ -15,9 +15,7 @@ public:
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
-    explicit MemberEventContent(Membership ms = Membership::Join)
-        : membership(ms)
-    {}
+    QUO_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
     explicit MemberEventContent(const QJsonObject& json);
 
     Membership membership;
@@ -43,10 +41,8 @@ public:
 
     explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
     {}
-    template <typename... ArgTs>
-    RoomMemberEvent(const QString& userId, ArgTs&&... contentArgs)
-        : StateEvent(typeId(), matrixTypeId(), userId,
-                     std::forward<ArgTs>(contentArgs)...)
+    RoomMemberEvent(const QString& userId, MemberEventContent&& content)
+        : StateEvent(typeId(), matrixTypeId(), userId, std::move(content))
     {}
 
     //! \brief A special constructor to create unknown RoomMemberEvents

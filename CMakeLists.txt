@@ -127,12 +127,14 @@ list(APPEND lib_SRCS
     lib/quotient_common.h
     lib/quotient_export.h
     lib/function_traits.h lib/function_traits.cpp
+    lib/omittable.h
     lib/networkaccessmanager.h lib/networkaccessmanager.cpp
     lib/connectiondata.h lib/connectiondata.cpp
     lib/connection.h lib/connection.cpp
     lib/ssosession.h lib/ssosession.cpp
     lib/logging.h lib/logging.cpp
     lib/room.h lib/room.cpp
+    lib/roomstateview.h lib/roomstateview.cpp
     lib/user.h lib/user.cpp
     lib/avatar.h lib/avatar.cpp
     lib/uri.h lib/uri.cpp
