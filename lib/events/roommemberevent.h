@@ -15,7 +15,7 @@ public:
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
-    explicit(false) MemberEventContent(Membership ms) : membership(ms) {}
+    QUO_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
     explicit MemberEventContent(const QJsonObject& json);
 
     Membership membership;

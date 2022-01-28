@@ -6,13 +6,14 @@
 
 #include "eventcontent.h"
 #include "stateevent.h"
+#include "quotient_common.h"
 
 namespace Quotient {
 class QUOTIENT_API EncryptionEventContent : public EventContent::Base {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
-    explicit(false) EncryptionEventContent(EncryptionType et);
+    QUO_IMPLICIT EncryptionEventContent(EncryptionType et);
     [[deprecated("This constructor will require explicit EncryptionType soon")]] //
     explicit EncryptionEventContent()
         : EncryptionEventContent(Undefined)
