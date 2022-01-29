@@ -171,14 +171,16 @@ void TestOlmAccount::encryptedFile()
 #define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME) \
     NetworkAccessManager::instance()->ignoreSslErrors(true); \
     auto VAR = std::make_shared<Connection>(); \
-    (VAR) ->resolveServer("@alice:localhost:" + QString::number(443)); \
-    connect( (VAR) .get(), &Connection::loginFlowsChanged, this, [this, VAR ] () { \
+    (VAR) ->resolveServer("@alice:localhost:443"); \
+    connect( (VAR) .get(), &Connection::loginFlowsChanged, this, [=] { \
         (VAR) ->loginWithPassword( (USERNAME) , SECRET , DEVICE_NAME , ""); \
     }); \
-    connect( (VAR) .get(), &Connection::networkError, [=](QString error, const QString &, int, int) { \
+    connect( (VAR) .get(), &Connection::networkError, [](QString error) { \
+        QWARN(qUtf8Printable(error)); \
         QFAIL("Network error: make sure synapse is running"); \
     }); \
-    connect( (VAR) .get(), &Connection::loginError, [=](QString error, const QString &) { \
+    connect( (VAR) .get(), &Connection::loginError, [](QString error) { \
+        QWARN(qUtf8Printable(error)); \
         QFAIL("Login failed"); \
     }); \
     QSignalSpy spy ## VAR ((VAR).get(), &Connection::loginFlowsChanged); \
@@ -197,9 +199,8 @@ void TestOlmAccount::uploadIdentityKey()
 
     OneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
-    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-        auto job2 = static_cast<UploadKeysJob *>(job);
-        QCOMPARE(job2->oneTimeKeyCounts().size(), 0);
+    connect(request, &BaseJob::result, this, [request, conn] {
+        QCOMPARE(request->oneTimeKeyCounts().size(), 0);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -225,10 +226,9 @@ void TestOlmAccount::uploadOneTimeKeys()
         oneTimeKeysHash["curve25519:"+keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
-    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-        auto job2 = static_cast<UploadKeysJob *>(job);
-        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(job2->oneTimeKeyCounts()["curve25519"], 5);
+    connect(request, &BaseJob::result, this, [request, conn] {
+        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(request->oneTimeKeyCounts()["curve25519"], 5);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -254,10 +254,9 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
         oneTimeKeysHash[keyId] = var;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
-    connect(request, &BaseJob::result, this, [request, nKeys, conn](BaseJob *job) {
-        auto job2 = static_cast<UploadKeysJob *>(job);
-        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], nKeys);
+    connect(request, &BaseJob::result, this, [request, nKeys, conn] {
+        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], nKeys);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -275,10 +274,9 @@ void TestOlmAccount::uploadKeys()
     olmAccount->generateOneTimeKeys(1);
     auto otks = olmAccount->oneTimeKeys();
     auto request = olmAccount->createUploadKeyRequest(otks);
-    connect(request, &BaseJob::result, this, [request, conn](BaseJob *job) {
-        auto job2 = static_cast<UploadKeysJob *>(job);
-        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
+    connect(request, &BaseJob::result, this, [request, conn] {
+        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -309,7 +307,6 @@ void TestOlmAccount::queryTest()
     bobOlm->generateOneTimeKeys(1);
     auto bobRes = bobOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(bobRes, &BaseJob::result, this, [bobRes] {
-
         QCOMPARE(bobRes->oneTimeKeyCounts().size(), 1);
         QCOMPARE(bobRes->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
@@ -359,8 +356,6 @@ void TestOlmAccount::queryTest()
     }
 }
 
-
-
 void TestOlmAccount::claimKeys()
 {
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
@@ -371,10 +366,9 @@ void TestOlmAccount::claimKeys()
     bobOlm->generateOneTimeKeys(1);
     auto request = bobOlm->createUploadKeyRequest(bobOlm->oneTimeKeys());
 
-    connect(request, &BaseJob::result, this, [request, bob](BaseJob *job) {
-        auto job2 = static_cast<UploadKeysJob *>(job);
-        QCOMPARE(job2->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(job2->oneTimeKeyCounts()["signed_curve25519"], 1);
+    connect(request, &BaseJob::result, this, [request, bob] {
+        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], 1);
     });
     bob->run(request);
 
@@ -468,7 +462,6 @@ void TestOlmAccount::claimMultipleKeys()
     });
     alice2->run(res2);
 
-
     QVERIFY(spy.wait(10000));
     QVERIFY(spy1.wait(10000));
     QVERIFY(spy2.wait(1000)); // TODO this is failing even with 10000
@@ -502,7 +495,7 @@ void TestOlmAccount::keyChange()
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
 
     auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), QStringList());
-    connect(job, &BaseJob::result, this, [alice, job, this] () {
+    connect(job, &BaseJob::result, this, [alice, job, this] {
         // Alice syncs to get the first next_batch token.
         alice->sync();
         connect(alice.get(), &Connection::syncDone, this, [alice, this] {
@@ -521,7 +514,7 @@ void TestOlmAccount::keyChange()
             // because of the key uploading.
 
             auto changeJob = alice->callApi<GetKeysChangesJob>(nextBatchToken, "");
-            connect(changeJob, &BaseJob::result, this, [&changeJob, &alice] {
+            connect(changeJob, &BaseJob::result, this, [changeJob, alice] {
                 QCOMPARE(changeJob->changed().size(), 1);
                 QCOMPARE(changeJob->left().size(), 0);
                 QCOMPARE(changeJob->changed()[0], alice->userId());
@@ -544,7 +537,7 @@ void TestOlmAccount::enableEncryption()
     QString joinedRoom;
 
     auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), {"@bob:localhost"});
-    connect(alice.get(), &Connection::newRoom, this, [alice, bob, &joinedRoom, this] (Quotient::Room *room) {
+    connect(alice.get(), &Connection::newRoom, this, [alice, bob, joinedRoom, this] (Quotient::Room *room) {
         room->activateEncryption();
         QSignalSpy spy(room, &Room::encryption);
 
@@ -559,7 +552,7 @@ void TestOlmAccount::enableEncryption()
     QVERIFY(spy.wait(10000));
 
     bob->sync();
-    connect(bob.get(), &Connection::syncDone, this, [bob, &joinedRoom, this] {
+    connect(bob.get(), &Connection::syncDone, this, [bob, joinedRoom, this] {
         auto &events = bob->room(joinedRoom)->messageEvents();
         bool hasEncryption = false;
         for (auto it = events.rbegin(); it != events.rend(); ++it) {
