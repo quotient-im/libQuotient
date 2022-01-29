@@ -185,14 +185,18 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         // We have a Qt container on the right and an STL one on the left
         roomData.reserve(roomData.size() + static_cast<size_t>(rs.size()));
         for (auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt) {
-            auto roomJson =
-                roomIt->isObject()
-                    ? roomIt->toObject()
-                    : loadJson(baseDir + fileNameForRoom(roomIt.key()));
-            if (roomJson.isEmpty()) {
-                unresolvedRoomIds.push_back(roomIt.key());
-                continue;
-            }
+            QJsonObject roomJson;
+            if (!baseDir.isEmpty()) {
+                // Loading data from the local cache, with room objects saved in
+                // individual files rather than inline
+                roomJson = loadJson(baseDir + fileNameForRoom(roomIt.key()));
+                if (roomJson.isEmpty()) {
+                    unresolvedRoomIds.push_back(roomIt.key());
+                    continue;
+                }
+            } else // When loading from /sync response, everything is inline
+                roomJson = roomIt->toObject();
+
             roomData.emplace_back(roomIt.key(), joinState, roomJson);
             const auto& r = roomData.back();
             totalEvents += r.state.size() + r.ephemeral.size()
