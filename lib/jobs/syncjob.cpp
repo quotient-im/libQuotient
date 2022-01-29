@@ -52,10 +52,12 @@ SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
 BaseJob::Status SyncJob::prepareResult()
 {
     d.parseJson(jsonData());
-    if (d.unresolvedRooms().isEmpty())
+    if (Q_LIKELY(d.unresolvedRooms().isEmpty()))
         return Success;
 
-    qCCritical(MAIN).noquote() << "Incomplete sync response, missing rooms:"
+    Q_ASSERT(d.unresolvedRooms().isEmpty());
+    qCCritical(MAIN).noquote() << "Rooms missing after processing sync "
+                                  "response, possibly a bug in SyncData: "
                                << d.unresolvedRooms().join(',');
     return IncorrectResponse;
 }
