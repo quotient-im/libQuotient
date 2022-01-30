@@ -86,6 +86,10 @@ void Database::migrateTo1()
     execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
+    execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
+    execute(QStringLiteral("CREATE TABLE outdated_users (matrixId TEXT);"));
+    execute(QStringLiteral("CREATE TABLE tracked_devices (matrixId TEXT, deviceId TEXT, curveKeyId TEXT, curveKey TEXT, edKeyId TEXT, edKey TEXT);"));
+
     execute(QStringLiteral("PRAGMA user_version = 1;"));
     commit();
 }

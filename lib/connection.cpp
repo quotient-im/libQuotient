@@ -442,10 +442,9 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         completeSetup(loginJob->userId());
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
+#endif // Quotient_E2EE_ENABLED
         database = new Database(loginJob->userId(), q);
         database->clear();
-#endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -1891,7 +1890,6 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     return result;
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -1930,6 +1928,75 @@ void Connection::Private::loadOutdatedUserDevices()
     });
 }
 
+void Connection::Private::saveDevicesList()
+{
+    q->database()->transaction();
+    auto query = q->database()->prepareQuery(QStringLiteral("DELETE FROM tracked_users"));
+    q->database()->execute(query);
+    query.prepare(QStringLiteral("INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
+    for (const auto& user : trackedUsers) {
+        query.bindValue(":matrixId", user);
+        q->database()->execute(query);
+    }
+
+    query.prepare(QStringLiteral("DELETE FROM outdated_users"));
+    q->database()->execute(query);
+    query.prepare(QStringLiteral("INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
+    for (const auto& user : outdatedUsers) {
+        query.bindValue(":matrixId", user);
+        q->database()->execute(query);
+    }
+
+    query.prepare(QStringLiteral("INSERT INTO tracked_devices(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey) VALUES(:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey);"));
+    for (const auto& user : deviceKeys.keys()) {
+        for (const auto& device : deviceKeys[user]) {
+            auto keys = device.keys.keys();
+            auto curveKeyId = keys[0].startsWith(QLatin1String("curve")) ? keys[0] : keys[1];
+            auto edKeyId = keys[0].startsWith(QLatin1String("ed")) ? keys[0] : keys[1];
+
+            query.bindValue(":matrixId", user);
+            query.bindValue(":deviceId", device.deviceId);
+            query.bindValue(":curveKeyId", curveKeyId);
+            query.bindValue(":curveKey", device.keys[curveKeyId]);
+            query.bindValue(":edKeyId", edKeyId);
+            query.bindValue(":edKey", device.keys[edKeyId]);
+
+            q->database()->execute(query);
+        }
+    }
+    q->database()->commit();
+}
+
+void Connection::Private::loadDevicesList()
+{
+    auto query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_users;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        trackedUsers += query.value(0).toString();
+    }
+
+    query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM outdated_users;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        outdatedUsers += query.value(0).toString();
+    }
+
+    query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        deviceKeys[query.value("matrixId").toString()][query.value("deviceId").toString()] = DeviceKeys {
+            query.value("matrixId").toString(),
+            query.value("deviceId").toString(),
+            { "m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"},
+            {{query.value("curveKeyId").toString(), query.value("curveKey").toString()},
+             {query.value("edKeyId").toString(), query.value("edKey").toString()}},
+             {} // Signatures are not saved/loaded as they are not needed after initial validation
+        };
+    }
+
+}
+
+#ifdef Quotient_E2EE_ENABLED
 void Connection::encryptionUpdate(Room *room)
 {
     for(const auto &user : room->users()) {
@@ -1939,103 +2006,6 @@ void Connection::encryptionUpdate(Room *room)
             d->encryptionUpdateRequired = true;
         }
     }
-}
-
-void Connection::Private::saveDevicesList()
-{
-    if (!cacheState)
-        return;
-
-    QElapsedTimer et;
-    et.start();
-
-    QFile outFile { q->e2eeDataDir() % "/deviceslist.json" };
-    if (!outFile.open(QFile::WriteOnly)) {
-        qCWarning(E2EE) << "Error opening" << outFile.fileName() << ":"
-                        << outFile.errorString();
-        qCWarning(E2EE) << "Caching the rooms state disabled";
-        cacheState = false;
-        return;
-    }
-
-    QJsonObject rootObj {
-        { QStringLiteral("cache_version"),
-          QJsonObject {
-              { QStringLiteral("major"), SyncData::cacheVersion().first },
-              { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
-    };
-    {
-        QJsonArray trackedUsersJson;
-        QJsonArray outdatedUsersJson;
-        for (const auto &user : trackedUsers) {
-            trackedUsersJson += user;
-        }
-        for (const auto &user : outdatedUsers) {
-            outdatedUsersJson += user;
-        }
-        rootObj.insert(QStringLiteral("tracked_users"), trackedUsersJson);
-        rootObj.insert(QStringLiteral("outdated_users"), outdatedUsersJson);
-        const auto devicesList = toJson(deviceKeys);
-        rootObj.insert(QStringLiteral("devices_list"), devicesList);
-        rootObj.insert(QStringLiteral("sync_token"), q->nextBatchToken());
-    }
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-        const auto data =
-            cacheToBinary
-                ? QCborValue::fromJsonValue(rootObj).toCbor()
-                : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-#else
-        QJsonDocument json { rootObj };
-        const auto data = cacheToBinary ? json.toBinaryData()
-                                           : json.toJson(QJsonDocument::Compact);
-#endif
-    qCDebug(PROFILER) << "DeviceList generated in" << et;
-
-    outFile.write(data.data(), data.size());
-    qCDebug(E2EE) << "DevicesList saved to" << outFile.fileName();
-}
-
-void Connection::Private::loadDevicesList()
-{
-    QFile file { q->e2eeDataDir() % "/deviceslist.json" };
-    if(!file.exists() || !file.open(QIODevice::ReadOnly)) {
-        qCDebug(E2EE) << "No devicesList cache exists. Creating new";
-        return;
-    }
-    auto data = file.readAll();
-    const auto json = data.startsWith('{')
-                          ? QJsonDocument::fromJson(data).object()
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-                          : QCborValue::fromCbor(data).toJsonValue().toObject()
-#else
-                          : QJsonDocument::fromBinaryData(data).object()
-#endif
-        ;
-    if (json.isEmpty()) {
-        qCWarning(MAIN) << "DevicesList cache is broken or empty, discarding";
-        return;
-    }
-    for(const auto &user : json["tracked_users"].toArray()) {
-        trackedUsers += user.toString();
-    }
-    for(const auto &user : json["outdated_users"].toArray()) {
-        outdatedUsers += user.toString();
-    }
-
-    fromJson(json["devices_list"], deviceKeys);
-    auto oldToken = json["sync_token"].toString();
-    auto changesJob = q->callApi<GetKeysChangesJob>(oldToken, q->nextBatchToken());
-    connect(changesJob, &BaseJob::success, q, [this, changesJob](){
-        bool hasNewOutdatedUser = false;
-        for(const auto &user : changesJob->changed()) {
-            outdatedUsers += user;
-            hasNewOutdatedUser = true;
-        }
-        if(hasNewOutdatedUser) {
-            loadOutdatedUserDevices();
-        }
-    });
 }
 
 PicklingMode Connection::picklingMode() const
