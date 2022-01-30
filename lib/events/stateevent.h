@@ -72,7 +72,7 @@ inline bool is<StateEventBase>(const Event& e)
  * \sa
  * https://matrix.org/docs/spec/client_server/unstable.html#types-of-room-events
  */
-using StateEventKey = QPair<QString, QString>;
+using StateEventKey = std::pair<QString, QString>;
 
 template <typename ContentT>
 struct Prev {
