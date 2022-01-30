@@ -47,14 +47,14 @@ void TestOlmUtility::canonicalJSON()
 
 void TestOlmUtility::verifySignedOneTimeKey()
 {
-    auto aliceOlm = std::make_shared<QOlmAccount>("alice:matrix.org", "aliceDevice");
-    aliceOlm->createNewAccount();
-    aliceOlm->generateOneTimeKeys(1);
-    auto keys = aliceOlm->oneTimeKeys();
+    QOlmAccount aliceOlm { "@alice:matrix.org", "aliceDevice" };
+    aliceOlm.createNewAccount();
+    aliceOlm.generateOneTimeKeys(1);
+    auto keys = aliceOlm.oneTimeKeys();
 
     auto firstKey = keys.curve25519().keyValueBegin()->second;
     auto msgObj = QJsonObject({{"key", firstKey}});
-    auto sig = aliceOlm->sign(msgObj);
+    auto sig = aliceOlm.sign(msgObj);
 
     auto msg = QJsonDocument(msgObj).toJson(QJsonDocument::Compact);
 
@@ -66,8 +66,8 @@ void TestOlmUtility::verifySignedOneTimeKey()
     std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
 
     auto res = olm_ed25519_verify(utility,
-                                 aliceOlm->identityKeys().ed25519.data(),
-                                 aliceOlm->identityKeys().ed25519.size(),
+                                 aliceOlm.identityKeys().ed25519.data(),
+                                 aliceOlm.identityKeys().ed25519.size(),
                                  msg.data(),
                                  msg.size(),
                                  (void *)sig.data(),
@@ -79,7 +79,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
     delete[](reinterpret_cast<uint8_t *>(utility));
 
     QOlmUtility utility2;
-    auto res2 = std::get<bool>(utility2.ed25519Verify(aliceOlm->identityKeys().ed25519, msg, signatureBuf1));
+    auto res2 = std::get<bool>(utility2.ed25519Verify(aliceOlm.identityKeys().ed25519, msg, signatureBuf1));
 
     //QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QCOMPARE(res2, true);
@@ -90,11 +90,11 @@ void TestOlmUtility::validUploadKeysRequest()
     const auto userId = QStringLiteral("@alice:matrix.org");
     const auto deviceId = QStringLiteral("FKALSOCCC");
 
-    auto alice = std::make_shared<QOlmAccount>(userId, deviceId);
-    alice->createNewAccount();
-    alice->generateOneTimeKeys(1);
+    QOlmAccount alice { userId, deviceId };
+    alice.createNewAccount();
+    alice.generateOneTimeKeys(1);
 
-    auto idSig = alice->signIdentityKeys();
+    auto idSig = alice.signIdentityKeys();
 
     QJsonObject body
     {
@@ -103,8 +103,8 @@ void TestOlmUtility::validUploadKeysRequest()
         {"device_id", deviceId},
         {"keys",
             QJsonObject{
-                {QStringLiteral("curve25519:") + deviceId, QString::fromUtf8(alice->identityKeys().curve25519)},
-                {QStringLiteral("ed25519:") + deviceId, QString::fromUtf8(alice->identityKeys().ed25519)}
+                {QStringLiteral("curve25519:") + deviceId, QString::fromUtf8(alice.identityKeys().curve25519)},
+                {QStringLiteral("ed25519:") + deviceId, QString::fromUtf8(alice.identityKeys().ed25519)}
             }
         },
         {"signatures",
@@ -118,7 +118,7 @@ void TestOlmUtility::validUploadKeysRequest()
         }
     };
 
-    DeviceKeys deviceKeys = alice->deviceKeys();
+    DeviceKeys deviceKeys = alice.deviceKeys();
     QCOMPARE(QJsonDocument(toJson(deviceKeys)).toJson(QJsonDocument::Compact),
             QJsonDocument(body).toJson(QJsonDocument::Compact));
 
