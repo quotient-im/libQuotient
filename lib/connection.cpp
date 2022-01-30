@@ -2068,7 +2068,7 @@ QString Connection::e2eeDataDir() const
 #ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
-    auto room = provideRoom(notification["room_id"].toString());
+    auto room = this->room(notification["room_id"].toString());
     auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
     auto decrypted = room->decryptMessage(*event);
     if(!decrypted) {
