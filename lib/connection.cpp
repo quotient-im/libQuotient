@@ -443,8 +443,6 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #endif // Quotient_E2EE_ENABLED
-        database = new Database(loginJob->userId(), q);
-        database->clear();
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -499,9 +497,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
 
-    if (!database) {
-        database = new Database(data->userId(), q);
-    }
+    database = new Database(data->userId(), q);
 
     encryptionManager = new EncryptionManager(q);
 
