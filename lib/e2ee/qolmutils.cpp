@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "e2ee/qolmutils.h"
-#include <QDebug>
-#include <openssl/rand.h>
+#include <QtCore/QRandomGenerator>
 
 using namespace Quotient;
 
@@ -19,6 +18,6 @@ QByteArray Quotient::toKey(const Quotient::PicklingMode &mode)
 QByteArray Quotient::getRandom(size_t bufferSize)
 {
     QByteArray buffer(bufferSize, '0');
-    RAND_bytes(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size());
+    QRandomGenerator::system()->generate(buffer.begin(), buffer.end());
     return buffer;
 }
