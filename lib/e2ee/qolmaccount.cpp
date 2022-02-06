@@ -29,7 +29,7 @@ std::optional<QMap<QString, QString>> OneTimeKeys::get(QString keyType) const
 
 bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
 {
-    return lhs.curve25519 == rhs.curve25519 &&& lhs.ed25519 == rhs.ed25519;
+    return lhs.curve25519 == rhs.curve25519 && lhs.ed25519 == rhs.ed25519;
 }
 
 // Convert olm error to enum
