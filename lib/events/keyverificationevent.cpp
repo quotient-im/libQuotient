@@ -11,26 +11,22 @@ KeyVerificationRequestEvent::KeyVerificationRequestEvent(const QJsonObject &obj)
 
 QString KeyVerificationRequestEvent::fromDevice() const
 {
-    return contentJson()["from_device"_ls].toString();
+    return contentPart<QString>("from_device"_ls);
 }
 
 QString KeyVerificationRequestEvent::transactionId() const
 {
-    return contentJson()["transaction_id"_ls].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QStringList KeyVerificationRequestEvent::methods() const
 {
-    QStringList methods;
-    for (const auto &method : contentJson()["methods"].toArray()) {
-        methods.append(method.toString());
-    }
-    return methods;
+    return contentPart<QStringList>("methods"_ls);
 }
 
 uint64_t KeyVerificationRequestEvent::timestamp() const
 {
-    return contentJson()["timestamp"_ls].toDouble();
+    return contentPart<double>("timestamp"_ls);
 }
 
 KeyVerificationStartEvent::KeyVerificationStartEvent(const QJsonObject &obj)
@@ -39,62 +35,46 @@ KeyVerificationStartEvent::KeyVerificationStartEvent(const QJsonObject &obj)
 
 QString KeyVerificationStartEvent::fromDevice() const
 {
-    return contentJson()["from_device"_ls].toString();
+    return contentPart<QString>("from_device"_ls);
 }
 
 QString KeyVerificationStartEvent::transactionId() const
 {
-    return contentJson()["transaction_id"_ls].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QString KeyVerificationStartEvent::method() const
 {
-    return contentJson()["method"_ls].toString();
+    return contentPart<QString>("method"_ls);
 }
 
 Omittable<QString> KeyVerificationStartEvent::nextMethod() const
 {
-    auto next = contentJson()["method"_ls];
-    if (next.isUndefined()) {
-        return std::nullopt;
-    }
-    return next.toString();
+    return contentPart<Omittable<QString>>("method_ls");
 }
 
 QStringList KeyVerificationStartEvent::keyAgreementProtocols() const
 {
     Q_ASSERT(method() == QStringLiteral("m.sas.v1"));
-    QStringList protocols;
-    for (const auto &proto : contentJson()["key_agreement_protocols"_ls].toArray()) {
-        protocols.append(proto.toString());
-    }
-    return protocols;
+    return contentPart<QStringList>("key_agreement_protocols"_ls);
 }
 
 QStringList KeyVerificationStartEvent::hashes() const
 {
     Q_ASSERT(method() == QStringLiteral("m.sas.v1"));
-    QStringList hashes;
-    for (const auto &hashItem : contentJson()["hashes"_ls].toArray()) {
-        hashes.append(hashItem.toString());
-    }
-    return hashes;
+        return contentPart<QStringList>("hashes"_ls);
+
 }
 
 QStringList KeyVerificationStartEvent::messageAuthenticationCodes() const
 {
     Q_ASSERT(method() == QStringLiteral("m.sas.v1"));
-
-    QStringList codes;
-    for (const auto &code : contentJson()["message_authentication_codes"_ls].toArray()) {
-        codes.append(code.toString());
-    }
-    return codes;
+    return contentPart<QStringList>("message_authentication_codes"_ls);
 }
 
 QString KeyVerificationStartEvent::shortAuthenticationString() const
 {
-    return contentJson()["short_authentification_string"_ls].toString();
+    return contentPart<QString>("short_authentification_string"_ls);
 }
 
 KeyVerificationAcceptEvent::KeyVerificationAcceptEvent(const QJsonObject &obj)
@@ -103,36 +83,32 @@ KeyVerificationAcceptEvent::KeyVerificationAcceptEvent(const QJsonObject &obj)
 
 QString KeyVerificationAcceptEvent::transactionId() const
 {
-    return contentJson()["transaction_id"_ls].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QString KeyVerificationAcceptEvent::method() const
 {
-    return contentJson()["method"_ls].toString();
+    return contentPart<QString>("method"_ls);
 }
 
 QString KeyVerificationAcceptEvent::keyAgreementProtocol() const
 {
-    return contentJson()["key_agreement_protocol"_ls].toString();
+    return contentPart<QString>("key_agreement_protocol"_ls);
 }
 
 QString KeyVerificationAcceptEvent::hashData() const
 {
-    return contentJson()["hash"_ls].toString();
+    return contentPart<QString>("hash"_ls);
 }
 
 QStringList KeyVerificationAcceptEvent::shortAuthenticationString() const
 {
-    QStringList strings;
-    for (const auto &authenticationString : contentJson()["short_authentification_string"].toArray()) {
-        strings.append(authenticationString.toString());
-    }
-    return strings;
+    return contentPart<QStringList>("short_authentification_string"_ls);
 }
 
 QString KeyVerificationAcceptEvent::commitement() const
 {
-    return contentJson()["commitement"].toString();
+    return contentPart<QString>("commitment"_ls);
 }
 
 KeyVerificationCancelEvent::KeyVerificationCancelEvent(const QJsonObject &obj)
@@ -141,17 +117,17 @@ KeyVerificationCancelEvent::KeyVerificationCancelEvent(const QJsonObject &obj)
 
 QString KeyVerificationCancelEvent::transactionId() const
 {
-    return contentJson()["transaction_id"_ls].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QString KeyVerificationCancelEvent::reason() const
 {
-    return contentJson()["reason"_ls].toString();
+    return contentPart<QString>("reason"_ls);
 }
 
 QString KeyVerificationCancelEvent::code() const
 {
-    return contentJson()["code"_ls].toString();
+    return contentPart<QString>("code"_ls);
 }
 
 KeyVerificationKeyEvent::KeyVerificationKeyEvent(const QJsonObject &obj)
@@ -160,12 +136,12 @@ KeyVerificationKeyEvent::KeyVerificationKeyEvent(const QJsonObject &obj)
 
 QString KeyVerificationKeyEvent::transactionId() const
 {
-    return contentJson()["transaction_id"_ls].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QString KeyVerificationKeyEvent::key() const
 {
-    return contentJson()["key"_ls].toString();
+    return contentPart<QString>("key"_ls);
 }
 
 KeyVerificationMacEvent::KeyVerificationMacEvent(const QJsonObject &obj)
@@ -174,20 +150,15 @@ KeyVerificationMacEvent::KeyVerificationMacEvent(const QJsonObject &obj)
 
 QString KeyVerificationMacEvent::transactionId() const
 {
-    return contentJson()["transaction_id"].toString();
+    return contentPart<QString>("transaction_id"_ls);
 }
 
 QString KeyVerificationMacEvent::keys() const
 {
-    return contentJson()["keys"].toString();
+    return contentPart<QString>("keys"_ls);
 }
 
 QHash<QString, QString> KeyVerificationMacEvent::mac() const
 {
-    QHash<QString, QString> macs;
-    const auto macObj = contentJson()["mac"_ls].toObject();
-    for (auto mac = macObj.constBegin(); mac != macObj.constEnd(); mac++) {
-        macs.insert(mac.key(), mac.value().toString());
-    }
-    return macs;
+    return contentPart<QHash<QString, QString>>("mac"_ls);
 }
