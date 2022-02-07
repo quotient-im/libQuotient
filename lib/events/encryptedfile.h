@@ -5,6 +5,10 @@
 #pragma once
 
 #include "converters.h"
+#include "logging.h"
+
+#include <openssl/evp.h>
+#include <QtCore/QCryptographicHash>
 
 namespace Quotient {
 /**
@@ -44,6 +48,8 @@ public:
     QString iv;
     QHash<QString, QString> hashes;
     QString v;
+
+    QByteArray decryptFile(const QByteArray &ciphertext) const;
 };
 
 template <>

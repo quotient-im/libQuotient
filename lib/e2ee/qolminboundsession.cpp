@@ -4,6 +4,8 @@
 
 #include "e2ee/qolminboundsession.h"
 #include <iostream>
+#include <cstring>
+
 using namespace Quotient;
 
 QOlmError lastError(OlmInboundGroupSession *session) {

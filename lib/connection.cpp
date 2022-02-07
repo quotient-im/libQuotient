@@ -37,7 +37,6 @@
 #ifdef Quotient_E2EE_ENABLED
 #    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolmutils.h"
-#    include "encryptionmanager.h"
 #    include "database.h"
 
 #if QT_VERSION_MAJOR >= 6
@@ -117,6 +116,10 @@ public:
     bool encryptionUpdateRequired = false;
     PicklingMode picklingMode = Unencrypted {};
     Database *database = nullptr;
+
+    // A map from SenderKey to vector of InboundSession
+    UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
+
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -127,7 +130,6 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     std::unique_ptr<QOlmAccount> olmAccount;
     bool isUploadingKeys = false;
-    EncryptionManager *encryptionManager;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -201,6 +203,85 @@ public:
         return q->stateCacheDir().filePath("state.json");
     }
 
+#ifdef Quotient_E2EE_ENABLED
+    void loadSessions() {
+        olmSessions = q->database()->loadOlmSessions(q->picklingMode());
+    }
+    void saveSession(QOlmSessionPtr& session, const QString &senderKey) {
+        auto pickleResult = session->pickle(q->picklingMode());
+        if (std::holds_alternative<QOlmError>(pickleResult)) {
+            qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
+            return;
+        }
+        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
+    }
+    QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
+    {
+        Q_ASSERT(message.type() == QOlmMessage::PreKey);
+        for(auto& session : olmSessions[senderKey]) {
+            const auto matches = session->matchesInboundSessionFrom(senderKey, message);
+            if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
+                qCDebug(E2EE) << "Found inbound session";
+                const auto result = session->decrypt(message);
+                if(std::holds_alternative<QString>(result)) {
+                    return std::get<QString>(result);
+                } else {
+                    qCDebug(E2EE) << "Failed to decrypt prekey message";
+                    return {};
+                }
+            }
+        }
+        qCDebug(E2EE) << "Creating new inbound session";
+        auto newSessionResult = olmAccount->createInboundSessionFrom(senderKey.toUtf8(), message);
+        if(std::holds_alternative<QOlmError>(newSessionResult)) {
+            qCWarning(E2EE) << "Failed to create inbound session for" << senderKey << std::get<QOlmError>(newSessionResult);
+            return {};
+        }
+        auto newSession = std::move(std::get<QOlmSessionPtr>(newSessionResult));
+        auto error = olmAccount->removeOneTimeKeys(newSession);
+        if (error) {
+            qWarning(E2EE) << "Failed to remove one time key for session" << newSession->sessionId();
+        }
+        const auto result = newSession->decrypt(message);
+        saveSession(newSession, senderKey);
+        olmSessions[senderKey].push_back(std::move(newSession));
+        if(std::holds_alternative<QString>(result)) {
+            return std::get<QString>(result);
+        } else {
+            qCDebug(E2EE) << "Failed to decrypt prekey message with new session";
+            return {};
+        }
+    }
+    QString sessionDecryptGeneral(const QOlmMessage& message, const QString &senderKey)
+    {
+        Q_ASSERT(message.type() == QOlmMessage::General);
+        for(auto& session : olmSessions[senderKey]) {
+            const auto result = session->decrypt(message);
+            if(std::holds_alternative<QString>(result)) {
+                return std::get<QString>(result);
+            }
+        }
+        qCWarning(E2EE) << "Failed to decrypt message";
+        return {};
+    }
+
+    QString sessionDecryptMessage(
+        const QJsonObject& personalCipherObject, const QByteArray& senderKey, std::unique_ptr<QOlmAccount>& account)
+    {
+        QString decrypted;
+        int type = personalCipherObject.value(TypeKeyL).toInt(-1);
+        QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
+        if (type == 0) {
+            QOlmMessage preKeyMessage(body, QOlmMessage::PreKey);
+            decrypted = sessionDecryptPrekey(preKeyMessage, senderKey, account);
+        } else if (type == 1) {
+            QOlmMessage message(body, QOlmMessage::General);
+            decrypted = sessionDecryptGeneral(message, senderKey);
+        }
+        return decrypted;
+    }
+#endif
+
     EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
 #ifndef Quotient_E2EE_ENABLED
@@ -217,7 +298,7 @@ public:
             qCDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
         }
-        const auto decrypted = encryptionManager->sessionDecryptMessage(
+        const auto decrypted = sessionDecryptMessage(
             personalCipherObject, encryptedEvent.senderKey().toLatin1(), olmAccount);
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
@@ -443,6 +524,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #endif // Quotient_E2EE_ENABLED
+        database->clear();
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -493,13 +575,15 @@ void Connection::Private::completeSetup(const QString& mxId)
         picklingMode = Encrypted { job.binaryData() };
     }
 
+    database = new Database(data->userId(), q);
+
     // init olmAccount
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
 
-    database = new Database(data->userId(), q);
-
-    encryptionManager = new EncryptionManager(q);
+#ifdef Quotient_E2EE_ENABLED
+    loadSessions();
+#endif
 
     if (database->accountPickle().isEmpty()) {
         // create new account and save unpickle data
@@ -2017,18 +2101,6 @@ void Connection::saveOlmAccount()
     auto pickle = d->olmAccount->pickle(d->picklingMode);
     d->database->setAccountPickle(std::get<QByteArray>(pickle));
 #endif
-}
-
-QString Connection::e2eeDataDir() const
-{
-    auto safeUserId = userId();
-    safeUserId.replace(':', '_');
-    const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % '/'
-        % safeUserId % '/';
-    QDir dir;
-    if (!dir.exists(path))
-        dir.mkpath(path);
-    return path;
 }
 
 #ifdef Quotient_E2EE_ENABLED

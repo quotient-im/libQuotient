@@ -156,6 +156,7 @@ list(APPEND lib_SRCS
     lib/events/roomkeyevent.cpp
     lib/events/stickerevent.cpp
     lib/events/keyverificationevent.cpp
+    lib/events/encryptedfile.cpp
     lib/jobs/requestdata.cpp
     lib/jobs/basejob.cpp
     lib/jobs/syncjob.cpp
@@ -174,7 +175,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         lib/e2ee/qolmerrors.cpp
         lib/e2ee/qolmsession.cpp
         lib/e2ee/qolmmessage.cpp
-        lib/encryptionmanager.cpp
     )
 endif()
 

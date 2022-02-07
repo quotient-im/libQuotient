@@ -9,7 +9,6 @@
 #include "room.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#include "encryptionmanager.h"
 #include "events/encryptedfile.h"
 #endif
 
@@ -51,7 +50,7 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
         } else {
             EncryptedFile file = *d->m_encryptedFile;
             auto buffer = new QBuffer(this);
-            buffer->setData(EncryptionManager::decryptFile(d->m_reply->readAll(), &file));
+            buffer->setData(file.decryptFile(d->m_reply->readAll()));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }

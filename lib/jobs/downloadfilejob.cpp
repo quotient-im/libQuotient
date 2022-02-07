@@ -9,7 +9,6 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #   include <QtCore/QCryptographicHash>
-#   include "encryptionmanager.h"
 #   include "events/encryptedfile.h"
 #endif
 
@@ -126,7 +125,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             QByteArray encrypted = d->tempFile->readAll();
 
             EncryptedFile file = *d->encryptedFile;
-            auto decrypted = EncryptionManager::decryptFile(encrypted, &file);
+            auto decrypted = file.decryptFile(encrypted);
             d->targetFile->write(decrypted);
             d->tempFile->remove();
         } else {
@@ -151,7 +150,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             auto encrypted = d->tempFile->readAll();
 
             EncryptedFile file = *d->encryptedFile;
-            auto decrypted = EncryptionManager::decryptFile(encrypted, &file);
+            auto decrypted = file.decryptFile(encrypted);
             d->tempFile->write(decrypted);
         } else {
 #endif
