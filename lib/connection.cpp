@@ -523,8 +523,9 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         completeSetup(loginJob->userId());
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#endif // Quotient_E2EE_ENABLED
+#else // Quotient_E2EE_ENABLED
         database->clear();
+#endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -1970,6 +1971,7 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     return result;
 }
 
+#ifdef Quotient_E2EE_ENABLED
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -2076,7 +2078,6 @@ void Connection::Private::loadDevicesList()
 
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void Connection::encryptionUpdate(Room *room)
 {
     for(const auto &user : room->users()) {
