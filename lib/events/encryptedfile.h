@@ -5,10 +5,6 @@
 #pragma once
 
 #include "converters.h"
-#include "logging.h"
-
-#include <openssl/evp.h>
-#include <QtCore/QCryptographicHash>
 
 namespace Quotient {
 /**

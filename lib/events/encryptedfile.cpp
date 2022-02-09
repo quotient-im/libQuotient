@@ -3,6 +3,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptedfile.h"
+#include "logging.h"
+
+#include <openssl/evp.h>
+#include <QtCore/QCryptographicHash>
 
 using namespace Quotient;
 
