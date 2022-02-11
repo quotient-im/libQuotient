@@ -370,9 +370,6 @@ public:
     // A map from (senderKey, sessionId) to InboundGroupSession
     UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
 
-    void loadMegOlmSessions() {
-        groupSessions = q->connection()->database()->loadMegolmSessions(q->id(), q->connection()->picklingMode());
-    }
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
     {
@@ -382,14 +379,14 @@ public:
             return false;
         }
 
-        std::unique_ptr<QOlmInboundGroupSession> megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
+        auto megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
         if (megolmSession->sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event sent "
                              "from sender with key" << senderKey;
             return false;
         }
         qCWarning(E2EE) << "Adding inbound session";
-        q->connection()->database()->saveMegolmSession(q->id(), senderKey, sessionId, megolmSession->pickle(q->connection()->picklingMode()));
+        connection->saveMegolmSession(q, senderKey, megolmSession.get());
         groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
         return true;
     }
@@ -460,7 +457,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             connection->encryptionUpdate(this);
         }
     });
-    d->loadMegOlmSessions();
+    d->groupSessions = connection->loadRoomMegolmSessions(this);
 
     connect(this, &Room::beforeDestruction, this, [=](){
         connection->database()->clearRoomData(id);

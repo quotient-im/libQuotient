@@ -38,6 +38,7 @@
 #    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolmutils.h"
 #    include "database.h"
+#    include "e2ee/qolminboundsession.h"
 
 #if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
@@ -2119,5 +2120,15 @@ QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 Database* Connection::database()
 {
     return d->database;
+}
+
+UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Connection::loadRoomMegolmSessions(Room* room)
+{
+    return database()->loadMegolmSessions(room->id(), picklingMode());
+}
+
+void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session)
+{
+    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), session->pickle(picklingMode()));
 }
 #endif

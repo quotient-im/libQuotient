@@ -50,6 +50,7 @@ class LeaveRoomJob;
 class Database;
 
 class QOlmAccount;
+class QOlmInboundGroupSession;
 
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
@@ -315,6 +316,8 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
     Database* database();
+    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
+    void saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
