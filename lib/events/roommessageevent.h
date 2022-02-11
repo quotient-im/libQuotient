@@ -101,8 +101,8 @@ namespace EventContent {
 
     struct [[deprecated("Use Quotient::EventRelation instead")]] RelatesTo
         : EventRelation {
-        static constexpr auto ReplyTypeId() { return Reply(); }
-        static constexpr auto ReplacementTypeId() { return Replacement(); }
+        static constexpr auto ReplyTypeId() { return ReplyType; }
+        static constexpr auto ReplacementTypeId() { return ReplacementType; }
     };
     [[deprecated("Use EventRelation::replyTo() instead")]]
     inline auto replyTo(QString eventId)
