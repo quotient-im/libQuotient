@@ -96,8 +96,8 @@ public:
     ~CallEventBase() override = default;
     bool isCallEvent() const override { return true; }
 
-    QString callId() const { return contentPart<QString>("call_id"_ls); }
-    int version() const { return contentPart<int>("version"_ls); }
+    QUO_CONTENT_GETTER(QString, callId)
+    QUO_CONTENT_GETTER(int, version)
 
 protected:
     static QJsonObject basicJson(const QString& matrixType,

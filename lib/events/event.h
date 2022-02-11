@@ -258,6 +258,21 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
+//! \brief Define an inline method obtaining a content part
+//!
+//! This macro adds a const method that extracts a JSON value at the key
+//! <tt>toSnakeCase(PartName_)</tt> (sic) and converts it to the type
+//! \p PartType_. Effectively, the generated method is an equivalent of
+//! \code
+//! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_ls));
+//! \endcode
+#define QUO_CONTENT_GETTER(PartType_, PartName_)                  \
+    PartType_ PartName_() const                                   \
+    {                                                             \
+        static const auto JsonKey = toSnakeCase(#PartName_##_ls); \
+        return contentPart<PartType_>(JsonKey);                   \
+    }
+
 // === Facilities for event class definitions ===
 
 // This macro should be used in a public section of an event class to

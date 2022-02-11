@@ -17,10 +17,8 @@ public:
                              const QString& sdp);
     explicit CallAnswerEvent(const QString& callId, const QString& sdp);
 
-    int lifetime() const
-    {
-        return contentPart<int>("lifetime"_ls);
-    } // FIXME: Omittable<>?
+    QUO_CONTENT_GETTER(int, lifetime) // FIXME: Omittable<>?
+
     QString sdp() const
     {
         return contentPart<QJsonObject>("answer"_ls).value("sdp"_ls).toString();
