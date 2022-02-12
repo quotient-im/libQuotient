@@ -30,10 +30,10 @@ public:
     void clear();
     void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle);
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const PicklingMode& picklingMode);
-    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
+    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
     void saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionKey, const QByteArray& pickle);
     void addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
-    QPair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
+    std::pair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
     void clearRoomData(const QString& roomId);
 
 private:

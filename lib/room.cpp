@@ -368,7 +368,7 @@ public:
 
 #ifdef Quotient_E2EE_ENABLED
     // A map from (senderKey, sessionId) to InboundGroupSession
-    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
+    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
 
     bool addInboundGroupSession(QString senderKey, QString sessionId,
                                 QString sessionKey)
@@ -397,7 +397,7 @@ public:
                                        const QString& eventId,
                                        QDateTime timestamp)
     {
-        const auto senderSessionPairKey = qMakePair(senderKey, sessionId);
+        const auto senderSessionPairKey = make_pair(senderKey, sessionId);
         auto groupSessionIt = groupSessions.find(senderSessionPairKey);
         if (groupSessionIt == groupSessions.end()) {
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId

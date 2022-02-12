@@ -160,14 +160,14 @@ UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(con
     return sessions;
 }
 
-UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode)
+UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
     query.bindValue(":roomId", roomId);
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> sessions;
+    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> sessions;
     while (query.next()) {
         auto session = QOlmInboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
         if (std::holds_alternative<QOlmError>(session)) {
@@ -204,7 +204,7 @@ void Database::addGroupSessionIndexRecord(const QString& roomId, const QString& 
     commit();
 }
 
-QPair<QString, qint64> Database::groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index)
+std::pair<QString, qint64> Database::groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM group_session_record_index WHERE roomId=:roomId AND sessionId=:sessionId AND i=:index;"));
     query.bindValue(":roomId", roomId);

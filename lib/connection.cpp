@@ -2122,7 +2122,7 @@ Database* Connection::database()
     return d->database;
 }
 
-UnorderedMap<QPair<QString, QString>, QOlmInboundGroupSessionPtr> Connection::loadRoomMegolmSessions(Room* room)
+UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Connection::loadRoomMegolmSessions(Room* room)
 {
     return database()->loadMegolmSessions(room->id(), picklingMode());
 }
