@@ -348,7 +348,8 @@ public:
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
-    : QObject(parent), d(new Private(std::make_unique<ConnectionData>(server)))
+    : QObject(parent)
+    , d(makeImpl<Private>(std::make_unique<ConnectionData>(server)))
 {
 #ifdef Quotient_E2EE_ENABLED
     //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
@@ -362,7 +363,7 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
-    AccountRegistry::instance().drop(this);
+    Accounts.drop(this);
 }
 
 void Connection::resolveServer(const QString& mxid)
@@ -541,7 +542,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
-    AccountRegistry::instance().add(q);
+    Accounts.add(q);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -825,7 +826,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
     // After running this loop, the account data events not saved in
     // accountData (see the end of the loop body) are auto-cleaned away
     for (auto&& eventPtr: accountDataEvents) {
-        visit(*eventPtr,
+        switchOnType(*eventPtr,
             [this](const DirectChatEvent& dce) {
                 // https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
                 const auto& usersToDCs = dce.usersToDirectChats();
@@ -925,7 +926,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 return;
             }
 
-            visit(*decryptedEvent,
+            switchOnType(*decryptedEvent,
                 [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
                     if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                         detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
@@ -1713,8 +1714,8 @@ room_factory_t Connection::roomFactory() { return _roomFactory; }
 
 user_factory_t Connection::userFactory() { return _userFactory; }
 
-room_factory_t Connection::_roomFactory = defaultRoomFactory<>();
-user_factory_t Connection::_userFactory = defaultUserFactory<>();
+room_factory_t Connection::_roomFactory = defaultRoomFactory<>;
+user_factory_t Connection::_userFactory = defaultUserFactory<>;
 
 QByteArray Connection::generateTxnId() const
 {

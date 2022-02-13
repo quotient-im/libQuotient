@@ -22,7 +22,7 @@ namespace Quotient {
  * API will also be deprecated at some point, but its replacement is not
  * yet known.
  */
-class PeekEventsJob : public BaseJob {
+class QUOTIENT_API PeekEventsJob : public BaseJob {
 public:
     /*! \brief Listen on the event stream.
      *

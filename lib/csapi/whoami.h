@@ -19,7 +19,7 @@ namespace Quotient {
  * is registered by the appservice, and return it in the response
  * body.
  */
-class GetTokenOwnerJob : public BaseJob {
+class QUOTIENT_API GetTokenOwnerJob : public BaseJob {
 public:
     /// Gets information about the owner of an access token.
     explicit GetTokenOwnerJob();

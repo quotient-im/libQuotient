@@ -21,7 +21,7 @@ namespace Quotient {
  * Note that this endpoint is not necessarily handled by the homeserver,
  * but by another webserver, to be used for discovering the homeserver URL.
  */
-class GetWellknownJob : public BaseJob {
+class QUOTIENT_API GetWellknownJob : public BaseJob {
 public:
     /// Gets Matrix server discovery information about the domain.
     explicit GetWellknownJob();

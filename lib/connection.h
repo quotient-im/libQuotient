@@ -8,6 +8,7 @@
 #include "ssosession.h"
 #include "qt_connection_util.h"
 #include "quotient_common.h"
+#include "util.h"
 
 #include "csapi/login.h"
 #include "csapi/create_room.h"
@@ -48,6 +49,7 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 class Database;
+struct EncryptedFile;
 
 class QOlmAccount;
 class QOlmInboundGroupSession;
@@ -55,11 +57,11 @@ class QOlmInboundGroupSession;
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 /// Predefined login flows
-struct LoginFlows {
-    static inline const LoginFlow Password { "m.login.password" };
-    static inline const LoginFlow SSO { "m.login.sso" };
-    static inline const LoginFlow Token { "m.login.token" };
-};
+namespace LoginFlows {
+    inline const LoginFlow Password { "m.login.password" };
+    inline const LoginFlow SSO { "m.login.sso" };
+    inline const LoginFlow Token { "m.login.token" };
+}
 
 // To simplify comparisons of LoginFlows
 
@@ -85,11 +87,9 @@ using user_factory_t = std::function<User*(Connection*, const QString&)>;
  * \sa Connection::setRoomFactory, Connection::setRoomType
  */
 template <typename T = Room>
-static inline room_factory_t defaultRoomFactory()
+auto defaultRoomFactory(Connection* c, const QString& id, JoinState js)
 {
-    return [](Connection* c, const QString& id, JoinState js) {
-        return new T(c, id, js);
-    };
+    return new T(c, id, js);
 }
 
 /** The default factory to create user objects
@@ -98,9 +98,9 @@ static inline room_factory_t defaultRoomFactory()
  * \sa Connection::setUserFactory, Connection::setUserType
  */
 template <typename T = User>
-static inline user_factory_t defaultUserFactory()
+auto defaultUserFactory(Connection* c, const QString& id)
 {
-    return [](Connection* c, const QString& id) { return new T(id, c); };
+    return new T(id, c);
 }
 
 // Room ids, rather than room pointers, are used in the direct chat
@@ -111,7 +111,7 @@ using DirectChatsMap = QMultiHash<const User*, QString>;
 using DirectChatUsersMap = QMultiHash<QString, User*>;
 using IgnoredUsersList = IgnoredUsersEvent::content_type;
 
-class Connection : public QObject {
+class QUOTIENT_API Connection : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(User* localUser READ user NOTIFY stateChanged)
@@ -128,6 +128,7 @@ class Connection : public QObject {
     Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
+    Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
 
 public:
     using UsersToDevicesToEvents =
@@ -451,6 +452,17 @@ public:
                                     std::forward<JobArgTs>(jobArgs)...);
     }
 
+    //! \brief Start a local HTTP server and generate a single sign-on URL
+    //!
+    //! This call does the preparatory steps to carry out single sign-on
+    //! sequence
+    //! \sa https://matrix.org/docs/guides/sso-for-client-developers
+    //! \return A proxy object holding two URLs: one for SSO on the chosen
+    //!         homeserver and another for the local callback address. Normally
+    //!         you won't need the callback URL unless you proxy the response
+    //!         with a custom UI. You do not need to delete the SsoSession
+    //!         object; the Connection that issued it will dispose of it once
+    //!         the login sequence completes (with any outcome).
     Q_INVOKABLE SsoSession* prepareForSso(const QString& initialDeviceName,
                                           const QString& deviceId = {});
 
@@ -475,14 +487,14 @@ public:
     template <typename T>
     static void setRoomType()
     {
-        setRoomFactory(defaultRoomFactory<T>());
+        setRoomFactory(defaultRoomFactory<T>);
     }
 
     /// Set the user factory to default with the overriden user type
     template <typename T>
     static void setUserType()
     {
-        setUserFactory(defaultUserFactory<T>());
+        setUserFactory(defaultUserFactory<T>);
     }
 
     /// Saves the olm account data to disk. Usually doesn't need to be called manually.
@@ -864,7 +876,7 @@ protected Q_SLOTS:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;

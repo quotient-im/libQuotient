@@ -16,7 +16,7 @@ namespace Quotient {
  * Returns a filter ID that may be used in future requests to
  * restrict which events are returned to the client.
  */
-class DefineFilterJob : public BaseJob {
+class QUOTIENT_API DefineFilterJob : public BaseJob {
 public:
     /*! \brief Upload a new filter.
      *
@@ -41,7 +41,7 @@ public:
 /*! \brief Download a filter
  *
  */
-class GetFilterJob : public BaseJob {
+class QUOTIENT_API GetFilterJob : public BaseJob {
 public:
     /*! \brief Download a filter
      *

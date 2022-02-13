@@ -12,7 +12,7 @@ namespace Quotient {
  *
  * Gets all currently active pushers for the authenticated user.
  */
-class GetPushersJob : public BaseJob {
+class QUOTIENT_API GetPushersJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -108,7 +108,7 @@ struct JsonObjectConverter<GetPushersJob::Pusher> {
  * [pushers](/client-server-api/#push-notifications) for this user ID. The
  * behaviour of this endpoint varies depending on the values in the JSON body.
  */
-class PostPusherJob : public BaseJob {
+class QUOTIENT_API PostPusherJob : public BaseJob {
 public:
     // Inner data structures
 

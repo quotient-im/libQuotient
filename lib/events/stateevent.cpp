@@ -5,20 +5,13 @@
 
 using namespace Quotient;
 
-// Aside from the normal factory to instantiate StateEventBase inheritors
-// StateEventBase itself can be instantiated if there's a state_key JSON key
-// but the event type is unknown.
-[[maybe_unused]] static auto stateEventTypeInitialised =
-    RoomEvent::factory_t::addMethod(
-        [](const QJsonObject& json, const QString& matrixType) -> StateEventPtr {
-            if (!json.contains(StateKeyKeyL))
-                return nullptr;
-
-            if (auto e = StateEventBase::factory_t::make(json, matrixType))
-                return e;
-
-            return makeEvent<StateEventBase>(unknownEventTypeId(), json);
-        });
+StateEventBase::StateEventBase(Type type, const QJsonObject& json)
+    : RoomEvent(json.contains(StateKeyKeyL) ? type : unknownEventTypeId(), json)
+{
+    if (Event::type() == unknownEventTypeId() && !json.contains(StateKeyKeyL))
+        qWarning(EVENTS) << "Attempt to create a state event with no stateKey -"
+                            "forcing the event type to unknown to avoid damage";
+}
 
 StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
                                const QString& stateKey,

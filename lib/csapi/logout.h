@@ -15,7 +15,7 @@ namespace Quotient {
  * [Device keys](/client-server-api/#device-keys) for the device are deleted
  * alongside the device.
  */
-class LogoutJob : public BaseJob {
+class QUOTIENT_API LogoutJob : public BaseJob {
 public:
     /// Invalidates a user access token
     explicit LogoutJob();
@@ -44,7 +44,7 @@ public:
  * used in the request, and therefore the attacker is unable to take over the
  * account in this way.
  */
-class LogoutAllJob : public BaseJob {
+class QUOTIENT_API LogoutAllJob : public BaseJob {
 public:
     /// Invalidates all access tokens for a user
     explicit LogoutAllJob();

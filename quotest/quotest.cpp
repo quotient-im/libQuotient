@@ -14,6 +14,7 @@
 #include "events/reactionevent.h"
 #include "events/redactionevent.h"
 #include "events/simplestateevents.h"
+#include "events/roommemberevent.h"
 
 #include <QtTest/QSignalSpy>
 #include <QtCore/QCoreApplication>
@@ -101,6 +102,7 @@ private slots:
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
     TEST_DECL(sendFile)
+    TEST_DECL(sendCustomEvent)
     TEST_DECL(setTopic)
     TEST_DECL(changeName)
     TEST_DECL(sendAndRedact)
@@ -125,6 +127,7 @@ private:
     [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
                                              const QString& evtIdToRedact);
 
+    template <class EventT>
     [[nodiscard]] bool validatePendingEvent(const QString& txnId);
     [[nodiscard]] bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
@@ -152,12 +155,14 @@ void TestSuite::doTest(const QByteArray& testName)
                               Q_ARG(TestToken, testName));
 }
 
+template <class EventT>
 bool TestSuite::validatePendingEvent(const QString& txnId)
 {
     auto it = targetRoom->findPendingEvent(txnId);
     return it != targetRoom->pendingEvents().end()
            && it->deliveryStatus() == EventStatus::Submitted
-           && (*it)->transactionId() == txnId;
+           && (*it)->transactionId() == txnId && is<EventT>(**it)
+           && (*it)->matrixType() == EventT::matrixTypeId();
 }
 
 void TestSuite::finishTest(const TestToken& token, bool condition,
@@ -214,6 +219,7 @@ TestManager::TestManager(int& argc, char** argv)
 
     // Big countdown watchdog
     QTimer::singleShot(180000, this, [this] {
+        clog << "Time is up, stopping the session\n";
         if (testSuite)
             conclude();
         else
@@ -340,7 +346,7 @@ TEST_IMPL(loadMembers)
 TEST_IMPL(sendMessage)
 {
     auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
-    if (!validatePendingEvent(txnId)) {
+    if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
@@ -366,7 +372,7 @@ TEST_IMPL(sendReaction)
     const auto targetEvtId = targetRoom->messageEvents().back()->id();
     const auto key = QStringLiteral("+1");
     const auto txnId = targetRoom->postReaction(targetEvtId, key);
-    if (!validatePendingEvent(txnId)) {
+    if (!validatePendingEvent<ReactionEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
@@ -376,7 +382,7 @@ TEST_IMPL(sendReaction)
             if (actualTargetEvtId != targetEvtId)
                 return false;
             const auto reactions = targetRoom->relatedEvents(
-                targetEvtId, EventRelation::Annotation());
+                targetEvtId, EventRelation::AnnotationType);
             // It's a test room, assuming no interference there should
             // be exactly one reaction
             if (reactions.size() != 1)
@@ -408,7 +414,7 @@ TEST_IMPL(sendFile)
     clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId = targetRoom->postFile(
         "Test file", new EventContent::FileContent(tfi));
-    if (!validatePendingEvent(txnId)) {
+    if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         tf->deleteLater();
         FAIL_TEST();
@@ -498,8 +504,8 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
 
             clog << "File event " << txnId.toStdString()
                  << " arrived in the timeline" << endl;
-            // This part tests visit()
-            return visit(
+            // This part tests switchOnType()
+            return switchOnType(
                 *evt,
                 [&](const RoomMessageEvent& e) {
                     // TODO: check #366 once #368 is implemented
@@ -515,6 +521,50 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
     return true;
+}
+
+class CustomEvent : public RoomEvent {
+public:
+    DEFINE_EVENT_TYPEID("quotest.custom", CustomEvent)
+
+    CustomEvent(const QJsonObject& jo)
+        : RoomEvent(typeId(), jo)
+    {}
+    CustomEvent(int testValue)
+        : RoomEvent(typeId(),
+                    basicEventJson(matrixTypeId(),
+                                   QJsonObject { { "testValue"_ls,
+                                                   toJson(testValue) } }))
+    {}
+
+    auto testValue() const { return contentPart<int>("testValue"_ls); }
+};
+REGISTER_EVENT_TYPE(CustomEvent)
+
+TEST_IMPL(sendCustomEvent)
+{
+    auto txnId = targetRoom->postEvent(new CustomEvent(42));
+    if (!validatePendingEvent<CustomEvent>(txnId)) {
+        clog << "Invalid pending event right after submitting" << endl;
+        FAIL_TEST();
+    }
+    connectUntil(
+        targetRoom, &Room::pendingEventAboutToMerge, this,
+        [this, thisTest, txnId](const RoomEvent* evt, int pendingIdx) {
+            const auto& pendingEvents = targetRoom->pendingEvents();
+            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
+
+            if (evt->transactionId() != txnId)
+                return false;
+
+            return switchOnType(*evt,
+                [this, thisTest, &evt](const CustomEvent& e) {
+                    FINISH_TEST(!evt->id().isEmpty() && e.testValue() == 42);
+                },
+                [this, thisTest] (const RoomEvent&) { FAIL_TEST(); });
+        });
+    return false;
+
 }
 
 TEST_IMPL(setTopic)
@@ -537,17 +587,40 @@ TEST_IMPL(setTopic)
 
 TEST_IMPL(changeName)
 {
-    auto* const localUser = connection()->user();
-    const auto& newName = connection()->generateTxnId(); // See setTopic()
-    clog << "Renaming the user to " << newName.toStdString() << endl;
-    localUser->rename(newName);
-    connectUntil(localUser, &User::defaultNameChanged, this,
-                 [this, thisTest, localUser, newName] {
-                     FINISH_TEST(localUser->name() == newName);
-                 });
+    connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
+        auto* const localUser = connection()->user();
+        const auto& newName = connection()->generateTxnId(); // See setTopic()
+        clog << "Renaming the user to " << newName.toStdString()
+             << " in the target room" << endl;
+        localUser->rename(newName, targetRoom);
+        connectUntil(
+            targetRoom, &Room::aboutToAddNewMessages, this,
+            [this, thisTest, localUser, newName](const RoomEventsRange& evts) {
+                for (const auto& e : evts) {
+                    if (const auto* rme = eventCast<const RoomMemberEvent>(e)) {
+                        if (rme->stateKey() != localUser->id()
+                            || !rme->isRename())
+                            continue;
+                        if (!rme->newDisplayName()
+                            || *rme->newDisplayName() != newName)
+                            FAIL_TEST();
+                        clog << "Member rename successful, renaming the account"
+                             << endl;
+                        const auto newN = newName.mid(0, 5);
+                        localUser->rename(newN);
+                        connectUntil(localUser, &User::defaultNameChanged, this,
+                                     [this, thisTest, localUser, newN] {
+                                         targetRoom->localUser()->rename({});
+                                         FINISH_TEST(localUser->name() == newN);
+                                     });
+                        return true;
+                    }
+                }
+                return false;
+            });
+    });
     return false;
 }
-
 
 TEST_IMPL(showLocalUsername)
 {

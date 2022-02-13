@@ -3,14 +3,10 @@
 
 #include "roomevent.h"
 
-#include "converters.h"
 #include "logging.h"
 #include "redactionevent.h"
 
 using namespace Quotient;
-
-[[maybe_unused]] static auto roomEventTypeInitialised =
-    Event::factory_t::chainFactory<RoomEvent>();
 
 RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
                      const QJsonObject& contentJson)

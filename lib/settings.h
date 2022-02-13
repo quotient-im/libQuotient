@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QtCore/QSettings>
 #include <QtCore/QUrl>
 #include <QtCore/QVector>
@@ -11,7 +13,7 @@ class QVariant;
 
 namespace Quotient {
 
-class Settings : public QSettings {
+class QUOTIENT_API Settings : public QSettings {
     Q_OBJECT
 public:
     /// Add a legacy organisation/application name to migrate settings from
@@ -76,7 +78,7 @@ protected:
     QSettings legacySettings { legacyOrganizationName, legacyApplicationName };
 };
 
-class SettingsGroup : public Settings {
+class QUOTIENT_API SettingsGroup : public Settings {
 public:
     explicit SettingsGroup(QString path, QObject* parent = nullptr)
         : Settings(parent)
@@ -104,7 +106,7 @@ private:
     QString groupPath;
 };
 
-#define QTNT_DECLARE_SETTING(type, propname, setter)      \
+#define QUO_DECLARE_SETTING(type, propname, setter)      \
     Q_PROPERTY(type propname READ propname WRITE setter) \
 public:                                                  \
     type propname() const;                               \
@@ -112,7 +114,7 @@ public:                                                  \
                                                          \
 private:
 
-#define QTNT_DEFINE_SETTING(classname, type, propname, qsettingname,   \
+#define QUO_DEFINE_SETTING(classname, type, propname, qsettingname,   \
                            defaultValue, setter)                      \
     type classname::propname() const                                  \
     {                                                                 \
@@ -124,12 +126,12 @@ private:
         setValue(QStringLiteral(qsettingname), std::move(newValue));  \
     }
 
-class AccountSettings : public SettingsGroup {
+class QUOTIENT_API AccountSettings : public SettingsGroup {
     Q_OBJECT
     Q_PROPERTY(QString userId READ userId CONSTANT)
-    QTNT_DECLARE_SETTING(QString, deviceId, setDeviceId)
-    QTNT_DECLARE_SETTING(QString, deviceName, setDeviceName)
-    QTNT_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
+    QUO_DECLARE_SETTING(QString, deviceId, setDeviceId)
+    QUO_DECLARE_SETTING(QString, deviceName, setDeviceName)
+    QUO_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
                    WRITE setEncryptionAccountPickle)
 public:

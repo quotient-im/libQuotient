@@ -6,6 +6,7 @@
 #pragma once
 
 #include "eventcontent.h"
+#include "eventrelation.h"
 #include "roomevent.h"
 
 class QFileInfo;
@@ -16,7 +17,7 @@ namespace MessageEventContent = EventContent; // Back-compatibility
 /**
  * The event class corresponding to m.room.message events
  */
-class RoomMessageEvent : public RoomEvent {
+class QUOTIENT_API RoomMessageEvent : public RoomEvent {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
@@ -97,22 +98,24 @@ REGISTER_EVENT_TYPE(RoomMessageEvent)
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {
-    // Additional event content types
 
-    struct RelatesTo {
-        static constexpr const char* ReplyTypeId() { return "m.in_reply_to"; }
-        static constexpr const char* ReplacementTypeId() { return "m.replace"; }
-        QString type; // The only supported relation so far
-        QString eventId;
+    struct [[deprecated("Use Quotient::EventRelation instead")]] RelatesTo
+        : EventRelation {
+        static constexpr auto ReplyTypeId() { return ReplyType; }
+        static constexpr auto ReplacementTypeId() { return ReplacementType; }
     };
-    inline RelatesTo replyTo(QString eventId)
+    [[deprecated("Use EventRelation::replyTo() instead")]]
+    inline auto replyTo(QString eventId)
     {
-        return { RelatesTo::ReplyTypeId(), std::move(eventId) };
+        return EventRelation::replyTo(std::move(eventId));
     }
-    inline RelatesTo replacementOf(QString eventId)
+    [[deprecated("Use EventRelation::replace() instead")]]
+    inline auto replacementOf(QString eventId)
     {
-        return { RelatesTo::ReplacementTypeId(), std::move(eventId) };
+        return EventRelation::replace(std::move(eventId));
     }
+
+    // Additional event content types
 
     /**
      * Rich text content for m.text, m.emote, m.notice
@@ -120,17 +123,17 @@ namespace EventContent {
      * Available fields: mimeType, body. The body can be either rich text
      * or plain text, depending on what mimeType specifies.
      */
-    class TextContent : public TypedBase {
+    class QUOTIENT_API TextContent : public TypedBase {
     public:
         TextContent(QString text, const QString& contentType,
-                    Omittable<RelatesTo> relatesTo = none);
+                    Omittable<EventRelation> relatesTo = none);
         explicit TextContent(const QJsonObject& json);
 
         QMimeType type() const override { return mimeType; }
 
         QMimeType mimeType;
         QString body;
-        Omittable<RelatesTo> relatesTo;
+        Omittable<EventRelation> relatesTo;
 
     protected:
         void fillJson(QJsonObject* json) const override;
@@ -149,7 +152,7 @@ namespace EventContent {
      *   - thumbnail.mimeType
      *   - thumbnail.imageSize
      */
-    class LocationContent : public TypedBase {
+    class QUOTIENT_API LocationContent : public TypedBase {
     public:
         LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
         explicit LocationContent(const QJsonObject& json);
@@ -168,7 +171,7 @@ namespace EventContent {
      * A base class for info types that include duration: audio and video
      */
     template <typename ContentT>
-    class PlayableContent : public ContentT {
+    class QUOTIENT_API PlayableContent : public ContentT {
     public:
         using ContentT::ContentT;
         PlayableContent(const QJsonObject& json)

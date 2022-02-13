@@ -26,7 +26,7 @@ public:
 };
 
 MxcReply::MxcReply(QNetworkReply* reply)
-    : d(std::make_unique<Private>(reply))
+    : d(makeImpl<Private>(reply))
 {
     d->m_device = d->m_reply;
     reply->setParent(this);
@@ -38,7 +38,7 @@ MxcReply::MxcReply(QNetworkReply* reply)
 }
 
 MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
-    : d(std::make_unique<Private>(reply))
+    : d(makeImpl<Private>(reply))
 {
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
@@ -77,6 +77,7 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
 #endif
 
 MxcReply::MxcReply()
+    : d(ZeroImpl<Private>())
 {
     static const auto BadRequestPhrase = tr("Bad Request");
     QMetaObject::invokeMethod(this, [this]() {

@@ -22,7 +22,7 @@ namespace Quotient {
  * The user will still be allowed to retrieve history from the room which
  * they were previously allowed to see.
  */
-class LeaveRoomJob : public BaseJob {
+class QUOTIENT_API LeaveRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user participating in a particular room.
      *
@@ -48,7 +48,7 @@ public:
  * If the user is currently joined to the room, they must leave the room
  * before calling this API.
  */
-class ForgetRoomJob : public BaseJob {
+class QUOTIENT_API ForgetRoomJob : public BaseJob {
 public:
     /*! \brief Stop the requesting user remembering about a particular room.
      *

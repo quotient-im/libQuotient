@@ -12,6 +12,7 @@ function(QUOTIENT_ADD_TEST)
 endfunction()
 
 quotient_add_test(NAME callcandidateseventtest)
+quotient_add_test(NAME utiltests)
 if(${PROJECT_NAME}_ENABLE_E2EE)
     quotient_add_test(NAME testolmaccount)
     quotient_add_test(NAME testgroupsession)

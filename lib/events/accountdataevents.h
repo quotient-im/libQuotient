@@ -4,27 +4,23 @@
 #pragma once
 
 #include "event.h"
-#include "eventcontent.h"
+#include "util.h"
 
 namespace Quotient {
-constexpr const char* FavouriteTag = "m.favourite";
-constexpr const char* LowPriorityTag = "m.lowpriority";
-constexpr const char* ServerNoticeTag = "m.server_notice";
+constexpr auto FavouriteTag [[maybe_unused]] = "m.favourite"_ls;
+constexpr auto LowPriorityTag [[maybe_unused]] = "m.lowpriority"_ls;
+constexpr auto ServerNoticeTag [[maybe_unused]] = "m.server_notice"_ls;
 
 struct TagRecord {
-    using order_type = Omittable<float>;
-
-    order_type order;
-
-    TagRecord(order_type order = none) : order(std::move(order)) {}
-
-    bool operator<(const TagRecord& other) const
-    {
-        // Per The Spec, rooms with no order should be after those with order,
-        // against optional<>::operator<() convention.
-        return order && (!other.order || *order < *other.order);
-    }
+    Omittable<float> order = none;
 };
+
+inline bool operator<(TagRecord lhs, TagRecord rhs)
+{
+    // Per The Spec, rooms with no order should be after those with order,
+    // against std::optional<>::operator<() convention.
+    return lhs.order && (!rhs.order || *lhs.order < *rhs.order);
+}
 
 template <>
 struct JsonObjectConverter<TagRecord> {
@@ -42,7 +38,7 @@ struct JsonObjectConverter<TagRecord> {
                 rec.order = none;
         }
     }
-    static void dumpTo(QJsonObject& jo, const TagRecord& rec)
+    static void dumpTo(QJsonObject& jo, TagRecord rec)
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("order"), rec.order);
     }
@@ -51,7 +47,7 @@ struct JsonObjectConverter<TagRecord> {
 using TagsMap = QHash<QString, TagRecord>;
 
 #define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey)       \
-    class _Name : public Event {                                             \
+    class QUOTIENT_API _Name : public Event {                             \
     public:                                                                  \
         using content_type = _ContentType;                                   \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                  \

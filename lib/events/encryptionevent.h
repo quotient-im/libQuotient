@@ -6,13 +6,18 @@
 
 #include "eventcontent.h"
 #include "stateevent.h"
+#include "quotient_common.h"
 
 namespace Quotient {
-class EncryptionEventContent : public EventContent::Base {
+class QUOTIENT_API EncryptionEventContent : public EventContent::Base {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
-    explicit EncryptionEventContent(EncryptionType et = Undefined);
+    QUO_IMPLICIT EncryptionEventContent(EncryptionType et);
+    [[deprecated("This constructor will require explicit EncryptionType soon")]] //
+    explicit EncryptionEventContent()
+        : EncryptionEventContent(Undefined)
+    {}
     explicit EncryptionEventContent(const QJsonObject& json);
 
     EncryptionType encryption;
@@ -26,7 +31,7 @@ protected:
 
 using EncryptionType = EncryptionEventContent::EncryptionType;
 
-class EncryptionEvent : public StateEvent<EncryptionEventContent> {
+class QUOTIENT_API EncryptionEvent : public StateEvent<EncryptionEventContent> {
     Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
@@ -34,15 +39,15 @@ public:
     using EncryptionType = EncryptionEventContent::EncryptionType;
     Q_ENUM(EncryptionType)
 
-    explicit EncryptionEvent(const QJsonObject& obj = {}) // TODO: apropriate
-                                                          // default value
+    explicit EncryptionEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
     {}
-    EncryptionEvent(EncryptionEvent&&) = delete;
-    template <typename... ArgTs>
-    EncryptionEvent(ArgTs&&... contentArgs)
-        : StateEvent(typeId(), matrixTypeId(), QString(),
-                     std::forward<ArgTs>(contentArgs)...)
+    [[deprecated("This constructor will require an explicit parameter soon")]] //
+//    explicit EncryptionEvent()
+//        : EncryptionEvent(QJsonObject())
+//    {}
+    explicit EncryptionEvent(EncryptionEventContent&& content)
+        : StateEvent(typeId(), matrixTypeId(), QString(), std::move(content))
     {}
 
     EncryptionType encryption() const { return content().encryption; }
@@ -51,6 +56,5 @@ public:
     int rotationPeriodMs() const { return content().rotationPeriodMs; }
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
 };
-
 REGISTER_EVENT_TYPE(EncryptionEvent)
 } // namespace Quotient

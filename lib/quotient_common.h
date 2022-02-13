@@ -3,31 +3,69 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <qobjectdefs.h>
 
 #include <array>
 
-// See https://bugreports.qt.io/browse/QTBUG-82295 - despite the comment that
-// Q_FLAG[_NS] "should" be applied to the enum only, Qt doesn't allow to wrap
-// a flag type into a QVariant then. The macros below define Q_FLAG[_NS] and on
-// top of that add Q_ENUM[_NS]_IMPL which is a part of Q_ENUM() macro that
-// enables the metatype data but goes under the moc radar to avoid double
-// registration of the same data in the map defined in moc_*.cpp
+
+//! \brief Quotient replacement for the Q_FLAG/Q_DECLARE_FLAGS combination
+//!
+//! Although the comment in QTBUG-82295 says that Q_FLAG[_NS] "should" be
+//! applied to the enum type only, Qt then doesn't allow to wrap the
+//! corresponding flag type (defined with Q_DECLARE_FLAGS) into a QVariant.
+//! This macro defines Q_FLAG and on top of that adds Q_ENUM_IMPL which is
+//! a part of Q_ENUM() macro that enables the metatype data but goes under
+//! the moc radar to avoid double registration of the same data in the map
+//! defined in moc_*.cpp.
+//!
+//! Simply put, instead of using Q_FLAG/Q_DECLARE_FLAGS combo (and struggling
+//! to figure out what you should pass to Q_FLAG if you want to make it
+//! wrappable in a QVariant) use the macro below, and things will just work.
+//!
+//! \sa https://bugreports.qt.io/browse/QTBUG-82295
 #define QUO_DECLARE_FLAGS(Flags, Enum) \
     Q_DECLARE_FLAGS(Flags, Enum)       \
     Q_ENUM_IMPL(Enum)                  \
     Q_FLAG(Flags)
 
+//! \brief Quotient replacement for the Q_FLAG_NS/Q_DECLARE_FLAGS combination
+//!
+//! This is the equivalent of QUO_DECLARE_FLAGS for enums declared at the
+//! namespace level (be sure to provide Q_NAMESPACE _in the same file_
+//! as the enum definition and this macro).
+//! \sa QUO_DECLARE_FLAGS
 #define QUO_DECLARE_FLAGS_NS(Flags, Enum) \
     Q_DECLARE_FLAGS(Flags, Enum)          \
     Q_ENUM_NS_IMPL(Enum)                  \
     Q_FLAG_NS(Flags)
 
+// Apple Clang hasn't caught up with explicit(bool) yet
+#if __cpp_conditional_explicit >= 201806L
+#define QUO_IMPLICIT explicit(false)
+#else
+#define QUO_IMPLICIT
+#endif
+
 #define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
     Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+// The first line forward-declares the namespace static metaobject with
+// QUOTIENT_API so that dynamically linked clients could serialise flag/enum
+// values from the namespace; Qt before 5.14 doesn't help with that. The second
+// line is needed for moc to do its job on the namespace.
+#define QUO_NAMESPACE \
+    extern QUOTIENT_API const QMetaObject staticMetaObject; \
+    Q_NAMESPACE
+#else
+// Since Qt 5.14.0, it's all packed in a single macro
+#define QUO_NAMESPACE Q_NAMESPACE_EXPORT(QUOTIENT_API)
+#endif
+
 namespace Quotient {
-Q_NAMESPACE
+QUO_NAMESPACE
 
 // std::array {} needs explicit template parameters on macOS because
 // Apple stdlib doesn't have deduction guides for std::array. C++20 has
@@ -62,7 +100,7 @@ enum class Membership : unsigned int {
 };
 QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
-constexpr inline auto MembershipStrings = make_array(
+constexpr auto MembershipStrings = make_array(
     // The order MUST be the same as the order in the original enum
     "join", "leave", "invite", "knock", "ban");
 
@@ -80,7 +118,7 @@ enum class JoinState : std::underlying_type_t<Membership> {
 };
 QUO_DECLARE_FLAGS_NS(JoinStates, JoinState)
 
-constexpr inline auto JoinStateStrings = make_array(
+[[maybe_unused]] constexpr auto JoinStateStrings = make_array(
     MembershipStrings[0], MembershipStrings[1], MembershipStrings[2],
     MembershipStrings[3] /* same as MembershipStrings, sans "ban" */
 );
@@ -110,9 +148,7 @@ enum RoomType {
 };
 Q_ENUM_NS(RoomType)
 
-constexpr inline auto RoomTypeStrings = make_array(
-    "m.space"
-);
+[[maybe_unused]] constexpr auto RoomTypeStrings = make_array("m.space");
 
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)

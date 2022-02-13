@@ -14,7 +14,7 @@ namespace Quotient {
  * This API is used to paginate through the list of events that the
  * user has been, or would have been notified about.
  */
-class GetNotificationsJob : public BaseJob {
+class QUOTIENT_API GetNotificationsJob : public BaseJob {
 public:
     // Inner data structures
 

@@ -7,7 +7,7 @@
 #include "events/encryptedfile.h"
 
 namespace Quotient {
-class DownloadFileJob : public GetContentJob {
+class QUOTIENT_API DownloadFileJob : public GetContentJob {
 public:
     using GetContentJob::makeRequestUrl;
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri);
@@ -22,7 +22,7 @@ public:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     void doPrepare() override;
     void onSentRequest(QNetworkReply* reply) override;

@@ -46,7 +46,7 @@ public:
 decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(new Private(move(userId)))
+    : QObject(connection), d(makeImpl<Private>(move(userId)))
 {
     setObjectName(id());
     if (connection->userId() == id()) {
@@ -60,8 +60,6 @@ Connection* User::connection() const
     Q_ASSERT(parent());
     return static_cast<Connection*>(parent());
 }
-
-User::~User() = default;
 
 void User::load()
 {
@@ -112,7 +110,7 @@ void User::rename(const QString& newName)
             });
 }
 
-void User::rename(const QString& newName, const Room* r)
+void User::rename(const QString& newName, Room* r)
 {
     if (!r) {
         qCWarning(MAIN) << "Passing a null room to two-argument User::rename()"
@@ -121,12 +119,17 @@ void User::rename(const QString& newName, const Room* r)
         return;
     }
     // #481: take the current state and update it with the new name
-    auto evtC = r->getCurrentState<RoomMemberEvent>(id())->content();
-    Q_ASSERT_X(evtC.membership == Membership::Join, __FUNCTION__,
-               "Attempt to rename a user that's not a room member");
-    evtC.displayName = sanitized(newName);
-    r->setState<RoomMemberEvent>(id(), move(evtC));
-    // The state will be updated locally after it arrives with sync
+    if (const auto& maybeEvt = r->currentState().get<RoomMemberEvent>(id())) {
+        auto content = maybeEvt->content();
+        if (content.membership == Membership::Join) {
+            content.displayName = sanitized(newName);
+            r->setState<RoomMemberEvent>(id(), move(content));
+            // The state will be updated locally after it arrives with sync
+            return;
+        }
+    }
+    qCCritical(MEMBERS)
+        << "Attempt to rename a non-member in a room context - ignored";
 }
 
 template <typename SourceT>

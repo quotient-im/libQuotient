@@ -22,7 +22,7 @@ constexpr auto HighlightCountKey = "highlight_count"_ls;
  * means that nothing has come from the server; heroes.value().isEmpty()
  * means a peculiar case of a room with the only member - the current user.
  */
-struct RoomSummary {
+struct QUOTIENT_API RoomSummary {
     Omittable<int> joinedMemberCount;
     Omittable<int> invitedMemberCount;
     Omittable<QStringList> heroes; //< mxids of users to take part in the room

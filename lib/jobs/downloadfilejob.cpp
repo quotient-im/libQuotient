@@ -40,7 +40,8 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
-    , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
+    , d(localFilename.isEmpty() ? makeImpl<Private>()
+                                : makeImpl<Private>(localFilename))
 {
     setObjectName(QStringLiteral("DownloadFileJob"));
 }
@@ -51,7 +52,8 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const EncryptedFile& file,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
-    , d(localFilename.isEmpty() ? new Private : new Private(localFilename))
+    , d(localFilename.isEmpty() ? makeImpl<Private>()
+                                : makeImpl<Private>(localFilename))
 {
     setObjectName(QStringLiteral("DownloadFileJob"));
     d->encryptedFile = file;

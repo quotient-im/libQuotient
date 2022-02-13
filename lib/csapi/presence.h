@@ -15,7 +15,7 @@ namespace Quotient {
  * not need to specify the `last_active_ago` field. You cannot set the
  * presence state of another user.
  */
-class SetPresenceJob : public BaseJob {
+class QUOTIENT_API SetPresenceJob : public BaseJob {
 public:
     /*! \brief Update this user's presence state.
      *
@@ -36,7 +36,7 @@ public:
  *
  * Get the given user's presence state.
  */
-class GetPresenceJob : public BaseJob {
+class QUOTIENT_API GetPresenceJob : public BaseJob {
 public:
     /*! \brief Get this user's presence state.
      *

@@ -11,9 +11,9 @@ void NetworkSettings::setupApplicationProxy() const
         { proxyType(), proxyHostName(), proxyPort() });
 }
 
-QTNT_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType,
+QUO_DEFINE_SETTING(NetworkSettings, QNetworkProxy::ProxyType, proxyType,
                    "proxy_type", QNetworkProxy::DefaultProxy, setProxyType)
-QTNT_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname",
+QUO_DEFINE_SETTING(NetworkSettings, QString, proxyHostName, "proxy_hostname",
                    {}, setProxyHostName)
-QTNT_DEFINE_SETTING(NetworkSettings, quint16, proxyPort, "proxy_port", -1,
+QUO_DEFINE_SETTING(NetworkSettings, quint16, proxyPort, "proxy_port", -1,
                    setProxyPort)

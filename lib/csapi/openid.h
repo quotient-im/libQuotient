@@ -21,7 +21,7 @@ namespace Quotient {
  * be used to request another OpenID access token or call `/sync`, for
  * example.
  */
-class RequestOpenIdTokenJob : public BaseJob {
+class QUOTIENT_API RequestOpenIdTokenJob : public BaseJob {
 public:
     /*! \brief Get an OpenID token object to verify the requester's identity.
      *

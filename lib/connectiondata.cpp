@@ -41,7 +41,7 @@ public:
 };
 
 ConnectionData::ConnectionData(QUrl baseUrl)
-    : d(std::make_unique<Private>(std::move(baseUrl)))
+    : d(makeImpl<Private>(std::move(baseUrl)))
 {
     // Each lambda invocation below takes no more than one job from the
     // queues (first foreground, then background) and resumes it; then

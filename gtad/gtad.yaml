@@ -45,7 +45,7 @@ analyzer:
   types:
   - +set: &UseOmittable
       useOmittable:
-      omittedValue: 'none' # Quotient::none in lib/util.h
+      omittedValue: 'none' # Quotient::none in lib/omittable.h
     +on:
     - integer:
       - int64: qint64

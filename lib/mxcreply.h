@@ -3,14 +3,16 @@
 
 #pragma once
 
+#include "util.h"
+
 #include <QtNetwork/QNetworkReply>
-#include <memory>
 
 namespace Quotient {
 class Room;
 
-class MxcReply : public QNetworkReply
+class QUOTIENT_API MxcReply : public QNetworkReply
 {
+    Q_OBJECT
 public:
     explicit MxcReply();
     explicit MxcReply(QNetworkReply *reply);
@@ -24,6 +26,6 @@ protected:
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 }

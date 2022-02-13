@@ -8,8 +8,7 @@
 namespace Quotient {
 namespace EventContent {
     template <typename T>
-    class SimpleContent {
-    public:
+    struct SimpleContent {
         using value_type = T;
 
         // The constructor is templated to enable perfect forwarding
@@ -25,20 +24,17 @@ namespace EventContent {
             return { { key, Quotient::toJson(value) } };
         }
 
-    public:
         T value;
-
-    protected:
-        QString key;
+        const QString key;
     };
 } // namespace EventContent
 
 #define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey)     \
-    class _Name : public StateEvent<EventContent::SimpleContent<_ValueType>> { \
+    class QUOTIENT_API _Name                                                \
+        : public StateEvent<EventContent::SimpleContent<_ValueType>> {         \
     public:                                                                    \
         using value_type = content_type::value_type;                           \
         DEFINE_EVENT_TYPEID(_TypeId, _Name)                                    \
-        explicit _Name() : _Name(value_type()) {}                              \
         template <typename T>                                                  \
         explicit _Name(T&& value)                                              \
             : StateEvent(typeId(), matrixTypeId(), QString(),                  \
@@ -55,6 +51,7 @@ namespace EventContent {
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
+DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages", QStringList, pinnedEvents)
 
 class [[deprecated(
     "m.room.aliases events are deprecated by the Matrix spec; use"
@@ -64,10 +61,6 @@ public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj, QStringLiteral("aliases"))
-    {}
-    RoomAliasesEvent(const QString& server, const QStringList& aliases)
-        : StateEvent(typeId(), matrixTypeId(), server,
-                     QStringLiteral("aliases"), aliases)
     {}
     QString server() const { return stateKey(); }
     QStringList aliases() const { return content().value; }

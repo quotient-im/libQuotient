@@ -39,7 +39,7 @@ public:
 };
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent), d(std::make_unique<Private>(this))
+    : QNetworkAccessManager(parent), d(makeImpl<Private>(this))
 {}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
@@ -90,8 +90,6 @@ NetworkAccessManager* NetworkAccessManager::instance()
     return storage.localData();
 }
 
-NetworkAccessManager::~NetworkAccessManager() = default;
-
 QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
@@ -110,7 +108,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             // TODO: Make the best effort with a direct unauthenticated request
             // to the media server
         } else {
-            auto* const connection = AccountRegistry::instance().get(accountId);
+            auto* const connection = Accounts.get(accountId);
             if (!connection) {
                 qCWarning(NETWORK) << "Connection" << accountId << "not found";
                 return new MxcReply();

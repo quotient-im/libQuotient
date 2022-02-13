@@ -7,7 +7,7 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class CallAnswerEvent : public CallEventBase {
+class QUOTIENT_API CallAnswerEvent : public CallEventBase {
 public:
     DEFINE_EVENT_TYPEID("m.call.answer", CallAnswerEvent)
 
@@ -26,6 +26,5 @@ public:
         return contentPart<QJsonObject>("answer"_ls).value("sdp"_ls).toString();
     }
 };
-
 REGISTER_EVENT_TYPE(CallAnswerEvent)
 } // namespace Quotient

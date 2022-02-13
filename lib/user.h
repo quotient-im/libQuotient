@@ -5,6 +5,7 @@
 #pragma once
 
 #include "avatar.h"
+#include "util.h"
 
 #include <QtCore/QObject>
 
@@ -13,7 +14,7 @@ class Connection;
 class Room;
 class RoomMemberEvent;
 
-class User : public QObject {
+class QUOTIENT_API User : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
@@ -26,7 +27,6 @@ class User : public QObject {
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
     User(QString userId, Connection* connection);
-    ~User() override;
 
     Connection* connection() const;
 
@@ -96,7 +96,7 @@ public Q_SLOTS:
     /// Set a new name in the global user profile
     void rename(const QString& newName);
     /// Set a new name for the user in one room
-    void rename(const QString& newName, const Room* r);
+    void rename(const QString& newName, Room* r);
     /// Upload the file and use it as an avatar
     bool setAvatar(const QString& fileName);
     /// Upload contents of the QIODevice and set that as an avatar
@@ -125,7 +125,7 @@ Q_SIGNALS:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 
     template <typename SourceT>
     bool doSetAvatar(SourceT&& source);

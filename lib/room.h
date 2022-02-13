@@ -10,6 +10,7 @@
 #pragma once
 
 #include "connection.h"
+#include "roomstateview.h"
 #include "eventitem.h"
 #include "quotient_common.h"
 
@@ -21,6 +22,7 @@
 #include "events/roommessageevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roomtombstoneevent.h"
+#include "events/eventrelation.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -45,7 +47,7 @@ class RedactEventJob;
  * This is specifically tuned to work with QML exposing all traits as
  * Q_PROPERTY values.
  */
-class FileTransferInfo {
+class QUOTIENT_API FileTransferInfo {
     Q_GADGET
     Q_PROPERTY(bool isUpload MEMBER isUpload CONSTANT)
     Q_PROPERTY(bool active READ active CONSTANT)
@@ -73,7 +75,7 @@ public:
 
 //! \brief Data structure for a room member's read receipt
 //! \sa Room::lastReadReceipt
-class ReadReceipt {
+class QUOTIENT_API ReadReceipt {
     Q_GADGET
     Q_PROPERTY(QString eventId MEMBER eventId CONSTANT)
     Q_PROPERTY(QDateTime timestamp MEMBER timestamp CONSTANT)
@@ -101,7 +103,7 @@ struct EventStats;
 struct Notification
 {
     enum Type { None = 0, Basic, Highlight };
-    Q_ENUM(Notification)
+    Q_ENUM(Type)
 
     Type type = None;
 
@@ -110,7 +112,7 @@ private:
     Q_PROPERTY(Type type MEMBER type CONSTANT)
 };
 
-class Room : public QObject {
+class QUOTIENT_API Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
@@ -124,6 +126,8 @@ class Room : public QObject {
     Q_PROPERTY(QStringList altAliases READ altAliases NOTIFY namesChanged)
     Q_PROPERTY(QString canonicalAlias READ canonicalAlias NOTIFY namesChanged)
     Q_PROPERTY(QString displayName READ displayName NOTIFY displaynameChanged)
+    Q_PROPERTY(QStringList pinnedEventIds READ pinnedEventIds WRITE setPinnedEvents
+                   NOTIFY pinnedEventsChanged)
     Q_PROPERTY(QString displayNameForHtml READ displayNameForHtml NOTIFY displaynameChanged)
     Q_PROPERTY(QString topic READ topic NOTIFY topicChanged)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY avatarChanged
@@ -253,6 +257,9 @@ public:
     //! Get a list of both canonical and alternative aliases
     QStringList aliases() const;
     QString displayName() const;
+    QStringList pinnedEventIds() const;
+    // Returns events available locally, use pinnedEventIds() for full list
+    QVector<const RoomEvent*> pinnedEvents() const;
     QString displayNameForHtml() const;
     QString topic() const;
     QString avatarMediaId() const;
@@ -389,18 +396,12 @@ public:
     PendingEvents::const_iterator findPendingEvent(const QString& txnId) const;
 
     const RelatedEvents relatedEvents(const QString& evtId,
-                                      const char* relType) const;
+                                      EventRelation::reltypeid_t relType) const;
     const RelatedEvents relatedEvents(const RoomEvent& evt,
-                                      const char* relType) const;
+                                      EventRelation::reltypeid_t relType) const;
 
-    const RoomCreateEvent* creation() const
-    {
-        return getCurrentState<RoomCreateEvent>();
-    }
-    const RoomTombstoneEvent* tombstone() const
-    {
-        return getCurrentState<RoomTombstoneEvent>();
-    }
+    const RoomCreateEvent* creation() const;
+    const RoomTombstoneEvent* tombstone() const;
 
     bool displayed() const;
     /// Mark the room as currently displayed to the user
@@ -754,47 +755,45 @@ public:
     /*! This method returns a (potentially empty) state event corresponding
      * to the pair of event type \p evtType and state key \p stateKey.
      */
-    Q_INVOKABLE const Quotient::StateEventBase*
+    [[deprecated("Use currentState().get() instead; "
+                 "make sure to check its result for nullptrs")]] //
+    const Quotient::StateEventBase*
     getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
-
-    /// Get all state events in the room.
-    /*! This method returns all known state events that have occured in
-     * the room, as a mapping from the event type and state key to value.
-     */
-    const QHash<StateEventKey, const StateEventBase*>& currentState() const;
-
-    /// Get all state events in the room of a certain type.
-    /*! This method returns all known state events that have occured in
-     * the room of the given type.
-     */
-    Q_INVOKABLE const QVector<const StateEventBase*>
-    stateEventsOfType(const QString& evtType) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
      * its Matrix name.
      */
     template <typename EvT>
+    [[deprecated("Use currentState().get() instead; "
+                 "make sure to check its result for nullptrs")]] //
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
-        const auto* evt =
-            eventCast<const EvT>(getCurrentState(EvT::matrixTypeId(), stateKey));
+        QT_IGNORE_DEPRECATIONS(
+            const auto* evt = eventCast<const EvT>(
+                getCurrentState(EvT::matrixTypeId(), stateKey));)
         Q_ASSERT(evt);
         Q_ASSERT(evt->matrixTypeId() == EvT::matrixTypeId()
                  && evt->stateKey() == stateKey);
         return evt;
     }
 
-    /// Set a state event of the given type with the given arguments
-    /*! This typesafe overload attempts to send a state event with the type
-     * \p EvT and the content defined by \p args. Specifically, the function
-     * creates a temporary object of type \p EvT passing \p args to
-     * the constructor, and sends a request to the homeserver using
-     * the Matrix event type defined by \p EvT and the event content produced
-     * via EvT::contentJson().
-     */
+    /// \brief Get the current room state
+    RoomStateView currentState() const;
+
+    //! Send a request to update the room state with the given event
+    SetRoomStateWithKeyJob* setState(const StateEventBase& evt);
+
+    //! \brief Set a state event of the given type with the given arguments
+    //!
+    //! This typesafe overload attempts to send a state event with the type
+    //! \p EvT and the content defined by \p args. Specifically, the function
+    //! creates a temporary object of type \p EvT passing \p args to
+    //! the constructor, and sends a request to the homeserver using
+    //! the Matrix event type defined by \p EvT and the event content produced
+    //! via EvT::contentJson().
     template <typename EvT, typename... ArgTs>
-    auto setState(ArgTs&&... args) const
+    auto setState(ArgTs&&... args)
     {
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
@@ -828,10 +827,13 @@ public Q_SLOTS:
     QString retryMessage(const QString& txnId);
     void discardMessage(const QString& txnId);
 
-    /// Send a request to update the room state with the given event
-    SetRoomStateWithKeyJob* setState(const StateEventBase& evt) const;
+    //! Send a request to update the room state based on freeform inputs
+    SetRoomStateWithKeyJob* setState(const QString& evtType,
+                                     const QString& stateKey,
+                                     const QJsonObject& contentJson);
     void setName(const QString& newName);
     void setCanonicalAlias(const QString& newAlias);
+    void setPinnedEvents(const QStringList& events);
     /// Set room aliases on the user's current server
     void setLocalAliases(const QStringList& aliases);
     void setTopic(const QString& newTopic);
@@ -938,6 +940,7 @@ Q_SIGNALS:
     void namesChanged(Quotient::Room* room);
     void displaynameAboutToChange(Quotient::Room* room);
     void displaynameChanged(Quotient::Room* room, QString oldName);
+    void pinnedEventsChanged();
     void topicChanged();
     void avatarChanged();
     void userAdded(Quotient::User* user);
@@ -1037,7 +1040,7 @@ private:
     void setJoinState(JoinState state);
 };
 
-class MemberSorter {
+class QUOTIENT_API MemberSorter {
 public:
     explicit MemberSorter(const Room* r) : room(r) {}
 

@@ -3,18 +3,16 @@
 
 #pragma once
 
+#include "util.h"
+
 #include <QtNetwork/QNetworkAccessManager>
 
-#include <memory>
-
 namespace Quotient {
-class Room;
 
-class NetworkAccessManager : public QNetworkAccessManager {
+class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
     NetworkAccessManager(QObject* parent = nullptr);
-    ~NetworkAccessManager() override;
 
     QList<QSslError> ignoredSslErrors() const;
     void addIgnoredSslError(const QSslError& error);
@@ -32,6 +30,6 @@ private:
                                  QIODevice* outgoingData = Q_NULLPTR) override;
 
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 } // namespace Quotient

@@ -5,9 +5,9 @@
 #pragma once
 
 #include "requestdata.h"
-#include "../logging.h"
-#include "../converters.h"
-#include "../quotient_common.h"
+#include "logging.h"
+#include "converters.h" // Common for csapi/ headers even though not used here
+#include "quotient_common.h" // For DECL_DEPRECATED_ENUMERATOR
 
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>
@@ -20,7 +20,7 @@ class ConnectionData;
 
 enum class HttpVerb { Get, Put, Post, Delete };
 
-class BaseJob : public QObject {
+class QUOTIENT_API BaseJob : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl requestUrl READ requestUrl CONSTANT)
     Q_PROPERTY(int maxRetries READ maxRetries WRITE setMaxRetries)
@@ -28,7 +28,7 @@ class BaseJob : public QObject {
 
     static QByteArray encodeIfParam(const QString& paramPart);
     template <int N>
-    static inline auto encodeIfParam(const char (&constPart)[N])
+    static auto encodeIfParam(const char (&constPart)[N])
     {
         return constPart;
     }
@@ -248,7 +248,7 @@ public:
     }
 
 public Q_SLOTS:
-    void initiate(ConnectionData* connData, bool inBackground);
+    void initiate(Quotient::ConnectionData* connData, bool inBackground);
 
     /**
      * Abandons the result of this job, arrived or unarrived.
@@ -467,10 +467,10 @@ private:
     void finishJob();
 
     class Private;
-    QScopedPointer<Private> d;
+    ImplPtr<Private> d;
 };
 
-inline bool isJobPending(BaseJob* job)
+inline bool QUOTIENT_API isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }

@@ -4,7 +4,6 @@
 
 #include "roommemberevent.h"
 
-#include "converters.h"
 #include "logging.h"
 
 #include <QtCore/QtAlgorithms>
@@ -48,11 +47,9 @@ void MemberEventContent::fillJson(QJsonObject* o) const
 {
     Q_ASSERT(o);
     if (membership != Membership::Invalid)
-        o->insert(
-            QStringLiteral("membership"),
-            MembershipStrings[qCountTrailingZeroBits(
-                                  std::underlying_type_t<Membership>(membership))
-                              + 1]);
+        o->insert(QStringLiteral("membership"),
+                  MembershipStrings[qCountTrailingZeroBits(
+                      std::underlying_type_t<Membership>(membership))]);
     if (displayName)
         o->insert(QStringLiteral("displayname"), *displayName);
     if (avatarUrl && avatarUrl->isValid())

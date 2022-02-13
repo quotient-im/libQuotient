@@ -15,7 +15,7 @@ namespace Quotient {
  *
  * Publishes end-to-end encryption keys for the device.
  */
-class UploadKeysJob : public BaseJob {
+class QUOTIENT_API UploadKeysJob : public BaseJob {
 public:
     /*! \brief Upload end-to-end encryption keys.
      *
@@ -48,7 +48,7 @@ public:
  *
  * Returns the current devices and identity keys for the given users.
  */
-class QueryKeysJob : public BaseJob {
+class QUOTIENT_API QueryKeysJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -172,7 +172,7 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
  *
  * Claims one-time keys for use in pre-key messages.
  */
-class ClaimKeysJob : public BaseJob {
+class QUOTIENT_API ClaimKeysJob : public BaseJob {
 public:
     /*! \brief Claim one-time encryption keys.
      *
@@ -226,7 +226,7 @@ public:
  * * added new device identity keys or removed an existing device with
  *   identity keys, between `from` and `to`.
  */
-class GetKeysChangesJob : public BaseJob {
+class QUOTIENT_API GetKeysChangesJob : public BaseJob {
 public:
     /*! \brief Query users with recent device key updates.
      *

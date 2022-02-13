@@ -20,7 +20,7 @@ namespace Quotient {
  * directly adjust the target member's state by making a request to
  * `/rooms/<room id>/state/m.room.member/<user id>`.
  */
-class KickJob : public BaseJob {
+class QUOTIENT_API KickJob : public BaseJob {
 public:
     /*! \brief Kick a user from the room.
      *

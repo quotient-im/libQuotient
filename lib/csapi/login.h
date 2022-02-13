@@ -16,7 +16,7 @@ namespace Quotient {
  * Gets the homeserver's supported login types to authenticate users. Clients
  * should pick one of these and supply it as the `type` when logging in.
  */
-class GetLoginFlowsJob : public BaseJob {
+class QUOTIENT_API GetLoginFlowsJob : public BaseJob {
 public:
     // Inner data structures
 
@@ -73,7 +73,7 @@ struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
  * [Relationship between access tokens and
  * devices](/client-server-api/#relationship-between-access-tokens-and-devices).
  */
-class LoginJob : public BaseJob {
+class QUOTIENT_API LoginJob : public BaseJob {
 public:
     /*! \brief Authenticates the user.
      *

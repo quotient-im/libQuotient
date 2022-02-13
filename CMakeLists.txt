@@ -40,7 +40,7 @@ if (MSVC)
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
     foreach (FLAG Wall Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments fvisibility-inlines-hidden)
+            Wno-gnu-zero-variadic-macro-arguments)
         CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
         if ( COMPILER_${FLAG}_SUPPORTED AND
                 NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
@@ -115,66 +115,75 @@ endif()
 # Set up source files
 list(APPEND lib_SRCS
     lib/quotient_common.h
-    lib/networkaccessmanager.cpp
-    lib/connectiondata.cpp
-    lib/connection.cpp
-    lib/ssosession.cpp
-    lib/logging.cpp
-    lib/room.cpp
-    lib/user.cpp
-    lib/avatar.cpp
-    lib/uri.cpp
-    lib/uriresolver.cpp
-    lib/eventstats.cpp
-    lib/syncdata.cpp
-    lib/settings.cpp
-    lib/networksettings.cpp
-    lib/converters.cpp
-    lib/util.cpp
-    lib/eventitem.cpp
-    lib/accountregistry.cpp
-    lib/mxcreply.cpp
-    lib/events/event.cpp
-    lib/events/roomevent.cpp
-    lib/events/stateevent.cpp
-    lib/events/eventcontent.cpp
-    lib/events/roomcreateevent.cpp
-    lib/events/roomtombstoneevent.cpp
-    lib/events/roommessageevent.cpp
-    lib/events/roommemberevent.cpp
-    lib/events/roompowerlevelsevent.cpp
-    lib/events/typingevent.cpp
-    lib/events/receiptevent.cpp
-    lib/events/reactionevent.cpp
-    lib/events/callanswerevent.cpp
-    lib/events/callcandidatesevent.cpp
-    lib/events/callhangupevent.cpp
-    lib/events/callinviteevent.cpp
-    lib/events/directchatevent.cpp
-    lib/events/encryptionevent.cpp
-    lib/events/encryptedevent.cpp
-    lib/events/roomkeyevent.cpp
-    lib/events/stickerevent.cpp
-    lib/events/keyverificationevent.cpp
-    lib/events/encryptedfile.cpp
-    lib/jobs/requestdata.cpp
-    lib/jobs/basejob.cpp
-    lib/jobs/syncjob.cpp
-    lib/jobs/mediathumbnailjob.cpp
-    lib/jobs/downloadfilejob.cpp
+    lib/quotient_export.h
+    lib/function_traits.h lib/function_traits.cpp
+    lib/omittable.h
+    lib/networkaccessmanager.h lib/networkaccessmanager.cpp
+    lib/connectiondata.h lib/connectiondata.cpp
+    lib/connection.h lib/connection.cpp
+    lib/ssosession.h lib/ssosession.cpp
+    lib/logging.h lib/logging.cpp
+    lib/room.h lib/room.cpp
+    lib/roomstateview.h lib/roomstateview.cpp
+    lib/user.h lib/user.cpp
+    lib/avatar.h lib/avatar.cpp
+    lib/uri.h lib/uri.cpp
+    lib/uriresolver.h lib/uriresolver.cpp
+    lib/eventstats.h lib/eventstats.cpp
+    lib/syncdata.h lib/syncdata.cpp
+    lib/settings.h lib/settings.cpp
+    lib/networksettings.h lib/networksettings.cpp
+    lib/converters.h lib/converters.cpp
+    lib/util.h lib/util.cpp
+    lib/eventitem.h lib/eventitem.cpp
+    lib/accountregistry.h lib/accountregistry.cpp
+    lib/mxcreply.h lib/mxcreply.cpp
+    lib/events/event.h lib/events/event.cpp
+    lib/events/eventloader.h
+    lib/events/roomevent.h lib/events/roomevent.cpp
+    lib/events/stateevent.h lib/events/stateevent.cpp
+    lib/events/simplestateevents.h
+    lib/events/eventcontent.h lib/events/eventcontent.cpp
+    lib/events/eventrelation.h lib/events/eventrelation.cpp
+    lib/events/roomcreateevent.h lib/events/roomcreateevent.cpp
+    lib/events/roomtombstoneevent.h lib/events/roomtombstoneevent.cpp
+    lib/events/roommessageevent.h lib/events/roommessageevent.cpp
+    lib/events/roommemberevent.h lib/events/roommemberevent.cpp
+    lib/events/roomavatarevent.h
+    lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
+    lib/events/typingevent.h lib/events/typingevent.cpp
+    lib/events/accountdataevents.h
+    lib/events/receiptevent.h lib/events/receiptevent.cpp
+    lib/events/reactionevent.h
+    lib/events/callinviteevent.h lib/events/callinviteevent.cpp
+    lib/events/callcandidatesevent.h
+    lib/events/callanswerevent.h lib/events/callanswerevent.cpp
+    lib/events/callhangupevent.h
+    lib/events/directchatevent.h lib/events/directchatevent.cpp
+    lib/events/encryptionevent.h lib/events/encryptionevent.cpp
+    lib/events/encryptedevent.h lib/events/encryptedevent.cpp
+    lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
+    lib/events/stickerevent.h lib/events/stickerevent.cpp
+    lib/events/keyverificationevent.h lib/events/keyverificationevent.cpp
+    lib/events/encryptedfile.h lib/events/encryptedfile.cpp
+    lib/jobs/requestdata.h lib/jobs/requestdata.cpp
+    lib/jobs/basejob.h lib/jobs/basejob.cpp
+    lib/jobs/syncjob.h lib/jobs/syncjob.cpp
+    lib/jobs/mediathumbnailjob.h lib/jobs/mediathumbnailjob.cpp
+    lib/jobs/downloadfilejob.h lib/jobs/downloadfilejob.cpp
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
-        lib/database.cpp
-        lib/e2ee/qolmaccount.cpp
-        lib/e2ee/qolmsession.cpp
-        lib/e2ee/qolminboundsession.cpp
-        lib/e2ee/qolmoutboundsession.cpp
-        lib/e2ee/qolmutils.cpp
-        lib/e2ee/qolmutility.cpp
-        lib/e2ee/qolmerrors.cpp
-        lib/e2ee/qolmsession.cpp
-        lib/e2ee/qolmmessage.cpp
+        lib/database.h lib/database.cpp
+        lib/e2ee/qolmaccount.h lib/e2ee/qolmaccount.cpp
+        lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
+        lib/e2ee/qolminboundsession.h lib/e2ee/qolminboundsession.cpp
+        lib/e2ee/qolmoutboundsession.h lib/e2ee/qolmoutboundsession.cpp
+        lib/e2ee/qolmutils.h lib/e2ee/qolmutils.cpp
+        lib/e2ee/qolmutility.h lib/e2ee/qolmutility.cpp
+        lib/e2ee/qolmerrors.h lib/e2ee/qolmerrors.cpp
+        lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
+        lib/e2ee/qolmmessage.h lib/e2ee/qolmmessage.cpp
     )
 endif()
 
@@ -186,7 +195,6 @@ set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
 set(API_GENERATION_ENABLED 0)
-set(API_FORMATTING_ENABLED 0)
 if (GTAD_PATH AND MATRIX_DOC_PATH)
     # REALPATH resolves ~ (home directory) while PROGRAM doesn't
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
@@ -213,20 +221,9 @@ if (API_GENERATION_ENABLED)
         set(CLANG_FORMAT clang-format)
     endif()
     get_filename_component(ABS_CLANG_FORMAT "${CLANG_FORMAT}" PROGRAM PROGRAM_ARGS CLANG_FORMAT_ARGS)
-    if (ABS_CLANG_FORMAT)
-        set(API_FORMATTING_ENABLED 1)
-        message( STATUS "clang-format is at ${ABS_CLANG_FORMAT}")
-    else ()
-        message( STATUS "${CLANG_FORMAT} is NOT FOUND; API files won't be reformatted")
+    if (NOT ABS_CLANG_FORMAT)
+        message( WARNING "${CLANG_FORMAT} is NOT FOUND; API files won't be formatted")
     endif ()
-
-    # We use globbing with CONFIGURE_DEPENDS to produce two file lists:
-    # one of all API files for clang-format and another of just .cpp
-    # files to supply for library source files. Since we expect these
-    # file lists to only change due to GTAD invocation, we only use
-    # CONFIGURE_DEPENDS when pre-requisites to update API are met.
-    # Read comments next to each file(GLOB_RECURSE) for caveats.
-    set(add_CONFIGURE_DEPENDS "CONFIGURE_DEPENDS")
 
     set(FULL_CSAPI_SRC_DIR ${ABS_API_DEF_PATH}/client-server)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
@@ -234,7 +231,7 @@ if (API_GENERATION_ENABLED)
         ${ABS_API_DEF_PATH}/${ASAPI_DEF_DIR}/*.yaml
         ${ABS_API_DEF_PATH}/${ISAPI_DEF_DIR}/*.yaml
     )
-    add_custom_target(generate-unformatted-api
+    add_custom_target(update-api
         ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
@@ -249,46 +246,28 @@ if (API_GENERATION_ENABLED)
                 ${API_DEFS}
         VERBATIM
     )
-    add_custom_target(update-api DEPENDS generate-unformatted-api)
-    if (EXISTS ${ABS_CLANG_FORMAT})
-        set(CLANG_FORMAT_ARGS -i -sort-includes ${CLANG_FORMAT_ARGS})
-        # FIXME: the list of files should be produced after GTAD has run.
-        # For now it's produced at CMake invocation. If file() hasn't found
-        # any files at that moment, clang-format will be called with an empty
-        # list of files and choke. Taking outfiles.txt from GTAD could be
-        # an option but this, too, must be done during the build stage, and
-        # there's no crossplatform way to use the contents of a file as
-        # input for a build target command.
-        file(GLOB_RECURSE api_ALL_SRCS ${add_CONFIGURE_DEPENDS}
-             ${FULL_CSAPI_DIR}/*.*
-             lib/${ASAPI_DEF_DIR}/*.*
-             lib/${ISAPI_DEF_DIR}/*.*)
-        if (api_ALL_SRCS)
-            add_custom_target(format-api
-                ${ABS_CLANG_FORMAT} ${CLANG_FORMAT_ARGS} ${api_ALL_SRCS}
-                DEPENDS generate-unformatted-api
-                VERBATIM)
-            add_dependencies(update-api format-api)
-        endif()
-    endif()
 endif()
 add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
                  "build target update-api")
-if (API_GENERATION_ENABLED)
-    add_feature_info(EnableApiFormatting "${API_FORMATTING_ENABLED}"
-                     "formatting of generated API files with clang-format")
-endif()
 
-# Make no mistake: CMake cannot run gtad first and then populate the list of
-# resulting api_SRCS files. In other words, placing the below statement after
-# the block above will not lead to CMake magically reconfiguring the build
-# after building the update-api target. CONFIGURE_DEPENDS somewhat helps,
-# at least forcing the build system to reevaluate the glob before building
-# the next target. Otherwise, you have to watch out if gtad has created
-# new files and if it has, re-run cmake.
-file(GLOB_RECURSE api_SRCS ${add_CONFIGURE_DEPENDS} ${FULL_CSAPI_DIR}/*.cpp)
+# Produce the list of all Matrix API files for building the library. When this
+# list changes (normally after calling GTAD), CONFIGURE_DEPENDS will force
+# the build system to call CMake again. Checking for the glob change slows down
+# each build (even if the target does not involve API generation). It would be
+# ideal if GTAD could compare the initial (saved somewhere) and the generated
+# file list itself and write down to some .cmake file if those are different,
+# which would trigger the reconfiguration specifically before the next build.
+# For now CONFIGURE_DEPENDS is the best approximation of that.
+file(GLOB_RECURSE api_ALL_SRCS CONFIGURE_DEPENDS
+     ${FULL_CSAPI_DIR}/*.* lib/${ASAPI_DEF_DIR}/*.* lib/${ISAPI_DEF_DIR}/*.*)
 
-add_library(${PROJECT_NAME} ${lib_SRCS} ${api_SRCS})
+add_library(${PROJECT_NAME} ${lib_SRCS} ${api_ALL_SRCS})
+# Set BUILDING_SHARED_QUOTIENT if building as a shared library
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,SHARED_LIBRARY>:BUILDING_SHARED_QUOTIENT>)
+# Set QUOTIENT_STATIC in a static library setting
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,STATIC_LIBRARY>:QUOTIENT_STATIC>)
 target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_JAVA_STYLE_ITERATORS QT_NO_URL_CAST_FROM_STRING QT_NO_CAST_TO_ASCII)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
@@ -300,6 +279,8 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
+    VISIBILITY_INLINES_HIDDEN ON
+    CXX_VISIBILITY_PRESET hidden
     VERSION "${PROJECT_VERSION}"
     SOVERSION ${API_VERSION}
     INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${API_VERSION}
@@ -351,8 +332,8 @@ endif()
 # Configure installation
 
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+        LIBRARY RUNTIME
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         INCLUDES DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
 )
 install(DIRECTORY lib/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}

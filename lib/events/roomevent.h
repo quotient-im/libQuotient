@@ -11,9 +11,9 @@ namespace Quotient {
 class RedactionEvent;
 
 /** This class corresponds to m.room.* events */
-class RoomEvent : public Event {
+class QUOTIENT_API RoomEvent : public Event {
 public:
-    using factory_t = EventFactory<RoomEvent>;
+    static inline EventFactory<RoomEvent> factory { "RoomEvent" };
 
     // RedactionEvent is an incomplete type here so we cannot inline
     // constructors and destructors and we cannot use 'using'.
@@ -80,7 +80,7 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-class CallEventBase : public RoomEvent {
+class QUOTIENT_API CallEventBase : public RoomEvent {
 public:
     CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
                   int version, const QJsonObject& contentJson = {});

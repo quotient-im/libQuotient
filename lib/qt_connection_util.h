@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "util.h"
+#include "function_traits.h"
 
 #include <QtCore/QPointer>
 

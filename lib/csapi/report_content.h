@@ -13,7 +13,7 @@ namespace Quotient {
  * Reports an event as inappropriate to the server, which may then notify
  * the appropriate people.
  */
-class ReportContentJob : public BaseJob {
+class QUOTIENT_API ReportContentJob : public BaseJob {
 public:
     /*! \brief Reports an event as inappropriate.
      *

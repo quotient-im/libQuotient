@@ -3,13 +3,10 @@
 
 #pragma once
 
+#include "util.h"
+
 #include <QtCore/QUrl>
 #include <QtCore/QObject>
-
-#include <memory>
-
-class QTcpServer;
-class QTcpSocket;
 
 namespace Quotient {
 class Connection;
@@ -29,19 +26,20 @@ class Connection;
  *     connection->prepareForSso(initialDeviceName)->ssoUrl());
  * \endcode
  */
-class SsoSession : public QObject {
+class QUOTIENT_API SsoSession : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl ssoUrl READ ssoUrl CONSTANT)
     Q_PROPERTY(QUrl callbackUrl READ callbackUrl CONSTANT)
 public:
     SsoSession(Connection* connection, const QString& initialDeviceName,
                const QString& deviceId = {});
-    ~SsoSession() override;
+    ~SsoSession() override = default;
+
     QUrl ssoUrl() const;
     QUrl callbackUrl() const;
 
 private:
     class Private;
-    std::unique_ptr<Private> d;
+    ImplPtr<Private> d;
 };
 } // namespace Quotient

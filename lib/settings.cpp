@@ -3,6 +3,7 @@
 
 #include "settings.h"
 
+#include "util.h"
 #include "logging.h"
 
 #include <QtCore/QUrl>
@@ -102,17 +103,18 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QTNT_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
                    setDeviceId)
-QTNT_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
                    setDeviceName)
-QTNT_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
+QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
-static const auto HomeserverKey = QStringLiteral("homeserver");
-static const auto AccessTokenKey = QStringLiteral("access_token");
-static const auto EncryptionAccountPickleKey =
-    QStringLiteral("encryption_account_pickle");
+namespace {
+constexpr auto HomeserverKey = "homeserver"_ls;
+constexpr auto AccessTokenKey = "access_token"_ls;
+constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_ls;
+}
 
 QUrl AccountSettings::homeserver() const
 {

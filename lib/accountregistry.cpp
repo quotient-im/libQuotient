@@ -8,90 +8,59 @@
 
 using namespace Quotient;
 
-void AccountRegistry::add(Connection* c)
+void AccountRegistry::add(Connection* a)
 {
-    if (m_accounts.contains(c))
+    if (contains(a))
         return;
-    beginInsertRows(QModelIndex(), m_accounts.size(), m_accounts.size());
-    m_accounts += c;
+    beginInsertRows(QModelIndex(), size(), size());
+    push_back(a);
     endInsertRows();
 }
 
-void AccountRegistry::drop(Connection* c)
+void AccountRegistry::drop(Connection* a)
 {
-    beginRemoveRows(QModelIndex(), m_accounts.indexOf(c), m_accounts.indexOf(c));
-    m_accounts.removeOne(c);
+    const auto idx = indexOf(a);
+    beginRemoveRows(QModelIndex(), idx, idx);
+    remove(idx);
     endRemoveRows();
-    Q_ASSERT(!m_accounts.contains(c));
+    Q_ASSERT(!contains(a));
 }
 
 bool AccountRegistry::isLoggedIn(const QString &userId) const
 {
-    return std::any_of(m_accounts.cbegin(), m_accounts.cend(),
-                       [&userId](Connection* a) { return a->userId() == userId; });
+    return std::any_of(cbegin(), cend(), [&userId](const Connection* a) {
+        return a->userId() == userId;
+    });
 }
 
-bool AccountRegistry::contains(Connection *c) const
+QVariant AccountRegistry::data(const QModelIndex& index, int role) const
 {
-    return m_accounts.contains(c);
-}
-
-AccountRegistry::AccountRegistry() = default;
-
-QVariant AccountRegistry::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid()) {
+    if (!index.isValid() || index.row() >= count())
         return {};
-    }
 
-    if (index.row() >= m_accounts.count()) {
-        return {};
-    }
-
-    auto account = m_accounts[index.row()];
-
-    if (role == ConnectionRole) {
-        return QVariant::fromValue(account);
-    }
+    if (role == AccountRole)
+        return QVariant::fromValue(at(index.row()));
 
     return {};
 }
 
-int AccountRegistry::rowCount(const QModelIndex &parent) const
+int AccountRegistry::rowCount(const QModelIndex& parent) const
 {
-    if (parent.isValid()) {
-        return 0;
-    }
-
-    return m_accounts.count();
+    return parent.isValid() ? 0 : count();
 }
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const
 {
-    return {{ConnectionRole, "connection"}};
+    return { { AccountRole, "connection" } };
 }
 
-bool AccountRegistry::isEmpty() const
-{
-    return m_accounts.isEmpty();
-}
 
-int AccountRegistry::count() const
-{
-    return m_accounts.count();
-}
-
-const QVector<Connection*> AccountRegistry::accounts() const
-{
-    return m_accounts;
-}
 
 Connection* AccountRegistry::get(const QString& userId)
 {
-    for (const auto &connection : m_accounts) {
-        if(connection->userId() == userId) {
+    for (const auto &connection : *this) {
+        if (connection->userId() == userId)
             return connection;
-        }
     }
     return nullptr;
 }
