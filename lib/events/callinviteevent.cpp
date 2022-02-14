@@ -36,7 +36,7 @@ CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
 CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
                                  const QString& sdp)
     : CallEventBase(
-        typeId(), matrixTypeId(), callId, lifetime,
+        typeId(), matrixTypeId(), callId, 0,
         { { QStringLiteral("lifetime"), lifetime },
           { QStringLiteral("offer"),
             QJsonObject { { QStringLiteral("type"), QStringLiteral("offer") },
