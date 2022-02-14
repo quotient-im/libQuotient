@@ -2000,8 +2000,11 @@ void Connection::Private::loadOutdatedUserDevices()
                         << device.userId << user;
                     continue;
                 }
-                if(!device.algorithms.contains("m.olm.v1.curve25519-aes-sha2") || !device.algorithms.contains("m.megolm.v1.aes-sha2")) {
-                    qCWarning(E2EE) << "Unsupported encryption algorithms found" << device.algorithms;
+                if (!std::all_of(device.algorithms.cbegin(),
+                                 device.algorithms.cend(),
+                                 isSupportedAlgorithm)) {
+                    qCWarning(E2EE) << "Unsupported encryption algorithms found"
+                                    << device.algorithms;
                     continue;
                 }
                 if(!verifyIdentitySignature(device, device.deviceId, device.userId)) {
