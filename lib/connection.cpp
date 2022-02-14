@@ -131,6 +131,7 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     std::unique_ptr<QOlmAccount> olmAccount;
     bool isUploadingKeys = false;
+    bool firstSync = true;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -769,10 +770,9 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         connect(job, &BaseJob::result, this,
                 [this] { d->isUploadingKeys = false; });
     }
-    static bool first = true;
-    if(first) {
+    if(d->firstSync) {
         d->loadDevicesList();
-        first = false;
+        d->firstSync = false;
     }
 
     d->consumeDevicesList(data.takeDevicesList());
