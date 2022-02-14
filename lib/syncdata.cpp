@@ -3,6 +3,8 @@
 
 #include "syncdata.h"
 
+#include "logging.h"
+
 #include "events/eventloader.h"
 
 #include <QtCore/QFile>
