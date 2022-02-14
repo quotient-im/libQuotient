@@ -55,10 +55,10 @@ struct IdentityKeys
 //! Struct representing the one-time keys.
 struct QUOTIENT_API OneTimeKeys
 {
-    QMap<QString, QMap<QString, QString>> keys;
+    QHash<QString, QHash<QString, QString>> keys;
 
     //! Get the HashMap containing the curve25519 one-time keys.
-    QMap<QString, QString> curve25519() const;
+    QHash<QString, QString> curve25519() const;
 
     //! Get a reference to the hashmap corresponding to given key type.
 //    std::optional<QHash<QString, QString>> get(QString keyType) const;

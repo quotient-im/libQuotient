@@ -14,7 +14,7 @@
 
 using namespace Quotient;
 
-QMap<QString, QString> OneTimeKeys::curve25519() const
+QHash<QString, QString> OneTimeKeys::curve25519() const
 {
     return keys[Curve25519Key];
 }
@@ -164,21 +164,13 @@ OneTimeKeys QOlmAccount::oneTimeKeys() const
     }
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     OneTimeKeys oneTimeKeys;
-
-    for (const QString& key1 : json.keys()) {
-        auto oneTimeKeyObject = json[key1].toObject();
-        auto keyMap = QMap<QString, QString>();
-        for (const QString &key2 : oneTimeKeyObject.keys()) {
-            keyMap[key2] = oneTimeKeyObject[key2].toString();
-        }
-        oneTimeKeys.keys[key1] = keyMap;
-    }
+    fromJson(json, oneTimeKeys.keys);
     return oneTimeKeys;
 }
 
-QMap<QString, SignedOneTimeKey> QOlmAccount::signOneTimeKeys(const OneTimeKeys &keys) const
+QHash<QString, SignedOneTimeKey> QOlmAccount::signOneTimeKeys(const OneTimeKeys &keys) const
 {
-    QMap<QString, SignedOneTimeKey> signedOneTimeKeys;
+    QHash<QString, SignedOneTimeKey> signedOneTimeKeys;
     for (const auto &keyid : keys.curve25519().keys()) {
         const auto oneTimeKey = keys.curve25519()[keyid];
         QByteArray sign = signOneTimeKey(oneTimeKey);

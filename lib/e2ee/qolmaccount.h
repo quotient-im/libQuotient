@@ -67,7 +67,7 @@ public:
     OneTimeKeys oneTimeKeys() const;
 
     //! Sign all one time keys.
-    QMap<QString, SignedOneTimeKey> signOneTimeKeys(const OneTimeKeys &keys) const;
+    QHash<QString, SignedOneTimeKey> signOneTimeKeys(const OneTimeKeys &keys) const;
 
     //! Sign one time key.
     QByteArray signOneTimeKey(const QString &key) const;
