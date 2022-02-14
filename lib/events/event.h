@@ -4,6 +4,7 @@
 #pragma once
 
 #include "converters.h"
+#include "logging.h"
 #include "function_traits.h"
 
 namespace Quotient {
