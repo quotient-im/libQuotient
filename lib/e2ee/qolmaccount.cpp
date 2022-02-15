@@ -3,53 +3,41 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolmaccount.h"
+
 #include "connection.h"
-#include "csapi/keys.h"
-#include "e2ee/qolmutils.h"
 #include "e2ee/qolmutility.h"
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QDebug>
-#include <iostream>
+#include "e2ee/qolmutils.h"
+
+#include "csapi/keys.h"
+
+#include <QtCore/QRandomGenerator>
 
 using namespace Quotient;
 
 QMap<QString, QString> OneTimeKeys::curve25519() const
 {
-    return keys[QStringLiteral("curve25519")];
+    return keys[Curve25519Key];
 }
 
-std::optional<QMap<QString, QString>> OneTimeKeys::get(QString keyType) const
-{
-    if (!keys.contains(keyType)) {
-        return std::nullopt;
-    }
-    return keys[keyType];
-}
-
-bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs)
-{
-    return lhs.curve25519 == rhs.curve25519 && lhs.ed25519 == rhs.ed25519;
-}
+//std::optional<QHash<QString, QString>> OneTimeKeys::get(QString keyType) const
+//{
+//    if (!keys.contains(keyType)) {
+//        return std::nullopt;
+//    }
+//    return keys[keyType];
+//}
 
 // Convert olm error to enum
 QOlmError lastError(OlmAccount *account) {
     return fromString(olm_account_last_error(account));
 }
 
-QByteArray getRandom(size_t bufferSize)
-{
-    QByteArray buffer(bufferSize, '0');
-    std::generate(buffer.begin(), buffer.end(), std::rand);
-    return buffer;
-}
-
-QOlmAccount::QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent)
+QOlmAccount::QOlmAccount(const QString& userId, const QString& deviceId,
+                         QObject* parent)
     : QObject(parent)
     , m_userId(userId)
     , m_deviceId(deviceId)
-{
-}
+{}
 
 QOlmAccount::~QOlmAccount()
 {
@@ -66,7 +54,7 @@ void QOlmAccount::createNewAccount()
     if (error == olm_error()) {
         throw lastError(m_account);
     }
-    Q_EMIT needsSave();
+    emit needsSave();
 }
 
 void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
@@ -161,7 +149,7 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
     if (error == olm_error()) {
         throw lastError(m_account);
     }
-    Q_EMIT needsSave();
+    emit needsSave();
     return error;
 }
 
@@ -220,14 +208,11 @@ std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const QOlmSessionPtr &se
     if (error == olm_error()) {
         return lastError(m_account);
     }
-    Q_EMIT needsSave();
+    emit needsSave();
     return std::nullopt;
 }
 
-OlmAccount *QOlmAccount::data()
-{
-    return m_account;
-}
+OlmAccount* QOlmAccount::data() { return m_account; }
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
@@ -284,31 +269,27 @@ std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createOutboundSession(const
 void QOlmAccount::markKeysAsPublished()
 {
     olm_account_mark_keys_as_published(m_account);
-    Q_EMIT needsSave();
+    emit needsSave();
 }
 
-bool Quotient::verifyIdentitySignature(const DeviceKeys &deviceKeys,
-                             const QString &deviceId,
-                             const QString &userId)
+bool Quotient::verifyIdentitySignature(const DeviceKeys& deviceKeys,
+                                       const QString& deviceId,
+                                       const QString& userId)
 {
     const auto signKeyId = "ed25519:" + deviceId;
     const auto signingKey = deviceKeys.keys[signKeyId];
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
-    if (signature.isEmpty()) {
-        return false;
-    }
-
     return ed25519VerifySignature(signingKey, toJson(deviceKeys), signature);
 }
 
-bool Quotient::ed25519VerifySignature(const QString &signingKey,
-                              const QJsonObject &obj,
-                              const QString &signature)
+bool Quotient::ed25519VerifySignature(const QString& signingKey,
+                                      const QJsonObject& obj,
+                                      const QString& signature)
 {
-    if (signature.isEmpty()) {
+    if (signature.isEmpty())
         return false;
-    }
+
     QJsonObject obj1 = obj;
 
     obj1.remove("unsigned");

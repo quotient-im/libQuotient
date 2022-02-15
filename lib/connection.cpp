@@ -754,18 +754,20 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
 #ifdef Quotient_E2EE_ENABLED
-    if(data.deviceOneTimeKeysCount()["signed_curve25519"] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys() && !d->isUploadingKeys) {
+    const auto oneTimeKeyCount =
+        static_cast<size_t>(data.deviceOneTimeKeysCount()[SignedCurve25519Key]);
+    if (oneTimeKeyCount < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()
+        && !d->isUploadingKeys) {
         d->isUploadingKeys = true;
-        d->olmAccount->generateOneTimeKeys(d->olmAccount->maxNumberOfOneTimeKeys() / 2 - data.deviceOneTimeKeysCount()["signed_curve25519"]);
+        d->olmAccount->generateOneTimeKeys(
+            d->olmAccount->maxNumberOfOneTimeKeys() / 2 - oneTimeKeyCount);
         auto keys = d->olmAccount->oneTimeKeys();
         auto job = d->olmAccount->createUploadKeyRequest(keys);
         run(job, ForegroundRequest);
-        connect(job, &BaseJob::success, this, [this](){
-            d->olmAccount->markKeysAsPublished();
-        });
-        connect(job, &BaseJob::result, this, [this](){
-            d->isUploadingKeys = false;
-        });
+        connect(job, &BaseJob::success, this,
+                [this] { d->olmAccount->markKeysAsPublished(); });
+        connect(job, &BaseJob::result, this,
+                [this] { d->isUploadingKeys = false; });
     }
     static bool first = true;
     if(first) {
@@ -1993,7 +1995,9 @@ void Connection::Private::loadOutdatedUserDevices()
             deviceKeys[user].clear();
             for(const auto &device : keys) {
                 if(device.userId != user) {
-                    qCWarning(E2EE) << "mxId mismatch during device key verification:" << device.userId << user;
+                    qCWarning(E2EE)
+                        << "mxId mismatch during device key verification:"
+                        << device.userId << user;
                     continue;
                 }
                 if(!device.algorithms.contains("m.olm.v1.curve25519-aes-sha2") || !device.algorithms.contains("m.megolm.v1.aes-sha2")) {

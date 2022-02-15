@@ -39,22 +39,16 @@ public:
                             const QString& deviceId, const QString& sessionId);
     explicit EncryptedEvent(const QJsonObject& obj);
 
-    QString algorithm() const
-    {
-        QString algo = contentPart<QString>(AlgorithmKeyL);
-        if (!SupportedAlgorithms.contains(algo)) {
-            qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
-                           << "is not supported";
-        }
-        return algo;
-    }
+    QString algorithm() const;
     QByteArray ciphertext() const
     {
         return contentPart<QString>(CiphertextKeyL).toLatin1();
     }
     QJsonObject ciphertext(const QString& identityKey) const
     {
-        return contentPart<QJsonObject>(CiphertextKeyL).value(identityKey).toObject();
+        return contentPart<QJsonObject>(CiphertextKeyL)
+            .value(identityKey)
+            .toObject();
     }
     QString senderKey() const { return contentPart<QString>(SenderKeyKeyL); }
 

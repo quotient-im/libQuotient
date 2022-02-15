@@ -6,11 +6,11 @@
 
 using namespace Quotient;
 
-QOlmMessage::QOlmMessage(const QByteArray &ciphertext, QOlmMessage::Type type)
+QOlmMessage::QOlmMessage(QByteArray ciphertext, QOlmMessage::Type type)
     : QByteArray(std::move(ciphertext))
     , m_messageType(type)
 {
-    Q_ASSERT_X(!ciphertext.isEmpty(), "olm message", "Ciphertext is empty");
+    Q_ASSERT_X(!isEmpty(), "olm message", "Ciphertext is empty");
 }
 
 QOlmMessage::QOlmMessage(const QOlmMessage &message)

@@ -28,8 +28,9 @@ public:
     Q_ENUM(Type)
 
     QOlmMessage() = default;
-    explicit QOlmMessage(const QByteArray &ciphertext, Type type = General);
+    explicit QOlmMessage(QByteArray ciphertext, Type type = General);
     explicit QOlmMessage(const QOlmMessage &message);
+    ~QOlmMessage() = default;
 
     static QOlmMessage fromCiphertext(const QByteArray &ciphertext);
 

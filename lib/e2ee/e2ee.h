@@ -5,43 +5,34 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
 #include "converters.h"
+#include "quotient_common.h"
+
+#include <QtCore/QMetaType>
 #include <variant>
-
-#include <QMap>
-#include <QHash>
-#include <QStringList>
-#include <QMetaType>
-
-#include "util.h"
 
 namespace Quotient {
 
-inline const auto CiphertextKeyL = "ciphertext"_ls;
-inline const auto SenderKeyKeyL = "sender_key"_ls;
-inline const auto DeviceIdKeyL = "device_id"_ls;
-inline const auto SessionIdKeyL = "session_id"_ls;
+constexpr auto CiphertextKeyL = "ciphertext"_ls;
+constexpr auto SenderKeyKeyL = "sender_key"_ls;
+constexpr auto DeviceIdKeyL = "device_id"_ls;
+constexpr auto SessionIdKeyL = "session_id"_ls;
 
-inline const auto AlgorithmKeyL = "algorithm"_ls;
-inline const auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
-inline const auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
+constexpr auto AlgorithmKeyL = "algorithm"_ls;
+constexpr auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
+constexpr auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
 
-inline const auto AlgorithmKey = QStringLiteral("algorithm");
-inline const auto RotationPeriodMsKey = QStringLiteral("rotation_period_ms");
-inline const auto RotationPeriodMsgsKey =
-    QStringLiteral("rotation_period_msgs");
+constexpr auto AlgorithmKey = "algorithm"_ls;
+constexpr auto RotationPeriodMsKey = "rotation_period_ms"_ls;
+constexpr auto RotationPeriodMsgsKey = "rotation_period_msgs"_ls;
 
-inline const auto Ed25519Key = QStringLiteral("ed25519");
-inline const auto Curve25519Key = QStringLiteral("curve25519");
-inline const auto SignedCurve25519Key = QStringLiteral("signed_curve25519");
-inline const auto OlmV1Curve25519AesSha2AlgoKey =
-    QStringLiteral("m.olm.v1.curve25519-aes-sha2");
-inline const auto MegolmV1AesSha2AlgoKey =
-    QStringLiteral("m.megolm.v1.aes-sha2");
-inline const QStringList SupportedAlgorithms = { OlmV1Curve25519AesSha2AlgoKey,
-                                                 MegolmV1AesSha2AlgoKey };
+constexpr auto Ed25519Key = "ed25519"_ls;
+constexpr auto Curve25519Key = "curve25519"_ls;
+constexpr auto SignedCurve25519Key = "signed_curve25519"_ls;
+
+constexpr auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_ls;
+constexpr auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_ls;
+
 struct Unencrypted {};
 struct Encrypted {
     QByteArray key;
@@ -54,9 +45,6 @@ using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 class QOlmInboundGroupSession;
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
-
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 struct IdentityKeys
 {
@@ -73,16 +61,13 @@ struct QUOTIENT_API OneTimeKeys
     QMap<QString, QString> curve25519() const;
 
     //! Get a reference to the hashmap corresponding to given key type.
-    std::optional<QMap<QString, QString>> get(QString keyType) const;
+//    std::optional<QHash<QString, QString>> get(QString keyType) const;
 };
 
 //! Struct representing the signed one-time keys.
 class SignedOneTimeKey
 {
 public:
-    SignedOneTimeKey() = default;
-    SignedOneTimeKey(const SignedOneTimeKey &) = default;
-    SignedOneTimeKey &operator=(const SignedOneTimeKey &) = default;
     //! Required. The unpadded Base64-encoded 32-byte Curve25519 public key.
     QString key;
 
@@ -94,8 +79,7 @@ public:
 
 template <>
 struct JsonObjectConverter<SignedOneTimeKey> {
-    static void fillFrom(const QJsonObject& jo,
-                         SignedOneTimeKey& result)
+    static void fillFrom(const QJsonObject& jo, SignedOneTimeKey& result)
     {
         fromJson(jo.value("key"_ls), result.key);
         fromJson(jo.value("signatures"_ls), result.signatures);
@@ -108,24 +92,22 @@ struct JsonObjectConverter<SignedOneTimeKey> {
     }
 };
 
-bool operator==(const IdentityKeys& lhs, const IdentityKeys& rhs);
-
 template <typename T>
 class asKeyValueRange
 {
 public:
-    asKeyValueRange(T &data)
-        : m_data{data}
-    {
-    }
+    asKeyValueRange(T& data)
+        : m_data { data }
+    {}
 
     auto begin() { return m_data.keyValueBegin(); }
-
     auto end() { return m_data.keyValueEnd(); }
 
 private:
     T &m_data;
 };
+template <typename T>
+asKeyValueRange(T&) -> asKeyValueRange<T>;
 
 } // namespace Quotient
 

@@ -33,6 +33,19 @@ EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
     qCDebug(E2EE) << "Encrypted event from" << senderId();
 }
 
+QString EncryptedEvent::algorithm() const
+{
+    auto algo = contentPart<QString>(AlgorithmKeyL);
+    static constexpr auto SupportedAlgorithms =
+        make_array(OlmV1Curve25519AesSha2AlgoKey, MegolmV1AesSha2AlgoKey);
+    if (std::find(SupportedAlgorithms.cbegin(), SupportedAlgorithms.cend(),
+                  algo) == SupportedAlgorithms.cend()) {
+        qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
+                       << "is not supported";
+    }
+    return algo;
+}
+
 RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
 {
     auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();

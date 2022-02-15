@@ -24,7 +24,8 @@ public:
     std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> unpickle(QByteArray &pickled, const PicklingMode &mode);
+    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError>
+    unpickle(QByteArray& pickled, const PicklingMode& mode);
     //! Encrypts a plaintext message using the session.
     std::variant<QByteArray, QOlmError> encrypt(const QString &plaintext);
 
@@ -48,5 +49,4 @@ private:
 };
 
 using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
-using OlmOutboundGroupSessionPtr = std::unique_ptr<OlmOutboundGroupSession>;
 }

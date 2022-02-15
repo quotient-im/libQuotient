@@ -54,7 +54,7 @@ struct DevicesList {
     QStringList left;
 };
 
-QDebug operator<<(QDebug dhg, const DevicesList &devicesList);
+QDebug operator<<(QDebug dhg, const DevicesList& devicesList);
 
 template <>
 struct JsonObjectConverter<DevicesList> {
