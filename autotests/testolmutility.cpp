@@ -52,7 +52,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
     aliceOlm.generateOneTimeKeys(1);
     auto keys = aliceOlm.oneTimeKeys();
 
-    auto firstKey = keys.curve25519().keyValueBegin()->second;
+    auto firstKey = *keys.curve25519().begin();
     auto msgObj = QJsonObject({{"key", firstKey}});
     auto sig = aliceOlm.sign(msgObj);
 
