@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <QtCore/qglobal.h>
+
 #ifdef QUOTIENT_STATIC
 #  define QUOTIENT_API
 #  define QUOTIENT_HIDDEN
