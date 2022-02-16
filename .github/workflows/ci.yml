@@ -19,18 +19,20 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macos-10.15]
+        os: [ ubuntu-20.04, macos-10.15 ]
         compiler: [ GCC, Clang ]
         qt-version: [ '5.12.12' ]
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ '' ]
-        update-api: [ '', 'update-api' ]
+        e2ee: [ '', e2ee ]
+        update-api: [ '', update-api ]
         sonar: [ '' ]
         platform: [ '' ]
         qt-arch: [ '' ]
         exclude:
         - os: macos-10.15
           compiler: GCC
+        - os: windows-2019
+          e2ee: e2ee # Not supported by the current CI script
         include:
         - os: ubuntu-latest
           compiler: GCC
@@ -55,7 +57,6 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-        submodules: ${{ matrix.e2ee != '' }}
 
     - name: Cache Qt
       id: cache-qt
@@ -154,7 +155,6 @@ jobs:
       if: ${{ contains(matrix.os, 'ubuntu') && matrix.e2ee }}
       run: |
         sudo apt-get install libssl-dev
-        echo "openssl version" >>$GITHUB_ENV
 
     - name: Build and install olm
       if: matrix.e2ee
