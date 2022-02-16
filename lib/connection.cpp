@@ -2007,8 +2007,10 @@ void Connection::Private::loadOutdatedUserDevices()
                                     << device.algorithms;
                     continue;
                 }
-                if(!verifyIdentitySignature(device, device.deviceId, device.userId)) {
-                    qCWarning(E2EE) << "Failed to verify devicekeys signature. Skipping this device";
+                if (!verifyIdentitySignature(device, device.deviceId,
+                                             device.userId)) {
+                    qCWarning(E2EE) << "Failed to verify devicekeys signature. "
+                                       "Skipping this device";
                     continue;
                 }
                 deviceKeys[user][device.deviceId] = device;
@@ -2022,9 +2024,11 @@ void Connection::Private::loadOutdatedUserDevices()
 void Connection::Private::saveDevicesList()
 {
     q->database()->transaction();
-    auto query = q->database()->prepareQuery(QStringLiteral("DELETE FROM tracked_users"));
+    auto query = q->database()->prepareQuery(
+        QStringLiteral("DELETE FROM tracked_users"));
     q->database()->execute(query);
-    query.prepare(QStringLiteral("INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
+    query.prepare(QStringLiteral(
+        "INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
     for (const auto& user : trackedUsers) {
         query.bindValue(":matrixId", user);
         q->database()->execute(query);
@@ -2032,13 +2036,18 @@ void Connection::Private::saveDevicesList()
 
     query.prepare(QStringLiteral("DELETE FROM outdated_users"));
     q->database()->execute(query);
-    query.prepare(QStringLiteral("INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
+    query.prepare(QStringLiteral(
+        "INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
     for (const auto& user : outdatedUsers) {
         query.bindValue(":matrixId", user);
         q->database()->execute(query);
     }
 
-    query.prepare(QStringLiteral("INSERT INTO tracked_devices(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey) VALUES(:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey);"));
+    query.prepare(QStringLiteral(
+        "INSERT INTO tracked_devices"
+        "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey) "
+        "VALUES(:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey);"
+        ));
     for (const auto& user : deviceKeys.keys()) {
         for (const auto& device : deviceKeys[user]) {
             auto keys = device.keys.keys();

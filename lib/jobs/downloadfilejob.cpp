@@ -127,7 +127,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             QByteArray encrypted = d->tempFile->readAll();
 
             EncryptedFile file = *d->encryptedFile;
-            auto decrypted = file.decryptFile(encrypted);
+            const auto decrypted = file.decryptFile(encrypted);
             d->targetFile->write(decrypted);
             d->tempFile->remove();
         } else {
@@ -149,10 +149,10 @@ BaseJob::Status DownloadFileJob::prepareResult()
 #ifdef Quotient_E2EE_ENABLED
         if (d->encryptedFile.has_value()) {
             d->tempFile->seek(0);
-            auto encrypted = d->tempFile->readAll();
+            const auto encrypted = d->tempFile->readAll();
 
             EncryptedFile file = *d->encryptedFile;
-            auto decrypted = file.decryptFile(encrypted);
+            const auto decrypted = file.decryptFile(encrypted);
             d->tempFile->write(decrypted);
         } else {
 #endif
