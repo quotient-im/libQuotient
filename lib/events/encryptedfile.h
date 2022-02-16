@@ -29,7 +29,7 @@ public:
     bool ext;
 };
 
-struct EncryptedFile
+struct QUOTIENT_API EncryptedFile
 {
     Q_GADGET
     Q_PROPERTY(QUrl url MEMBER url CONSTANT)

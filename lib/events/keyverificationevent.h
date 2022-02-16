@@ -7,8 +7,7 @@ namespace Quotient {
 
 /// Requests a key verification with another user's devices.
 /// Typically sent as a to-device event.
-class KeyVerificationRequestEvent : public Event {
-    Q_GADGET
+class QUOTIENT_API KeyVerificationRequestEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.request", KeyVerificationRequestEvent)
 
@@ -33,8 +32,7 @@ public:
 REGISTER_EVENT_TYPE(KeyVerificationRequestEvent)
 
 /// Begins a key verification process.
-class KeyVerificationStartEvent : public Event {
-    Q_GADGET
+class QUOTIENT_API KeyVerificationStartEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.start", KeyVerificationStartEvent)
 
@@ -76,8 +74,7 @@ REGISTER_EVENT_TYPE(KeyVerificationStartEvent)
 
 /// Accepts a previously sent m.key.verification.start message.
 /// Typically sent as a to-device event.
-class KeyVerificationAcceptEvent : public Event {
-    Q_GADGET
+class QUOTIENT_API KeyVerificationAcceptEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.accept", KeyVerificationAcceptEvent)
 
@@ -111,8 +108,7 @@ public:
 };
 REGISTER_EVENT_TYPE(KeyVerificationAcceptEvent)
 
-class KeyVerificationCancelEvent : public Event {
-    Q_GADGET
+class QUOTIENT_API KeyVerificationCancelEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.cancel", KeyVerificationCancelEvent)
 
@@ -133,7 +129,6 @@ REGISTER_EVENT_TYPE(KeyVerificationCancelEvent)
 /// Sends the ephemeral public key for a device to the partner device.
 /// Typically sent as a to-device event.
 class KeyVerificationKeyEvent : public Event {
-    Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.key", KeyVerificationKeyEvent)
 
@@ -148,8 +143,7 @@ public:
 REGISTER_EVENT_TYPE(KeyVerificationKeyEvent)
 
 /// Sends the MAC of a device's key to the partner device.
-class KeyVerificationMacEvent : public Event {
-    Q_GADGET
+class QUOTIENT_API KeyVerificationMacEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.mac", KeyVerificationMacEvent)
 

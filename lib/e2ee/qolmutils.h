@@ -10,6 +10,6 @@
 
 namespace Quotient {
 // Convert PicklingMode to key
-QByteArray toKey(const PicklingMode &mode);
-QByteArray getRandom(size_t bufferSize);
+QUOTIENT_API QByteArray toKey(const PicklingMode &mode);
+QUOTIENT_API QByteArray getRandom(size_t bufferSize);
 }

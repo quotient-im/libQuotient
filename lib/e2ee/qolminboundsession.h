@@ -15,7 +15,7 @@ namespace Quotient {
 
 //! An in-bound group session is responsible for decrypting incoming
 //! communication in a Megolm session.
-struct QOlmInboundGroupSession
+class QUOTIENT_API QOlmInboundGroupSession
 {
 public:
     ~QOlmInboundGroupSession();

@@ -25,7 +25,7 @@ using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 //! \code{.cpp}
 //! const auto olmAccount = new QOlmAccount(this);
 //! \endcode
-class QOlmAccount : public QObject
+class QUOTIENT_API QOlmAccount : public QObject
 {
     Q_OBJECT
 public:
@@ -111,13 +111,13 @@ private:
     QString m_deviceId;
 };
 
-bool verifyIdentitySignature(const DeviceKeys &deviceKeys,
-                             const QString &deviceId,
-                             const QString &userId);
+QUOTIENT_API bool verifyIdentitySignature(const DeviceKeys& deviceKeys,
+                                          const QString& deviceId,
+                                          const QString& userId);
 
 //! checks if the signature is signed by the signing_key
-bool ed25519VerifySignature(const QString &signingKey,
-                            const QJsonObject &obj,
-                            const QString &signature);
+QUOTIENT_API bool ed25519VerifySignature(const QString& signingKey,
+                                         const QJsonObject& obj,
+                                         const QString& signature);
 
 } // namespace Quotient

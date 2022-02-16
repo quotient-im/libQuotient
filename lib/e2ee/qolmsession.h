@@ -18,7 +18,7 @@ class QOlmSession;
 
 
 //! Either an outbound or inbound session for secure communication.
-class QOlmSession
+class QUOTIENT_API QOlmSession
 {
 public:
     ~QOlmSession();

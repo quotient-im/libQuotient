@@ -65,7 +65,7 @@ struct IdentityKeys
 };
 
 //! Struct representing the one-time keys.
-struct OneTimeKeys
+struct QUOTIENT_API OneTimeKeys
 {
     QMap<QString, QMap<QString, QString>> keys;
 

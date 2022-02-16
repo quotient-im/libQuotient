@@ -10,10 +10,9 @@
 #include "e2ee/e2ee.h"
 
 namespace Quotient {
-class Database : public QObject
+class QUOTIENT_API Database : public QObject
 {
     Q_OBJECT
-
 public:
     Database(const QString& matrixId, QObject* parent);
 

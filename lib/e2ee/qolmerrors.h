@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 namespace Quotient {
 //! All errors that could be caused by an operation regarding Olm
 //! Errors are named exactly like the ones in libolm.
@@ -21,6 +23,6 @@ enum QOlmError
     Unknown,
 };
 
-QOlmError fromString(const char* error_raw);
+QUOTIENT_API QOlmError fromString(const char* error_raw);
 
 } //namespace Quotient

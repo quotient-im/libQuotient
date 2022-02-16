@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "quotient_export.h"
+
 #include <QObject>
 #include <QByteArray>
 
@@ -16,7 +18,7 @@ namespace Quotient {
  *
  * The class provides functions to get a type and the ciphertext.
  */
-class QOlmMessage : public QByteArray {
+class QUOTIENT_API QOlmMessage : public QByteArray {
     Q_GADGET
 public:
     enum Type {

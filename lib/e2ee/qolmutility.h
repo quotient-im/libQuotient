@@ -17,7 +17,7 @@ class Connection;
 
 //! Allows you to make use of crytographic hashing via SHA-2 and
 //! verifying ed25519 signatures.
-class QOlmUtility
+class QUOTIENT_API QOlmUtility
 {
 public:
     QOlmUtility();
