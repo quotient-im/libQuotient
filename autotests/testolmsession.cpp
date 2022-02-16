@@ -77,4 +77,4 @@ void TestOlmSession::correctSessionOrdering()
     QCOMPARE(sessionList[2]->sessionId(), session1Id);
 }
 
-QTEST_MAIN(TestOlmSession)
+QTEST_APPLESS_MAIN(TestOlmSession)
