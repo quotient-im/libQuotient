@@ -217,7 +217,12 @@ jobs:
         QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true;quotient.events.debug=true'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
-        autotests/run-tests.sh --test-dir $BUILD_PATH --output-on-failure
+        CTEST_ARGS="--test-dir $BUILD_PATH --output-on-failure"
+        if [[ -z '${{ matrix.e2ee }}' || '${{ runner.os }}' != 'Linux' ]]; then
+            ctest $CTEST_ARGS -E testolmaccount
+        else
+            autotests/run-tests.sh $CTEST_ARGS
+        fi
         [[ -z "$TEST_USER" ]] || \
             LD_LIBRARY_PATH=$LIB_PATH \
             $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
