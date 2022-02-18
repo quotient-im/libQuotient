@@ -125,5 +125,4 @@ void TestOlmUtility::validUploadKeysRequest()
     QVERIFY(verifyIdentitySignature(fromJson<DeviceKeys>(body), deviceId, userId));
     QVERIFY(verifyIdentitySignature(deviceKeys, deviceId, userId));
 }
-
-QTEST_APPLESS_MAIN(TestOlmUtility)
+QTEST_GUILESS_MAIN(TestOlmUtility)

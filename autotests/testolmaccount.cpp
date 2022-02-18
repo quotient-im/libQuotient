@@ -573,4 +573,4 @@ void TestOlmAccount::enableEncryption()
     QVERIFY(spy2.wait(10000));
 }
 
-QTEST_APPLESS_MAIN(TestOlmAccount)
+QTEST_GUILESS_MAIN(TestOlmAccount)

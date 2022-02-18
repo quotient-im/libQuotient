@@ -51,4 +51,4 @@ void TestOlmSession::groupSessionCryptoValid()
 
     QCOMPARE(0, decryptionResult.second);
 }
-QTEST_APPLESS_MAIN(TestOlmSession)
+QTEST_GUILESS_MAIN(TestOlmSession)
