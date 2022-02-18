@@ -4,7 +4,7 @@
 
 #include <QTest>
 
-class TestOlmSession : public QObject
+class TestGroupSession : public QObject
 {
     Q_OBJECT
 

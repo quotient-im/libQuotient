@@ -9,7 +9,7 @@
 
 using namespace Quotient;
 
-void TestOlmSession::groupSessionPicklingValid()
+void TestGroupSession::groupSessionPicklingValid()
 {
     auto ogs = QOlmOutboundGroupSession::create();
     const auto ogsId = ogs->sessionId();
@@ -33,7 +33,7 @@ void TestOlmSession::groupSessionPicklingValid()
     QCOMPARE(igsId, igs->sessionId());
 }
 
-void TestOlmSession::groupSessionCryptoValid()
+void TestGroupSession::groupSessionCryptoValid()
 {
     auto ogs = QOlmOutboundGroupSession::create();
     auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
@@ -51,4 +51,4 @@ void TestOlmSession::groupSessionCryptoValid()
 
     QCOMPARE(0, decryptionResult.second);
 }
-QTEST_GUILESS_MAIN(TestOlmSession)
+QTEST_GUILESS_MAIN(TestGroupSession)
