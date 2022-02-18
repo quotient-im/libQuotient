@@ -4,13 +4,15 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testolmaccount.h"
+
+#include <connection.h>
+#include <csapi/joining.h>
 #include <e2ee/qolmaccount.h>
 #include <e2ee/qolmutility.h>
-#include <connection.h>
+#include <events/encryptionevent.h>
 #include <events/encryptedfile.h>
 #include <networkaccessmanager.h>
 #include <room.h>
-#include <csapi/joining.h>
 
 using namespace Quotient;
 
@@ -84,8 +86,8 @@ void TestOlmAccount::deviceKeys()
                     {"ed25519:JLAFKJWSCS", "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"}};
 
     // TODO that should be the default value
-    device1.algorithms = QStringList {"m.olm.v1.curve25519-aes-sha2",
-                           "m.megolm.v1.aes-sha2"};
+    device1.algorithms =
+        QStringList { OlmV1Curve25519AesSha2AlgoKey, MegolmV1AesSha2AlgoKey };
 
     device1.signatures = {
       {"@alice:example.com",
@@ -168,24 +170,24 @@ void TestOlmAccount::encryptedFile()
     QCOMPARE(file.key.kty, "oct");
 }
 
-#define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME)           \
-    NetworkAccessManager::instance()->ignoreSslErrors(true);            \
-    auto VAR = std::make_shared<Connection>();                          \
-    (VAR)->resolveServer("@" USERNAME ":localhost:1234");               \
-    connect((VAR).get(), &Connection::loginFlowsChanged, this, [=] {    \
-        (VAR)->loginWithPassword((USERNAME), SECRET, DEVICE_NAME, "");  \
-    });                                                                 \
-    connect((VAR).get(), &Connection::networkError, [](QString error) { \
-        QWARN(qUtf8Printable(error));                                   \
-        QFAIL("Network error: make sure synapse is running");           \
-    });                                                                 \
-    connect((VAR).get(), &Connection::loginError, [](QString error) {   \
-        QWARN(qUtf8Printable(error));                                   \
-        QFAIL("Login failed");                                          \
-    });                                                                 \
-    QSignalSpy spy##VAR((VAR).get(), &Connection::loginFlowsChanged);   \
-    QSignalSpy spy2##VAR((VAR).get(), &Connection::connected);          \
-    QVERIFY(spy##VAR.wait(10000));                                      \
+#define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME)                  \
+    NetworkAccessManager::instance()->ignoreSslErrors(true);                   \
+    auto VAR = std::make_shared<Connection>();                                 \
+    (VAR)->resolveServer("@" USERNAME ":localhost:1234");                      \
+    connect((VAR).get(), &Connection::loginFlowsChanged, this, [=] {           \
+        (VAR)->loginWithPassword((USERNAME), SECRET, DEVICE_NAME, "");         \
+    });                                                                        \
+    connect((VAR).get(), &Connection::networkError, [](const QString& error) { \
+        QWARN(qUtf8Printable(error));                                          \
+        QFAIL("Network error: make sure synapse is running");                  \
+    });                                                                        \
+    connect((VAR).get(), &Connection::loginError, [](const QString& error) {   \
+        QWARN(qUtf8Printable(error));                                          \
+        QFAIL("Login failed");                                                 \
+    });                                                                        \
+    QSignalSpy spy##VAR((VAR).get(), &Connection::loginFlowsChanged);          \
+    QSignalSpy spy2##VAR((VAR).get(), &Connection::connected);                 \
+    QVERIFY(spy##VAR.wait(10000));                                             \
     QVERIFY(spy2##VAR.wait(10000));
 
 void TestOlmAccount::uploadIdentityKey()
@@ -228,7 +230,7 @@ void TestOlmAccount::uploadOneTimeKeys()
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, conn] {
         QCOMPARE(request->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(request->oneTimeKeyCounts()["curve25519"], 5);
+        QCOMPARE(request->oneTimeKeyCounts().value(Curve25519Key), 5);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -256,7 +258,7 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, nKeys, conn] {
         QCOMPARE(request->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], nKeys);
+        QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), nKeys);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -276,7 +278,7 @@ void TestOlmAccount::uploadKeys()
     auto request = olmAccount->createUploadKeyRequest(otks);
     connect(request, &BaseJob::result, this, [request, conn] {
         QCOMPARE(request->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], 1);
+        QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     connect(request, &BaseJob::failure, this, [] {
         QFAIL("upload failed");
@@ -297,7 +299,7 @@ void TestOlmAccount::queryTest()
     auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(aliceRes, &BaseJob::result, this, [aliceRes] {
         QCOMPARE(aliceRes->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(aliceRes->oneTimeKeyCounts()["signed_curve25519"], 1);
+        QCOMPARE(aliceRes->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     QSignalSpy spy(aliceRes, &BaseJob::result);
     alice->run(aliceRes);
@@ -308,7 +310,7 @@ void TestOlmAccount::queryTest()
     auto bobRes = bobOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(bobRes, &BaseJob::result, this, [bobRes] {
         QCOMPARE(bobRes->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(bobRes->oneTimeKeyCounts()["signed_curve25519"], 1);
+        QCOMPARE(bobRes->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     QSignalSpy spy1(bobRes, &BaseJob::result);
     bob->run(bobRes);
@@ -320,13 +322,13 @@ void TestOlmAccount::queryTest()
         deviceKeys[bob->userId()] = QStringList();
         auto job = alice->callApi<QueryKeysJob>(deviceKeys);
         QSignalSpy spy(job, &BaseJob::result);
-        connect(job, &BaseJob::result, this, [job, &bob, &bobOlm] {
+        connect(job, &BaseJob::result, this, [job, bob, bobOlm] {
             QCOMPARE(job->failures().size(), 0);
 
-            auto aliceDevices = job->deviceKeys()[bob->userId()];
-            QVERIFY(aliceDevices.size() > 0);
+            const auto& aliceDevices = job->deviceKeys().value(bob->userId());
+            QVERIFY(!aliceDevices.empty());
 
-            auto devKeys = aliceDevices[bob->deviceId()];
+            const auto& devKeys = aliceDevices.value(bob->deviceId());
             QCOMPARE(devKeys.userId, bob->userId());
             QCOMPARE(devKeys.deviceId, bob->deviceId());
             QCOMPARE(devKeys.keys, bobOlm->deviceKeys().keys);
@@ -340,11 +342,11 @@ void TestOlmAccount::queryTest()
         deviceKeys[alice->userId()] = QStringList();
         auto job = bob->callApi<QueryKeysJob>(deviceKeys);
         QSignalSpy spy(job, &BaseJob::result);
-        connect(job, &BaseJob::result, this, [job, &alice, &aliceOlm] {
+        connect(job, &BaseJob::result, this, [job, alice, aliceOlm] {
             QCOMPARE(job->failures().size(), 0);
 
-            auto bobDevices = job->deviceKeys()[alice->userId()];
-            QVERIFY(bobDevices.size() > 0);
+            const auto& bobDevices = job->deviceKeys().value(alice->userId());
+            QVERIFY(!bobDevices.empty());
 
             auto devKeys = bobDevices[alice->deviceId()];
             QCOMPARE(devKeys.userId, alice->userId());
@@ -368,7 +370,7 @@ void TestOlmAccount::claimKeys()
 
     connect(request, &BaseJob::result, this, [request, bob] {
         QCOMPARE(request->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(request->oneTimeKeyCounts()["signed_curve25519"], 1);
+        QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     bob->run(request);
 
@@ -376,51 +378,47 @@ void TestOlmAccount::claimKeys()
     QVERIFY(requestSpy.wait(10000));
 
     // Alice retrieves bob's keys & claims one signed one-time key.
-    auto *aliceOlm = alice->olmAccount();
     QHash<QString, QStringList> deviceKeys;
     deviceKeys[bob->userId()] = QStringList();
     auto job = alice->callApi<QueryKeysJob>(deviceKeys);
-    connect(job, &BaseJob::result, this, [bob, alice, aliceOlm, job, this] {
-        auto bobDevices = job->deviceKeys()[bob->userId()];
-        QVERIFY(bobDevices.size() > 0);
+    connect(job, &BaseJob::result, this, [bob, alice, job, this] {
+        const auto& bobDevices = job->deviceKeys().value(bob->userId());
+        QVERIFY(!bobDevices.empty());
 
         // Retrieve the identity key for the current device.
-        auto bobEd25519 =
-          bobDevices[bob->deviceId()].keys["ed25519:" + bob->deviceId()];
+        const auto& bobEd25519 =
+            bobDevices.value(bob->deviceId()).keys["ed25519:" + bob->deviceId()];
 
         const auto currentDevice = bobDevices[bob->deviceId()];
 
         // Verify signature.
-        QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(), bob->userId()));
+        QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(),
+                                        bob->userId()));
 
         QHash<QString, QHash<QString, QString>> oneTimeKeys;
         oneTimeKeys[bob->userId()] = QHash<QString, QString>();
         oneTimeKeys[bob->userId()][bob->deviceId()] = SignedCurve25519Key;
 
         auto job = alice->callApi<ClaimKeysJob>(oneTimeKeys);
-        connect(job, &BaseJob::result, this, [aliceOlm, bob, bobEd25519, job] {
+        connect(job, &BaseJob::result, this, [bob, bobEd25519, job] {
             const auto userId = bob->userId();
             const auto deviceId = bob->deviceId();
 
             // The device exists.
             QCOMPARE(job->oneTimeKeys().size(), 1);
-            QCOMPARE(job->oneTimeKeys()[userId].size(), 1);
+            QCOMPARE(job->oneTimeKeys().value(userId).size(), 1);
 
             // The key is the one bob sent.
-            auto oneTimeKey = job->oneTimeKeys()[userId][deviceId];
+            const auto& oneTimeKey =
+                job->oneTimeKeys().value(userId).value(deviceId);
             QVERIFY(oneTimeKey.canConvert<QVariantMap>());
 
-            QVariantMap varMap = oneTimeKey.toMap();
-            bool found = false;
-            for (const auto &key : varMap.keys()) {
-                if (key.startsWith(QStringLiteral("signed_curve25519"))) {
-                    found = true;
-                }
-            }
-            QVERIFY(found);
-
-            //auto algo = oneTimeKey.begin().key();
-            //auto contents = oneTimeKey.begin().value();
+            const auto varMap = oneTimeKey.toMap();
+            QVERIFY(std::any_of(varMap.constKeyValueBegin(),
+                                varMap.constKeyValueEnd(), [](const auto& kv) {
+                                    return kv.first.startsWith(
+                                        SignedCurve25519Key);
+                                }));
         });
     });
 }
@@ -438,7 +436,7 @@ void TestOlmAccount::claimMultipleKeys()
     QSignalSpy spy(res, &BaseJob::result);
     connect(res, &BaseJob::result, this, [res] {
         QCOMPARE(res->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(res->oneTimeKeyCounts()["signed_curve25519"], 10);
+        QCOMPARE(res->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice->run(res);
 
@@ -448,7 +446,7 @@ void TestOlmAccount::claimMultipleKeys()
     QSignalSpy spy1(res1, &BaseJob::result);
     connect(res1, &BaseJob::result, this, [res1] {
         QCOMPARE(res1->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(res1->oneTimeKeyCounts()["signed_curve25519"], 10);
+        QCOMPARE(res1->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice1->run(res1);
 
@@ -458,7 +456,7 @@ void TestOlmAccount::claimMultipleKeys()
     QSignalSpy spy2(res2, &BaseJob::result);
     connect(res2, &BaseJob::result, this, [res2] {
         QCOMPARE(res2->oneTimeKeyCounts().size(), 1);
-        QCOMPARE(res2->oneTimeKeyCounts()["signed_curve25519"], 10);
+        QCOMPARE(res2->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice2->run(res2);
 
@@ -482,11 +480,10 @@ void TestOlmAccount::claimMultipleKeys()
     auto job = bob->callApi<ClaimKeysJob>(oneTimeKeys);
     connect(job, &BaseJob::result, this, [bob, job] {
         const auto userId = bob->userId();
-        const auto deviceId = bob->deviceId();
 
         // The device exists.
         QCOMPARE(job->oneTimeKeys().size(), 1);
-        QCOMPARE(job->oneTimeKeys()[userId].size(), 3);
+        QCOMPARE(job->oneTimeKeys().value(userId).size(), 3);
     });
 }
 
@@ -494,8 +491,9 @@ void TestOlmAccount::keyChange()
 {
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
 
-    auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), QStringList());
+    auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
     connect(job, &BaseJob::result, this, [alice, job, this] {
+        QVERIFY(job->status().good());
         // Alice syncs to get the first next_batch token.
         alice->sync();
         connect(alice.get(), &Connection::syncDone, this, [alice, this] {
@@ -517,7 +515,7 @@ void TestOlmAccount::keyChange()
             connect(changeJob, &BaseJob::result, this, [changeJob, alice] {
                 QCOMPARE(changeJob->changed().size(), 1);
                 QCOMPARE(changeJob->left().size(), 0);
-                QCOMPARE(changeJob->changed()[0], alice->userId());
+                QCOMPARE(*changeJob->changed().cbegin(), alice->userId());
             });
             QSignalSpy spy2(changeJob, &BaseJob::result);
             QVERIFY(spy2.wait(10000));
@@ -534,39 +532,43 @@ void TestOlmAccount::enableEncryption()
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
     CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
 
-    QString joinedRoom;
+    QString joinedRoomId;
 
-    auto job = alice->createRoom(Connection::PublishRoom, QString(), QString(), QString(), {"@bob:localhost"});
-    connect(alice.get(), &Connection::newRoom, this, [alice, bob, &joinedRoom, this] (Quotient::Room *room) {
-        room->activateEncryption();
-        QSignalSpy spy(room, &Room::encryption);
+    auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {},
+                                 { "@bob:localhost" });
+    connect(alice.get(), &Connection::newRoom, this,
+            [alice, bob, &joinedRoomId](Quotient::Room* room) {
+                room->activateEncryption();
+                QSignalSpy spy(room, &Room::encryption);
 
-        joinedRoom = room->id();
-        auto job = bob->joinRoom(room->id());
-        QSignalSpy spy1(job, &BaseJob::result);
-        QVERIFY(spy.wait(10000));
-        QVERIFY(spy1.wait(10000));
-    });
+                joinedRoomId = room->id();
+                auto job = bob->joinRoom(room->id());
+                QSignalSpy spy1(job, &BaseJob::result);
+                QVERIFY(spy.wait(10000));
+                QVERIFY(spy1.wait(10000));
+            });
 
     QSignalSpy spy(job, &BaseJob::result);
     QVERIFY(spy.wait(10000));
 
     bob->sync();
-    connect(bob.get(), &Connection::syncDone, this, [bob, joinedRoom, this] {
-        auto &events = bob->room(joinedRoom)->messageEvents();
+    connect(bob.get(), &Connection::syncDone, this, [bob, joinedRoomId] {
+        const auto* joinedRoom = bob->room(joinedRoomId);
+        const auto& events = joinedRoom->messageEvents();
         bool hasEncryption = false;
         for (auto it = events.rbegin(); it != events.rend(); ++it) {
-            auto event = it->event();
+            const auto& event = it->event();
             if (eventCast<const EncryptedEvent>(event)) {
                 hasEncryption = true;
             } else {
-               qDebug() << event->matrixType() << typeId<EncryptedEvent>() << event->type();
-               if ( event->matrixType() == "m.room.encryption") {
+                qDebug() << event->matrixType() << typeId<EncryptedEvent>()
+                         << event->type();
+                if (is<EncryptionEvent>(*event)) {
                     qDebug() << event->contentJson();
-               }
+                }
             }
         }
-        QVERIFY(bob->room(joinedRoom)->usesEncryption());
+        QVERIFY(bob->room(joinedRoomId)->usesEncryption());
         QVERIFY(hasEncryption);
     });
     QSignalSpy spy2(bob.get(), &Connection::syncDone);
