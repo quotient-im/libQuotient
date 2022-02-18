@@ -18,6 +18,6 @@ docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u bob -p secre
 echo Register carl
 docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u carl -p secret -c /data/homeserver.yaml https://localhost:8008'
 
-cd build/ && GTEST_COLOR=1 ctest --verbose
+GTEST_COLOR=1 ctest --verbose "$@"
 rm -rf ./data/*
 docker rm -f synapse 2>&1>/dev/null
