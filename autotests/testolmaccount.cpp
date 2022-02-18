@@ -361,7 +361,7 @@ void TestOlmAccount::queryTest()
 void TestOlmAccount::claimKeys()
 {
     CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(bob, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
 
     // Bob uploads his keys.
     auto *bobOlm = bob->olmAccount();
