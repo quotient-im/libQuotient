@@ -192,7 +192,7 @@ void TestOlmAccount::encryptedFile()
 
 void TestOlmAccount::uploadIdentityKey()
 {
-    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(conn, "alice1", "secret", "AlicePhone")
 
     auto olmAccount = conn->olmAccount();
     auto idKeys = olmAccount->identityKeys();
@@ -214,7 +214,7 @@ void TestOlmAccount::uploadIdentityKey()
 
 void TestOlmAccount::uploadOneTimeKeys()
 {
-    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(conn, "alice2", "secret", "AlicePhone")
     auto olmAccount = conn->olmAccount();
 
     auto nKeys = olmAccount->generateOneTimeKeys(5);
@@ -242,7 +242,7 @@ void TestOlmAccount::uploadOneTimeKeys()
 
 void TestOlmAccount::uploadSignedOneTimeKeys()
 {
-    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(conn, "alice3", "secret", "AlicePhone")
     auto olmAccount = conn->olmAccount();
     auto nKeys = olmAccount->generateOneTimeKeys(5);
     QCOMPARE(nKeys, 5);
@@ -270,7 +270,7 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
 
 void TestOlmAccount::uploadKeys()
 {
-    CREATE_CONNECTION(conn, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(conn, "alice4", "secret", "AlicePhone")
     auto olmAccount = conn->olmAccount();
     auto idks = olmAccount->identityKeys();
     olmAccount->generateOneTimeKeys(1);
@@ -290,8 +290,8 @@ void TestOlmAccount::uploadKeys()
 
 void TestOlmAccount::queryTest()
 {
-    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+    CREATE_CONNECTION(alice, "alice5", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob1", "secret", "BobPhone")
 
     // Create and upload keys for both users.
     auto aliceOlm = alice->olmAccount();
@@ -360,8 +360,8 @@ void TestOlmAccount::queryTest()
 
 void TestOlmAccount::claimKeys()
 {
-    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+    CREATE_CONNECTION(alice, "alice6", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob2", "secret", "BobPhone")
 
     // Bob uploads his keys.
     auto *bobOlm = bob->olmAccount();
@@ -426,9 +426,9 @@ void TestOlmAccount::claimKeys()
 void TestOlmAccount::claimMultipleKeys()
 {
     // Login with alice multiple times
-    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(alice1, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(alice2, "alice", "secret", "AlicePhone")
+    CREATE_CONNECTION(alice, "alice7", "secret", "AlicePhone")
+    CREATE_CONNECTION(alice1, "alice7", "secret", "AlicePhone")
+    CREATE_CONNECTION(alice2, "alice7", "secret", "AlicePhone")
 
     auto olm = alice->olmAccount();
     olm->generateOneTimeKeys(10);
@@ -465,7 +465,7 @@ void TestOlmAccount::claimMultipleKeys()
     QVERIFY(spy2.wait(1000)); // TODO this is failing even with 10000
 
     // Bob will claim all keys from alice
-    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+    CREATE_CONNECTION(bob, "bob3", "secret", "BobPhone")
 
     QStringList devices_;
     devices_ << alice->deviceId()
@@ -487,50 +487,10 @@ void TestOlmAccount::claimMultipleKeys()
     });
 }
 
-void TestOlmAccount::keyChange()
-{
-    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-
-    auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
-    connect(job, &BaseJob::result, this, [alice, job, this] {
-        QVERIFY(job->status().good());
-        // Alice syncs to get the first next_batch token.
-        alice->sync();
-        connect(alice.get(), &Connection::syncDone, this, [alice, this] {
-            const auto nextBatchToken = alice->nextBatchToken();
-
-            // generate keys and change existing one
-            auto aliceOlm = alice->olmAccount();
-            aliceOlm->generateOneTimeKeys(1);
-            auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
-            QSignalSpy spy(aliceRes, &BaseJob::result);
-
-            alice->run(aliceRes);
-            QVERIFY(spy.wait(10000));
-
-            // The key changes should contain her username
-            // because of the key uploading.
-
-            auto changeJob = alice->callApi<GetKeysChangesJob>(nextBatchToken, "");
-            connect(changeJob, &BaseJob::result, this, [changeJob, alice] {
-                QCOMPARE(changeJob->changed().size(), 1);
-                QCOMPARE(changeJob->left().size(), 0);
-                QCOMPARE(*changeJob->changed().cbegin(), alice->userId());
-            });
-            QSignalSpy spy2(changeJob, &BaseJob::result);
-            QVERIFY(spy2.wait(10000));
-        });
-        QSignalSpy spy2(alice.get(), &Connection::syncDone);
-        QVERIFY(spy2.wait(10000));
-    });
-    QSignalSpy spy(job, &BaseJob::result);
-    QVERIFY(spy.wait(10000));
-}
-
 void TestOlmAccount::enableEncryption()
 {
-    CREATE_CONNECTION(alice, "alice", "secret", "AlicePhone")
-    CREATE_CONNECTION(bob, "bob", "secret", "BobPhone")
+    CREATE_CONNECTION(alice, "alice9", "secret", "AlicePhone")
+    CREATE_CONNECTION(bob, "bob4", "secret", "BobPhone")
 
     QString joinedRoomId;
 
@@ -547,7 +507,7 @@ void TestOlmAccount::enableEncryption()
                 QVERIFY(spy.wait(10000));
                 QVERIFY(spy1.wait(10000));
             });
-
+    alice->sync();
     QSignalSpy spy(job, &BaseJob::result);
     QVERIFY(spy.wait(10000));
 
@@ -558,14 +518,9 @@ void TestOlmAccount::enableEncryption()
         bool hasEncryption = false;
         for (auto it = events.rbegin(); it != events.rend(); ++it) {
             const auto& event = it->event();
-            if (eventCast<const EncryptedEvent>(event)) {
+            if (is<EncryptionEvent>(*event)) {
                 hasEncryption = true;
-            } else {
-                qDebug() << event->matrixType() << typeId<EncryptedEvent>()
-                         << event->type();
-                if (is<EncryptionEvent>(*event)) {
-                    qDebug() << event->contentJson();
-                }
+                break;
             }
         }
         QVERIFY(bob->room(joinedRoomId)->usesEncryption());
