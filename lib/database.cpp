@@ -15,7 +15,7 @@
 #include "e2ee/qolminboundsession.h"
 
 using namespace Quotient;
-Database::Database(const QString& matrixId, QObject* parent)
+Database::Database(const QString& matrixId, const QString& deviceId, QObject* parent)
     : QObject(parent)
     , m_matrixId(matrixId)
 {
@@ -23,7 +23,7 @@ Database::Database(const QString& matrixId, QObject* parent)
     QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), QStringLiteral("Quotient_%1").arg(m_matrixId));
     QString databasePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/%1").arg(m_matrixId);
     QDir(databasePath).mkpath(databasePath);
-    database().setDatabaseName(databasePath + QStringLiteral("/quotient.db3"));
+    database().setDatabaseName(databasePath + QStringLiteral("/quotient_%1.db3").arg(deviceId));
     database().open();
 
     switch(version()) {

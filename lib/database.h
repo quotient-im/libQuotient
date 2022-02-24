@@ -14,7 +14,7 @@ class QUOTIENT_API Database : public QObject
 {
     Q_OBJECT
 public:
-    Database(const QString& matrixId, QObject* parent);
+    Database(const QString& matrixId, const QString& deviceId, QObject* parent);
 
     int version();
     void transaction();

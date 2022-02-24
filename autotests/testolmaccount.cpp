@@ -439,6 +439,7 @@ void TestOlmAccount::claimMultipleKeys()
         QCOMPARE(res->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice->run(res);
+    QVERIFY(spy.wait(10000));
 
     auto olm1 = alice1->olmAccount();
     olm1->generateOneTimeKeys(10);
@@ -449,6 +450,7 @@ void TestOlmAccount::claimMultipleKeys()
         QCOMPARE(res1->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice1->run(res1);
+    QVERIFY(spy1.wait(10000));
 
     auto olm2 = alice2->olmAccount();
     olm2->generateOneTimeKeys(10);
@@ -459,10 +461,7 @@ void TestOlmAccount::claimMultipleKeys()
         QCOMPARE(res2->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice2->run(res2);
-
-    QVERIFY(spy.wait(10000));
-    QVERIFY(spy1.wait(10000));
-    QVERIFY(spy2.wait(1000)); // TODO this is failing even with 10000
+    QVERIFY(spy2.wait(10000));
 
     // Bob will claim all keys from alice
     CREATE_CONNECTION(bob, "bob3", "secret", "BobPhone")
@@ -473,18 +472,17 @@ void TestOlmAccount::claimMultipleKeys()
              << alice2->deviceId();
 
     QHash<QString, QHash<QString, QString>> oneTimeKeys;
+    oneTimeKeys[alice->userId()] = QHash<QString, QString>();
     for (const auto &d : devices_) {
-        oneTimeKeys[alice->userId()] = QHash<QString, QString>();
         oneTimeKeys[alice->userId()][d] = SignedCurve25519Key;
     }
     auto job = bob->callApi<ClaimKeysJob>(oneTimeKeys);
-    connect(job, &BaseJob::result, this, [bob, job] {
-        const auto userId = bob->userId();
+    QSignalSpy jobSpy(job, &BaseJob::finished);
+    QVERIFY(jobSpy.wait(10000));
+    const auto userId = alice->userId();
 
-        // The device exists.
-        QCOMPARE(job->oneTimeKeys().size(), 1);
-        QCOMPARE(job->oneTimeKeys().value(userId).size(), 3);
-    });
+    QCOMPARE(job->oneTimeKeys().size(), 1);
+    QCOMPARE(job->oneTimeKeys().value(userId).size(), 3);
 }
 
 void TestOlmAccount::enableEncryption()
@@ -492,28 +490,21 @@ void TestOlmAccount::enableEncryption()
     CREATE_CONNECTION(alice, "alice9", "secret", "AlicePhone")
 
     auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
-    bool encryptedEmitted = false;
-    connect(alice.get(), &Connection::newRoom, this,
-        [alice, this, &encryptedEmitted](Quotient::Room* room) {
-            room->activateEncryption();
-            connect(room, &Room::encryption, this, [&encryptedEmitted, this](){
-                encryptedEmitted = true;
-                Q_EMIT enableEncryptionFinished();
-            });
-            connect(alice.get(), &Connection::syncDone, this, [alice, room](){
-                if (!room->usesEncryption()) {
-                    alice->sync();
-                }
-            });
-            alice->sync();
-        });
     QSignalSpy createRoomSpy(job, &BaseJob::success);
     QVERIFY(createRoomSpy.wait(10000));
     alice->sync();
-
-    QSignalSpy finishedSpy(this, &TestOlmAccount::enableEncryptionFinished);
-    QVERIFY(finishedSpy.wait(10000));
-    QVERIFY(encryptedEmitted);
+    connect(alice.get(), &Connection::syncDone, this, [alice](){
+        qDebug() << "foo";
+        alice->sync();
+    });
+    while(alice->roomsCount(JoinState::Join) == 0) {
+        QThread::sleep(100);
+    }
+    auto room = alice->rooms(JoinState::Join)[0];
+    room->activateEncryption();
+    QSignalSpy encryptionSpy(room, &Room::encryption);
+    QVERIFY(encryptionSpy.wait(10000));
+    QVERIFY(room->usesEncryption());
 }
 
 QTEST_GUILESS_MAIN(TestOlmAccount)

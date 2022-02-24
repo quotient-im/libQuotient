@@ -579,7 +579,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         picklingMode = Encrypted { job.binaryData() };
     }
 
-    database = new Database(data->userId(), q);
+    database = new Database(data->userId(), data->deviceId(), q);
 
     // init olmAccount
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
