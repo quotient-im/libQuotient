@@ -28,7 +28,6 @@ echo Register bob
 docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u bob1 -p secret -c /data/homeserver.yaml https://localhost:8008'
 docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u bob2 -p secret -c /data/homeserver.yaml https://localhost:8008'
 docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u bob3 -p secret -c /data/homeserver.yaml https://localhost:8008'
-docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u bob4 -p secret -c /data/homeserver.yaml https://localhost:8008'
 echo Register carl
 docker exec synapse /bin/sh -c 'register_new_matrix_user --admin -u carl -p secret -c /data/homeserver.yaml https://localhost:8008'
 

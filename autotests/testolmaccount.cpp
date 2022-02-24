@@ -490,44 +490,30 @@ void TestOlmAccount::claimMultipleKeys()
 void TestOlmAccount::enableEncryption()
 {
     CREATE_CONNECTION(alice, "alice9", "secret", "AlicePhone")
-    CREATE_CONNECTION(bob, "bob4", "secret", "BobPhone")
 
-    QString joinedRoomId;
-
-    auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {},
-                                 { "@bob:localhost" });
+    auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
+    bool encryptedEmitted = false;
     connect(alice.get(), &Connection::newRoom, this,
-            [alice, bob, &joinedRoomId](Quotient::Room* room) {
-                room->activateEncryption();
-                QSignalSpy spy(room, &Room::encryption);
-
-                joinedRoomId = room->id();
-                auto job = bob->joinRoom(room->id());
-                QSignalSpy spy1(job, &BaseJob::result);
-                QVERIFY(spy.wait(10000));
-                QVERIFY(spy1.wait(10000));
+        [alice, this, &encryptedEmitted](Quotient::Room* room) {
+            room->activateEncryption();
+            connect(room, &Room::encryption, this, [&encryptedEmitted, this](){
+                encryptedEmitted = true;
+                Q_EMIT enableEncryptionFinished();
             });
+            connect(alice.get(), &Connection::syncDone, this, [alice, room](){
+                if (!room->usesEncryption()) {
+                    alice->sync();
+                }
+            });
+            alice->sync();
+        });
+    QSignalSpy createRoomSpy(job, &BaseJob::success);
+    QVERIFY(createRoomSpy.wait(10000));
     alice->sync();
-    QSignalSpy spy(job, &BaseJob::result);
-    QVERIFY(spy.wait(10000));
 
-    bob->sync();
-    connect(bob.get(), &Connection::syncDone, this, [bob, joinedRoomId] {
-        const auto* joinedRoom = bob->room(joinedRoomId);
-        const auto& events = joinedRoom->messageEvents();
-        bool hasEncryption = false;
-        for (auto it = events.rbegin(); it != events.rend(); ++it) {
-            const auto& event = it->event();
-            if (is<EncryptionEvent>(*event)) {
-                hasEncryption = true;
-                break;
-            }
-        }
-        QVERIFY(bob->room(joinedRoomId)->usesEncryption());
-        QVERIFY(hasEncryption);
-    });
-    QSignalSpy spy2(bob.get(), &Connection::syncDone);
-    QVERIFY(spy2.wait(10000));
+    QSignalSpy finishedSpy(this, &TestOlmAccount::enableEncryptionFinished);
+    QVERIFY(finishedSpy.wait(10000));
+    QVERIFY(encryptedEmitted);
 }
 
 QTEST_GUILESS_MAIN(TestOlmAccount)

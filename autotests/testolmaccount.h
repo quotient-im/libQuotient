@@ -13,6 +13,9 @@ class TestOlmAccount : public QObject
 {
     Q_OBJECT
 
+Q_SIGNALS:
+    void enableEncryptionFinished();
+
 private Q_SLOTS:
     void pickleUnpickledTest();
     void identityKeysValid();
