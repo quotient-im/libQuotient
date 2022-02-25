@@ -1829,10 +1829,12 @@ void Connection::saveState() const
                        QJsonObject {
                            { QStringLiteral("events"), accountDataEvents } });
     }
+#ifdef Quotient_E2EE_ENABLED
     {
         QJsonObject keysJson = toJson(d->oneTimeKeysCount);
         rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
     }
+#endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     const auto data =
