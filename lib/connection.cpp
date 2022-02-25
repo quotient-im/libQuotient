@@ -117,6 +117,7 @@ public:
     bool encryptionUpdateRequired = false;
     PicklingMode picklingMode = Unencrypted {};
     Database *database = nullptr;
+    QHash<QString, int> oneTimeKeysCount;
 
     // A map from SenderKey to vector of InboundSession
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
@@ -755,13 +756,12 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
 #ifdef Quotient_E2EE_ENABLED
-    const auto oneTimeKeyCount =
-        static_cast<size_t>(data.deviceOneTimeKeysCount()[SignedCurve25519Key]);
-    if (oneTimeKeyCount < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()
+    d->oneTimeKeysCount = data.deviceOneTimeKeysCount();
+    if (d->oneTimeKeysCount[SignedCurve25519Key] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()
         && !d->isUploadingKeys) {
         d->isUploadingKeys = true;
         d->olmAccount->generateOneTimeKeys(
-            d->olmAccount->maxNumberOfOneTimeKeys() / 2 - oneTimeKeyCount);
+            d->olmAccount->maxNumberOfOneTimeKeys() / 2 - d->oneTimeKeysCount[SignedCurve25519Key]);
         auto keys = d->olmAccount->oneTimeKeys();
         auto job = d->olmAccount->createUploadKeyRequest(keys);
         run(job, ForegroundRequest);
@@ -1828,6 +1828,10 @@ void Connection::saveState() const
         rootObj.insert(QStringLiteral("account_data"),
                        QJsonObject {
                            { QStringLiteral("events"), accountDataEvents } });
+    }
+    {
+        QJsonObject keysJson = toJson(d->oneTimeKeysCount);
+        rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
