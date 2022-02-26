@@ -777,11 +777,11 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 
     d->consumeDevicesList(data.takeDevicesList());
 #endif // Quotient_E2EE_ENABLED
+    d->consumeToDeviceEvents(data.takeToDeviceEvents());
     d->data->setLastEvent(data.nextBatch());
     d->consumeRoomData(data.takeRoomData(), fromCache);
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
-    d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
     if(d->encryptionUpdateRequired) {
         d->loadOutdatedUserDevices();
