@@ -274,10 +274,10 @@ public:
         QString decrypted;
         int type = personalCipherObject.value(TypeKeyL).toInt(-1);
         QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
-        if (type == 0) {
+        if (type == QOlmMessage::PreKey) {
             QOlmMessage preKeyMessage(body, QOlmMessage::PreKey);
             decrypted = sessionDecryptPrekey(preKeyMessage, senderKey, account);
-        } else if (type == 1) {
+        } else if (type == QOlmMessage::General) {
             QOlmMessage message(body, QOlmMessage::General);
             decrypted = sessionDecryptGeneral(message, senderKey);
         }
