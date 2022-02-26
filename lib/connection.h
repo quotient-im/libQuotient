@@ -22,9 +22,9 @@
 
 #include <functional>
 
-namespace QtOlm {
-class Account;
-}
+#ifdef Quotient_E2EE_ENABLED
+#include "e2ee/e2ee.h"
+#endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
@@ -48,6 +48,11 @@ class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
+class Database;
+struct EncryptedFile;
+
+class QOlmAccount;
+class QOlmInboundGroupSession;
 
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
@@ -310,7 +315,10 @@ public:
     QByteArray accessToken() const;
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
-    QtOlm::Account* olmAccount() const;
+    QOlmAccount* olmAccount() const;
+    Database* database();
+    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
+    void saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -489,6 +497,9 @@ public:
         setUserFactory(defaultUserFactory<T>);
     }
 
+    /// Saves the olm account data to disk. Usually doesn't need to be called manually.
+    void saveOlmAccount();
+
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows
     ///
@@ -576,6 +587,10 @@ public Q_SLOTS:
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const QString& localFilename = {});
 
+#ifdef Quotient_E2EE_ENABLED
+    DownloadFileJob* downloadFile(const QUrl& url, const EncryptedFile& file,
+                                  const QString& localFilename = {});
+#endif
     /**
      * \brief Create a room (generic method)
      * This method allows to customize room entirely to your liking,
@@ -661,6 +676,11 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
+#ifdef Quotient_E2EE_ENABLED
+    void encryptionUpdate(Room *room);
+    PicklingMode picklingMode() const;
+    QJsonObject decryptNotification(const QJsonObject &notification);
+#endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
     ///

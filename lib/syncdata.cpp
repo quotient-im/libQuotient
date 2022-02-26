@@ -99,6 +99,34 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
     fromJson(unreadJson.value(HighlightCountKey), highlightCount);
 }
 
+QDebug Quotient::operator<<(QDebug dbg, const DevicesList& devicesList)
+{
+    QDebugStateSaver _(dbg);
+    QStringList sl;
+    if (!devicesList.changed.isEmpty())
+        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "));
+    if (!devicesList.left.isEmpty())
+        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "));
+    dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
+    return dbg;
+}
+
+void JsonObjectConverter<DevicesList>::dumpTo(QJsonObject& jo,
+                                              const DevicesList& rs)
+{
+    addParam<IfNotEmpty>(jo, QStringLiteral("changed"),
+                         rs.changed);
+    addParam<IfNotEmpty>(jo, QStringLiteral("left"),
+                         rs.left);
+}
+
+void JsonObjectConverter<DevicesList>::fillFrom(const QJsonObject& jo,
+                                                DevicesList& rs)
+{
+    fromJson(jo["changed"_ls], rs.changed);
+    fromJson(jo["left"_ls], rs.left);
+}
+
 SyncData::SyncData(const QString& cacheFileName)
 {
     QFileInfo cacheFileInfo { cacheFileName };
@@ -132,6 +160,8 @@ std::pair<int, int> SyncData::cacheVersion()
 {
     return { MajorCacheVersion, 2 };
 }
+
+DevicesList&& SyncData::takeDevicesList() { return std::move(devicesList); }
 
 QJsonObject SyncData::loadJson(const QString& fileName)
 {
@@ -174,6 +204,10 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
 
     fromJson(json.value("device_one_time_keys_count"_ls),
              deviceOneTimeKeysCount_);
+
+    if(json.contains("device_lists")) {
+        fromJson(json.value("device_lists"), devicesList);
+    }
 
     auto rooms = json.value("rooms"_ls).toObject();
     auto totalRooms = 0;

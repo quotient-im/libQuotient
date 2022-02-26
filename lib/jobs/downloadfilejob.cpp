@@ -7,8 +7,12 @@
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>
 
-using namespace Quotient;
+#ifdef Quotient_E2EE_ENABLED
+#   include <QtCore/QCryptographicHash>
+#   include "events/encryptedfile.h"
+#endif
 
+using namespace Quotient;
 class DownloadFileJob::Private {
 public:
     Private() : tempFile(new QTemporaryFile()) {}
@@ -20,6 +24,10 @@ public:
 
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
+
+#ifdef Quotient_E2EE_ENABLED
+    Omittable<EncryptedFile> encryptedFile;
+#endif
 };
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
@@ -38,6 +46,19 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
+#ifdef Quotient_E2EE_ENABLED
+DownloadFileJob::DownloadFileJob(const QString& serverName,
+                                 const QString& mediaId,
+                                 const EncryptedFile& file,
+                                 const QString& localFilename)
+    : GetContentJob(serverName, mediaId)
+    , d(localFilename.isEmpty() ? makeImpl<Private>()
+                                : makeImpl<Private>(localFilename))
+{
+    setObjectName(QStringLiteral("DownloadFileJob"));
+    d->encryptedFile = file;
+}
+#endif
 QString DownloadFileJob::targetFileName() const
 {
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
@@ -52,7 +73,7 @@ void DownloadFileJob::doPrepare()
         setStatus(FileError, "Could not open the target file for writing");
         return;
     }
-    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::WriteOnly)) {
+    if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::ReadWrite)) {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
         setStatus(FileError, "Could not open the temporary download file");
@@ -100,18 +121,46 @@ void DownloadFileJob::beforeAbandon()
 BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
-        d->targetFile->close();
-        if (!d->targetFile->remove()) {
-            qCWarning(JOBS) << "Failed to remove the target file placeholder";
-            return { FileError, "Couldn't finalise the download" };
+#ifdef Quotient_E2EE_ENABLED
+        if (d->encryptedFile.has_value()) {
+            d->tempFile->seek(0);
+            QByteArray encrypted = d->tempFile->readAll();
+
+            EncryptedFile file = *d->encryptedFile;
+            const auto decrypted = file.decryptFile(encrypted);
+            d->targetFile->write(decrypted);
+            d->tempFile->remove();
+        } else {
+#endif
+            d->targetFile->close();
+            if (!d->targetFile->remove()) {
+                qCWarning(JOBS) << "Failed to remove the target file placeholder";
+                return { FileError, "Couldn't finalise the download" };
+            }
+            if (!d->tempFile->rename(d->targetFile->fileName())) {
+                qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
+                                << "to" << d->targetFile->fileName();
+                return { FileError, "Couldn't finalise the download" };
+            }
+#ifdef Quotient_E2EE_ENABLED
         }
-        if (!d->tempFile->rename(d->targetFile->fileName())) {
-            qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
-                            << "to" << d->targetFile->fileName();
-            return { FileError, "Couldn't finalise the download" };
+#endif
+    } else {
+#ifdef Quotient_E2EE_ENABLED
+        if (d->encryptedFile.has_value()) {
+            d->tempFile->seek(0);
+            const auto encrypted = d->tempFile->readAll();
+
+            EncryptedFile file = *d->encryptedFile;
+            const auto decrypted = file.decryptFile(encrypted);
+            d->tempFile->write(decrypted);
+        } else {
+#endif
+            d->tempFile->close();
+#ifdef Quotient_E2EE_ENABLED
         }
-    } else
-        d->tempFile->close();
+#endif
+    }
     qCDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;
 }

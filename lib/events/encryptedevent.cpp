@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptedevent.h"
+#include "roommessageevent.h"
+#include "events/eventloader.h"
 
 using namespace Quotient;
 
@@ -29,4 +31,33 @@ EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
     : RoomEvent(typeId(), obj)
 {
     qCDebug(E2EE) << "Encrypted event from" << senderId();
+}
+
+QString EncryptedEvent::algorithm() const
+{
+    const auto algo = contentPart<QString>(AlgorithmKeyL);
+    if (!isSupportedAlgorithm(algo))
+        qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
+                       << "is not supported";
+
+    return algo;
+}
+
+RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
+{
+    auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
+    eventObject["event_id"] = id();
+    eventObject["sender"] = senderId();
+    eventObject["origin_server_ts"] = originTimestamp().toMSecsSinceEpoch();
+    if (const auto relatesToJson = contentPart("m.relates_to"_ls); !relatesToJson.isUndefined()) {
+        auto content = eventObject["content"].toObject();
+        content["m.relates_to"] = relatesToJson.toObject();
+        eventObject["content"] = content;
+    }
+    if (const auto redactsJson = unsignedPart("redacts"_ls); !redactsJson.isUndefined()) {
+        auto unsign = eventObject["unsigned"].toObject();
+        unsign["redacts"] = redactsJson.toString();
+        eventObject["unsigned"] = unsign;
+    }
+    return loadEvent<RoomEvent>(eventObject);
 }

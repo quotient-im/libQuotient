@@ -29,7 +29,7 @@ public:
     bool ext;
 };
 
-struct EncryptedFile
+struct QUOTIENT_API EncryptedFile
 {
     Q_GADGET
     Q_PROPERTY(QUrl url MEMBER url CONSTANT)
@@ -44,45 +44,19 @@ public:
     QString iv;
     QHash<QString, QString> hashes;
     QString v;
+
+    QByteArray decryptFile(const QByteArray &ciphertext) const;
 };
 
 template <>
-struct JsonObjectConverter<EncryptedFile> {
-    static void dumpTo(QJsonObject& jo, const EncryptedFile& pod)
-    {
-        addParam<>(jo, QStringLiteral("url"), pod.url);
-        addParam<>(jo, QStringLiteral("key"), pod.key);
-        addParam<>(jo, QStringLiteral("iv"), pod.iv);
-        addParam<>(jo, QStringLiteral("hashes"), pod.hashes);
-        addParam<>(jo, QStringLiteral("v"), pod.v);
-    }
-    static void fillFrom(const QJsonObject& jo, EncryptedFile& pod)
-    {
-        fromJson(jo.value("url"_ls), pod.url);
-        fromJson(jo.value("key"_ls), pod.key);
-        fromJson(jo.value("iv"_ls), pod.iv);
-        fromJson(jo.value("hashes"_ls), pod.hashes);
-        fromJson(jo.value("v"_ls), pod.v);
-    }
+struct QUOTIENT_API JsonObjectConverter<EncryptedFile> {
+    static void dumpTo(QJsonObject& jo, const EncryptedFile& pod);
+    static void fillFrom(const QJsonObject& jo, EncryptedFile& pod);
 };
 
 template <>
-struct JsonObjectConverter<JWK> {
-    static void dumpTo(QJsonObject& jo, const JWK& pod)
-    {
-        addParam<>(jo, QStringLiteral("kty"), pod.kty);
-        addParam<>(jo, QStringLiteral("key_ops"), pod.keyOps);
-        addParam<>(jo, QStringLiteral("alg"), pod.alg);
-        addParam<>(jo, QStringLiteral("k"), pod.k);
-        addParam<>(jo, QStringLiteral("ext"), pod.ext);
-    }
-    static void fillFrom(const QJsonObject& jo, JWK& pod)
-    {
-        fromJson(jo.value("kty"_ls), pod.kty);
-        fromJson(jo.value("key_ops"_ls), pod.keyOps);
-        fromJson(jo.value("alg"_ls), pod.alg);
-        fromJson(jo.value("k"_ls), pod.k);
-        fromJson(jo.value("ext"_ls), pod.ext);
-    }
+struct QUOTIENT_API JsonObjectConverter<JWK> {
+    static void dumpTo(QJsonObject& jo, const JWK& pod);
+    static void fillFrom(const QJsonObject& jo, JWK& pod);
 };
 } // namespace Quotient

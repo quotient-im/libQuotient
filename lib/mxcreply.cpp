@@ -3,7 +3,14 @@
 
 #include "mxcreply.h"
 
+#include <QtCore/QBuffer>
+#include "accountregistry.h"
+#include "connection.h"
 #include "room.h"
+
+#ifdef Quotient_E2EE_ENABLED
+#include "events/encryptedfile.h"
+#endif
 
 using namespace Quotient;
 
@@ -14,11 +21,14 @@ public:
         : m_reply(r)
     {}
     QNetworkReply* m_reply;
+    Omittable<EncryptedFile> m_encryptedFile;
+    QIODevice* m_device = nullptr;
 };
 
 MxcReply::MxcReply(QNetworkReply* reply)
     : d(makeImpl<Private>(reply))
 {
+    d->m_device = d->m_reply;
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
@@ -31,11 +41,33 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     : d(makeImpl<Private>(reply))
 {
     reply->setParent(this);
-    connect(d->m_reply, &QNetworkReply::finished, this, [this, room, eventId]() {
+    connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
         setError(d->m_reply->error(), d->m_reply->errorString());
+
+#ifdef Quotient_E2EE_ENABLED
+        if(!d->m_encryptedFile.has_value()) {
+            d->m_device = d->m_reply;
+        } else {
+            EncryptedFile file = *d->m_encryptedFile;
+            auto buffer = new QBuffer(this);
+            buffer->setData(file.decryptFile(d->m_reply->readAll()));
+            buffer->open(ReadOnly);
+            d->m_device = buffer;
+        }
         setOpenMode(ReadOnly);
         emit finished();
+#else
+        d->m_device = d->m_reply;
+#endif
     });
+
+#ifdef Quotient_E2EE_ENABLED
+    auto eventIt = room->findInTimeline(eventId);
+    if(eventIt != room->historyEdge()) {
+        auto event = eventIt->viewAs<RoomMessageEvent>();
+        d->m_encryptedFile = event->content()->fileInfo()->file;
+    }
+#endif
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -62,7 +94,7 @@ MxcReply::MxcReply()
 
 qint64 MxcReply::readData(char *data, qint64 maxSize)
 {
-    return d->m_reply->read(data, maxSize);
+    return d->m_device->read(data, maxSize);
 }
 
 void MxcReply::abort()

@@ -47,6 +47,17 @@ QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
     return d->ignoredSslErrors;
 }
 
+void NetworkAccessManager::ignoreSslErrors(bool ignore) const
+{
+    if (ignore) {
+        connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors) {
+            reply->ignoreSslErrors();
+        });
+    } else {
+        disconnect(this, &QNetworkAccessManager::sslErrors, this, nullptr);
+    }
+}
+
 void NetworkAccessManager::addIgnoredSslError(const QSslError& error)
 {
     d->ignoredSslErrors << error;

@@ -7,9 +7,6 @@
 #include "connection.h"
 
 #include "connectiondata.h"
-#ifdef Quotient_E2EE_ENABLED
-#    include "encryptionmanager.h"
-#endif // Quotient_E2EE_ENABLED
 #include "room.h"
 #include "settings.h"
 #include "user.h"
@@ -38,7 +35,16 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "account.h" // QtOlm
+#    include "e2ee/qolmaccount.h"
+#    include "e2ee/qolmutils.h"
+#    include "database.h"
+#    include "e2ee/qolminboundsession.h"
+
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -54,6 +60,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
+
 
 using namespace Quotient;
 
@@ -102,13 +109,30 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
 
+#ifdef Quotient_E2EE_ENABLED
+    QSet<QString> trackedUsers;
+    QSet<QString> outdatedUsers;
+    QHash<QString, QHash<QString, DeviceKeys>> deviceKeys;
+    QueryKeysJob *currentQueryKeysJob = nullptr;
+    bool encryptionUpdateRequired = false;
+    PicklingMode picklingMode = Unencrypted {};
+    Database *database = nullptr;
+    QHash<QString, int> oneTimeKeysCount;
+
+    // A map from SenderKey to vector of InboundSession
+    UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
+
+#endif
+
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
 #ifdef Quotient_E2EE_ENABLED
-    QScopedPointer<EncryptionManager> encryptionManager;
+    std::unique_ptr<QOlmAccount> olmAccount;
+    bool isUploadingKeys = false;
+    bool firstSync = true;
 #endif // Quotient_E2EE_ENABLED
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
@@ -151,6 +175,7 @@ public:
     void consumeAccountData(Events&& accountDataEvents);
     void consumePresenceData(Events&& presenceData);
     void consumeToDeviceEvents(Events&& toDeviceEvents);
+    void consumeDevicesList(DevicesList&& devicesList);
 
     template <typename EventT>
     EventT* unpackAccountData() const
@@ -181,29 +206,107 @@ public:
         return q->stateCacheDir().filePath("state.json");
     }
 
+#ifdef Quotient_E2EE_ENABLED
+    void loadSessions() {
+        olmSessions = q->database()->loadOlmSessions(q->picklingMode());
+    }
+    void saveSession(QOlmSessionPtr& session, const QString &senderKey) {
+        auto pickleResult = session->pickle(q->picklingMode());
+        if (std::holds_alternative<QOlmError>(pickleResult)) {
+            qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
+            return;
+        }
+        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
+    }
+    QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
+    {
+        Q_ASSERT(message.type() == QOlmMessage::PreKey);
+        for(auto& session : olmSessions[senderKey]) {
+            const auto matches = session->matchesInboundSessionFrom(senderKey, message);
+            if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
+                qCDebug(E2EE) << "Found inbound session";
+                const auto result = session->decrypt(message);
+                if(std::holds_alternative<QString>(result)) {
+                    return std::get<QString>(result);
+                } else {
+                    qCDebug(E2EE) << "Failed to decrypt prekey message";
+                    return {};
+                }
+            }
+        }
+        qCDebug(E2EE) << "Creating new inbound session";
+        auto newSessionResult = olmAccount->createInboundSessionFrom(senderKey.toUtf8(), message);
+        if(std::holds_alternative<QOlmError>(newSessionResult)) {
+            qCWarning(E2EE) << "Failed to create inbound session for" << senderKey << std::get<QOlmError>(newSessionResult);
+            return {};
+        }
+        auto newSession = std::move(std::get<QOlmSessionPtr>(newSessionResult));
+        auto error = olmAccount->removeOneTimeKeys(newSession);
+        if (error) {
+            qWarning(E2EE) << "Failed to remove one time key for session" << newSession->sessionId();
+        }
+        const auto result = newSession->decrypt(message);
+        saveSession(newSession, senderKey);
+        olmSessions[senderKey].push_back(std::move(newSession));
+        if(std::holds_alternative<QString>(result)) {
+            return std::get<QString>(result);
+        } else {
+            qCDebug(E2EE) << "Failed to decrypt prekey message with new session";
+            return {};
+        }
+    }
+    QString sessionDecryptGeneral(const QOlmMessage& message, const QString &senderKey)
+    {
+        Q_ASSERT(message.type() == QOlmMessage::General);
+        for(auto& session : olmSessions[senderKey]) {
+            const auto result = session->decrypt(message);
+            if(std::holds_alternative<QString>(result)) {
+                return std::get<QString>(result);
+            }
+        }
+        qCWarning(E2EE) << "Failed to decrypt message";
+        return {};
+    }
+
+    QString sessionDecryptMessage(
+        const QJsonObject& personalCipherObject, const QByteArray& senderKey, std::unique_ptr<QOlmAccount>& account)
+    {
+        QString decrypted;
+        int type = personalCipherObject.value(TypeKeyL).toInt(-1);
+        QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
+        if (type == 0) {
+            QOlmMessage preKeyMessage(body, QOlmMessage::PreKey);
+            decrypted = sessionDecryptPrekey(preKeyMessage, senderKey, account);
+        } else if (type == 1) {
+            QOlmMessage message(body, QOlmMessage::General);
+            decrypted = sessionDecryptGeneral(message, senderKey);
+        }
+        return decrypted;
+    }
+#endif
+
     EventPtr sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
-#else // Quotient_E2EE_ENABLED
+#else
         if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
             return {};
 
-        const auto identityKey =
-            encryptionManager->account()->curve25519IdentityKey();
+        const auto identityKey = olmAccount->identityKeys().curve25519;
         const auto personalCipherObject =
             encryptedEvent.ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
             qCDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
         }
-        const auto decrypted = encryptionManager->sessionDecryptMessage(
-            personalCipherObject, encryptedEvent.senderKey().toLatin1());
+        const auto decrypted = sessionDecryptMessage(
+            personalCipherObject, encryptedEvent.senderKey().toLatin1(), olmAccount);
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
                           << encryptedEvent.senderKey()
-                          << encryptionManager->account()->oneTimeKeys();
+                          << olmAccount->oneTimeKeys().keys;
             return {};
         }
 
@@ -220,22 +323,18 @@ public:
 
         // TODO: keys to constants
         const auto decryptedEventObject = decryptedEvent->fullJson();
-        const auto recipient =
-            decryptedEventObject.value("recipient"_ls).toString();
+        const auto recipient = decryptedEventObject.value("recipient"_ls).toString();
         if (recipient != data->userId()) {
             qCDebug(E2EE) << "Found user" << recipient << "instead of us"
                           << data->userId() << "in Olm plaintext";
             return {};
         }
-        const auto ourKey =
-            decryptedEventObject.value("recipient_keys"_ls).toObject()
-                .value(Ed25519Key).toString();
-        if (ourKey
-            != QString::fromUtf8(
-                encryptionManager->account()->ed25519IdentityKey())) {
+        const auto ourKey = decryptedEventObject.value("recipient_keys"_ls).toObject()
+            .value(Ed25519Key).toString();
+        if (ourKey != QString::fromUtf8(olmAccount->identityKeys().ed25519)) {
             qCDebug(E2EE) << "Found key" << ourKey
                           << "instead of ours own ed25519 key"
-                          << encryptionManager->account()->ed25519IdentityKey()
+                          << olmAccount->identityKeys().ed25519
                           << "in Olm plaintext";
             return {};
         }
@@ -243,12 +342,20 @@ public:
         return std::move(decryptedEvent);
 #endif // Quotient_E2EE_ENABLED
     }
+#ifdef Quotient_E2EE_ENABLED
+    void loadOutdatedUserDevices();
+    void saveDevicesList();
+    void loadDevicesList();
+#endif
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
     , d(makeImpl<Private>(std::make_unique<ConnectionData>(server)))
 {
+#ifdef Quotient_E2EE_ENABLED
+    //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
+#endif
     d->q = this; // All d initialization should occur before this line
 }
 
@@ -421,8 +528,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-        encryptionManager->uploadIdentityKeys(q);
-        encryptionManager->uploadOneTimeKeys(q);
+        database->clear();
 #endif // Quotient_E2EE_ENABLED
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -443,11 +549,58 @@ void Connection::Private::completeSetup(const QString& mxId)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
     AccountSettings accountSettings(data->userId());
-    encryptionManager.reset(
-        new EncryptionManager(accountSettings.encryptionAccountPickle()));
-    if (accountSettings.encryptionAccountPickle().isEmpty()) {
-        accountSettings.setEncryptionAccountPickle(
-            encryptionManager->olmAccountPickle());
+
+    QKeychain::ReadPasswordJob job(qAppName());
+    job.setAutoDelete(false);
+    job.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
+    QEventLoop loop;
+    QKeychain::ReadPasswordJob::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+    job.start();
+    loop.exec();
+
+    if (job.error() == QKeychain::Error::EntryNotFound) {
+        picklingMode = Encrypted { getRandom(128) };
+        QKeychain::WritePasswordJob job(qAppName());
+        job.setAutoDelete(false);
+        job.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
+        job.setBinaryData(std::get<Encrypted>(picklingMode).key);
+        QEventLoop loop;
+        QKeychain::WritePasswordJob::connect(&job, &QKeychain::Job::finished, &loop, &QEventLoop::quit);
+        job.start();
+        loop.exec();
+
+        if (job.error()) {
+            qCWarning(E2EE) << "Could not save pickling key to keychain: " << job.errorString();
+        }
+    } else if(job.error() != QKeychain::Error::NoError) {
+        //TODO Error, do something
+        qCWarning(E2EE) << "Error loading pickling key from keychain:" << job.error();
+    } else {
+        qCDebug(E2EE) << "Successfully loaded pickling key from keychain";
+        picklingMode = Encrypted { job.binaryData() };
+    }
+
+    database = new Database(data->userId(), data->deviceId(), q);
+
+    // init olmAccount
+    olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
+    connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
+
+#ifdef Quotient_E2EE_ENABLED
+    loadSessions();
+#endif
+
+    if (database->accountPickle().isEmpty()) {
+        // create new account and save unpickle data
+        olmAccount->createNewAccount();
+        auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
+        connect(job, &BaseJob::failure, q, [job]{
+            qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
+        });
+    } else {
+        // account already existing
+        auto pickle = database->accountPickle();
+        olmAccount->unpickle(pickle, picklingMode);
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
@@ -602,24 +755,39 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
+#ifdef Quotient_E2EE_ENABLED
+    d->oneTimeKeysCount = data.deviceOneTimeKeysCount();
+    if (d->oneTimeKeysCount[SignedCurve25519Key] < 0.4 * d->olmAccount->maxNumberOfOneTimeKeys()
+        && !d->isUploadingKeys) {
+        d->isUploadingKeys = true;
+        d->olmAccount->generateOneTimeKeys(
+            d->olmAccount->maxNumberOfOneTimeKeys() / 2 - d->oneTimeKeysCount[SignedCurve25519Key]);
+        auto keys = d->olmAccount->oneTimeKeys();
+        auto job = d->olmAccount->createUploadKeyRequest(keys);
+        run(job, ForegroundRequest);
+        connect(job, &BaseJob::success, this,
+                [this] { d->olmAccount->markKeysAsPublished(); });
+        connect(job, &BaseJob::result, this,
+                [this] { d->isUploadingKeys = false; });
+    }
+    if(d->firstSync) {
+        d->loadDevicesList();
+        d->firstSync = false;
+    }
+
+    d->consumeDevicesList(data.takeDevicesList());
+#endif // Quotient_E2EE_ENABLED
     d->data->setLastEvent(data.nextBatch());
     d->consumeRoomData(data.takeRoomData(), fromCache);
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
 #ifdef Quotient_E2EE_ENABLED
-    // handling device_one_time_keys_count
-    if (!d->encryptionManager)
-    {
-        qCDebug(E2EE) << "Encryption manager is not there yet, updating "
-                         "one-time key counts will be skipped";
-        return;
+    if(d->encryptionUpdateRequired) {
+        d->loadOutdatedUserDevices();
+        d->encryptionUpdateRequired = false;
     }
-    if (const auto deviceOneTimeKeysCount = data.deviceOneTimeKeysCount();
-            !deviceOneTimeKeysCount.isEmpty())
-        d->encryptionManager->updateOneTimeKeyCounts(this,
-                                                     deviceOneTimeKeysCount);
-#endif // Quotient_E2EE_ENABLED
+#endif
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -747,34 +915,55 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
 #ifdef Quotient_E2EE_ENABLED
-    // handling m.room_key to-device encrypted event
-    visitEach(toDeviceEvents, [this](const EncryptedEvent& ee) {
-        if (ee.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-            qCDebug(E2EE) << "Encrypted event" << ee.id() << "algorithm"
-                          << ee.algorithm() << "is not supported";
-            return;
+    if (!toDeviceEvents.empty()) {
+        qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
+        visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
+            if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
+                return;
+            }
+            const auto decryptedEvent = sessionDecryptMessage(event);
+            if(!decryptedEvent) {
+                qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+                return;
+            }
+
+            switchOnType(*decryptedEvent,
+                [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+                    if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
+                        detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
+                    } else {
+                        qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                            << "is not found at the connection" << q->objectName();
+                    }
+                },
+                [](const Event& evt) {
+                    qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+                                << evt.matrixType();
+                });
+        });
+    }
+#endif
+}
+
+void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
+{
+#ifdef Quotient_E2EE_ENABLED
+    bool hasNewOutdatedUser = false;
+    for(const auto &changed : devicesList.changed) {
+        if(trackedUsers.contains(changed)) {
+            outdatedUsers += changed;
+            hasNewOutdatedUser = true;
         }
-
-        // TODO: full maintaining of the device keys
-        // with device_lists sync extention and /keys/query
-        qCDebug(E2EE) << "Getting device keys for the m.room_key sender:"
-                      << ee.senderId();
-        // encryptionManager->updateDeviceKeys();
-
-        switchOnType(*sessionDecryptMessage(ee),
-            [this, senderKey = ee.senderKey()](const RoomKeyEvent& roomKeyEvent) {
-                if (auto* detectedRoom = q->room(roomKeyEvent.roomId()))
-                    detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
-                else
-                    qCDebug(E2EE)
-                        << "Encrypted event room id" << roomKeyEvent.roomId()
-                        << "is not found at the connection" << q->objectName();
-            },
-            [](const Event& evt) {
-                qCDebug(E2EE) << "Skipping encrypted to_device event, type"
-                              << evt.matrixType();
-            });
-    });
+    }
+    for(const auto &left : devicesList.left) {
+        trackedUsers -= left;
+        outdatedUsers -= left;
+        deviceKeys.remove(left);
+    }
+    if(hasNewOutdatedUser) {
+        loadOutdatedUserDevices();
+    }
 #endif
 }
 
@@ -913,6 +1102,19 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
         callApi<DownloadFileJob>(idParts.front(), idParts.back(), localFilename);
     return job;
 }
+
+#ifdef Quotient_E2EE_ENABLED
+DownloadFileJob* Connection::downloadFile(const QUrl& url,
+                                          const EncryptedFile& file,
+                                          const QString& localFilename)
+{
+    auto mediaId = url.authority() + url.path();
+    auto idParts = splitMediaId(mediaId);
+    auto* job =
+        callApi<DownloadFileJob>(idParts.front(), idParts.back(), file, localFilename);
+    return job;
+}
+#endif
 
 CreateRoomJob*
 Connection::createRoom(RoomVisibility visibility, const QString& alias,
@@ -1227,9 +1429,9 @@ QByteArray Connection::accessToken() const
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
 #ifdef Quotient_E2EE_ENABLED
-QtOlm::Account* Connection::olmAccount() const
+QOlmAccount *Connection::olmAccount() const
 {
-    return d->encryptionManager->account();
+    return d->olmAccount.get();
 }
 #endif // Quotient_E2EE_ENABLED
 
@@ -1627,6 +1829,12 @@ void Connection::saveState() const
                        QJsonObject {
                            { QStringLiteral("events"), accountDataEvents } });
     }
+#ifdef Quotient_E2EE_ENABLED
+    {
+        QJsonObject keysJson = toJson(d->oneTimeKeysCount);
+        rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
+    }
+#endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     const auto data =
@@ -1772,3 +1980,178 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     }
     return result;
 }
+
+#ifdef Quotient_E2EE_ENABLED
+void Connection::Private::loadOutdatedUserDevices()
+{
+    QHash<QString, QStringList> users;
+    for(const auto &user : outdatedUsers) {
+        users[user] += QStringList();
+    }
+    if(currentQueryKeysJob) {
+        currentQueryKeysJob->abandon();
+        currentQueryKeysJob = nullptr;
+    }
+    auto queryKeysJob = q->callApi<QueryKeysJob>(users);
+    currentQueryKeysJob = queryKeysJob;
+    connect(queryKeysJob, &BaseJob::success, q, [this, queryKeysJob](){
+        currentQueryKeysJob = nullptr;
+        const auto data = queryKeysJob->deviceKeys();
+        for(const auto &[user, keys] : asKeyValueRange(data)) {
+            deviceKeys[user].clear();
+            for(const auto &device : keys) {
+                if(device.userId != user) {
+                    qCWarning(E2EE)
+                        << "mxId mismatch during device key verification:"
+                        << device.userId << user;
+                    continue;
+                }
+                if (!std::all_of(device.algorithms.cbegin(),
+                                 device.algorithms.cend(),
+                                 isSupportedAlgorithm)) {
+                    qCWarning(E2EE) << "Unsupported encryption algorithms found"
+                                    << device.algorithms;
+                    continue;
+                }
+                if (!verifyIdentitySignature(device, device.deviceId,
+                                             device.userId)) {
+                    qCWarning(E2EE) << "Failed to verify devicekeys signature. "
+                                       "Skipping this device";
+                    continue;
+                }
+                deviceKeys[user][device.deviceId] = device;
+            }
+            outdatedUsers -= user;
+        }
+        saveDevicesList();
+    });
+}
+
+void Connection::Private::saveDevicesList()
+{
+    q->database()->transaction();
+    auto query = q->database()->prepareQuery(
+        QStringLiteral("DELETE FROM tracked_users"));
+    q->database()->execute(query);
+    query.prepare(QStringLiteral(
+        "INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
+    for (const auto& user : trackedUsers) {
+        query.bindValue(":matrixId", user);
+        q->database()->execute(query);
+    }
+
+    query.prepare(QStringLiteral("DELETE FROM outdated_users"));
+    q->database()->execute(query);
+    query.prepare(QStringLiteral(
+        "INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
+    for (const auto& user : outdatedUsers) {
+        query.bindValue(":matrixId", user);
+        q->database()->execute(query);
+    }
+
+    query.prepare(QStringLiteral(
+        "INSERT INTO tracked_devices"
+        "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey) "
+        "VALUES(:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey);"
+        ));
+    for (const auto& user : deviceKeys.keys()) {
+        for (const auto& device : deviceKeys[user]) {
+            auto keys = device.keys.keys();
+            auto curveKeyId = keys[0].startsWith(QLatin1String("curve")) ? keys[0] : keys[1];
+            auto edKeyId = keys[0].startsWith(QLatin1String("ed")) ? keys[0] : keys[1];
+
+            query.bindValue(":matrixId", user);
+            query.bindValue(":deviceId", device.deviceId);
+            query.bindValue(":curveKeyId", curveKeyId);
+            query.bindValue(":curveKey", device.keys[curveKeyId]);
+            query.bindValue(":edKeyId", edKeyId);
+            query.bindValue(":edKey", device.keys[edKeyId]);
+
+            q->database()->execute(query);
+        }
+    }
+    q->database()->commit();
+}
+
+void Connection::Private::loadDevicesList()
+{
+    auto query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_users;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        trackedUsers += query.value(0).toString();
+    }
+
+    query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM outdated_users;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        outdatedUsers += query.value(0).toString();
+    }
+
+    query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices;"));
+    q->database()->execute(query);
+    while(query.next()) {
+        deviceKeys[query.value("matrixId").toString()][query.value("deviceId").toString()] = DeviceKeys {
+            query.value("matrixId").toString(),
+            query.value("deviceId").toString(),
+            { "m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"},
+            {{query.value("curveKeyId").toString(), query.value("curveKey").toString()},
+             {query.value("edKeyId").toString(), query.value("edKey").toString()}},
+             {} // Signatures are not saved/loaded as they are not needed after initial validation
+        };
+    }
+
+}
+
+void Connection::encryptionUpdate(Room *room)
+{
+    for(const auto &user : room->users()) {
+        if(!d->trackedUsers.contains(user->id())) {
+            d->trackedUsers += user->id();
+            d->outdatedUsers += user->id();
+            d->encryptionUpdateRequired = true;
+        }
+    }
+}
+
+PicklingMode Connection::picklingMode() const
+{
+    return d->picklingMode;
+}
+#endif
+
+void Connection::saveOlmAccount()
+{
+    qCDebug(E2EE) << "Saving olm account";
+#ifdef Quotient_E2EE_ENABLED
+    auto pickle = d->olmAccount->pickle(d->picklingMode);
+    d->database->setAccountPickle(std::get<QByteArray>(pickle));
+#endif
+}
+
+#ifdef Quotient_E2EE_ENABLED
+QJsonObject Connection::decryptNotification(const QJsonObject &notification)
+{
+    auto room = this->room(notification["room_id"].toString());
+    auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
+    auto decrypted = room->decryptMessage(*event);
+    if(!decrypted) {
+        return QJsonObject();
+    }
+    return decrypted->fullJson();
+}
+
+Database* Connection::database()
+{
+    return d->database;
+}
+
+UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Connection::loadRoomMegolmSessions(Room* room)
+{
+    return database()->loadMegolmSessions(room->id(), picklingMode());
+}
+
+void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session)
+{
+    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), session->pickle(picklingMode()));
+}
+#endif

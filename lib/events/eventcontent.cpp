@@ -74,6 +74,7 @@ void FileInfo::fillInfoJson(QJsonObject* infoJson) const
         infoJson->insert(QStringLiteral("size"), payloadSize);
     if (mimeType.isValid())
         infoJson->insert(QStringLiteral("mimetype"), mimeType.name());
+    //TODO add encryptedfile
 }
 
 ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)

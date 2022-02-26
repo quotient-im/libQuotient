@@ -138,18 +138,12 @@ void AccountSettings::clearAccessToken()
 
 QByteArray AccountSettings::encryptionAccountPickle()
 {
-    QString passphrase = ""; // FIXME: add QtKeychain
     return value("encryption_account_pickle", "").toByteArray();
 }
 
 void AccountSettings::setEncryptionAccountPickle(
     const QByteArray& encryptionAccountPickle)
 {
-    qCWarning(MAIN)
-        << "Saving encryption_account_pickle to QSettings is insecure."
-           " Developers, do it manually or contribute to share QtKeychain "
-           "logic to libQuotient.";
-    QString passphrase = ""; // FIXME: add QtKeychain
     setValue("encryption_account_pickle", encryptionAccountPickle);
 }
 

@@ -22,3 +22,7 @@ Makefile
 Quotient_autogen/
 .cmake/
 tests/.cmake/
+
+# clangd
+.cache/
+compile_commands.json

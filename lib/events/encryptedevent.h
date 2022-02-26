@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "e2ee.h"
+#include "e2ee/e2ee.h"
 #include "roomevent.h"
 
 namespace Quotient {
@@ -39,28 +39,23 @@ public:
                             const QString& deviceId, const QString& sessionId);
     explicit EncryptedEvent(const QJsonObject& obj);
 
-    QString algorithm() const
-    {
-        QString algo = contentPart<QString>(AlgorithmKeyL);
-        if (!SupportedAlgorithms.contains(algo)) {
-            qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
-                           << "is not supported";
-        }
-        return algo;
-    }
+    QString algorithm() const;
     QByteArray ciphertext() const
     {
         return contentPart<QString>(CiphertextKeyL).toLatin1();
     }
     QJsonObject ciphertext(const QString& identityKey) const
     {
-        return contentPart<QJsonObject>(CiphertextKeyL).value(identityKey).toObject();
+        return contentPart<QJsonObject>(CiphertextKeyL)
+            .value(identityKey)
+            .toObject();
     }
     QString senderKey() const { return contentPart<QString>(SenderKeyKeyL); }
 
     /* device_id and session_id are required with Megolm */
     QString deviceId() const { return contentPart<QString>(DeviceIdKeyL); }
     QString sessionId() const { return contentPart<QString>(SessionIdKeyL); }
+    RoomEventPtr createDecrypted(const QString &decrypted) const;
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 
