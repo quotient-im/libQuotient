@@ -112,7 +112,7 @@ jobs:
         # Build libQuotient as a shared library across platforms but also
         # check the static configuration somewhere
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                    -DBUILD_SHARED_LIBS=${{ !matrix.sonar && runner.os == 'Linux' }} \
+                    -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
