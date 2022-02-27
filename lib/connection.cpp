@@ -2154,4 +2154,20 @@ void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInb
 {
     database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), session->pickle(picklingMode()));
 }
+
+QStringList Connection::devicesForUser(User* user) const
+{
+    return d->deviceKeys[user->id()].keys();
+}
+
+QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
+{
+    return d->deviceKeys[user][device].keys["curve25519:" % device];
+}
+
+QString Connection::edKeyForUserDevice(const QString& user, const QString& device) const
+{
+    return d->deviceKeys[user][device].keys["ed25519:" % device];
+}
+
 #endif

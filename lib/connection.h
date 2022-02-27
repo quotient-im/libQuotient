@@ -680,6 +680,10 @@ public Q_SLOTS:
     void encryptionUpdate(Room *room);
     PicklingMode picklingMode() const;
     QJsonObject decryptNotification(const QJsonObject &notification);
+
+    QStringList devicesForUser(User* user) const;
+    QString curveKeyForUserDevice(const QString &user, const QString& device) const;
+    QString edKeyForUserDevice(const QString& user, const QString& device) const;
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
