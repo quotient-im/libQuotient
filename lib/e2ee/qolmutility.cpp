@@ -49,9 +49,12 @@ std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
     const auto ret = olm_ed25519_verify(m_utility, key.data(), key.size(),
             message.data(), message.size(), (void *)signatureBuf.data(), signatureBuf.size());
 
-    const auto error = ret;
-    if (error == olm_error()) {
-        return lastError(m_utility);
+    if (ret == olm_error()) {
+        auto error = lastError(m_utility);
+        if (error == QOlmError::BadMessageMac) {
+            return false;
+        }
+        return error;
     }
 
     if (ret != 0) {
