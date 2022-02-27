@@ -54,7 +54,7 @@ std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
         if (error == QOlmError::BadMessageMac) {
             return false;
         }
-        return lastError(m_utility);
+        return error;
     }
 
     if (ret != 0) {
