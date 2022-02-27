@@ -1490,10 +1490,9 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
     if (decryptedEvent->roomId() == id()) {
         return decryptedEvent;
-    } else {
-        qCWarning(E2EE) << "Decrypted event" << encryptedEvent.id() << "not for this room; discarding.";
-        return nullptr;
     }
+    qCWarning(E2EE) << "Decrypted event" << encryptedEvent.id() << "not for this room; discarding.";
+    return {};
 #endif // Quotient_E2EE_ENABLED
 }
 
