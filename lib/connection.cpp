@@ -2162,12 +2162,12 @@ QStringList Connection::devicesForUser(User* user) const
 
 QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
 {
-    return d->deviceKeys[user][device].keys[QStringLiteral("curve25519:") + device];
+    return d->deviceKeys[user][device].keys["curve25519:" % device];
 }
 
 QString Connection::edKeyForUserDevice(const QString& user, const QString& device) const
 {
-    return d->deviceKeys[user][device].keys[QStringLiteral("ed25519:") + device];
+    return d->deviceKeys[user][device].keys["ed25519:" % device];
 }
 
 #endif
