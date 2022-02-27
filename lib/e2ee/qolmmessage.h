@@ -22,8 +22,8 @@ class QUOTIENT_API QOlmMessage : public QByteArray {
     Q_GADGET
 public:
     enum Type {
+        PreKey = 0,
         General,
-        PreKey,
     };
     Q_ENUM(Type)
 
