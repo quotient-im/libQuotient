@@ -12,6 +12,7 @@ public:
     DEFINE_EVENT_TYPEID("m.room_key", RoomKeyEvent)
 
     explicit RoomKeyEvent(const QJsonObject& obj);
+    explicit RoomKeyEvent(const QString& algorithm, const QString& roomId, const QString &sessionId, const QString& sessionKey, const QString& senderId);
 
     QString algorithm() const { return contentPart<QString>("algorithm"_ls); }
     QString roomId() const { return contentPart<QString>(RoomIdKeyL); }
