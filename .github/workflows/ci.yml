@@ -39,7 +39,8 @@ jobs:
         - os: ubuntu-latest
           compiler: GCC
           qt-version: '5.12.12'
-          sonar: 'sonar'
+          e2ee: e2ee
+          sonar: sonar
         - os: windows-2019
           compiler: MSVC
           platform: x64
