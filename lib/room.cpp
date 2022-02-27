@@ -1487,7 +1487,12 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
     }
-    return encryptedEvent.createDecrypted(decrypted);
+    auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
+    if (decryptedEvent->roomId() == id()) {
+        return decryptedEvent;
+    }
+    qCWarning(E2EE) << "Decrypted event" << encryptedEvent.id() << "not for this room; discarding.";
+    return {};
 #endif // Quotient_E2EE_ENABLED
 }
 
