@@ -24,6 +24,7 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/e2ee.h"
+#include "e2ee/qolmmessage.h"
 #endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
@@ -132,7 +133,7 @@ class QUOTIENT_API Connection : public QObject {
 
 public:
     using UsersToDevicesToEvents =
-        UnorderedMap<QString, UnorderedMap<QString, const Event&>>;
+        UnorderedMap<QString, UnorderedMap<QString, std::unique_ptr<Event>>>;
 
     enum RoomVisibility {
         PublishRoom,
@@ -321,6 +322,12 @@ public:
         const Room* room);
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session);
+    bool hasOlmSession(User* user, const QString& deviceId) const;
+
+    //This currently assumes that an olm session with (user, device) exists
+    //TODO make this return an event?
+    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
+    void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;

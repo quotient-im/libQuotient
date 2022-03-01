@@ -1332,7 +1332,7 @@ Connection::sendToDevices(const QString& eventType,
                                     [&jsonUser](const auto& deviceToEvents) {
                                         jsonUser.insert(
                                             deviceToEvents.first,
-                                            deviceToEvents.second.contentJson());
+                                            deviceToEvents.second->contentJson());
                                     });
                   });
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
@@ -2236,6 +2236,34 @@ bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
     query.bindValue(":curveKey", curveKey);
     database()->execute(query);
     return query.next();
+}
+
+bool Connection::hasOlmSession(User* user, const QString& deviceId) const
+{
+    const auto& curveKey = curveKeyForUserDevice(user->id(), deviceId);
+    return d->olmSessions.contains(curveKey) && d->olmSessions[curveKey].size() > 0;
+}
+
+QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
+{
+    //TODO be smarter about choosing a session; see e2ee impl guide
+    //TODO create session?
+    const auto& curveKey = curveKeyForUserDevice(user->id(), device);
+    QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
+    auto result = d->olmSessions[curveKey][0]->encrypt(message);
+    return qMakePair(type, result.toCiphertext());
+}
+
+//TODO be more consistent with curveKey and identityKey
+void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
+{
+    auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
+    if (std::holds_alternative<QOlmError>(session)) {
+        //TODO something
+        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << std::get<QOlmError>(session);
+    }
+    d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
+    d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));
 }
 
 #endif
