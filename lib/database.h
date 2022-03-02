@@ -8,6 +8,7 @@
 #include <QtCore/QVector>
 
 #include "e2ee/e2ee.h"
+#include "e2ee/qolmoutboundsession.h"
 
 namespace Quotient {
 class QUOTIENT_API Database : public QObject
@@ -35,6 +36,8 @@ public:
     std::pair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
     void clearRoomData(const QString& roomId);
     void setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp);
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode);
+    void saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& data);
 
 private:
     void migrateTo1();

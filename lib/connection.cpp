@@ -2193,7 +2193,6 @@ bool Connection::hasOlmSession(User* user, const QString& deviceId) const
 QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
 {
     //TODO be smarter about choosing a session; see e2ee impl guide
-    //TODO create session?
     const auto& curveKey = curveKeyForUserDevice(user->id(), device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);
@@ -2210,6 +2209,16 @@ void Connection::createOlmSession(const QString& theirIdentityKey, const QString
     }
     d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
     d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));
+}
+
+QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(Room* room)
+{
+    return d->database->loadCurrentOutboundMegolmSession(room->id(), d->picklingMode);
+}
+
+void Connection::saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data)
+{
+    d->database->saveCurrentOutboundMegolmSession(room->id(), d->picklingMode, data);
 }
 
 #endif

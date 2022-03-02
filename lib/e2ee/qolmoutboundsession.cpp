@@ -61,13 +61,13 @@ std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::pickle(const Pickl
     return pickledBuf;
 }
 
-std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError> QOlmOutboundGroupSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
     QByteArray key = toKey(mode);
     const auto error = olm_unpickle_outbound_group_session(olmOutboundGroupSession, key.data(), key.length(),
-            pickled.data(), pickled.length());
+            pickledBuf.data(), pickledBuf.length());
     if (error == olm_error()) {
         return lastError(olmOutboundGroupSession);
     }
@@ -122,4 +122,24 @@ std::variant<QByteArray, QOlmError> QOlmOutboundGroupSession::sessionKey() const
         return lastError(m_groupSession);
     }
     return keyBuffer;
+}
+
+int QOlmOutboundGroupSession::messageCount() const
+{
+    return m_messageCount;
+}
+
+void QOlmOutboundGroupSession::setMessageCount(int messageCount)
+{
+    m_messageCount = messageCount;
+}
+
+QDateTime QOlmOutboundGroupSession::creationTime() const
+{
+    return m_creationTime;
+}
+
+void QOlmOutboundGroupSession::setCreationTime(const QDateTime& creationTime)
+{
+    m_creationTime = creationTime;
 }
