@@ -2193,6 +2193,7 @@ bool Connection::hasOlmSession(User* user, const QString& deviceId) const
 QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
 {
     //TODO be smarter about choosing a session; see e2ee impl guide
+    //TODO do we need to save the olm session after sending a message?
     const auto& curveKey = curveKeyForUserDevice(user->id(), device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);

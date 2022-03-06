@@ -13,6 +13,9 @@
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmsession.h"
 #include "e2ee/qolminboundsession.h"
+#include "connection.h"
+#include "user.h"
+#include "room.h"
 
 using namespace Quotient;
 Database::Database(const QString& matrixId, const QString& deviceId, QObject* parent)
@@ -90,6 +93,7 @@ void Database::migrateTo1()
     execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
     execute(QStringLiteral("CREATE TABLE outdated_users (matrixId TEXT);"));
     execute(QStringLiteral("CREATE TABLE tracked_devices (matrixId TEXT, deviceId TEXT, curveKeyId TEXT, curveKey TEXT, edKeyId TEXT, edKey TEXT);"));
+    execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
 
     execute(QStringLiteral("PRAGMA user_version = 1;"));
     commit();
@@ -309,4 +313,44 @@ QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QSt
         }
     }
     return nullptr;
+}
+
+void Database::setDevicesReceivedKey(const QString& roomId, QHash<User *, QStringList> devices, const QString& sessionId, int index)
+{
+    //TODO this better
+    auto connection = dynamic_cast<Connection *>(parent());
+    transaction();
+    for (const auto& user : devices.keys()) {
+        for (const auto& device : devices[user]) {
+            auto query = prepareQuery(QStringLiteral("INSERT INTO sent_megolm_sessions(roomId, userId, deviceId, identityKey, sessionId, i) VALUES(:roomId, :userId, :deviceId, :identityKey, :sessionId, :i);"));
+            query.bindValue(":roomId", roomId);
+            query.bindValue(":userId", user->id());
+            query.bindValue(":deviceId", device);
+            query.bindValue(":identityKey", connection->curveKeyForUserDevice(user->id(), device));
+            query.bindValue(":sessionId", sessionId);
+            query.bindValue(":i", index);
+            execute(query);
+        }
+    }
+    commit();
+}
+
+QHash<QString, QStringList> Database::devicesWithoutKey(Room* room, const QString &sessionId)
+{
+    auto connection = dynamic_cast<Connection *>(parent());
+    QHash<QString, QStringList> devices;
+    for (const auto& user : room->users()) {//TODO does this include invited & left?
+        devices[user->id()] = connection->devicesForUser(user);
+    }
+
+    auto query = prepareQuery(QStringLiteral("SELECT userId, deviceId FROM sent_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId"));
+    query.bindValue(":roomId", room->id());
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
+    commit();
+    while (query.next()) {
+        devices[query.value("userId").toString()].removeAll(query.value("deviceId").toString());
+    }
+    return devices;
 }
