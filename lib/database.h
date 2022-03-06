@@ -7,9 +7,14 @@
 #include <QtSql/QSqlQuery>
 #include <QtCore/QVector>
 
+#include <QtCore/QHash>
+
 #include "e2ee/e2ee.h"
 
 namespace Quotient {
+class User;
+class Room;
+
 class QUOTIENT_API Database : public QObject
 {
     Q_OBJECT
@@ -37,6 +42,10 @@ public:
     void setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp);
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode);
     void saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& data);
+
+    // Returns a map User -> [Device] that have not received key yet
+    QHash<QString, QStringList> devicesWithoutKey(Room* room, const QString &sessionId);
+    void setDevicesReceivedKey(const QString& roomId, QHash<User *, QStringList> devices, const QString& sessionId, int index);
 
 private:
     void migrateTo1();
