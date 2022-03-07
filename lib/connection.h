@@ -318,7 +318,7 @@ public:
     QOlmAccount* olmAccount() const;
     Database* database();
     UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
-    void saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session);
+    void saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session, const QString& ed25519Key);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;

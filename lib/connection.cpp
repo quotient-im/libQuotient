@@ -2150,9 +2150,9 @@ UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Connection
     return database()->loadMegolmSessions(room->id(), picklingMode());
 }
 
-void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session)
+void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session, const QString& ed25519Key)
 {
-    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), session->pickle(picklingMode()));
+    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), ed25519Key, session->pickle(picklingMode()));
 }
 
 QStringList Connection::devicesForUser(User* user) const

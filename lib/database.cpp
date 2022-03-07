@@ -83,7 +83,7 @@ void Database::migrateTo1()
     transaction();
     execute(QStringLiteral("CREATE TABLE accounts (pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE olm_sessions (senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, ed25519Key TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
     execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
@@ -179,12 +179,13 @@ UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Database::
     return sessions;
 }
 
-void Database::saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
+void Database::saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionId, const QString& ed25519Key, const QByteArray& pickle)
 {
-    auto query = prepareQuery(QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, senderKey, sessionId, pickle) VALUES(:roomId, :senderKey, :sessionId, :pickle);"));
+    auto query = prepareQuery(QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, senderKey, sessionId, ed25519Key, pickle) VALUES(:roomId, :senderKey, :sessionId, :ed25519Key, :pickle);"));
     query.bindValue(":roomId", roomId);
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
+    query.bindValue(":ed25519Key", ed25519Key);
     query.bindValue(":pickle", pickle);
     transaction();
     execute(query);
