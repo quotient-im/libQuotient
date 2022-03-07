@@ -9,6 +9,8 @@
 #include <any>
 #include <utility>
 
+#include "events/encryptedfile.h"
+
 namespace Quotient {
 
 namespace EventStatus {
@@ -114,6 +116,7 @@ public:
 
     void setDeparted() { setStatus(EventStatus::Departed); }
     void setFileUploaded(const QUrl& remoteUrl);
+    void setEncryptedFile(const EncryptedFile& encryptedFile);
     void setReachedServer(const QString& eventId)
     {
         setStatus(EventStatus::ReachedServer);

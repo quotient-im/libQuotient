@@ -299,8 +299,7 @@ public:
 
     RoomEvent* addAsPending(RoomEventPtr&& event);
 
-    //TODO deleteWhenFinishedis ugly, find out if there's something nicer
-    QString doSendEvent(const RoomEvent* pEvent, bool deleteWhenFinished = false);
+    QString doSendEvent(const RoomEvent* pEvent);
     void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
     SetRoomStateWithKeyJob* requestSetState(const QString& evtType,
@@ -2076,6 +2075,16 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
         qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
         return {};
     }
+
+    return doSendEvent(addAsPending(std::move(event)));
+}
+
+QString Room::Private::doSendEvent(const RoomEvent* pEvent)
+{
+    const auto txnId = pEvent->transactionId();
+    // TODO, #133: Enqueue the job rather than immediately trigger it.
+    const RoomEvent* _event = pEvent;
+
     if (q->usesEncryption()) {
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
@@ -2083,10 +2092,8 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
         const auto devicesWithoutKey = getDevicesWithoutKey();
         sendMegolmSession(devicesWithoutKey);
 
-        //TODO check if this is necessary
         //TODO check if we increment the sent message count
-        event->setRoomId(id);
-        const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(event->fullJson()).toJson());
+        const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
         connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
         if(std::holds_alternative<QOlmError>(encrypted)) {
@@ -2098,23 +2105,14 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
-        event->setTransactionId(encryptedEvent->transactionId());
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
-        addAsPending(std::move(event));
-        return doSendEvent(encryptedEvent, true);
+        _event = encryptedEvent;
     }
 
-    return doSendEvent(addAsPending(std::move(event)));
-}
-
-QString Room::Private::doSendEvent(const RoomEvent* pEvent, bool deleteWhenFinished)
-{
-    const auto txnId = pEvent->transactionId();
-    // TODO, #133: Enqueue the job rather than immediately trigger it.
     if (auto call =
             connection->callApi<SendMessageJob>(BackgroundRequest, id,
-                                                pEvent->matrixType(), txnId,
-                                                pEvent->contentJson())) {
+                                                _event->matrixType(), txnId,
+                                                _event->contentJson())) {
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
@@ -2128,7 +2126,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent, bool deleteWhenFinis
         Room::connect(call, &BaseJob::failure, q,
                       std::bind(&Room::Private::onEventSendingFailure, this,
                                 txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId, deleteWhenFinished, pEvent] {
+        Room::connect(call, &BaseJob::success, q, [this, call, txnId, _event] {
             auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end()) {
                 if (it->deliveryStatus() != EventStatus::ReachedServer) {
@@ -2140,8 +2138,8 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent, bool deleteWhenFinis
                                << "already merged";
 
             emit q->messageSent(txnId, call->eventId());
-            if (deleteWhenFinished){
-                delete pEvent;
+            if (q->usesEncryption()){
+                delete _event;
             }
         });
     } else
@@ -2266,13 +2264,16 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
     // Below, the upload job is used as a context object to clean up connections
     const auto& transferJob = fileTransfers.value(txnId).job;
     connect(q, &Room::fileTransferCompleted, transferJob,
-            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri) {
+            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri, Omittable<EncryptedFile> encryptedFile) {
                 if (tId != txnId)
                     return;
 
                 const auto it = q->findPendingEvent(txnId);
                 if (it != unsyncedEvents.end()) {
                     it->setFileUploaded(mxcUri);
+                    if (encryptedFile) {
+                        it->setEncryptedFile(*encryptedFile);
+                    }
                     emit q->pendingEventChanged(
                         int(it - unsyncedEvents.begin()));
                     doSendEvent(it->get());
@@ -2508,6 +2509,20 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
+    Omittable<EncryptedFile> encryptedFile = std::nullopt;
+#ifdef Quotient_E2EE_ENABLED
+    QTemporaryFile tempFile;
+    if (usesEncryption()) {
+        tempFile.open();
+        QFile file(localFilename.toLocalFile());
+        file.open(QFile::ReadOnly);
+        auto [e, data] = EncryptedFile::encryptFile(file.readAll());
+        tempFile.write(data);
+        tempFile.close();
+        fileName = QFileInfo(tempFile).absoluteFilePath();
+        encryptedFile = e;
+    }
+#endif
     auto job = connection()->uploadFile(fileName, overrideContentType);
     if (isJobPending(job)) {
         d->fileTransfers[id] = { job, fileName, true };
@@ -2516,9 +2531,15 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     d->fileTransfers[id].update(sent, total);
                     emit fileTransferProgress(id, sent, total);
                 });
-        connect(job, &BaseJob::success, this, [this, id, localFilename, job] {
+        connect(job, &BaseJob::success, this, [this, id, localFilename, job, encryptedFile] {
             d->fileTransfers[id].status = FileTransferInfo::Completed;
-            emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()));
+            if (encryptedFile) {
+                auto file = *encryptedFile;
+                file.url = QUrl(job->contentUri());
+                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), file);
+            } else {
+                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()));
+            }
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
