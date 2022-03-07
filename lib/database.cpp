@@ -28,6 +28,7 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
 
     switch(version()) {
         case 0: migrateTo1();
+        case 1: migrateTo2();
     }
 }
 
@@ -83,7 +84,7 @@ void Database::migrateTo1()
     transaction();
     execute(QStringLiteral("CREATE TABLE accounts (pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE olm_sessions (senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, ed25519Key TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
     execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
@@ -91,6 +92,15 @@ void Database::migrateTo1()
     execute(QStringLiteral("CREATE TABLE tracked_devices (matrixId TEXT, deviceId TEXT, curveKeyId TEXT, curveKey TEXT, edKeyId TEXT, edKey TEXT);"));
 
     execute(QStringLiteral("PRAGMA user_version = 1;"));
+    commit();
+}
+
+void Database::migrateTo2()
+{
+    qCDebug(DATABASE) << "Migrating database to version 2";
+    transaction();
+    execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
+    execute(QStringLiteral("PRAGMA user_version = 2;"));
     commit();
 }
 
