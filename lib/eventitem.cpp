@@ -26,6 +26,16 @@ void PendingEventItem::setFileUploaded(const QUrl& remoteUrl)
     setStatus(EventStatus::FileUploaded);
 }
 
+void PendingEventItem::setEncryptedFile(const EncryptedFile& encryptedFile)
+{
+    if (auto* rme = getAs<RoomMessageEvent>()) {
+        Q_ASSERT(rme->hasFileContent());
+        rme->editContent([encryptedFile](EventContent::TypedBase& ec) {
+            ec.fileInfo()->file = encryptedFile;
+        });
+    }
+}
+
 // Not exactly sure why but this helps with the linker not finding
 // Quotient::EventStatus::staticMetaObject when building Quaternion
 #include "moc_eventitem.cpp"
