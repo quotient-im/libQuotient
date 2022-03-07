@@ -1998,6 +1998,7 @@ void Connection::Private::loadOutdatedUserDevices()
         currentQueryKeysJob = nullptr;
         const auto data = queryKeysJob->deviceKeys();
         for(const auto &[user, keys] : asKeyValueRange(data)) {
+            QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
             deviceKeys[user].clear();
             for(const auto &device : keys) {
                 if(device.userId != user) {
@@ -2018,6 +2019,12 @@ void Connection::Private::loadOutdatedUserDevices()
                     qCWarning(E2EE) << "Failed to verify devicekeys signature. "
                                        "Skipping this device";
                     continue;
+                }
+                if (oldDevices.contains(device.deviceId)) {
+                    if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId] != device.keys["ed25519:" % device.deviceId]) {
+                        qCDebug(E2EE) << "Device reuse detected. Skipping this device";
+                        continue;
+                    }
                 }
                 deviceKeys[user][device.deviceId] = device;
             }
