@@ -56,6 +56,8 @@ public:
     QString deviceId() const { return contentPart<QString>(DeviceIdKeyL); }
     QString sessionId() const { return contentPart<QString>(SessionIdKeyL); }
     RoomEventPtr createDecrypted(const QString &decrypted) const;
+
+    void setRelation(const QJsonObject& relation);
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 
