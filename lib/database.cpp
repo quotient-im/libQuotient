@@ -100,6 +100,7 @@ void Database::migrateTo2()
     qCDebug(DATABASE) << "Migrating database to version 2";
     transaction();
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
+    execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
     execute(QStringLiteral("PRAGMA user_version = 2;"));
     commit();
 }
@@ -141,12 +142,13 @@ void Database::clear()
 
 }
 
-void Database::saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle)
+void Database::saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle, const QDateTime& timestamp)
 {
-    auto query = prepareQuery(QStringLiteral("INSERT INTO olm_sessions(senderKey, sessionId, pickle) VALUES(:senderKey, :sessionId, :pickle);"));
+    auto query = prepareQuery(QStringLiteral("INSERT INTO olm_sessions(senderKey, sessionId, pickle, lastReceived) VALUES(:senderKey, :sessionId, :pickle, :lastReceived);"));
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":pickle", pickle);
+    query.bindValue(":lastReceived", timestamp);
     transaction();
     execute(query);
     commit();
@@ -251,5 +253,15 @@ void Database::clearRoomData(const QString& roomId)
     execute(query);
     execute(query2);
     execute(query3);
+    commit();
+}
+
+void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET lastReceived=:lastReceived WHERE sessionId=:sessionId;"));
+    query.bindValue(":lastReceived", timestamp);
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
     commit();
 }

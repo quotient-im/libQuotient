@@ -27,13 +27,14 @@ public:
     QByteArray accountPickle();
     void setAccountPickle(const QByteArray &pickle);
     void clear();
-    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle);
+    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle, const QDateTime& timestamp);
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const PicklingMode& picklingMode);
     UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
     void saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionKey, const QString& ed25519Key, const QByteArray& pickle);
     void addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
     std::pair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
     void clearRoomData(const QString& roomId);
+    void setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp);
 
 private:
     void migrateTo1();

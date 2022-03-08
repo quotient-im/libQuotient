@@ -216,7 +216,7 @@ public:
             qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
             return;
         }
-        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
+        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult), QDateTime::currentDateTime());
     }
     QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
     {
@@ -227,6 +227,7 @@ public:
                 qCDebug(E2EE) << "Found inbound session";
                 const auto result = session->decrypt(message);
                 if(std::holds_alternative<QString>(result)) {
+                    q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
                     return std::get<QString>(result);
                 } else {
                     qCDebug(E2EE) << "Failed to decrypt prekey message";
@@ -261,6 +262,7 @@ public:
         for(auto& session : olmSessions[senderKey]) {
             const auto result = session->decrypt(message);
             if(std::holds_alternative<QString>(result)) {
+                q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
                 return std::get<QString>(result);
             }
         }
