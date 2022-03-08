@@ -2089,6 +2089,9 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
+        if(pEvent->contentJson().contains("m.relates_to"_ls)) {
+            encryptedEvent->setRelation(pEvent->contentJson()["m.relates_to"_ls].toObject());
+        }
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
         _event = encryptedEvent;
     }
