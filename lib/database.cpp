@@ -101,6 +101,12 @@ void Database::migrateTo2()
     transaction();
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
+    
+    // Add indexes for improving queries speed on larger database
+    execute(QStringLiteral("CREATE INDEX sessions_session_idx ON olm_sessions(sessionId)"));
+    execute(QStringLiteral("CREATE INDEX outbound_room_idx ON outbound_megolm_sessions(roomId)"));
+    execute(QStringLiteral("CREATE INDEX inbound_room_idx ON inbound_megolm_sessions(roomId)"));
+    execute(QStringLiteral("CREATE INDEX group_session_idx ON group_session_record_index(roomId, sessionId, i)"));
     execute(QStringLiteral("PRAGMA user_version = 2;"));
     commit();
 }
