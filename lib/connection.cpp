@@ -322,6 +322,11 @@ public:
                           << "in Olm plaintext";
             return {};
         }
+        //TODO make this do the check mentioned in the E2EE Implementation guide instead
+        if (decryptedEvent->fullJson()["keys"]["ed25519"].toString().isEmpty()) {
+            qCDebug(E2EE) << "Event does not contain an ed25519 key";
+            return {};
+        }
 
         // TODO: keys to constants
         const auto decryptedEventObject = decryptedEvent->fullJson();
