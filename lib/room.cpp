@@ -374,8 +374,8 @@ public:
         auto groupSessionIt = groupSessions.find({ senderKey, sessionId });
         if (groupSessionIt == groupSessions.end()) {
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId
-            //                 << "The sender's device has not sent us the keys for "
-            //                    "this message" << senderKey << sessionId;
+            //               << "The sender's device has not sent us the keys for "
+            //                  "this message";
             return QString();
         }
         auto& senderSession = groupSessionIt->second;
