@@ -216,7 +216,7 @@ public:
             qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
             return;
         }
-        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult));
+        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult), QDateTime::currentDateTime());
     }
     QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
     {
@@ -227,6 +227,7 @@ public:
                 qCDebug(E2EE) << "Found inbound session";
                 const auto result = session->decrypt(message);
                 if(std::holds_alternative<QString>(result)) {
+                    q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
                     return std::get<QString>(result);
                 } else {
                     qCDebug(E2EE) << "Failed to decrypt prekey message";
@@ -261,6 +262,7 @@ public:
         for(auto& session : olmSessions[senderKey]) {
             const auto result = session->decrypt(message);
             if(std::holds_alternative<QString>(result)) {
+                q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
                 return std::get<QString>(result);
             }
         }
@@ -318,6 +320,11 @@ public:
             qCWarning(E2EE) << "Found user" << sender
                           << "instead of sender" << encryptedEvent.senderId()
                           << "in Olm plaintext";
+            return {};
+        }
+        //TODO make this do the check mentioned in the E2EE Implementation guide instead
+        if (decryptedEvent->fullJson()["keys"]["ed25519"].toString().isEmpty()) {
+            qCDebug(E2EE) << "Event does not contain an ed25519 key";
             return {};
         }
 
@@ -2157,9 +2164,9 @@ UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Connection
     return database()->loadMegolmSessions(room->id(), picklingMode());
 }
 
-void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session)
+void Connection::saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session, const QString& ed25519Key)
 {
-    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), session->pickle(picklingMode()));
+    database()->saveMegolmSession(room->id(), senderKey, session->sessionId(), ed25519Key, session->pickle(picklingMode()));
 }
 
 QStringList Connection::devicesForUser(User* user) const

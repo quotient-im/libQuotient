@@ -341,7 +341,7 @@ public:
     UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
 
     bool addInboundGroupSession(QString senderKey, QString sessionId,
-                                QString sessionKey)
+                                QString sessionKey, QString ed25519Key)
     {
         if (groupSessions.find({senderKey, sessionId}) != groupSessions.end()) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId
@@ -356,7 +356,7 @@ public:
             return false;
         }
         qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, senderKey, megolmSession.get());
+        connection->saveMegolmSession(q, senderKey, megolmSession.get(), ed25519Key);
         groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
         return true;
     }
@@ -1509,7 +1509,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
     if (d->addInboundGroupSession(senderKey, roomKeyEvent.sessionId(),
-                                  roomKeyEvent.sessionKey())) {
+                                  roomKeyEvent.sessionKey(), roomKeyEvent.fullJson()["keys"]["ed25519"].toString())) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         for (const auto& eventId : d->undecryptedEvents[roomKeyEvent.sessionId()]) {

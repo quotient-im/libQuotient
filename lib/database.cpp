@@ -28,6 +28,7 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
 
     switch(version()) {
         case 0: migrateTo1();
+        case 1: migrateTo2();
     }
 }
 
@@ -94,6 +95,22 @@ void Database::migrateTo1()
     commit();
 }
 
+void Database::migrateTo2()
+{
+    qCDebug(DATABASE) << "Migrating database to version 2";
+    transaction();
+    execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
+    execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
+    
+    // Add indexes for improving queries speed on larger database
+    execute(QStringLiteral("CREATE INDEX sessions_session_idx ON olm_sessions(sessionId)"));
+    execute(QStringLiteral("CREATE INDEX outbound_room_idx ON outbound_megolm_sessions(roomId)"));
+    execute(QStringLiteral("CREATE INDEX inbound_room_idx ON inbound_megolm_sessions(roomId)"));
+    execute(QStringLiteral("CREATE INDEX group_session_idx ON group_session_record_index(roomId, sessionId, i)"));
+    execute(QStringLiteral("PRAGMA user_version = 2;"));
+    commit();
+}
+
 QByteArray Database::accountPickle()
 {
     auto query = prepareQuery(QStringLiteral("SELECT pickle FROM accounts;"));
@@ -131,12 +148,13 @@ void Database::clear()
 
 }
 
-void Database::saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle)
+void Database::saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle, const QDateTime& timestamp)
 {
-    auto query = prepareQuery(QStringLiteral("INSERT INTO olm_sessions(senderKey, sessionId, pickle) VALUES(:senderKey, :sessionId, :pickle);"));
+    auto query = prepareQuery(QStringLiteral("INSERT INTO olm_sessions(senderKey, sessionId, pickle, lastReceived) VALUES(:senderKey, :sessionId, :pickle, :lastReceived);"));
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
     query.bindValue(":pickle", pickle);
+    query.bindValue(":lastReceived", timestamp);
     transaction();
     execute(query);
     commit();
@@ -179,12 +197,13 @@ UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> Database::
     return sessions;
 }
 
-void Database::saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
+void Database::saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionId, const QString& ed25519Key, const QByteArray& pickle)
 {
-    auto query = prepareQuery(QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, senderKey, sessionId, pickle) VALUES(:roomId, :senderKey, :sessionId, :pickle);"));
+    auto query = prepareQuery(QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, senderKey, sessionId, ed25519Key, pickle) VALUES(:roomId, :senderKey, :sessionId, :ed25519Key, :pickle);"));
     query.bindValue(":roomId", roomId);
     query.bindValue(":senderKey", senderKey);
     query.bindValue(":sessionId", sessionId);
+    query.bindValue(":ed25519Key", ed25519Key);
     query.bindValue(":pickle", pickle);
     transaction();
     execute(query);
@@ -240,5 +259,15 @@ void Database::clearRoomData(const QString& roomId)
     execute(query);
     execute(query2);
     execute(query3);
+    commit();
+}
+
+void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET lastReceived=:lastReceived WHERE sessionId=:sessionId;"));
+    query.bindValue(":lastReceived", timestamp);
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
     commit();
 }
