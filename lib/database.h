@@ -33,7 +33,7 @@ public:
     QByteArray accountPickle();
     void setAccountPickle(const QByteArray &pickle);
     void clear();
-    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray &pickle, const QDateTime& timestamp);
+    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle, const QDateTime& timestamp);
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const PicklingMode& picklingMode);
     UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
     void saveMegolmSession(const QString& roomId, const QString& senderKey, const QString& sessionKey, const QString& ed25519Key, const QByteArray& pickle);
@@ -43,6 +43,7 @@ public:
     void setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp);
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode);
     void saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& data);
+    void updateOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle);
 
     // Returns a map User -> [Device] that have not received key yet
     QHash<QString, QStringList> devicesWithoutKey(Room* room, const QString &sessionId);

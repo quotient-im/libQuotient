@@ -56,6 +56,7 @@ QByteArray EncryptedFile::decryptFile(const QByteArray& ciphertext) const
 
 std::pair<EncryptedFile, QByteArray> EncryptedFile::encryptFile(const QByteArray &plainText)
 {
+#ifdef Quotient_E2EE_ENABLED
     QByteArray k = getRandom(32);
     auto kBase64 = k.toBase64();
     QByteArray iv = getRandom(16);
@@ -73,6 +74,9 @@ std::pair<EncryptedFile, QByteArray> EncryptedFile::encryptFile(const QByteArray
     auto ivBase64 = iv.toBase64();
     EncryptedFile file = {{}, key, ivBase64.left(ivBase64.indexOf('=')), {{QStringLiteral("sha256"), hash.left(hash.indexOf('='))}}, "v2"_ls};
     return {file, cipherText};
+#else
+    return {{}, {}};
+#endif
 }
 
 void JsonObjectConverter<EncryptedFile>::dumpTo(QJsonObject& jo,

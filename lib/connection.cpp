@@ -33,6 +33,7 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "e2ee/qolmaccount.h"
@@ -221,13 +222,23 @@ public:
     QString sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
     {
         Q_ASSERT(message.type() == QOlmMessage::PreKey);
-        for(auto& session : olmSessions[senderKey]) {
+        for (size_t i = 0; i < olmSessions[senderKey].size(); i++) {
+            auto& session = olmSessions[senderKey][i];
             const auto matches = session->matchesInboundSessionFrom(senderKey, message);
             if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
                 qCDebug(E2EE) << "Found inbound session";
                 const auto result = session->decrypt(message);
                 if(std::holds_alternative<QString>(result)) {
                     q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
+                    auto pickle = session->pickle(q->picklingMode());
+                    if (std::holds_alternative<QByteArray>(pickle)) {
+                        q->database()->updateOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickle));
+                    } else {
+                        qCWarning(E2EE) << "Failed to pickle olm session.";
+                    }
+                    auto s = std::move(session);
+                    olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
+                    olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
                     return std::get<QString>(result);
                 } else {
                     qCDebug(E2EE) << "Failed to decrypt prekey message";
@@ -248,7 +259,7 @@ public:
         }
         const auto result = newSession->decrypt(message);
         saveSession(newSession, senderKey);
-        olmSessions[senderKey].push_back(std::move(newSession));
+        olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(newSession));
         if(std::holds_alternative<QString>(result)) {
             return std::get<QString>(result);
         } else {
@@ -259,10 +270,20 @@ public:
     QString sessionDecryptGeneral(const QOlmMessage& message, const QString &senderKey)
     {
         Q_ASSERT(message.type() == QOlmMessage::General);
-        for(auto& session : olmSessions[senderKey]) {
+        for (size_t i = 0; i < olmSessions[senderKey].size(); i++) {
+            auto& session = olmSessions[senderKey][i];
             const auto result = session->decrypt(message);
             if(std::holds_alternative<QString>(result)) {
                 q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
+                auto pickle = session->pickle(q->picklingMode());
+                if (std::holds_alternative<QByteArray>(pickle)) {
+                    q->database()->updateOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickle));
+                } else {
+                    qCWarning(E2EE) << "Failed to pickle olm session.";
+                }
+                auto s = std::move(session);
+                olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
+                olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
                 return std::get<QString>(result);
             }
         }
@@ -2192,21 +2213,24 @@ bool Connection::hasOlmSession(User* user, const QString& deviceId) const
 
 QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
 {
-    //TODO be smarter about choosing a session; see e2ee impl guide
-    //TODO do we need to save the olm session after sending a message?
     const auto& curveKey = curveKeyForUserDevice(user->id(), device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);
+    auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
+    if (std::holds_alternative<QByteArray>(pickle)) {
+        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), std::get<QByteArray>(pickle));
+    } else {
+        qCWarning(E2EE) << "Failed to pickle olm session.";
+    }
     return qMakePair(type, result.toCiphertext());
 }
 
-//TODO be more consistent with curveKey and identityKey
 void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
 {
     auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
     if (std::holds_alternative<QOlmError>(session)) {
-        //TODO something
         qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << std::get<QOlmError>(session);
+        return;
     }
     d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
     d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));
