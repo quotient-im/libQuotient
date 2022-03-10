@@ -46,7 +46,7 @@ public:
     QString v;
 
     QByteArray decryptFile(const QByteArray &ciphertext) const;
-    static std::pair<EncryptedFile, QByteArray> encryptFile(const QByteArray &plainText);
+    static std::pair<EncryptedFile, QByteArray> encryptFile(const QByteArray& plainText);
 };
 
 template <>
