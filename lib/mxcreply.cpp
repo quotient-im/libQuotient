@@ -54,11 +54,11 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
-        setOpenMode(ReadOnly);
-        emit finished();
 #else
         d->m_device = d->m_reply;
 #endif
+        setOpenMode(ReadOnly);
+        emit finished();
     });
 
 #ifdef Quotient_E2EE_ENABLED
