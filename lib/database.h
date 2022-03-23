@@ -52,6 +52,7 @@ public:
 private:
     void migrateTo1();
     void migrateTo2();
+    void migrateTo3();
     QString m_matrixId;
 };
 }

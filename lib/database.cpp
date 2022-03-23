@@ -33,6 +33,7 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
     switch(version()) {
         case 0: migrateTo1();
         case 1: migrateTo2();
+        case 2: migrateTo3();
     }
 }
 
@@ -89,12 +90,11 @@ void Database::migrateTo1()
     execute(QStringLiteral("CREATE TABLE accounts (pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE olm_sessions (senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, sessionId TEXT, pickle TEXT, creationTime TEXT, messageCount INTEGER);"));
+    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
     execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
     execute(QStringLiteral("CREATE TABLE outdated_users (matrixId TEXT);"));
     execute(QStringLiteral("CREATE TABLE tracked_devices (matrixId TEXT, deviceId TEXT, curveKeyId TEXT, curveKey TEXT, edKeyId TEXT, edKey TEXT);"));
-    execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
 
     execute(QStringLiteral("PRAGMA user_version = 1;"));
     commit();
@@ -106,7 +106,7 @@ void Database::migrateTo2()
     transaction();
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
-    
+
     // Add indexes for improving queries speed on larger database
     execute(QStringLiteral("CREATE INDEX sessions_session_idx ON olm_sessions(sessionId)"));
     execute(QStringLiteral("CREATE INDEX outbound_room_idx ON outbound_megolm_sessions(roomId)"));
@@ -114,6 +114,15 @@ void Database::migrateTo2()
     execute(QStringLiteral("CREATE INDEX group_session_idx ON group_session_record_index(roomId, sessionId, i)"));
     execute(QStringLiteral("PRAGMA user_version = 2;"));
     commit();
+}
+
+void Database::migrateTo3()
+{
+    qCDebug(DATABASE) << "Migrating database to version 3";
+    execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
+    execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD creationTime TEXT;"));
+    execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD messageCount INTEGER;"));
+    execute(QStringLiteral("PRAGMA user_version = 3;"));
 }
 
 QByteArray Database::accountPickle()
