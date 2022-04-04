@@ -322,9 +322,17 @@ public:
                           << "in Olm plaintext";
             return {};
         }
-        //TODO make this do the check mentioned in the E2EE Implementation guide instead
-        if (decryptedEvent->fullJson()["keys"]["ed25519"].toString().isEmpty()) {
-            qCDebug(E2EE) << "Event does not contain an ed25519 key";
+
+        auto query = database->prepareQuery(QStringLiteral("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"));
+        query.bindValue(":curveKey", encryptedEvent.contentJson()["sender_key"].toString());
+        database->execute(query);
+        if (!query.next()) {
+            qCWarning(E2EE) << "Received olm message from unknown device" << encryptedEvent.contentJson()["sender_key"].toString();
+            return {};
+        }
+        auto edKey = decryptedEvent->fullJson()["keys"]["ed25519"].toString();
+        if (edKey.isEmpty() || query.value(QStringLiteral("edKey")).toString() != edKey) {
+            qCDebug(E2EE) << "Received olm message with invalid ed key";
             return {};
         }
 

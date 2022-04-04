@@ -99,6 +99,7 @@ void Database::migrateTo2()
 {
     qCDebug(DATABASE) << "Migrating database to version 2";
     transaction();
+    //TODO remove this column again - we don't need it after all
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
     
