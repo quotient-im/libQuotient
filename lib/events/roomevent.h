@@ -80,6 +80,14 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
+template <>
+inline EventPtr doLoadEvent(const QJsonObject& json, const QString& matrixType)
+{
+    if (matrixType == "m.room.encrypted")
+        return RoomEvent::factory.loadEvent(json, matrixType);
+    return Event::factory.loadEvent(json, matrixType);
+}
+
 class QUOTIENT_API CallEventBase : public RoomEvent {
 public:
     CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
