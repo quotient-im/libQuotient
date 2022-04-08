@@ -118,6 +118,8 @@ public:
     PicklingMode picklingMode = Unencrypted {};
     Database *database = nullptr;
     QHash<QString, int> oneTimeKeysCount;
+    std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents;
+    void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
 
     // A map from SenderKey to vector of InboundSession
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
@@ -937,28 +939,42 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
                 return;
             }
-            const auto decryptedEvent = sessionDecryptMessage(event);
-            if(!decryptedEvent) {
-                qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+            if (q->isKnownCurveKey(event.senderId(), event.senderKey())) {
+                handleEncryptedToDeviceEvent(event);
                 return;
             }
-
-            switchOnType(*decryptedEvent,
-                [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
-                    if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                        detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
-                    } else {
-                        qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
-                            << "is not found at the connection" << q->objectName();
-                    }
-                },
-                [](const Event& evt) {
-                    qCDebug(E2EE) << "Skipping encrypted to_device event, type"
-                                << evt.matrixType();
-                });
+            trackedUsers += event.senderId();
+            outdatedUsers += event.senderId();
+            encryptionUpdateRequired = true;
+            pendingEncryptedEvents.push_back(std::make_unique<EncryptedEvent>(event.fullJson()));
+        }, [](const Event& e){
+            // Unhandled
         });
     }
 #endif
+}
+
+void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
+{
+    const auto decryptedEvent = sessionDecryptMessage(event);
+        if(!decryptedEvent) {
+            qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+            return;
+        }
+
+        switchOnType(*decryptedEvent,
+            [this, senderKey = event.senderKey()](const RoomKeyEvent& roomKeyEvent) {
+                if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
+                    detectedRoom->handleRoomKeyEvent(roomKeyEvent, senderKey);
+                } else {
+                    qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                        << "is not found at the connection" << q->objectName();
+                }
+            },
+            [](const Event& evt) {
+                qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+                            << evt.matrixType();
+            });
 }
 
 void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
@@ -2046,6 +2062,15 @@ void Connection::Private::loadOutdatedUserDevices()
             outdatedUsers -= user;
         }
         saveDevicesList();
+
+        for(size_t i = 0; i < pendingEncryptedEvents.size();) {
+            if (q->isKnownCurveKey(pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(), pendingEncryptedEvents[i]->contentJson()["sender_key"].toString())) {
+                handleEncryptedToDeviceEvent(*(pendingEncryptedEvents[i].get()));
+                pendingEncryptedEvents.erase(pendingEncryptedEvents.begin() + i);
+            } else {
+                i++;
+            }
+        }
     });
 }
 
@@ -2190,6 +2215,15 @@ QString Connection::curveKeyForUserDevice(const QString& user, const QString& de
 QString Connection::edKeyForUserDevice(const QString& user, const QString& device) const
 {
     return d->deviceKeys[user][device].keys["ed25519:" % device];
+}
+
+bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
+{
+    auto query = database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices WHERE matrixId=:matrixId AND curveKey=:curveKey"));
+    query.bindValue(":matrixId", user);
+    query.bindValue(":curveKey", curveKey);
+    database()->execute(query);
+    return query.next();
 }
 
 #endif

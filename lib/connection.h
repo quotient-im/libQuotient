@@ -684,6 +684,7 @@ public Q_SLOTS:
     QStringList devicesForUser(User* user) const;
     QString curveKeyForUserDevice(const QString &user, const QString& device) const;
     QString edKeyForUserDevice(const QString& user, const QString& device) const;
+    bool isKnownCurveKey(const QString& user, const QString& curveKey);
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
@@ -841,6 +842,7 @@ Q_SIGNALS:
     void cacheStateChanged();
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
+    void devicesListLoaded();
 
 protected:
     /**
