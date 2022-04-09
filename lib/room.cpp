@@ -337,27 +337,25 @@ public:
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 
 #ifdef Quotient_E2EE_ENABLED
-    // A map from (senderKey, sessionId) to InboundGroupSession
-    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> groupSessions;
+    UnorderedMap<QString, QOlmInboundGroupSessionPtr> groupSessions;
 
-    bool addInboundGroupSession(QString senderKey, QString sessionId,
-                                QString sessionKey, QString ed25519Key)
+    bool addInboundGroupSession(QString sessionId, QString sessionKey, const QString& senderId, const QString& olmSessionId)
     {
-        if (groupSessions.find({senderKey, sessionId}) != groupSessions.end()) {
-            qCWarning(E2EE) << "Inbound Megolm session" << sessionId
-                          << "with senderKey" << senderKey << "already exists";
+        if (groupSessions.find(sessionId) != groupSessions.end()) {
+            qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
             return false;
         }
 
         auto megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
         if (megolmSession->sessionId() != sessionId) {
-            qCWarning(E2EE) << "Session ID mismatch in m.room_key event sent "
-                             "from sender with key" << senderKey;
+            qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
         }
+        megolmSession->setSenderId(senderId);
+        megolmSession->setOlmSessionId(olmSessionId);
         qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, senderKey, megolmSession.get(), ed25519Key);
-        groupSessions[{senderKey, sessionId}] = std::move(megolmSession);
+        connection->saveMegolmSession(q, megolmSession.get());
+        groupSessions[sessionId] = std::move(megolmSession);
         return true;
     }
 
@@ -365,9 +363,10 @@ public:
                                        const QString& senderKey,
                                        const QString& sessionId,
                                        const QString& eventId,
-                                       QDateTime timestamp)
+                                       QDateTime timestamp,
+                                       const QString& senderId)
     {
-        auto groupSessionIt = groupSessions.find({ senderKey, sessionId });
+        auto groupSessionIt = groupSessions.find(sessionId);
         if (groupSessionIt == groupSessions.end()) {
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId
             //               << "The sender's device has not sent us the keys for "
@@ -375,6 +374,10 @@ public:
             return QString();
         }
         auto& senderSession = groupSessionIt->second;
+        if (senderSession->senderId() != senderId) {
+            qCWarning(E2EE) << "Sender from event does not match sender from session";
+            return {};
+        }
         auto decryptResult = senderSession->decrypt(cipher);
         if(std::holds_alternative<QOlmError>(decryptResult)) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
@@ -1482,9 +1485,9 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     QString decrypted = d->groupSessionDecryptMessage(
         encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
         encryptedEvent.sessionId(), encryptedEvent.id(),
-        encryptedEvent.originTimestamp());
+        encryptedEvent.originTimestamp(), encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
-        // qCWarning(E2EE) << "Encrypted message is empty";
+        qCWarning(E2EE) << "Encrypted message is empty";
         return {};
     }
     auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
@@ -1497,19 +1500,21 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 }
 
 void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
-                              const QString& senderKey)
+                              const QString& senderId,
+                              const QString& olmSessionId)
 {
 #ifndef Quotient_E2EE_ENABLED
     Q_UNUSED(roomKeyEvent)
-    Q_UNUSED(senderKey)
+    Q_UNUSED(senderId)
+    Q_UNUSED(olmSessionId)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
     if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
-    if (d->addInboundGroupSession(senderKey, roomKeyEvent.sessionId(),
-                                  roomKeyEvent.sessionKey(), roomKeyEvent.fullJson()["keys"]["ed25519"].toString())) {
+    if (d->addInboundGroupSession(roomKeyEvent.sessionId(),
+                                  roomKeyEvent.sessionKey(), senderId, olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];

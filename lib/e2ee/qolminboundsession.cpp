@@ -149,3 +149,21 @@ bool QOlmInboundGroupSession::isVerified() const
 {
     return olm_inbound_group_session_is_verified(m_groupSession) != 0;
 }
+
+QString QOlmInboundGroupSession::olmSessionId() const
+{
+    return m_olmSessionId;
+}
+void QOlmInboundGroupSession::setOlmSessionId(const QString& olmSessionId)
+{
+    m_olmSessionId = olmSessionId;
+}
+
+QString QOlmInboundGroupSession::senderId() const
+{
+    return m_senderId;
+}
+void QOlmInboundGroupSession::setSenderId(const QString& senderId)
+{
+    m_senderId = senderId;
+}
