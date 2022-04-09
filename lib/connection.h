@@ -500,6 +500,9 @@ public:
     /// Saves the olm account data to disk. Usually doesn't need to be called manually.
     void saveOlmAccount();
 
+    /// This api can be used by clients to create unit tests
+    void setupDummyConnection(const QString &mixd, const QString &deviceId, const QUrl &homeserver);
+
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows
     ///

@@ -615,6 +615,16 @@ void Connection::Private::completeSetup(const QString& mxId)
     q->reloadCapabilities();
 }
 
+void Connection::setupDummyConnection(const QString &mixd, const QString &deviceId, const QUrl &homeserver)
+{
+	d->data->setUserId(mixd);
+	d->data->setDeviceId(deviceId);
+	setHomeserver(homeserver);
+    user(d->data->userId()); // Creates a User object for the local user
+    d->database = new Database(d->data->userId(), d->data->deviceId(), this);
+    d->olmAccount = std::make_unique<QOlmAccount>(d->data->userId(), d->data->deviceId(), this);
+}
+
 void Connection::Private::checkAndConnect(const QString& userId,
                                           const std::function<void()>& connectFn,
                                           const std::optional<LoginFlow>& flow)
