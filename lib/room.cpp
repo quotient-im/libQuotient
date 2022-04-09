@@ -1512,7 +1512,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                                   roomKeyEvent.sessionKey(), roomKeyEvent.fullJson()["keys"]["ed25519"].toString())) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
-        for (const auto& eventId : d->undecryptedEvents[roomKeyEvent.sessionId()]) {
+        auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
+        for (const auto& eventId : undecryptedEvents) {
             const auto pIdx = d->eventsIndex.constFind(eventId);
             if (pIdx == d->eventsIndex.cend())
                 continue;
@@ -1524,7 +1525,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                     auto& decryptedEvent = *decrypted;
                     auto oldEvent = ti.replaceEvent(std::move(decrypted));
                     decryptedEvent.setOriginalEvent(std::move(oldEvent));
-                    emit replacedEvent(ti.event(), decrypted->originalEvent());
+                    emit replacedEvent(ti.event(), decryptedEvent.originalEvent());
                     d->undecryptedEvents[roomKeyEvent.sessionId()] -= eventId;
                 }
             }
