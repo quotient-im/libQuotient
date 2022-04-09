@@ -1487,7 +1487,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         encryptedEvent.sessionId(), encryptedEvent.id(),
         encryptedEvent.originTimestamp(), encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
-        qCWarning(E2EE) << "Encrypted message is empty";
+        // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
     }
     auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
