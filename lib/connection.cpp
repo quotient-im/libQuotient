@@ -241,7 +241,7 @@ public:
                     auto s = std::move(session);
                     olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
                     olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
-                    return { std::get<QString>(result), session->sessionId() };
+                    return { std::get<QString>(result), olmSessions[senderKey][0]->sessionId() };
                 } else {
                     qCDebug(E2EE) << "Failed to decrypt prekey message";
                     return {};
@@ -287,7 +287,7 @@ public:
                 auto s = std::move(session);
                 olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
                 olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
-                return { std::get<QString>(result), session->sessionId() };
+                return { std::get<QString>(result), olmSessions[senderKey][0]->sessionId() };
             }
         }
         qCWarning(E2EE) << "Failed to decrypt message";
