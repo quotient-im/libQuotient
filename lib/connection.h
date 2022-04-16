@@ -319,8 +319,6 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
     Database* database();
-    UnorderedMap<std::pair<QString, QString>, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
-    void saveMegolmSession(Room* room, const QString& senderKey, QOlmInboundGroupSession* session, const QString& ed25519Key);
     bool hasOlmSession(User* user, const QString& deviceId) const;
 
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
@@ -330,6 +328,9 @@ public:
     //This assumes that an olm session with (user, device) exists
     QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
     void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
+
+    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
+    void saveMegolmSession(Room* room, QOlmInboundGroupSession* session);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -695,6 +696,7 @@ public Q_SLOTS:
     QStringList devicesForUser(User* user) const;
     QString curveKeyForUserDevice(const QString &user, const QString& device) const;
     QString edKeyForUserDevice(const QString& user, const QString& device) const;
+    bool isKnownCurveKey(const QString& user, const QString& curveKey);
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
@@ -852,6 +854,7 @@ Q_SIGNALS:
     void cacheStateChanged();
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
+    void devicesListLoaded();
 
 protected:
     /**
