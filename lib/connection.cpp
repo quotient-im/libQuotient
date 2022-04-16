@@ -962,25 +962,28 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 
 void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
 {
-    const auto [decryptedEvent, olmSessionId] = sessionDecryptMessage(event);
-        if(!decryptedEvent) {
-            qCWarning(E2EE) << "Failed to decrypt event" << event.id();
-            return;
-        }
+    const auto [decryptedEvent, id] = sessionDecryptMessage(event);
+    if(!decryptedEvent) {
+        qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+        return;
+    }
 
-        switchOnType(*decryptedEvent,
-            [this, senderKey = event.senderKey(), &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
-                if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                    detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId);
-                } else {
-                    qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
-                        << "is not found at the connection" << q->objectName();
-                }
-            },
-            [](const Event& evt) {
-                qCDebug(E2EE) << "Skipping encrypted to_device event, type"
-                            << evt.matrixType();
-            });
+    // Yes, this is weird, but lgtm.com doesn't like it otherwise
+    const auto olmSessionId = id;
+
+    switchOnType(*decryptedEvent,
+        [this, senderKey = event.senderKey(), &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
+            if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
+                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId);
+            } else {
+                qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                    << "is not found at the connection" << q->objectName();
+            }
+        },
+        [](const Event& evt) {
+            qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+                        << evt.matrixType();
+        });
 }
 
 void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
