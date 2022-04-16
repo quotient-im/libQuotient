@@ -960,6 +960,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 #endif
 }
 
+#ifdef Quotient_E2EE_ENABLED
 void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
 {
     const auto [decryptedEvent, id] = sessionDecryptMessage(event);
@@ -985,6 +986,7 @@ void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& eve
                         << evt.matrixType();
         });
 }
+#endif
 
 void Connection::Private::consumeDevicesList(DevicesList&& devicesList)
 {
