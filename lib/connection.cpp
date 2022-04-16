@@ -963,17 +963,14 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 #ifdef Quotient_E2EE_ENABLED
 void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
 {
-    const auto [decryptedEvent, id] = sessionDecryptMessage(event);
+    const auto [decryptedEvent, olmSessionId] = sessionDecryptMessage(event);
     if(!decryptedEvent) {
         qCWarning(E2EE) << "Failed to decrypt event" << event.id();
         return;
     }
 
-    // Yes, this is weird, but lgtm.com doesn't like it otherwise
-    const auto olmSessionId = id;
-
     switchOnType(*decryptedEvent,
-        [this, senderKey = event.senderKey(), &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
+        [this, senderKey = event.senderKey(), &event, olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                 detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId);
             } else {
