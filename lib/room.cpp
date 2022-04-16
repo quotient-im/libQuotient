@@ -452,7 +452,7 @@ public:
             qCWarning(E2EE) << "Failed to load key for new megolm session";
             return;
         }
-        addInboundGroupSession(q->connection()->olmAccount()->identityKeys().curve25519, currentOutboundMegolmSession->sessionId(), std::get<QByteArray>(sessionKey), QString(connection->olmAccount()->identityKeys().ed25519));
+        addInboundGroupSession(currentOutboundMegolmSession->sessionId(), std::get<QByteArray>(sessionKey), q->localUser()->id(), "SELF"_ls);
     }
 
     std::unique_ptr<EncryptedEvent> payloadForUserDevice(User* user, const QString& device, const QByteArray& sessionId, const QByteArray& sessionKey)
