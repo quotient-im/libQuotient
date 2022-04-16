@@ -41,9 +41,20 @@ public:
     QByteArray sessionId() const;
     bool isVerified() const;
 
+    //! The olm session that this session was received from.
+    //! Required to get the device this session is from.
+    QString olmSessionId() const;
+    void setOlmSessionId(const QString& setOlmSessionId);
+
+    //! The sender of this session.
+    QString senderId() const;
+    void setSenderId(const QString& senderId);
+
     QOlmInboundGroupSession(OlmInboundGroupSession* session);
 private:
     OlmInboundGroupSession* m_groupSession;
+    QString m_olmSessionId;
+    QString m_senderId;
 };
 
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
