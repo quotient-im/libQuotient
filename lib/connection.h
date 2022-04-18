@@ -26,6 +26,8 @@
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
 #include "e2ee/qolmoutboundsession.h"
+#include "events/keyverificationevent.h"
+#include "keyverificationsession.h"
 #endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
@@ -324,6 +326,8 @@ public:
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
     void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
 
+    /// Returns true if this megolm session comes from a verified device
+    bool isVerifiedSession(const QString& megolmSessionId);
 
     //This assumes that an olm session with (user, device) exists
     QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
@@ -512,6 +516,9 @@ public:
     /// Saves the olm account data to disk. Usually doesn't need to be called manually.
     void saveOlmAccount();
 
+    // This assumes that an olm session already exists. If it doesn't, no message is sent.
+    void sendToDevice(const QString& userId, const QString& deviceId, event_ptr_tt<Event> event, bool encrypted);
+
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows
     ///
@@ -688,6 +695,8 @@ public Q_SLOTS:
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
+    void startKeyVerificationSession(const QString& deviceId);
+
 #ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
     PicklingMode picklingMode() const;
@@ -698,6 +707,7 @@ public Q_SLOTS:
     QString edKeyForUserDevice(const QString& user, const QString& device) const;
     bool isKnownCurveKey(const QString& user, const QString& curveKey);
 #endif
+
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
     ///
@@ -855,6 +865,16 @@ Q_SIGNALS:
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
     void devicesListLoaded();
+    void incomingKeyVerificationReady(const KeyVerificationReadyEvent& event);
+    void incomingKeyVerificationStart(const KeyVerificationStartEvent& event);
+    void incomingKeyVerificationAccept(const KeyVerificationAcceptEvent& event);
+    void incomingKeyVerificationKey(const KeyVerificationKeyEvent& event);
+    void incomingKeyVerificationMac(const KeyVerificationMacEvent& event);
+    void incomingKeyVerificationDone(const KeyVerificationDoneEvent& event);
+    void incomingKeyVerificationCancel(const KeyVerificationCancelEvent& event);
+
+    void newKeyVerificationSession(KeyVerificationSession* session);
+    void sessionVerified(const QString& userId, const QString& deviceId);
 
 protected:
     /**

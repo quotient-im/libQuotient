@@ -73,6 +73,7 @@ message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 
@@ -138,6 +139,7 @@ list(APPEND lib_SRCS
     lib/eventitem.h lib/eventitem.cpp
     lib/accountregistry.h lib/accountregistry.cpp
     lib/mxcreply.h lib/mxcreply.cpp
+    lib/keyverificationsession.h lib/keyverificationsession.cpp
     lib/events/event.h lib/events/event.cpp
     lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
@@ -171,6 +173,7 @@ list(APPEND lib_SRCS
     lib/jobs/syncjob.h lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.h lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.h lib/jobs/downloadfilejob.cpp
+    res.qrc
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS

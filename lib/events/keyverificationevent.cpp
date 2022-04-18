@@ -106,7 +106,7 @@ QStringList KeyVerificationAcceptEvent::shortAuthenticationString() const
     return contentPart<QStringList>("short_authentification_string"_ls);
 }
 
-QString KeyVerificationAcceptEvent::commitement() const
+QString KeyVerificationAcceptEvent::commitment() const
 {
     return contentPart<QString>("commitment"_ls);
 }
@@ -161,4 +161,34 @@ QString KeyVerificationMacEvent::keys() const
 QHash<QString, QString> KeyVerificationMacEvent::mac() const
 {
     return contentPart<QHash<QString, QString>>("mac"_ls);
+}
+
+KeyVerificationDoneEvent::KeyVerificationDoneEvent(const QJsonObject &obj)
+    : Event(typeId(), obj)
+{
+}
+
+QString KeyVerificationDoneEvent::transactionId() const
+{
+    return contentPart<QString>("transaction_id"_ls);
+}
+
+
+KeyVerificationReadyEvent::KeyVerificationReadyEvent(const QJsonObject &obj)
+    : Event(typeId(), obj)
+{}
+
+QString KeyVerificationReadyEvent::fromDevice() const
+{
+    return contentPart<QString>("from_device"_ls);
+}
+
+QString KeyVerificationReadyEvent::transactionId() const
+{
+    return contentPart<QString>("transaction_id"_ls);
+}
+
+QStringList KeyVerificationReadyEvent::methods() const
+{
+    return contentPart<QStringList>("methods"_ls);
 }

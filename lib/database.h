@@ -50,11 +50,15 @@ public:
     QHash<QString, QStringList> devicesWithoutKey(Room* room, const QString &sessionId);
     void setDevicesReceivedKey(const QString& roomId, QHash<User *, QStringList> devices, const QString& sessionId, int index);
 
+    bool isSessionVerified(const QString& edKey);
+    void setSessionVerified(const QString& edKeyId);
+
 private:
     void migrateTo1();
     void migrateTo2();
     void migrateTo3();
     void migrateTo4();
+    void migrateTo5();
 
     QString m_matrixId;
 };

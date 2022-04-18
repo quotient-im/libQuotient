@@ -35,6 +35,7 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
         case 1: migrateTo2();
         case 2: migrateTo3();
         case 3: migrateTo4();
+        case 4: migrateTo5();
     }
 }
 
@@ -105,6 +106,7 @@ void Database::migrateTo2()
 {
     qCDebug(DATABASE) << "Migrating database to version 2";
     transaction();
+
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
 
@@ -133,13 +135,23 @@ void Database::migrateTo3()
 
 void Database::migrateTo4()
 {
-    qCDebug(DATABASE) << "Migrating database to ersion 4";
+    qCDebug(DATABASE) << "Migrating database to version 4";
     transaction();
 
     execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD creationTime TEXT;"));
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD messageCount INTEGER;"));
     execute(QStringLiteral("PRAGMA user_version = 4;"));
+    commit();
+}
+
+void Database::migrateTo5()
+{
+    qCDebug(DATABASE) << "Migrating database to version 5";
+    transaction();
+
+    execute(QStringLiteral("ALTER TABLE tracked_devices ADD verified BOOL;"));
+    execute(QStringLiteral("PRAGMA user_version = 5"));
     commit();
 }
 
@@ -396,3 +408,19 @@ void Database::updateOlmSession(const QString& senderKey, const QString& session
     commit();
 }
 
+void Database::setSessionVerified(const QString& edKeyId)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE tracked_devices SET verified=true WHERE edKeyId=:edKeyId;"));
+    query.bindValue(":edKeyId", edKeyId);
+    transaction();
+    execute(query);
+    commit();
+}
+
+bool Database::isSessionVerified(const QString& edKey)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT verified FROM tracked_devices WHERE edKey=:edKey"));
+    query.bindValue(":edKey", edKey);
+    execute(query);
+    return query.next() && query.value("verified").toBool();
+}

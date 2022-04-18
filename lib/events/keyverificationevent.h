@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2021 Carl Schwan <carlschwan@kde.org>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#pragma once
+
 #include "event.h"
 
 namespace Quotient {
@@ -30,6 +32,24 @@ public:
     uint64_t timestamp() const;
 };
 REGISTER_EVENT_TYPE(KeyVerificationRequestEvent)
+
+class QUOTIENT_API KeyVerificationReadyEvent : public Event {
+public:
+    DEFINE_EVENT_TYPEID("m.key.verification.ready", KeyVerificationReadyEvent)
+
+    explicit KeyVerificationReadyEvent(const QJsonObject& obj);
+
+    /// The device ID which is accepting the request.
+    QString fromDevice() const;
+
+    /// The transaction id of the verification request
+    QString transactionId() const;
+
+    /// The verification methods supported by the sender.
+    QStringList methods() const;
+};
+REGISTER_EVENT_TYPE(KeyVerificationReadyEvent)
+
 
 /// Begins a key verification process.
 class QUOTIENT_API KeyVerificationStartEvent : public Event {
@@ -104,7 +124,7 @@ public:
     /// The hash (encoded as unpadded base64) of the concatenation of the
     /// device's ephemeral public key (encoded as unpadded base64) and the
     /// canonical JSON representation of the m.key.verification.start message.
-    QString commitement() const;
+    QString commitment() const;
 };
 REGISTER_EVENT_TYPE(KeyVerificationAcceptEvent)
 
@@ -128,7 +148,7 @@ REGISTER_EVENT_TYPE(KeyVerificationCancelEvent)
 
 /// Sends the ephemeral public key for a device to the partner device.
 /// Typically sent as a to-device event.
-class KeyVerificationKeyEvent : public Event {
+class QUOTIENT_API KeyVerificationKeyEvent : public Event {
 public:
     DEFINE_EVENT_TYPEID("m.key.verification.key", KeyVerificationKeyEvent)
 
@@ -158,4 +178,16 @@ public:
     QHash<QString, QString> mac() const;
 };
 REGISTER_EVENT_TYPE(KeyVerificationMacEvent)
+
+class QUOTIENT_API KeyVerificationDoneEvent : public Event {
+public:
+    DEFINE_EVENT_TYPEID("m.key.verification.done", KeyVerificationRequestEvent)
+
+    explicit KeyVerificationDoneEvent(const QJsonObject& obj);
+
+    /// The same transactionId as before
+    QString transactionId() const;
+};
+REGISTER_EVENT_TYPE(KeyVerificationDoneEvent)
+
 } // namespace Quotient

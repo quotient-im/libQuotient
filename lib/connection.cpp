@@ -40,6 +40,8 @@
 #    include "e2ee/qolmutils.h"
 #    include "database.h"
 #    include "e2ee/qolminboundsession.h"
+#    include "events/keyverificationevent.h"
+#    include "keyverificationsession.h"
 
 #if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
@@ -974,8 +976,23 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             outdatedUsers += event.senderId();
             encryptionUpdateRequired = true;
             pendingEncryptedEvents.push_back(std::make_unique<EncryptedEvent>(event.fullJson()));
-        }, [](const Event& e){
-            // Unhandled
+        }, [this](const KeyVerificationRequestEvent& event) {
+            auto session = new KeyVerificationSession(q->userId(), event, q, false, q);
+            emit q->newKeyVerificationSession(session);
+        }, [this](const KeyVerificationReadyEvent& event) {
+            emit q->incomingKeyVerificationReady(event);
+        }, [this](const KeyVerificationStartEvent& event) {
+            emit q->incomingKeyVerificationStart(event);
+        }, [this](const KeyVerificationAcceptEvent& event) {
+            emit q->incomingKeyVerificationAccept(event);
+        }, [this](const KeyVerificationKeyEvent& event) {
+            emit q->incomingKeyVerificationKey(event);
+        }, [this](const KeyVerificationMacEvent& event) {
+            emit q->incomingKeyVerificationMac(event);
+        }, [this](const KeyVerificationDoneEvent& event) {
+            emit q->incomingKeyVerificationDone(event);
+        }, [this](const KeyVerificationCancelEvent& event) {
+            emit q->incomingKeyVerificationCancel(event);
         });
     }
 #endif
@@ -998,9 +1015,25 @@ void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& eve
                 qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
                     << "is not found at the connection" << q->objectName();
             }
-        },
-        [](const Event& evt) {
-            qCDebug(E2EE) << "Skipping encrypted to_device event, type"
+        }, [this](const KeyVerificationRequestEvent& event) {
+            auto session = new KeyVerificationSession(q->userId(), event, q, true, q);
+            emit q->newKeyVerificationSession(session);
+        }, [this](const KeyVerificationReadyEvent& event) {
+            emit q->incomingKeyVerificationReady(event);
+        }, [this](const KeyVerificationStartEvent& event) {
+            emit q->incomingKeyVerificationStart(event);
+        }, [this](const KeyVerificationAcceptEvent& event) {
+            emit q->incomingKeyVerificationAccept(event);
+        }, [this](const KeyVerificationKeyEvent& event) {
+            emit q->incomingKeyVerificationKey(event);
+        }, [this](const KeyVerificationMacEvent& event) {
+            emit q->incomingKeyVerificationMac(event);
+        }, [this](const KeyVerificationDoneEvent& event) {
+            emit q->incomingKeyVerificationDone(event);
+        }, [this](const KeyVerificationCancelEvent& event) {
+            emit q->incomingKeyVerificationCancel(event);
+        }, [](const Event& evt) {
+            qCWarning(E2EE) << "Skipping encrypted to_device event, type"
                         << evt.matrixType();
         });
 }
@@ -2127,8 +2160,8 @@ void Connection::Private::saveDevicesList()
 
     query.prepare(QStringLiteral(
         "INSERT INTO tracked_devices"
-        "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey) "
-        "VALUES(:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey);"
+        "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified) "
+        "SELECT :matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified WHERE NOT EXISTS(SELECT 1 FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId);"
         ));
     for (const auto& user : deviceKeys.keys()) {
         for (const auto& device : deviceKeys[user]) {
@@ -2142,6 +2175,8 @@ void Connection::Private::saveDevicesList()
             query.bindValue(":curveKey", device.keys[curveKeyId]);
             query.bindValue(":edKeyId", edKeyId);
             query.bindValue(":edKey", device.keys[edKeyId]);
+            // If the device gets saved here, it can't be verified
+            query.bindValue(":verified", false);
 
             q->database()->execute(query);
         }
@@ -2297,3 +2332,58 @@ bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
 }
 
 #endif
+
+void Connection::startKeyVerificationSession(const QString& deviceId)
+{
+    auto session = new KeyVerificationSession(userId(), deviceId, this, this);
+    Q_EMIT newKeyVerificationSession(session);
+}
+
+void Connection::sendToDevice(const QString& userId, const QString& deviceId, event_ptr_tt<Event> event, bool encrypted)
+{
+
+    UsersToDevicesToEvents payload;
+    if (encrypted) {
+        QJsonObject payloadJson = event->fullJson();
+        payloadJson["recipient"] = userId;
+        payloadJson["sender"] = user()->id();
+        QJsonObject recipientObject;
+        recipientObject["ed25519"] = edKeyForUserDevice(userId, deviceId);
+        payloadJson["recipient_keys"] = recipientObject;
+        QJsonObject senderObject;
+        senderObject["ed25519"] = QString(olmAccount()->identityKeys().ed25519);
+        payloadJson["keys"] = senderObject;
+
+        const auto& u = user(userId);
+        auto cipherText = olmEncryptMessage(u, deviceId, QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
+        QJsonObject encryptedJson;
+        encryptedJson[curveKeyForUserDevice(userId, deviceId)] = QJsonObject{{"type", cipherText.first}, {"body", QString(cipherText.second)}, {"sender", this->userId()}};
+        auto encryptedEvent = makeEvent<EncryptedEvent>(encryptedJson, olmAccount()->identityKeys().curve25519);
+        payload[userId][deviceId] = std::move(encryptedEvent);
+    } else {
+        payload[userId][deviceId] = std::move(event);
+    }
+    sendToDevices(payload[userId][deviceId]->matrixType(), payload);
+}
+
+bool Connection::isVerifiedSession(const QString& megolmSessionId)
+{
+    auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
+    query.bindValue(":sessionId", megolmSessionId);
+    database()->execute(query);
+    if (!query.next()) {
+        return false;
+    }
+    auto olmSessionId = query.value("olmSessionId").toString();
+    query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
+    query.bindValue(":sessionId", olmSessionId);
+    database()->execute(query);
+    if (!query.next()) {
+        return false;
+    }
+    auto curveKey = query.value("senderKey"_ls).toString();
+    query.prepare("SELECT verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+    query.bindValue(":curveKey", curveKey);
+    database()->execute(query);
+    return query.next() && query.value("verified").toBool();
+}
