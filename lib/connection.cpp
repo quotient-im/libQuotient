@@ -2065,7 +2065,7 @@ void Connection::Private::loadOutdatedUserDevices()
                         continue;
                     }
                 }
-                deviceKeys[user][device.deviceId] = device;
+                deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
             }
             outdatedUsers -= user;
         }

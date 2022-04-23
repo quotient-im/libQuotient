@@ -37,6 +37,22 @@ static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all
         QT_WARNING_POP
 #endif
 
+/// \brief Copy an object with slicing
+///
+/// Unintended slicing is bad, which why there's a C++ Core Guideline that
+/// basically says "don't slice, or if you do, make it explicit". Sonar and
+/// clang-tidy have warnings matching this guideline; unfortunately, those
+/// warnings trigger even when you have a dedicated method (as the guideline
+/// recommends) that makes a slicing copy.
+///
+/// This macro is meant for cases when slicing is intended: the static cast
+/// silences the static analysis warning, and the macro appearance itself makes
+/// it very clear that slicing is wanted here. It is made as a macro
+/// (not as a function template) to support the case of private inheritance
+/// in which a function template would not be able to cast to the private base
+/// (see Uri::toUrl() for an example of just that situation).
+#define SLICE(Object, ToType) ToType{static_cast<const ToType&>(Object)}
+
 namespace Quotient {
 /// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
 template <typename T>
