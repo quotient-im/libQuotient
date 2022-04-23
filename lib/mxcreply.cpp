@@ -5,7 +5,6 @@
 
 #include <QtCore/QBuffer>
 #include "accountregistry.h"
-#include "connection.h"
 #include "room.h"
 
 #ifdef Quotient_E2EE_ENABLED

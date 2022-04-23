@@ -109,8 +109,8 @@ private:
  */
 template <typename InputIt, typename ForwardIt, typename Pred>
 inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
-                                                    ForwardIt sFirst,
-                                                    ForwardIt sLast, Pred pred)
+                                                 ForwardIt sFirst,
+                                                 ForwardIt sLast, Pred pred)
 {
     for (; first != last; ++first)
         for (auto it = sFirst; it != sLast; ++it)
@@ -156,7 +156,7 @@ inline ImplPtr<ImplType> makeImpl(ArgTs&&... args)
 }
 
 template <typename ImplType>
-const inline ImplPtr<ImplType> ZeroImpl()
+constexpr ImplPtr<ImplType> ZeroImpl()
 {
     return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
 }
