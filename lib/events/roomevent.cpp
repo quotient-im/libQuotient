@@ -101,19 +101,19 @@ void RoomEvent::dumpTo(QDebug dbg) const
     dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
 }
 
-QJsonObject makeCallContentJson(const QString& callId, int version,
-                                QJsonObject content)
+QJsonObject CallEventBase::basicJson(const QString& matrixType,
+                                     const QString& callId, int version,
+                                     QJsonObject content)
 {
     content.insert(QStringLiteral("call_id"), callId);
     content.insert(QStringLiteral("version"), version);
-    return content;
+    return RoomEvent::basicJson(matrixType, content);
 }
 
 CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
                              const QString& callId, int version,
                              const QJsonObject& contentJson)
-    : RoomEvent(type, matrixType,
-                makeCallContentJson(callId, version, contentJson))
+    : RoomEvent(type, basicJson(type, callId, version, contentJson))
 {}
 
 CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)

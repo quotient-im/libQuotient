@@ -29,7 +29,7 @@ template <typename BaseEventT>
 inline event_ptr_tt<BaseEventT> loadEvent(const QString& matrixType,
                                           const QJsonObject& content)
 {
-    return doLoadEvent<BaseEventT>(basicEventJson(matrixType, content),
+    return doLoadEvent<BaseEventT>(Event::basicJson(matrixType, content),
                                    matrixType);
 }
 
@@ -44,7 +44,7 @@ inline StateEventPtr loadStateEvent(const QString& matrixType,
                                     const QString& stateKey = {})
 {
     return doLoadEvent<StateEventBase>(
-        basicStateEventJson(matrixType, content, stateKey), matrixType);
+        StateEventBase::basicJson(matrixType, content, stateKey), matrixType);
 }
 
 template <typename EventT>

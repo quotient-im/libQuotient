@@ -48,13 +48,6 @@ const QString RoomIdKey { RoomIdKeyL };
 const QString UnsignedKey { UnsignedKeyL };
 const QString StateKeyKey { StateKeyKeyL };
 
-/// Make a minimal correct Matrix event JSON
-inline QJsonObject basicEventJson(const QString& matrixType,
-                                  const QJsonObject& content)
-{
-    return { { TypeKey, matrixType }, { ContentKey, content } };
-}
-
 // === Event types ===
 
 using event_type_t = QLatin1String;
@@ -192,6 +185,13 @@ public:
     Event(Event&&) = default;
     Event& operator=(Event&&) = delete;
     virtual ~Event();
+
+    /// Make a minimal correct Matrix event JSON
+    static QJsonObject basicJson(const QString& matrixType,
+                                 const QJsonObject& content)
+    {
+        return { { TypeKey, matrixType }, { ContentKey, content } };
+    }
 
     Type type() const { return _type; }
     QString matrixType() const;

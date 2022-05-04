@@ -7,16 +7,6 @@
 
 namespace Quotient {
 
-/// Make a minimal correct Matrix state event JSON
-inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
-                                       const QJsonObject& content,
-                                       const QString& stateKey = {})
-{
-    return { { TypeKey, matrixTypeId },
-             { StateKeyKey, stateKey },
-             { ContentKey, content } };
-}
-
 class QUOTIENT_API StateEventBase : public RoomEvent {
 public:
     static inline EventFactory<StateEventBase> factory { "StateEvent" };
@@ -27,6 +17,16 @@ public:
                    const QJsonObject& contentJson = {});
     ~StateEventBase() override = default;
 
+    //! Make a minimal correct Matrix state event JSON
+    static QJsonObject basicJson(const QString& matrixTypeId,
+                                 const QJsonObject& content,
+                                 const QString& stateKey = {})
+    {
+        return { { TypeKey, matrixTypeId },
+                 { StateKeyKey, stateKey },
+                 { ContentKey, content } };
+    }
+
     bool isStateEvent() const override { return true; }
     QString replacedState() const;
     void dumpTo(QDebug dbg) const override;
@@ -35,6 +35,14 @@ public:
 };
 using StateEventPtr = event_ptr_tt<StateEventBase>;
 using StateEvents = EventsArray<StateEventBase>;
+
+[[deprecated("Use StateEventBase::basicJson() instead")]]
+inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
+                                       const QJsonObject& content,
+                                       const QString& stateKey = {})
+{
+    return StateEventBase::basicJson(matrixTypeId, content, stateKey);
+}
 
 //! \brief Override RoomEvent factory with that from StateEventBase if JSON has
 //! stateKey

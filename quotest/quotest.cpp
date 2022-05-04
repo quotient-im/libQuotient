@@ -531,10 +531,10 @@ public:
         : RoomEvent(typeId(), jo)
     {}
     CustomEvent(int testValue)
-        : RoomEvent(typeId(),
-                    basicEventJson(matrixTypeId(),
-                                   QJsonObject { { "testValue"_ls,
-                                                   toJson(testValue) } }))
+        : RoomEvent(TypeId,
+                    Event::basicJson(TypeId,
+                                     QJsonObject { { "testValue"_ls,
+                                                     toJson(testValue) } }))
     {}
 
     auto testValue() const { return contentPart<int>("testValue"_ls); }

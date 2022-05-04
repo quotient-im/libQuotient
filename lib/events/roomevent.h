@@ -98,6 +98,11 @@ public:
 
     QString callId() const { return contentPart<QString>("call_id"_ls); }
     int version() const { return contentPart<int>("version"_ls); }
+
+protected:
+    static QJsonObject basicJson(const QString& matrixType,
+                                 const QString& callId, int version,
+                                 QJsonObject contentJson = {});
 };
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
