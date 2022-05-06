@@ -278,6 +278,32 @@ using Events = EventsArray<Event>;
         Type_::factory.addMethod<Type_>();                        \
     // End of macro
 
+/// \brief Define a new event class with a single key-value pair in the content
+///
+/// This macro defines a new event class \p Name_ derived from \p Base_,
+/// with Matrix event type \p TypeId_, providing a getter named \p GetterName_
+/// for a single value of type \p ValueType_ inside the event content.
+/// To retrieve the value the getter uses a JSON key name that corresponds to
+/// its own (getter's) name but written in snake_case. \p GetterName_ must be
+/// in camelCase, no quotes (an identifier, not a literal).
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_)     \
+    class QUOTIENT_API Name_ : public Base_ {                                   \
+    public:                                                                     \
+        using content_type = ValueType_;                                        \
+        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                     \
+        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}          \
+        explicit Name_(const content_type& content)                             \
+            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(content) } })) \
+        {}                                                                      \
+        auto GetterName_() const                                                \
+        {                                                                       \
+            return contentPart<content_type>(JsonKey);                          \
+        }                                                                       \
+        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);      \
+    };                                                                          \
+    REGISTER_EVENT_TYPE(Name_)                                                  \
+    // End of macro
+
 // === is<>(), eventCast<>() and switchOnType<>() ===
 
 template <class EventT>
