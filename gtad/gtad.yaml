@@ -182,8 +182,6 @@ mustache:
       {{/useOmittable}}{{/required?}}"
 
     maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"
-    qualifiedMaybeOmittableType:
-      "{{>openOmittable}}{{dataType.qualifiedName}}{{>closeOmittable}}"
 
     maybeCrefType:
       "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}"
