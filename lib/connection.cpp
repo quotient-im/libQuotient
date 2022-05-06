@@ -96,7 +96,6 @@ public:
     /// as of the last sync
     QHash<QString, QString> roomAliasMap;
     QVector<QString> roomIdsToForget;
-    QVector<Room*> firstTimeRooms;
     QVector<QString> pendingStateRoomIds;
     QMap<QString, User*> userMap;
     DirectChatsMap directChats;
@@ -833,16 +832,14 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
         }
         if (auto* r = q->provideRoom(roomData.roomId, roomData.joinState)) {
             pendingStateRoomIds.removeOne(roomData.roomId);
-            r->updateData(std::move(roomData), fromCache);
-            if (firstTimeRooms.removeOne(r)) {
-                emit q->loadedRoomState(r);
-                if (capabilities.roomVersions)
-                    r->checkVersion();
-                // Otherwise, the version will be checked in reloadCapabilities()
-            }
+            // Update rooms one by one, giving time to update the UI.
+            QMetaObject::invokeMethod(
+                r,
+                [r, rd = std::move(roomData), fromCache] () mutable {
+                    r->updateData(std::move(rd), fromCache);
+                },
+                Qt::QueuedConnection);
         }
-        // Let UI update itself after updating each room
-        QCoreApplication::processEvents();
     }
 }
 
@@ -1707,9 +1704,14 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
             return nullptr;
         }
         d->roomMap.insert(roomKey, room);
-        d->firstTimeRooms.push_back(room);
         connect(room, &Room::beforeDestruction, this,
                 &Connection::aboutToDeleteRoom);
+        connect(room, &Room::baseStateLoaded, this, [this, room] {
+            emit loadedRoomState(room);
+            if (d->capabilities.roomVersions)
+                room->checkVersion();
+            // Otherwise, the version will be checked in reloadCapabilities()
+        });
         emit newRoom(room);
     }
     if (!joinState)
