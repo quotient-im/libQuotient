@@ -105,15 +105,15 @@ QJsonObject CallEventBase::basicJson(const QString& matrixType,
                                      const QString& callId, int version,
                                      QJsonObject content)
 {
-    content.insert(QStringLiteral("call_id"), callId);
-    content.insert(QStringLiteral("version"), version);
-    return RoomEvent::basicJson(matrixType, content);
+    contentJson.insert(QStringLiteral("call_id"), callId);
+    contentJson.insert(QStringLiteral("version"), version);
+    return RoomEvent::basicJson(matrixType, contentJson);
 }
 
 CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
                              const QString& callId, int version,
                              const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(type, callId, version, contentJson))
+    : RoomEvent(type, basicJson(matrixType, callId, version, contentJson))
 {}
 
 CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
