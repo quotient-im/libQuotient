@@ -3064,15 +3064,16 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     QElapsedTimer et;
     et.start();
     if (auto* evt = eventCast<TypingEvent>(event)) {
+        const auto& users = evt->users();
         d->usersTyping.clear();
-        d->usersTyping.reserve(evt->users().size()); // Assume all are members
-        for (const auto& userId : evt->users())
+        d->usersTyping.reserve(users.size()); // Assume all are members
+        for (const auto& userId : users)
             if (isMember(userId))
                 d->usersTyping.append(user(userId));
 
-        if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
+        if (users.size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
             qCDebug(PROFILER)
-                << "Processing typing events from" << evt->users().size()
+                << "Processing typing events from" << users.size()
                 << "user(s) in" << objectName() << "took" << et;
         emit typingChanged();
     }

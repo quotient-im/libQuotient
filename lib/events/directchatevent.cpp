@@ -3,8 +3,6 @@
 
 #include "directchatevent.h"
 
-#include <QtCore/QJsonArray>
-
 using namespace Quotient;
 
 QMultiHash<QString, QString> DirectChatEvent::usersToDirectChats() const

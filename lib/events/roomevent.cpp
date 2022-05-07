@@ -103,7 +103,7 @@ void RoomEvent::dumpTo(QDebug dbg) const
 
 QJsonObject CallEventBase::basicJson(const QString& matrixType,
                                      const QString& callId, int version,
-                                     QJsonObject content)
+                                     QJsonObject contentJson)
 {
     contentJson.insert(QStringLiteral("call_id"), callId);
     contentJson.insert(QStringLiteral("version"), version);
@@ -116,7 +116,7 @@ CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
     : RoomEvent(type, basicJson(matrixType, callId, version, contentJson))
 {}
 
-CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
+CallEventBase::CallEventBase(Type type, const QJsonObject& json)
     : RoomEvent(type, json)
 {
     if (callId().isEmpty())

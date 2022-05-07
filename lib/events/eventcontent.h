@@ -40,7 +40,7 @@ namespace EventContent {
         Base(const Base&) = default;
         Base(Base&&) = default;
 
-        virtual void fillJson(QJsonObject& o) const = 0;
+        virtual void fillJson(QJsonObject&) const = 0;
     };
 
     // The below structures fairly follow CS spec 11.2.1.6. The overall

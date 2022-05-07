@@ -758,7 +758,8 @@ public:
     [[deprecated("Use currentState().get() instead; "
                  "make sure to check its result for nullptrs")]] //
     const Quotient::StateEventBase*
-    getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
+    getCurrentState(const QString& evtType,
+                    const QString& stateKey = {}) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
