@@ -142,6 +142,7 @@ list(APPEND lib_SRCS
     lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
     lib/events/stateevent.h lib/events/stateevent.cpp
+    lib/events/single_key_value.h
     lib/events/simplestateevents.h
     lib/events/eventcontent.h lib/events/eventcontent.cpp
     lib/events/eventrelation.h lib/events/eventrelation.cpp

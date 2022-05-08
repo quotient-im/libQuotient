@@ -136,7 +136,7 @@ namespace EventContent {
         Omittable<EventRelation> relatesTo;
 
     protected:
-        void fillJson(QJsonObject* json) const override;
+        void fillJson(QJsonObject& json) const override;
     };
 
     /**
@@ -164,28 +164,25 @@ namespace EventContent {
         Thumbnail thumbnail;
 
     protected:
-        void fillJson(QJsonObject* o) const override;
+        void fillJson(QJsonObject& o) const override;
     };
 
     /**
      * A base class for info types that include duration: audio and video
      */
-    template <typename ContentT>
-    class QUOTIENT_API PlayableContent : public ContentT {
+    template <typename InfoT>
+    class PlayableContent : public UrlBasedContent<InfoT> {
     public:
-        using ContentT::ContentT;
+        using UrlBasedContent<InfoT>::UrlBasedContent;
         PlayableContent(const QJsonObject& json)
-            : ContentT(json)
-            , duration(ContentT::originalInfoJson["duration"_ls].toInt())
+            : UrlBasedContent<InfoT>(json)
+            , duration(FileInfo::originalInfoJson["duration"_ls].toInt())
         {}
 
     protected:
-        void fillJson(QJsonObject* json) const override
+        void fillInfoJson(QJsonObject& infoJson) const override
         {
-            ContentT::fillJson(json);
-            auto infoJson = json->take("info"_ls).toObject();
             infoJson.insert(QStringLiteral("duration"), duration);
-            json->insert(QStringLiteral("info"), infoJson);
         }
 
     public:
@@ -211,7 +208,7 @@ namespace EventContent {
      *   - mimeType
      *   - imageSize
      */
-    using VideoContent = PlayableContent<UrlWithThumbnailContent<ImageInfo>>;
+    using VideoContent = PlayableContent<ImageInfo>;
 
     /**
      * Content class for m.audio
@@ -224,7 +221,13 @@ namespace EventContent {
      *   - payloadSize ("size" in JSON)
      *   - mimeType ("mimetype" in JSON)
      *   - duration
+     *   - thumbnail.url ("thumbnail_url" in JSON - extension to the spec)
+     * - corresponding to the "info/thumbnail_info" subobject: contents of
+     *   thumbnail field (extension to the spec):
+     *   - payloadSize
+     *   - mimeType
+     *   - imageSize
      */
-    using AudioContent = PlayableContent<UrlBasedContent<FileInfo>>;
+    using AudioContent = PlayableContent<FileInfo>;
 } // namespace EventContent
 } // namespace Quotient

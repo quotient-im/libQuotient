@@ -7,16 +7,6 @@
 
 namespace Quotient {
 
-/// Make a minimal correct Matrix state event JSON
-inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
-                                       const QJsonObject& content,
-                                       const QString& stateKey = {})
-{
-    return { { TypeKey, matrixTypeId },
-             { StateKeyKey, stateKey },
-             { ContentKey, content } };
-}
-
 class QUOTIENT_API StateEventBase : public RoomEvent {
 public:
     static inline EventFactory<StateEventBase> factory { "StateEvent" };
@@ -27,6 +17,16 @@ public:
                    const QJsonObject& contentJson = {});
     ~StateEventBase() override = default;
 
+    //! Make a minimal correct Matrix state event JSON
+    static QJsonObject basicJson(const QString& matrixTypeId,
+                                 const QJsonObject& content,
+                                 const QString& stateKey = {})
+    {
+        return { { TypeKey, matrixTypeId },
+                 { StateKeyKey, stateKey },
+                 { ContentKey, content } };
+    }
+
     bool isStateEvent() const override { return true; }
     QString replacedState() const;
     void dumpTo(QDebug dbg) const override;
@@ -35,6 +35,14 @@ public:
 };
 using StateEventPtr = event_ptr_tt<StateEventBase>;
 using StateEvents = EventsArray<StateEventBase>;
+
+[[deprecated("Use StateEventBase::basicJson() instead")]]
+inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
+                                       const QJsonObject& content,
+                                       const QString& stateKey = {})
+{
+    return StateEventBase::basicJson(matrixTypeId, content, stateKey);
+}
 
 //! \brief Override RoomEvent factory with that from StateEventBase if JSON has
 //! stateKey
@@ -64,7 +72,7 @@ inline bool is<StateEventBase>(const Event& e)
  * \sa
  * https://matrix.org/docs/spec/client_server/unstable.html#types-of-room-events
  */
-using StateEventKey = QPair<QString, QString>;
+using StateEventKey = std::pair<QString, QString>;
 
 template <typename ContentT>
 struct Prev {
@@ -72,7 +80,7 @@ struct Prev {
     explicit Prev(const QJsonObject& unsignedJson,
                   ContentParamTs&&... contentParams)
         : senderId(unsignedJson.value("prev_sender"_ls).toString())
-        , content(unsignedJson.value(PrevContentKeyL).toObject(),
+        , content(fromJson<ContentT>(unsignedJson.value(PrevContentKeyL)),
                   std::forward<ContentParamTs>(contentParams)...)
     {}
 
@@ -89,7 +97,8 @@ public:
     explicit StateEvent(Type type, const QJsonObject& fullJson,
                         ContentParamTs&&... contentParams)
         : StateEventBase(type, fullJson)
-        , _content(contentJson(), std::forward<ContentParamTs>(contentParams)...)
+        , _content(fromJson<ContentT>(contentJson()),
+                   std::forward<ContentParamTs>(contentParams)...)
     {
         const auto& unsignedData = unsignedJson();
         if (unsignedData.contains(PrevContentKeyL))
@@ -101,9 +110,9 @@ public:
                         const QString& stateKey,
                         ContentParamTs&&... contentParams)
         : StateEventBase(type, matrixType, stateKey)
-        , _content(std::forward<ContentParamTs>(contentParams)...)
+        , _content{std::forward<ContentParamTs>(contentParams)...}
     {
-        editJson().insert(ContentKey, _content.toJson());
+        editJson().insert(ContentKey, toJson(_content));
     }
 
     const ContentT& content() const { return _content; }
@@ -111,7 +120,7 @@ public:
     void editContent(VisitorT&& visitor)
     {
         visitor(_content);
-        editJson()[ContentKeyL] = _content.toJson();
+        editJson()[ContentKeyL] = toJson(_content);
     }
     const ContentT* prevContent() const
     {

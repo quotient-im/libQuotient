@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "eventcontent.h"
 #include "stateevent.h"
 #include "quotient_common.h"
 
 namespace Quotient {
-class QUOTIENT_API EncryptionEventContent : public EventContent::Base {
+class QUOTIENT_API EncryptionEventContent {
 public:
     enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
 
@@ -20,13 +19,12 @@ public:
     {}
     explicit EncryptionEventContent(const QJsonObject& json);
 
+    QJsonObject toJson() const;
+
     EncryptionType encryption;
     QString algorithm;
     int rotationPeriodMs;
     int rotationPeriodMsgs;
-
-protected:
-    void fillJson(QJsonObject* o) const override;
 };
 
 using EncryptionType = EncryptionEventContent::EncryptionType;

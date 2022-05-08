@@ -29,7 +29,7 @@ Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
 }
 
 Event::Event(Type type, event_mtype_t matrixType, const QJsonObject& contentJson)
-    : Event(type, basicEventJson(matrixType, contentJson))
+    : Event(type, basicJson(matrixType, contentJson))
 {}
 
 Event::~Event() = default;

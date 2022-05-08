@@ -16,10 +16,7 @@ public:
     explicit CallInviteEvent(const QString& callId, const int lifetime,
                              const QString& sdp);
 
-    int lifetime() const
-    {
-        return contentPart<int>("lifetime"_ls);
-    } // FIXME: Omittable<>?
+    QUO_CONTENT_GETTER(int, lifetime) // FIXME: Omittable<>?
     QString sdp() const
     {
         return contentPart<QJsonObject>("offer"_ls).value("sdp"_ls).toString();

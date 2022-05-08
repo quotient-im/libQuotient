@@ -23,20 +23,9 @@ public:
                         { { QStringLiteral("candidates"), candidates } })
     {}
 
-    QJsonArray candidates() const
-    {
-        return contentPart<QJsonArray>("candidates"_ls);
-    }
-
-    QString callId() const
-    {
-        return contentPart<QString>("call_id");
-    }
-
-    int version() const
-    {
-        return contentPart<int>("version");
-    }
+    QUO_CONTENT_GETTER(QJsonArray, candidates)
+    QUO_CONTENT_GETTER(QString, callId)
+    QUO_CONTENT_GETTER(int, version)
 };
 
 REGISTER_EVENT_TYPE(CallCandidatesEvent)

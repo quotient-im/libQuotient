@@ -48,13 +48,6 @@ const QString RoomIdKey { RoomIdKeyL };
 const QString UnsignedKey { UnsignedKeyL };
 const QString StateKeyKey { StateKeyKeyL };
 
-/// Make a minimal correct Matrix event JSON
-inline QJsonObject basicEventJson(const QString& matrixType,
-                                  const QJsonObject& content)
-{
-    return { { TypeKey, matrixType }, { ContentKey, content } };
-}
-
 // === Event types ===
 
 using event_type_t = QLatin1String;
@@ -193,6 +186,13 @@ public:
     Event& operator=(Event&&) = delete;
     virtual ~Event();
 
+    /// Make a minimal correct Matrix event JSON
+    static QJsonObject basicJson(const QString& matrixType,
+                                 const QJsonObject& content)
+    {
+        return { { TypeKey, matrixType }, { ContentKey, content } };
+    }
+
     Type type() const { return _type; }
     QString matrixType() const;
     [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
@@ -258,6 +258,21 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
+//! \brief Define an inline method obtaining a content part
+//!
+//! This macro adds a const method that extracts a JSON value at the key
+//! <tt>toSnakeCase(PartName_)</tt> (sic) and converts it to the type
+//! \p PartType_. Effectively, the generated method is an equivalent of
+//! \code
+//! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_ls));
+//! \endcode
+#define QUO_CONTENT_GETTER(PartType_, PartName_)                  \
+    PartType_ PartName_() const                                   \
+    {                                                             \
+        static const auto JsonKey = toSnakeCase(#PartName_##_ls); \
+        return contentPart<PartType_>(JsonKey);                   \
+    }
+
 // === Facilities for event class definitions ===
 
 // This macro should be used in a public section of an event class to
@@ -276,6 +291,32 @@ using Events = EventsArray<Event>;
 #define REGISTER_EVENT_TYPE(Type_)                                \
     [[maybe_unused]] inline const auto& factoryMethodFor##Type_ = \
         Type_::factory.addMethod<Type_>();                        \
+    // End of macro
+
+/// \brief Define a new event class with a single key-value pair in the content
+///
+/// This macro defines a new event class \p Name_ derived from \p Base_,
+/// with Matrix event type \p TypeId_, providing a getter named \p GetterName_
+/// for a single value of type \p ValueType_ inside the event content.
+/// To retrieve the value the getter uses a JSON key name that corresponds to
+/// its own (getter's) name but written in snake_case. \p GetterName_ must be
+/// in camelCase, no quotes (an identifier, not a literal).
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_)     \
+    class QUOTIENT_API Name_ : public Base_ {                                   \
+    public:                                                                     \
+        using content_type = ValueType_;                                        \
+        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                     \
+        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}          \
+        explicit Name_(const content_type& content)                             \
+            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(content) } })) \
+        {}                                                                      \
+        auto GetterName_() const                                                \
+        {                                                                       \
+            return contentPart<content_type>(JsonKey);                          \
+        }                                                                       \
+        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);      \
+    };                                                                          \
+    REGISTER_EVENT_TYPE(Name_)                                                  \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===

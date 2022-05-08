@@ -3,17 +3,16 @@
 
 #pragma once
 
-#include "eventcontent.h"
 #include "stateevent.h"
 
 namespace Quotient {
-class QUOTIENT_API PowerLevelsEventContent : public EventContent::Base {
-public:
+struct QUOTIENT_API PowerLevelsEventContent {
     struct Notifications {
         int room;
     };
 
     explicit PowerLevelsEventContent(const QJsonObject& json);
+    QJsonObject toJson() const;
 
     int invite;
     int kick;
@@ -29,9 +28,6 @@ public:
     int usersDefault;
 
     Notifications notifications;
-
-protected:
-    void fillJson(QJsonObject* o) const override;
 };
 
 class QUOTIENT_API RoomPowerLevelsEvent

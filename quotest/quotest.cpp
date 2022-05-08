@@ -523,23 +523,7 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
     return true;
 }
 
-class CustomEvent : public RoomEvent {
-public:
-    DEFINE_EVENT_TYPEID("quotest.custom", CustomEvent)
-
-    CustomEvent(const QJsonObject& jo)
-        : RoomEvent(typeId(), jo)
-    {}
-    CustomEvent(int testValue)
-        : RoomEvent(typeId(),
-                    basicEventJson(matrixTypeId(),
-                                   QJsonObject { { "testValue"_ls,
-                                                   toJson(testValue) } }))
-    {}
-
-    auto testValue() const { return contentPart<int>("testValue"_ls); }
-};
-REGISTER_EVENT_TYPE(CustomEvent)
+DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue)
 
 TEST_IMPL(sendCustomEvent)
 {
