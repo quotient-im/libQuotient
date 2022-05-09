@@ -2263,8 +2263,7 @@ QString Room::postJson(const QString& matrixType,
 
 SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt)
 {
-    return d->requestSetState(evt.matrixType(), evt.stateKey(),
-                              evt.contentJson());
+    return setState(evt.matrixType(), evt.stateKey(), evt.contentJson());
 }
 
 SetRoomStateWithKeyJob* Room::setState(const QString& evtType,
