@@ -2232,11 +2232,12 @@ void Room::sendCallCandidates(const QString& callId,
     d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
-void Room::answerCall(const QString& callId, const int lifetime,
+void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
                       const QString& sdp)
 {
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
+    qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
+                       "Room::answerCall(), it is no more accepted";
+    answerCall(callId, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)

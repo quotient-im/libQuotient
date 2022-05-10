@@ -13,11 +13,7 @@ public:
 
     explicit CallAnswerEvent(const QJsonObject& obj);
 
-    explicit CallAnswerEvent(const QString& callId, const int lifetime,
-                             const QString& sdp);
     explicit CallAnswerEvent(const QString& callId, const QString& sdp);
-
-    QUO_CONTENT_GETTER(int, lifetime) // FIXME: Omittable<>?
 
     QString sdp() const
     {
