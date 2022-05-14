@@ -14,7 +14,6 @@ m.call.answer
             "type": "answer"
         },
         "call_id": "12345",
-        "lifetime": 60000,
         "version": 0
     },
     "event_id": "$WLGTSEFSEF:localhost",
@@ -32,16 +31,6 @@ CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
 {
     qCDebug(EVENTS) << "Call Answer event";
 }
-
-CallAnswerEvent::CallAnswerEvent(const QString& callId, const int lifetime,
-                                 const QString& sdp)
-    : CallEventBase(
-        typeId(), matrixTypeId(), callId, 0,
-        { { QStringLiteral("lifetime"), lifetime },
-          { QStringLiteral("answer"),
-            QJsonObject { { QStringLiteral("type"), QStringLiteral("answer") },
-                          { QStringLiteral("sdp"), sdp } } } })
-{}
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
     : CallEventBase(

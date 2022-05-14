@@ -142,7 +142,7 @@ SyncData::SyncData(const QString& cacheFileName)
                         << "is required; discarding the cache";
 }
 
-SyncDataList&& SyncData::takeRoomData() { return move(roomData); }
+SyncDataList SyncData::takeRoomData() { return move(roomData); }
 
 QString SyncData::fileNameForRoom(QString roomId)
 {
@@ -150,18 +150,18 @@ QString SyncData::fileNameForRoom(QString roomId)
     return roomId + ".json";
 }
 
-Events&& SyncData::takePresenceData() { return std::move(presenceData); }
+Events SyncData::takePresenceData() { return std::move(presenceData); }
 
-Events&& SyncData::takeAccountData() { return std::move(accountData); }
+Events SyncData::takeAccountData() { return std::move(accountData); }
 
-Events&& SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
+Events SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
 
 std::pair<int, int> SyncData::cacheVersion()
 {
     return { MajorCacheVersion, 2 };
 }
 
-DevicesList&& SyncData::takeDevicesList() { return std::move(devicesList); }
+DevicesList SyncData::takeDevicesList() { return std::move(devicesList); }
 
 QJsonObject SyncData::loadJson(const QString& fileName)
 {

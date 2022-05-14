@@ -871,8 +871,9 @@ public Q_SLOTS:
     void inviteCall(const QString& callId, const int lifetime,
                     const QString& sdp);
     void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
-    void answerCall(const QString& callId, const int lifetime,
-                    const QString& sdp);
+    //! \deprecated Lifetime argument is no more passed; use 2-arg
+    //!             Room::answerCall() instead
+    void answerCall(const QString& callId, int lifetime, const QString& sdp);
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 

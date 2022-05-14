@@ -163,6 +163,14 @@ inline qint64 fromJson(const QJsonValue& jv) { return qint64(jv.toDouble()); }
 template <>
 inline QString fromJson(const QJsonValue& jv) { return jv.toString(); }
 
+//! Use fromJson<QString> and use toLatin1()/toUtf8()/... to make QByteArray
+//!
+//! QJsonValue can only convert to QString and there's ambiguity whether
+//! conversion to QByteArray should use (fast but very limited) toLatin1() or
+//! (all encompassing and conforming to the JSON spec but slow) toUtf8().
+template <>
+inline QByteArray fromJson(const QJsonValue& jv) = delete;
+
 template <>
 inline QJsonArray fromJson(const QJsonValue& jv) { return jv.toArray(); }
 

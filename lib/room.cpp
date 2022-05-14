@@ -339,14 +339,16 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> groupSessions;
 
-    bool addInboundGroupSession(QString sessionId, QString sessionKey, const QString& senderId, const QString& olmSessionId)
+    bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
+                                const QString& senderId,
+                                const QString& olmSessionId)
     {
-        if (groupSessions.find(sessionId) != groupSessions.end()) {
+        if (groupSessions.contains(sessionId)) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
             return false;
         }
 
-        auto megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
+        auto megolmSession = QOlmInboundGroupSession::create(sessionKey);
         if (megolmSession->sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
@@ -354,13 +356,12 @@ public:
         megolmSession->setSenderId(senderId);
         megolmSession->setOlmSessionId(olmSessionId);
         qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, megolmSession.get());
+        connection->saveMegolmSession(q, *megolmSession);
         groupSessions[sessionId] = std::move(megolmSession);
         return true;
     }
 
     QString groupSessionDecryptMessage(QByteArray cipher,
-                                       const QString& senderKey,
                                        const QString& sessionId,
                                        const QString& eventId,
                                        QDateTime timestamp,
@@ -415,11 +416,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
-    connectUntil(connection, &Connection::loadedRoomState, this, [this](Room* r) {
-        if (this == r)
-            emit baseStateLoaded();
-        return this == r; // loadedRoomState fires only once per room
-    });
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [this, connection](){
         connection->encryptionUpdate(this);
@@ -1483,9 +1479,9 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
-        encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
-        encryptedEvent.sessionId(), encryptedEvent.id(),
-        encryptedEvent.originTimestamp(), encryptedEvent.senderId());
+        encryptedEvent.ciphertext(), encryptedEvent.sessionId(),
+        encryptedEvent.id(), encryptedEvent.originTimestamp(),
+        encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
         // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
@@ -1514,7 +1510,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
     if (d->addInboundGroupSession(roomKeyEvent.sessionId(),
-                                  roomKeyEvent.sessionKey(), senderId, olmSessionId)) {
+                                  roomKeyEvent.sessionKey(), senderId,
+                                  olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
@@ -1820,6 +1817,9 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
 
 void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
+    qCDebug(MAIN) << "--- Updating room" << id() << "/" << objectName();
+    bool firstUpdate = d->baseState.empty();
+
     if (d->prevBatch.isEmpty())
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
@@ -1845,6 +1845,9 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         emit namesChanged(this);
 
     d->postprocessChanges(roomChanges, !fromCache);
+    if (firstUpdate)
+        emit baseStateLoaded();
+    qCDebug(MAIN) << "--- Finished updating room" << id() << "/" << objectName();
 }
 
 void Room::Private::postprocessChanges(Changes changes, bool saveState)
@@ -2231,11 +2234,12 @@ void Room::sendCallCandidates(const QString& callId,
     d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
-void Room::answerCall(const QString& callId, const int lifetime,
+void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
                       const QString& sdp)
 {
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
+    qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
+                       "Room::answerCall(), it is no more accepted";
+    answerCall(callId, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
