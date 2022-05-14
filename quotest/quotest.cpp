@@ -764,6 +764,14 @@ TEST_IMPL(visitResources)
                 clog << "Incorrect matrix.to representation:"
                      << matrixToUrl.toStdString() << endl;
             }
+            const auto checkResult = checkResource(connection(), uriString);
+            if ((checkResult != UriResolved && uri.type() != Uri::NonMatrix)
+                || (uri.type() == Uri::NonMatrix
+                    && checkResult != CouldNotResolve)) {
+                clog << "checkResource() returned incorrect result:"
+                     << checkResult;
+                FAIL_TEST();
+            }
             ud.visitResource(connection(), uriString);
             if (spy.count() != 1) {
                 clog << "Wrong number of signal emissions (" << spy.count()
