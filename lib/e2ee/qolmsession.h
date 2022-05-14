@@ -4,17 +4,14 @@
 
 #pragma once
 
-#include <QDebug>
-#include <olm/olm.h> // FIXME: OlmSession
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolmaccount.h"
 
-namespace Quotient {
+struct OlmSession;
 
-class QOlmAccount;
-class QOlmSession;
+namespace Quotient {
 
 //! Either an outbound or inbound session for secure communication.
 class QUOTIENT_API QOlmSession

@@ -35,16 +35,17 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "e2ee/qolmaccount.h"
-#    include "e2ee/qolmutils.h"
 #    include "database.h"
+#    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolminboundsession.h"
+#    include "e2ee/qolmsession.h"
+#    include "e2ee/qolmutils.h"
 
-#if QT_VERSION_MAJOR >= 6
-#    include <qt6keychain/keychain.h>
-#else
-#    include <qt5keychain/keychain.h>
-#endif
+#    if QT_VERSION_MAJOR >= 6
+#        include <qt6keychain/keychain.h>
+#    else
+#        include <qt5keychain/keychain.h>
+#    endif
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)

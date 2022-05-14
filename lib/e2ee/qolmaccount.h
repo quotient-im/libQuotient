@@ -9,17 +9,11 @@
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolmmessage.h"
-#include "e2ee/qolmsession.h"
 #include <QObject>
 
 struct OlmAccount;
 
 namespace Quotient {
-
-class QOlmSession;
-class Connection;
-
-using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}

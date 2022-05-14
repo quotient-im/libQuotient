@@ -5,12 +5,15 @@
 #include "qolmaccount.h"
 
 #include "connection.h"
+#include "e2ee/qolmsession.h"
 #include "e2ee/qolmutility.h"
 #include "e2ee/qolmutils.h"
 
 #include "csapi/keys.h"
 
 #include <QtCore/QRandomGenerator>
+
+#include <olm/olm.h>
 
 using namespace Quotient;
 

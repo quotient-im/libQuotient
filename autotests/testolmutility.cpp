@@ -6,6 +6,8 @@
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmutility.h"
 
+#include <olm/olm.h>
+
 using namespace Quotient;
 
 void TestOlmUtility::canonicalJSON()

@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolmsession.h"
+
 #include "e2ee/qolmutils.h"
 #include "logging.h"
+
 #include <cstring>
-#include <QDebug>
+#include <olm/olm.h>
 
 using namespace Quotient;
 
@@ -247,5 +249,4 @@ std::variant<bool, QOlmError> QOlmSession::matchesInboundSessionFrom(const QStri
 
 QOlmSession::QOlmSession(OlmSession *session)
     : m_session(session)
-{
-}
+{}
