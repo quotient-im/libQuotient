@@ -372,7 +372,7 @@ public:
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId
             //               << "The sender's device has not sent us the keys for "
             //                  "this message";
-            return QString();
+            return {};
         }
         auto& senderSession = groupSessionIt->second;
         if (senderSession->senderId() != senderId) {
@@ -383,7 +383,7 @@ public:
         if(std::holds_alternative<QOlmError>(decryptResult)) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
             << "with matching megolm session:" << std::get<QOlmError>(decryptResult);
-            return QString();
+            return {};
         }
         const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
         const auto& [recordEventId, ts] = q->connection()->database()->groupSessionIndexRecord(q->id(), senderSession->sessionId(), index);
@@ -392,7 +392,7 @@ public:
         } else {
             if ((eventId != recordEventId) || (ts != timestamp.toMSecsSinceEpoch())) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
-                return QString();
+                return {};
             }
         }
         return content;
