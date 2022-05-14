@@ -44,7 +44,7 @@ public:
     //! The olm session that this session was received from.
     //! Required to get the device this session is from.
     QString olmSessionId() const;
-    void setOlmSessionId(const QString& setOlmSessionId);
+    void setOlmSessionId(const QString& newOlmSessionId);
 
     //! The sender of this session.
     QString senderId() const;

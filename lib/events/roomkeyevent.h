@@ -16,7 +16,10 @@ public:
     QString algorithm() const { return contentPart<QString>("algorithm"_ls); }
     QString roomId() const { return contentPart<QString>(RoomIdKeyL); }
     QString sessionId() const { return contentPart<QString>("session_id"_ls); }
-    QString sessionKey() const { return contentPart<QString>("session_key"_ls); }
+    QByteArray sessionKey() const
+    {
+        return contentPart<QString>("session_key"_ls).toLatin1();
+    }
 };
 REGISTER_EVENT_TYPE(RoomKeyEvent)
 } // namespace Quotient

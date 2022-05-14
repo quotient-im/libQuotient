@@ -154,9 +154,9 @@ QString QOlmInboundGroupSession::olmSessionId() const
 {
     return m_olmSessionId;
 }
-void QOlmInboundGroupSession::setOlmSessionId(const QString& olmSessionId)
+void QOlmInboundGroupSession::setOlmSessionId(const QString& newOlmSessionId)
 {
-    m_olmSessionId = olmSessionId;
+    m_olmSessionId = newOlmSessionId;
 }
 
 QString QOlmInboundGroupSession::senderId() const

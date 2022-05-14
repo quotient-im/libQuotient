@@ -339,14 +339,16 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> groupSessions;
 
-    bool addInboundGroupSession(QString sessionId, QString sessionKey, const QString& senderId, const QString& olmSessionId)
+    bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
+                                const QString& senderId,
+                                const QString& olmSessionId)
     {
-        if (groupSessions.find(sessionId) != groupSessions.end()) {
+        if (groupSessions.contains(sessionId)) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
             return false;
         }
 
-        auto megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
+        auto megolmSession = QOlmInboundGroupSession::create(sessionKey);
         if (megolmSession->sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
@@ -354,13 +356,12 @@ public:
         megolmSession->setSenderId(senderId);
         megolmSession->setOlmSessionId(olmSessionId);
         qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, megolmSession.get());
+        connection->saveMegolmSession(q, *megolmSession);
         groupSessions[sessionId] = std::move(megolmSession);
         return true;
     }
 
     QString groupSessionDecryptMessage(QByteArray cipher,
-                                       const QString& senderKey,
                                        const QString& sessionId,
                                        const QString& eventId,
                                        QDateTime timestamp,
@@ -1478,9 +1479,9 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
-        encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
-        encryptedEvent.sessionId(), encryptedEvent.id(),
-        encryptedEvent.originTimestamp(), encryptedEvent.senderId());
+        encryptedEvent.ciphertext(), encryptedEvent.sessionId(),
+        encryptedEvent.id(), encryptedEvent.originTimestamp(),
+        encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
         // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
@@ -1509,7 +1510,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
     if (d->addInboundGroupSession(roomKeyEvent.sessionId(),
-                                  roomKeyEvent.sessionKey(), senderId, olmSessionId)) {
+                                  roomKeyEvent.sessionKey(), senderId,
+                                  olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
