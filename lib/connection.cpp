@@ -226,8 +226,7 @@ public:
     {
         Q_ASSERT(message.type() == QOlmMessage::PreKey);
         for(auto& session : olmSessions[senderKey]) {
-            const auto matches = session->matchesInboundSessionFrom(senderKey, message);
-            if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
+            if (session->matchesInboundSessionFrom(senderKey, message)) {
                 qCDebug(E2EE) << "Found inbound session";
                 const auto result = session->decrypt(message);
                 if(std::holds_alternative<QString>(result)) {

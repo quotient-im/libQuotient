@@ -45,7 +45,7 @@ void TestOlmSession::olmEncryptDecrypt()
     const auto encrypted = outboundSession->encrypt("Hello world!");
     if (encrypted.type() == QOlmMessage::PreKey) {
         QOlmMessage m(encrypted); // clone
-        QVERIFY(std::get<bool>(inboundSession->matchesInboundSession(m)));
+        QVERIFY(inboundSession->matchesInboundSession(m));
     }
 
     const auto decrypted = std::get<QString>(inboundSession->decrypt(encrypted));
