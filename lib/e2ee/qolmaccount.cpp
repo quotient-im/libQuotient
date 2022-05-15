@@ -143,7 +143,7 @@ size_t QOlmAccount::maxNumberOfOneTimeKeys() const
     return olm_account_max_number_of_one_time_keys(m_account);
 }
 
-size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
+size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 {
     const size_t randomLength = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
     QByteArray randomBuffer = getRandom(randomLength);
@@ -196,7 +196,8 @@ QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
     return sign(j.toJson(QJsonDocument::Compact));
 }
 
-std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const QOlmSessionPtr &session) const
+std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(
+    const QOlmSessionPtr& session)
 {
     const auto error = olm_remove_one_time_keys(m_account, session->raw());
 

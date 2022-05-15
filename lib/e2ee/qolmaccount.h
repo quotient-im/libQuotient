@@ -24,7 +24,7 @@ class QUOTIENT_API QOlmAccount : public QObject
     Q_OBJECT
 public:
     QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent = nullptr);
-    ~QOlmAccount();
+    ~QOlmAccount() override;
 
     //! Creates a new instance of OlmAccount. During the instantiation
     //! the Ed25519 fingerprint key pair and the Curve25519 identity key
@@ -55,7 +55,7 @@ public:
     size_t maxNumberOfOneTimeKeys() const;
 
     //! Generates the supplied number of one time keys.
-    size_t generateOneTimeKeys(size_t numberOfKeys) const;
+    size_t generateOneTimeKeys(size_t numberOfKeys);
 
     //! Gets the OlmAccount's one time keys formatted as JSON.
     OneTimeKeys oneTimeKeys() const;
@@ -97,7 +97,7 @@ public:
     OlmAccount *data();
 
 Q_SIGNALS:
-    void needsSave() const;
+    void needsSave();
 
 private:
     OlmAccount *m_account = nullptr; // owning
