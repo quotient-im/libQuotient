@@ -5,21 +5,16 @@
 
 #pragma once
 
-#include "csapi/keys.h"
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/qolmmessage.h"
-#include "e2ee/qolmsession.h"
-#include <QObject>
+
+#include "csapi/keys.h"
+
+#include <QtCore/QObject>
 
 struct OlmAccount;
 
 namespace Quotient {
-
-class QOlmSession;
-class Connection;
-
-using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}
@@ -30,7 +25,7 @@ class QUOTIENT_API QOlmAccount : public QObject
     Q_OBJECT
 public:
     QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent = nullptr);
-    ~QOlmAccount();
+    ~QOlmAccount() override;
 
     //! Creates a new instance of OlmAccount. During the instantiation
     //! the Ed25519 fingerprint key pair and the Curve25519 identity key
@@ -44,7 +39,7 @@ public:
     void unpickle(QByteArray &pickled, const PicklingMode &mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
@@ -61,7 +56,7 @@ public:
     size_t maxNumberOfOneTimeKeys() const;
 
     //! Generates the supplied number of one time keys.
-    size_t generateOneTimeKeys(size_t numberOfKeys) const;
+    size_t generateOneTimeKeys(size_t numberOfKeys);
 
     //! Gets the OlmAccount's one time keys formatted as JSON.
     OneTimeKeys oneTimeKeys() const;
@@ -79,22 +74,26 @@ public:
     DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
-    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const QOlmSessionPtr &session) const;
+    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(
+        const QOlmSession& session);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param message An Olm pre-key message that was encrypted for this account.
-    std::variant<QOlmSessionPtr, QOlmError> createInboundSession(const QOlmMessage &preKeyMessage);
+    QOlmExpected<QOlmSessionPtr> createInboundSession(
+        const QOlmMessage& preKeyMessage);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
-    std::variant<QOlmSessionPtr, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
+    QOlmExpected<QOlmSessionPtr> createInboundSessionFrom(
+        const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage);
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
-    std::variant<QOlmSessionPtr, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
+    QOlmExpected<QOlmSessionPtr> createOutboundSession(
+        const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey);
 
     void markKeysAsPublished();
 
@@ -103,7 +102,7 @@ public:
     OlmAccount *data();
 
 Q_SIGNALS:
-    void needsSave() const;
+    void needsSave();
 
 private:
     OlmAccount *m_account = nullptr; // owning

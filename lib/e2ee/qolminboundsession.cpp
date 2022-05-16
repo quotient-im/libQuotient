@@ -70,7 +70,8 @@ QByteArray QOlmInboundGroupSession::pickle(const PicklingMode &mode) const
     return pickledBuf;
 }
 
-std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> QOlmInboundGroupSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
+QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::unpickle(
+    const QByteArray& pickled, const PicklingMode& mode)
 {
     QByteArray pickledBuf = pickled;
     const auto groupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
@@ -85,7 +86,8 @@ std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError> QOlmInboundGro
     return std::make_unique<QOlmInboundGroupSession>(groupSession);
 }
 
-std::variant<std::pair<QString, uint32_t>, QOlmError> QOlmInboundGroupSession::decrypt(const QByteArray &message)
+QOlmExpected<std::pair<QByteArray, uint32_t>> QOlmInboundGroupSession::decrypt(
+    const QByteArray& message)
 {
     // This is for capturing the output of olm_group_decrypt
     uint32_t messageIndex = 0;
@@ -114,10 +116,10 @@ std::variant<std::pair<QString, uint32_t>, QOlmError> QOlmInboundGroupSession::d
     QByteArray output(plaintextLen, '0');
     std::memcpy(output.data(), plaintextBuf.data(), plaintextLen);
 
-    return std::make_pair<QString, qint32>(QString(output), messageIndex);
+    return std::make_pair(output, messageIndex);
 }
 
-std::variant<QByteArray, QOlmError> QOlmInboundGroupSession::exportSession(uint32_t messageIndex)
+QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(uint32_t messageIndex)
 {
     const auto keyLength = olm_export_inbound_group_session_length(m_groupSession);
     QByteArray keyBuf(keyLength, '0');

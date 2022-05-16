@@ -184,12 +184,14 @@ UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(con
     commit();
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> sessions;
     while (query.next()) {
-        auto session = QOlmSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
-        if (std::holds_alternative<QOlmError>(session)) {
-            qCWarning(E2EE) << "Failed to unpickle olm session";
-            continue;
-        }
-        sessions[query.value("senderKey").toString()].push_back(std::move(std::get<QOlmSessionPtr>(session)));
+        if (auto expectedSession =
+                QOlmSession::unpickle(query.value("pickle").toByteArray(),
+                                      picklingMode)) {
+            sessions[query.value("senderKey").toString()].emplace_back(
+                std::move(*expectedSession));
+        } else
+            qCWarning(E2EE)
+                << "Failed to unpickle olm session:" << expectedSession.error();
     }
     return sessions;
 }
@@ -203,15 +205,15 @@ UnorderedMap<QString, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(c
     commit();
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> sessions;
     while (query.next()) {
-        auto session = QOlmInboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
-        if (std::holds_alternative<QOlmError>(session)) {
-            qCWarning(E2EE) << "Failed to unpickle megolm session";
-            continue;
-        }
-
-        sessions[query.value("sessionId").toString()] = std::move(std::get<QOlmInboundGroupSessionPtr>(session));
-        sessions[query.value("sessionId").toString()]->setOlmSessionId(query.value("olmSessionId").toString());
-        sessions[query.value("sessionId").toString()]->setSenderId(query.value("senderId").toString());
+        if (auto expectedSession = QOlmInboundGroupSession::unpickle(
+                query.value("pickle").toByteArray(), picklingMode)) {
+            auto& sessionPtr = sessions[query.value("sessionId").toString()] =
+                std::move(*expectedSession);
+            sessionPtr->setOlmSessionId(query.value("olmSessionId").toString());
+            sessionPtr->setSenderId(query.value("senderId").toString());
+        } else
+            qCWarning(E2EE) << "Failed to unpickle megolm session:"
+                            << expectedSession.error();
     }
     return sessions;
 }

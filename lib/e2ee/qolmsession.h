@@ -4,17 +4,14 @@
 
 #pragma once
 
-#include <QDebug>
-#include <olm/olm.h> // FIXME: OlmSession
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolmaccount.h"
 
-namespace Quotient {
+struct OlmSession;
 
-class QOlmAccount;
-class QOlmSession;
+namespace Quotient {
 
 //! Either an outbound or inbound session for secure communication.
 class QUOTIENT_API QOlmSession
@@ -22,32 +19,31 @@ class QUOTIENT_API QOlmSession
 public:
     ~QOlmSession();
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
-    static std::variant<std::unique_ptr<QOlmSession>, QOlmError>
-    createInboundSession(QOlmAccount* account, const QOlmMessage& preKeyMessage);
+    static QOlmExpected<QOlmSessionPtr> createInboundSession(
+        QOlmAccount* account, const QOlmMessage& preKeyMessage);
 
-    static std::variant<std::unique_ptr<QOlmSession>, QOlmError>
-    createInboundSessionFrom(QOlmAccount* account,
-                             const QString& theirIdentityKey,
-                             const QOlmMessage& preKeyMessage);
+    static QOlmExpected<QOlmSessionPtr> createInboundSessionFrom(
+        QOlmAccount* account, const QString& theirIdentityKey,
+        const QOlmMessage& preKeyMessage);
 
-    static std::variant<std::unique_ptr<QOlmSession>, QOlmError>
-    createOutboundSession(QOlmAccount* account, const QString& theirIdentityKey,
-                          const QString& theirOneTimeKey);
+    static QOlmExpected<QOlmSessionPtr> createOutboundSession(
+        QOlmAccount* account, const QString& theirIdentityKey,
+        const QString& theirOneTimeKey);
 
     //! Serialises an `QOlmSession` to encrypted Base64.
-    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
-    static std::variant<std::unique_ptr<QOlmSession>, QOlmError> unpickle(
+    static QOlmExpected<QOlmSessionPtr> unpickle(
         const QByteArray& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
     QOlmMessage encrypt(const QString &plaintext);
 
-    //! Decrypts a message using this session. Decoding is lossy, meaing if
+    //! Decrypts a message using this session. Decoding is lossy, meaning if
     //! the decrypted plaintext contains invalid UTF-8 symbols, they will
     //! be returned as `U+FFFD` (�).
-    std::variant<QString, QOlmError> decrypt(const QOlmMessage &message) const;
+    QOlmExpected<QByteArray> decrypt(const QOlmMessage &message) const;
 
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
@@ -59,11 +55,10 @@ public:
     bool hasReceivedMessage() const;
 
     //! Checks if the 'prekey' message is for this in-bound session.
-    std::variant<bool, QOlmError> matchesInboundSession(
-        const QOlmMessage& preKeyMessage) const;
+    bool matchesInboundSession(const QOlmMessage& preKeyMessage) const;
 
     //! Checks if the 'prekey' message is for this in-bound session.
-    std::variant<bool, QOlmError> matchesInboundSessionFrom(
+    bool matchesInboundSessionFrom(
         const QString& theirIdentityKey, const QOlmMessage& preKeyMessage) const;
 
     friend bool operator<(const QOlmSession& lhs, const QOlmSession& rhs)
@@ -71,8 +66,7 @@ public:
         return lhs.sessionId() < rhs.sessionId();
     }
 
-    friend bool operator<(const std::unique_ptr<QOlmSession>& lhs,
-                          const std::unique_ptr<QOlmSession>& rhs)
+    friend bool operator<(const QOlmSessionPtr& lhs, const QOlmSessionPtr& rhs)
     {
         return *lhs < *rhs;
     }
@@ -83,7 +77,7 @@ public:
 private:
     //! Helper function for creating new sessions and handling errors.
     static OlmSession* create();
-    static std::variant<std::unique_ptr<QOlmSession>, QOlmError> createInbound(
+    static QOlmExpected<QOlmSessionPtr> createInbound(
         QOlmAccount* account, const QOlmMessage& preKeyMessage,
         bool from = false, const QString& theirIdentityKey = "");
     OlmSession* m_session;

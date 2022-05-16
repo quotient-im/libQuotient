@@ -21,7 +21,7 @@ void TestOlmAccount::pickleUnpickledTest()
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     olmAccount.createNewAccount();
     auto identityKeys = olmAccount.identityKeys();
-    auto pickled = std::get<QByteArray>(olmAccount.pickle(Unencrypted{}));
+    auto pickled = olmAccount.pickle(Unencrypted{}).value();
     QOlmAccount olmAccount2(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     olmAccount2.unpickle(pickled, Unencrypted{});
     auto identityKeys2 = olmAccount2.identityKeys();
@@ -57,8 +57,7 @@ void TestOlmAccount::signatureValid()
     const auto identityKeys = olmAccount.identityKeys();
     const auto ed25519Key = identityKeys.ed25519;
     const auto verify = utility.ed25519Verify(ed25519Key, message, signature);
-    QVERIFY(std::holds_alternative<bool>(verify));
-    QVERIFY(std::get<bool>(verify) == true);
+    QVERIFY(verify.value_or(false));
 }
 
 void TestOlmAccount::oneTimeKeysValid()
