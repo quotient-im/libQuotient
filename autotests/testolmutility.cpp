@@ -81,7 +81,10 @@ void TestOlmUtility::verifySignedOneTimeKey()
     delete[](reinterpret_cast<uint8_t *>(utility));
 
     QOlmUtility utility2;
-    auto res2 = std::get<bool>(utility2.ed25519Verify(aliceOlm.identityKeys().ed25519, msg, signatureBuf1));
+    auto res2 =
+        utility2
+            .ed25519Verify(aliceOlm.identityKeys().ed25519, msg, signatureBuf1)
+            .value_or(false);
 
     //QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QCOMPARE(res2, true);

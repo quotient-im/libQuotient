@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include "csapi/keys.h"
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/qolmmessage.h"
-#include <QObject>
+
+#include "csapi/keys.h"
+
+#include <QtCore/QObject>
 
 struct OlmAccount;
 
@@ -38,7 +39,7 @@ public:
     void unpickle(QByteArray &pickled, const PicklingMode &mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
@@ -73,22 +74,26 @@ public:
     DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
-    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(const QOlmSessionPtr &session) const;
+    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(
+        const QOlmSession& session);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param message An Olm pre-key message that was encrypted for this account.
-    std::variant<QOlmSessionPtr, QOlmError> createInboundSession(const QOlmMessage &preKeyMessage);
+    QOlmExpected<QOlmSessionPtr> createInboundSession(
+        const QOlmMessage& preKeyMessage);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
-    std::variant<QOlmSessionPtr, QOlmError> createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage);
+    QOlmExpected<QOlmSessionPtr> createInboundSessionFrom(
+        const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage);
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
-    std::variant<QOlmSessionPtr, QOlmError> createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey);
+    QOlmExpected<QOlmSessionPtr> createOutboundSession(
+        const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey);
 
     void markKeysAsPublished();
 

@@ -16,11 +16,11 @@ void TestGroupSession::groupSessionPicklingValid()
     QVERIFY(QByteArray::fromBase64(ogsId).size() > 0);
     QCOMPARE(0, ogs->sessionMessageIndex());
 
-    auto ogsPickled = std::get<QByteArray>(ogs->pickle(Unencrypted {}));
-    auto ogs2 = std::get<QOlmOutboundGroupSessionPtr>(QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}));
+    auto ogsPickled = ogs->pickle(Unencrypted {}).value();
+    auto ogs2 = QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}).value();
     QCOMPARE(ogsId, ogs2->sessionId());
 
-    auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
+    auto igs = QOlmInboundGroupSession::create(ogs->sessionKey().value());
     const auto igsId = igs->sessionId();
     // ID is valid base64?
     QVERIFY(QByteArray::fromBase64(igsId).size() > 0);
@@ -29,22 +29,22 @@ void TestGroupSession::groupSessionPicklingValid()
     QCOMPARE(0, igs->firstKnownIndex());
 
     auto igsPickled = igs->pickle(Unencrypted {});
-    igs = std::get<QOlmInboundGroupSessionPtr>(QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}));
+    igs = QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}).value();
     QCOMPARE(igsId, igs->sessionId());
 }
 
 void TestGroupSession::groupSessionCryptoValid()
 {
     auto ogs = QOlmOutboundGroupSession::create();
-    auto igs = QOlmInboundGroupSession::create(std::get<QByteArray>(ogs->sessionKey()));
+    auto igs = QOlmInboundGroupSession::create(ogs->sessionKey().value());
     QCOMPARE(ogs->sessionId(), igs->sessionId());
 
     const auto plainText = QStringLiteral("Hello world!");
-    const auto ciphertext = std::get<QByteArray>(ogs->encrypt(plainText));
+    const auto ciphertext = ogs->encrypt(plainText).value();
     // ciphertext valid base64?
     QVERIFY(QByteArray::fromBase64(ciphertext).size() > 0);
 
-    const auto decryptionResult = std::get<std::pair<QString, uint32_t>>(igs->decrypt(ciphertext));
+    const auto decryptionResult = igs->decrypt(ciphertext).value();
 
     //// correct plaintext?
     QCOMPARE(plainText, decryptionResult.first);

@@ -6,6 +6,8 @@
 #pragma once
 
 #include "converters.h"
+#include "expected.h"
+#include "qolmerrors.h"
 #include "quotient_common.h"
 
 #include <QtCore/QMetaType>
@@ -54,6 +56,12 @@ using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
 
 class QOlmInboundGroupSession;
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
+
+class QOlmOutboundGroupSession;
+using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
+
+template <typename T>
+using QOlmExpected = Expected<T, QOlmError>;
 
 struct IdentityKeys
 {

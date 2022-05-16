@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "e2ee/qolmutility.h"
-#include "olm/olm.h"
-#include <QDebug>
+
+#include <olm/olm.h>
 
 using namespace Quotient;
 
@@ -40,8 +40,9 @@ QString QOlmUtility::sha256Utf8Msg(const QString &message) const
     return sha256Bytes(message.toUtf8());
 }
 
-std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
-        const QByteArray &message, const QByteArray &signature)
+QOlmExpected<bool> QOlmUtility::ed25519Verify(const QByteArray& key,
+                                              const QByteArray& message,
+                                              const QByteArray& signature)
 {
     QByteArray signatureBuf(signature.length(), '0');
     std::copy(signature.begin(), signature.end(), signatureBuf.begin());
@@ -57,8 +58,5 @@ std::variant<bool, QOlmError> QOlmUtility::ed25519Verify(const QByteArray &key,
         return error;
     }
 
-    if (ret != 0) {
-        return false;
-    }
-    return true;
+    return !ret; // ret == 0 means success
 }

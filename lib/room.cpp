@@ -380,17 +380,22 @@ public:
             return {};
         }
         auto decryptResult = senderSession->decrypt(cipher);
-        if(std::holds_alternative<QOlmError>(decryptResult)) {
+        if(!decryptResult) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
-            << "with matching megolm session:" << std::get<QOlmError>(decryptResult);
+            << "with matching megolm session:" << decryptResult.error();
             return {};
         }
-        const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
-        const auto& [recordEventId, ts] = q->connection()->database()->groupSessionIndexRecord(q->id(), senderSession->sessionId(), index);
+        const auto& [content, index] = *decryptResult;
+        const auto& [recordEventId, ts] =
+            q->connection()->database()->groupSessionIndexRecord(
+                q->id(), senderSession->sessionId(), index);
         if (recordEventId.isEmpty()) {
-            q->connection()->database()->addGroupSessionIndexRecord(q->id(), senderSession->sessionId(), index, eventId, timestamp.toMSecsSinceEpoch());
+            q->connection()->database()->addGroupSessionIndexRecord(
+                q->id(), senderSession->sessionId(), index, eventId,
+                timestamp.toMSecsSinceEpoch());
         } else {
-            if ((eventId != recordEventId) || (ts != timestamp.toMSecsSinceEpoch())) {
+            if ((eventId != recordEventId)
+                || (ts != timestamp.toMSecsSinceEpoch())) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
                 return {};
             }

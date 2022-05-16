@@ -27,7 +27,9 @@ OlmSession* QOlmSession::create()
     return olm_session(new uint8_t[olm_session_size()]);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInbound(QOlmAccount *account, const QOlmMessage &preKeyMessage, bool from, const QString &theirIdentityKey)
+QOlmExpected<QOlmSessionPtr> QOlmSession::createInbound(
+    QOlmAccount* account, const QOlmMessage& preKeyMessage, bool from,
+    const QString& theirIdentityKey)
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
         qCCritical(E2EE) << "The message is not a pre-key in when creating inbound session" << BadMessageFormat;
@@ -53,17 +55,22 @@ std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInbound(QOlmAccount *
     return std::make_unique<QOlmSession>(olmSession);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInboundSession(QOlmAccount *account, const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmSession::createInboundSession(
+    QOlmAccount* account, const QOlmMessage& preKeyMessage)
 {
     return createInbound(account, preKeyMessage);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createInboundSessionFrom(QOlmAccount *account, const QString &theirIdentityKey, const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmSession::createInboundSessionFrom(
+    QOlmAccount* account, const QString& theirIdentityKey,
+    const QOlmMessage& preKeyMessage)
 {
     return createInbound(account, preKeyMessage, true, theirIdentityKey);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createOutboundSession(QOlmAccount *account, const QString &theirIdentityKey, const QString &theirOneTimeKey)
+QOlmExpected<QOlmSessionPtr> QOlmSession::createOutboundSession(
+    QOlmAccount* account, const QString& theirIdentityKey,
+    const QString& theirOneTimeKey)
 {
     auto *olmOutboundSession = create();
     const auto randomLen = olm_create_outbound_session_random_length(olmOutboundSession);
@@ -89,7 +96,7 @@ std::variant<QOlmSessionPtr, QOlmError> QOlmSession::createOutboundSession(QOlmA
     return std::make_unique<QOlmSession>(olmOutboundSession);
 }
 
-std::variant<QByteArray, QOlmError> QOlmSession::pickle(const PicklingMode &mode)
+QOlmExpected<QByteArray> QOlmSession::pickle(const PicklingMode &mode)
 {
     QByteArray pickledBuf(olm_pickle_session_length(m_session), '0');
     QByteArray key = toKey(mode);
@@ -105,7 +112,8 @@ std::variant<QByteArray, QOlmError> QOlmSession::pickle(const PicklingMode &mode
     return pickledBuf;
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
+QOlmExpected<QOlmSessionPtr> QOlmSession::unpickle(const QByteArray& pickled,
+                                                   const PicklingMode& mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmSession = create();
@@ -140,7 +148,7 @@ QOlmMessage QOlmSession::encrypt(const QString &plaintext)
     return QOlmMessage(messageBuf, messageType);
 }
 
-std::variant<QString, QOlmError> QOlmSession::decrypt(const QOlmMessage &message) const
+QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage &message) const
 {
     const auto messageType = message.type();
     const auto ciphertext = message.toCiphertext();

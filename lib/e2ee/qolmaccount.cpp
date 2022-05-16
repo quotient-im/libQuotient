@@ -73,7 +73,7 @@ void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
     }
 }
 
-std::variant<QByteArray, QOlmError> QOlmAccount::pickle(const PicklingMode &mode)
+QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
 {
     const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(m_account);
@@ -197,9 +197,9 @@ QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
 }
 
 std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(
-    const QOlmSessionPtr& session)
+    const QOlmSession& session)
 {
-    const auto error = olm_remove_one_time_keys(m_account, session->raw());
+    const auto error = olm_remove_one_time_keys(m_account, session.raw());
 
     if (error == olm_error()) {
         return lastError(m_account);
@@ -245,19 +245,19 @@ UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKey
     return new UploadKeysJob(keys, oneTimeKeysSigned);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
 {
     return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
 }
@@ -296,10 +296,6 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
     QByteArray signingKeyBuf = signingKey.toUtf8();
     QOlmUtility utility;
     auto signatureBuf = signature.toUtf8();
-    auto result = utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
-    if (std::holds_alternative<QOlmError>(result)) {
-        return false;
-    }
-
-    return std::get<bool>(result);
+    return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf)
+        .value_or(false);
 }
