@@ -87,7 +87,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
             .value_or(false);
 
     //QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
-    QCOMPARE(res2, true);
+    QVERIFY(res2);
 }
 
 void TestOlmUtility::validUploadKeysRequest()
