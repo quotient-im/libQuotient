@@ -2251,8 +2251,8 @@ QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, c
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);
     auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
-    if (std::holds_alternative<QByteArray>(pickle)) {
-        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), std::get<QByteArray>(pickle));
+    if (pickle) {
+        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), *pickle);
     } else {
         qCWarning(E2EE) << "Failed to pickle olm session.";
     }
@@ -2262,12 +2262,12 @@ QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, c
 void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
 {
     auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
-    if (std::holds_alternative<QOlmError>(session)) {
-        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << std::get<QOlmError>(session);
+    if (!session) {
+        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << session.error();
         return;
     }
-    d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
-    d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));
+    d->saveSession(**session, theirIdentityKey);
+    d->olmSessions[theirIdentityKey].push_back(std::move(*session));
 }
 
 QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(Room* room)

@@ -25,7 +25,7 @@ public:
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
-        QByteArray& pickled, const PicklingMode& mode);
+        const QByteArray& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
     QOlmExpected<QByteArray> encrypt(const QString& plaintext);

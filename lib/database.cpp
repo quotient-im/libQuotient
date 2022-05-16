@@ -132,7 +132,7 @@ void Database::migrateTo3()
     commit();
 }
 
-void Database::migrateTo3()
+void Database::migrateTo4()
 {
     qCDebug(DATABASE) << "Migrating database to version 4";
     transaction();
@@ -313,7 +313,7 @@ void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTi
 void Database::saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& session)
 {
     const auto pickle = session->pickle(picklingMode);
-    if (std::holds_alternative<QByteArray>(pickle)) {
+    if (pickle) {
         auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
         deleteQuery.bindValue(":roomId", roomId);
         deleteQuery.bindValue(":sessionId", session->sessionId());
@@ -321,7 +321,7 @@ void Database::saveCurrentOutboundMegolmSession(const QString& roomId, const Pic
         auto insertQuery = prepareQuery(QStringLiteral("INSERT INTO outbound_megolm_sessions(roomId, sessionId, pickle, creationTime, messageCount) VALUES(:roomId, :sessionId, :pickle, :creationTime, :messageCount);"));
         insertQuery.bindValue(":roomId", roomId);
         insertQuery.bindValue(":sessionId", session->sessionId());
-        insertQuery.bindValue(":pickle", std::get<QByteArray>(pickle));
+        insertQuery.bindValue(":pickle", pickle.value());
         insertQuery.bindValue(":creationTime", session->creationTime());
         insertQuery.bindValue(":messageCount", session->messageCount());
 
@@ -339,8 +339,8 @@ QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QSt
     execute(query);
     if (query.next()) {
         auto sessionResult = QOlmOutboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
-        if (std::holds_alternative<QOlmOutboundGroupSessionPtr>(sessionResult)) {
-            auto session = std::move(std::get<QOlmOutboundGroupSessionPtr>(sessionResult));
+        if (sessionResult) {
+            auto session = std::move(*sessionResult);
             session->setCreationTime(query.value("creationTime").toDateTime());
             session->setMessageCount(query.value("messageCount").toInt());
             return session;

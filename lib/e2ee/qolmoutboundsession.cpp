@@ -60,7 +60,7 @@ QOlmExpected<QByteArray> QOlmOutboundGroupSession::pickle(const PicklingMode &mo
     return pickledBuf;
 }
 
-QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(QByteArray &pickled, const PicklingMode &mode)
+QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(const QByteArray &pickled, const PicklingMode &mode)
 {
     QByteArray pickledBuf = pickled;
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
