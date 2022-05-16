@@ -344,7 +344,7 @@ public:
     int currentMegolmSessionMessageCount = 0;
     //TODO save this to database
     unsigned long long currentMegolmSessionCreationTimestamp = 0;
-    std::unique_ptr<QOlmOutboundGroupSession> currentOutboundMegolmSession = nullptr;
+    QOlmOutboundGroupSessionPtr currentOutboundMegolmSession = nullptr;
 
     bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
                                 const QString& senderId,
@@ -415,7 +415,7 @@ public:
         if (!q->usesEncryption()) {
             return false;
         }
-        return currentMegolmSessionMessageCount >= rotationMessageCount() || (currentMegolmSessionCreationTimestamp + rotationInterval()) < QDateTime::currentMSecsSinceEpoch();
+        return currentOutboundMegolmSession->messageCount() >= rotationMessageCount() || currentOutboundMegolmSession->creationTime().addMSecs(rotationInterval()) < QDateTime::currentDateTime();
     }
 
     bool hasValidMegolmSession() const
@@ -446,9 +446,7 @@ public:
     void createMegolmSession() {
         qCDebug(E2EE) << "Creating new outbound megolm session for room " << q->id();
         currentOutboundMegolmSession = QOlmOutboundGroupSession::create();
-        currentMegolmSessionMessageCount = 0;
-        currentMegolmSessionCreationTimestamp = QDateTime::currentMSecsSinceEpoch();
-        //TODO store megolm session to database
+        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
     }
 
     std::unique_ptr<EncryptedEvent> payloadForUserDevice(User* user, const QString& device, const QByteArray& sessionId, const QByteArray& sessionKey)
@@ -476,7 +474,7 @@ public:
 
     void sendRoomKeyToDevices(const QByteArray& sessionId, const QByteArray& sessionKey)
     {
-        qWarning() << "Sending room key to devices" << sessionId, sessionKey.toHex();
+        qCDebug(E2EE) << "Sending room key to devices" << sessionId, sessionKey.toHex();
         QHash<QString, QHash<QString, QString>> hash;
         for (const auto& user : q->users()) {
             QHash<QString, QString> u;
@@ -493,7 +491,7 @@ public:
         auto job = connection->callApi<ClaimKeysJob>(hash);
         connect(job, &BaseJob::success, q, [job, this, sessionId, sessionKey](){
             Connection::UsersToDevicesToEvents usersToDevicesToEvents;
-            auto data = job->jsonData();
+            const auto data = job->jsonData();
             for(const auto &user : q->users()) {
                 for(const auto &device : connection->devicesForUser(user)) {
                     const auto recipientCurveKey = connection->curveKeyForUserDevice(user->id(), device);
@@ -526,8 +524,6 @@ public:
             connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
         });
     }
-
-    //TODO load outbound megolm sessions from database
 
     void sendMegolmSession() {
         // Save the session to this device
@@ -577,14 +573,16 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         }
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
-    //TODO load outbound session
+    d->currentOutboundMegolmSession = connection->loadCurrentOutboundMegolmSession(this);
+    if (d->shouldRotateMegolmSession()) {
+        d->currentOutboundMegolmSession = nullptr;
+    }
     connect(this, &Room::userRemoved, this, [this](){
         if (!usesEncryption()) {
             return;
         }
         d->currentOutboundMegolmSession = nullptr;
         qCDebug(E2EE) << "Invalidating current megolm session because user left";
-        //TODO save old session probably
 
     });
 
@@ -2074,6 +2072,8 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
         //TODO check if we increment the sent message count
         event->setRoomId(id);
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(event->fullJson()).toJson());
+        currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
+        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
         if(std::holds_alternative<QOlmError>(encrypted)) {
             //TODO something
             qWarning(E2EE) << "Error encrypting message" << std::get<QOlmError>(encrypted);
@@ -2084,7 +2084,6 @@ QString Room::Private::sendEvent(RoomEventPtr&& event)
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
         event->setTransactionId(encryptedEvent->transactionId());
-        currentMegolmSessionMessageCount++;
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
         addAsPending(std::move(event));
         return doSendEvent(encryptedEvent, true);

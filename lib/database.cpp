@@ -86,7 +86,7 @@ void Database::migrateTo1()
     execute(QStringLiteral("CREATE TABLE accounts (pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE olm_sessions (senderKey TEXT, sessionId TEXT, pickle TEXT);"));
     execute(QStringLiteral("CREATE TABLE inbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
-    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, senderKey TEXT, sessionId TEXT, pickle TEXT);"));
+    execute(QStringLiteral("CREATE TABLE outbound_megolm_sessions (roomId TEXT, sessionId TEXT, pickle TEXT, creationTime TEXT, messageCount INTEGER);"));
     execute(QStringLiteral("CREATE TABLE group_session_record_index (roomId TEXT, sessionId TEXT, i INTEGER, eventId TEXT, ts INTEGER);"));
     execute(QStringLiteral("CREATE TABLE tracked_users (matrixId TEXT);"));
     execute(QStringLiteral("CREATE TABLE outdated_users (matrixId TEXT);"));
@@ -291,4 +291,43 @@ void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTi
     transaction();
     execute(query);
     commit();
+}
+
+void Database::saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& session)
+{
+    const auto pickle = session->pickle(picklingMode);
+    if (std::holds_alternative<QByteArray>(pickle)) {
+        auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
+        deleteQuery.bindValue(":roomId", roomId);
+        deleteQuery.bindValue(":sessionId", session->sessionId());
+
+        auto insertQuery = prepareQuery(QStringLiteral("INSERT INTO outbound_megolm_sessions(roomId, sessionId, pickle, creationTime, messageCount) VALUES(:roomId, :sessionId, :pickle, :creationTime, :messageCount);"));
+        insertQuery.bindValue(":roomId", roomId);
+        insertQuery.bindValue(":sessionId", session->sessionId());
+        insertQuery.bindValue(":pickle", std::get<QByteArray>(pickle));
+        insertQuery.bindValue(":creationTime", session->creationTime());
+        insertQuery.bindValue(":messageCount", session->messageCount());
+
+        transaction();
+        execute(deleteQuery);
+        execute(insertQuery);
+        commit();
+    }
+}
+
+QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM outbound_megolm_sessions WHERE roomId=:roomId ORDER BY creationTime DESC;"));
+    query.bindValue(":roomId", roomId);
+    execute(query);
+    if (query.next()) {
+        auto sessionResult = QOlmOutboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
+        if (std::holds_alternative<QOlmOutboundGroupSessionPtr>(sessionResult)) {
+            auto session = std::move(std::get<QOlmOutboundGroupSessionPtr>(sessionResult));
+            session->setCreationTime(query.value("creationTime").toDateTime());
+            session->setMessageCount(query.value("messageCount").toInt());
+            return session;
+        }
+    }
+    return nullptr;
 }

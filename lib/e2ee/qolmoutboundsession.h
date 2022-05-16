@@ -26,6 +26,7 @@ public:
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
         QByteArray& pickled, const PicklingMode& mode);
+
     //! Encrypts a plaintext message using the session.
     QOlmExpected<QByteArray> encrypt(const QString& plaintext);
 
@@ -44,8 +45,16 @@ public:
     //! ratchet key that will be used for the next message.
     QOlmExpected<QByteArray> sessionKey() const;
     QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
+
+    int messageCount() const;
+    void setMessageCount(int messageCount);
+
+    QDateTime creationTime() const;
+    void setCreationTime(const QDateTime& creationTime);
 private:
     OlmOutboundGroupSession *m_groupSession;
+    int m_messageCount = 0;
+    QDateTime m_creationTime = QDateTime::currentDateTime();
 };
 
 } // namespace Quotient

@@ -25,6 +25,7 @@
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
+#include "e2ee/qolmoutboundsession.h"
 #endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
@@ -323,6 +324,10 @@ public:
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session);
     bool hasOlmSession(User* user, const QString& deviceId) const;
+
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
+    void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
+
 
     //This currently assumes that an olm session with (user, device) exists
     //TODO make this return an event?
