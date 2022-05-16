@@ -449,8 +449,8 @@ public:
 
         const auto sessionKey = currentOutboundMegolmSession->sessionKey();
         if(std::holds_alternative<QOlmError>(sessionKey)) {
-            qCWarning(E2EE) << "Session error";
-            //TODO something
+            qCWarning(E2EE) << "Failed to load key for new megolm session";
+            return;
         }
         addInboundGroupSession(q->connection()->olmAccount()->identityKeys().curve25519, currentOutboundMegolmSession->sessionId(), std::get<QByteArray>(sessionKey), QString(connection->olmAccount()->identityKeys().ed25519));
     }
@@ -459,7 +459,6 @@ public:
     {
         // Noisy but nice for debugging
         //qCDebug(E2EE) << "Creating the payload for" << user->id() << device << sessionId << sessionKey.toHex();
-        //TODO: store {user->id(), device, sessionId, theirIdentityKey}; required for key requests
         const auto event = makeEvent<RoomKeyEvent>("m.megolm.v1.aes-sha2", q->id(), sessionId, sessionKey, q->localUser()->id());
         QJsonObject payloadJson = event->fullJson();
         payloadJson["recipient"] = user->id();
@@ -504,6 +503,9 @@ public:
                 hash[user->id()] = u;
             }
         }
+        if (hash.isEmpty()) {
+            return;
+        }
         auto job = connection->callApi<ClaimKeysJob>(hash);
         connect(job, &BaseJob::success, q, [job, this, sessionId, sessionKey, devices, index](){
             Connection::UsersToDevicesToEvents usersToDevicesToEvents;
@@ -525,7 +527,6 @@ public:
                         signedData.remove("signatures");
                         auto signatureMatch = QOlmUtility().ed25519Verify(connection->edKeyForUserDevice(user->id(), device).toLatin1(), QJsonDocument(signedData).toJson(QJsonDocument::Compact), signature);
                         if (std::holds_alternative<QOlmError>(signatureMatch)) {
-                            //TODO i think there are more failed signature checks than expected. Investigate
                             qCWarning(E2EE) << "Failed to verify one-time-key signature for" << user->id() << device << ". Skipping this device.";
                             continue;
                         } else {
@@ -535,8 +536,10 @@ public:
                     usersToDevicesToEvents[user->id()][device] = payloadForUserDevice(user, device, sessionId, sessionKey);
                 }
             }
-            connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
-            connection->database()->setDevicesReceivedKey(q->id(), devices, sessionId, index);
+            if (!usersToDevicesToEvents.empty()) {
+                connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
+                connection->database()->setDevicesReceivedKey(q->id(), devices, sessionId, index);
+            }
         });
     }
 
@@ -545,8 +548,8 @@ public:
         const auto sessionId = currentOutboundMegolmSession->sessionId();
         const auto _sessionKey = currentOutboundMegolmSession->sessionKey();
         if(std::holds_alternative<QOlmError>(_sessionKey)) {
-            qCWarning(E2EE) << "Session error";
-            //TODO something
+            qCWarning(E2EE) << "Error loading session key";
+            return;
         }
         const auto sessionKey = std::get<QByteArray>(_sessionKey);
         const auto senderKey = q->connection()->olmAccount()->identityKeys().curve25519;
@@ -581,7 +584,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     connect(this, &Room::userAdded, this, [this, connection](){
         if(usesEncryption()) {
             connection->encryptionUpdate(this);
-            //TODO key at currentIndex to all user devices
         }
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
@@ -2086,18 +2088,20 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
     const RoomEvent* _event = pEvent;
 
     if (q->usesEncryption()) {
+#ifndef Quotient_E2EE_ENABLED
+        qWarning() << "This build of libQuotient does not support E2EE.";
+        return {};
+#else
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
         const auto devicesWithoutKey = getDevicesWithoutKey();
         sendMegolmSession(devicesWithoutKey);
 
-        //TODO check if we increment the sent message count
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
         connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
         if(std::holds_alternative<QOlmError>(encrypted)) {
-            //TODO something
             qWarning(E2EE) << "Error encrypting message" << std::get<QOlmError>(encrypted);
             return {};
         }
@@ -2110,6 +2114,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         }
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
         _event = encryptedEvent;
+#endif
     }
 
     if (auto call =

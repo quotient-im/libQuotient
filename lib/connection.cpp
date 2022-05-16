@@ -33,6 +33,7 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "database.h"
@@ -2246,21 +2247,24 @@ bool Connection::hasOlmSession(User* user, const QString& deviceId) const
 
 QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
 {
-    //TODO be smarter about choosing a session; see e2ee impl guide
-    //TODO do we need to save the olm session after sending a message?
     const auto& curveKey = curveKeyForUserDevice(user->id(), device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);
+    auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
+    if (std::holds_alternative<QByteArray>(pickle)) {
+        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), std::get<QByteArray>(pickle));
+    } else {
+        qCWarning(E2EE) << "Failed to pickle olm session.";
+    }
     return qMakePair(type, result.toCiphertext());
 }
 
-//TODO be more consistent with curveKey and identityKey
 void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
 {
     auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
     if (std::holds_alternative<QOlmError>(session)) {
-        //TODO something
         qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << std::get<QOlmError>(session);
+        return;
     }
     d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
     d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));

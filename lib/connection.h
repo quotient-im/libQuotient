@@ -329,8 +329,7 @@ public:
     void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
 
 
-    //This currently assumes that an olm session with (user, device) exists
-    //TODO make this return an event?
+    //This assumes that an olm session with (user, device) exists
     QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
     void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
 #endif // Quotient_E2EE_ENABLED

@@ -9,6 +9,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <ctime>
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmsession.h"
@@ -182,7 +183,7 @@ void Database::saveOlmSession(const QString& senderKey, const QString& sessionId
 
 UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const PicklingMode& picklingMode)
 {
-    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions;"));
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
     transaction();
     execute(query);
     commit();
@@ -338,7 +339,6 @@ QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QSt
 
 void Database::setDevicesReceivedKey(const QString& roomId, QHash<User *, QStringList> devices, const QString& sessionId, int index)
 {
-    //TODO this better
     auto connection = dynamic_cast<Connection *>(parent());
     transaction();
     for (const auto& user : devices.keys()) {
@@ -360,7 +360,7 @@ QHash<QString, QStringList> Database::devicesWithoutKey(Room* room, const QStrin
 {
     auto connection = dynamic_cast<Connection *>(parent());
     QHash<QString, QStringList> devices;
-    for (const auto& user : room->users()) {//TODO does this include invited & left?
+    for (const auto& user : room->users()) {
         devices[user->id()] = connection->devicesForUser(user);
     }
 
@@ -375,3 +375,15 @@ QHash<QString, QStringList> Database::devicesWithoutKey(Room* room, const QStrin
     }
     return devices;
 }
+
+void Database::updateOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET pickle=:pickle WHERE senderKey=:senderKey AND sessionId=:sessionId;"));
+    query.bindValue(":pickle", pickle);
+    query.bindValue(":senderKey", senderKey);
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
+    commit();
+}
+
