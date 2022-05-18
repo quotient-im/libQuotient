@@ -9,7 +9,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
-#include <ctime>
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmsession.h"
@@ -140,7 +139,7 @@ void Database::migrateTo4()
     execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD creationTime TEXT;"));
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD messageCount INTEGER;"));
-    execute(QStringLiteral("PRAGMA user_version = 3;"));
+    execute(QStringLiteral("PRAGMA user_version = 4;"));
     commit();
 }
 

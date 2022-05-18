@@ -75,7 +75,7 @@ std::pair<EncryptedFile, QByteArray> EncryptedFile::encryptFile(const QByteArray
     EncryptedFile file = {{}, key, ivBase64.left(ivBase64.indexOf('=')), {{QStringLiteral("sha256"), hash.left(hash.indexOf('='))}}, "v2"_ls};
     return {file, cipherText};
 #else
-    return {{}, {}};
+    return {};
 #endif
 }
 

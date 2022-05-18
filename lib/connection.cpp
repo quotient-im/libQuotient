@@ -33,7 +33,6 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
-#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "database.h"
@@ -2242,7 +2241,7 @@ bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
 bool Connection::hasOlmSession(User* user, const QString& deviceId) const
 {
     const auto& curveKey = curveKeyForUserDevice(user->id(), deviceId);
-    return d->olmSessions.contains(curveKey) && d->olmSessions[curveKey].size() > 0;
+    return d->olmSessions.contains(curveKey) && !d->olmSessions[curveKey].empty();
 }
 
 QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
@@ -2254,9 +2253,9 @@ QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, c
     if (pickle) {
         database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), *pickle);
     } else {
-        qCWarning(E2EE) << "Failed to pickle olm session.";
+        qCWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
     }
-    return qMakePair(type, result.toCiphertext());
+    return { type, result.toCiphertext() };
 }
 
 void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)

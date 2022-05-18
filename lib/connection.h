@@ -134,7 +134,7 @@ class QUOTIENT_API Connection : public QObject {
 
 public:
     using UsersToDevicesToEvents =
-        UnorderedMap<QString, UnorderedMap<QString, std::unique_ptr<Event>>>;
+        UnorderedMap<QString, UnorderedMap<QString, EventPtr>>;
 
     enum RoomVisibility {
         PublishRoom,
