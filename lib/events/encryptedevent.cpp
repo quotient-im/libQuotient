@@ -64,7 +64,7 @@ RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
 
 void EncryptedEvent::setRelation(const QJsonObject& relation)
 {
-    auto content = editJson()["content"_ls].toObject();
+    auto content = contentJson();
     content["m.relates_to"] = relation;
     editJson()["content"] = content;
 }
