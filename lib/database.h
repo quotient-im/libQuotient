@@ -44,9 +44,9 @@ public:
     void saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& data);
     void updateOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle);
 
-    // Returns a map User -> [Device] that have not received key yet
-    QHash<QString, QStringList> devicesWithoutKey(Room* room, const QString &sessionId);
-    void setDevicesReceivedKey(const QString& roomId, QHash<User *, QStringList> devices, const QString& sessionId, int index);
+    // Returns a map UserId -> [DeviceId] that have not received key yet
+    QHash<QString, QStringList> devicesWithoutKey(const QString& roomId, QHash<QString, QStringList>& devices, const QString &sessionId);
+    void setDevicesReceivedKey(const QString& roomId, const QHash<QString, QList<std::pair<QString, QString>>>& devices, const QString& sessionId, int index);
 
 private:
     void migrateTo1();

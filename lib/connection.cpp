@@ -2214,9 +2214,9 @@ void Connection::saveMegolmSession(const Room* room,
                                   session.senderId(), session.olmSessionId());
 }
 
-QStringList Connection::devicesForUser(User* user) const
+QStringList Connection::devicesForUser(const QString& userId) const
 {
-    return d->deviceKeys[user->id()].keys();
+    return d->deviceKeys[userId].keys();
 }
 
 QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
@@ -2238,15 +2238,15 @@ bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
     return query.next();
 }
 
-bool Connection::hasOlmSession(User* user, const QString& deviceId) const
+bool Connection::hasOlmSession(const QString& user, const QString& deviceId) const
 {
-    const auto& curveKey = curveKeyForUserDevice(user->id(), deviceId);
+    const auto& curveKey = curveKeyForUserDevice(user, deviceId);
     return d->olmSessions.contains(curveKey) && !d->olmSessions[curveKey].empty();
 }
 
-QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
+QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(const QString& user, const QString& device, const QByteArray& message)
 {
-    const auto& curveKey = curveKeyForUserDevice(user->id(), device);
+    const auto& curveKey = curveKeyForUserDevice(user, device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
     auto result = d->olmSessions[curveKey][0]->encrypt(message);
     auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());

@@ -323,14 +323,14 @@ public:
         const Room* room);
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session);
-    bool hasOlmSession(User* user, const QString& deviceId) const;
+    bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
     void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
 
 
     //This assumes that an olm session with (user, device) exists
-    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
+    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(const QString& userId, const QString& device, const QByteArray& message);
     void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
@@ -694,7 +694,7 @@ public Q_SLOTS:
     PicklingMode picklingMode() const;
     QJsonObject decryptNotification(const QJsonObject &notification);
 
-    QStringList devicesForUser(User* user) const;
+    QStringList devicesForUser(const QString& user) const;
     QString curveKeyForUserDevice(const QString &user, const QString& device) const;
     QString edKeyForUserDevice(const QString& user, const QString& device) const;
     bool isKnownCurveKey(const QString& user, const QString& curveKey);
