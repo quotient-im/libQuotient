@@ -64,7 +64,7 @@ std::pair<EncryptedFile, QByteArray> EncryptedFile::encryptFile(const QByteArray
 
     int length;
     auto* ctx = EVP_CIPHER_CTX_new();
-    QByteArray cipherText(plainText.size(), plainText.size() + EVP_MAX_BLOCK_LENGTH - 1);
+    QByteArray cipherText(plainText.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
     EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(k.data()),reinterpret_cast<const unsigned char*>(iv.data()));
     EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()), &length, reinterpret_cast<const unsigned char*>(plainText.data()), plainText.size());
     EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(cipherText.data()) + length, &length);
