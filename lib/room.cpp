@@ -2522,7 +2522,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
-    Omittable<EncryptedFile> encryptedFile = std::nullopt;
+    Omittable<EncryptedFile> encryptedFile { none };
 #ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
