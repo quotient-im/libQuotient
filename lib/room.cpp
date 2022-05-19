@@ -2091,6 +2091,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
     const auto txnId = pEvent->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
     const RoomEvent* _event = pEvent;
+    std::unique_ptr<EncryptedEvent> encryptedEvent;
 
     if (q->usesEncryption()) {
 #ifndef Quotient_E2EE_ENABLED
@@ -2110,7 +2111,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             qWarning(E2EE) << "Error encrypting message" << encrypted.error();
             return {};
         }
-        auto encryptedEvent = new EncryptedEvent(*encrypted, q->connection()->olmAccount()->identityKeys().curve25519, q->connection()->deviceId(), currentOutboundMegolmSession->sessionId());
+        encryptedEvent = makeEvent<EncryptedEvent>(*encrypted, q->connection()->olmAccount()->identityKeys().curve25519, q->connection()->deviceId(), currentOutboundMegolmSession->sessionId());
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
@@ -2118,7 +2119,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             encryptedEvent->setRelation(pEvent->contentJson()["m.relates_to"_ls].toObject());
         }
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
-        _event = encryptedEvent;
+        _event = encryptedEvent.get();
 #endif
     }
 
@@ -2151,9 +2152,6 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                                << "already merged";
 
             emit q->messageSent(txnId, call->eventId());
-            if (q->usesEncryption()){
-                delete _event;
-            }
         });
     } else
         onEventSendingFailure(txnId);
@@ -2553,6 +2551,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
             } else {
                 emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), none);
             }
+
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
