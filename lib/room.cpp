@@ -2551,7 +2551,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                 file.url = QUrl(job->contentUri());
                 emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), file);
             } else {
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()));
+                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), none);
             }
         });
         connect(job, &BaseJob::failure, this,
@@ -2620,7 +2620,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         connect(job, &BaseJob::success, this, [this, eventId, fileUrl, job] {
             d->fileTransfers[eventId].status = FileTransferInfo::Completed;
             emit fileTransferCompleted(
-                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()));
+                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()), none);
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, eventId,
