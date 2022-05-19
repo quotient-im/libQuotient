@@ -537,10 +537,10 @@ public:
             }
             if (!usersToDevicesToEvents.empty()) {
                 connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
-                QHash<QString, QList<std::pair<QString, QString>>> receivedDevices;
+                QVector<std::tuple<QString, QString, QString>> receivedDevices;
                 for (const auto& user : devices.keys()) {
                     for (const auto& device : devices[user]) {
-                        receivedDevices[user] += {device, q->connection()->curveKeyForUserDevice(user, device) };
+                        receivedDevices += {user, device, q->connection()->curveKeyForUserDevice(user, device) };
                     }
                 }
                 connection->database()->setDevicesReceivedKey(q->id(), receivedDevices, sessionId, index);

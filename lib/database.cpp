@@ -346,20 +346,18 @@ QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QSt
     return nullptr;
 }
 
-void Database::setDevicesReceivedKey(const QString& roomId, const QHash<QString, QList<std::pair<QString, QString>>>& devices, const QString& sessionId, int index)
+void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index)
 {
     transaction();
-    for (const auto& user : devices.keys()) {
-        for (const auto& [device, curveKey] : devices[user]) {
-            auto query = prepareQuery(QStringLiteral("INSERT INTO sent_megolm_sessions(roomId, userId, deviceId, identityKey, sessionId, i) VALUES(:roomId, :userId, :deviceId, :identityKey, :sessionId, :i);"));
-            query.bindValue(":roomId", roomId);
-            query.bindValue(":userId", user);
-            query.bindValue(":deviceId", device);
-            query.bindValue(":identityKey", curveKey);
-            query.bindValue(":sessionId", sessionId);
-            query.bindValue(":i", index);
-            execute(query);
-        }
+    for (const auto& [user, device, curveKey] : devices) {
+        auto query = prepareQuery(QStringLiteral("INSERT INTO sent_megolm_sessions(roomId, userId, deviceId, identityKey, sessionId, i) VALUES(:roomId, :userId, :deviceId, :identityKey, :sessionId, :i);"));
+        query.bindValue(":roomId", roomId);
+        query.bindValue(":userId", user);
+        query.bindValue(":deviceId", device);
+        query.bindValue(":identityKey", curveKey);
+        query.bindValue(":sessionId", sessionId);
+        query.bindValue(":i", index);
+        execute(query);
     }
     commit();
 }

@@ -46,7 +46,7 @@ public:
 
     // Returns a map UserId -> [DeviceId] that have not received key yet
     QHash<QString, QStringList> devicesWithoutKey(const QString& roomId, QHash<QString, QStringList>& devices, const QString &sessionId);
-    void setDevicesReceivedKey(const QString& roomId, const QHash<QString, QList<std::pair<QString, QString>>>& devices, const QString& sessionId, int index);
+    void setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index);
 
 private:
     void migrateTo1();
