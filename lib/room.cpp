@@ -12,7 +12,6 @@
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
-#include "e2ee/qolmoutboundsession.h"
 #include "syncdata.h"
 #include "user.h"
 #include "eventstats.h"
@@ -70,6 +69,7 @@
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolminboundsession.h"
+#include "e2ee/qolmoutboundsession.h"
 #include "e2ee/qolmutility.h"
 #include "database.h"
 #endif // Quotient_E2EE_ENABLED
