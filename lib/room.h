@@ -999,7 +999,7 @@ Q_SIGNALS:
 
     void newFileTransfer(QString id, QUrl localFile);
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
-    void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl);
+    void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl, Omittable<EncryptedFile> encryptedFile);
     void fileTransferFailed(QString id, QString errorMessage = {});
     // fileTransferCancelled() is no more here; use fileTransferFailed() and
     // check the transfer status instead

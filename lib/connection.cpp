@@ -1332,7 +1332,7 @@ Connection::sendToDevices(const QString& eventType,
                                     [&jsonUser](const auto& deviceToEvents) {
                                         jsonUser.insert(
                                             deviceToEvents.first,
-                                            deviceToEvents.second.contentJson());
+                                            deviceToEvents.second->contentJson());
                                     });
                   });
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
@@ -2214,9 +2214,9 @@ void Connection::saveMegolmSession(const Room* room,
                                   session.senderId(), session.olmSessionId());
 }
 
-QStringList Connection::devicesForUser(User* user) const
+QStringList Connection::devicesForUser(const QString& userId) const
 {
-    return d->deviceKeys[user->id()].keys();
+    return d->deviceKeys[userId].keys();
 }
 
 QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
@@ -2236,6 +2236,47 @@ bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
     query.bindValue(":curveKey", curveKey);
     database()->execute(query);
     return query.next();
+}
+
+bool Connection::hasOlmSession(const QString& user, const QString& deviceId) const
+{
+    const auto& curveKey = curveKeyForUserDevice(user, deviceId);
+    return d->olmSessions.contains(curveKey) && !d->olmSessions[curveKey].empty();
+}
+
+QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(const QString& user, const QString& device, const QByteArray& message)
+{
+    const auto& curveKey = curveKeyForUserDevice(user, device);
+    QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
+    auto result = d->olmSessions[curveKey][0]->encrypt(message);
+    auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
+    if (pickle) {
+        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), *pickle);
+    } else {
+        qCWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
+    }
+    return { type, result.toCiphertext() };
+}
+
+void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
+{
+    auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
+    if (!session) {
+        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << session.error();
+        return;
+    }
+    d->saveSession(**session, theirIdentityKey);
+    d->olmSessions[theirIdentityKey].push_back(std::move(*session));
+}
+
+QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(Room* room)
+{
+    return d->database->loadCurrentOutboundMegolmSession(room->id(), d->picklingMode);
+}
+
+void Connection::saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data)
+{
+    d->database->saveCurrentOutboundMegolmSession(room->id(), d->picklingMode, data);
 }
 
 #endif

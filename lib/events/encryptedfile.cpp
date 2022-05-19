@@ -8,6 +8,7 @@
 #ifdef Quotient_E2EE_ENABLED
 #include <openssl/evp.h>
 #include <QtCore/QCryptographicHash>
+#include "e2ee/qolmutils.h"
 #endif
 
 using namespace Quotient;
@@ -27,7 +28,7 @@ QByteArray EncryptedFile::decryptFile(const QByteArray& ciphertext) const
     {
         int length;
         auto* ctx = EVP_CIPHER_CTX_new();
-        QByteArray plaintext(ciphertext.size() + EVP_CIPHER_CTX_block_size(ctx)
+        QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH
                                  - 1,
                              '\0');
         EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr,
@@ -44,12 +45,37 @@ QByteArray EncryptedFile::decryptFile(const QByteArray& ciphertext) const
                                 + length,
                             &length);
         EVP_CIPHER_CTX_free(ctx);
-        return plaintext;
+        return plaintext.left(ciphertext.size());
     }
 #else
     qWarning(MAIN) << "This build of libQuotient doesn't support E2EE, "
                       "cannot decrypt the file";
     return ciphertext;
+#endif
+}
+
+std::pair<EncryptedFile, QByteArray> EncryptedFile::encryptFile(const QByteArray &plainText)
+{
+#ifdef Quotient_E2EE_ENABLED
+    QByteArray k = getRandom(32);
+    auto kBase64 = k.toBase64();
+    QByteArray iv = getRandom(16);
+    JWK key = {"oct"_ls, {"encrypt"_ls, "decrypt"_ls}, "A256CTR"_ls, QString(k.toBase64()).replace(u'/', u'_').replace(u'+', u'-').left(kBase64.indexOf('=')), true};
+
+    int length;
+    auto* ctx = EVP_CIPHER_CTX_new();
+    QByteArray cipherText(plainText.size(), plainText.size() + EVP_MAX_BLOCK_LENGTH - 1);
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(k.data()),reinterpret_cast<const unsigned char*>(iv.data()));
+    EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()), &length, reinterpret_cast<const unsigned char*>(plainText.data()), plainText.size());
+    EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(cipherText.data()) + length, &length);
+    EVP_CIPHER_CTX_free(ctx);
+
+    auto hash = QCryptographicHash::hash(cipherText, QCryptographicHash::Sha256).toBase64();
+    auto ivBase64 = iv.toBase64();
+    EncryptedFile file = {{}, key, ivBase64.left(ivBase64.indexOf('=')), {{QStringLiteral("sha256"), hash.left(hash.indexOf('='))}}, "v2"_ls};
+    return {file, cipherText};
+#else
+    return {};
 #endif
 }
 

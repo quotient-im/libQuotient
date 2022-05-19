@@ -13,6 +13,7 @@
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmsession.h"
 #include "e2ee/qolminboundsession.h"
+#include "e2ee/qolmoutboundsession.h"
 
 using namespace Quotient;
 Database::Database(const QString& matrixId, const QString& deviceId, QObject* parent)
@@ -30,6 +31,7 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
         case 0: migrateTo1();
         case 1: migrateTo2();
         case 2: migrateTo3();
+        case 3: migrateTo4();
     }
 }
 
@@ -103,7 +105,7 @@ void Database::migrateTo2()
     //TODO remove this column again - we don't need it after all
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
-    
+
     // Add indexes for improving queries speed on larger database
     execute(QStringLiteral("CREATE INDEX sessions_session_idx ON olm_sessions(sessionId)"));
     execute(QStringLiteral("CREATE INDEX outbound_room_idx ON outbound_megolm_sessions(roomId)"));
@@ -124,6 +126,18 @@ void Database::migrateTo3()
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD olmSessionId TEXT;"));
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD senderId TEXT;"));
     execute(QStringLiteral("PRAGMA user_version = 3;"));
+    commit();
+}
+
+void Database::migrateTo4()
+{
+    qCDebug(DATABASE) << "Migrating database to version 4";
+    transaction();
+
+    execute(QStringLiteral("CREATE TABLE sent_megolm_sessions (roomId TEXT, userId TEXT, deviceId TEXT, identityKey TEXT, sessionId TEXT, i INTEGER);"));
+    execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD creationTime TEXT;"));
+    execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD messageCount INTEGER;"));
+    execute(QStringLiteral("PRAGMA user_version = 4;"));
     commit();
 }
 
@@ -178,7 +192,7 @@ void Database::saveOlmSession(const QString& senderKey, const QString& sessionId
 
 UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const PicklingMode& picklingMode)
 {
-    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions;"));
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
     transaction();
     execute(query);
     commit();
@@ -292,3 +306,84 @@ void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTi
     execute(query);
     commit();
 }
+
+void Database::saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& session)
+{
+    const auto pickle = session->pickle(picklingMode);
+    if (pickle) {
+        auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
+        deleteQuery.bindValue(":roomId", roomId);
+        deleteQuery.bindValue(":sessionId", session->sessionId());
+
+        auto insertQuery = prepareQuery(QStringLiteral("INSERT INTO outbound_megolm_sessions(roomId, sessionId, pickle, creationTime, messageCount) VALUES(:roomId, :sessionId, :pickle, :creationTime, :messageCount);"));
+        insertQuery.bindValue(":roomId", roomId);
+        insertQuery.bindValue(":sessionId", session->sessionId());
+        insertQuery.bindValue(":pickle", pickle.value());
+        insertQuery.bindValue(":creationTime", session->creationTime());
+        insertQuery.bindValue(":messageCount", session->messageCount());
+
+        transaction();
+        execute(deleteQuery);
+        execute(insertQuery);
+        commit();
+    }
+}
+
+QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT * FROM outbound_megolm_sessions WHERE roomId=:roomId ORDER BY creationTime DESC;"));
+    query.bindValue(":roomId", roomId);
+    execute(query);
+    if (query.next()) {
+        auto sessionResult = QOlmOutboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
+        if (sessionResult) {
+            auto session = std::move(*sessionResult);
+            session->setCreationTime(query.value("creationTime").toDateTime());
+            session->setMessageCount(query.value("messageCount").toInt());
+            return session;
+        }
+    }
+    return nullptr;
+}
+
+void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index)
+{
+    transaction();
+    for (const auto& [user, device, curveKey] : devices) {
+        auto query = prepareQuery(QStringLiteral("INSERT INTO sent_megolm_sessions(roomId, userId, deviceId, identityKey, sessionId, i) VALUES(:roomId, :userId, :deviceId, :identityKey, :sessionId, :i);"));
+        query.bindValue(":roomId", roomId);
+        query.bindValue(":userId", user);
+        query.bindValue(":deviceId", device);
+        query.bindValue(":identityKey", curveKey);
+        query.bindValue(":sessionId", sessionId);
+        query.bindValue(":i", index);
+        execute(query);
+    }
+    commit();
+}
+
+QHash<QString, QStringList> Database::devicesWithoutKey(const QString& roomId, QHash<QString, QStringList>& devices, const QString &sessionId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT userId, deviceId FROM sent_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId"));
+    query.bindValue(":roomId", roomId);
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
+    commit();
+    while (query.next()) {
+        devices[query.value("userId").toString()].removeAll(query.value("deviceId").toString());
+    }
+    return devices;
+}
+
+void Database::updateOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET pickle=:pickle WHERE senderKey=:senderKey AND sessionId=:sessionId;"));
+    query.bindValue(":pickle", pickle);
+    query.bindValue(":senderKey", senderKey);
+    query.bindValue(":sessionId", sessionId);
+    transaction();
+    execute(query);
+    commit();
+}
+
