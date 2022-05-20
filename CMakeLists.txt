@@ -198,6 +198,9 @@ set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
 set(API_GENERATION_ENABLED 0)
+if (NOT MATRIX_SPEC_PATH AND MATRIX_DOC_PATH)
+    set(MATRIX_SPEC_PATH ${MATRIX_DOC_PATH})
+endif()
 if (GTAD_PATH AND MATRIX_SPEC_PATH)
     # REALPATH resolves ~ (home directory) while PROGRAM doesn't
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
