@@ -179,11 +179,11 @@ jobs:
       if: matrix.update-api
       working-directory: ${{ runner.workspace }}
       run: |
-        git clone https://github.com/matrix-org/matrix-doc.git
+        git clone https://github.com/quotient-im/matrix-spec.git
         git clone --recursive https://github.com/KitsuneRal/gtad.git
         cmake -S gtad -B build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
         cmake --build build/gtad
-        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_DOC_PATH=${{ runner.workspace }}/matrix-doc \
+        echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_SPEC_PATH=${{ runner.workspace }}/matrix-spec \
                                      -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
