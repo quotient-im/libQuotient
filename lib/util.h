@@ -199,4 +199,5 @@ QUOTIENT_API QString versionString();
 QUOTIENT_API int majorVersion();
 QUOTIENT_API int minorVersion();
 QUOTIENT_API int patchVersion();
+QUOTIENT_API bool encryptionSupported();
 } // namespace Quotient
