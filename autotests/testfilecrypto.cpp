@@ -12,6 +12,8 @@ void TestFileCrypto::encryptDecryptData()
     QByteArray data = "ABCDEF";
     auto [file, cipherText] = EncryptedFile::encryptFile(data);
     auto decrypted = file.decryptFile(cipherText);
-    QCOMPARE(data, decrypted);
+    QCOMPARE(cipherText.size(), data.size());
+    QCOMPARE(decrypted.size(), data.size());
+    QCOMPARE(decrypted, data);
 }
 QTEST_APPLESS_MAIN(TestFileCrypto)
