@@ -2187,7 +2187,7 @@ QJsonObject Connection::decryptNotification(const QJsonObject &notification)
     return decrypted ? decrypted->fullJson() : QJsonObject();
 }
 
-Database* Connection::database()
+Database* Connection::database() const
 {
     return d->database;
 }
@@ -2271,14 +2271,18 @@ void Connection::createOlmSession(const QString& theirIdentityKey,
     d->olmSessions[theirIdentityKey].push_back(std::move(*session));
 }
 
-QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(Room* room)
+QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(
+    const QString& roomId) const
 {
-    return d->database->loadCurrentOutboundMegolmSession(room->id(), d->picklingMode);
+    return d->database->loadCurrentOutboundMegolmSession(roomId,
+                                                         d->picklingMode);
 }
 
-void Connection::saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data)
+void Connection::saveCurrentOutboundMegolmSession(
+    const QString& roomId, const QOlmOutboundGroupSession& session) const
 {
-    d->database->saveCurrentOutboundMegolmSession(room->id(), d->picklingMode, data);
+    d->database->saveCurrentOutboundMegolmSession(roomId, d->picklingMode,
+                                                  session);
 }
 
 #endif

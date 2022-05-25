@@ -318,16 +318,16 @@ public:
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
-    Database* database();
+    Database* database() const;
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(
         const Room* room);
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session);
     bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
-    void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
-
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+        const QString& roomId) const;
+    void saveCurrentOutboundMegolmSession(const QString& roomId, const QOlmOutboundGroupSession &session) const;
 
     //This assumes that an olm session with (user, device) exists
     std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
