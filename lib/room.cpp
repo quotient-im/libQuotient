@@ -2130,7 +2130,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
-                qCWarning(EVENTS) << "Pending event for transaction" << txnId
+                qWarning(EVENTS) << "Pending event for transaction" << txnId
                                  << "not found - got synced so soon?";
                 return;
             }
@@ -2140,7 +2140,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::failure, q,
                       std::bind(&Room::Private::onEventSendingFailure, this,
                                 txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId, _event] {
+        Room::connect(call, &BaseJob::success, q, [this, call, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end()) {
                 if (it->deliveryStatus() != EventStatus::ReachedServer) {
@@ -2148,7 +2148,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
                 }
             } else
-                qCDebug(EVENTS) << "Pending event for transaction" << txnId
+                qDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
 
             emit q->messageSent(txnId, call->eventId());
@@ -2206,11 +2206,9 @@ QString Room::retryMessage(const QString& txnId)
     return d->doSendEvent(it->event());
 }
 
-// Lambda defers actual tr() invocation to the moment when translations are
-// initialised
-const auto FileTransferCancelledMsg = [] {
-    return Room::tr("File transfer cancelled");
-};
+// Using a function defers actual tr() invocation to the moment when
+// translations are initialised
+auto FileTransferCancelledMsg() { return Room::tr("File transfer cancelled"); }
 
 void Room::discardMessage(const QString& txnId)
 {

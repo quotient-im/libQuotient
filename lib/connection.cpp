@@ -1322,18 +1322,11 @@ Connection::sendToDevices(const QString& eventType,
 {
     QHash<QString, QHash<QString, QJsonObject>> json;
     json.reserve(int(eventsMap.size()));
-    std::for_each(eventsMap.begin(), eventsMap.end(),
-                  [&json](const auto& userTodevicesToEvents) {
-                      auto& jsonUser = json[userTodevicesToEvents.first];
-                      const auto& devicesToEvents = userTodevicesToEvents.second;
-                      std::for_each(devicesToEvents.begin(),
-                                    devicesToEvents.end(),
-                                    [&jsonUser](const auto& deviceToEvents) {
-                                        jsonUser.insert(
-                                            deviceToEvents.first,
-                                            deviceToEvents.second->contentJson());
-                                    });
-                  });
+    for (const auto& [userId, devicesToEvents] : eventsMap) {
+        auto& jsonUser = json[userId];
+        for (const auto& [deviceId, event] : devicesToEvents)
+            jsonUser.insert(deviceId, event->contentJson());
+    }
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
                                     generateTxnId(), json);
 }
@@ -2218,20 +2211,23 @@ QStringList Connection::devicesForUser(const QString& userId) const
     return d->deviceKeys[userId].keys();
 }
 
-QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
+QString Connection::curveKeyForUserDevice(const QString& userId,
+                                          const QString& device) const
 {
-    return d->deviceKeys[user][device].keys["curve25519:" % device];
+    return d->deviceKeys[userId][device].keys["curve25519:" % device];
 }
 
-QString Connection::edKeyForUserDevice(const QString& user, const QString& device) const
+QString Connection::edKeyForUserDevice(const QString& userId,
+                                       const QString& device) const
 {
-    return d->deviceKeys[user][device].keys["ed25519:" % device];
+    return d->deviceKeys[userId][device].keys["ed25519:" % device];
 }
 
-bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
+bool Connection::isKnownCurveKey(const QString& userId,
+                                 const QString& curveKey) const
 {
     auto query = database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices WHERE matrixId=:matrixId AND curveKey=:curveKey"));
-    query.bindValue(":matrixId", user);
+    query.bindValue(":matrixId", userId);
     query.bindValue(":curveKey", curveKey);
     database()->execute(query);
     return query.next();
@@ -2243,25 +2239,32 @@ bool Connection::hasOlmSession(const QString& user, const QString& deviceId) con
     return d->olmSessions.contains(curveKey) && !d->olmSessions[curveKey].empty();
 }
 
-QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(const QString& user, const QString& device, const QByteArray& message)
+std::pair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(
+    const QString& userId, const QString& device, const QByteArray& message) const
 {
-    const auto& curveKey = curveKeyForUserDevice(user, device);
+    const auto& curveKey = curveKeyForUserDevice(userId, device);
     QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
-    auto result = d->olmSessions[curveKey][0]->encrypt(message);
-    auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
-    if (pickle) {
-        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), *pickle);
+    const auto result = d->olmSessions[curveKey][0]->encrypt(message);
+    if (const auto pickle =
+            d->olmSessions[curveKey][0]->pickle(picklingMode())) {
+        database()->updateOlmSession(curveKey,
+                                     d->olmSessions[curveKey][0]->sessionId(),
+                                     *pickle);
     } else {
         qCWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
     }
     return { type, result.toCiphertext() };
 }
 
-void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
+void Connection::createOlmSession(const QString& theirIdentityKey,
+                                  const QString& theirOneTimeKey) const
 {
-    auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
+    auto session = QOlmSession::createOutboundSession(olmAccount(),
+                                                      theirIdentityKey,
+                                                      theirOneTimeKey);
     if (!session) {
-        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << session.error();
+        qCWarning(E2EE) << "Failed to create olm session for "
+                        << theirIdentityKey << session.error();
         return;
     }
     d->saveSession(**session, theirIdentityKey);

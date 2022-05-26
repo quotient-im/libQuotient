@@ -330,8 +330,11 @@ public:
 
 
     //This assumes that an olm session with (user, device) exists
-    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(const QString& userId, const QString& device, const QByteArray& message);
-    void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
+    std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
+        const QString& userId, const QString& device,
+        const QByteArray& message) const;
+    void createOlmSession(const QString& theirIdentityKey,
+                          const QString& theirOneTimeKey) const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -695,10 +698,12 @@ public Q_SLOTS:
     PicklingMode picklingMode() const;
     QJsonObject decryptNotification(const QJsonObject &notification);
 
-    QStringList devicesForUser(const QString& user) const;
-    QString curveKeyForUserDevice(const QString &user, const QString& device) const;
-    QString edKeyForUserDevice(const QString& user, const QString& device) const;
-    bool isKnownCurveKey(const QString& user, const QString& curveKey);
+    QStringList devicesForUser(const QString& userId) const;
+    QString curveKeyForUserDevice(const QString& userId,
+                                  const QString& device) const;
+    QString edKeyForUserDevice(const QString& userId,
+                               const QString& device) const;
+    bool isKnownCurveKey(const QString& userId, const QString& curveKey) const;
 #endif
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
