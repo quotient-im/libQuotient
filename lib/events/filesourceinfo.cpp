@@ -16,14 +16,15 @@
 
 using namespace Quotient;
 
-QByteArray EncryptedFileMetadata::decryptFile(const QByteArray& ciphertext) const
+QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
+                                 const EncryptedFileMetadata& metadata)
 {
 #ifdef Quotient_E2EE_ENABLED
-    auto _key = key.k;
+    auto _key = metadata.key.k;
     const auto keyBytes = QByteArray::fromBase64(
         _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
     const auto sha256 =
-        QByteArray::fromBase64(hashes["sha256"_ls].toLatin1());
+        QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1());
     if (sha256
         != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
         qCWarning(E2EE) << "Hash verification failed for file";
@@ -37,7 +38,7 @@ QByteArray EncryptedFileMetadata::decryptFile(const QByteArray& ciphertext) cons
             ctx, EVP_aes_256_ctr(), nullptr,
             reinterpret_cast<const unsigned char*>(keyBytes.data()),
             reinterpret_cast<const unsigned char*>(
-                QByteArray::fromBase64(iv.toLatin1()).data()));
+                QByteArray::fromBase64(metadata.iv.toLatin1()).data()));
         EVP_DecryptUpdate(
             ctx, reinterpret_cast<unsigned char*>(plaintext.data()), &length,
             reinterpret_cast<const unsigned char*>(ciphertext.data()),
@@ -56,7 +57,7 @@ QByteArray EncryptedFileMetadata::decryptFile(const QByteArray& ciphertext) cons
 #endif
 }
 
-std::pair<EncryptedFileMetadata, QByteArray> EncryptedFileMetadata::encryptFile(
+std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
 #ifdef Quotient_E2EE_ENABLED

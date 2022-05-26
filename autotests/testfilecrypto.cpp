@@ -12,8 +12,8 @@ using namespace Quotient;
 void TestFileCrypto::encryptDecryptData()
 {
     QByteArray data = "ABCDEF";
-    auto [file, cipherText] = EncryptedFileMetadata::encryptFile(data);
-    auto decrypted = file.decryptFile(cipherText);
+    auto [file, cipherText] = encryptFile(data);
+    auto decrypted = decryptFile(cipherText, file);
     // AES CTR produces ciphertext of the same size as the original
     QCOMPARE(cipherText.size(), data.size());
     QCOMPARE(decrypted.size(), data.size());

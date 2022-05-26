@@ -45,11 +45,12 @@ public:
     QString iv;
     QHash<QString, QString> hashes;
     QString v;
-
-    static std::pair<EncryptedFileMetadata, QByteArray> encryptFile(
-        const QByteArray& plainText);
-    QByteArray decryptFile(const QByteArray& ciphertext) const;
 };
+
+QUOTIENT_API std::pair<EncryptedFileMetadata, QByteArray> encryptFile(
+    const QByteArray& plainText);
+QUOTIENT_API QByteArray decryptFile(const QByteArray& ciphertext,
+                                    const EncryptedFileMetadata& metadata);
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<EncryptedFileMetadata> {

@@ -128,7 +128,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             QByteArray encrypted = d->tempFile->readAll();
 
             EncryptedFileMetadata file = *d->encryptedFile;
-            const auto decrypted = file.decryptFile(encrypted);
+            const auto decrypted = decryptFile(encrypted, file);
             d->targetFile->write(decrypted);
             d->tempFile->remove();
         } else {
@@ -153,7 +153,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             const auto encrypted = d->tempFile->readAll();
 
             EncryptedFileMetadata file = *d->encryptedFile;
-            const auto decrypted = file.decryptFile(encrypted);
+            const auto decrypted = decryptFile(encrypted, file);
             d->tempFile->write(decrypted);
         } else {
 #endif

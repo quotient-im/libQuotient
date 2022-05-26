@@ -2524,8 +2524,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
         QFile file(localFilename.toLocalFile());
         file.open(QFile::ReadOnly);
         QByteArray data;
-        std::tie(fileMetadata, data) =
-            EncryptedFileMetadata::encryptFile(file.readAll());
+        std::tie(fileMetadata, data) = encryptFile(file.readAll());
         tempFile.write(data);
         tempFile.close();
         fileName = QFileInfo(tempFile).absoluteFilePath();

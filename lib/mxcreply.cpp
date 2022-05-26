@@ -47,9 +47,9 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
         if(!d->m_encryptedFile.has_value()) {
             d->m_device = d->m_reply;
         } else {
-            EncryptedFileMetadata file = *d->m_encryptedFile;
             auto buffer = new QBuffer(this);
-            buffer->setData(file.decryptFile(d->m_reply->readAll()));
+            buffer->setData(
+                decryptFile(d->m_reply->readAll(), *d->m_encryptedFile));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
