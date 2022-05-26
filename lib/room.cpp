@@ -1525,7 +1525,7 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
             auto* thumbnail = event->content()->thumbnailInfo();
             Q_ASSERT(thumbnail != nullptr);
             return connection()->getUrlForApi<MediaThumbnailJob>(
-                thumbnail->url, thumbnail->imageSize);
+                thumbnail->url(), thumbnail->imageSize);
         }
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
@@ -1536,7 +1536,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
     if (auto* event = d->getEventWithFile(eventId)) {
         auto* fileInfo = event->content()->fileInfo();
         Q_ASSERT(fileInfo != nullptr);
-        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url);
+        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
     }
     return {};
 }
@@ -2275,28 +2275,26 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
     // Below, the upload job is used as a context object to clean up connections
     const auto& transferJob = fileTransfers.value(txnId).job;
     connect(q, &Room::fileTransferCompleted, transferJob,
-            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri, Omittable<EncryptedFile> encryptedFile) {
-                if (tId != txnId)
-                    return;
+        [this, txnId](const QString& tId, const QUrl&,
+                      const FileSourceInfo fileMetadata) {
+            if (tId != txnId)
+                return;
 
-                const auto it = q->findPendingEvent(txnId);
-                if (it != unsyncedEvents.end()) {
-                    it->setFileUploaded(mxcUri);
-                    if (encryptedFile) {
-                        it->setEncryptedFile(*encryptedFile);
-                    }
-                    emit q->pendingEventChanged(
-                        int(it - unsyncedEvents.begin()));
-                    doSendEvent(it->get());
-                } else {
-                    // Normally in this situation we should instruct
-                    // the media server to delete the file; alas, there's no
-                    // API specced for that.
-                    qCWarning(MAIN) << "File uploaded to" << mxcUri
-                                    << "but the event referring to it was "
-                                       "cancelled";
-                }
-            });
+            const auto it = q->findPendingEvent(txnId);
+            if (it != unsyncedEvents.end()) {
+                it->setFileUploaded(fileMetadata);
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+                doSendEvent(it->get());
+            } else {
+                // Normally in this situation we should instruct
+                // the media server to delete the file; alas, there's no
+                // API specced for that.
+                qCWarning(MAIN)
+                    << "File uploaded to" << getUrlFromSourceInfo(fileMetadata)
+                    << "but the event referring to it was "
+                       "cancelled";
+            }
+        });
     connect(q, &Room::fileTransferFailed, transferJob,
             [this, txnId](const QString& tId) {
                 if (tId != txnId)
@@ -2322,13 +2320,13 @@ QString Room::postFile(const QString& plainText,
     Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
     const auto* const fileInfo = content->fileInfo();
     Q_ASSERT(fileInfo != nullptr);
-    QFileInfo localFile { fileInfo->url.toLocalFile() };
+    QFileInfo localFile { fileInfo->url().toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
     return d->doPostFile(
         makeEvent<RoomMessageEvent>(
             plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
-        fileInfo->url);
+        fileInfo->url());
 }
 
 #if QT_VERSION_MAJOR < 6
@@ -2520,18 +2518,19 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
-    Omittable<EncryptedFile> encryptedFile { none };
+    FileSourceInfo fileMetadata;
 #ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
         tempFile.open();
         QFile file(localFilename.toLocalFile());
         file.open(QFile::ReadOnly);
-        auto [e, data] = EncryptedFile::encryptFile(file.readAll());
+        QByteArray data;
+        std::tie(fileMetadata, data) =
+            EncryptedFileMetadata::encryptFile(file.readAll());
         tempFile.write(data);
         tempFile.close();
         fileName = QFileInfo(tempFile).absoluteFilePath();
-        encryptedFile = e;
     }
 #endif
     auto job = connection()->uploadFile(fileName, overrideContentType);
@@ -2542,17 +2541,13 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     d->fileTransfers[id].update(sent, total);
                     emit fileTransferProgress(id, sent, total);
                 });
-        connect(job, &BaseJob::success, this, [this, id, localFilename, job, encryptedFile] {
-            d->fileTransfers[id].status = FileTransferInfo::Completed;
-            if (encryptedFile) {
-                auto file = *encryptedFile;
-                file.url = QUrl(job->contentUri());
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), file);
-            } else {
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), none);
-            }
-
-        });
+        connect(job, &BaseJob::success, this,
+                [this, id, localFilename, job, fileMetadata]() mutable {
+                    // The lambda is mutable to change encryptedFileMetadata
+                    d->fileTransfers[id].status = FileTransferInfo::Completed;
+                    setUrlInSourceInfo(fileMetadata, QUrl(job->contentUri()));
+                    emit fileTransferCompleted(id, localFilename, fileMetadata);
+                });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
         emit newFileTransfer(id, localFilename);
@@ -2585,11 +2580,11 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
                         << "has an empty or malformed mxc URL; won't download";
         return;
     }
-    const auto fileUrl = fileInfo->url;
+    const auto fileUrl = fileInfo->url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath =
-            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
+            fileInfo->url().path().mid(1) % '_' % d->fileNameToDownload(event);
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---");
@@ -2599,9 +2594,9 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     }
     DownloadFileJob *job = nullptr;
 #ifdef Quotient_E2EE_ENABLED
-    if(fileInfo->file.has_value()) {
-        auto file = *fileInfo->file;
-        job = connection()->downloadFile(fileUrl, file, filePath);
+    if (auto* fileMetadata =
+            std::get_if<EncryptedFileMetadata>(&fileInfo->source)) {
+        job = connection()->downloadFile(fileUrl, *fileMetadata, filePath);
     } else {
 #endif
     job = connection()->downloadFile(fileUrl, filePath);
@@ -2619,7 +2614,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         connect(job, &BaseJob::success, this, [this, eventId, fileUrl, job] {
             d->fileTransfers[eventId].status = FileTransferInfo::Completed;
             emit fileTransferCompleted(
-                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()), none);
+                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()));
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, eventId,

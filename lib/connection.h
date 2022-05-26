@@ -51,7 +51,7 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 class Database;
-struct EncryptedFile;
+struct EncryptedFileMetadata;
 
 class QOlmAccount;
 class QOlmInboundGroupSession;
@@ -601,7 +601,8 @@ public Q_SLOTS:
                                   const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob* downloadFile(const QUrl& url, const EncryptedFile& file,
+    DownloadFileJob* downloadFile(const QUrl& url,
+                                  const EncryptedFileMetadata& file,
                                   const QString& localFilename = {});
 #endif
     /**

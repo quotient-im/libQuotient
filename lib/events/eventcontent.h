@@ -6,14 +6,14 @@
 // This file contains generic event content definitions, applicable to room
 // message events as well as other events (e.g., avatars).
 
-#include "encryptedfile.h"
+#include "filesourceinfo.h"
 #include "quotient_export.h"
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QMetaType>
 #include <QtCore/QMimeType>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
-#include <QtCore/QMetaType>
 
 class QFileInfo;
 
@@ -50,7 +50,7 @@ namespace EventContent {
 
     // A quick classes inheritance structure follows (the definitions are
     // spread across eventcontent.h and roommessageevent.h):
-    // UrlBasedContent<InfoT> : InfoT + url and thumbnail data
+    // UrlBasedContent<InfoT> : InfoT + thumbnail data
     //   PlayableContent<InfoT> : + duration attribute
     // FileInfo
     //   FileContent = UrlBasedContent<FileInfo>
@@ -89,34 +89,32 @@ namespace EventContent {
         //!
         //! \param fi a QFileInfo object referring to an existing file
         explicit FileInfo(const QFileInfo& fi);
-        explicit FileInfo(QUrl mxcUrl, qint64 payloadSize = -1,
+        explicit FileInfo(FileSourceInfo sourceInfo, qint64 payloadSize = -1,
                           const QMimeType& mimeType = {},
-                          Omittable<EncryptedFile> encryptedFile = none,
                           QString originalFilename = {});
         //! \brief Construct from a JSON `info` payload
         //!
         //! Make sure to pass the `info` subobject of content JSON, not the
         //! whole JSON content.
-        FileInfo(QUrl mxcUrl, const QJsonObject& infoJson,
-                 Omittable<EncryptedFile> encryptedFile,
+        FileInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
                  QString originalFilename = {});
 
         bool isValid() const;
+        QUrl url() const;
 
         //! \brief Extract media id from the URL
         //!
         //! This can be used, e.g., to construct a QML-facing image://
         //! URI as follows:
         //! \code "image://provider/" + info.mediaId() \endcode
-        QString mediaId() const { return url.authority() + url.path(); }
+        QString mediaId() const { return url().authority() + url().path(); }
 
     public:
+        FileSourceInfo source;
         QJsonObject originalInfoJson;
         QMimeType mimeType;
-        QUrl url;
         qint64 payloadSize = 0;
         QString originalName;
-        Omittable<EncryptedFile> file = none;
     };
 
     QUOTIENT_API QJsonObject toInfoJson(const FileInfo& info);
@@ -126,12 +124,10 @@ namespace EventContent {
     public:
         ImageInfo() = default;
         explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
-        explicit ImageInfo(const QUrl& mxcUrl, qint64 fileSize = -1,
+        explicit ImageInfo(FileSourceInfo sourceInfo, qint64 fileSize = -1,
                            const QMimeType& type = {}, QSize imageSize = {},
-                           Omittable<EncryptedFile> encryptedFile = none,
                            const QString& originalFilename = {});
-        ImageInfo(const QUrl& mxcUrl, const QJsonObject& infoJson,
-                  Omittable<EncryptedFile> encryptedFile,
+        ImageInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
                   const QString& originalFilename = {});
 
     public:
@@ -144,12 +140,13 @@ namespace EventContent {
     //!
     //! This class saves/loads a thumbnail to/from `info` subobject of
     //! the JSON representation of event content; namely, `info/thumbnail_url`
-    //! and `info/thumbnail_info` fields are used.
+    //! (or, in case of an encrypted thumbnail, `info/thumbnail_file`) and
+    //! `info/thumbnail_info` fields are used.
     class QUOTIENT_API Thumbnail : public ImageInfo {
     public:
         using ImageInfo::ImageInfo;
         Thumbnail(const QJsonObject& infoJson,
-                  Omittable<EncryptedFile> encryptedFile = none);
+                  const Omittable<EncryptedFileMetadata>& encryptedFile = none);
 
         //! \brief Add thumbnail information to the passed `info` JSON object
         void dumpTo(QJsonObject& infoJson) const;
@@ -169,10 +166,10 @@ namespace EventContent {
 
     //! \brief A template class for content types with a URL and additional info
     //!
-    //! Types that derive from this class template take `url` and,
-    //! optionally, `filename` values from the top-level JSON object and
-    //! the rest of information from the `info` subobject, as defined by
-    //! the parameter type.
+    //! Types that derive from this class template take `url` (or, if the file
+    //! is encrypted, `file`) and, optionally, `filename` values from
+    //! the top-level JSON object and the rest of information from the `info`
+    //! subobject, as defined by the parameter type.
     //! \tparam InfoT base info class - FileInfo or ImageInfo
     template <class InfoT>
     class UrlBasedContent : public TypedBase, public InfoT {
@@ -181,10 +178,12 @@ namespace EventContent {
         explicit UrlBasedContent(const QJsonObject& json)
             : TypedBase(json)
             , InfoT(QUrl(json["url"].toString()), json["info"].toObject(),
-                    fromJson<Omittable<EncryptedFile>>(json["file"]),
                     json["filename"].toString())
             , thumbnail(FileInfo::originalInfoJson)
         {
+            const auto efmJson = json.value("file"_ls).toObject();
+            if (!efmJson.isEmpty())
+                InfoT::source = fromJson<EncryptedFileMetadata>(efmJson);
             // Two small hacks on originalJson to expose mediaIds to QML
             originalJson.insert("mediaId", InfoT::mediaId());
             originalJson.insert("thumbnailMediaId", thumbnail.mediaId());
@@ -204,11 +203,7 @@ namespace EventContent {
 
         void fillJson(QJsonObject& json) const override
         {
-            if (!InfoT::file.has_value()) {
-                json.insert("url", InfoT::url.toString());
-            } else {
-                json.insert("file", Quotient::toJson(*InfoT::file));
-            }
+            Quotient::fillJson(json, { "url"_ls, "file"_ls }, InfoT::source);
             if (!InfoT::originalName.isEmpty())
                 json.insert("filename", InfoT::originalName);
             auto infoJson = toInfoJson(*this);
@@ -223,7 +218,7 @@ namespace EventContent {
     //!
     //! Available fields:
     //! - corresponding to the top-level JSON:
-    //!   - url
+    //!   - source (corresponding to `url` or `file` in JSON)
     //!   - filename (extension to the spec)
     //! - corresponding to the `info` subobject:
     //!   - payloadSize (`size` in JSON)
@@ -241,12 +236,12 @@ namespace EventContent {
     //!
     //! Available fields:
     //! - corresponding to the top-level JSON:
-    //!   - url
+    //!   - source (corresponding to `url` or `file` in JSON)
     //!   - filename
     //! - corresponding to the `info` subobject:
     //!   - payloadSize (`size` in JSON)
     //!   - mimeType (`mimetype` in JSON)
-    //!   - thumbnail.url (`thumbnail_url` in JSON)
+    //!   - thumbnail.source (`thumbnail_url` or `thumbnail_file` in JSON)
     //! - corresponding to the `info/thumbnail_info` subobject:
     //!   - thumbnail.payloadSize
     //!   - thumbnail.mimeType

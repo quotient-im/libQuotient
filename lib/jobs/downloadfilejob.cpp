@@ -8,8 +8,9 @@
 #include <QtNetwork/QNetworkReply>
 
 #ifdef Quotient_E2EE_ENABLED
-#   include <QtCore/QCryptographicHash>
-#   include "events/encryptedfile.h"
+#    include "events/filesourceinfo.h"
+
+#    include <QtCore/QCryptographicHash>
 #endif
 
 using namespace Quotient;
@@ -26,7 +27,7 @@ public:
     QScopedPointer<QFile> tempFile;
 
 #ifdef Quotient_E2EE_ENABLED
-    Omittable<EncryptedFile> encryptedFile;
+    Omittable<EncryptedFileMetadata> encryptedFile;
 #endif
 };
 
@@ -49,7 +50,7 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
 #ifdef Quotient_E2EE_ENABLED
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
-                                 const EncryptedFile& file,
+                                 const EncryptedFileMetadata& file,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
     , d(localFilename.isEmpty() ? makeImpl<Private>()
@@ -126,7 +127,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             d->tempFile->seek(0);
             QByteArray encrypted = d->tempFile->readAll();
 
-            EncryptedFile file = *d->encryptedFile;
+            EncryptedFileMetadata file = *d->encryptedFile;
             const auto decrypted = file.decryptFile(encrypted);
             d->targetFile->write(decrypted);
             d->tempFile->remove();
@@ -151,7 +152,7 @@ BaseJob::Status DownloadFileJob::prepareResult()
             d->tempFile->seek(0);
             const auto encrypted = d->tempFile->readAll();
 
-            EncryptedFile file = *d->encryptedFile;
+            EncryptedFileMetadata file = *d->encryptedFile;
             const auto decrypted = file.decryptFile(encrypted);
             d->tempFile->write(decrypted);
         } else {

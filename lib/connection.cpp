@@ -1137,15 +1137,14 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 }
 
 #ifdef Quotient_E2EE_ENABLED
-DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const EncryptedFile& file,
-                                          const QString& localFilename)
+DownloadFileJob* Connection::downloadFile(
+    const QUrl& url, const EncryptedFileMetadata& fileMetadata,
+    const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
-    auto* job =
-        callApi<DownloadFileJob>(idParts.front(), idParts.back(), file, localFilename);
-    return job;
+    return callApi<DownloadFileJob>(idParts.front(), idParts.back(),
+                                    fileMetadata, localFilename);
 }
 #endif
 

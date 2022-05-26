@@ -10,7 +10,7 @@
 #include <e2ee/qolmaccount.h>
 #include <e2ee/qolmutility.h>
 #include <events/encryptionevent.h>
-#include <events/encryptedfile.h>
+#include <events/filesourceinfo.h>
 #include <networkaccessmanager.h>
 #include <room.h>
 
@@ -156,8 +156,7 @@ void TestOlmAccount::encryptedFile()
         "sha256": "fdSLu/YkRx3Wyh3KQabP3rd6+SFiKg5lsJZQHtkSAYA"
       }})");
 
-    EncryptedFile file;
-    JsonObjectConverter<EncryptedFile>::fillFrom(doc.object(), file);
+    const auto file = fromJson<EncryptedFileMetadata>(doc);
 
     QCOMPARE(file.v, "v2");
     QCOMPARE(file.iv, "w+sE15fzSc0AAAAAAAAAAA");
