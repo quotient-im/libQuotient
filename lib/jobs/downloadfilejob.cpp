@@ -27,7 +27,7 @@ public:
     QScopedPointer<QFile> tempFile;
 
 #ifdef Quotient_E2EE_ENABLED
-    Omittable<EncryptedFileMetadata> encryptedFile;
+    Omittable<EncryptedFileMetadata> encryptedFileMetadata;
 #endif
 };
 
@@ -57,7 +57,7 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
                                 : makeImpl<Private>(localFilename))
 {
     setObjectName(QStringLiteral("DownloadFileJob"));
-    d->encryptedFile = file;
+    d->encryptedFileMetadata = file;
 }
 #endif
 QString DownloadFileJob::targetFileName() const
@@ -119,17 +119,21 @@ void DownloadFileJob::beforeAbandon()
     d->tempFile->remove();
 }
 
+void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
+                 QFile& targetFile)
+{
+    sourceFile.seek(0);
+    const auto encrypted = sourceFile.readAll(); // TODO: stream decryption
+    const auto decrypted = decryptFile(encrypted, metadata);
+    targetFile.write(decrypted);
+}
+
 BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
 #ifdef Quotient_E2EE_ENABLED
-        if (d->encryptedFile.has_value()) {
-            d->tempFile->seek(0);
-            QByteArray encrypted = d->tempFile->readAll();
-
-            EncryptedFileMetadata file = *d->encryptedFile;
-            const auto decrypted = decryptFile(encrypted, file);
-            d->targetFile->write(decrypted);
+        if (d->encryptedFileMetadata.has_value()) {
+            decryptFile(*d->tempFile, *d->encryptedFileMetadata, *d->targetFile);
             d->tempFile->remove();
         } else {
 #endif
@@ -148,13 +152,20 @@ BaseJob::Status DownloadFileJob::prepareResult()
 #endif
     } else {
 #ifdef Quotient_E2EE_ENABLED
-        if (d->encryptedFile.has_value()) {
-            d->tempFile->seek(0);
-            const auto encrypted = d->tempFile->readAll();
-
-            EncryptedFileMetadata file = *d->encryptedFile;
-            const auto decrypted = decryptFile(encrypted, file);
-            d->tempFile->write(decrypted);
+        if (d->encryptedFileMetadata.has_value()) {
+            QTemporaryFile tempTempFile; // Assuming it to be next to tempFile
+            decryptFile(*d->tempFile, *d->encryptedFileMetadata, tempTempFile);
+            d->tempFile->close();
+            if (!d->tempFile->remove()) {
+                qCWarning(JOBS)
+                    << "Failed to remove the decrypted file placeholder";
+                return { FileError, "Couldn't finalise the download" };
+            }
+            if (!tempTempFile.rename(d->tempFile->fileName())) {
+                qCWarning(JOBS) << "Failed to rename" << tempTempFile.fileName()
+                                << "to" << d->tempFile->fileName();
+                return { FileError, "Couldn't finalise the download" };
+            }
         } else {
 #endif
             d->tempFile->close();
