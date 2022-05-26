@@ -139,11 +139,11 @@ BaseJob::Status DownloadFileJob::prepareResult()
 #endif
             d->targetFile->close();
             if (!d->targetFile->remove()) {
-                qCWarning(JOBS) << "Failed to remove the target file placeholder";
+                qWarning(JOBS) << "Failed to remove the target file placeholder";
                 return { FileError, "Couldn't finalise the download" };
             }
             if (!d->tempFile->rename(d->targetFile->fileName())) {
-                qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
+                qWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
                                 << "to" << d->targetFile->fileName();
                 return { FileError, "Couldn't finalise the download" };
             }
@@ -157,12 +157,12 @@ BaseJob::Status DownloadFileJob::prepareResult()
             decryptFile(*d->tempFile, *d->encryptedFileMetadata, tempTempFile);
             d->tempFile->close();
             if (!d->tempFile->remove()) {
-                qCWarning(JOBS)
+                qWarning(JOBS)
                     << "Failed to remove the decrypted file placeholder";
                 return { FileError, "Couldn't finalise the download" };
             }
             if (!tempTempFile.rename(d->tempFile->fileName())) {
-                qCWarning(JOBS) << "Failed to rename" << tempTempFile.fileName()
+                qWarning(JOBS) << "Failed to rename" << tempTempFile.fileName()
                                 << "to" << d->tempFile->fileName();
                 return { FileError, "Couldn't finalise the download" };
             }
@@ -173,6 +173,6 @@ BaseJob::Status DownloadFileJob::prepareResult()
         }
 #endif
     }
-    qCDebug(JOBS) << "Saved a file as" << targetFileName();
+    qDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;
 }

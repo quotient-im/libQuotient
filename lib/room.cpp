@@ -2274,7 +2274,7 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
     const auto& transferJob = fileTransfers.value(txnId).job;
     connect(q, &Room::fileTransferCompleted, transferJob,
         [this, txnId](const QString& tId, const QUrl&,
-                      const FileSourceInfo fileMetadata) {
+                      const FileSourceInfo& fileMetadata) {
             if (tId != txnId)
                 return;
 

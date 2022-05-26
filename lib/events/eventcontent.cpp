@@ -103,14 +103,13 @@ QJsonObject Quotient::EventContent::toInfoJson(const ImageInfo& info)
     return infoJson;
 }
 
-Thumbnail::Thumbnail(
-    const QJsonObject& infoJson,
-    const Omittable<EncryptedFileMetadata>& encryptedFileMetadata)
+Thumbnail::Thumbnail(const QJsonObject& infoJson,
+                     const Omittable<EncryptedFileMetadata>& efm)
     : ImageInfo(QUrl(infoJson["thumbnail_url"_ls].toString()),
                 infoJson["thumbnail_info"_ls].toObject())
 {
-    if (encryptedFileMetadata)
-        source = *encryptedFileMetadata;
+    if (efm)
+        source = *efm;
 }
 
 void Thumbnail::dumpTo(QJsonObject& infoJson) const

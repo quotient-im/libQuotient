@@ -146,7 +146,7 @@ namespace EventContent {
     public:
         using ImageInfo::ImageInfo;
         Thumbnail(const QJsonObject& infoJson,
-                  const Omittable<EncryptedFileMetadata>& encryptedFile = none);
+                  const Omittable<EncryptedFileMetadata>& efm = none);
 
         //! \brief Add thumbnail information to the passed `info` JSON object
         void dumpTo(QJsonObject& infoJson) const;
@@ -181,8 +181,8 @@ namespace EventContent {
                     json["filename"].toString())
             , thumbnail(FileInfo::originalInfoJson)
         {
-            const auto efmJson = json.value("file"_ls).toObject();
-            if (!efmJson.isEmpty())
+            if (const auto efmJson = json.value("file"_ls).toObject();
+                    !efmJson.isEmpty())
                 InfoT::source = fromJson<EncryptedFileMetadata>(efmJson);
             // Two small hacks on originalJson to expose mediaIds to QML
             originalJson.insert("mediaId", InfoT::mediaId());

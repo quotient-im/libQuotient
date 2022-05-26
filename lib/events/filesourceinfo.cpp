@@ -20,36 +20,33 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
 #ifdef Quotient_E2EE_ENABLED
-    auto _key = metadata.key.k;
-    const auto keyBytes = QByteArray::fromBase64(
-        _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-    const auto sha256 =
-        QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1());
-    if (sha256
+    if (QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1())
         != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
         qCWarning(E2EE) << "Hash verification failed for file";
         return {};
     }
-    {
-        int length;
-        auto* ctx = EVP_CIPHER_CTX_new();
-        QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
-        EVP_DecryptInit_ex(
-            ctx, EVP_aes_256_ctr(), nullptr,
-            reinterpret_cast<const unsigned char*>(keyBytes.data()),
-            reinterpret_cast<const unsigned char*>(
-                QByteArray::fromBase64(metadata.iv.toLatin1()).data()));
-        EVP_DecryptUpdate(
-            ctx, reinterpret_cast<unsigned char*>(plaintext.data()), &length,
-            reinterpret_cast<const unsigned char*>(ciphertext.data()),
-            ciphertext.size());
-        EVP_DecryptFinal_ex(ctx,
-                            reinterpret_cast<unsigned char*>(plaintext.data())
-                                + length,
-                            &length);
-        EVP_CIPHER_CTX_free(ctx);
-        return plaintext.left(ciphertext.size());
-    }
+
+    auto _key = metadata.key.k;
+    const auto keyBytes = QByteArray::fromBase64(
+        _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
+    int length;
+    auto* ctx = EVP_CIPHER_CTX_new();
+    QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
+    EVP_DecryptInit_ex(
+        ctx, EVP_aes_256_ctr(), nullptr,
+        reinterpret_cast<const unsigned char*>(keyBytes.data()),
+        reinterpret_cast<const unsigned char*>(
+            QByteArray::fromBase64(metadata.iv.toLatin1()).data()));
+    EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()),
+                      &length,
+                      reinterpret_cast<const unsigned char*>(ciphertext.data()),
+                      ciphertext.size());
+    EVP_DecryptFinal_ex(ctx,
+                        reinterpret_cast<unsigned char*>(plaintext.data())
+                            + length,
+                        &length);
+    EVP_CIPHER_CTX_free(ctx);
+    return plaintext.left(ciphertext.size());
 #else
     qWarning(MAIN) << "This build of libQuotient doesn't support E2EE, "
                       "cannot decrypt the file";
