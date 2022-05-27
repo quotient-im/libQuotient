@@ -207,9 +207,9 @@ public:
     ///
     /// See the [key algorithms](/client-server-api/#key-algorithms) section for
     /// information on the Key Object format.
-    QHash<QString, QHash<QString, QVariant>> oneTimeKeys() const
+    QHash<QString, QHash<QString, QJsonObject>> oneTimeKeys() const
     {
-        return loadFromJson<QHash<QString, QHash<QString, QVariant>>>(
+        return loadFromJson<QHash<QString, QHash<QString, QJsonObject>>>(
             "one_time_keys"_ls);
     }
 };

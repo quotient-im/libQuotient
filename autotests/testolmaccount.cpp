@@ -378,47 +378,47 @@ void TestOlmAccount::claimKeys()
     // Alice retrieves bob's keys & claims one signed one-time key.
     QHash<QString, QStringList> deviceKeys;
     deviceKeys[bob->userId()] = QStringList();
-    auto job = alice->callApi<QueryKeysJob>(deviceKeys);
-    connect(job, &BaseJob::result, this, [bob, alice, job, this] {
-        const auto& bobDevices = job->deviceKeys().value(bob->userId());
-        QVERIFY(!bobDevices.empty());
+    auto queryKeysJob = alice->callApi<QueryKeysJob>(deviceKeys);
+    QSignalSpy requestSpy2(queryKeysJob, &BaseJob::result);
+    QVERIFY(requestSpy2.wait(10000));
 
-        // Retrieve the identity key for the current device.
-        const auto& bobEd25519 =
-            bobDevices.value(bob->deviceId()).keys["ed25519:" + bob->deviceId()];
+    const auto& bobDevices = queryKeysJob->deviceKeys().value(bob->userId());
+    QVERIFY(!bobDevices.empty());
 
-        const auto currentDevice = bobDevices[bob->deviceId()];
+    const auto currentDevice = bobDevices[bob->deviceId()];
 
-        // Verify signature.
-        QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(),
-                                        bob->userId()));
+    // Verify signature.
+    QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(),
+                                    bob->userId()));
+    // Retrieve the identity key for the current device.
+    const auto& bobEd25519 =
+        bobDevices.value(bob->deviceId()).keys["ed25519:" + bob->deviceId()];
 
-        QHash<QString, QHash<QString, QString>> oneTimeKeys;
-        oneTimeKeys[bob->userId()] = QHash<QString, QString>();
-        oneTimeKeys[bob->userId()][bob->deviceId()] = SignedCurve25519Key;
+    QHash<QString, QHash<QString, QString>> oneTimeKeys;
+    oneTimeKeys[bob->userId()] = QHash<QString, QString>();
+    oneTimeKeys[bob->userId()][bob->deviceId()] = SignedCurve25519Key;
 
-        auto job = alice->callApi<ClaimKeysJob>(oneTimeKeys);
-        connect(job, &BaseJob::result, this, [bob, bobEd25519, job] {
-            const auto userId = bob->userId();
-            const auto deviceId = bob->deviceId();
+    auto claimKeysJob = alice->callApi<ClaimKeysJob>(oneTimeKeys);
+    connect(claimKeysJob, &BaseJob::result, this, [bob, bobEd25519, claimKeysJob] {
+        const auto userId = bob->userId();
+        const auto deviceId = bob->deviceId();
 
-            // The device exists.
-            QCOMPARE(job->oneTimeKeys().size(), 1);
-            QCOMPARE(job->oneTimeKeys().value(userId).size(), 1);
+        // The device exists.
+        QCOMPARE(claimKeysJob->oneTimeKeys().size(), 1);
+        QCOMPARE(claimKeysJob->oneTimeKeys().value(userId).size(), 1);
 
-            // The key is the one bob sent.
-            const auto& oneTimeKey =
-                job->oneTimeKeys().value(userId).value(deviceId);
-            QVERIFY(oneTimeKey.canConvert<QVariantMap>());
-
-            const auto varMap = oneTimeKey.toMap();
-            QVERIFY(std::any_of(varMap.constKeyValueBegin(),
-                                varMap.constKeyValueEnd(), [](const auto& kv) {
-                                    return kv.first.startsWith(
-                                        SignedCurve25519Key);
-                                }));
-        });
+        // The key is the one bob sent.
+        const auto& oneTimeKeys =
+            claimKeysJob->oneTimeKeys().value(userId).value(deviceId);
+        for (auto it = oneTimeKeys.begin(); it != oneTimeKeys.end(); ++it) {
+            if (it.key().startsWith(SignedCurve25519Key)
+                && it.value().isObject())
+                return;
+        }
+        QFAIL("The claimed one time key is not in /claim response");
     });
+    QSignalSpy completionSpy(claimKeysJob, &BaseJob::result);
+    QVERIFY(completionSpy.wait(10000));
 }
 
 void TestOlmAccount::claimMultipleKeys()

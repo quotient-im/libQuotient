@@ -457,28 +457,6 @@ public:
         addInboundGroupSession(currentOutboundMegolmSession->sessionId(), *sessionKey, q->localUser()->id(), "SELF"_ls);
     }
 
-    std::unique_ptr<EncryptedEvent> payloadForUserDevice(QString user, const QString& device, const QByteArray& sessionId, const QByteArray& sessionKey)
-    {
-        // Noisy but nice for debugging
-        //qCDebug(E2EE) << "Creating the payload for" << user->id() << device << sessionId << sessionKey.toHex();
-        const auto event = makeEvent<RoomKeyEvent>("m.megolm.v1.aes-sha2", q->id(), sessionId, sessionKey, q->localUser()->id());
-        QJsonObject payloadJson = event->fullJson();
-        payloadJson["recipient"] = user;
-        payloadJson["sender"] = connection->user()->id();
-        QJsonObject recipientObject;
-        recipientObject["ed25519"] = connection->edKeyForUserDevice(user, device);
-        payloadJson["recipient_keys"] = recipientObject;
-        QJsonObject senderObject;
-        senderObject["ed25519"] = QString(connection->olmAccount()->identityKeys().ed25519);
-        payloadJson["keys"] = senderObject;
-        payloadJson["sender_device"] = connection->deviceId();
-        auto cipherText = connection->olmEncryptMessage(user, device, QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
-        QJsonObject encrypted;
-        encrypted[connection->curveKeyForUserDevice(user, device)] = QJsonObject{{"type", cipherText.first}, {"body", QString(cipherText.second)}};
-
-        return makeEvent<EncryptedEvent>(encrypted, connection->olmAccount()->identityKeys().curve25519);
-    }
-
     QMultiHash<QString, QString> getDevicesWithoutKey() const
     {
         QMultiHash<QString, QString> devices;
@@ -490,91 +468,7 @@ public:
             id, devices, currentOutboundMegolmSession->sessionId());
     }
 
-    bool createOlmSession(const QString& user, const QString& device,
-                          const QJsonObject& oneTimeKeyObject) const
-    {
-        static QOlmUtility verifier;
-        qDebug(E2EE) << "Creating a new session for" << user << device;
-        if (oneTimeKeyObject.isEmpty()) {
-            qWarning(E2EE) << "No one time key for" << user << device;
-            return false;
-        }
-        const auto oneTimeKeyForId = *oneTimeKeyObject.constBegin();
-        const auto signature =
-            oneTimeKeyForId["signatures"][user]["ed25519:"_ls % device]
-                .toString()
-                .toLatin1();
-        auto signedObject = oneTimeKeyForId.toObject();
-        signedObject.remove("unsigned"_ls);
-        signedObject.remove("signatures"_ls);
-        const auto signedData =
-            QJsonDocument(signedObject).toJson(QJsonDocument::Compact);
-        if (!verifier.ed25519Verify(
-                connection->edKeyForUserDevice(user, device).toLatin1(),
-                signedData, signature)) {
-            qWarning(E2EE) << "Failed to verify one-time-key signature for"
-                           << user << device << ". Skipping this device.";
-            return false;
-        }
-        const auto recipientCurveKey =
-            connection->curveKeyForUserDevice(user, device);
-        connection->createOlmSession(recipientCurveKey,
-                                     oneTimeKeyForId["key"].toString());
-        return true;
-    }
-
-    void sendRoomKeyToDevices(const QByteArray& sessionId,
-                              const QByteArray& sessionKey,
-                              const QMultiHash<QString, QString>& devices,
-                              int index)
-    {
-        qDebug(E2EE) << "Sending room key to devices:" << sessionId
-                     << sessionKey.toHex();
-        QHash<QString, QHash<QString, QString>> hash;
-        for (const auto& [userId, deviceId] : asKeyValueRange(devices))
-            if (!connection->hasOlmSession(userId, deviceId)) {
-                hash[userId].insert(deviceId, "signed_curve25519"_ls);
-                qDebug(E2EE)
-                    << "Adding" << userId << deviceId << "to keys to claim";
-            }
-
-        if (hash.isEmpty())
-            return;
-
-        auto job = connection->callApi<ClaimKeysJob>(hash);
-        connect(job, &BaseJob::success, q,
-                [job, this, sessionId, sessionKey, devices, index] {
-            Connection::UsersToDevicesToEvents usersToDevicesToEvents;
-            const auto data = job->jsonData();
-            for (const auto& [user, device] : asKeyValueRange(devices)) {
-                if (!connection->hasOlmSession(user, device)
-                    && !createOlmSession(
-                        user, device,
-                        data["one_time_keys"][user][device].toObject()))
-                    continue;
-
-                usersToDevicesToEvents[user][device] =
-                    payloadForUserDevice(user, device, sessionId,
-                                         sessionKey);
-            }
-            if (!usersToDevicesToEvents.empty()) {
-                connection->sendToDevices("m.room.encrypted"_ls,
-                                          usersToDevicesToEvents);
-                QVector<std::tuple<QString, QString, QString>> receivedDevices;
-                receivedDevices.reserve(devices.size());
-                for (const auto& [user, device] : asKeyValueRange(devices))
-                    receivedDevices.push_back(
-                        { user, device,
-                          connection->curveKeyForUserDevice(user, device) });
-
-                connection->database()->setDevicesReceivedKey(id,
-                                                              receivedDevices,
-                                                              sessionId, index);
-            }
-        });
-    }
-
-    void sendMegolmSession(const QMultiHash<QString, QString>& devices) {
+    void sendMegolmSession(const QMultiHash<QString, QString>& devices) const {
         // Save the session to this device
         const auto sessionId = currentOutboundMegolmSession->sessionId();
         const auto sessionKey = currentOutboundMegolmSession->sessionKey();
@@ -584,8 +478,9 @@ public:
         }
 
         // Send the session to other people
-        sendRoomKeyToDevices(sessionId, *sessionKey, devices,
-                             currentOutboundMegolmSession->sessionMessageIndex());
+        connection->sendSessionKeyToDevices(
+            id, sessionId, *sessionKey, devices,
+            currentOutboundMegolmSession->sessionMessageIndex());
     }
 
 #endif // Quotient_E2EE_ENABLED

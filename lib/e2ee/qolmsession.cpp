@@ -96,12 +96,13 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createOutboundSession(
     return std::make_unique<QOlmSession>(olmOutboundSession);
 }
 
-QOlmExpected<QByteArray> QOlmSession::pickle(const PicklingMode &mode)
+QOlmExpected<QByteArray> QOlmSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(olm_pickle_session_length(m_session), '0');
     QByteArray key = toKey(mode);
     const auto error = olm_pickle_session(m_session, key.data(), key.length(),
-            pickledBuf.data(), pickledBuf.length());
+                                          pickledBuf.data(),
+                                          pickledBuf.length());
 
     if (error == olm_error()) {
         return lastError(m_session);
