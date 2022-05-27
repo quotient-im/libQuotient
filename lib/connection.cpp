@@ -41,12 +41,12 @@
 #    include "e2ee/qolmsession.h"
 #    include "e2ee/qolmutils.h"
 
-#    if QT_VERSION_MAJOR >= 6
-#        include <qt6keychain/keychain.h>
-#    else
-#        include <qt5keychain/keychain.h>
-#    endif
 #endif // Quotient_E2EE_ENABLED
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
 #    include <QtCore/QCborValue>
@@ -368,6 +368,32 @@ public:
     void saveDevicesList();
     void loadDevicesList();
 #endif
+
+    void saveAccessTokenToKeychain()
+    {
+        qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
+        auto job = new QKeychain::WritePasswordJob(qAppName());
+        job->setAutoDelete(false);
+        job->setKey(q->userId());
+        job->setBinaryData(data->accessToken());
+        job->start();
+        //TODO error handling
+    }
+
+    void removeAccessTokenFromKeychain()
+    {
+        qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
+        auto job = new QKeychain::DeletePasswordJob(qAppName());
+        job->setAutoDelete(true);
+        job->setKey(q->userId());
+        job->start();
+
+        auto pickleJob = new QKeychain::DeletePasswordJob(qAppName());
+        pickleJob->setAutoDelete(true);
+        pickleJob->setKey(q->userId() + "-Pickle"_ls);
+        pickleJob->start();
+        //TODO error handling
+    }
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -546,6 +572,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         data->setToken(loginJob->accessToken().toLatin1());
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
+        saveAccessTokenToKeychain();
 #ifndef Quotient_E2EE_ENABLED
         qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -684,6 +711,8 @@ void Connection::logout()
                 disconnect(d->syncLoopConnection);
             d->data->setToken({});
             emit loggedOut();
+            SettingsGroup("Accounts").remove(userId());
+            d->removeAccessTokenFromKeychain();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
             emit stateChanged();

@@ -87,6 +87,8 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModul
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
+find_package(${Qt}Keychain REQUIRED)
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
     find_package(Olm 3.1.3 REQUIRED)
@@ -108,7 +110,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     if (OpenSSL_FOUND)
         message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
     endif()
-    find_package(${Qt}Keychain REQUIRED)
 endif()
 
 
@@ -309,14 +310,13 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL
-        ${Qt}::Sql
-        ${QTKEYCHAIN_LIBRARIES})
+        ${Qt}::Sql)
     set(FIND_DEPS "find_dependency(Olm)
     find_dependency(OpenSSL)
     find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
