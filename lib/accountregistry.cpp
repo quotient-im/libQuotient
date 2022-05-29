@@ -21,7 +21,7 @@ void AccountRegistry::add(Connection* a)
     beginInsertRows(QModelIndex(), size(), size());
     push_back(a);
     endInsertRows();
-    Q_EMIT accountCountChanged();
+    emit accountCountChanged();
 }
 
 void AccountRegistry::drop(Connection* a)
@@ -76,7 +76,7 @@ QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(const Q
     auto job = new QKeychain::ReadPasswordJob(qAppName(), this);
     job->setKey(userId);
 
-    connect(job, &QKeychain::Job::finished, this, [job]() {
+    connect(job, &QKeychain::Job::finished, this, [job] {
         if (job->error() == QKeychain::Error::NoError) {
             return;
         }
@@ -93,7 +93,7 @@ void AccountRegistry::invokeLogin()
     for (const auto& accountId : accounts) {
         AccountSettings account{accountId};
         m_accountsLoading += accountId;
-        Q_EMIT accountsLoadingChanged();
+        emit accountsLoadingChanged();
 
         if (!account.homeserver().isEmpty()) {
             auto accessTokenLoadingJob = loadAccessTokenFromKeychain(account.userId());
