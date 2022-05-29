@@ -21,14 +21,14 @@ public:
     //! Throw OlmError on errors
     static QOlmOutboundGroupSessionPtr create();
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
         const QByteArray& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
-    QOlmExpected<QByteArray> encrypt(const QString& plaintext);
+    QOlmExpected<QByteArray> encrypt(const QString& plaintext) const;
 
     //! Get the current message index for this session.
     //!

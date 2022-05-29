@@ -16,6 +16,7 @@
 
 #include <type_traits>
 #include <vector>
+#include <variant>
 
 class QVariant;
 
@@ -223,6 +224,13 @@ struct QUOTIENT_API JsonConverter<QVariant> {
     static QJsonValue dump(const QVariant& v);
     static QVariant load(const QJsonValue& jv);
 };
+
+template <typename... Ts>
+inline QJsonValue toJson(const std::variant<Ts...>& v)
+{
+    return std::visit(
+        [](const auto& value) { return QJsonValue { toJson(value) }; }, v);
+}
 
 template <typename T>
 struct JsonConverter<Omittable<T>> {

@@ -516,7 +516,7 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                         && e.hasFileContent()
                         && e.content()->fileInfo()->originalName == fileName
                         && testDownload(targetRoom->connection()->makeMediaUrl(
-                            e.content()->fileInfo()->url)));
+                            e.content()->fileInfo()->url())));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });

@@ -32,22 +32,40 @@ public:
     QByteArray accountPickle();
     void setAccountPickle(const QByteArray &pickle);
     void clear();
-    void saveOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle, const QDateTime& timestamp);
-    UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(const PicklingMode& picklingMode);
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode);
-    void saveMegolmSession(const QString& roomId, const QString& sessionId, const QByteArray& pickle, const QString& senderId, const QString& olmSessionId);
-    void addGroupSessionIndexRecord(const QString& roomId, const QString& sessionId, uint32_t index, const QString& eventId, qint64 ts);
-    std::pair<QString, qint64> groupSessionIndexRecord(const QString& roomId, const QString& sessionId, qint64 index);
+    void saveOlmSession(const QString& senderKey, const QString& sessionId,
+                        const QByteArray& pickle, const QDateTime& timestamp);
+    UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(
+        const PicklingMode& picklingMode);
+    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadMegolmSessions(
+        const QString& roomId, const PicklingMode& picklingMode);
+    void saveMegolmSession(const QString& roomId, const QString& sessionId,
+                           const QByteArray& pickle, const QString& senderId,
+                           const QString& olmSessionId);
+    void addGroupSessionIndexRecord(const QString& roomId,
+                                    const QString& sessionId, uint32_t index,
+                                    const QString& eventId, qint64 ts);
+    std::pair<QString, qint64> groupSessionIndexRecord(const QString& roomId,
+                                                       const QString& sessionId,
+                                                       qint64 index);
     void clearRoomData(const QString& roomId);
-    void setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp);
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode);
-    void saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& data);
-    void updateOlmSession(const QString& senderKey, const QString& sessionId, const QByteArray& pickle);
+    void setOlmSessionLastReceived(const QString& sessionId,
+                                   const QDateTime& timestamp);
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+        const QString& roomId, const PicklingMode& picklingMode);
+    void saveCurrentOutboundMegolmSession(
+        const QString& roomId, const PicklingMode& picklingMode,
+        const QOlmOutboundGroupSession& session);
+    void updateOlmSession(const QString& senderKey, const QString& sessionId,
+                          const QByteArray& pickle);
 
     // Returns a map UserId -> [DeviceId] that have not received key yet
-    QHash<QString, QStringList> devicesWithoutKey(const QString& roomId, QHash<QString, QStringList>& devices, const QString &sessionId);
+    QMultiHash<QString, QString> devicesWithoutKey(const QString& roomId, QMultiHash<QString, QString> devices,
+        const QString& sessionId);
     // 'devices' contains tuples {userId, deviceId, curveKey}
-    void setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index);
+    void setDevicesReceivedKey(
+        const QString& roomId,
+        const QVector<std::tuple<QString, QString, QString>>& devices,
+        const QString& sessionId, int index);
 
 private:
     void migrateTo1();

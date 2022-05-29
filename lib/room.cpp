@@ -443,9 +443,11 @@ public:
         return q->getCurrentState<EncryptionEvent>()->rotationPeriodMsgs();
     }
     void createMegolmSession() {
-        qCDebug(E2EE) << "Creating new outbound megolm session for room " << q->id();
+        qCDebug(E2EE) << "Creating new outbound megolm session for room "
+                      << q->objectName();
         currentOutboundMegolmSession = QOlmOutboundGroupSession::create();
-        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
+        connection->saveCurrentOutboundMegolmSession(
+            id, *currentOutboundMegolmSession);
 
         const auto sessionKey = currentOutboundMegolmSession->sessionKey();
         if(!sessionKey) {
@@ -455,112 +457,30 @@ public:
         addInboundGroupSession(currentOutboundMegolmSession->sessionId(), *sessionKey, q->localUser()->id(), "SELF"_ls);
     }
 
-    std::unique_ptr<EncryptedEvent> payloadForUserDevice(QString user, const QString& device, const QByteArray& sessionId, const QByteArray& sessionKey)
+    QMultiHash<QString, QString> getDevicesWithoutKey() const
     {
-        // Noisy but nice for debugging
-        //qCDebug(E2EE) << "Creating the payload for" << user->id() << device << sessionId << sessionKey.toHex();
-        const auto event = makeEvent<RoomKeyEvent>("m.megolm.v1.aes-sha2", q->id(), sessionId, sessionKey, q->localUser()->id());
-        QJsonObject payloadJson = event->fullJson();
-        payloadJson["recipient"] = user;
-        payloadJson["sender"] = connection->user()->id();
-        QJsonObject recipientObject;
-        recipientObject["ed25519"] = connection->edKeyForUserDevice(user, device);
-        payloadJson["recipient_keys"] = recipientObject;
-        QJsonObject senderObject;
-        senderObject["ed25519"] = QString(connection->olmAccount()->identityKeys().ed25519);
-        payloadJson["keys"] = senderObject;
-        payloadJson["sender_device"] = connection->deviceId();
-        auto cipherText = connection->olmEncryptMessage(user, device, QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
-        QJsonObject encrypted;
-        encrypted[connection->curveKeyForUserDevice(user, device)] = QJsonObject{{"type", cipherText.first}, {"body", QString(cipherText.second)}};
+        QMultiHash<QString, QString> devices;
+        for (const auto& user : q->users())
+            for (const auto& deviceId : connection->devicesForUser(user->id()))
+                devices.insert(user->id(), deviceId);
 
-        return makeEvent<EncryptedEvent>(encrypted, connection->olmAccount()->identityKeys().curve25519);
+        return connection->database()->devicesWithoutKey(
+            id, devices, currentOutboundMegolmSession->sessionId());
     }
 
-    QHash<QString, QStringList> getDevicesWithoutKey() const
-    {
-        QHash<QString, QStringList> devices;
-        for (const auto& user : q->users()) {
-            devices[user->id()] = q->connection()->devicesForUser(user->id());
-        }
-        return q->connection()->database()->devicesWithoutKey(q->id(), devices, QString(currentOutboundMegolmSession->sessionId()));
-    }
-
-    void sendRoomKeyToDevices(const QByteArray& sessionId, const QByteArray& sessionKey, const QHash<QString, QStringList> devices, int index)
-    {
-        qCDebug(E2EE) << "Sending room key to devices" << sessionId, sessionKey.toHex();
-        QHash<QString, QHash<QString, QString>> hash;
-        for (const auto& user : devices.keys()) {
-            QHash<QString, QString> u;
-            for(const auto &device : devices[user]) {
-                if (!connection->hasOlmSession(user, device)) {
-                    u[device] = "signed_curve25519"_ls;
-                    qCDebug(E2EE) << "Adding" << user << device << "to keys to claim";
-                }
-            }
-            if (!u.isEmpty()) {
-                hash[user] = u;
-            }
-        }
-        if (hash.isEmpty()) {
-            return;
-        }
-        auto job = connection->callApi<ClaimKeysJob>(hash);
-        connect(job, &BaseJob::success, q, [job, this, sessionId, sessionKey, devices, index](){
-            Connection::UsersToDevicesToEvents usersToDevicesToEvents;
-            const auto data = job->jsonData();
-            for(const auto &user : devices.keys()) {
-                for(const auto &device : devices[user]) {
-                    const auto recipientCurveKey = connection->curveKeyForUserDevice(user, device);
-                    if (!connection->hasOlmSession(user, device)) {
-                        qCDebug(E2EE) << "Creating a new session for" << user << device;
-                        if(data["one_time_keys"][user][device].toObject().isEmpty()) {
-                            qWarning() << "No one time key for" << user << device;
-                            continue;
-                        }
-                        const auto keyId = data["one_time_keys"][user][device].toObject().keys()[0];
-                        const auto oneTimeKey = data["one_time_keys"][user][device][keyId]["key"].toString();
-                        const auto signature = data["one_time_keys"][user][device][keyId]["signatures"][user][QStringLiteral("ed25519:") + device].toString().toLatin1();
-                        auto signedData = data["one_time_keys"][user][device][keyId].toObject();
-                        signedData.remove("unsigned");
-                        signedData.remove("signatures");
-                        auto signatureMatch = QOlmUtility().ed25519Verify(connection->edKeyForUserDevice(user, device).toLatin1(), QJsonDocument(signedData).toJson(QJsonDocument::Compact), signature);
-                        if (!signatureMatch) {
-                            qCWarning(E2EE) << "Failed to verify one-time-key signature for" << user << device << ". Skipping this device.";
-                            continue;
-                        } else {
-                        }
-                        connection->createOlmSession(recipientCurveKey, oneTimeKey);
-                    }
-                    usersToDevicesToEvents[user][device] = payloadForUserDevice(user, device, sessionId, sessionKey);
-                }
-            }
-            if (!usersToDevicesToEvents.empty()) {
-                connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
-                QVector<std::tuple<QString, QString, QString>> receivedDevices;
-                for (const auto& user : devices.keys()) {
-                    for (const auto& device : devices[user]) {
-                        receivedDevices += {user, device, q->connection()->curveKeyForUserDevice(user, device) };
-                    }
-                }
-                connection->database()->setDevicesReceivedKey(q->id(), receivedDevices, sessionId, index);
-            }
-        });
-    }
-
-    void sendMegolmSession(const QHash<QString, QStringList>& devices) {
+    void sendMegolmSession(const QMultiHash<QString, QString>& devices) const {
         // Save the session to this device
         const auto sessionId = currentOutboundMegolmSession->sessionId();
-        const auto _sessionKey = currentOutboundMegolmSession->sessionKey();
-        if(!_sessionKey) {
+        const auto sessionKey = currentOutboundMegolmSession->sessionKey();
+        if(!sessionKey) {
             qCWarning(E2EE) << "Error loading session key";
             return;
         }
-        const auto sessionKey = *_sessionKey;
-        const auto senderKey = q->connection()->olmAccount()->identityKeys().curve25519;
 
         // Send the session to other people
-        sendRoomKeyToDevices(sessionId, sessionKey, devices, currentOutboundMegolmSession->sessionMessageIndex());
+        connection->sendSessionKeyToDevices(
+            id, sessionId, *sessionKey, devices,
+            currentOutboundMegolmSession->sessionMessageIndex());
     }
 
 #endif // Quotient_E2EE_ENABLED
@@ -592,7 +512,8 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         }
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
-    d->currentOutboundMegolmSession = connection->loadCurrentOutboundMegolmSession(this);
+    d->currentOutboundMegolmSession =
+        connection->loadCurrentOutboundMegolmSession(this->id());
     if (d->shouldRotateMegolmSession()) {
         d->currentOutboundMegolmSession = nullptr;
     }
@@ -1525,7 +1446,7 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
             auto* thumbnail = event->content()->thumbnailInfo();
             Q_ASSERT(thumbnail != nullptr);
             return connection()->getUrlForApi<MediaThumbnailJob>(
-                thumbnail->url, thumbnail->imageSize);
+                thumbnail->url(), thumbnail->imageSize);
         }
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
@@ -1536,7 +1457,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
     if (auto* event = d->getEventWithFile(eventId)) {
         auto* fileInfo = event->content()->fileInfo();
         Q_ASSERT(fileInfo != nullptr);
-        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url);
+        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
     }
     return {};
 }
@@ -2101,12 +2022,12 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
-        const auto devicesWithoutKey = getDevicesWithoutKey();
-        sendMegolmSession(devicesWithoutKey);
+        sendMegolmSession(getDevicesWithoutKey());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
-        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
+        connection->saveCurrentOutboundMegolmSession(
+            id, *currentOutboundMegolmSession);
         if(!encrypted) {
             qWarning(E2EE) << "Error encrypting message" << encrypted.error();
             return {};
@@ -2130,7 +2051,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
-                qCWarning(EVENTS) << "Pending event for transaction" << txnId
+                qWarning(EVENTS) << "Pending event for transaction" << txnId
                                  << "not found - got synced so soon?";
                 return;
             }
@@ -2140,7 +2061,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::failure, q,
                       std::bind(&Room::Private::onEventSendingFailure, this,
                                 txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId, _event] {
+        Room::connect(call, &BaseJob::success, q, [this, call, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end()) {
                 if (it->deliveryStatus() != EventStatus::ReachedServer) {
@@ -2148,7 +2069,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
                 }
             } else
-                qCDebug(EVENTS) << "Pending event for transaction" << txnId
+                qDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
 
             emit q->messageSent(txnId, call->eventId());
@@ -2206,11 +2127,9 @@ QString Room::retryMessage(const QString& txnId)
     return d->doSendEvent(it->event());
 }
 
-// Lambda defers actual tr() invocation to the moment when translations are
-// initialised
-const auto FileTransferCancelledMsg = [] {
-    return Room::tr("File transfer cancelled");
-};
+// Using a function defers actual tr() invocation to the moment when
+// translations are initialised
+auto FileTransferCancelledMsg() { return Room::tr("File transfer cancelled"); }
 
 void Room::discardMessage(const QString& txnId)
 {
@@ -2275,28 +2194,26 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
     // Below, the upload job is used as a context object to clean up connections
     const auto& transferJob = fileTransfers.value(txnId).job;
     connect(q, &Room::fileTransferCompleted, transferJob,
-            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri, Omittable<EncryptedFile> encryptedFile) {
-                if (tId != txnId)
-                    return;
+        [this, txnId](const QString& tId, const QUrl&,
+                      const FileSourceInfo& fileMetadata) {
+            if (tId != txnId)
+                return;
 
-                const auto it = q->findPendingEvent(txnId);
-                if (it != unsyncedEvents.end()) {
-                    it->setFileUploaded(mxcUri);
-                    if (encryptedFile) {
-                        it->setEncryptedFile(*encryptedFile);
-                    }
-                    emit q->pendingEventChanged(
-                        int(it - unsyncedEvents.begin()));
-                    doSendEvent(it->get());
-                } else {
-                    // Normally in this situation we should instruct
-                    // the media server to delete the file; alas, there's no
-                    // API specced for that.
-                    qCWarning(MAIN) << "File uploaded to" << mxcUri
-                                    << "but the event referring to it was "
-                                       "cancelled";
-                }
-            });
+            const auto it = q->findPendingEvent(txnId);
+            if (it != unsyncedEvents.end()) {
+                it->setFileUploaded(fileMetadata);
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+                doSendEvent(it->get());
+            } else {
+                // Normally in this situation we should instruct
+                // the media server to delete the file; alas, there's no
+                // API specced for that.
+                qCWarning(MAIN)
+                    << "File uploaded to" << getUrlFromSourceInfo(fileMetadata)
+                    << "but the event referring to it was "
+                       "cancelled";
+            }
+        });
     connect(q, &Room::fileTransferFailed, transferJob,
             [this, txnId](const QString& tId) {
                 if (tId != txnId)
@@ -2322,13 +2239,13 @@ QString Room::postFile(const QString& plainText,
     Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
     const auto* const fileInfo = content->fileInfo();
     Q_ASSERT(fileInfo != nullptr);
-    QFileInfo localFile { fileInfo->url.toLocalFile() };
+    QFileInfo localFile { fileInfo->url().toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
     return d->doPostFile(
         makeEvent<RoomMessageEvent>(
             plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
-        fileInfo->url);
+        fileInfo->url());
 }
 
 #if QT_VERSION_MAJOR < 6
@@ -2520,18 +2437,18 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
-    Omittable<EncryptedFile> encryptedFile { none };
+    FileSourceInfo fileMetadata;
 #ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
         tempFile.open();
         QFile file(localFilename.toLocalFile());
         file.open(QFile::ReadOnly);
-        auto [e, data] = EncryptedFile::encryptFile(file.readAll());
+        QByteArray data;
+        std::tie(fileMetadata, data) = encryptFile(file.readAll());
         tempFile.write(data);
         tempFile.close();
         fileName = QFileInfo(tempFile).absoluteFilePath();
-        encryptedFile = e;
     }
 #endif
     auto job = connection()->uploadFile(fileName, overrideContentType);
@@ -2542,17 +2459,13 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     d->fileTransfers[id].update(sent, total);
                     emit fileTransferProgress(id, sent, total);
                 });
-        connect(job, &BaseJob::success, this, [this, id, localFilename, job, encryptedFile] {
-            d->fileTransfers[id].status = FileTransferInfo::Completed;
-            if (encryptedFile) {
-                auto file = *encryptedFile;
-                file.url = QUrl(job->contentUri());
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), file);
-            } else {
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), none);
-            }
-
-        });
+        connect(job, &BaseJob::success, this,
+                [this, id, localFilename, job, fileMetadata]() mutable {
+                    // The lambda is mutable to change encryptedFileMetadata
+                    d->fileTransfers[id].status = FileTransferInfo::Completed;
+                    setUrlInSourceInfo(fileMetadata, QUrl(job->contentUri()));
+                    emit fileTransferCompleted(id, localFilename, fileMetadata);
+                });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
         emit newFileTransfer(id, localFilename);
@@ -2585,11 +2498,11 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
                         << "has an empty or malformed mxc URL; won't download";
         return;
     }
-    const auto fileUrl = fileInfo->url;
+    const auto fileUrl = fileInfo->url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath =
-            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
+            fileInfo->url().path().mid(1) % '_' % d->fileNameToDownload(event);
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---");
@@ -2599,9 +2512,9 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     }
     DownloadFileJob *job = nullptr;
 #ifdef Quotient_E2EE_ENABLED
-    if(fileInfo->file.has_value()) {
-        auto file = *fileInfo->file;
-        job = connection()->downloadFile(fileUrl, file, filePath);
+    if (auto* fileMetadata =
+            std::get_if<EncryptedFileMetadata>(&fileInfo->source)) {
+        job = connection()->downloadFile(fileUrl, *fileMetadata, filePath);
     } else {
 #endif
     job = connection()->downloadFile(fileUrl, filePath);
@@ -2619,7 +2532,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         connect(job, &BaseJob::success, this, [this, eventId, fileUrl, job] {
             d->fileTransfers[eventId].status = FileTransferInfo::Completed;
             emit fileTransferCompleted(
-                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()), none);
+                eventId, fileUrl, QUrl::fromLocalFile(job->targetFileName()));
         });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, eventId,

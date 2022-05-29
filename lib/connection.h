@@ -51,7 +51,7 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 class Database;
-struct EncryptedFile;
+struct EncryptedFileMetadata;
 
 class QOlmAccount;
 class QOlmInboundGroupSession;
@@ -318,20 +318,27 @@ public:
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
-    Database* database();
+    Database* database() const;
+    PicklingMode picklingMode() const;
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(
-        const Room* room);
+        const Room* room) const;
     void saveMegolmSession(const Room* room,
-                           const QOlmInboundGroupSession& session);
+                           const QOlmInboundGroupSession& session) const;
     bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
-    void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+        const QString& roomId) const;
+    void saveCurrentOutboundMegolmSession(
+        const QString& roomId, const QOlmOutboundGroupSession& session) const;
 
+    void sendSessionKeyToDevices(const QString& roomId,
+                                 const QByteArray& sessionId,
+                                 const QByteArray& sessionKey,
+                                 const QMultiHash<QString, QString>& devices,
+                                 int index);
 
-    //This assumes that an olm session with (user, device) exists
-    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(const QString& userId, const QString& device, const QByteArray& message);
-    void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
+    QJsonObject decryptNotification(const QJsonObject &notification);
+    QStringList devicesForUser(const QString& userId) const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -601,7 +608,8 @@ public Q_SLOTS:
                                   const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob* downloadFile(const QUrl& url, const EncryptedFile& file,
+    DownloadFileJob* downloadFile(const QUrl& url,
+                                  const EncryptedFileMetadata& fileMetadata,
                                   const QString& localFilename = {});
 #endif
     /**
@@ -691,14 +699,8 @@ public Q_SLOTS:
 
 #ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
-    PicklingMode picklingMode() const;
-    QJsonObject decryptNotification(const QJsonObject &notification);
-
-    QStringList devicesForUser(const QString& user) const;
-    QString curveKeyForUserDevice(const QString &user, const QString& device) const;
-    QString edKeyForUserDevice(const QString& user, const QString& device) const;
-    bool isKnownCurveKey(const QString& user, const QString& curveKey);
 #endif
+
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
     ///

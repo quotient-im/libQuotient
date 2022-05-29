@@ -31,7 +31,7 @@ public:
         const QString& theirOneTimeKey);
 
     //! Serialises an `QOlmSession` to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
     static QOlmExpected<QOlmSessionPtr> unpickle(
