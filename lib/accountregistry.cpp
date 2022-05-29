@@ -102,6 +102,9 @@ void AccountRegistry::invokeLogin()
                 connect(connection, &Connection::loginError, this, [this, connection](const QString& error, const QString& details) {
                     emit loginError(connection, error, details);
                 });
+                connect(connection, &Connection::resolveError, this, [this, connection](QString error) {
+                    emit resolveError(connection, error);
+                });
                 connection->assumeIdentity(account.userId(), accessTokenLoadingJob->binaryData(), account.deviceId());
             });
         }

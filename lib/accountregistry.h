@@ -78,6 +78,8 @@ Q_SIGNALS:
 
     void keychainError(QKeychain::Error error);
     void loginError(Connection* connection, QString message, QString details);
+    void resolveError(Connection* connection, QString error);
+
 private:
     QKeychain::ReadPasswordJob* loadAccessTokenFromKeychain(const QString &userId);
     QStringList m_accountsLoading;
