@@ -36,7 +36,7 @@ rc_joins:
     per_second: 10000
     burst_count: 100000
 HEREDOC
-) | $CMD tee -a data/homeserver.yaml
+) | $CMD tee -a homeserver.yaml
 
 $CMD perl -pi -w -e \
     's/^#enable_registration: false/enable_registration: true/g;' homeserver.yaml

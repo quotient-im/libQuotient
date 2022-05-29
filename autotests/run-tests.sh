@@ -4,9 +4,7 @@ chmod 0777 data
 rm ~/.local/share/testolmaccount -rf
 docker run -v `pwd`/data:/data --rm \
     -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no matrixdotorg/synapse:latest generate
-pushd data
-. ../autotests/adjust-config.sh
-popd
+(cd data && . ../autotests/adjust-config.sh)
 docker run -d \
     --name synapse \
     -p 1234:8008 \
