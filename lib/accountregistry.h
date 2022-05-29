@@ -9,6 +9,12 @@
 
 #include <QtCore/QAbstractListModel>
 
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
+
 namespace QKeychain {
 class ReadPasswordJob;
 }
@@ -69,6 +75,9 @@ public:
 Q_SIGNALS:
     void accountCountChanged();
     void accountsLoadingChanged();
+
+    void keychainError(QKeychain::Error error);
+    void loginError(Connection* connection, QString message, QString details);
 private:
     QKeychain::ReadPasswordJob* loadAccessTokenFromKeychain(const QString &userId);
     QStringList m_accountsLoading;

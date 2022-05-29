@@ -7,11 +7,6 @@
 #include "connection.h"
 #include <QtCore/QCoreApplication>
 
-#if QT_VERSION_MAJOR >= 6
-#    include <qt6keychain/keychain.h>
-#else
-#    include <qt5keychain/keychain.h>
-#endif
 using namespace Quotient;
 
 void AccountRegistry::add(Connection* a)
@@ -75,13 +70,6 @@ QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(const Q
     qCDebug(MAIN) << "Reading access token from keychain for" << userId;
     auto job = new QKeychain::ReadPasswordJob(qAppName(), this);
     job->setKey(userId);
-
-    connect(job, &QKeychain::Job::finished, this, [job] {
-        if (job->error() == QKeychain::Error::NoError) {
-            return;
-        }
-        //TODO error handling
-    });
     job->start();
 
     return job;
@@ -100,7 +88,7 @@ void AccountRegistry::invokeLogin()
             connect(accessTokenLoadingJob, &QKeychain::Job::finished, this, [accountId, this, accessTokenLoadingJob]() {
                 AccountSettings account{accountId};
                 if (accessTokenLoadingJob->error() != QKeychain::Error::NoError) {
-                    //TODO error handling
+                    emit keychainError(accessTokenLoadingJob->error());
                     return;
                 }
 
@@ -111,11 +99,8 @@ void AccountRegistry::invokeLogin()
 
                     connection->syncLoop();
                 });
-                connect(connection, &Connection::loginError, this, [](const QString& error, const QString&) {
-                    //TODO error handling
-                });
-                connect(connection, &Connection::networkError, this, [](const QString& error, const QString&, int, int) {
-                    //TODO error handling
+                connect(connection, &Connection::loginError, this, [this, connection](const QString& error, const QString& details) {
+                    emit loginError(connection, error, details);
                 });
                 connection->assumeIdentity(account.userId(), accessTokenLoadingJob->binaryData(), account.deviceId());
             });
