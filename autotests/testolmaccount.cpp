@@ -201,10 +201,13 @@ void TestOlmAccount::uploadIdentityKey()
     OneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
     connect(request, &BaseJob::result, this, [request, conn] {
-        QCOMPARE(request->oneTimeKeyCounts().size(), 0);
-    });
-    connect(request, &BaseJob::failure, this, [] {
-        QFAIL("upload failed");
+        if (!request->status().good())
+            QFAIL("upload failed");
+        const auto& oneTimeKeyCounts = request->oneTimeKeyCounts();
+        // Allow the response to have entries with zero counts
+        QCOMPARE(std::accumulate(oneTimeKeyCounts.begin(),
+                                 oneTimeKeyCounts.end(), 0),
+                 0);
     });
     conn->run(request);
     QSignalSpy spy3(request, &BaseJob::result);
@@ -228,11 +231,9 @@ void TestOlmAccount::uploadOneTimeKeys()
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, conn] {
-        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        if (!request->status().good())
+            QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(Curve25519Key), 5);
-    });
-    connect(request, &BaseJob::failure, this, [] {
-        QFAIL("upload failed");
     });
     conn->run(request);
     QSignalSpy spy3(request, &BaseJob::result);
@@ -256,11 +257,9 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, nKeys, conn] {
-        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        if (!request->status().good())
+            QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), nKeys);
-    });
-    connect(request, &BaseJob::failure, this, [] {
-        QFAIL("upload failed");
     });
     conn->run(request);
     QSignalSpy spy3(request, &BaseJob::result);
@@ -276,11 +275,9 @@ void TestOlmAccount::uploadKeys()
     auto otks = olmAccount->oneTimeKeys();
     auto request = olmAccount->createUploadKeyRequest(otks);
     connect(request, &BaseJob::result, this, [request, conn] {
-        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
+        if (!request->status().good())
+            QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
-    });
-    connect(request, &BaseJob::failure, this, [] {
-        QFAIL("upload failed");
     });
     conn->run(request);
     QSignalSpy spy3(request, &BaseJob::result);
@@ -297,7 +294,6 @@ void TestOlmAccount::queryTest()
     aliceOlm->generateOneTimeKeys(1);
     auto aliceRes = aliceOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(aliceRes, &BaseJob::result, this, [aliceRes] {
-        QCOMPARE(aliceRes->oneTimeKeyCounts().size(), 1);
         QCOMPARE(aliceRes->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     QSignalSpy spy(aliceRes, &BaseJob::result);
@@ -308,7 +304,6 @@ void TestOlmAccount::queryTest()
     bobOlm->generateOneTimeKeys(1);
     auto bobRes = bobOlm->createUploadKeyRequest(aliceOlm->oneTimeKeys());
     connect(bobRes, &BaseJob::result, this, [bobRes] {
-        QCOMPARE(bobRes->oneTimeKeyCounts().size(), 1);
         QCOMPARE(bobRes->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     QSignalSpy spy1(bobRes, &BaseJob::result);
@@ -368,7 +363,6 @@ void TestOlmAccount::claimKeys()
     auto request = bobOlm->createUploadKeyRequest(bobOlm->oneTimeKeys());
 
     connect(request, &BaseJob::result, this, [request, bob] {
-        QCOMPARE(request->oneTimeKeyCounts().size(), 1);
         QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
     });
     bob->run(request);
@@ -434,7 +428,6 @@ void TestOlmAccount::claimMultipleKeys()
     auto res = olm->createUploadKeyRequest(olm->oneTimeKeys());
     QSignalSpy spy(res, &BaseJob::result);
     connect(res, &BaseJob::result, this, [res] {
-        QCOMPARE(res->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice->run(res);
@@ -445,7 +438,6 @@ void TestOlmAccount::claimMultipleKeys()
     auto res1 = olm1->createUploadKeyRequest(olm1->oneTimeKeys());
     QSignalSpy spy1(res1, &BaseJob::result);
     connect(res1, &BaseJob::result, this, [res1] {
-        QCOMPARE(res1->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res1->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice1->run(res1);
@@ -456,7 +448,6 @@ void TestOlmAccount::claimMultipleKeys()
     auto res2 = olm2->createUploadKeyRequest(olm2->oneTimeKeys());
     QSignalSpy spy2(res2, &BaseJob::result);
     connect(res2, &BaseJob::result, this, [res2] {
-        QCOMPARE(res2->oneTimeKeyCounts().size(), 1);
         QCOMPARE(res2->oneTimeKeyCounts().value(SignedCurve25519Key), 10);
     });
     alice2->run(res2);
@@ -480,7 +471,6 @@ void TestOlmAccount::claimMultipleKeys()
     QVERIFY(jobSpy.wait(10000));
     const auto userId = alice->userId();
 
-    QCOMPARE(job->oneTimeKeys().size(), 1);
     QCOMPARE(job->oneTimeKeys().value(userId).size(), 3);
 }
 
