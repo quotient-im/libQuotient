@@ -398,7 +398,7 @@ public:
         //TODO error handling
     }
 
-    void removeAccessTokenFromKeychain()
+    void dropAccessToken()
     {
         qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
         auto job = new QKeychain::DeletePasswordJob(qAppName());
@@ -411,6 +411,8 @@ public:
         pickleJob->setKey(q->userId() + "-Pickle"_ls);
         pickleJob->start();
         //TODO error handling
+
+        data->setToken({});
     }
 };
 
@@ -727,10 +729,9 @@ void Connection::logout()
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
-            d->data->setToken({});
-            emit loggedOut();
             SettingsGroup("Accounts").remove(userId());
-            d->removeAccessTokenFromKeychain();
+            d->dropAccessToken();
+            emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
             emit stateChanged();
