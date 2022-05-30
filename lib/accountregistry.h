@@ -42,6 +42,8 @@ public:
     [[deprecated("Use Accounts variable instead")]] //
     static AccountRegistry& instance();
 
+    ~AccountRegistry();
+
     // Expose most of QVector's const-API but only provide add() and drop()
     // for changing it. In theory other changing operations could be supported
     // too; but then boilerplate begin/end*() calls has to be tucked into each
