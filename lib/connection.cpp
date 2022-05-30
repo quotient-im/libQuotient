@@ -387,7 +387,7 @@ public:
         const QByteArray& sessionKey) const;
 #endif
 
-    void saveAccessTokenToKeychain()
+    void saveAccessTokenToKeychain() const
     {
         qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
         auto job = new QKeychain::WritePasswordJob(qAppName());
@@ -593,11 +593,9 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
         saveAccessTokenToKeychain();
-#ifndef Quotient_E2EE_ENABLED
-        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
+#ifdef Quotient_E2EE_ENABLED
         database->clear();
-#endif // Quotient_E2EE_ENABLED
+#endif
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -654,9 +652,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
 
-#ifdef Quotient_E2EE_ENABLED
     loadSessions();
-#endif
 
     if (database->accountPickle().isEmpty()) {
         // create new account and save unpickle data

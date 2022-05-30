@@ -79,35 +79,45 @@ void AccountRegistry::invokeLogin()
 {
     const auto accounts = SettingsGroup("Accounts").childGroups();
     for (const auto& accountId : accounts) {
-        AccountSettings account{accountId};
+        AccountSettings account { accountId };
         m_accountsLoading += accountId;
         emit accountsLoadingChanged();
 
-        if (!account.homeserver().isEmpty()) {
-            auto accessTokenLoadingJob = loadAccessTokenFromKeychain(account.userId());
-            connect(accessTokenLoadingJob, &QKeychain::Job::finished, this, [accountId, this, accessTokenLoadingJob]() {
-                AccountSettings account{accountId};
-                if (accessTokenLoadingJob->error() != QKeychain::Error::NoError) {
-                    emit keychainError(accessTokenLoadingJob->error());
-                    return;
-                }
+        if (account.homeserver().isEmpty())
+            continue;
 
-                auto connection = new Connection(account.homeserver());
-                connect(connection, &Connection::connected, this, [connection] {
-                    connection->loadState();
-                    connection->setLazyLoading(true);
+        auto accessTokenLoadingJob =
+            loadAccessTokenFromKeychain(account.userId());
+        connect(accessTokenLoadingJob, &QKeychain::Job::finished, this,
+                [accountId, this, accessTokenLoadingJob]() {
+                    if (accessTokenLoadingJob->error()
+                        != QKeychain::Error::NoError) {
+                        emit keychainError(accessTokenLoadingJob->error());
+                        return;
+                    }
 
-                    connection->syncLoop();
+                    AccountSettings account { accountId };
+                    auto connection = new Connection(account.homeserver());
+                    connect(connection, &Connection::connected, this,
+                            [connection] {
+                                connection->loadState();
+                                connection->setLazyLoading(true);
+
+                                connection->syncLoop();
+                            });
+                    connect(connection, &Connection::loginError, this,
+                            [this, connection](const QString& error,
+                                               const QString& details) {
+                                emit loginError(connection, error, details);
+                            });
+                    connect(connection, &Connection::resolveError, this,
+                            [this, connection](const QString& error) {
+                                emit resolveError(connection, error);
+                            });
+                    connection->assumeIdentity(
+                        account.userId(), accessTokenLoadingJob->binaryData(),
+                        account.deviceId());
                 });
-                connect(connection, &Connection::loginError, this, [this, connection](const QString& error, const QString& details) {
-                    emit loginError(connection, error, details);
-                });
-                connect(connection, &Connection::resolveError, this, [this, connection](QString error) {
-                    emit resolveError(connection, error);
-                });
-                connection->assumeIdentity(account.userId(), accessTokenLoadingJob->binaryData(), account.deviceId());
-            });
-        }
     }
 }
 
