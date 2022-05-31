@@ -21,10 +21,11 @@ void AccountRegistry::add(Connection* a)
 
 void AccountRegistry::drop(Connection* a)
 {
-    const auto idx = indexOf(a);
-    beginRemoveRows(QModelIndex(), idx, idx);
-    remove(idx);
-    endRemoveRows();
+    if (const auto idx = indexOf(a); idx != -1) {
+        beginRemoveRows(QModelIndex(), idx, idx);
+        remove(idx);
+        endRemoveRows();
+    }
     Q_ASSERT(!contains(a));
 }
 
