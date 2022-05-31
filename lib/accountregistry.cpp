@@ -99,20 +99,29 @@ void AccountRegistry::invokeLogin()
                     AccountSettings account { accountId };
                     auto connection = new Connection(account.homeserver());
                     connect(connection, &Connection::connected, this,
-                            [connection] {
+                            [connection, this, accountId] {
                                 connection->loadState();
                                 connection->setLazyLoading(true);
 
                                 connection->syncLoop();
+
+                                m_accountsLoading.removeAll(accountId);
+                                emit accountsLoadingChanged();
                             });
                     connect(connection, &Connection::loginError, this,
-                            [this, connection](const QString& error,
+                            [this, connection, accountId](const QString& error,
                                                const QString& details) {
                                 emit loginError(connection, error, details);
+
+                                m_accountsLoading.removeAll(accountId);
+                                emit accountsLoadingChanged();
                             });
                     connect(connection, &Connection::resolveError, this,
-                            [this, connection](const QString& error) {
+                            [this, connection, accountId](const QString& error) {
                                 emit resolveError(connection, error);
+
+                                m_accountsLoading.removeAll(accountId);
+                                emit accountsLoadingChanged();
                             });
                     connection->assumeIdentity(
                         account.userId(), accessTokenLoadingJob->binaryData(),
