@@ -70,15 +70,12 @@ struct IdentityKeys
 };
 
 //! Struct representing the one-time keys.
-struct QUOTIENT_API OneTimeKeys
+struct QUOTIENT_API UnsignedOneTimeKeys
 {
     QHash<QString, QHash<QString, QString>> keys;
 
     //! Get the HashMap containing the curve25519 one-time keys.
-    QHash<QString, QString> curve25519() const;
-
-    //! Get a reference to the hashmap corresponding to given key type.
-//    std::optional<QHash<QString, QString>> get(QString keyType) const;
+    QHash<QString, QString> curve25519() const { return keys[Curve25519Key]; }
 };
 
 //! Struct representing the signed one-time keys.
@@ -92,7 +89,6 @@ public:
     //! The signature is calculated using the process described at Signing JSON.
     QHash<QString, QHash<QString, QString>> signatures;
 };
-
 
 template <>
 struct JsonObjectConverter<SignedOneTimeKey> {
@@ -108,6 +104,8 @@ struct JsonObjectConverter<SignedOneTimeKey> {
         addParam<>(jo, QStringLiteral("signatures"), result.signatures);
     }
 };
+
+using OneTimeKeys = QHash<QString, std::variant<QString, SignedOneTimeKey>>;
 
 template <typename T>
 class asKeyValueRange

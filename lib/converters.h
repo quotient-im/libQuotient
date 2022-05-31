@@ -224,6 +224,26 @@ struct QUOTIENT_API JsonConverter<QVariant> {
     static QVariant load(const QJsonValue& jv);
 };
 
+template <typename... Ts>
+inline QJsonValue toJson(const std::variant<Ts...>& v)
+{
+    // std::visit requires all overloads to return the same type - and
+    // QJsonValue is a perfect candidate for that same type (assuming that
+    // variants never occur on the top level in Matrix API)
+    return std::visit(
+        [](const auto& value) { return QJsonValue { toJson(value) }; }, v);
+}
+
+template <typename T>
+struct QUOTIENT_API JsonConverter<std::variant<QString, T>> {
+    static std::variant<QString, T> load(const QJsonValue& jv)
+    {
+        if (jv.isString())
+            return fromJson<QString>(jv);
+        return fromJson<T>(jv);
+    }
+};
+
 template <typename T>
 struct JsonConverter<Omittable<T>> {
     static QJsonValue dump(const Omittable<T>& from)

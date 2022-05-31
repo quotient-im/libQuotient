@@ -198,7 +198,7 @@ void TestOlmAccount::uploadIdentityKey()
 
     QVERIFY(idKeys.curve25519.size() > 10);
 
-    OneTimeKeys unused;
+    UnsignedOneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
     connect(request, &BaseJob::result, this, [request, conn] {
         QCOMPARE(request->oneTimeKeyCounts().size(), 0);
@@ -221,7 +221,7 @@ void TestOlmAccount::uploadOneTimeKeys()
 
     auto oneTimeKeys = olmAccount->oneTimeKeys();
 
-    QHash<QString, QVariant> oneTimeKeysHash;
+    OneTimeKeys oneTimeKeysHash;
     const auto curve = oneTimeKeys.curve25519();
     for (const auto &[keyId, key] : asKeyValueRange(curve)) {
         oneTimeKeysHash["curve25519:"+keyId] = key;
@@ -247,12 +247,10 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
     QCOMPARE(nKeys, 5);
 
     auto oneTimeKeys = olmAccount->oneTimeKeys();
-    QHash<QString, QVariant> oneTimeKeysHash;
+    OneTimeKeys oneTimeKeysHash;
     const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
     for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
-        QVariant var;
-        var.setValue(key);
-        oneTimeKeysHash[keyId] = var;
+        oneTimeKeysHash[keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, nKeys, conn] {
@@ -410,11 +408,9 @@ void TestOlmAccount::claimKeys()
             // The key is the one bob sent.
             const auto& oneTimeKey =
                 job->oneTimeKeys().value(userId).value(deviceId);
-            QVERIFY(oneTimeKey.canConvert<QVariantMap>());
-
-            const auto varMap = oneTimeKey.toMap();
-            QVERIFY(std::any_of(varMap.constKeyValueBegin(),
-                                varMap.constKeyValueEnd(), [](const auto& kv) {
+            QVERIFY(std::any_of(oneTimeKey.constKeyValueBegin(),
+                                oneTimeKey.constKeyValueEnd(),
+                                [](const auto& kv) {
                                     return kv.first.startsWith(
                                         SignedCurve25519Key);
                                 }));

@@ -59,17 +59,14 @@ public:
     size_t generateOneTimeKeys(size_t numberOfKeys);
 
     //! Gets the OlmAccount's one time keys formatted as JSON.
-    OneTimeKeys oneTimeKeys() const;
+    UnsignedOneTimeKeys oneTimeKeys() const;
 
     //! Sign all one time keys.
-    QHash<QString, SignedOneTimeKey> signOneTimeKeys(const OneTimeKeys &keys) const;
-
-    //! Sign one time key.
-    QByteArray signOneTimeKey(const QString &key) const;
+    OneTimeKeys signOneTimeKeys(const UnsignedOneTimeKeys &keys) const;
 
     SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
 
-    UploadKeysJob *createUploadKeyRequest(const OneTimeKeys &oneTimeKeys);
+    UploadKeysJob* createUploadKeyRequest(const UnsignedOneTimeKeys& oneTimeKeys) const;
 
     DeviceKeys deviceKeys() const;
 
