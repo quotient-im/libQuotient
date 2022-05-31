@@ -307,20 +307,22 @@ void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTi
     commit();
 }
 
-void Database::saveCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode, const QOlmOutboundGroupSessionPtr& session)
+void Database::saveCurrentOutboundMegolmSession(
+    const QString& roomId, const PicklingMode& picklingMode,
+    const QOlmOutboundGroupSession& session)
 {
-    const auto pickle = session->pickle(picklingMode);
+    const auto pickle = session.pickle(picklingMode);
     if (pickle) {
         auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
         deleteQuery.bindValue(":roomId", roomId);
-        deleteQuery.bindValue(":sessionId", session->sessionId());
+        deleteQuery.bindValue(":sessionId", session.sessionId());
 
         auto insertQuery = prepareQuery(QStringLiteral("INSERT INTO outbound_megolm_sessions(roomId, sessionId, pickle, creationTime, messageCount) VALUES(:roomId, :sessionId, :pickle, :creationTime, :messageCount);"));
         insertQuery.bindValue(":roomId", roomId);
-        insertQuery.bindValue(":sessionId", session->sessionId());
+        insertQuery.bindValue(":sessionId", session.sessionId());
         insertQuery.bindValue(":pickle", pickle.value());
-        insertQuery.bindValue(":creationTime", session->creationTime());
-        insertQuery.bindValue(":messageCount", session->messageCount());
+        insertQuery.bindValue(":creationTime", session.creationTime());
+        insertQuery.bindValue(":messageCount", session.messageCount());
 
         transaction();
         execute(deleteQuery);
@@ -362,7 +364,9 @@ void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::t
     commit();
 }
 
-QHash<QString, QStringList> Database::devicesWithoutKey(const QString& roomId, QHash<QString, QStringList>& devices, const QString &sessionId)
+QMultiHash<QString, QString> Database::devicesWithoutKey(
+    const QString& roomId, QMultiHash<QString, QString> devices,
+    const QString& sessionId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT userId, deviceId FROM sent_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId"));
     query.bindValue(":roomId", roomId);
@@ -371,7 +375,8 @@ QHash<QString, QStringList> Database::devicesWithoutKey(const QString& roomId, Q
     execute(query);
     commit();
     while (query.next()) {
-        devices[query.value("userId").toString()].removeAll(query.value("deviceId").toString());
+        devices.remove(query.value("userId").toString(),
+                       query.value("deviceId").toString());
     }
     return devices;
 }

@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "events/stateevent.h"
 #include "quotient_common.h"
+
+#include "events/filesourceinfo.h"
+#include "events/stateevent.h"
 
 #include <any>
 #include <utility>
-
-#include "events/encryptedfile.h"
 
 namespace Quotient {
 
@@ -115,8 +115,7 @@ public:
     QString annotation() const { return _annotation; }
 
     void setDeparted() { setStatus(EventStatus::Departed); }
-    void setFileUploaded(const QUrl& remoteUrl);
-    void setEncryptedFile(const EncryptedFile& encryptedFile);
+    void setFileUploaded(const FileSourceInfo &uploadedFileData);
     void setReachedServer(const QString& eventId)
     {
         setStatus(EventStatus::ReachedServer);

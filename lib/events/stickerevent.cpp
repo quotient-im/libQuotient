@@ -22,5 +22,5 @@ const EventContent::ImageContent &StickerEvent::image() const
 
 QUrl StickerEvent::url() const
 {
-    return m_imageContent.url;
+    return m_imageContent.url();
 }

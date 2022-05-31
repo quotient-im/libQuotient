@@ -87,6 +87,8 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModul
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
+find_package(${Qt}Keychain REQUIRED)
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
     find_package(Olm 3.1.3 REQUIRED)
@@ -108,7 +110,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     if (OpenSSL_FOUND)
         message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
     endif()
-    find_package(${Qt}Keychain REQUIRED)
 endif()
 
 
@@ -168,7 +169,7 @@ list(APPEND lib_SRCS
     lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
     lib/events/stickerevent.h lib/events/stickerevent.cpp
     lib/events/keyverificationevent.h lib/events/keyverificationevent.cpp
-    lib/events/encryptedfile.h lib/events/encryptedfile.cpp
+    lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
     lib/jobs/requestdata.h lib/jobs/requestdata.cpp
     lib/jobs/basejob.h lib/jobs/basejob.cpp
     lib/jobs/syncjob.h lib/jobs/syncjob.cpp
@@ -312,14 +313,14 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL
-        ${Qt}::Sql
-        ${QTKEYCHAIN_LIBRARIES})
+        ${Qt}::Sql)
     set(FIND_DEPS "find_dependency(Olm)
     find_dependency(OpenSSL)
     find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+target_include_directories(${PROJECT_NAME} PRIVATE ${QTKEYCHAIN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

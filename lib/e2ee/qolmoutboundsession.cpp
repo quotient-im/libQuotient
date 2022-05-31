@@ -44,7 +44,7 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-QOlmExpected<QByteArray> QOlmOutboundGroupSession::pickle(const PicklingMode &mode)
+QOlmExpected<QByteArray> QOlmOutboundGroupSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(olm_pickle_outbound_group_session_length(m_groupSession), '0');
     QByteArray key = toKey(mode);
@@ -79,7 +79,7 @@ QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(con
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-QOlmExpected<QByteArray> QOlmOutboundGroupSession::encrypt(const QString &plaintext)
+QOlmExpected<QByteArray> QOlmOutboundGroupSession::encrypt(const QString &plaintext) const
 {
     QByteArray plaintextBuf = plaintext.toUtf8();
     const auto messageMaxLength = olm_group_encrypt_message_length(m_groupSession, plaintextBuf.length());

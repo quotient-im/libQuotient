@@ -5,8 +5,19 @@
 #pragma once
 
 #include "quotient_export.h"
+#include "settings.h"
 
 #include <QtCore/QAbstractListModel>
+
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
+
+namespace QKeychain {
+class ReadPasswordJob;
+}
 
 namespace Quotient {
 class Connection;
@@ -14,6 +25,11 @@ class Connection;
 class QUOTIENT_API AccountRegistry : public QAbstractListModel,
                                      private QVector<Connection*> {
     Q_OBJECT
+    /// Number of accounts that are currently fully loaded
+    Q_PROPERTY(int accountCount READ rowCount NOTIFY accountCountChanged)
+    /// List of accounts that are currently in some stage of being loaded (Reading token from keychain, trying to contact server, etc).
+    /// Can be used to inform the user or to show a login screen if size() == 0 and no accounts are loaded
+    Q_PROPERTY(QStringList accountsLoading READ accountsLoading NOTIFY accountsLoadingChanged)
 public:
     using const_iterator = QVector::const_iterator;
     using const_reference = QVector::const_reference;
@@ -52,6 +68,21 @@ public:
     [[nodiscard]] int rowCount(
         const QModelIndex& parent = QModelIndex()) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+
+    QStringList accountsLoading() const;
+
+    void invokeLogin();
+Q_SIGNALS:
+    void accountCountChanged();
+    void accountsLoadingChanged();
+
+    void keychainError(QKeychain::Error error);
+    void loginError(Connection* connection, QString message, QString details);
+    void resolveError(Connection* connection, QString error);
+
+private:
+    QKeychain::ReadPasswordJob* loadAccessTokenFromKeychain(const QString &userId);
+    QStringList m_accountsLoading;
 };
 
 inline QUOTIENT_API AccountRegistry Accounts {};

@@ -8,7 +8,7 @@
 #include "room.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#include "events/encryptedfile.h"
+#include "events/filesourceinfo.h"
 #endif
 
 using namespace Quotient;
@@ -20,7 +20,7 @@ public:
         : m_reply(r)
     {}
     QNetworkReply* m_reply;
-    Omittable<EncryptedFile> m_encryptedFile;
+    Omittable<EncryptedFileMetadata> m_encryptedFile;
     QIODevice* m_device = nullptr;
 };
 
@@ -47,9 +47,9 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
         if(!d->m_encryptedFile.has_value()) {
             d->m_device = d->m_reply;
         } else {
-            EncryptedFile file = *d->m_encryptedFile;
             auto buffer = new QBuffer(this);
-            buffer->setData(file.decryptFile(d->m_reply->readAll()));
+            buffer->setData(
+                decryptFile(d->m_reply->readAll(), *d->m_encryptedFile));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
@@ -64,7 +64,9 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
     auto eventIt = room->findInTimeline(eventId);
     if(eventIt != room->historyEdge()) {
         auto event = eventIt->viewAs<RoomMessageEvent>();
-        d->m_encryptedFile = event->content()->fileInfo()->file;
+        if (auto* efm = std::get_if<EncryptedFileMetadata>(
+                &event->content()->fileInfo()->source))
+            d->m_encryptedFile = *efm;
     }
 #endif
 }

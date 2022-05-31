@@ -8,8 +8,9 @@
 #include <QtNetwork/QNetworkReply>
 
 #ifdef Quotient_E2EE_ENABLED
-#   include <QtCore/QCryptographicHash>
-#   include "events/encryptedfile.h"
+#    include "events/filesourceinfo.h"
+
+#    include <QtCore/QCryptographicHash>
 #endif
 
 using namespace Quotient;
@@ -26,7 +27,7 @@ public:
     QScopedPointer<QFile> tempFile;
 
 #ifdef Quotient_E2EE_ENABLED
-    Omittable<EncryptedFile> encryptedFile;
+    Omittable<EncryptedFileMetadata> encryptedFileMetadata;
 #endif
 };
 
@@ -49,14 +50,14 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
 #ifdef Quotient_E2EE_ENABLED
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
-                                 const EncryptedFile& file,
+                                 const EncryptedFileMetadata& file,
                                  const QString& localFilename)
     : GetContentJob(serverName, mediaId)
     , d(localFilename.isEmpty() ? makeImpl<Private>()
                                 : makeImpl<Private>(localFilename))
 {
     setObjectName(QStringLiteral("DownloadFileJob"));
-    d->encryptedFile = file;
+    d->encryptedFileMetadata = file;
 }
 #endif
 QString DownloadFileJob::targetFileName() const
@@ -118,27 +119,31 @@ void DownloadFileJob::beforeAbandon()
     d->tempFile->remove();
 }
 
+void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
+                 QFile& targetFile)
+{
+    sourceFile.seek(0);
+    const auto encrypted = sourceFile.readAll(); // TODO: stream decryption
+    const auto decrypted = decryptFile(encrypted, metadata);
+    targetFile.write(decrypted);
+}
+
 BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
 #ifdef Quotient_E2EE_ENABLED
-        if (d->encryptedFile.has_value()) {
-            d->tempFile->seek(0);
-            QByteArray encrypted = d->tempFile->readAll();
-
-            EncryptedFile file = *d->encryptedFile;
-            const auto decrypted = file.decryptFile(encrypted);
-            d->targetFile->write(decrypted);
+        if (d->encryptedFileMetadata.has_value()) {
+            decryptFile(*d->tempFile, *d->encryptedFileMetadata, *d->targetFile);
             d->tempFile->remove();
         } else {
 #endif
             d->targetFile->close();
             if (!d->targetFile->remove()) {
-                qCWarning(JOBS) << "Failed to remove the target file placeholder";
+                qWarning(JOBS) << "Failed to remove the target file placeholder";
                 return { FileError, "Couldn't finalise the download" };
             }
             if (!d->tempFile->rename(d->targetFile->fileName())) {
-                qCWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
+                qWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
                                 << "to" << d->targetFile->fileName();
                 return { FileError, "Couldn't finalise the download" };
             }
@@ -147,13 +152,20 @@ BaseJob::Status DownloadFileJob::prepareResult()
 #endif
     } else {
 #ifdef Quotient_E2EE_ENABLED
-        if (d->encryptedFile.has_value()) {
-            d->tempFile->seek(0);
-            const auto encrypted = d->tempFile->readAll();
-
-            EncryptedFile file = *d->encryptedFile;
-            const auto decrypted = file.decryptFile(encrypted);
-            d->tempFile->write(decrypted);
+        if (d->encryptedFileMetadata.has_value()) {
+            QTemporaryFile tempTempFile; // Assuming it to be next to tempFile
+            decryptFile(*d->tempFile, *d->encryptedFileMetadata, tempTempFile);
+            d->tempFile->close();
+            if (!d->tempFile->remove()) {
+                qWarning(JOBS)
+                    << "Failed to remove the decrypted file placeholder";
+                return { FileError, "Couldn't finalise the download" };
+            }
+            if (!tempTempFile.rename(d->tempFile->fileName())) {
+                qWarning(JOBS) << "Failed to rename" << tempTempFile.fileName()
+                                << "to" << d->tempFile->fileName();
+                return { FileError, "Couldn't finalise the download" };
+            }
         } else {
 #endif
             d->tempFile->close();
@@ -161,6 +173,6 @@ BaseJob::Status DownloadFileJob::prepareResult()
         }
 #endif
     }
-    qCDebug(JOBS) << "Saved a file as" << targetFileName();
+    qDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;
 }
