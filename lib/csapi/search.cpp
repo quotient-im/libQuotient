@@ -16,7 +16,7 @@ auto queryToSearch(const QString& nextBatch)
 SearchJob::SearchJob(const Categories& searchCategories,
                      const QString& nextBatch)
     : BaseJob(HttpVerb::Post, QStringLiteral("SearchJob"),
-              makePath("/_matrix/client/r0", "/search"),
+              makePath("/_matrix/client/v3", "/search"),
               queryToSearch(nextBatch))
 {
     QJsonObject _data;

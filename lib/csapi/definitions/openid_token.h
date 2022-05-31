@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct OpenidToken {
+struct OpenIdCredentials {
     /// An access token the consumer may use to verify the identity of
     /// the person who generated the token. This is given to the federation
     /// API `GET /openid/userinfo` to verify the user's identity.
@@ -27,8 +27,8 @@ struct OpenidToken {
 };
 
 template <>
-struct JsonObjectConverter<OpenidToken> {
-    static void dumpTo(QJsonObject& jo, const OpenidToken& pod)
+struct JsonObjectConverter<OpenIdCredentials> {
+    static void dumpTo(QJsonObject& jo, const OpenIdCredentials& pod)
     {
         addParam<>(jo, QStringLiteral("access_token"), pod.accessToken);
         addParam<>(jo, QStringLiteral("token_type"), pod.tokenType);
@@ -36,7 +36,7 @@ struct JsonObjectConverter<OpenidToken> {
                    pod.matrixServerName);
         addParam<>(jo, QStringLiteral("expires_in"), pod.expiresIn);
     }
-    static void fillFrom(const QJsonObject& jo, OpenidToken& pod)
+    static void fillFrom(const QJsonObject& jo, OpenIdCredentials& pod)
     {
         fromJson(jo.value("access_token"_ls), pod.accessToken);
         fromJson(jo.value("token_type"_ls), pod.tokenType);

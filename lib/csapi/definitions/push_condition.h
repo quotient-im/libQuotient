@@ -24,9 +24,7 @@ struct PushCondition {
     QString key;
 
     /// Required for `event_match` conditions. The glob-style pattern to
-    /// match against. Patterns with no special glob characters should be
-    /// treated as having asterisks prepended and appended when testing the
-    /// condition.
+    /// match against.
     QString pattern;
 
     /// Required for `room_member_count` conditions. A decimal integer

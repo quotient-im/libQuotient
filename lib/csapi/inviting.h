@@ -14,7 +14,7 @@ namespace Quotient {
  * This version of the API requires that the inviter knows the Matrix
  * identifier of the invitee. The other is documented in the*
  * [third party invites
- * section](/client-server-api/#post_matrixclientr0roomsroomidinvite-1).
+ * section](/client-server-api/#post_matrixclientv3roomsroomidinvite-1).
  *
  * This API invites a user to participate in a particular room.
  * They do not start participating in the room until they actually join the

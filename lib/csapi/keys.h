@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "e2ee/e2ee.h"
+
 #include "csapi/definitions/cross_signing_key.h"
 #include "csapi/definitions/device_keys.h"
 
@@ -30,14 +32,32 @@ public:
      *   by the [key algorithm](/client-server-api/#key-algorithms).
      *
      *   May be absent if no new one-time keys are required.
+     *
+     * \param fallbackKeys
+     *   The public key which should be used if the device's one-time keys
+     *   are exhausted. The fallback key is not deleted once used, but should
+     *   be replaced when additional one-time keys are being uploaded. The
+     *   server will notify the client of the fallback key being used through
+     *   `/sync`.
+     *
+     *   There can only be at most one key per algorithm uploaded, and the
+     * server will only persist one key per algorithm.
+     *
+     *   When uploading a signed key, an additional `fallback: true` key should
+     *   be included to denote that the key is a fallback key.
+     *
+     *   May be absent if a new fallback key is not required.
      */
     explicit UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys = none,
-                           const QHash<QString, QVariant>& oneTimeKeys = {});
+                           const OneTimeKeys& oneTimeKeys = {},
+                           const OneTimeKeys& fallbackKeys = {});
 
     // Result properties
 
     /// For each key algorithm, the number of unclaimed one-time keys
     /// of that type currently held on the server for this device.
+    /// If an algorithm is not listed, the count for that algorithm
+    /// is to be assumed zero.
     QHash<QString, int> oneTimeKeyCounts() const
     {
         return loadFromJson<QHash<QString, int>>("one_time_key_counts"_ls);
@@ -207,9 +227,12 @@ public:
     ///
     /// See the [key algorithms](/client-server-api/#key-algorithms) section for
     /// information on the Key Object format.
-    QHash<QString, QHash<QString, QVariant>> oneTimeKeys() const
+    ///
+    /// If necessary, the claimed key might be a fallback key. Fallback
+    /// keys are re-used by the server until replaced by the device.
+    QHash<QString, QHash<QString, OneTimeKeys>> oneTimeKeys() const
     {
-        return loadFromJson<QHash<QString, QHash<QString, QVariant>>>(
+        return loadFromJson<QHash<QString, QHash<QString, OneTimeKeys>>>(
             "one_time_keys"_ls);
     }
 };
@@ -233,7 +256,7 @@ public:
      * \param from
      *   The desired start point of the list. Should be the `next_batch` field
      *   from a response to an earlier call to
-     * [`/sync`](/client-server-api/#get_matrixclientr0sync). Users who have not
+     * [`/sync`](/client-server-api/#get_matrixclientv3sync). Users who have not
      *   uploaded new device identity keys since this point, nor deleted
      *   existing devices with identity keys since then, will be excluded
      *   from the results.
@@ -241,7 +264,7 @@ public:
      * \param to
      *   The desired end point of the list. Should be the `next_batch`
      *   field from a recent call to
-     * [`/sync`](/client-server-api/#get_matrixclientr0sync) - typically the
+     * [`/sync`](/client-server-api/#get_matrixclientv3sync) - typically the
      * most recent such call. This may be used by the server as a hint to check
      * its caches are up to date.
      */

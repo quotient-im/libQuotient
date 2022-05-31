@@ -10,7 +10,7 @@ InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
                                  const QString& idAccessToken,
                                  const QString& medium, const QString& address)
     : BaseJob(HttpVerb::Post, QStringLiteral("InviteBy3PIDJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/invite"))
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/invite"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("id_server"), idServer);

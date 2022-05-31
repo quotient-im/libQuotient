@@ -26,16 +26,18 @@ namespace Quotient {
  *    (and not other members) permission to send state events. Overridden
  *    by the `power_level_content_override` parameter.
  *
- * 4. Events set by the `preset`. Currently these are the `m.room.join_rules`,
+ * 4. An `m.room.canonical_alias` event if `room_alias_name` is given.
+ *
+ * 5. Events set by the `preset`. Currently these are the `m.room.join_rules`,
  *    `m.room.history_visibility`, and `m.room.guest_access` state events.
  *
- * 5. Events listed in `initial_state`, in the order that they are
+ * 6. Events listed in `initial_state`, in the order that they are
  *    listed.
  *
- * 6. Events implied by `name` and `topic` (`m.room.name` and `m.room.topic`
+ * 7. Events implied by `name` and `topic` (`m.room.name` and `m.room.topic`
  *    state events).
  *
- * 7. Invite events implied by `invite` and `invite_3pid` (`m.room.member` with
+ * 8. Invite events implied by `invite` and `invite_3pid` (`m.room.member` with
  *    `membership: invite` and `m.room.third_party_invite`).
  *
  * The available presets do the following with respect to room state:
@@ -73,17 +75,20 @@ public:
     ///    (and not other members) permission to send state events. Overridden
     ///    by the `power_level_content_override` parameter.
     ///
-    /// 4. Events set by the `preset`. Currently these are the
+    /// 4. An `m.room.canonical_alias` event if `room_alias_name` is given.
+    ///
+    /// 5. Events set by the `preset`. Currently these are the
     /// `m.room.join_rules`,
     ///    `m.room.history_visibility`, and `m.room.guest_access` state events.
     ///
-    /// 5. Events listed in `initial_state`, in the order that they are
+    /// 6. Events listed in `initial_state`, in the order that they are
     ///    listed.
     ///
-    /// 6. Events implied by `name` and `topic` (`m.room.name` and `m.room.topic`
+    /// 7. Events implied by `name` and `topic` (`m.room.name` and
+    /// `m.room.topic`
     ///    state events).
     ///
-    /// 7. Invite events implied by `invite` and `invite_3pid` (`m.room.member`
+    /// 8. Invite events implied by `invite` and `invite_3pid` (`m.room.member`
     /// with
     ///    `membership: invite` and `m.room.third_party_invite`).
     ///
@@ -132,17 +137,20 @@ public:
     ///    (and not other members) permission to send state events. Overridden
     ///    by the `power_level_content_override` parameter.
     ///
-    /// 4. Events set by the `preset`. Currently these are the
+    /// 4. An `m.room.canonical_alias` event if `room_alias_name` is given.
+    ///
+    /// 5. Events set by the `preset`. Currently these are the
     /// `m.room.join_rules`,
     ///    `m.room.history_visibility`, and `m.room.guest_access` state events.
     ///
-    /// 5. Events listed in `initial_state`, in the order that they are
+    /// 6. Events listed in `initial_state`, in the order that they are
     ///    listed.
     ///
-    /// 6. Events implied by `name` and `topic` (`m.room.name` and `m.room.topic`
+    /// 7. Events implied by `name` and `topic` (`m.room.name` and
+    /// `m.room.topic`
     ///    state events).
     ///
-    /// 7. Invite events implied by `invite` and `invite_3pid` (`m.room.member`
+    /// 8. Invite events implied by `invite` and `invite_3pid` (`m.room.member`
     /// with
     ///    `membership: invite` and `m.room.third_party_invite`).
     ///
@@ -190,7 +198,8 @@ public:
      *   would be `#foo:example.com`.
      *
      *   The complete room alias will become the canonical alias for
-     *   the room.
+     *   the room and an `m.room.canonical_alias` event will be sent
+     *   into the room.
      *
      * \param name
      *   If this is included, an `m.room.name` event will be sent
@@ -218,9 +227,10 @@ public:
      *
      * \param creationContent
      *   Extra keys, such as `m.federate`, to be added to the content
-     *   of the [`m.room.create`](client-server-api/#mroomcreate) event. The
-     * server will clobber the following keys: `creator`, `room_version`. Future
-     * versions of the specification may allow the server to clobber other keys.
+     *   of the [`m.room.create`](/client-server-api/#mroomcreate) event. The
+     * server will overwrite the following keys: `creator`, `room_version`.
+     * Future versions of the specification may allow the server to overwrite
+     * other keys.
      *
      * \param initialState
      *   A list of state events to set in the new room. This allows
@@ -229,7 +239,7 @@ public:
      *   with type, state_key and content keys set.
      *
      *   Takes precedence over events set by `preset`, but gets
-     *   overriden by `name` and `topic` keys.
+     *   overridden by `name` and `topic` keys.
      *
      * \param preset
      *   Convenience parameter for setting various default state events
@@ -249,7 +259,7 @@ public:
      * \param powerLevelContentOverride
      *   The power level content to override in the default power level
      *   event. This object is applied on top of the generated
-     *   [`m.room.power_levels`](client-server-api/#mroompower_levels)
+     *   [`m.room.power_levels`](/client-server-api/#mroompower_levels)
      *   event content prior to it being sent to the room. Defaults to
      *   overriding nothing.
      */

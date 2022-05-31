@@ -86,7 +86,8 @@ public:
  * This API endpoint uses the [User-Interactive Authentication
  * API](/client-server-api/#user-interactive-authentication-api).
  *
- * Deletes the given device, and invalidates any access token associated with it.
+ * Deletes the given device, and invalidates any access token associated with
+ * it.
  */
 class QUOTIENT_API DeleteDeviceJob : public BaseJob {
 public:

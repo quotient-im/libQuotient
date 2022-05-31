@@ -9,12 +9,12 @@ using namespace Quotient;
 QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix/client/r0", "/account/whoami"));
+        std::move(baseUrl), makePath("/_matrix/client/v3", "/account/whoami"));
 }
 
 GetTokenOwnerJob::GetTokenOwnerJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetTokenOwnerJob"),
-              makePath("/_matrix/client/r0", "/account/whoami"))
+              makePath("/_matrix/client/v3", "/account/whoami"))
 {
     addExpectedKey("user_id");
 }

@@ -9,12 +9,12 @@ using namespace Quotient;
 QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0", "/login"));
+                                   makePath("/_matrix/client/v3", "/login"));
 }
 
 GetLoginFlowsJob::GetLoginFlowsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetLoginFlowsJob"),
-              makePath("/_matrix/client/r0", "/login"), false)
+              makePath("/_matrix/client/v3", "/login"), false)
 {}
 
 LoginJob::LoginJob(const QString& type,
@@ -23,7 +23,7 @@ LoginJob::LoginJob(const QString& type,
                    const QString& deviceId,
                    const QString& initialDeviceDisplayName)
     : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"),
-              makePath("/_matrix/client/r0", "/login"), false)
+              makePath("/_matrix/client/v3", "/login"), false)
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("type"), type);

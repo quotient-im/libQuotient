@@ -22,8 +22,8 @@ namespace Quotient {
  *
  * After a user has joined a room, the room will appear as an entry in the
  * response of the
- * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
- * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
+ * [`/initialSync`](/client-server-api/#get_matrixclientv3initialsync) and
+ * [`/sync`](/client-server-api/#get_matrixclientv3sync) APIs.
  */
 class QUOTIENT_API JoinRoomByIdJob : public BaseJob {
 public:
@@ -64,8 +64,8 @@ public:
  *
  * After a user has joined a room, the room will appear as an entry in the
  * response of the
- * [`/initialSync`](/client-server-api/#get_matrixclientr0initialsync) and
- * [`/sync`](/client-server-api/#get_matrixclientr0sync) APIs.
+ * [`/initialSync`](/client-server-api/#get_matrixclientv3initialsync) and
+ * [`/sync`](/client-server-api/#get_matrixclientv3sync) APIs.
  */
 class QUOTIENT_API JoinRoomJob : public BaseJob {
 public:

@@ -16,7 +16,7 @@ auto queryToKnockRoom(const QStringList& serverName)
 KnockRoomJob::KnockRoomJob(const QString& roomIdOrAlias,
                            const QStringList& serverName, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("KnockRoomJob"),
-              makePath("/_matrix/client/r0", "/knock/", roomIdOrAlias),
+              makePath("/_matrix/client/v3", "/knock/", roomIdOrAlias),
               queryToKnockRoom(serverName))
 {
     QJsonObject _data;

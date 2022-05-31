@@ -227,7 +227,8 @@ public:
      * should be revoked if the request succeeds.
      *
      *   When `false`, the server can still take advantage of the [soft logout
-     * method](/client-server-api/#soft-logout) for the user's remaining devices.
+     * method](/client-server-api/#soft-logout) for the user's remaining
+     * devices.
      *
      * \param auth
      *   Additional authentication information for the user-interactive
@@ -247,7 +248,7 @@ public:
  * `/account/password` endpoint.
  *
  * This API's parameters and response are identical to that of the
- * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+ * [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
  * endpoint, except that
  * `M_THREEPID_NOT_FOUND` may be returned if no account matching the
  * given email address could be found. The server may instead send an
@@ -269,7 +270,7 @@ public:
      *   `/account/password` endpoint.
      *
      *   This API's parameters and response are identical to that of the
-     *   [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+     *   [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
      *   endpoint, except that
      *   `M_THREEPID_NOT_FOUND` may be returned if no account matching the
      *   given email address could be found. The server may instead send an
@@ -299,7 +300,7 @@ public:
  * `/account/password` endpoint.
  *
  * This API's parameters and response are identical to that of the
- * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+ * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
  * endpoint, except that
  * `M_THREEPID_NOT_FOUND` may be returned if no account matching the
  * given phone number could be found. The server may instead send the SMS
@@ -321,15 +322,16 @@ public:
      *   `/account/password` endpoint.
      *
      *   This API's parameters and response are identical to that of the
-     *   [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+     *   [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
      *   endpoint, except that
      *   `M_THREEPID_NOT_FOUND` may be returned if no account matching the
      *   given phone number could be found. The server may instead send the SMS
      *   to the given phone number prompting the user to create an account.
      *   `M_THREEPID_IN_USE` may not be returned.
      *
-     *   The homeserver should validate the phone number itself, either by sending
-     * a validation message itself or by using a service it has control over.
+     *   The homeserver should validate the phone number itself, either by
+     * sending a validation message itself or by using a service it has control
+     * over.
      */
     explicit RequestTokenToResetPasswordMSISDNJob(
         const MsisdnValidationData& body);
@@ -377,8 +379,9 @@ public:
      *   it must return an `id_server_unbind_result` of
      *   `no-support`.
      */
-    explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none,
-                                  const QString& idServer = {});
+    explicit DeactivateAccountJob(
+        const Omittable<AuthenticationData>& auth = none,
+        const QString& idServer = {});
 
     // Result properties
 

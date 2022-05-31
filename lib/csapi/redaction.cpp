@@ -9,7 +9,7 @@ using namespace Quotient;
 RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId,
                                const QString& txnId, const QString& reason)
     : BaseJob(HttpVerb::Put, QStringLiteral("RedactEventJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/redact/",
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/redact/",
                        eventId, "/", txnId))
 {
     QJsonObject _data;

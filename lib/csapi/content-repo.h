@@ -162,7 +162,8 @@ public:
      *
      * \param method
      *   The desired resizing method. See the
-     * [Thumbnails](/client-server-api/#thumbnails) section for more information.
+     * [Thumbnails](/client-server-api/#thumbnails) section for more
+     * information.
      *
      * \param allowRemote
      *   Indicates to the server that it should not attempt to fetch

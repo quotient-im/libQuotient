@@ -9,7 +9,7 @@ using namespace Quotient;
 RequestOpenIdTokenJob::RequestOpenIdTokenJob(const QString& userId,
                                              const QJsonObject& body)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestOpenIdTokenJob"),
-              makePath("/_matrix/client/r0", "/user/", userId,
+              makePath("/_matrix/client/v3", "/user/", userId,
                        "/openid/request_token"))
 {
     setRequestData(RequestData(toJson(body)));

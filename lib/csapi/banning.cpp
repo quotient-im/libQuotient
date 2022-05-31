@@ -9,7 +9,7 @@ using namespace Quotient;
 BanJob::BanJob(const QString& roomId, const QString& userId,
                const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("BanJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/ban"))
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/ban"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);
@@ -20,7 +20,7 @@ BanJob::BanJob(const QString& roomId, const QString& userId,
 UnbanJob::UnbanJob(const QString& roomId, const QString& userId,
                    const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("UnbanJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/unban"))
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/unban"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("user_id"), userId);

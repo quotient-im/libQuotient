@@ -16,7 +16,8 @@ namespace Quotient {
  *
  * The body of the request should be the content object of the event; the
  * fields in this object will vary depending on the type of event. See
- * [Room Events](/client-server-api/#room-events) for the m. event specification.
+ * [Room Events](/client-server-api/#room-events) for the m. event
+ * specification.
  */
 class QUOTIENT_API SendMessageJob : public BaseJob {
 public:

@@ -9,7 +9,7 @@ using namespace Quotient;
 SendMessageJob::SendMessageJob(const QString& roomId, const QString& eventType,
                                const QString& txnId, const QJsonObject& body)
     : BaseJob(HttpVerb::Put, QStringLiteral("SendMessageJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/send/",
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/send/",
                        eventType, "/", txnId))
 {
     setRequestData(RequestData(toJson(body)));
