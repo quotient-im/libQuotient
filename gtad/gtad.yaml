@@ -85,9 +85,8 @@ analyzer:
           imports: '"events/eventloader.h"'
         +on:
         - /state_event.yaml$/: StateEventPtr
-        - /room_event.yaml$/: RoomEventPtr
-        - /event.yaml$/: EventPtr
-      - /m\.room\.member/: void # Skip resolving; see EventsArray<> below
+        - /(room|client)_event.yaml$/: RoomEventPtr
+        - /event(_without_room_id)?.yaml$/: EventPtr
       - +set:
           # This renderer actually applies to all $ref things
           _importRenderer: '"{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h"'
@@ -115,12 +114,9 @@ analyzer:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
             imports: '"events/eventloader.h"'
-        - /m\.room\.member/: # Only used in an array (see also above)
-            type: "EventsArray<RoomMemberEvent>"
-            imports: '"events/roommemberevent.h"'
         - /state_event.yaml$/: StateEvents
-        - /room_event.yaml$/: RoomEvents
-        - /event.yaml$/: Events
+        - /(room|client)_event.yaml$/: RoomEvents
+        - /event(_without_room_id)?.yaml$/: Events
       - //: "QVector<{{1}}>"
     - map: # `additionalProperties` in OpenAPI
       - RoomState:
@@ -164,11 +160,8 @@ mustache:
     qualifiedMaybeOmittableType:
       "{{>openOmittable}}{{dataType.qualifiedName}}{{>closeOmittable}}"
 
-    ref: "{{#avoidCopy}}&{{/avoidCopy}}{{#moveOnly}}&&{{/moveOnly}}"
     maybeCrefType:
-      "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOmittableType}}{{>ref}}"
-    qualifiedMaybeCrefType:
-      "{{#avoidCopy}}const {{/avoidCopy}}{{>qualifiedMaybeOmittableType}}{{>ref}}"
+      "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}"
 
     maybeCrefJsonObject:
       "{{^propertyMap}}const QJsonObject&{{/propertyMap}}\

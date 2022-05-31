@@ -180,9 +180,6 @@ jobs:
       working-directory: ${{ runner.workspace }}
       run: |
         git clone https://github.com/quotient-im/matrix-spec.git
-        pushd matrix-spec
-        git checkout fixcompilation
-        popd
         git clone --recursive https://github.com/KitsuneRal/gtad.git
         cmake -S gtad -B build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
         cmake --build build/gtad
