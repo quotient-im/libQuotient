@@ -404,7 +404,7 @@ void TestOlmAccount::claimKeys()
             claimKeysJob->oneTimeKeys().value(userId).value(deviceId);
         for (auto it = oneTimeKeys.begin(); it != oneTimeKeys.end(); ++it) {
             if (it.key().startsWith(SignedCurve25519Key)
-                && it.value().isObject())
+                && std::holds_alternative<SignedOneTimeKey>(it.value()))
                 return;
         }
         QFAIL("The claimed one time key is not in /claim response");
