@@ -9,11 +9,11 @@ using namespace Quotient;
 QUrl GetWhoIsJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0",
+                                   makePath("/_matrix/client/v3",
                                             "/admin/whois/", userId));
 }
 
 GetWhoIsJob::GetWhoIsJob(const QString& userId)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetWhoIsJob"),
-              makePath("/_matrix/client/r0", "/admin/whois/", userId))
+              makePath("/_matrix/client/v3", "/admin/whois/", userId))
 {}

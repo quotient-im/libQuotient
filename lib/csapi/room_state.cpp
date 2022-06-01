@@ -11,7 +11,7 @@ SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
                                                const QString& stateKey,
                                                const QJsonObject& body)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomStateWithKeyJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/state/",
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/state/",
                        eventType, "/", stateKey))
 {
     setRequestData(RequestData(toJson(body)));

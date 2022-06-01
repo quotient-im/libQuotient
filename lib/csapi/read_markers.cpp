@@ -10,7 +10,7 @@ SetReadMarkerJob::SetReadMarkerJob(const QString& roomId,
                                    const QString& mFullyRead,
                                    const QString& mRead)
     : BaseJob(HttpVerb::Post, QStringLiteral("SetReadMarkerJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/read_markers"))
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/read_markers"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("m.fully_read"), mFullyRead);

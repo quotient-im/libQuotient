@@ -43,7 +43,8 @@ public:
     /*! \brief Gets a list of events that the user has been notified about
      *
      * \param from
-     *   Pagination token given to retrieve the next set of events.
+     *   Pagination token to continue from. This should be the `next_token`
+     *   returned from an earlier call to this endpoint.
      *
      * \param limit
      *   Limit on the number of events to return in this request.

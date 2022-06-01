@@ -9,12 +9,12 @@ using namespace Quotient;
 QUrl GetPushersJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0", "/pushers"));
+                                   makePath("/_matrix/client/v3", "/pushers"));
 }
 
 GetPushersJob::GetPushersJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPushersJob"),
-              makePath("/_matrix/client/r0", "/pushers"))
+              makePath("/_matrix/client/v3", "/pushers"))
 {}
 
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
@@ -23,7 +23,7 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& lang, const PusherData& data,
                              const QString& profileTag, Omittable<bool> append)
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
-              makePath("/_matrix/client/r0", "/pushers/set"))
+              makePath("/_matrix/client/v3", "/pushers/set"))
 {
     QJsonObject _data;
     addParam<>(_data, QStringLiteral("pushkey"), pushkey);

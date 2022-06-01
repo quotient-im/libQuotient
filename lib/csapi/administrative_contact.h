@@ -128,6 +128,22 @@ public:
      *   The third party credentials to associate with the account.
      */
     explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds);
+
+    // Result properties
+
+    /// An optional field containing a URL where the client must
+    /// submit the validation token to, with identical parameters
+    /// to the Identity Service API's `POST
+    /// /validate/email/submitToken` endpoint (without the requirement
+    /// for an access token). The homeserver must send this token to the
+    /// user (if applicable), who should then be prompted to provide it
+    /// to the client.
+    ///
+    /// If this field is not present, the client can assume that
+    /// verification will happen without the client's involvement
+    /// provided the homeserver advertises this specification version
+    /// in the `/versions` response (ie: r0.5.0).
+    QUrl submitUrl() const { return loadFromJson<QUrl>("submit_url"_ls); }
 };
 
 template <>
@@ -235,7 +251,7 @@ public:
 
     /// An indicator as to whether or not the homeserver was able to unbind
     /// the 3PID from the identity server. `success` indicates that the
-    /// indentity server has unbound the identifier whereas `no-support`
+    /// identity server has unbound the identifier whereas `no-support`
     /// indicates that the identity server refuses to support the request
     /// or the homeserver was not able to determine an identity server to
     /// unbind from.
@@ -295,7 +311,7 @@ public:
  * be used to request validation tokens when adding an email address to an
  * account. This API's parameters and response are identical to that of
  * the
- * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+ * [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
  * endpoint. The homeserver should validate
  * the email itself, either by sending a validation email itself or by using
  * a service it has control over.
@@ -311,7 +327,7 @@ public:
      *   be used to request validation tokens when adding an email address to an
      *   account. This API's parameters and response are identical to that of
      *   the
-     * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+     * [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
      *   endpoint. The homeserver should validate
      *   the email itself, either by sending a validation email itself or by
      * using a service it has control over.
@@ -337,7 +353,7 @@ public:
  * be used to request validation tokens when adding a phone number to an
  * account. This API's parameters and response are identical to that of
  * the
- * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+ * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
  * endpoint. The homeserver should validate
  * the phone number itself, either by sending a validation message itself or by
  * using a service it has control over.
@@ -353,7 +369,7 @@ public:
      *   be used to request validation tokens when adding a phone number to an
      *   account. This API's parameters and response are identical to that of
      *   the
-     * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+     * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
      *   endpoint. The homeserver should validate
      *   the phone number itself, either by sending a validation message itself
      * or by using a service it has control over.

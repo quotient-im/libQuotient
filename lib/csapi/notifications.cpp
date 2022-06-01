@@ -21,7 +21,7 @@ QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                          const QString& only)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0",
+                                   makePath("/_matrix/client/v3",
                                             "/notifications"),
                                    queryToGetNotifications(from, limit, only));
 }
@@ -30,7 +30,7 @@ GetNotificationsJob::GetNotificationsJob(const QString& from,
                                          Omittable<int> limit,
                                          const QString& only)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
-              makePath("/_matrix/client/r0", "/notifications"),
+              makePath("/_matrix/client/v3", "/notifications"),
               queryToGetNotifications(from, limit, only))
 {
     addExpectedKey("notifications");

@@ -376,7 +376,7 @@ public:
         const QByteArray& message) const;
     bool createOlmSession(const QString& targetUserId,
                           const QString& targetDeviceId,
-                          const QJsonObject& oneTimeKeyObject);
+                          const OneTimeKeys &oneTimeKeyObject);
     QString curveKeyForUserDevice(const QString& userId,
                                   const QString& device) const;
     QString edKeyForUserDevice(const QString& userId,
@@ -2306,7 +2306,7 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
 
 bool Connection::Private::createOlmSession(const QString& targetUserId,
                                            const QString& targetDeviceId,
-                                           const QJsonObject& oneTimeKeyObject)
+                                           const OneTimeKeys& oneTimeKeyObject)
 {
     static QOlmUtility verifier;
     qDebug(E2EE) << "Creating a new session for" << targetUserId
@@ -2316,17 +2316,23 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                        << targetDeviceId;
         return false;
     }
-    auto signedOneTimeKey = oneTimeKeyObject.constBegin()->toObject();
+    auto* signedOneTimeKey =
+        std::get_if<SignedOneTimeKey>(&*oneTimeKeyObject.begin());
+    if (!signedOneTimeKey) {
+        qWarning(E2EE) << "No signed one time key for" << targetUserId
+                       << targetDeviceId;
+        return false;
+    }
     // Verify contents of signedOneTimeKey - for that, drop `signatures` and
     // `unsigned` and then verify the object against the respective signature
     const auto signature =
-        signedOneTimeKey.take("signatures"_ls)[targetUserId]["ed25519:"_ls % targetDeviceId]
-            .toString()
+        signedOneTimeKey
+            ->signatures[targetUserId]["ed25519:"_ls % targetDeviceId]
             .toLatin1();
-    signedOneTimeKey.remove("unsigned"_ls);
     if (!verifier.ed25519Verify(
             edKeyForUserDevice(targetUserId, targetDeviceId).toLatin1(),
-            QJsonDocument(signedOneTimeKey).toJson(QJsonDocument::Compact),
+            QJsonDocument(toJson(SignedOneTimeKey { signedOneTimeKey->key, {} }))
+                .toJson(QJsonDocument::Compact),
             signature)) {
         qWarning(E2EE) << "Failed to verify one-time-key signature for" << targetUserId
                        << targetDeviceId << ". Skipping this device.";
@@ -2336,7 +2342,7 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
         curveKeyForUserDevice(targetUserId, targetDeviceId);
     auto session =
         QOlmSession::createOutboundSession(olmAccount.get(), recipientCurveKey,
-                                           signedOneTimeKey["key"].toString());
+                                           signedOneTimeKey->key);
     if (!session) {
         qCWarning(E2EE) << "Failed to create olm session for "
                         << recipientCurveKey << session.error();

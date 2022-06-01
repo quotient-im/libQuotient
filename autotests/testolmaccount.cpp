@@ -197,7 +197,7 @@ void TestOlmAccount::uploadIdentityKey()
 
     QVERIFY(idKeys.curve25519.size() > 10);
 
-    OneTimeKeys unused;
+    UnsignedOneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
     connect(request, &BaseJob::result, this, [request, conn] {
         if (!request->status().good())
@@ -223,7 +223,7 @@ void TestOlmAccount::uploadOneTimeKeys()
 
     auto oneTimeKeys = olmAccount->oneTimeKeys();
 
-    QHash<QString, QVariant> oneTimeKeysHash;
+    OneTimeKeys oneTimeKeysHash;
     const auto curve = oneTimeKeys.curve25519();
     for (const auto &[keyId, key] : asKeyValueRange(curve)) {
         oneTimeKeysHash["curve25519:"+keyId] = key;
@@ -247,12 +247,10 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
     QCOMPARE(nKeys, 5);
 
     auto oneTimeKeys = olmAccount->oneTimeKeys();
-    QHash<QString, QVariant> oneTimeKeysHash;
+    OneTimeKeys oneTimeKeysHash;
     const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
     for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
-        QVariant var;
-        var.setValue(key);
-        oneTimeKeysHash[keyId] = var;
+        oneTimeKeysHash[keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, nKeys, conn] {
@@ -406,7 +404,7 @@ void TestOlmAccount::claimKeys()
             claimKeysJob->oneTimeKeys().value(userId).value(deviceId);
         for (auto it = oneTimeKeys.begin(); it != oneTimeKeys.end(); ++it) {
             if (it.key().startsWith(SignedCurve25519Key)
-                && it.value().isObject())
+                && std::holds_alternative<SignedOneTimeKey>(it.value()))
                 return;
         }
         QFAIL("The claimed one time key is not in /claim response");

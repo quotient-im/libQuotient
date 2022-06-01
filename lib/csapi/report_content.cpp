@@ -9,7 +9,7 @@ using namespace Quotient;
 ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId,
                                    Omittable<int> score, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("ReportContentJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/report/",
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/report/",
                        eventId))
 {
     QJsonObject _data;

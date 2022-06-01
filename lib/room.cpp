@@ -2381,15 +2381,18 @@ void Room::hangupCall(const QString& callId)
     d->sendEvent<CallHangupEvent>(callId);
 }
 
-void Room::getPreviousContent(int limit, const QString &filter) { d->getPreviousContent(limit, filter); }
+void Room::getPreviousContent(int limit, const QString& filter)
+{
+    d->getPreviousContent(limit, filter);
+}
 
 void Room::Private::getPreviousContent(int limit, const QString &filter)
 {
     if (isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob =
-        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit, filter);
+    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b", prevBatch,
+                                                             "", limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         prevBatch = eventsHistoryJob->end();

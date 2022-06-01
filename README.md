@@ -143,7 +143,7 @@ the standard variables coming with CMake. On top of them, Quotient introduces:
   Quotient and Quotient-dependent (if it uses `find_package(Quotient 0.6)`)
   code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code using
   E2EE parts of Quotient.
-- `MATRIX_DOC_PATH` and `GTAD_PATH` - these two variables are used to point
+- `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix
   Client-Server API description made in OpenAPI notation. This is not needed

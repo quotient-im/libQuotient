@@ -20,13 +20,13 @@ QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
                                    Omittable<int> timeout, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0", "/events"),
+                                   makePath("/_matrix/client/v3", "/events"),
                                    queryToPeekEvents(from, timeout, roomId));
 }
 
 PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout,
                              const QString& roomId)
     : BaseJob(HttpVerb::Get, QStringLiteral("PeekEventsJob"),
-              makePath("/_matrix/client/r0", "/events"),
+              makePath("/_matrix/client/v3", "/events"),
               queryToPeekEvents(from, timeout, roomId))
 {}

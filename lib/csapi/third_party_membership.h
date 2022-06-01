@@ -16,7 +16,7 @@ namespace Quotient {
  * The homeserver uses an identity server to perform the mapping from
  * third party identifier to a Matrix identifier. The other is documented in
  * the* [joining rooms
- * section](/client-server-api/#post_matrixclientr0roomsroomidinvite).
+ * section](/client-server-api/#post_matrixclientv3roomsroomidinvite).
  *
  * This API invites a user to participate in a particular room.
  * They do not start participating in the room until they actually join the
