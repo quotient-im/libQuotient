@@ -521,7 +521,9 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         if (!usesEncryption()) {
             return;
         }
-        d->currentOutboundMegolmSession = nullptr;
+        if (d->hasValidMegolmSession()) {
+            d->createMegolmSession();
+        }
         qCDebug(E2EE) << "Invalidating current megolm session because user left";
 
     });
