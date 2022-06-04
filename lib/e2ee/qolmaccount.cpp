@@ -160,8 +160,8 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 {
     OneTimeKeys signedOneTimeKeys;
-    const auto& curveKeys = keys.curve25519();
-    for (const auto& [keyId, key] : asKeyValueRange(curveKeys))
+    for (const auto& curveKeys = keys.curve25519();
+         const auto& [keyId, key] : asKeyValueRange(curveKeys))
         signedOneTimeKeys["signed_curve25519:" % keyId] =
             signedOneTimeKey(key.toUtf8(), sign(QJsonObject{{"key", key}}));
     return signedOneTimeKeys;

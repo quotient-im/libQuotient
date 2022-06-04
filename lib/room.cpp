@@ -1531,7 +1531,7 @@ QStringList Room::safeMemberNames() const
 {
     QStringList res;
     res.reserve(d->membersMap.size());
-    for (auto u: std::as_const(d->membersMap))
+    for (const auto* u: std::as_const(d->membersMap))
         res.append(safeMemberName(u->id()));
 
     return res;
@@ -1541,7 +1541,7 @@ QStringList Room::htmlSafeMemberNames() const
 {
     QStringList res;
     res.reserve(d->membersMap.size());
-    for (auto u: std::as_const(d->membersMap))
+    for (const auto* u: std::as_const(d->membersMap))
         res.append(htmlSafeMemberName(u->id()));
 
     return res;
@@ -3378,7 +3378,7 @@ QString Room::Private::calculateDisplayname() const
         shortlist = buildShortlist(membersLeft);
 
     QStringList names;
-    for (auto u : shortlist) {
+    for (const auto* u : shortlist) {
         if (u == nullptr || isLocalUser(u))
             break;
         // Only disambiguate if the room is not empty
