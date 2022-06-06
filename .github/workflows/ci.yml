@@ -175,14 +175,13 @@ jobs:
         cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
-    - name: Pull CS API and build GTAD
+    - name: get CS API definitions; clone and build GTAD
       if: matrix.update-api
-      working-directory: ${{ runner.workspace }}
       run: |
-        git clone https://github.com/quotient-im/matrix-spec.git
-        git clone --recursive https://github.com/KitsuneRal/gtad.git
-        cmake -S gtad -B build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
-        cmake --build build/gtad
+        git clone --depth=1 https://github.com/quotient-im/matrix-spec.git ../matrix-spec
+        git submodule update --init --recursive --depth=1
+        cmake -S gtad/gtad -B ../build/gtad $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+        cmake --build ../build/gtad
         echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_SPEC_PATH=${{ runner.workspace }}/matrix-spec \
                                      -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
