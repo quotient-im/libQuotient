@@ -97,10 +97,10 @@ analyzer:
             title: MsisdnValidationData
         - /_filter.yaml$/: # Event/RoomEventFilters do NOT need Omittable<>
         - /public_rooms_response.yaml$/: { _inline: true }
+        - /public_rooms_chunk.yaml$/: { _inline: true }
         - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - schema:
       - getTurnServer<: *QJsonObject # It's used as an opaque JSON object
-      - PublicRoomResponse: { _inline: true }
 #      - defineFilter>: &Filter # Force folding into a structure
 #          type: Filter
 #          imports: '"csapi/definitions/sync_filter.h"'
