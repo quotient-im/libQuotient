@@ -1,0 +1,3 @@
+[submodule "gtad/gtad"]
+	path = gtad/gtad
+	url = https://github.com/quotient-im/gtad.git
