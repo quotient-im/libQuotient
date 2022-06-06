@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "csapi/definitions/public_rooms_chunk.h"
+#include "csapi/definitions/public_rooms_response.h"
 
 #include "jobs/basejob.h"
 
@@ -103,9 +103,9 @@ public:
     // Result properties
 
     /// A paginated chunk of public rooms.
-    QVector<QJsonObject> chunk() const
+    QVector<PublicRoomsChunk> chunk() const
     {
-        return loadFromJson<QVector<QJsonObject>>("chunk"_ls);
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
     }
 
     /// A pagination token for the response. The absence of this token
@@ -182,9 +182,9 @@ public:
     // Result properties
 
     /// A paginated chunk of public rooms.
-    QVector<QJsonObject> chunk() const
+    QVector<PublicRoomsChunk> chunk() const
     {
-        return loadFromJson<QVector<QJsonObject>>("chunk"_ls);
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
     }
 
     /// A pagination token for the response. The absence of this token
