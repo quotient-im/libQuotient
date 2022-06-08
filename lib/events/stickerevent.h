@@ -16,21 +16,32 @@ class QUOTIENT_API StickerEvent : public RoomEvent
 public:
     DEFINE_EVENT_TYPEID("m.sticker", StickerEvent)
 
-    explicit StickerEvent(const QJsonObject &obj);
+    explicit StickerEvent(const QJsonObject& obj)
+        : RoomEvent(TypeId, obj)
+        , m_imageContent(
+              EventContent::ImageContent(obj["content"_ls].toObject()))
+    {}
 
     /// \brief A textual representation or associated description of the
     /// sticker image.
     ///
     /// This could be the alt text of the original image, or a message to
     /// accompany and further describe the sticker.
-    QString body() const;
+    QUO_CONTENT_GETTER(QString, body)
 
     /// \brief Metadata about the image referred to in url including a
     /// thumbnail representation.
-    const EventContent::ImageContent &image() const;
+    const EventContent::ImageContent& image() const
+    {
+        return m_imageContent;
+    }
 
     /// \brief The URL to the sticker image. This must be a valid mxc:// URI.
-    QUrl url() const;
+    QUrl url() const
+    {
+        return m_imageContent.url();
+    }
+
 private:
     EventContent::ImageContent m_imageContent;
 };
