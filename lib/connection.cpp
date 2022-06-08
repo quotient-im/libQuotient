@@ -611,6 +611,7 @@ void Connection::Private::completeSetup(const QString& mxId)
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     Accounts.add(q);
+    connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED

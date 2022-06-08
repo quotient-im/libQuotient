@@ -135,10 +135,3 @@ QStringList AccountRegistry::accountsLoading() const
 {
     return m_accountsLoading;
 }
-
-AccountRegistry::~AccountRegistry()
-{
-    for (const auto& connection : *this) {
-        connection->saveState();
-    }
-}
