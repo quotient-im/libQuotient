@@ -131,6 +131,98 @@ inline void fillFromJson(const QJsonValue& jv, T& pod)
         pod = fromJson<T>(jv);
 }
 
+namespace _impl {
+    void warnUnknownEnumValue(const QString& stringValue,
+                              const char* enumTypeName);
+    void reportEnumOutOfBounds(uint32_t v, const char* enumTypeName);
+}
+
+//! \brief Facility string-to-enum converter
+//!
+//! This is to simplify enum loading from JSON - just specialise
+//! Quotient::fromJson() and call this function from it, passing (aside from
+//! the JSON value for the enum - that must be a string, not an int) any
+//! iterable container of string'y values (const char*, QLatin1String, etc.)
+//! matching respective enum values, 0-based.
+//! \sa enumToJsonString
+template <typename EnumT, typename EnumStringValuesT>
+EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
+                         EnumT defaultValue)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
+    if (const auto it = std::find(cbegin(enumValues), cend(enumValues), s);
+        it != cend(enumValues))
+        return EnumT(it - cbegin(enumValues));
+
+    if (!s.isEmpty())
+        _impl::warnUnknownEnumValue(s, qt_getEnumName(EnumT()));
+    return defaultValue;
+}
+
+//! \brief Facility enum-to-string converter
+//!
+//! This does the same as enumFromJsonString, the other way around.
+//! \note The source enumeration must not have gaps in values, or \p enumValues
+//!       has to match those gaps (i.e., if the source enumeration is defined
+//!       as <tt>{ Value1 = 1, Value2 = 3, Value3 = 5 }</tt> then \p enumValues
+//!       should be defined as <tt>{ "", "Value1", "", "Value2", "", "Value3"
+//!       }</tt> (mind the gap at value 0, in particular).
+//! \sa enumFromJsonString
+template <typename EnumT, typename EnumStringValuesT>
+QString enumToJsonString(EnumT v, const EnumStringValuesT& enumValues)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
+    if (v < size(enumValues))
+        return enumValues[v];
+
+    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v),
+                                 qt_getEnumName(EnumT()));
+    Q_ASSERT(false);
+    return {};
+}
+
+//! \brief Facility converter for flags
+//!
+//! This is very similar to enumFromJsonString, except that the target
+//! enumeration is assumed to be of a 'flag' kind - i.e. its values must be
+//! a power-of-two sequence starting from 1, without gaps, so exactly 1,2,4,8,16
+//! and so on.
+//! \note Unlike enumFromJsonString, the values start from 1 and not from 0,
+//!       with 0 being used for an invalid value by default.
+//! \note This function does not support flag combinations.
+//! \sa QUO_DECLARE_FLAGS, QUO_DECLARE_FLAGS_NS
+template <typename FlagT, typename FlagStringValuesT>
+FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
+                         FlagT defaultValue = FlagT(0U))
+{
+    // Enums based on signed integers don't make much sense for flag types
+    static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
+    if (const auto it = std::find(cbegin(flagValues), cend(flagValues), s);
+        it != cend(flagValues))
+        return FlagT(1U << (it - cbegin(flagValues)));
+
+    if (!s.isEmpty())
+        _impl::warnUnknownEnumValue(s, qt_getEnumName(FlagT()));
+    return defaultValue;
+}
+
+template <typename FlagT, typename FlagStringValuesT>
+QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
+    if (const auto offset =
+            qCountTrailingZeroBits(std::underlying_type_t<FlagT>(v));
+        offset < size(flagValues)) //
+    {
+        return flagValues[offset];
+    }
+
+    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v),
+                                 qt_getEnumName(FlagT()));
+    Q_ASSERT(false);
+    return {};
+}
+
 // JsonConverter<> specialisations
 
 template<>

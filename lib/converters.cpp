@@ -2,8 +2,22 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "converters.h"
+#include "logging.h"
 
 #include <QtCore/QVariant>
+
+void Quotient::_impl::warnUnknownEnumValue(const QString& stringValue,
+                                           const char* enumTypeName)
+{
+    qWarning(EVENTS).noquote()
+        << "Unknown" << enumTypeName << "value:" << stringValue;
+}
+
+void Quotient::_impl::reportEnumOutOfBounds(uint32_t v, const char* enumTypeName)
+{
+    qCritical(MAIN).noquote()
+        << "Value" << v << "is out of bounds for enumeration" << enumTypeName;
+}
 
 QJsonValue Quotient::JsonConverter<QVariant>::dump(const QVariant& v)
 {

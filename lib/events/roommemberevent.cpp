@@ -11,18 +11,10 @@ template <>
 struct JsonConverter<Membership> {
     static Membership load(const QJsonValue& jv)
     {
-        const auto& ms = jv.toString();
-        if (ms.isEmpty())
-        {
-            qCWarning(EVENTS) << "Empty membership state";
-            return Membership::Invalid;
-        }
-        const auto it =
-            std::find(MembershipStrings.begin(), MembershipStrings.end(), ms);
-        if (it != MembershipStrings.end())
-            return Membership(1U << (it - MembershipStrings.begin()));
+        if (const auto& ms = jv.toString(); !ms.isEmpty())
+            return flagFromJsonString<Membership>(ms, MembershipStrings);
 
-        qCWarning(EVENTS) << "Unknown Membership value: " << ms;
+        qCWarning(EVENTS) << "Empty membership state";
         return Membership::Invalid;
     }
 };
@@ -46,8 +38,7 @@ QJsonObject MemberEventContent::toJson() const
     QJsonObject o;
     if (membership != Membership::Invalid)
         o.insert(QStringLiteral("membership"),
-                  MembershipStrings[qCountTrailingZeroBits(
-                      std::underlying_type_t<Membership>(membership))]);
+                 flagToJsonString(membership, MembershipStrings));
     if (displayName)
         o.insert(QStringLiteral("displayname"), *displayName);
     if (avatarUrl && avatarUrl->isValid())
