@@ -166,7 +166,7 @@ list(APPEND lib_SRCS
     lib/events/encryptedevent.h lib/events/encryptedevent.cpp
     lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
     lib/events/stickerevent.h lib/events/stickerevent.cpp
-    lib/events/keyverificationevent.h lib/events/keyverificationevent.cpp
+    lib/events/keyverificationevent.h
     lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
     lib/jobs/requestdata.h lib/jobs/requestdata.cpp
     lib/jobs/basejob.h lib/jobs/basejob.cpp

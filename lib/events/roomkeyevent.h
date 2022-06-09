@@ -16,9 +16,9 @@ public:
                           const QString& sessionId, const QString& sessionKey,
                           const QString& senderId);
 
-    QString algorithm() const { return contentPart<QString>("algorithm"_ls); }
-    QString roomId() const { return contentPart<QString>(RoomIdKeyL); }
-    QString sessionId() const { return contentPart<QString>("session_id"_ls); }
+    QUO_CONTENT_GETTER(QString, algorithm)
+    QUO_CONTENT_GETTER(QString, roomId)
+    QUO_CONTENT_GETTER(QString, sessionId)
     QByteArray sessionKey() const
     {
         return contentPart<QString>("session_key"_ls).toLatin1();
