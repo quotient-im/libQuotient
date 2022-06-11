@@ -44,7 +44,7 @@ public:
         Q_ASSERT(evt);
     }
 
-    const RoomEvent* event() const { return rawPtr(evt); }
+    const RoomEvent* event() const { return std::to_address(evt); }
     const RoomEvent* get() const { return event(); }
     template <EventClass<RoomEvent> EventT>
     const EventT* viewAs() const

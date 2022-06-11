@@ -13,8 +13,8 @@ namespace Quotient {
 template <typename EventT>
 using event_ptr_tt = std::unique_ptr<EventT>;
 
-/// Unwrap a plain pointer from a smart pointer
 template <typename EventT>
+[[deprecated("Use std::to_address() instead")]]
 inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
 {
     return ptr.get();
@@ -24,7 +24,7 @@ inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
 template <typename TargetEventT, typename EventT>
 inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 {
-    return static_cast<TargetEventT*>(rawPtr(ptr));
+    return static_cast<TargetEventT*>(std::to_address(ptr));
 }
 
 // === Standard Matrix key names and basicEventJson() ===
