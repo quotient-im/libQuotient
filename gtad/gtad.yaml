@@ -119,6 +119,7 @@ analyzer:
 #          type: Filter
 #          imports: '"csapi/definitions/sync_filter.h"'
 #      - getFilter<: *Filter
+      - StrippedChildStateEvent: void # only used in an array, see below
       - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - OneTimeKeys:
           type: OneTimeKeys
@@ -128,8 +129,9 @@ analyzer:
       - string: QStringList
       - +set: { moveOnly: }
         +on:
-        - /^Notification|Result$/:
-            type: "std::vector<{{1}}>"
+        - /^Notification|Result|ChildRoomsChunk$/: "std::vector<{{1}}>"
+        - StrippedChildStateEvent:
+            type: StateEvents
             imports: '"events/eventloader.h"'
         - /state_event.yaml$/: StateEvents # 'imports' already set under $ref
         - /(room|client)_event.yaml$/: RoomEvents # ditto
