@@ -29,6 +29,8 @@ analyzer:
     login>/user: ""
     login>/medium: ""
     login>/address: ""
+    login</home_server: ""
+    register</home_server: ""
 
   # Structure inside `types`:
   # - swaggerType: <targetTypeSpec>
