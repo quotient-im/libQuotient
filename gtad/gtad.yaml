@@ -88,7 +88,8 @@ analyzer:
         - /(room|client)_event.yaml$/: RoomEventPtr
         - /event(_without_room_id)?.yaml$/: EventPtr
       - +set:
-          # This renderer actually applies to all $ref things
+          # This renderer applies to everything actually $ref'ed
+          # (not substituted)
           _importRenderer: '"{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h"'
         +on:
         - '/^(\./)?definitions/request_email_validation.yaml$/':
@@ -96,7 +97,20 @@ analyzer:
         - '/^(\./)?definitions/request_msisdn_validation.yaml$/':
             title: MsisdnValidationData
         - /_filter.yaml$/: # Event/RoomEventFilters do NOT need Omittable<>
+
+          # Despite being used in two calls, it's more practical to have those
+          # fields available as getters right from the respective job classes
         - /public_rooms_response.yaml$/: { _inline: true }
+
+          # list_public_rooms.yaml (via public_rooms_response.yaml) and
+          # space_hierarchy.yaml use public_rooms_chunk.yaml as a common base
+          # structure, adding (space_hiearchy) or overriding
+          # (public_rooms_response) fields for their purposes. The spec text
+          # confusingly ends up with having two different structures named
+          # "PublicRoomsChunk". To make sure the types are distinct in
+          # libQuotient, this common base is inlined into the actually used
+          # data structures (that have distinct names) defined
+          # in space_hierarchy.h and public_rooms_response.h, respectively
         - /public_rooms_chunk.yaml$/: { _inline: true }
         - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - schema:
@@ -117,17 +131,17 @@ analyzer:
         - /^Notification|Result$/:
             type: "std::vector<{{1}}>"
             imports: '"events/eventloader.h"'
-        - /state_event.yaml$/: StateEvents
-        - /(room|client)_event.yaml$/: RoomEvents
-        - /event(_without_room_id)?.yaml$/: Events
+        - /state_event.yaml$/: StateEvents # 'imports' already set under $ref
+        - /(room|client)_event.yaml$/: RoomEvents # ditto
+        - /event(_without_room_id)?.yaml$/: Events # ditto
       - //: "QVector<{{1}}>"
     - map: # `additionalProperties` in OpenAPI
       - RoomState:
           type: "UnorderedMap<QString, {{1}}>"
           moveOnly:
       - /.+/: "QHash<QString, {{1}}>"
-      - //: QVariantHash
-    - variant: # A sequence `type` (multitype) in OpenAPI
+      - //: QVariantHash # QJsonObject?..
+    - variant: # A sequence `type` or a 'oneOf' group in OpenAPI
       - /^string,null|null,string$/: *QString
       - //: QVariant
 
