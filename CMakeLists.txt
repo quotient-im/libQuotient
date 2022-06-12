@@ -1,6 +1,4 @@
-# Officially CMake 3.16+ is needed but LGTM.com still sits on eoan that only
-# has CMake 3.13
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -295,13 +293,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
              COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
 
-# C++17 required, C++20 desired (see above)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
-# TODO: Bump the CMake requirement and drop the version check here once
-# LGTM upgrades
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
-        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
+# Don't use PCH w/GCC (https://bugzilla.redhat.com/show_bug.cgi?id=1721553#c34)
+if (NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
 endif ()
 
