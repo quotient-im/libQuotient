@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include "csapi/../../event-schemas/schema/core-event-schema/stripped_state.h"
-
+#include "events/eventloader.h"
 #include "jobs/basejob.h"
 
 namespace Quotient {
@@ -66,7 +65,7 @@ public:
         /// added `origin_server_ts` key.
         ///
         /// If the room is not a space-room, this should be empty.
-        QVector<QJsonObject> childrenState;
+        StateEvents childrenState;
     };
 
     // Construction/destruction
@@ -103,8 +102,8 @@ public:
      */
     explicit GetSpaceHierarchyJob(const QString& roomId,
                                   Omittable<bool> suggestedOnly = none,
-                                  Omittable<double> limit = none,
-                                  Omittable<double> maxDepth = none,
+                                  Omittable<int> limit = none,
+                                  Omittable<int> maxDepth = none,
                                   const QString& from = {});
 
     /*! \brief Construct a URL without creating a full-fledged job object
@@ -114,16 +113,16 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                Omittable<bool> suggestedOnly = none,
-                               Omittable<double> limit = none,
-                               Omittable<double> maxDepth = none,
+                               Omittable<int> limit = none,
+                               Omittable<int> maxDepth = none,
                                const QString& from = {});
 
     // Result properties
 
     /// The rooms for the current page, with the current filters.
-    QVector<ChildRoomsChunk> rooms() const
+    std::vector<ChildRoomsChunk> rooms()
     {
-        return loadFromJson<QVector<ChildRoomsChunk>>("rooms"_ls);
+        return takeFromJson<std::vector<ChildRoomsChunk>>("rooms"_ls);
     }
 
     /// A token to supply to `from` to keep paginating the responses. Not

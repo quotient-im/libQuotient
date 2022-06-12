@@ -14,7 +14,7 @@ concurrency: ci-${{ github.ref }}
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.update-api != '' }} # the current upstream API definitions are expected to fail the test
+    continue-on-error: false
     strategy:
       fail-fast: false
       max-parallel: 1

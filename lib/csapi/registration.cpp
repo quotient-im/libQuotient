@@ -18,7 +18,8 @@ RegisterJob::RegisterJob(const QString& kind,
                          const QString& username, const QString& password,
                          const QString& deviceId,
                          const QString& initialDeviceDisplayName,
-                         Omittable<bool> inhibitLogin)
+                         Omittable<bool> inhibitLogin,
+                         Omittable<bool> refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("RegisterJob"),
               makePath("/_matrix/client/v3", "/register"),
               queryToRegister(kind), {}, false)
@@ -31,6 +32,7 @@ RegisterJob::RegisterJob(const QString& kind,
     addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"),
                          initialDeviceDisplayName);
     addParam<IfNotEmpty>(_data, QStringLiteral("inhibit_login"), inhibitLogin);
+    addParam<IfNotEmpty>(_data, QStringLiteral("refresh_token"), refreshToken);
     setRequestData(std::move(_data));
     addExpectedKey("user_id");
 }

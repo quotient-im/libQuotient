@@ -7,8 +7,8 @@
 using namespace Quotient;
 
 auto queryToGetSpaceHierarchy(Omittable<bool> suggestedOnly,
-                              Omittable<double> limit,
-                              Omittable<double> maxDepth, const QString& from)
+                              Omittable<int> limit, Omittable<int> maxDepth,
+                              const QString& from)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("suggested_only"), suggestedOnly);
@@ -20,8 +20,8 @@ auto queryToGetSpaceHierarchy(Omittable<bool> suggestedOnly,
 
 QUrl GetSpaceHierarchyJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                           Omittable<bool> suggestedOnly,
-                                          Omittable<double> limit,
-                                          Omittable<double> maxDepth,
+                                          Omittable<int> limit,
+                                          Omittable<int> maxDepth,
                                           const QString& from)
 {
     return BaseJob::makeRequestUrl(
@@ -32,8 +32,8 @@ QUrl GetSpaceHierarchyJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
 
 GetSpaceHierarchyJob::GetSpaceHierarchyJob(const QString& roomId,
                                            Omittable<bool> suggestedOnly,
-                                           Omittable<double> limit,
-                                           Omittable<double> maxDepth,
+                                           Omittable<int> limit,
+                                           Omittable<int> maxDepth,
                                            const QString& from)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetSpaceHierarchyJob"),
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/hierarchy"),

@@ -21,7 +21,8 @@ LoginJob::LoginJob(const QString& type,
                    const Omittable<UserIdentifier>& identifier,
                    const QString& password, const QString& token,
                    const QString& deviceId,
-                   const QString& initialDeviceDisplayName)
+                   const QString& initialDeviceDisplayName,
+                   Omittable<bool> refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"),
               makePath("/_matrix/client/v3", "/login"), false)
 {
@@ -33,5 +34,6 @@ LoginJob::LoginJob(const QString& type,
     addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
     addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"),
                          initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_data, QStringLiteral("refresh_token"), refreshToken);
     setRequestData(std::move(_data));
 }
