@@ -41,7 +41,7 @@ and bundle it with your application.
 - Qt 5 (either Open Source or Commercial), 5.12 or higher
 - CMake 3.16 or newer (from your package management system or
   [the official website](https://cmake.org/download/))
-- A C++ toolchain with complete (as much as possible) C++17 and basic C++20:
+- A C++ toolchain with that supports at least some subset of C++20:
   - GCC 10 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported.
 - Any build system that works with CMake should be fine:
