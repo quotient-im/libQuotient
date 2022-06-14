@@ -14,14 +14,14 @@ concurrency: ci-${{ github.ref }}
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
-    continue-on-error: false
+    continue-on-error: ${{ matrix.qt-version != '5.15.2' }} # Qt 6 will fail for now
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
         os: [ ubuntu-20.04, macos-10.15 ]
         compiler: [ Clang ] # GCC builds are added individually below
-        qt-version: [ '5.12.12' ]
+        qt-version: [ '5.15.2', '6.3.1' ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '', e2ee ]
         update-api: [ '', update-api ]
@@ -29,6 +29,8 @@ jobs:
         platform: [ '' ]
         qt-arch: [ '' ]
         exclude:
+        - qt-version: '6.3.1'
+          update-api: update-api
         - os: windows-2019
           e2ee: e2ee # Not supported by the current CI script
         - os: macos-10.15
@@ -36,23 +38,23 @@ jobs:
         include:
         - os: ubuntu-latest
           compiler: GCC
-          qt-version: '5.12.12'
+          qt-version: '5.15.2'
           e2ee: e2ee
           sonar: sonar
         - os: ubuntu-20.04
           compiler: GCC
-          qt-version: '5.12.12'
+          qt-version: '5.15.2'
           e2ee: e2ee
           update-api: update-api
         - os: windows-2019
           compiler: MSVC
           platform: x64
-          qt-version: '5.12.12'
+          qt-version: '5.15.2'
           qt-arch: win64_msvc2019_64
         - os: windows-2019
           compiler: MSVC
           platform: x64
-          qt-version: '5.12.12'
+          qt-version: '5.15.2'
           qt-arch: win64_msvc2019_64
           update-api: update-api
 
