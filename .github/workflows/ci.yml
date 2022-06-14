@@ -48,12 +48,12 @@ jobs:
           compiler: MSVC
           platform: x64
           qt-version: '5.12.12'
-          qt-arch: win64_msvc2017_64
+          qt-arch: win64_msvc2019_64
         - os: windows-2019
           compiler: MSVC
           platform: x64
           qt-version: '5.12.12'
-          qt-arch: win64_msvc2017_64
+          qt-arch: win64_msvc2019_64
           update-api: update-api
 
     env:
@@ -72,7 +72,7 @@ jobs:
         key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2.11.1
+      uses: jurplel/install-qt-action@v2.14.0
       with:
         version: ${{ matrix.qt-version }}
         arch: ${{ matrix.qt-arch }}
@@ -192,7 +192,7 @@ jobs:
 
     - name: Initialize CodeQL tools
       if: env.CODEQL_ANALYSIS
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: cpp
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -235,7 +235,7 @@ jobs:
 
     - name: Perform CodeQL analysis
       if: env.CODEQL_ANALYSIS
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
 
     - name: Run sonar-scanner
       if: matrix.sonar != ''
