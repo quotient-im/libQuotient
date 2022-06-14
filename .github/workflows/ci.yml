@@ -20,43 +20,59 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ ubuntu-20.04, macos-10.15 ]
-        compiler: [ Clang ] # GCC builds are added individually below
         qt-version: [ '5.15.2', '6.3.1' ]
+        compiler: [ LLVM ]
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '', e2ee ]
         update-api: [ '', update-api ]
-        sonar: [ '' ]
+        static-analysis: [ '' ]
         platform: [ '' ]
         qt-arch: [ '' ]
         exclude:
         - qt-version: '6.3.1'
-          update-api: update-api
-        - os: windows-2019
-          e2ee: e2ee # Not supported by the current CI script
-        - os: macos-10.15
-          e2ee: e2ee # Missing OpenSSL
-        include:
-        - os: ubuntu-latest
-          compiler: GCC
-          qt-version: '5.15.2'
-          e2ee: e2ee
-          sonar: sonar
+          update-api: update-api # Generated code is not specific to Qt version
         - os: ubuntu-20.04
-          compiler: GCC
+          e2ee: e2ee # Will be re-added with static analysis below
+        # TODO: Enable E2EE on Windows and macOS
+        - os: macos-10.15
+          e2ee: e2ee
+        include:
+        - os: windows-2019
           qt-version: '5.15.2'
+          compiler: MSVC
+          platform: x64
+          qt-arch: win64_msvc2019_64
+        - os: ubuntu-20.04
+          qt-version: '5.15.2'
+          compiler: LLVM
+          e2ee: e2ee
+          static-analysis: codeql
+        - os: ubuntu-latest
+          qt-version: '5.15.2'
+          compiler: GCC
+          e2ee: e2ee
+          static-analysis: sonar
+        - os: ubuntu-20.04
+          qt-version: '5.15.2'
+          compiler: GCC
           e2ee: e2ee
           update-api: update-api
-        - os: windows-2019
-          compiler: MSVC
-          platform: x64
+        - os: ubuntu-20.04
           qt-version: '5.15.2'
-          qt-arch: win64_msvc2019_64
-        - os: windows-2019
-          compiler: MSVC
-          platform: x64
-          qt-version: '5.15.2'
-          qt-arch: win64_msvc2019_64
+          compiler: LLVM
           update-api: update-api
+        - os: windows-2019
+          qt-version: '6.3.1'
+          compiler: MSVC
+          # e2ee: e2ee # TODO
+          platform: x64
+          qt-arch: win64_msvc2019_64
+        - os: windows-2019
+          qt-version: '5.15.2'
+          compiler: MSVC
+          update-api: update-api
+          platform: x64
+          qt-arch: win64_msvc2019_64
 
     env:
       SONAR_SERVER_URL: 'https://sonarcloud.io'
@@ -65,6 +81,47 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+
+    - name: Setup build environment
+      run: |
+        if [ '${{ matrix.compiler }}' == 'GCC' ]; then
+            echo "CC=gcc-10" >>$GITHUB_ENV
+            echo "CXX=g++-10" >>$GITHUB_ENV
+        elif [[ '${{ runner.os }}' != 'Windows' ]]; then
+            echo "CC=clang" >>$GITHUB_ENV
+            echo "CXX=clang++" >>$GITHUB_ENV
+        fi
+        if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
+            VERSION="$(git describe --tags)"
+        elif [ '${{ github.ref }}' == 'refs/heads/master' ]; then
+            VERSION="ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
+        else
+            VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
+        fi
+
+        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+
+        CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                    -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
+                    -DCMAKE_INSTALL_PREFIX=~/.local \
+                    -DCMAKE_PREFIX_PATH=~/.local \
+                    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+
+        if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
+            mkdir -p $HOME/.sonar
+            CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
+        fi
+        echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
+
+        if [[ '${{ runner.os }}' != 'Windows' ]]; then
+            BIN_DIR=/bin
+            echo "LIB_PATH=$HOME/.local/lib" >>$GITHUB_ENV
+        fi
+        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
+        echo "~/.local$BIN_DIR" >>$GITHUB_PATH
+
+        cmake -E make_directory ${{ runner.workspace }}/build
+        echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
     - name: Cache Qt
       id: cache-qt
@@ -84,69 +141,24 @@ jobs:
       if: ${{ !startsWith(matrix.os, 'ubuntu') }}
       uses: seanmiddleditch/gha-setup-ninja@v3
 
-    - name: Install Ninja and Valgrind (Linux)
+    - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get -qq install ninja-build valgrind
+        if [ -n "${{ matrix.e2ee }}" ]; then
+            EXTRA_DEPS="libssl-dev libolm-dev"
+            echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
+        fi
+        sudo apt-get -qq install ninja-build valgrind $EXTRA_DEPS
         echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
 
-    - name: Setup build environment
-      run: |
-        if [ "${{ matrix.compiler }}" == "GCC" ]; then
-            CXX_VERSION_POSTFIX='-10'
-            echo "CC=gcc$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
-            echo "CXX=g++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
-        elif [[ '${{ matrix.compiler }}' == 'Clang' ]]; then
-            if [[ '${{ runner.os }}' == 'Linux' ]]; then
-                CXX_VERSION_POSTFIX='-11'
-                # Do CodeQL analysis on one of Linux branches
-                echo "CODEQL_ANALYSIS=true" >>$GITHUB_ENV
-            fi
-            echo "CC=clang$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
-            echo "CXX=clang++$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
-        fi
-        if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
-            VERSION="$(git describe --tags)"
-        elif [ '${{ github.ref }}' == 'refs/heads/master' ]; then
-            VERSION="ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
-        else
-            VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
-        fi
-        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/${{ matrix.compiler }}" >>$GITHUB_ENV
-
-        # Build libQuotient as a shared library across platforms but also
-        # check the static configuration somewhere
-        CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                    -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
-                    -DCMAKE_INSTALL_PREFIX=~/.local \
-                    -DCMAKE_PREFIX_PATH=~/.local \
-                    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
-
-        if [ -n "${{ matrix.sonar }}" ]; then
-            mkdir -p $HOME/.sonar
-            CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
-            echo "COV=gcov$CXX_VERSION_POSTFIX" >>$GITHUB_ENV
-        fi
-        echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
-
-        if [[ '${{ runner.os }}' != 'Windows' ]]; then
-            BIN_DIR=/bin
-            echo "LIB_PATH=$HOME/.local/lib" >>$GITHUB_ENV
-        fi
-        echo "BIN_DIR=$BIN_DIR" >>$GITHUB_ENV
-        echo "~/.local$BIN_DIR" >>$GITHUB_PATH
-
-        cmake -E make_directory ${{ runner.workspace }}/build
-        echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
-
-    - name: Setup MSVC environment
+    - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
       if: matrix.compiler == 'MSVC'
       with:
         arch: ${{ matrix.platform }}
 
     - name: Download and set up Sonar Cloud tools
-      if: matrix.sonar != ''
+      if: matrix.static-analysis == 'sonar'
       env:
         SONAR_SCANNER_VERSION: 4.6.2.2472
       run: |
@@ -158,20 +170,6 @@ jobs:
         echo "BUILD_WRAPPER=$HOME/.sonar/build-wrapper-linux-x86/build-wrapper-linux* --out-dir $BUILD_PATH/sonar" >>$GITHUB_ENV
         unzip -o sonar-scanner-cli*.zip
         popd
-
-    - name: Install OpenSSL
-      if: ${{ contains(matrix.os, 'ubuntu') && matrix.e2ee }}
-      run: |
-        sudo apt-get install libssl-dev
-
-    - name: Build and install olm
-      if: matrix.e2ee
-      working-directory: ${{ runner.workspace }}
-      run: |
-        git clone https://gitlab.matrix.org/matrix-org/olm.git
-        cmake -S olm -B build/olm $CMAKE_ARGS
-        cmake --build build/olm --target install
-        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
 
     - name: Build and install QtKeychain
       run: |
@@ -193,7 +191,7 @@ jobs:
         echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
 
     - name: Initialize CodeQL tools
-      if: env.CODEQL_ANALYSIS
+      if: matrix.static-analysis == 'codeql'
       uses: github/codeql-action/init@v2
       with:
         languages: cpp
@@ -236,18 +234,18 @@ jobs:
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
 
     - name: Perform CodeQL analysis
-      if: env.CODEQL_ANALYSIS
+      if: matrix.static-analysis == 'codeql'
       uses: github/codeql-action/analyze@v2
 
     - name: Run sonar-scanner
-      if: matrix.sonar != ''
+      if: matrix.static-analysis == 'sonar'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH -name '*.gcda' -print0 \
-            | xargs -0 $COV -s $GITHUB_WORKSPACE -pr
+            | xargs -0 gcov -s $GITHUB_WORKSPACE -pr
         # Coverage of the test source code is not tracked, as it is always 100%
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
