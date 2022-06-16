@@ -24,16 +24,19 @@ RegisterJob::RegisterJob(const QString& kind,
               makePath("/_matrix/client/v3", "/register"),
               queryToRegister(kind), {}, false)
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
-    addParam<IfNotEmpty>(_data, QStringLiteral("username"), username);
-    addParam<IfNotEmpty>(_data, QStringLiteral("password"), password);
-    addParam<IfNotEmpty>(_data, QStringLiteral("device_id"), deviceId);
-    addParam<IfNotEmpty>(_data, QStringLiteral("initial_device_display_name"),
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("username"), username);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("password"), password);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_id"), deviceId);
+    addParam<IfNotEmpty>(_dataJson,
+                         QStringLiteral("initial_device_display_name"),
                          initialDeviceDisplayName);
-    addParam<IfNotEmpty>(_data, QStringLiteral("inhibit_login"), inhibitLogin);
-    addParam<IfNotEmpty>(_data, QStringLiteral("refresh_token"), refreshToken);
-    setRequestData(std::move(_data));
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("inhibit_login"),
+                         inhibitLogin);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"),
+                         refreshToken);
+    setRequestData({ _dataJson });
     addExpectedKey("user_id");
 }
 
@@ -43,7 +46,7 @@ RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(
               makePath("/_matrix/client/v3", "/register/email/requestToken"),
               false)
 {
-    setRequestData(RequestData(toJson(body)));
+    setRequestData({ toJson(body) });
 }
 
 RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
@@ -52,7 +55,7 @@ RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
               makePath("/_matrix/client/v3", "/register/msisdn/requestToken"),
               false)
 {
-    setRequestData(RequestData(toJson(body)));
+    setRequestData({ toJson(body) });
 }
 
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
@@ -61,11 +64,12 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
     : BaseJob(HttpVerb::Post, QStringLiteral("ChangePasswordJob"),
               makePath("/_matrix/client/v3", "/account/password"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("new_password"), newPassword);
-    addParam<IfNotEmpty>(_data, QStringLiteral("logout_devices"), logoutDevices);
-    addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("new_password"), newPassword);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("logout_devices"),
+                         logoutDevices);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    setRequestData({ _dataJson });
 }
 
 RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
@@ -76,7 +80,7 @@ RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
                        "/account/password/email/requestToken"),
               false)
 {
-    setRequestData(RequestData(toJson(body)));
+    setRequestData({ toJson(body) });
 }
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
@@ -87,7 +91,7 @@ RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
                        "/account/password/msisdn/requestToken"),
               false)
 {
-    setRequestData(RequestData(toJson(body)));
+    setRequestData({ toJson(body) });
 }
 
 DeactivateAccountJob::DeactivateAccountJob(
@@ -95,10 +99,10 @@ DeactivateAccountJob::DeactivateAccountJob(
     : BaseJob(HttpVerb::Post, QStringLiteral("DeactivateAccountJob"),
               makePath("/_matrix/client/v3", "/account/deactivate"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
-    addParam<IfNotEmpty>(_data, QStringLiteral("id_server"), idServer);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("id_server"), idServer);
+    setRequestData({ _dataJson });
     addExpectedKey("id_server_unbind_result");
 }
 

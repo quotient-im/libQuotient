@@ -12,11 +12,11 @@ JoinRoomByIdJob::JoinRoomByIdJob(
     : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomByIdJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/join"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("third_party_signed"),
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("third_party_signed"),
                          thirdPartySigned);
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
     addExpectedKey("room_id");
 }
 
@@ -35,10 +35,10 @@ JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias,
               makePath("/_matrix/client/v3", "/join/", roomIdOrAlias),
               queryToJoinRoom(serverName))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("third_party_signed"),
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("third_party_signed"),
                          thirdPartySigned);
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
     addExpectedKey("room_id");
 }

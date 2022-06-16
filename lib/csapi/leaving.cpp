@@ -10,9 +10,9 @@ LeaveRoomJob::LeaveRoomJob(const QString& roomId, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("LeaveRoomJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/leave"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
 }
 
 QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)

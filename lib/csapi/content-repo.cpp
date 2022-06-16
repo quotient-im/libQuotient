@@ -20,7 +20,7 @@ UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
               queryToUploadContent(filename))
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
-    setRequestData(RequestData(content));
+    setRequestData({ content });
     addExpectedKey("content_uri");
 }
 

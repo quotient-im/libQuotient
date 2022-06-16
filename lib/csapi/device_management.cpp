@@ -34,9 +34,9 @@ UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId,
     : BaseJob(HttpVerb::Put, QStringLiteral("UpdateDeviceJob"),
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("display_name"), displayName);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("display_name"), displayName);
+    setRequestData({ _dataJson });
 }
 
 DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId,
@@ -44,9 +44,9 @@ DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId,
     : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteDeviceJob"),
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    setRequestData({ _dataJson });
 }
 
 DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices,
@@ -54,8 +54,8 @@ DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices,
     : BaseJob(HttpVerb::Post, QStringLiteral("DeleteDevicesJob"),
               makePath("/_matrix/client/v3", "/delete_devices"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("devices"), devices);
-    addParam<IfNotEmpty>(_data, QStringLiteral("auth"), auth);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("devices"), devices);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    setRequestData({ _dataJson });
 }

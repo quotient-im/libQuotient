@@ -12,11 +12,13 @@ UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadKeysJob"),
               makePath("/_matrix/client/v3", "/keys/upload"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("device_keys"), deviceKeys);
-    addParam<IfNotEmpty>(_data, QStringLiteral("one_time_keys"), oneTimeKeys);
-    addParam<IfNotEmpty>(_data, QStringLiteral("fallback_keys"), fallbackKeys);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("one_time_keys"),
+                         oneTimeKeys);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("fallback_keys"),
+                         fallbackKeys);
+    setRequestData({ _dataJson });
     addExpectedKey("one_time_key_counts");
 }
 
@@ -25,11 +27,11 @@ QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
               makePath("/_matrix/client/v3", "/keys/query"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
-    addParam<>(_data, QStringLiteral("device_keys"), deviceKeys);
-    addParam<IfNotEmpty>(_data, QStringLiteral("token"), token);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
+    addParam<>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("token"), token);
+    setRequestData({ _dataJson });
 }
 
 ClaimKeysJob::ClaimKeysJob(
@@ -38,10 +40,10 @@ ClaimKeysJob::ClaimKeysJob(
     : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
               makePath("/_matrix/client/v3", "/keys/claim"))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
-    addParam<>(_data, QStringLiteral("one_time_keys"), oneTimeKeys);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
+    addParam<>(_dataJson, QStringLiteral("one_time_keys"), oneTimeKeys);
+    setRequestData({ _dataJson });
     addExpectedKey("one_time_keys");
 }
 

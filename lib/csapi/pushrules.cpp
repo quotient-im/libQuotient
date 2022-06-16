@@ -69,11 +69,11 @@ SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind,
                        "/", ruleId),
               queryToSetPushRule(before, after))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("actions"), actions);
-    addParam<IfNotEmpty>(_data, QStringLiteral("conditions"), conditions);
-    addParam<IfNotEmpty>(_data, QStringLiteral("pattern"), pattern);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("actions"), actions);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("conditions"), conditions);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("pattern"), pattern);
+    setRequestData({ _dataJson });
 }
 
 QUrl IsPushRuleEnabledJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
@@ -103,9 +103,9 @@ SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope,
               makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind,
                        "/", ruleId, "/enabled"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("enabled"), enabled);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("enabled"), enabled);
+    setRequestData({ _dataJson });
 }
 
 QUrl GetPushRuleActionsJob::makeRequestUrl(QUrl baseUrl, const QString& scope,
@@ -136,7 +136,7 @@ SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope,
               makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind,
                        "/", ruleId, "/actions"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("actions"), actions);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("actions"), actions);
+    setRequestData({ _dataJson });
 }

@@ -15,7 +15,7 @@ UpdateAppserviceRoomDirectoryVisibilityJob::
               makePath("/_matrix/client/v3", "/directory/list/appservice/",
                        networkId, "/", roomId))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("visibility"), visibility);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("visibility"), visibility);
+    setRequestData({ _dataJson });
 }

@@ -27,10 +27,10 @@ SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/",
                        roomId, "/tags/", tag))
 {
-    QJsonObject _data;
-    fillJson(_data, additionalProperties);
-    addParam<IfNotEmpty>(_data, QStringLiteral("order"), order);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    fillJson(_dataJson, additionalProperties);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("order"), order);
+    setRequestData({ _dataJson });
 }
 
 QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId,

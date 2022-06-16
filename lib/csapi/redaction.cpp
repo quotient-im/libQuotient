@@ -12,7 +12,7 @@ RedactEventJob::RedactEventJob(const QString& roomId, const QString& eventId,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/redact/",
                        eventId, "/", txnId))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
 }

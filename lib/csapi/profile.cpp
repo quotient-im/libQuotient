@@ -12,9 +12,9 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId,
               makePath("/_matrix/client/v3", "/profile/", userId,
                        "/displayname"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("displayname"), displayname);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("displayname"), displayname);
+    setRequestData({ _dataJson });
 }
 
 QUrl GetDisplayNameJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
@@ -35,9 +35,9 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetAvatarUrlJob"),
               makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("avatar_url"), avatarUrl);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("avatar_url"), avatarUrl);
+    setRequestData({ _dataJson });
 }
 
 QUrl GetAvatarUrlJob::makeRequestUrl(QUrl baseUrl, const QString& userId)

@@ -126,7 +126,7 @@ public:
     /// obtain a new access token when it expires by calling the
     /// `/refresh` endpoint.
     ///
-    /// Omitted if the `inhibit_login` option is false.
+    /// Omitted if the `inhibit_login` option is true.
     QString refreshToken() const
     {
         return loadFromJson<QString>("refresh_token"_ls);
@@ -139,7 +139,7 @@ public:
     /// to obtain a new access token. If not given, the client can
     /// assume that the access token will not expire.
     ///
-    /// Omitted if the `inhibit_login` option is false.
+    /// Omitted if the `inhibit_login` option is true.
     Omittable<int> expiresInMs() const
     {
         return loadFromJson<Omittable<int>>("expires_in_ms"_ls);

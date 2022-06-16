@@ -11,10 +11,10 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
     : BaseJob(HttpVerb::Put, QStringLiteral("SetPresenceJob"),
               makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("presence"), presence);
-    addParam<IfNotEmpty>(_data, QStringLiteral("status_msg"), statusMsg);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("presence"), presence);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("status_msg"), statusMsg);
+    setRequestData({ _dataJson });
 }
 
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)

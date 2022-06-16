@@ -12,10 +12,10 @@ InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
     : BaseJob(HttpVerb::Post, QStringLiteral("InviteBy3PIDJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/invite"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("id_server"), idServer);
-    addParam<>(_data, QStringLiteral("id_access_token"), idAccessToken);
-    addParam<>(_data, QStringLiteral("medium"), medium);
-    addParam<>(_data, QStringLiteral("address"), address);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("id_server"), idServer);
+    addParam<>(_dataJson, QStringLiteral("id_access_token"), idAccessToken);
+    addParam<>(_dataJson, QStringLiteral("medium"), medium);
+    addParam<>(_dataJson, QStringLiteral("address"), address);
+    setRequestData({ _dataJson });
 }

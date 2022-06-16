@@ -11,8 +11,8 @@ InviteUserJob::InviteUserJob(const QString& roomId, const QString& userId,
     : BaseJob(HttpVerb::Post, QStringLiteral("InviteUserJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/invite"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("user_id"), userId);
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
 }

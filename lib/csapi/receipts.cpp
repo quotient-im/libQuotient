@@ -13,5 +13,5 @@ PostReceiptJob::PostReceiptJob(const QString& roomId, const QString& receiptType
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/receipt/",
                        receiptType, "/", eventId))
 {
-    setRequestData(RequestData(toJson(receipt)));
+    setRequestData({ toJson(receipt) });
 }

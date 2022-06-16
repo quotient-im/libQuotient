@@ -25,15 +25,16 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
               makePath("/_matrix/client/v3", "/pushers/set"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("pushkey"), pushkey);
-    addParam<>(_data, QStringLiteral("kind"), kind);
-    addParam<>(_data, QStringLiteral("app_id"), appId);
-    addParam<>(_data, QStringLiteral("app_display_name"), appDisplayName);
-    addParam<>(_data, QStringLiteral("device_display_name"), deviceDisplayName);
-    addParam<IfNotEmpty>(_data, QStringLiteral("profile_tag"), profileTag);
-    addParam<>(_data, QStringLiteral("lang"), lang);
-    addParam<>(_data, QStringLiteral("data"), data);
-    addParam<IfNotEmpty>(_data, QStringLiteral("append"), append);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("pushkey"), pushkey);
+    addParam<>(_dataJson, QStringLiteral("kind"), kind);
+    addParam<>(_dataJson, QStringLiteral("app_id"), appId);
+    addParam<>(_dataJson, QStringLiteral("app_display_name"), appDisplayName);
+    addParam<>(_dataJson, QStringLiteral("device_display_name"),
+               deviceDisplayName);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("profile_tag"), profileTag);
+    addParam<>(_dataJson, QStringLiteral("lang"), lang);
+    addParam<>(_dataJson, QStringLiteral("data"), data);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("append"), append);
+    setRequestData({ _dataJson });
 }

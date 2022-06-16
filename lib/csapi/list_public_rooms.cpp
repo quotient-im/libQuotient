@@ -26,9 +26,9 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomVisibilityOnDirectoryJob"),
               makePath("/_matrix/client/v3", "/directory/list/room/", roomId))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("visibility"), visibility);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("visibility"), visibility);
+    setRequestData({ _dataJson });
 }
 
 auto queryToGetPublicRooms(Omittable<int> limit, const QString& since,
@@ -77,14 +77,14 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server,
               makePath("/_matrix/client/v3", "/publicRooms"),
               queryToQueryPublicRooms(server))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("limit"), limit);
-    addParam<IfNotEmpty>(_data, QStringLiteral("since"), since);
-    addParam<IfNotEmpty>(_data, QStringLiteral("filter"), filter);
-    addParam<IfNotEmpty>(_data, QStringLiteral("include_all_networks"),
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("limit"), limit);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("since"), since);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("filter"), filter);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("include_all_networks"),
                          includeAllNetworks);
-    addParam<IfNotEmpty>(_data, QStringLiteral("third_party_instance_id"),
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("third_party_instance_id"),
                          thirdPartyInstanceId);
-    setRequestData(std::move(_data));
+    setRequestData({ _dataJson });
     addExpectedKey("chunk");
 }

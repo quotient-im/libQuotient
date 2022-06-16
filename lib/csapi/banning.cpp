@@ -11,10 +11,10 @@ BanJob::BanJob(const QString& roomId, const QString& userId,
     : BaseJob(HttpVerb::Post, QStringLiteral("BanJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/ban"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("user_id"), userId);
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
 }
 
 UnbanJob::UnbanJob(const QString& roomId, const QString& userId,
@@ -22,8 +22,8 @@ UnbanJob::UnbanJob(const QString& roomId, const QString& userId,
     : BaseJob(HttpVerb::Post, QStringLiteral("UnbanJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/unban"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("user_id"), userId);
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("user_id"), userId);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
 }

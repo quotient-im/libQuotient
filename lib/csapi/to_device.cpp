@@ -13,7 +13,7 @@ SendToDeviceJob::SendToDeviceJob(
               makePath("/_matrix/client/v3", "/sendToDevice/", eventType, "/",
                        txnId))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("messages"), messages);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("messages"), messages);
+    setRequestData({ _dataJson });
 }

@@ -10,8 +10,9 @@ RefreshJob::RefreshJob(const QString& refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("RefreshJob"),
               makePath("/_matrix/client/v3", "/refresh"), false)
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("refresh_token"), refreshToken);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"),
+                         refreshToken);
+    setRequestData({ _dataJson });
     addExpectedKey("access_token");
 }
