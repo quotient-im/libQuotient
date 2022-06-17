@@ -92,7 +92,7 @@ public:
     // state is Invited. The spec mandates to keep Invited room state
     // separately; specifically, we should keep objects for Invite and
     // Leave state of the same room if the two happen to co-exist.
-    QHash<QPair<QString, bool>, Room*> roomMap;
+    QHash<std::pair<QString, bool>, Room*> roomMap;
     /// Mapping from serverparts to alias/room id mappings,
     /// as of the last sync
     QHash<QString, QString> roomAliasMap;
@@ -1707,7 +1707,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
     // If joinState is empty, all joinState == comparisons below are false.
-    const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
+    const std::pair roomKey { id, joinState == JoinState::Invite };
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room) {
         // Leave is a special case because in transition (5a) (see the .h file)

@@ -118,7 +118,7 @@ public:
     // A map from evtId to a map of relation type to a vector of event
     // pointers. Not using QMultiHash, because we want to quickly return
     // a number of relations for a given event without enumerating them.
-    QHash<QPair<QString, QString>, RelatedEvents> relations;
+    QHash<std::pair<QString, QString>, RelatedEvents> relations;
     QString displayname;
     Avatar avatar;
     QHash<QString, Notification> notifications;
@@ -2687,7 +2687,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
     }
     if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
         const auto& targetEvtId = reaction->relation().eventId;
-        const QPair lookupKey { targetEvtId, EventRelation::AnnotationType };
+        const std::pair lookupKey { targetEvtId, EventRelation::AnnotationType };
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
             emit q->updatedEvent(targetEvtId);

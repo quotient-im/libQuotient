@@ -31,8 +31,9 @@ class QUOTIENT_API AccountRegistry : public QAbstractListModel,
     /// Can be used to inform the user or to show a login screen if size() == 0 and no accounts are loaded
     Q_PROPERTY(QStringList accountsLoading READ accountsLoading NOTIFY accountsLoadingChanged)
 public:
-    using const_iterator = QVector::const_iterator;
-    using const_reference = QVector::const_reference;
+    using vector_t = QVector<Connection*>;
+    using const_iterator = vector_t::const_iterator;
+    using const_reference = vector_t::const_reference;
 
     enum EventRoles {
         AccountRole = Qt::UserRole + 1,
@@ -42,24 +43,24 @@ public:
     [[deprecated("Use Accounts variable instead")]] //
     static AccountRegistry& instance();
 
-    // Expose most of QVector's const-API but only provide add() and drop()
+    // Expose most of vector_t's const-API but only provide add() and drop()
     // for changing it. In theory other changing operations could be supported
     // too; but then boilerplate begin/end*() calls has to be tucked into each
     // and this class gives no guarantees on the order of entries, so why care.
 
-    const QVector<Connection*>& accounts() const { return *this; }
+    const vector_t& accounts() const { return *this; }
     void add(Connection* a);
     void drop(Connection* a);
-    const_iterator begin() const { return QVector::begin(); }
-    const_iterator end() const { return QVector::end(); }
-    const_reference front() const { return QVector::front(); }
-    const_reference back() const { return QVector::back(); }
+    const_iterator begin() const { return vector_t::begin(); }
+    const_iterator end() const { return vector_t::end(); }
+    const_reference front() const { return vector_t::front(); }
+    const_reference back() const { return vector_t::back(); }
     bool isLoggedIn(const QString& userId) const;
     Connection* get(const QString& userId);
 
-    using QVector::isEmpty, QVector::empty;
-    using QVector::size, QVector::count, QVector::capacity;
-    using QVector::cbegin, QVector::cend, QVector::contains;
+    using vector_t::isEmpty, vector_t::empty;
+    using vector_t::size, vector_t::count, vector_t::capacity;
+    using vector_t::cbegin, vector_t::cend, vector_t::contains;
 
     // QAbstractItemModel interface implementation
 
@@ -88,4 +89,4 @@ private:
 inline QUOTIENT_API AccountRegistry Accounts {};
 
 inline AccountRegistry& AccountRegistry::instance() { return Accounts; }
-}
+} // namespace Quotient
