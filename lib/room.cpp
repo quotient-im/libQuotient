@@ -2057,10 +2057,11 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             it->setDeparted();
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
-        Room::connect(call, &BaseJob::failure, q,
-                      std::bind(&Room::Private::onEventSendingFailure, this,
-                                txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId] {
+        Room::connect(call, &BaseJob::result, q, [this, txnId, call] {
+            if (!call->status().good()) {
+                onEventSendingFailure(txnId, call);
+                return;
+            }
             auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end()) {
                 if (it->deliveryStatus() != EventStatus::ReachedServer) {
