@@ -77,7 +77,7 @@ option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 if (BUILD_WITH_QT6)
     set(QtMinVersion "6.0")
 else()
-    set(QtMinVersion "5.12")
+    set(QtMinVersion "5.15")
     set(QtExtraModules "Multimedia") # See #483
 endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"

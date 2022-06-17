@@ -154,14 +154,7 @@ just don't bankrupt us with it. Refactoring is welcome.
 
 ### Code style and formatting
 
-As of Quotient 0.7, the C++ standard for newly written code is C++20 with a few
-restrictions, notably:
-* enumerators and slots cannot have `[[attributes]]` because moc from Qt 5.12
-  chokes on them - this will be lifted when we move on to Qt 5.13 for the oldest
-  supported version, in the meantime use `Q_DECL_DEPRECATED` and similar Qt
-  macros - they expand to nothing when the code is passed to moc.
-* explicit lists in lambda captures are preferred over `[=]`; note that C++20
-  deprecates implicit `this` capture in `[=]`.
+As of Quotient 0.7, the C++ standard for newly written code is C++20.
 
 The code style is defined by `.clang-format`, and in general, all C++ files
 should follow it. Files with minor deviations from the defined style are still

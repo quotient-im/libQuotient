@@ -26,19 +26,17 @@ If you find what looks like a security issue, please use instructions
 in SECURITY.md.
 
 ## Getting and using libQuotient
-Depending on your platform, the library can come as a separate package.
-Recent releases of Debian and openSUSE, e.g., already have the package
-(under the old name). If your Linux repo doesn't provide binary package
-(either libqmatrixclient - older - or libquotient - newer), or you're
-on Windows or macOS, your best bet is to build the library from the source
-and bundle it with your application.
+Depending on your platform, the library can be obtained from a package
+management system. Recent releases of Debian and openSUSE, e.g., already have
+it. Alternatively, just build the library from the source and bundle it with
+your application, as described below.
 
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions are known to work;
   mobile operating systems where Qt is available might work too)
-  - Recent enough Linux examples: Debian Bullseye; Fedora 33; openSUSE Leap 15.3;
-    Ubuntu Focal Fossa.
-- Qt 5 (either Open Source or Commercial), 5.12 or higher
+  - Recent enough Linux examples: Debian Bullseye; Fedora 35;
+    openSUSE Leap 15.4; Ubuntu 22.04 LTS.
+- Qt 5 (either Open Source or Commercial), 5.15 or higher
 - CMake 3.16 or newer (from your package management system or
   [the official website](https://cmake.org/download/))
 - A C++ toolchain with that supports at least some subset of C++20:

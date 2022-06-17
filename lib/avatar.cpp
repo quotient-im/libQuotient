@@ -39,7 +39,7 @@ public:
 
     // The below are related to image caching, hence mutable
     mutable QImage _originalImage;
-    mutable std::vector<QPair<QSize, QImage>> _scaledImages;
+    mutable std::vector<std::pair<QSize, QImage>> _scaledImages;
     mutable QSize _requestedSize;
     mutable enum { Unknown, Cache, Network, Banned } _imageSource = Unknown;
     mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
@@ -124,9 +124,9 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
                          });
     }
 
-    for (const auto& p : _scaledImages)
-        if (p.first == size)
-            return p.second;
+    for (const auto& [scaledSize, scaledImage] : _scaledImages)
+        if (scaledSize == size)
+            return scaledImage;
     auto result = _originalImage.isNull()
                       ? QImage()
                       : _originalImage.scaled(size, Qt::KeepAspectRatio,
