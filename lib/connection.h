@@ -133,8 +133,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
 
 public:
-    using UsersToDevicesToEvents =
-        UnorderedMap<QString, UnorderedMap<QString, EventPtr>>;
+    using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
 
     enum RoomVisibility {
         PublishRoom,
@@ -689,7 +688,7 @@ public Q_SLOTS:
     ForgetRoomJob* forgetRoom(const QString& id);
 
     SendToDeviceJob* sendToDevices(const QString& eventType,
-                                   const UsersToDevicesToEvents& eventsMap);
+                                   const UsersToDevicesToContent& contents);
 
     /** \deprecated This method is experimental and may be removed any time */
     SendMessageJob* sendMessage(const QString& roomId, const RoomEvent& event);
