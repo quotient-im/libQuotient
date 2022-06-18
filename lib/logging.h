@@ -44,12 +44,7 @@ inline QDebug formatJson(QDebug debug_object)
 //! Suppress full qualification of enums/QFlags when logging
 inline QDebug terse(QDebug dbg)
 {
-    return
-#if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
-        dbg.setVerbosity(0), dbg;
-#else
-        dbg.verbosity(QDebug::MinimumVerbosity);
-#endif
+    return dbg.verbosity(QDebug::MinimumVerbosity);
 }
 
 inline qint64 profilerMinNsecs()

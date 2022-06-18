@@ -301,16 +301,10 @@ void BaseJob::Private::sendRequest()
                      QNetworkRequest::NoLessSafeRedirectPolicy);
     req.setMaximumRedirectsAllowed(10);
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-    req.setAttribute(
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-        QNetworkRequest::Http2AllowedAttribute
-#else
-        QNetworkRequest::HTTP2AllowedAttribute
-#endif
     // Qt doesn't combine HTTP2 with SSL quite right, occasionally crashing at
     // what seems like an attempt to write to a closed channel. If/when that
     // changes, false should be turned to true below.
-        , false);
+    req.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());

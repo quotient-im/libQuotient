@@ -14,7 +14,7 @@
 namespace Quotient {
 
 namespace EventStatus {
-    QUO_NAMESPACE
+    Q_NAMESPACE_EXPORT(QUOTIENT_API)
 
     /** Special marks an event can assume
      *

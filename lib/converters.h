@@ -188,15 +188,7 @@ inline QDateTime fromJson(const QJsonValue& jv)
     return QDateTime::fromMSecsSinceEpoch(fromJson<qint64>(jv), Qt::UTC);
 }
 
-inline QJsonValue toJson(const QDate& val) {
-    return toJson(
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-        QDateTime(val)
-#else
-        val.startOfDay()
-#endif
-    );
-}
+inline QJsonValue toJson(const QDate& val) { return toJson(val.startOfDay()); }
 template <>
 inline QDate fromJson(const QJsonValue& jv)
 {

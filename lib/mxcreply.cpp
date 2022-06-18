@@ -71,12 +71,6 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
 #endif
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-#define ERROR_SIGNAL errorOccurred
-#else
-#define ERROR_SIGNAL error
-#endif
-
 MxcReply::MxcReply()
     : d(ZeroImpl<Private>())
 {
@@ -88,7 +82,7 @@ MxcReply::MxcReply()
             setError(QNetworkReply::ProtocolInvalidOperationError,
                      BadRequestPhrase);
             setFinished(true);
-            emit ERROR_SIGNAL(QNetworkReply::ProtocolInvalidOperationError);
+            emit errorOccurred(QNetworkReply::ProtocolInvalidOperationError);
             emit finished();
         }, Qt::QueuedConnection);
 }
