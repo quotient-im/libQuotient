@@ -41,15 +41,6 @@
     Q_ENUM_NS_IMPL(Enum)                  \
     Q_FLAG_NS(Flags)
 
-#if __cpp_conditional_explicit >= 201806L
-#define QUO_IMPLICIT explicit(false)
-#else
-#define QUO_IMPLICIT
-#endif
-
-#define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
-    Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
-
 namespace Quotient {
 Q_NAMESPACE_EXPORT(QUOTIENT_API)
 

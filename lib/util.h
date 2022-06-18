@@ -37,6 +37,15 @@ static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all
         QT_WARNING_POP
 #endif
 
+#if __cpp_conditional_explicit >= 201806L
+#define QUO_IMPLICIT explicit(false)
+#else
+#define QUO_IMPLICIT
+#endif
+
+#define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
+    Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
+
 /// \brief Copy an object with slicing
 ///
 /// Unintended slicing is bad, which why there's a C++ Core Guideline that

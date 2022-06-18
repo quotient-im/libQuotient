@@ -8,7 +8,6 @@
 #include "converters.h"
 #include "expected.h"
 #include "qolmerrors.h"
-#include "quotient_common.h"
 
 #include <QtCore/QMetaType>
 #include <variant>
@@ -71,7 +70,7 @@ struct IdentityKeys
 };
 
 //! Struct representing the one-time keys.
-struct QUOTIENT_API UnsignedOneTimeKeys
+struct UnsignedOneTimeKeys
 {
     QHash<QString, QHash<QString, QString>> keys;
 

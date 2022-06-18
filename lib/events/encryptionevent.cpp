@@ -6,8 +6,6 @@
 
 #include "e2ee/e2ee.h"
 
-#include <array>
-
 namespace Quotient {
 static constexpr std::array encryptionStrings { MegolmV1AesSha2AlgoKey };
 
