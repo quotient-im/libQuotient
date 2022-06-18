@@ -9,9 +9,7 @@
 #include <array>
 
 namespace Quotient {
-static const std::array<QString, 1> encryptionStrings = {
-    { MegolmV1AesSha2AlgoKey }
-};
+static constexpr std::array encryptionStrings { MegolmV1AesSha2AlgoKey };
 
 template <>
 struct JsonConverter<EncryptionType> {

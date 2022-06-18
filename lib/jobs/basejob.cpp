@@ -138,9 +138,8 @@ public:
     QTimer timer;
     QTimer retryTimer;
 
-    static constexpr std::array<const JobTimeoutConfig, 3> errorStrategy {
-        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } }
-    };
+    static constexpr auto errorStrategy = std::to_array<const JobTimeoutConfig>(
+        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } });
     int maxRetries = int(errorStrategy.size());
     int retriesTaken = 0;
 
@@ -152,10 +151,8 @@ public:
 
     [[nodiscard]] QString dumpRequest() const
     {
-        // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
-        static const auto verbs =
-            make_array(QStringLiteral("GET"), QStringLiteral("PUT"),
-                       QStringLiteral("POST"), QStringLiteral("DELETE"));
+        static const std::array verbs { "GET"_ls, "PUT"_ls, "POST"_ls,
+                                        "DELETE"_ls };
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % ' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
@@ -748,11 +745,14 @@ QString BaseJob::statusCaption() const
     }
 }
 
-int BaseJob::error() const { return d->status.code; }
+int BaseJob::error() const {
+        return d->status.code; }
 
-QString BaseJob::errorString() const { return d->status.message; }
+QString BaseJob::errorString() const {
+        return d->status.message; }
 
-QUrl BaseJob::errorUrl() const { return d->errorUrl; }
+QUrl BaseJob::errorUrl() const {
+        return d->errorUrl; }
 
 void BaseJob::setStatus(Status s)
 {
