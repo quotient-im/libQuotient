@@ -5,6 +5,7 @@
 #include "filesourceinfo.h"
 
 #include "logging.h"
+#include "util.h"
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "e2ee/qolmutils.h"
@@ -139,14 +140,6 @@ void JsonObjectConverter<JWK>::fillFrom(const QJsonObject& jo, JWK& pod)
     fromJson(jo.value("k"_ls), pod.k);
     fromJson(jo.value("ext"_ls), pod.ext);
 }
-
-template <typename... FunctorTs>
-struct Overloads : FunctorTs... {
-    using FunctorTs::operator()...;
-};
-
-template <typename... FunctorTs>
-Overloads(FunctorTs&&...) -> Overloads<FunctorTs...>;
 
 QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi)
 {

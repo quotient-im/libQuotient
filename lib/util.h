@@ -170,6 +170,19 @@ constexpr ImplPtr<ImplType> ZeroImpl()
     return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
 }
 
+//! \brief Multiplex several functors in one
+//!
+//! This is a well-known trick to wrap several lambdas into a single functor
+//! class that can be passed to std::visit.
+//! \sa  https://en.cppreference.com/w/cpp/utility/variant/visit
+template <typename... FunctorTs>
+struct Overloads : FunctorTs... {
+    using FunctorTs::operator()...;
+};
+
+template <typename... FunctorTs>
+Overloads(FunctorTs&&...) -> Overloads<FunctorTs...>;
+
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
 QUOTIENT_API void linkifyUrls(QString& htmlEscapedText);
 
