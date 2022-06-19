@@ -2301,7 +2301,6 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                                            const QString& targetDeviceId,
                                            const OneTimeKeys& oneTimeKeyObject)
 {
-    static QOlmUtility verifier;
     qDebug(E2EE) << "Creating a new session for" << targetUserId
                  << targetDeviceId;
     if (oneTimeKeyObject.isEmpty()) {
