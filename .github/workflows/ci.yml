@@ -34,7 +34,7 @@ jobs:
         - os: ubuntu-20.04
           e2ee: e2ee # Will be re-added with static analysis below
         # TODO: Enable E2EE on Windows and macOS
-        - os: macos-10.15
+        - os: macos-11
           e2ee: e2ee
         include:
         - os: windows-2019
