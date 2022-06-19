@@ -11,6 +11,7 @@
 
 #include <QtCore/QMetaType>
 #include <variant>
+#include <array>
 
 namespace Quotient {
 
