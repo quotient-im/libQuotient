@@ -3,11 +3,7 @@
 
 #pragma once
 
-#include "quotient_export.h"
-
-#include <QtCore/QByteArray>
-
-#include <memory>
+#include "util.h"
 
 class QJsonObject;
 class QJsonArray;
@@ -23,17 +19,17 @@ namespace Quotient {
  */
 class QUOTIENT_API RequestData {
 public:
-    RequestData(const QByteArray& a = {});
-    RequestData(const QJsonObject& jo);
-    RequestData(const QJsonArray& ja);
-    RequestData(QIODevice* source);
-    RequestData(RequestData&&) = default;
-    RequestData& operator=(RequestData&&) = default;
-    ~RequestData();
+    // NOLINTBEGIN(google-explicit-constructor): that check should learn about
+    //                                           explicit(false)
+    QUO_IMPLICIT RequestData(const QByteArray& a = {});
+    QUO_IMPLICIT RequestData(const QJsonObject& jo);
+    QUO_IMPLICIT RequestData(const QJsonArray& ja);
+    QUO_IMPLICIT RequestData(QIODevice* source);
+    // NOLINTEND(google-explicit-constructor)
 
     QIODevice* source() const { return _source.get(); }
 
 private:
-    std::unique_ptr<QIODevice> _source;
+    ImplPtr<QIODevice> _source;
 };
 } // namespace Quotient

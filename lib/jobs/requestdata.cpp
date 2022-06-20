@@ -14,7 +14,7 @@ using namespace Quotient;
 
 auto fromData(const QByteArray& data)
 {
-    auto source = std::make_unique<QBuffer>();
+    auto source = makeImpl<QBuffer, QIODevice>();
     source->setData(data);
     source->open(QIODevice::ReadOnly);
     return source;
@@ -33,7 +33,5 @@ RequestData::RequestData(const QJsonObject& jo) : _source(fromJson(jo)) {}
 RequestData::RequestData(const QJsonArray& ja) : _source(fromJson(ja)) {}
 
 RequestData::RequestData(QIODevice* source)
-    : _source(std::unique_ptr<QIODevice>(source))
+    : _source(acquireImpl(source))
 {}
-
-RequestData::~RequestData() = default;

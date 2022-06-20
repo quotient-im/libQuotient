@@ -135,8 +135,8 @@ inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
 //! to define default constructors/operator=() out of line.
 //! Thanks to https://oliora.github.io/2015/12/29/pimpl-and-rule-of-zero.html
 //! for inspiration
-template <typename ImplType>
-using ImplPtr = std::unique_ptr<ImplType, void (*)(ImplType*)>;
+template <typename ImplType, typename TypeToDelete = ImplType>
+using ImplPtr = std::unique_ptr<ImplType, void (*)(TypeToDelete*)>;
 
 // Why this works (see also the link above): because this defers the moment
 // of requiring sizeof of ImplType to the place where makeImpl is invoked
@@ -156,18 +156,27 @@ using ImplPtr = std::unique_ptr<ImplType, void (*)(ImplType*)>;
 //!
 //! Since std::make_unique is not compatible with ImplPtr, this should be used
 //! in constructors of frontend classes to create implementation instances.
-template <typename ImplType, typename DeleterType = void (*)(ImplType*),
-          typename... ArgTs>
-inline ImplPtr<ImplType> makeImpl(ArgTs&&... args)
+template <typename ImplType, typename TypeToDelete = ImplType, typename... ArgTs>
+inline ImplPtr<ImplType, TypeToDelete> makeImpl(ArgTs&&... args)
 {
-    return ImplPtr<ImplType> { new ImplType(std::forward<ArgTs>(args)...),
-                               [](ImplType* impl) { delete impl; } };
+    return ImplPtr<ImplType, TypeToDelete> {
+        new ImplType(std::forward<ArgTs>(args)...),
+        [](TypeToDelete* impl) { delete impl; }
+    };
 }
 
-template <typename ImplType>
-constexpr ImplPtr<ImplType> ZeroImpl()
+template <typename ImplType, typename TypeToDelete = ImplType>
+inline ImplPtr<ImplType, TypeToDelete> acquireImpl(ImplType* from)
 {
-    return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
+    return ImplPtr<ImplType, TypeToDelete> { from, [](TypeToDelete* impl) {
+                                                delete impl;
+                                            } };
+}
+
+template <typename ImplType, typename TypeToDelete = ImplType>
+constexpr ImplPtr<ImplType, TypeToDelete> ZeroImpl()
+{
+    return { nullptr, [](TypeToDelete*) { /* nullptr doesn't need deletion */ } };
 }
 
 //! \brief Multiplex several functors in one
