@@ -38,7 +38,7 @@ if (MSVC)
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
     foreach (FLAG Wall Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments)
+            Wno-gnu-zero-variadic-macro-arguments Wno-subobject-linkage)
         CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
         if ( COMPILER_${FLAG}_SUPPORTED AND
                 NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
