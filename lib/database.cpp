@@ -28,10 +28,10 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
     database().open();
 
     switch(version()) {
-        case 0: migrateTo1();
-        case 1: migrateTo2();
-        case 2: migrateTo3();
-        case 3: migrateTo4();
+    case 0: migrateTo1(); [[fallthrough]];
+    case 1: migrateTo2(); [[fallthrough]];
+    case 2: migrateTo3(); [[fallthrough]];
+    case 3: migrateTo4();
     }
 }
 
@@ -39,7 +39,7 @@ int Database::version()
 {
     auto query = execute(QStringLiteral("PRAGMA user_version;"));
     if (query.next()) {
-        bool ok;
+        bool ok = false;
         int value = query.value(0).toInt(&ok);
         qCDebug(DATABASE) << "Database version" << value;
         if (ok)

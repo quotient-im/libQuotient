@@ -32,7 +32,7 @@ struct JsonObjectConverter<TagRecord> {
         if (orderJv.isDouble())
             rec.order = fromJson<float>(orderJv);
         if (orderJv.isString()) {
-            bool ok;
+            bool ok = false;
             rec.order = orderJv.toString().toFloat(&ok);
             if (!ok)
                 rec.order = none;
