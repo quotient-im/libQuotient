@@ -7,17 +7,17 @@
 #include "single_key_value.h"
 
 namespace Quotient {
-#define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, ContentKey_)    \
-    constexpr auto Name_##Key = #ContentKey_##_ls;                            \
-    class QUOTIENT_API Name_                                                  \
-        : public KeylessStateEventBase<                                       \
-              Name_, EventContent::SingleKeyValue<ValueType_, &Name_##Key>> { \
-    public:                                                                   \
-        using value_type = ValueType_;                                        \
-        QUO_EVENT(Name_, TypeId_)                                             \
-        using KeylessStateEventBase::KeylessStateEventBase;                   \
-        auto ContentKey_() const { return content().value; }                  \
-    };                                                                        \
+#define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, ContentKey_)   \
+    constexpr auto Name_##Key = #ContentKey_##_ls;                           \
+    class QUOTIENT_API Name_                                                 \
+        : public KeylessStateEventBase<                                      \
+              Name_, EventContent::SingleKeyValue<ValueType_, Name_##Key>> { \
+    public:                                                                  \
+        using value_type = ValueType_;                                       \
+        QUO_EVENT(Name_, TypeId_)                                            \
+        using KeylessStateEventBase::KeylessStateEventBase;                  \
+        auto ContentKey_() const { return content().value; }                 \
+    };                                                                       \
 // End of macro
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
@@ -29,7 +29,7 @@ constexpr auto RoomAliasesEventKey = "aliases"_ls;
 class QUOTIENT_API RoomAliasesEvent
     : public KeyedStateEventBase<
           RoomAliasesEvent,
-          EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>>
+          EventContent::SingleKeyValue<QStringList, RoomAliasesEventKey>>
 {
 public:
     QUO_EVENT(RoomAliasesEvent, "m.room.aliases")

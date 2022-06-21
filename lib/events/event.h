@@ -511,19 +511,19 @@ public:
 /// To retrieve the value the getter uses a JSON key name that corresponds to
 /// its own (getter's) name but written in snake_case. \p GetterName_ must be
 /// in camelCase, no quotes (an identifier, not a literal).
-#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_,   \
-                            JsonKey_)                                         \
-    constexpr auto Name_##ContentKey = JsonKey_##_ls;                         \
-    class QUOTIENT_API Name_                                                  \
-        : public EventTemplate<                                               \
-              Name_, Base_,                                                   \
-              EventContent::SingleKeyValue<ValueType_, &Name_##ContentKey>> { \
-    public:                                                                   \
-        QUO_EVENT(Name_, TypeId_)                                             \
-        using value_type = ValueType_;                                        \
-        using EventTemplate::EventTemplate;                                   \
-        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, Name_##ContentKey)      \
-    };                                                                        \
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_,  \
+                            JsonKey_)                                        \
+    constexpr auto Name_##ContentKey = JsonKey_##_ls;                        \
+    class QUOTIENT_API Name_                                                 \
+        : public EventTemplate<                                              \
+              Name_, Base_,                                                  \
+              EventContent::SingleKeyValue<ValueType_, Name_##ContentKey>> { \
+    public:                                                                  \
+        QUO_EVENT(Name_, TypeId_)                                            \
+        using value_type = ValueType_;                                       \
+        using EventTemplate::EventTemplate;                                  \
+        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, Name_##ContentKey)     \
+    };                                                                       \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
