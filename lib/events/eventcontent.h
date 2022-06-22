@@ -36,6 +36,10 @@ namespace EventContent {
     public:
         QJsonObject originalJson;
 
+        // You can't assign those classes
+        Base& operator=(const Base&) = delete;
+        Base& operator=(Base&&) = delete;
+
     protected:
         Base(const Base&) = default;
         Base(Base&&) = default;
@@ -145,8 +149,8 @@ namespace EventContent {
     class QUOTIENT_API Thumbnail : public ImageInfo {
     public:
         using ImageInfo::ImageInfo;
-        Thumbnail(const QJsonObject& infoJson,
-                  const Omittable<EncryptedFileMetadata>& efm = none);
+        explicit Thumbnail(const QJsonObject& infoJson,
+                           const Omittable<EncryptedFileMetadata>& efm = none);
 
         //! \brief Add thumbnail information to the passed `info` JSON object
         void dumpTo(QJsonObject& infoJson) const;
