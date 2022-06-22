@@ -5,6 +5,8 @@
 
 using namespace Quotient;
 
+// The default values used below are defined in
+// https://spec.matrix.org/v1.3/client-server-api/#mroompower_levels
 PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
     invite(json["invite"_ls].toInt(50)),
     kick(json["kick"_ls].toInt(50)),
@@ -16,8 +18,7 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
     users(fromJson<QHash<QString, int>>(json["users"_ls])),
     usersDefault(json["users_default"_ls].toInt(0)),
     notifications(Notifications{json["notifications"_ls].toObject()["room"_ls].toInt(50)})
-{
-}
+{}
 
 QJsonObject PowerLevelsEventContent::toJson() const
 {
@@ -36,32 +37,17 @@ QJsonObject PowerLevelsEventContent::toJson() const
     return o;
 }
 
-int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {
-    auto e = events();
-
-    if (e.contains(eventId)) {
-        return e[eventId];
-    }
-
-    return eventsDefault();
+int RoomPowerLevelsEvent::powerLevelForEvent(const QString& eventId) const
+{
+    return events().value(eventId, eventsDefault());
 }
 
-int RoomPowerLevelsEvent::powerLevelForState(const QString &eventId) const {
-    auto e = events();
-
-    if (e.contains(eventId)) {
-        return e[eventId];
-    }
-
-    return stateDefault();
+int RoomPowerLevelsEvent::powerLevelForState(const QString& eventId) const
+{
+    return events().value(eventId, stateDefault());
 }
 
-int RoomPowerLevelsEvent::powerLevelForUser(const QString &userId) const {
-    auto u = users();
-
-    if (u.contains(userId)) {
-        return u[userId];
-    }
-
-    return usersDefault();
+int RoomPowerLevelsEvent::powerLevelForUser(const QString& userId) const
+{
+    return users().value(userId, usersDefault());
 }
