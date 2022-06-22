@@ -89,6 +89,8 @@ public:
     //! Required. Signatures of the key object.
     //! The signature is calculated using the process described at Signing JSON.
     QHash<QString, QHash<QString, QString>> signatures;
+
+    bool fallback = false;
 };
 
 template <>
@@ -97,12 +99,14 @@ struct JsonObjectConverter<SignedOneTimeKey> {
     {
         fromJson(jo.value("key"_ls), result.key);
         fromJson(jo.value("signatures"_ls), result.signatures);
+        fromJson(jo.value("fallback"_ls), result.fallback);
     }
 
     static void dumpTo(QJsonObject &jo, const SignedOneTimeKey &result)
     {
-        addParam<>(jo, QStringLiteral("key"), result.key);
-        addParam<>(jo, QStringLiteral("signatures"), result.signatures);
+        addParam<>(jo, "key"_ls, result.key);
+        addParam<IfNotEmpty>(jo, "signatures"_ls, result.signatures);
+        addParam<IfNotEmpty>(jo, "key"_ls, result.fallback);
     }
 };
 
