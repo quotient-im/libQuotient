@@ -18,9 +18,10 @@ bool RoomSummary::isEmpty() const
 bool RoomSummary::merge(const RoomSummary& other)
 {
     // Using bitwise OR to prevent computation shortcut.
-    return joinedMemberCount.merge(other.joinedMemberCount)
-           | invitedMemberCount.merge(other.invitedMemberCount)
-           | heroes.merge(other.heroes);
+    return static_cast<bool>(
+        static_cast<int>(joinedMemberCount.merge(other.joinedMemberCount))
+        | static_cast<int>(invitedMemberCount.merge(other.invitedMemberCount))
+        | static_cast<int>(heroes.merge(other.heroes)));
 }
 
 QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
