@@ -51,7 +51,7 @@ Q_NAMESPACE_EXPORT(QUOTIENT_API)
 //! These are used for member events. The names here are case-insensitively
 //! equal to state names used on the wire.
 //! \sa MemberEventContent, RoomMemberEvent
-enum class Membership : unsigned int {
+enum class Membership : uint16_t {
     // Specific power-of-2 values (1,2,4,...) are important here as syncdata.cpp
     // depends on that, as well as Join being the first in line
     Invalid = 0x0,
@@ -97,7 +97,7 @@ Q_ENUM_NS(RunningPolicy)
 
 //! \brief The result of URI resolution using UriResolver
 //! \sa UriResolver
-enum UriResolveResult : short {
+enum UriResolveResult : int8_t {
     StillResolving = -1,
     UriResolved = 0,
     CouldNotResolve,
