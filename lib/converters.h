@@ -228,7 +228,7 @@ inline QJsonValue toJson(const std::variant<Ts...>& v)
 }
 
 template <typename T>
-struct QUOTIENT_API JsonConverter<std::variant<QString, T>> {
+struct JsonConverter<std::variant<QString, T>> {
     static std::variant<QString, T> load(const QJsonValue& jv)
     {
         if (jv.isString())
