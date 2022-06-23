@@ -411,10 +411,17 @@ public:
 
     bool shouldRotateMegolmSession() const
     {
-        if (!q->usesEncryption()) {
+        const auto* encryptionConfig = currentState.get<EncryptionEvent>();
+        if (!encryptionConfig || !encryptionConfig->useEncryption())
             return false;
-        }
-        return currentOutboundMegolmSession->messageCount() >= rotationMessageCount() || currentOutboundMegolmSession->creationTime().addMSecs(rotationInterval()) < QDateTime::currentDateTime();
+
+        const auto rotationInterval = encryptionConfig->rotationPeriodMs();
+        const auto rotationMessageCount = encryptionConfig->rotationPeriodMsgs();
+        return currentOutboundMegolmSession->messageCount()
+                   >= rotationMessageCount
+               || currentOutboundMegolmSession->creationTime().addMSecs(
+                      rotationInterval)
+                      < QDateTime::currentDateTime();
     }
 
     bool hasValidMegolmSession() const
@@ -425,23 +432,6 @@ public:
         return currentOutboundMegolmSession != nullptr;
     }
 
-    /// Time in milliseconds after which the outgoing megolmsession should be replaced
-    unsigned int rotationInterval() const
-    {
-        if (!q->usesEncryption()) {
-            return 0;
-        }
-        return q->getCurrentState<EncryptionEvent>()->rotationPeriodMs();
-    }
-
-    // Number of messages sent by this user after which the outgoing megolm session should be replaced
-    int rotationMessageCount() const
-    {
-        if (!q->usesEncryption()) {
-            return 0;
-        }
-        return q->getCurrentState<EncryptionEvent>()->rotationPeriodMsgs();
-    }
     void createMegolmSession() {
         qCDebug(E2EE) << "Creating new outbound megolm session for room "
                       << q->objectName();

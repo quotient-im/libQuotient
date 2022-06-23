@@ -52,6 +52,8 @@ public:
     QString algorithm() const { return content().algorithm; }
     int rotationPeriodMs() const { return content().rotationPeriodMs; }
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
+
+    bool useEncryption() const { return !algorithm().isEmpty(); }
 };
 REGISTER_EVENT_TYPE(EncryptionEvent)
 } // namespace Quotient
