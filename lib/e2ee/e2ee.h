@@ -106,7 +106,7 @@ struct JsonObjectConverter<SignedOneTimeKey> {
     {
         addParam<>(jo, "key"_ls, result.key);
         addParam<IfNotEmpty>(jo, "signatures"_ls, result.signatures);
-        addParam<IfNotEmpty>(jo, "key"_ls, result.fallback);
+        addParam<IfNotEmpty>(jo, "fallback"_ls, result.fallback);
     }
 };
 

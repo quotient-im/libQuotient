@@ -2306,10 +2306,11 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
         signedOneTimeKey
             ->signatures[targetUserId]["ed25519:"_ls % targetDeviceId]
             .toLatin1();
+    const auto payloadObject =
+        toJson(SignedOneTimeKey { signedOneTimeKey->key, {} });
     if (!verifier.ed25519Verify(
             edKeyForUserDevice(targetUserId, targetDeviceId).toLatin1(),
-            QJsonDocument(toJson(SignedOneTimeKey { signedOneTimeKey->key, {} }))
-                .toJson(QJsonDocument::Compact),
+            QJsonDocument(payloadObject).toJson(QJsonDocument::Compact),
             signature)) {
         qWarning(E2EE) << "Failed to verify one-time-key signature for" << targetUserId
                        << targetDeviceId << ". Skipping this device.";
