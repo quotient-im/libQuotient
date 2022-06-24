@@ -84,12 +84,13 @@ struct UnsignedOneTimeKeys
 class SignedOneTimeKey {
 public:
     explicit SignedOneTimeKey(const QString& unsignedKey, const QString& userId,
-                              const QString& deviceId, const QString& signature)
+                              const QString& deviceId,
+                              const QByteArray& signature)
         : payload { { "key"_ls, unsignedKey },
                     { "signatures"_ls,
                       QJsonObject {
                           { userId, QJsonObject { { "ed25519:"_ls % deviceId,
-                                                    signature } } } } } }
+                                                    QString(signature) } } } } } }
     {}
     explicit SignedOneTimeKey(const QJsonObject& jo = {})
         : payload(jo)
