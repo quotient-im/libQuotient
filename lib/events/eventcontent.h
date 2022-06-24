@@ -42,7 +42,7 @@ namespace EventContent {
 
     protected:
         Base(const Base&) = default;
-        Base(Base&&) = default;
+        Base(Base&&) noexcept = default;
 
         virtual void fillJson(QJsonObject&) const = 0;
     };
