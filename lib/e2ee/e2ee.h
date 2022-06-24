@@ -10,8 +10,10 @@
 #include "qolmerrors.h"
 
 #include <QtCore/QMetaType>
-#include <variant>
+#include <QtCore/QStringBuilder>
+
 #include <array>
+#include <variant>
 
 namespace Quotient {
 
@@ -79,35 +81,53 @@ struct UnsignedOneTimeKeys
     QHash<QString, QString> curve25519() const { return keys[Curve25519Key]; }
 };
 
-//! Struct representing the signed one-time keys.
-class SignedOneTimeKey
-{
+class SignedOneTimeKey {
 public:
-    //! Required. The unpadded Base64-encoded 32-byte Curve25519 public key.
-    QString key;
+    explicit SignedOneTimeKey(const QString& unsignedKey, const QString& userId,
+                              const QString& deviceId, const QString& signature)
+        : payload { { "key"_ls, unsignedKey },
+                    { "signatures"_ls,
+                      QJsonObject {
+                          { userId, QJsonObject { { "ed25519:"_ls % deviceId,
+                                                    signature } } } } } }
+    {}
+    explicit SignedOneTimeKey(const QJsonObject& jo = {})
+        : payload(jo)
+    {}
 
-    //! Required. Signatures of the key object.
-    //! The signature is calculated using the process described at Signing JSON.
-    QHash<QString, QHash<QString, QString>> signatures;
+    //! Unpadded Base64-encoded 32-byte Curve25519 public key
+    QString key() const { return payload["key"_ls].toString(); }
 
-    bool fallback = false;
-};
-
-template <>
-struct JsonObjectConverter<SignedOneTimeKey> {
-    static void fillFrom(const QJsonObject& jo, SignedOneTimeKey& result)
+    //! \brief Signatures of the key object
+    //!
+    //! The signature is calculated using the process described at
+    //! https://spec.matrix.org/v1.3/appendices/#signing-json
+    auto signatures() const
     {
-        fromJson(jo.value("key"_ls), result.key);
-        fromJson(jo.value("signatures"_ls), result.signatures);
-        fromJson(jo.value("fallback"_ls), result.fallback);
+        return fromJson<QHash<QString, QHash<QString, QString>>>(
+            payload["signatures"_ls]);
     }
 
-    static void dumpTo(QJsonObject &jo, const SignedOneTimeKey &result)
+    QByteArray signature(QStringView userId, QStringView deviceId) const
     {
-        addParam<>(jo, "key"_ls, result.key);
-        addParam<IfNotEmpty>(jo, "signatures"_ls, result.signatures);
-        addParam<IfNotEmpty>(jo, "fallback"_ls, result.fallback);
+        return payload["signatures"_ls][userId]["ed25519:"_ls % deviceId]
+            .toString()
+            .toLatin1();
     }
+
+    //! Whether the key is a fallback key
+    bool isFallback() const { return payload["fallback"_ls].toBool(); }
+    auto toJson() const { return payload; }
+    auto toJsonForVerification() const
+    {
+        auto json = payload;
+        json.remove("signatures"_ls);
+        json.remove("unsigned"_ls);
+        return QJsonDocument(json).toJson(QJsonDocument::Compact);
+    }
+
+private:
+    QJsonObject payload;
 };
 
 using OneTimeKeys = QHash<QString, std::variant<QString, SignedOneTimeKey>>;

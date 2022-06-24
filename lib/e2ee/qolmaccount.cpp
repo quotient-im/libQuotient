@@ -162,15 +162,11 @@ OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
     OneTimeKeys signedOneTimeKeys;
     for (const auto& curveKeys = keys.curve25519();
          const auto& [keyId, key] : asKeyValueRange(curveKeys))
-        signedOneTimeKeys["signed_curve25519:" % keyId] =
-            signedOneTimeKey(key.toUtf8(), sign(QJsonObject{{"key", key}}));
+        signedOneTimeKeys.insert("signed_curve25519:" % keyId,
+                                 SignedOneTimeKey {
+                                     key, m_userId, m_deviceId,
+                                     sign(QJsonObject { { "key", key } }) });
     return signedOneTimeKeys;
-}
-
-SignedOneTimeKey QOlmAccount::signedOneTimeKey(const QByteArray& key,
-                                               const QString& signature) const
-{
-    return { key, { { m_userId, { { "ed25519:" + m_deviceId, signature } } } } };
 }
 
 std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(
