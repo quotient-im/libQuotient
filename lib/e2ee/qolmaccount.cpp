@@ -187,19 +187,19 @@ OlmAccount* QOlmAccount::data() { return m_account; }
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
-    DeviceKeys deviceKeys;
-    deviceKeys.userId = m_userId;
-    deviceKeys.deviceId = m_deviceId;
-    deviceKeys.algorithms = QStringList {"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"};
+    static QStringList Algorithms(SupportedAlgorithms.cbegin(),
+                                  SupportedAlgorithms.cend());
 
     const auto idKeys = identityKeys();
-    deviceKeys.keys["curve25519:" + m_deviceId] = idKeys.curve25519;
-    deviceKeys.keys["ed25519:" + m_deviceId] = idKeys.ed25519;
-
-    const auto sign = signIdentityKeys();
-    deviceKeys.signatures[m_userId]["ed25519:" + m_deviceId] = sign;
-
-    return deviceKeys;
+    return DeviceKeys {
+        .userId = m_userId,
+        .deviceId = m_deviceId,
+        .algorithms = Algorithms,
+        .keys { { "curve25519:" + m_deviceId, idKeys.curve25519 },
+                { "ed25519:" + m_deviceId, idKeys.ed25519 } },
+        .signatures {
+            { m_userId, { { "ed25519:" + m_deviceId, signIdentityKeys() } } } }
+    };
 }
 
 UploadKeysJob* QOlmAccount::createUploadKeyRequest(

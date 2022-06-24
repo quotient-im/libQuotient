@@ -37,11 +37,11 @@ constexpr auto SignedCurve25519Key = "signed_curve25519"_ls;
 constexpr auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_ls;
 constexpr auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_ls;
 
+constexpr std::array SupportedAlgorithms { OlmV1Curve25519AesSha2AlgoKey,
+                                           MegolmV1AesSha2AlgoKey };
+
 inline bool isSupportedAlgorithm(const QString& algorithm)
 {
-    static constexpr std::array SupportedAlgorithms {
-        OlmV1Curve25519AesSha2AlgoKey, MegolmV1AesSha2AlgoKey
-    };
     return std::find(SupportedAlgorithms.cbegin(), SupportedAlgorithms.cend(),
                      algorithm)
            != SupportedAlgorithms.cend();
