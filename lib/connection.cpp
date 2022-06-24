@@ -2308,8 +2308,9 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
             edKeyForUserDevice(targetUserId, targetDeviceId).toLatin1(),
             signedOneTimeKey->toJsonForVerification(),
             signature)) {
-        qWarning(E2EE) << "Failed to verify one-time-key signature for" << targetUserId
-                       << targetDeviceId << ". Skipping this device.";
+        qWarning(E2EE) << "Failed to verify one-time-key signature for"
+                       << targetUserId << targetDeviceId
+                       << ". Skipping this device.";
         return false;
     }
     const auto recipientCurveKey =

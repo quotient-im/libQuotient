@@ -145,9 +145,11 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 {
     const size_t oneTimeKeyLength = olm_account_one_time_keys_length(m_account);
-    QByteArray oneTimeKeysBuffer(oneTimeKeyLength, '0');
+    QByteArray oneTimeKeysBuffer(static_cast<int>(oneTimeKeyLength), '0');
 
-    const auto error = olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(), oneTimeKeyLength);
+    const auto error = olm_account_one_time_keys(m_account,
+                                                 oneTimeKeysBuffer.data(),
+                                                 oneTimeKeyLength);
     if (error == olm_error()) {
         throw lastError(m_account);
     }

@@ -86,8 +86,8 @@ struct JsonConverter : _impl::JsonExporter<T> {
     static T load(const QJsonDocument& jd) { return doLoad(jd.object()); }
 };
 
-template <typename T,
-          typename = std::enable_if_t<!std::is_constructible_v<QJsonValue, T>>>
+template <typename T>
+    requires (!std::is_constructible_v<QJsonValue, T>)
 inline auto toJson(const T& pod)
 // -> can return anything from which QJsonValue or, in some cases, QJsonDocument
 //    is constructible

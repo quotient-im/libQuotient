@@ -64,8 +64,6 @@ public:
     //! Sign all one time keys.
     OneTimeKeys signOneTimeKeys(const UnsignedOneTimeKeys &keys) const;
 
-    SignedOneTimeKey signedOneTimeKey(const QByteArray &key, const QString &signature) const;
-
     UploadKeysJob* createUploadKeyRequest(const UnsignedOneTimeKeys& oneTimeKeys) const;
 
     DeviceKeys deviceKeys() const;
