@@ -46,7 +46,7 @@ namespace _impl {
     template <typename SlotT, typename ReceiverT>
     concept PmfSlot =
         (fn_arg_count_v<SlotT> > 0
-         && std::derived_from<ReceiverT, std::decay_t<fn_arg_t<SlotT, 0>>>);
+         && std::is_base_of_v<std::decay_t<fn_arg_t<SlotT, 0>>, ReceiverT>);
 } // namespace _impl
 
 //! \brief Create a connection that self-disconnects when its slot returns true
@@ -78,12 +78,21 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
                             Qt::ConnectionType(connType
                                                | Qt::SingleShotConnection));
 #else
-    // In case for usual Qt slots passed as pointers-to-members the receiver
+    // In case of classic Qt pointer-to-member-function slots the receiver
     // object has to be pre-bound to the slot to make it self-contained
     if constexpr (_impl::PmfSlot<SlotT, ContextT>) {
+        auto&& boundSlot =
+#    if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
+            std::bind_front(slot, context);
+#    else
+            [context, slot](const auto&... args)
+            requires requires { (context->*slot)(args...); }
+            {
+                (context->*slot)(args...);
+            };
+#    endif
         return _impl::connect<_impl::SingleShot>(sender, signal, context,
-                                                 std::bind_front(slot, context),
-                                                 connType);
+                                                 std::move(boundSlot), connType);
     } else {
         return _impl::connect<_impl::SingleShot>(sender, signal, context, slot,
                                                  connType);

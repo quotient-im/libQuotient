@@ -344,7 +344,7 @@ inline auto eventCast(const BasePtrT& eptr)
 namespace _impl {
     template <typename FnT, class BaseT>
     concept Invocable_With_Downcast =
-        std::derived_from<std::remove_cvref_t<fn_arg_t<FnT>>, BaseT>;
+        std::is_base_of_v<BaseT, std::remove_cvref_t<fn_arg_t<FnT>>>;
 }
 
 template <class BaseT, typename TailT>
