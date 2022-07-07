@@ -1,16 +1,18 @@
 mkdir -p data
 chmod 0777 data
 
+SYNAPSE_IMAGE='matrixdotorg/synapse:v1.61.1'
+
 rm ~/.local/share/testolmaccount -rf
 docker run -v `pwd`/data:/data --rm \
-    -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no matrixdotorg/synapse:latest generate
+    -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no $SYNAPSE_IMAGE generate
 (cd data && . ../autotests/adjust-config.sh)
 docker run -d \
     --name synapse \
     -p 1234:8008 \
     -p 8448:8008 \
     -p 8008:8008 \
-    -v `pwd`/data:/data matrixdotorg/synapse:latest
+    -v `pwd`/data:/data $SYNAPSE_IMAGE
 trap "rm -rf ./data/*; docker rm -f synapse 2>&1 >/dev/null; trap - EXIT" EXIT
 
 echo Waiting for synapse to start...
