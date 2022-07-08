@@ -43,7 +43,7 @@ your application, as described below.
 - CMake 3.16 or newer (from your package management system or
   [the official website](https://cmake.org/download/))
 - A C++ toolchain with that supports at least some subset of C++20:
-  - GCC 10 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
+  - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported.
 - Any build system that works with CMake should be fine:
   GNU Make and ninja on any platform, NMake and jom on Windows are known to work.
@@ -165,14 +165,37 @@ by setting `Quotient_INSTALL_TESTS` to `OFF`.
 
 #### Building fails
 
-If `cmake` fails with...
-```
-CMake Warning at CMakeLists.txt:11 (find_package):
-  By not providing "FindQt5Widgets.cmake" in CMAKE_MODULE_PATH this project
-  has asked CMake to find a package configuration file provided by
-  "Qt5Widgets", but CMake did not find one.
-```
-...then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+- If `cmake` fails with
+  ```
+  CMake Warning at CMakeLists.txt:11 (find_package):
+    By not providing "FindQt5Widgets.cmake" in CMAKE_MODULE_PATH this project
+    has asked CMake to find a package configuration file provided by
+    "Qt5Widgets", but CMake did not find one.
+  ```
+  then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+
+- If you use GCC and get an "unknown declarator" compilation error in the file
+`qtconcurrentthreadengine.h` - unfortunately, it is an actual error in Qt 5.15
+sources, see https://bugreports.qt.io/browse/QTBUG-90568 (or
+https://bugreports.qt.io/browse/QTBUG-91909). The Qt company did not make
+an open source release with the fix, therefore:
+
+  - if you're on Linux - try to use Qt from your package management system, as
+    most likely this bug is already fixed in the packages
+  - if you're on Windows, or if you have to use Qt (5.15) from download.qt.io
+    for any other reason, you should apply the fix to Qt sources: locate
+    the file (the GCC error message tells exactly where it is), find the line
+    with the (strange-looking) `ThreadEngineStarter` constructor definition:
+    ```cplusplus
+    ThreadEngineStarter<void>(ThreadEngine<void> \*_threadEngine)
+    ```
+    and remove the template specialisation from the constructor name so that it
+    looks like
+    ```cplusplus
+    ThreadEngineStarter(ThreadEngine<void> \*_threadEngine)
+    ```
+    This will fix your build (and any other build involving QtConcurrent from
+    this installation of Qt - the fix is not specific to Quotient in any way).
 
 #### Logging configuration
 

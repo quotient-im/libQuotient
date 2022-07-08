@@ -7,6 +7,9 @@
 
 using namespace Quotient;
 
+template <typename FnT>
+using fn_return_t = typename function_traits<FnT>::return_type;
+
 int f_();
 static_assert(std::is_same_v<fn_return_t<decltype(f_)>, int>,
               "Test fn_return_t<>");

@@ -341,56 +341,34 @@ inline auto eventCast(const BasePtrT& eptr)
                                            : nullptr;
 }
 
-// A trivial generic catch-all "switch"
-template <class BaseEventT, typename FnT>
-inline auto switchOnType(const BaseEventT& event, FnT&& fn)
-    -> decltype(fn(event))
-{
-    return fn(event);
-}
-
 namespace _impl {
-    // Using bool instead of auto below because auto apparently upsets MSVC
-    template <class BaseT, typename FnT>
-    constexpr bool needs_downcast =
-        std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
-        && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
+    template <typename FnT, class BaseT>
+    concept Invocable_With_Downcast =
+        std::is_base_of_v<BaseT, std::remove_cvref_t<fn_arg_t<FnT>>>;
 }
 
-// A trivial type-specific "switch" for a void function
-template <class BaseT, typename FnT>
-inline auto switchOnType(const BaseT& event, FnT&& fn)
-    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>
-                        && std::is_void_v<fn_return_t<FnT>>>
+template <class BaseT, typename TailT>
+inline auto switchOnType(const BaseT& event, TailT&& tail)
 {
-    using event_type = fn_arg_t<FnT>;
-    if (is<std::decay_t<event_type>>(event))
-        fn(static_cast<event_type>(event));
+    if constexpr (std::is_invocable_v<TailT, BaseT>) {
+        return tail(event);
+    } else if constexpr (_impl::Invocable_With_Downcast<TailT, BaseT>) {
+        using event_type = fn_arg_t<TailT>;
+        if (is<std::decay_t<event_type>>(event))
+            return tail(static_cast<event_type>(event));
+        return std::invoke_result_t<TailT, event_type>(); // Default-constructed
+    } else { // Treat it as a value to return
+        return std::forward<TailT>(tail);
+    }
 }
 
-// A trivial type-specific "switch" for non-void functions with an optional
-// default value; non-voidness is guarded by defaultValue type
-template <class BaseT, typename FnT>
-inline auto switchOnType(const BaseT& event, FnT&& fn,
-                         fn_return_t<FnT>&& defaultValue = {})
-    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>, fn_return_t<FnT>>
-{
-    using event_type = fn_arg_t<FnT>;
-    if (is<std::decay_t<event_type>>(event))
-        return fn(static_cast<event_type>(event));
-    return std::move(defaultValue);
-}
-
-// A switch for a chain of 2 or more functions
-template <class BaseT, typename FnT1, typename FnT2, typename... FnTs>
-inline std::common_type_t<fn_return_t<FnT1>, fn_return_t<FnT2>>
-switchOnType(const BaseT& event, FnT1&& fn1, FnT2&& fn2, FnTs&&... fns)
+template <class BaseT, typename FnT1, typename... FnTs>
+inline auto switchOnType(const BaseT& event, FnT1&& fn1, FnTs&&... fns)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
-        return fn1(static_cast<event_type1&>(event));
-    return switchOnType(event, std::forward<FnT2>(fn2),
-                        std::forward<FnTs>(fns)...);
+        return fn1(static_cast<event_type1>(event));
+    return switchOnType(event, std::forward<FnTs>(fns)...);
 }
 
 template <class BaseT, typename... FnTs>
@@ -405,8 +383,8 @@ inline auto visit(const BaseT& event, FnTs&&... fns)
 // TODO: replace with ranges::for_each once all standard libraries have it
 template <typename RangeT, typename... FnTs>
 inline auto visitEach(RangeT&& events, FnTs&&... fns)
-    -> std::enable_if_t<std::is_void_v<
-        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>>
+    requires std::is_void_v<
+        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>
 {
     for (auto&& evtPtr: events)
         switchOnType(*evtPtr, std::forward<FnTs>(fns)...);
