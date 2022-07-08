@@ -58,7 +58,7 @@ BraceWrapping:
 #  AfterExternBlock: false
 #  BeforeCatch:     false
 #  BeforeElse:      false
-  BeforeLambdaBody: true
+#  BeforeLambdaBody: false # Blows up lambdas vertically, even if they become _very_ readable
 #  BeforeWhile:     false
 #  IndentBraces:    false
   SplitEmptyFunction: false
