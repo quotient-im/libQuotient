@@ -14,23 +14,26 @@
 # to borrow from the WebKit style. The values for such settings try to but
 # are not guaranteed to coincide with the latest version of the WebKit style.
 
+# This file assumes ClangFormat 12 or newer
+
 ---
 Language: Cpp
 BasedOnStyle: WebKit
 #AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
-#AlignConsecutiveMacros: false
-#AlignConsecutiveAssignments: false
-#AlignConsecutiveDeclarations: false
+#AlignArrayOfStructures: None # ClangFormat 13
+#AlignConsecutiveMacros: None
+#AlignConsecutiveAssignments: None
+#AlignConsecutiveDeclarations: None
 AlignEscapedNewlines: Left
-AlignOperands: true # 'Align' since ClangFormat 11 
+AlignOperands: Align
 #AlignTrailingComments: false
 #AllowAllArgumentsOnNextLine: true
-#AllowAllConstructorInitializersOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: true
 #AllowAllParametersOfDeclarationOnNextLine: true
 #AllowShortEnumsOnASingleLine: true
 #AllowShortBlocksOnASingleLine: Empty
-#AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
 #AllowShortFunctionsOnASingleLine: All
 #AllowShortLambdasOnASingleLine: All
 #AllowShortIfStatementsOnASingleLine: Never
@@ -39,41 +42,49 @@ AlignOperands: true # 'Align' since ClangFormat 11
 #AlwaysBreakAfterReturnType: None
 #AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
+#AttributeMacros:
+#  - __capability
 #BinPackArguments: true
 #BinPackParameters: true
 BraceWrapping:
-  AfterCaseLabel:  false
-  AfterClass:      false
-  AfterControlStatement: Never # Switch to MultiLine, once https://bugs.llvm.org/show_bug.cgi?id=47936 is fixed
-  AfterEnum:       false
+#  AfterCaseLabel:  false
+#  AfterClass:      false
+  AfterControlStatement: Never # Switch to MultiLine with ClangFormat 14 (https://bugs.llvm.org/show_bug.cgi?id=47936)
+#  AfterEnum:       false
   AfterFunction:   true
-  AfterNamespace:  false
-  AfterStruct:     false
-  AfterUnion:      false
-  AfterExternBlock: false
-  BeforeCatch:     false
-  BeforeElse:      false
-  IndentBraces:    false
+#  AfterNamespace:  false
+#  AfterStruct:     false
+#  AfterUnion:      false
+#  AfterExternBlock: false
+#  BeforeCatch:     false
+#  BeforeElse:      false
+  BeforeLambdaBody: true
+#  BeforeWhile:     false
+#  IndentBraces:    false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
 BreakBeforeBinaryOperators: NonAssignment
+#BreakBeforeConceptDeclarations: true
 BreakBeforeBraces: Custom
-#BreakBeforeInheritanceComma: false
+#BreakBeforeInheritanceComma: false # deprecated?
 #BreakInheritanceList: BeforeColon
 #BreakBeforeTernaryOperators: true
 #BreakConstructorInitializersBeforeComma: false # deprecated?
 #BreakConstructorInitializers: BeforeComma
 #BreakStringLiterals: true
 ColumnLimit: 80
+#QualifierAlignment: Leave # ClangFormat 14?
 #CompactNamespaces: false
-#ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
 #ConstructorInitializerIndentWidth: 4
 #ContinuationIndentWidth: 4
-Cpp11BracedListStyle: false
+#Cpp11BracedListStyle: true
 #DeriveLineEnding: true
 #DerivePointerAlignment: false
-FixNamespaceComments: true
+#EmptyLineAfterAccessModifier: Never # ClangFormat 14
+EmptyLineBeforeAccessModifier: Always
+#FixNamespaceComments: false # See ShortNamespaces below
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:    '^<Qt.+/'
@@ -88,12 +99,17 @@ IncludeCategories:
     Priority: 1
 IncludeIsMainRegex: '(_test)?$'
 #IncludeIsMainSourceRegex: ''
+#IndentAccessModifiers: false # ClangFormat 13
 #IndentCaseLabels: false
+#IndentCaseBlocks: false
 IndentGotoLabels: false
 IndentPPDirectives: AfterHash
+#IndentExternBlock: AfterExternBlock
+IndentRequires: true
 #IndentWidth: 4
 #IndentWrappedFunctionNames: false
 KeepEmptyLinesAtTheStartOfBlocks: false
+#LambdaBodyIndentation: Signature # ClangFormat 13
 #MacroBlockBegin: ''
 #MacroBlockEnd:   ''
 #MaxEmptyLinesToKeep: 1
@@ -102,34 +118,56 @@ PenaltyBreakAssignment: 10
 PenaltyBreakBeforeFirstCallParameter: 70
 PenaltyBreakComment: 45
 #PenaltyBreakFirstLessLess: 120
+#PenaltyBreakOpenParenthesis: 0 # ClangFormat 14
 PenaltyBreakString: 200
 #PenaltyBreakTemplateDeclaration: 10
 PenaltyExcessCharacter: 40
 PenaltyReturnTypeOnItsOwnLine: 150
+PenaltyIndentedWhitespace: 40
 #PointerAlignment: Left
+#PPIndentWidth: -1
+#ReferenceAlignment: Pointer # ClangFormat 13
 #ReflowComments: true
+#ShortNamespaceLines: 1 # ClangFormat 13 - to use with FixNamespaceComments
 #SortIncludes: true
 #SortUsingDeclarations: true
 #SpaceAfterCStyleCast: false
 #SpaceAfterLogicalNot: false
 #SpaceAfterTemplateKeyword: true
 #SpaceBeforeAssignmentOperators: true
-#SpaceBeforeCpp11BracedList: true
+#SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
 #SpaceBeforeCtorInitializerColon: true
 #SpaceBeforeInheritanceColon: true
 #SpaceBeforeParens: ControlStatements
+#SpaceBeforeParensOptions: # ClangFormat 14
+#  AfterControlStatements: true
+#  AfterForeachMacros: true
+#  AfterFunctionDefinitionName: false
+#  AfterFunctionDeclarationName: false
+#  AfterIfMacros:   true
+#  AfterOverloadedOperator: false
+#  BeforeNonEmptyParentheses: false
+SpaceAroundPointerQualifiers: After
 #SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyBlock: false
 #SpaceInEmptyParentheses: false
 #SpacesBeforeTrailingComments: 1
-#SpacesInAngles:  false
+#SpacesInAngles: false # 'Never' since ClangFormat 13
 #SpacesInConditionalStatement: false
-#SpacesInContainerLiterals: true
+SpacesInContainerLiterals: false
 #SpacesInCStyleCastParentheses: false
+#SpacesInLineCommentPrefix: # ClangFormat 13
+#  Minimum:         1
+#  Maximum:         -1
 #SpacesInParentheses: false
 #SpacesInSquareBrackets: false
 #SpaceBeforeSquareBrackets: false
-Standard: c++17
+#BitFieldColonSpacing: Both
+Standard: c++20
+StatementAttributeLikeMacros:
+  - Q_EMIT
+  - emit
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
@@ -137,5 +175,6 @@ StatementMacros:
 TabWidth: 4
 #UseCRLF: false
 #UseTab: Never
+#WhitespaceSensitiveMacros: [] # Whatever's the default, not using it
 ...
 

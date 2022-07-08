@@ -436,11 +436,12 @@ your commit into it (with an explanation what it is about and why).
 
 ### Standard checks
 
-The following warnings configuration is applied with GCC and Clang when using CMake:
-`-W -Wall -Wextra -pedantic -Werror=return-type -Wno-unused-parameter -Wno-gnu-zero-variadic-macro-arguments`
-(the last one is to mute a warning triggered by Qt code for debug logging).
-We don't turn most of the warnings to errors but please treat them as such.
-If you use Qt Creator, the following line can be used with the Clang code model:
+The warnings configuration applied when using CMake can be found in
+`CMakeLists.txt`. Most warnings triggered by that configuration are not formally
+considered errors (the compiler will keep going) but please treat them as such.
+If you want to be cautious, you can use the following line for your IDE's Clang
+analyzer code model to enable as many compiler warnings as reasonable (that
+does not include `clang-tidy`/`clazy` warnings - see below on those):
 `-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
 
 ### Continuous Integration
@@ -450,12 +451,6 @@ MacOS (Clang), and Windows (MSVC). Every PR will go through these, and you'll
 see the traffic lights from them on the PR page. If your PR fails
 on any platform double-check that it's not your code causing it - and fix
 (or ask how to fix if you don't know) if it is.
-
-### clang-format
-
-We strongly recommend using clang-format (version 10 or newer) or, even better,
-use an IDE that supports it. This will lay over a tedious task of following
-the assumed code style from your shoulders (and fingers) to your computer.
 
 ### Other tools
 
