@@ -47,12 +47,12 @@ jobs:
           compiler: LLVM
           e2ee: e2ee
           static-analysis: codeql
-        - os: ubuntu-latest
+        - os: ubuntu-22.04
           qt-version: '5.15.2'
           compiler: GCC
           e2ee: e2ee
           static-analysis: sonar
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           qt-version: '5.15.2'
           compiler: GCC
           e2ee: e2ee
@@ -82,11 +82,30 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v2
+      with:
+        path: ${{ runner.workspace }}/Qt
+        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2.14.0
+      with:
+        version: ${{ matrix.qt-version }}
+        arch: ${{ matrix.qt-arch }}
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
     - name: Setup build environment
       run: |
         if [ '${{ matrix.compiler }}' == 'GCC' ]; then
-            echo "CC=gcc-10" >>$GITHUB_ENV
-            echo "CXX=g++-10" >>$GITHUB_ENV
+            echo "CC=gcc" >>$GITHUB_ENV
+            echo "CXX=g++" >>$GITHUB_ENV
+            if [ '${{ startsWith(matrix.qt-version, '5') }}' == 'true' ]; then
+                # Patch Qt to avoid GCC tumbling over QTBUG-90568/QTBUG-91909
+                sed -i 's/ThreadEngineStarter<void>(ThreadEngine<void> \*_threadEngine)/ThreadEngineStarter(ThreadEngine<void> \*_threadEngine)/' \
+                    $Qt5_DIR/include/QtConcurrent/qtconcurrentthreadengine.h
+            fi
         elif [[ '${{ runner.os }}' != 'Windows' ]]; then
             echo "CC=clang" >>$GITHUB_ENV
             echo "CXX=clang++" >>$GITHUB_ENV
@@ -123,20 +142,6 @@ jobs:
 
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
-
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v2
-      with:
-        path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2.14.0
-      with:
-        version: ${{ matrix.qt-version }}
-        arch: ${{ matrix.qt-arch }}
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
 
     - name: Install Ninja (macOS/Windows)
       if: ${{ !startsWith(matrix.os, 'ubuntu') }}

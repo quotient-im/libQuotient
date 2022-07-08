@@ -91,8 +91,9 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
                 (context->*slot)(args...);
             };
 #    endif
-        return _impl::connect<_impl::SingleShot>(sender, signal, context,
-                                                 std::move(boundSlot), connType);
+        return _impl::connect<_impl::SingleShot>(
+            sender, signal, context,
+            std::forward<decltype(boundSlot)>(boundSlot), connType);
     } else {
         return _impl::connect<_impl::SingleShot>(sender, signal, context, slot,
                                                  connType);
