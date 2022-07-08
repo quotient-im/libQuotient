@@ -15,8 +15,7 @@ namespace _impl {
     inline auto connect(auto* sender, auto signal, auto* context, auto slotLike,
                         Qt::ConnectionType connType)
     {
-        std::unique_ptr<QMetaObject::Connection> pConn =
-            std::make_unique<QMetaObject::Connection>();
+        auto pConn = std::make_unique<QMetaObject::Connection>();
         auto& c = *pConn; // Save the reference before pConn is moved from
         c = QObject::connect(
             sender, signal, context,
