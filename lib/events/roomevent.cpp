@@ -15,9 +15,9 @@ RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
-    if (const auto redaction = unsignedPart(RedactedCauseKeyL);
-        redaction.isObject())
-        _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
+    if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
+        !redaction.isEmpty())
+        _redactedBecause = makeEvent<RedactionEvent>(redaction);
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job

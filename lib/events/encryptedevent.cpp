@@ -49,14 +49,16 @@ RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
     eventObject["event_id"] = id();
     eventObject["sender"] = senderId();
     eventObject["origin_server_ts"] = originTimestamp().toMSecsSinceEpoch();
-    if (const auto relatesToJson = contentPart("m.relates_to"_ls); !relatesToJson.isUndefined()) {
+    if (const auto relatesToJson = contentPart<QJsonObject>("m.relates_to"_ls);
+        !relatesToJson.isEmpty()) {
         auto content = eventObject["content"].toObject();
-        content["m.relates_to"] = relatesToJson.toObject();
+        content["m.relates_to"] = relatesToJson;
         eventObject["content"] = content;
     }
-    if (const auto redactsJson = unsignedPart("redacts"_ls); !redactsJson.isUndefined()) {
+    if (const auto redactsJson = unsignedPart<QString>("redacts"_ls);
+        !redactsJson.isEmpty()) {
         auto unsign = eventObject["unsigned"].toObject();
-        unsign["redacts"] = redactsJson.toString();
+        unsign["redacts"] = redactsJson;
         eventObject["unsigned"] = unsign;
     }
     return loadEvent<RoomEvent>(eventObject);

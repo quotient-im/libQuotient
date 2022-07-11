@@ -21,7 +21,7 @@ StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
 
 bool StateEventBase::repeatsState() const
 {
-    const auto prevContentJson = unsignedPart(PrevContentKeyL);
+    const auto prevContentJson = unsignedPart<QJsonObject>(PrevContentKeyL);
     return fullJson().value(ContentKeyL) == prevContentJson;
 }
 
