@@ -588,6 +588,14 @@ TEST_IMPL(changeName)
                         if (!rme->newDisplayName()
                             || *rme->newDisplayName() != newName)
                             FAIL_TEST();
+                        // State events coming in the timeline are first
+                        // processed to change the room state and then as
+                        // timeline messages; aboutToAddNewMessages is triggered
+                        // when the state is already updated, so check that
+                        if (targetRoom->currentState().get<RoomMemberEvent>(
+                                localUser->id())
+                            != rme)
+                            FAIL_TEST();
                         clog << "Member rename successful, renaming the account"
                              << endl;
                         const auto newN = newName.mid(0, 5);
