@@ -28,23 +28,8 @@ struct JsonObjectConverter {
     static void fillFrom(const QJsonObject&, T&) = delete;
 };
 
-namespace _impl {
-    template <typename T, typename = void>
-    struct JsonExporter {
-        static QJsonObject dump(const T& data)
-        {
-            QJsonObject jo;
-            JsonObjectConverter<T>::dumpTo(jo, data);
-            return jo;
-        }
-    };
-
-    template <typename T>
-    struct JsonExporter<
-        T, std::enable_if_t<std::is_invocable_v<decltype(&T::toJson), T>>> {
-        static auto dump(const T& data) { return data.toJson(); }
-    };
-}
+template <typename PodT, typename JsonT>
+PodT fromJson(const JsonT&);
 
 //! \brief The switchboard for extra conversion algorithms behind from/toJson
 //!
@@ -62,13 +47,23 @@ namespace _impl {
 //! that they are not supported and it's not feasible to support those by means
 //! of overloading toJson() and specialising fromJson().
 template <typename T>
-struct JsonConverter : _impl::JsonExporter<T> {
+struct JsonConverter {
     // Unfortunately, if constexpr doesn't work with dump() and T::toJson
     // because trying to check invocability of T::toJson hits a hard
     // (non-SFINAE) compilation error if the member is not there. Hence a bit
     // more verbose SFINAE construct in _impl::JsonExporter.
+    static auto dump(const T& data)
+    {
+        if constexpr (requires() { data.toJson(); })
+            return data.toJson();
+        else {
+            QJsonObject jo;
+            JsonObjectConverter<T>::dumpTo(jo, data);
+            return jo;
+        }
+    }
 
-    static T doLoad(const QJsonObject& jo)
+    static T load(const QJsonObject& jo)
     {
         // 'else' below are required to suppress code generation for unused
         // branches - 'return' is not enough
@@ -82,21 +77,25 @@ struct JsonConverter : _impl::JsonExporter<T> {
             return pod;
         }
     }
-    static T load(const QJsonValue& jv) { return doLoad(jv.toObject()); }
-    static T load(const QJsonDocument& jd) { return doLoad(jd.object()); }
+    // By default, revert to fromJson() so that one could provide a single
+    // fromJson<T, QJsonObject> specialisation instead of specialising
+    // the entire JsonConverter; if a different type of JSON value is needed
+    // (e.g., an array), specialising JsonConverter is inevitable
+    static T load(QJsonValueRef jvr) { return fromJson<T>(QJsonValue(jvr)); }
+    static T load(const QJsonValue& jv) { return fromJson<T>(jv.toObject()); }
+    static T load(const QJsonDocument& jd) { return fromJson<T>(jd.object()); }
 };
 
 template <typename T>
-    requires (!std::is_constructible_v<QJsonValue, T>)
 inline auto toJson(const T& pod)
 // -> can return anything from which QJsonValue or, in some cases, QJsonDocument
 //    is constructible
 {
-    return JsonConverter<T>::dump(pod);
+    if constexpr (std::is_constructible_v<QJsonValue, T>)
+        return pod; // No-op if QJsonValue can be directly constructed
+    else
+        return JsonConverter<T>::dump(pod);
 }
-
-inline auto toJson(const QJsonObject& jo) { return jo; }
-inline auto toJson(const QJsonValue& jv) { return jv; }
 
 template <typename T>
 inline void fillJson(QJsonObject& json, const T& data)
@@ -104,44 +103,124 @@ inline void fillJson(QJsonObject& json, const T& data)
     JsonObjectConverter<T>::dumpTo(json, data);
 }
 
-template <typename T>
-inline T fromJson(const QJsonValue& jv)
+template <typename PodT, typename JsonT>
+inline PodT fromJson(const JsonT& json)
 {
-    return JsonConverter<T>::load(jv);
+    // JsonT here can be whatever the respective JsonConverter specialisation
+    // accepts but by default it's QJsonValue, QJsonDocument, or QJsonObject
+    return JsonConverter<PodT>::load(json);
 }
 
-template<>
-inline QJsonValue fromJson(const QJsonValue& jv) { return jv; }
-
-template <typename T>
-inline T fromJson(const QJsonDocument& jd)
-{
-    return JsonConverter<T>::load(jd);
-}
-
-// Convenience fromJson() overloads that deduce T instead of requiring
-// the coder to explicitly type it. They still enforce the
+// Convenience fromJson() overload that deduces PodT instead of requiring
+// the coder to explicitly type it. It still enforces the
 // overwrite-everything semantics of fromJson(), unlike fillFromJson()
 
-template <typename T>
-inline void fromJson(const QJsonValue& jv, T& pod)
+template <typename JsonT, typename PodT>
+inline void fromJson(const JsonT& json, PodT& pod)
 {
-    pod = jv.isUndefined() ? T() : fromJson<T>(jv);
-}
-
-template <typename T>
-inline void fromJson(const QJsonDocument& jd, T& pod)
-{
-    pod = fromJson<T>(jd);
+    pod = fromJson<PodT>(json);
 }
 
 template <typename T>
 inline void fillFromJson(const QJsonValue& jv, T& pod)
 {
-    if (jv.isObject())
+    if constexpr (requires() { JsonObjectConverter<T>::fillFrom({}, pod); }) {
         JsonObjectConverter<T>::fillFrom(jv.toObject(), pod);
-    else if (!jv.isUndefined())
+        return;
+    } else if (!jv.isUndefined())
         pod = fromJson<T>(jv);
+}
+
+namespace _impl {
+    void warnUnknownEnumValue(const QString& stringValue,
+                              const char* enumTypeName);
+    void reportEnumOutOfBounds(uint32_t v, const char* enumTypeName);
+}
+
+//! \brief Facility string-to-enum converter
+//!
+//! This is to simplify enum loading from JSON - just specialise
+//! Quotient::fromJson() and call this function from it, passing (aside from
+//! the JSON value for the enum - that must be a string, not an int) any
+//! iterable container of string'y values (const char*, QLatin1String, etc.)
+//! matching respective enum values, 0-based.
+//! \sa enumToJsonString
+template <typename EnumT, typename EnumStringValuesT>
+EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
+                         EnumT defaultValue)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
+    if (const auto it = std::find(cbegin(enumValues), cend(enumValues), s);
+        it != cend(enumValues))
+        return EnumT(it - cbegin(enumValues));
+
+    if (!s.isEmpty())
+        _impl::warnUnknownEnumValue(s, qt_getEnumName(EnumT()));
+    return defaultValue;
+}
+
+//! \brief Facility enum-to-string converter
+//!
+//! This does the same as enumFromJsonString, the other way around.
+//! \note The source enumeration must not have gaps in values, or \p enumValues
+//!       has to match those gaps (i.e., if the source enumeration is defined
+//!       as <tt>{ Value1 = 1, Value2 = 3, Value3 = 5 }</tt> then \p enumValues
+//!       should be defined as <tt>{ "", "Value1", "", "Value2", "", "Value3"
+//!       }</tt> (mind the gap at value 0, in particular).
+//! \sa enumFromJsonString
+template <typename EnumT, typename EnumStringValuesT>
+QString enumToJsonString(EnumT v, const EnumStringValuesT& enumValues)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
+    if (v < size(enumValues))
+        return enumValues[v];
+
+    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v),
+                                 qt_getEnumName(EnumT()));
+    Q_ASSERT(false);
+    return {};
+}
+
+//! \brief Facility converter for flags
+//!
+//! This is very similar to enumFromJsonString, except that the target
+//! enumeration is assumed to be of a 'flag' kind - i.e. its values must be
+//! a power-of-two sequence starting from 1, without gaps, so exactly 1,2,4,8,16
+//! and so on.
+//! \note Unlike enumFromJsonString, the values start from 1 and not from 0,
+//!       with 0 being used for an invalid value by default.
+//! \note This function does not support flag combinations.
+//! \sa QUO_DECLARE_FLAGS, QUO_DECLARE_FLAGS_NS
+template <typename FlagT, typename FlagStringValuesT>
+FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
+                         FlagT defaultValue = FlagT(0U))
+{
+    // Enums based on signed integers don't make much sense for flag types
+    static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
+    if (const auto it = std::find(cbegin(flagValues), cend(flagValues), s);
+        it != cend(flagValues))
+        return FlagT(1U << (it - cbegin(flagValues)));
+
+    if (!s.isEmpty())
+        _impl::warnUnknownEnumValue(s, qt_getEnumName(FlagT()));
+    return defaultValue;
+}
+
+template <typename FlagT, typename FlagStringValuesT>
+QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
+{
+    static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
+    if (const auto offset =
+            qCountTrailingZeroBits(std::underlying_type_t<FlagT>(v));
+        offset < size(flagValues)) //
+    {
+        return flagValues[offset];
+    }
+
+    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v),
+                                 qt_getEnumName(FlagT()));
+    Q_ASSERT(false);
+    return {};
 }
 
 // JsonConverter<> specialisations

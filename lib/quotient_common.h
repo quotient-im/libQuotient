@@ -107,13 +107,19 @@ enum UriResolveResult : int8_t {
 };
 Q_ENUM_NS(UriResolveResult)
 
-enum RoomType {
-    Space,
-    Undefined,
+enum class RoomType : uint8_t {
+    Space = 0,
+    Undefined = 0xFF,
 };
 Q_ENUM_NS(RoomType)
 
 [[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space" };
+
+enum class EncryptionType : uint8_t {
+    MegolmV1AesSha2 = 0,
+    Undefined = 0xFF,
+};
+Q_ENUM_NS(EncryptionType)
 
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)

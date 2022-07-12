@@ -212,7 +212,7 @@ public:
 
     const QJsonObject contentJson() const;
 
-    template <typename T = QJsonValue, typename KeyT>
+    template <typename T, typename KeyT>
     const T contentPart(KeyT&& key) const
     {
         return fromJson<T>(contentJson()[std::forward<KeyT>(key)]);
@@ -227,7 +227,7 @@ public:
 
     const QJsonObject unsignedJson() const;
 
-    template <typename T = QJsonValue, typename KeyT>
+    template <typename T, typename KeyT>
     const T unsignedPart(KeyT&& key) const
     {
         return fromJson<T>(unsignedJson()[std::forward<KeyT>(key)]);

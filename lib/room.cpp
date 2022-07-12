@@ -3062,7 +3062,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 return false;
             }
             if (oldEncEvt
-                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
+                && oldEncEvt->encryption() != EncryptionType::Undefined) {
                 qCWarning(STATE) << "The room is already encrypted but a new"
                                     " room encryption event arrived - ignoring";
                 return false;
@@ -3508,5 +3508,5 @@ void Room::activateEncryption()
         qCWarning(E2EE) << "Room" << objectName() << "is already encrypted";
         return;
     }
-    setState<EncryptionEvent>(EncryptionEventContent::MegolmV1AesSha2);
+    setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }

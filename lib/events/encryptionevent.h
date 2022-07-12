@@ -4,51 +4,44 @@
 
 #pragma once
 
+#include "quotient_common.h"
 #include "stateevent.h"
 
 namespace Quotient {
 class QUOTIENT_API EncryptionEventContent {
 public:
-    enum EncryptionType : size_t { MegolmV1AesSha2 = 0, Undefined };
+    using EncryptionType
+        [[deprecated("Use Quotient::EncryptionType instead")]] =
+            Quotient::EncryptionType;
 
-    QUO_IMPLICIT EncryptionEventContent(EncryptionType et);
-    [[deprecated("This constructor will require explicit EncryptionType soon")]] //
-    explicit EncryptionEventContent()
-        : EncryptionEventContent(Undefined)
-    {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    QUO_IMPLICIT EncryptionEventContent(Quotient::EncryptionType et);
     explicit EncryptionEventContent(const QJsonObject& json);
 
     QJsonObject toJson() const;
 
-    EncryptionType encryption;
-    QString algorithm;
-    int rotationPeriodMs;
-    int rotationPeriodMsgs;
+    Quotient::EncryptionType encryption;
+    QString algorithm {};
+    int rotationPeriodMs = 604'800'000;
+    int rotationPeriodMsgs = 100;
 };
 
-using EncryptionType = EncryptionEventContent::EncryptionType;
-
 class QUOTIENT_API EncryptionEvent : public StateEvent<EncryptionEventContent> {
-    Q_GADGET
 public:
     DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
 
-    using EncryptionType = EncryptionEventContent::EncryptionType;
-    Q_ENUM(EncryptionType)
+    using EncryptionType
+        [[deprecated("Use Quotient::EncryptionType instead")]] =
+            Quotient::EncryptionType;
 
     explicit EncryptionEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
     {}
-    [[deprecated("This constructor will require an explicit parameter soon")]] //
-//    explicit EncryptionEvent()
-//        : EncryptionEvent(QJsonObject())
-//    {}
     explicit EncryptionEvent(EncryptionEventContent&& content)
         : StateEvent(typeId(), matrixTypeId(), QString(), std::move(content))
     {}
 
-    EncryptionType encryption() const { return content().encryption; }
-
+    Quotient::EncryptionType encryption() const { return content().encryption; }
     QString algorithm() const { return content().algorithm; }
     int rotationPeriodMs() const { return content().rotationPeriodMs; }
     int rotationPeriodMsgs() const { return content().rotationPeriodMsgs; }
