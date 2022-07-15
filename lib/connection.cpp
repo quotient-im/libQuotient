@@ -1456,12 +1456,14 @@ User* Connection::user(const QString& uId)
 {
     if (uId.isEmpty())
         return nullptr;
+    if (const auto v = d->userMap.value(uId, nullptr))
+        return v;
+    // Before creating a user object, check that the user id is well-formed
+    // (it's faster to just do a lookup above before validation)
     if (!uId.startsWith('@') || serverPart(uId).isEmpty()) {
         qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
-    if (d->userMap.contains(uId))
-        return d->userMap.value(uId);
     auto* user = userFactory()(this, uId);
     d->userMap.insert(uId, user);
     emit newUser(user);
