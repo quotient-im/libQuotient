@@ -334,7 +334,10 @@ you might want to setup a `QElapsedTimer` and drop the elapsed time into logs
 under `PROFILER` logging category. See the existing code for examples -
 `room.cpp` has quite a few. In order to reduce small timespan logging spam,
 `PROFILER` log lines are usually guarded by a check that the timer counted big
-enough time (200 microseconds by default, 20 microseconds for tighter parts).
+enough time (200 microseconds by default, 20 microseconds for tighter parts);
+this threshold can be altered at compile-time by defining `PROFILER_LOG_USECS`
+preprocessor symbol (i.e. passing `-DPROFILE_LOG_USECS=<usecs>` to the compiler
+if you're on Linux/macOS).
 
 ### Generated C++ code for CS API
 The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
