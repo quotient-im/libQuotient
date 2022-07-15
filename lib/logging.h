@@ -72,12 +72,9 @@ inline QDebug operator<<(QDebug debug_object, Quotient::QDebugManip qdm)
     return qdm(debug_object);
 }
 
-inline QDebug operator<<(QDebug debug_object, const QElapsedTimer& et)
+inline QDebug operator<<(QDebug debug_object, QElapsedTimer et)
 {
-    auto val = et.nsecsElapsed() / 1000;
-    if (val < 1000)
-        debug_object << val << "µs";
-    else
-        debug_object << val / 1000 << "ms";
+    // Keep 3 decimal digits (the first division is int, the second is float)
+    debug_object << et.nsecsElapsed() / 1000 / 1000.0 << "ms";
     return debug_object;
 }
