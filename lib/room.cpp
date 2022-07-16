@@ -277,6 +277,7 @@ public:
      * Remove events from the passed container that are already in the timeline
      */
     void dropDuplicateEvents(RoomEvents& events) const;
+    void decryptIncomingEvents(RoomEvents& events);
 
     Changes setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
                                ReadReceipt newReceipt = {},
@@ -1612,8 +1613,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                 continue;
             auto& ti = d->timeline[Timeline::size_type(*pIdx - minTimelineIndex())];
             if (auto encryptedEvent = ti.viewAs<EncryptedEvent>()) {
-                auto decrypted = decryptMessage(*encryptedEvent);
-                if(decrypted) {
+                if (auto decrypted = decryptMessage(*encryptedEvent)) {
                     // The reference will survive the pointer being moved
                     auto& decryptedEvent = *decrypted;
                     auto oldEvent = ti.replaceEvent(std::move(decrypted));
@@ -2572,6 +2572,26 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
     events.erase(dupsBegin, events.end());
 }
 
+void Room::Private::decryptIncomingEvents(RoomEvents& events)
+{
+#ifdef Quotient_E2EE_ENABLED
+    QElapsedTimer et;
+    et.start();
+    size_t totalDecrypted = 0;
+    for (auto& eptr : events)
+        if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
+            if (auto decrypted = q->decryptMessage(*eeptr)) {
+                ++totalDecrypted;
+                auto&& oldEvent = exchange(eptr, move(decrypted));
+                eptr->setOriginalEvent(::move(oldEvent));
+            } else
+                undecryptedEvents[eeptr->sessionId()] += eeptr->id();
+        }
+    if (totalDecrypted > 5 || et.nsecsElapsed() >= profilerMinNsecs())
+        qDebug(PROFILER) << "Decrypted" << totalDecrypted << "events in" << et;
+#endif
+}
+
 /** Make a redacted event
  *
  * This applies the redaction procedure as defined by the CS API specification
@@ -2762,22 +2782,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::None;
 
+    decryptIncomingEvents(events);
+
     QElapsedTimer et;
     et.start();
-
-#ifdef Quotient_E2EE_ENABLED
-    for(long unsigned int i = 0; i < events.size(); i++) {
-        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            auto decrypted = q->decryptMessage(*encrypted);
-            if(decrypted) {
-                auto oldEvent = std::exchange(events[i], std::move(decrypted));
-                events[i]->setOriginalEvent(std::move(oldEvent));
-            } else {
-                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
-            }
-        }
-    }
-#endif
 
     {
         // Pre-process redactions and edits so that events that get
@@ -2922,30 +2930,17 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
-    QElapsedTimer et;
-    et.start();
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
     if (events.empty())
         return;
 
+    decryptIncomingEvents(events);
+
+    QElapsedTimer et;
+    et.start();
     Changes changes {};
-
-#ifdef Quotient_E2EE_ENABLED
-    for(long unsigned int i = 0; i < events.size(); i++) {
-        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            auto decrypted = q->decryptMessage(*encrypted);
-            if(decrypted) {
-                auto oldEvent = std::exchange(events[i], std::move(decrypted));
-                events[i]->setOriginalEvent(std::move(oldEvent));
-            } else {
-                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
-            }
-        }
-    }
-#endif
-
     // In case of lazy-loading new members may be loaded with historical
     // messages. Also, the cache doesn't store events with empty content;
     // so when such events show up in the timeline they should be properly
