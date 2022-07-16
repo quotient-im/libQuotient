@@ -973,9 +973,9 @@ Q_SIGNALS:
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
-    //! The event that m.read receipt points to has changed
+    //! The event the m.read receipt points to has changed for the listed users
     //! \sa lastReadReceipt
-    void lastReadEventChanged(Quotient::User* user);
+    void lastReadEventChanged(QVector<QString> userIds);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
     //! \deprecated since 0.7 - use fullyReadMarkerMoved
     void readMarkerMoved(QString fromEventId, QString toEventId);
