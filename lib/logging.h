@@ -69,12 +69,13 @@ inline qint64 profilerMinNsecs()
  */
 inline QDebug operator<<(QDebug debug_object, Quotient::QDebugManip qdm)
 {
-    return qdm(debug_object);
+    return qdm(debug_object); // NOLINT(performance-unnecessary-value-param)
 }
 
 inline QDebug operator<<(QDebug debug_object, QElapsedTimer et)
 {
-    // Keep 3 decimal digits (the first division is int, the second is float)
-    debug_object << et.nsecsElapsed() / 1000 / 1000.0 << "ms";
+    // NOLINTNEXTLINE(bugprone-integer-division)
+    debug_object << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
+                 << "ms"; // Show in ms with 3 decimal digits precision
     return debug_object;
 }
