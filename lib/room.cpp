@@ -3274,7 +3274,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             if (updatedUserIds.size() > 10
                 || et.nsecsElapsed() >= profilerMinNsecs())
                 qDebug(PROFILER)
-                    << "Processing" << updatedUserIds
+                    << "Processing" << updatedUserIds.size()
                     << "non-local receipt(s) on" << receiptsJson.size()
                     << "event(s) in" << objectName() << "took" << et;
             if (!updatedUserIds.empty())
