@@ -4,7 +4,6 @@
 #pragma once
 
 #include "converters.h"
-#include "logging.h"
 #include "function_traits.h"
 #include "single_key_value.h"
 
