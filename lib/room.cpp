@@ -2640,10 +2640,11 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),
-            QStringLiteral("users"), QStringLiteral("users_default") } }
-        //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
-        //        , { RoomHistoryVisibility::typeId(),
-        //                { QStringLiteral("history_visibility") } }
+            QStringLiteral("users"), QStringLiteral("users_default") } },
+        // TODO: Replace with RoomJoinRules::TypeId etc. once available
+        { "m.room.join_rules"_ls, { QStringLiteral("join_rule") } },
+        { "m.room.history_visibility"_ls,
+          { QStringLiteral("history_visibility") } }
     };
     for (auto it = originalJson.begin(); it != originalJson.end();) {
         if (!keepKeys.contains(it.key()))
