@@ -34,10 +34,7 @@ DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
                           QStringList, pinnedEvents)
 
 constexpr auto RoomAliasesEventKey = "aliases"_ls;
-class Q_DECL_DEPRECATED_X(
-    "m.room.aliases events are deprecated by the Matrix spec; use"
-    " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
-    QUOTIENT_API RoomAliasesEvent
+class QUOTIENT_API RoomAliasesEvent
     : public StateEvent<
           EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>> {
 public:
@@ -45,7 +42,13 @@ public:
     explicit RoomAliasesEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
     {}
+    Q_DECL_DEPRECATED_X(
+        "m.room.aliases events are deprecated by the Matrix spec; use"
+        " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
     QString server() const { return stateKey(); }
+    Q_DECL_DEPRECATED_X(
+        "m.room.aliases events are deprecated by the Matrix spec; use"
+        " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
     QStringList aliases() const { return content().value; }
 };
 } // namespace Quotient
