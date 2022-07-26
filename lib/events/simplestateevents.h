@@ -34,7 +34,7 @@ DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
                           QStringList, pinnedEvents)
 
 constexpr auto RoomAliasesEventKey = "aliases"_ls;
-class [[deprecated(
+class QUOTIENT_API [[deprecated(
     "m.room.aliases events are deprecated by the Matrix spec; use"
     " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")]] //
 RoomAliasesEvent

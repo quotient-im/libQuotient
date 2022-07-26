@@ -31,7 +31,7 @@ inline auto toJson(const EventContent::AliasesEventContent& c)
     return jo;
 }
 
-class RoomCanonicalAliasEvent
+class QUOTIENT_API RoomCanonicalAliasEvent
     : public StateEvent<EventContent::AliasesEventContent> {
 public:
     DEFINE_EVENT_TYPEID("m.room.canonical_alias", RoomCanonicalAliasEvent)

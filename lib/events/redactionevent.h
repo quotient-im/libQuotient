@@ -6,7 +6,7 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class RedactionEvent : public RoomEvent {
+class QUOTIENT_API RedactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
 
