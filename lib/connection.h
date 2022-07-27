@@ -174,24 +174,25 @@ public:
      */
     bool hasAccountData(const QString& type) const;
 
-    /** Get a generic account data event of the given type
-     * This returns an account data event of the given type
-     * stored on the server. Direct chats map cannot be retrieved
-     * using this method _yet_; use directChats() instead.
-     */
+    //! \brief Get a generic account data event of the given type
+    //!
+    //! \return an account data event of the given type stored on the server,
+    //!         or nullptr if there's none of that type.
+    //! \note Direct chats map cannot be retrieved using this method _yet_;
+    //!       use directChats() instead.
     const EventPtr& accountData(const QString& type) const;
 
-    /** Get a generic account data event of the given type
-     * This returns an account data event of the given type
-     * stored on the server. Direct chats map cannot be retrieved
-     * using this method _yet_; use directChats() instead.
-     */
+    //! \brief Get an account data event of the given type
+    //!
+    //! \return the account data content for the given event type stored
+    //!         on the server, or a default-constructed object if there's none
+    //!         of that type.
+    //! \note Direct chats map cannot be retrieved using this method _yet_;
+    //!       use directChats() instead.
     template <typename EventT>
-    const typename EventT::content_type accountData() const
+    const EventT* accountData() const
     {
-        if (const auto& eventPtr = accountData(EventT::matrixTypeId()))
-            return eventPtr->content();
-        return {};
+        return eventCast<EventT>(accountData(EventT::TypeId));
     }
 
     /** Get account data as a JSON object

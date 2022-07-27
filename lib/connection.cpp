@@ -175,15 +175,6 @@ public:
     void consumeToDeviceEvents(Events&& toDeviceEvents);
     void consumeDevicesList(DevicesList&& devicesList);
 
-    template <typename EventT>
-    EventT* unpackAccountData() const
-    {
-        const auto& eventIt = accountData.find(EventT::matrixTypeId());
-        return eventIt == accountData.end()
-                   ? nullptr
-                   : weakPtrCast<EventT>(eventIt->second);
-    }
-
     void packAndSendAccountData(EventPtr&& event)
     {
         const auto eventType = event->matrixType();
@@ -1665,7 +1656,7 @@ bool Connection::isIgnored(const User* user) const
 
 IgnoredUsersList Connection::ignoredUsers() const
 {
-    const auto* event = d->unpackAccountData<IgnoredUsersEvent>();
+    const auto* event = accountData<IgnoredUsersEvent>();
     return event ? event->ignored_users() : IgnoredUsersList();
 }
 
