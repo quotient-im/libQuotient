@@ -524,7 +524,8 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
     return true;
 }
 
-DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue)
+DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue,
+                    "test_value")
 
 TEST_IMPL(sendCustomEvent)
 {

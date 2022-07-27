@@ -3294,7 +3294,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     }
 
     if (auto* evt = eventCast<const ReadMarkerEvent>(event))
-        changes |= d->setFullyReadMarker(evt->event_id());
+        changes |= d->setFullyReadMarker(evt->eventId());
 
     // For all account data events
     auto& currentData = d->accountData[event->matrixType()];

@@ -111,7 +111,7 @@ auto defaultUserFactory(Connection* c, const QString& id)
 // are stored with no regard to their state.
 using DirectChatsMap = QMultiHash<const User*, QString>;
 using DirectChatUsersMap = QMultiHash<QString, User*>;
-using IgnoredUsersList = IgnoredUsersEvent::content_type;
+using IgnoredUsersList = IgnoredUsersEvent::value_type;
 
 class QUOTIENT_API Connection : public QObject {
     Q_OBJECT

@@ -8,20 +8,7 @@
 
 namespace Quotient {
 
-class QUOTIENT_API ReactionEvent : public RoomEvent {
-public:
-    DEFINE_EVENT_TYPEID("m.reaction", ReactionEvent)
-
-    explicit ReactionEvent(const EventRelation& value)
-        : RoomEvent(typeId(), matrixTypeId(),
-                    { { QStringLiteral("m.relates_to"), toJson(value) } })
-    {}
-    explicit ReactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj) {}
-    EventRelation relation() const
-    {
-        return contentPart<EventRelation>(RelatesToKey);
-    }
-};
-REGISTER_EVENT_TYPE(ReactionEvent)
+DEFINE_SIMPLE_EVENT(ReactionEvent, RoomEvent, "m.reaction", EventRelation,
+                    relation, "m.relates_to")
 
 } // namespace Quotient

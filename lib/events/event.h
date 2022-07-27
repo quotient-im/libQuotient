@@ -6,6 +6,7 @@
 #include "converters.h"
 #include "logging.h"
 #include "function_traits.h"
+#include "single_key_value.h"
 
 namespace Quotient {
 // === event_ptr_tt<> and type casting facilities ===
@@ -258,6 +259,13 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
+#define QUO_CONTENT_GETTER_X(PartType_, PartName_, JsonKey_) \
+    PartType_ PartName_() const                                 \
+    {                                                           \
+        static const auto PartName_##JsonKey = JsonKey_;        \
+        return contentPart<PartType_>(PartName_##JsonKey);      \
+    }
+
 //! \brief Define an inline method obtaining a content part
 //!
 //! This macro adds a const method that extracts a JSON value at the key
@@ -266,12 +274,8 @@ using Events = EventsArray<Event>;
 //! \code
 //! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_ls));
 //! \endcode
-#define QUO_CONTENT_GETTER(PartType_, PartName_)                  \
-    PartType_ PartName_() const                                   \
-    {                                                             \
-        static const auto JsonKey = toSnakeCase(#PartName_##_ls); \
-        return contentPart<PartType_>(JsonKey);                   \
-    }
+#define QUO_CONTENT_GETTER(PartType_, PartName_) \
+    QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_ls))
 
 // === Facilities for event class definitions ===
 
@@ -301,22 +305,20 @@ using Events = EventsArray<Event>;
 /// To retrieve the value the getter uses a JSON key name that corresponds to
 /// its own (getter's) name but written in snake_case. \p GetterName_ must be
 /// in camelCase, no quotes (an identifier, not a literal).
-#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_)     \
-    class QUOTIENT_API Name_ : public Base_ {                                   \
-    public:                                                                     \
-        using content_type = ValueType_;                                        \
-        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                     \
-        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}          \
-        explicit Name_(const content_type& content)                             \
-            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(content) } })) \
-        {}                                                                      \
-        auto GetterName_() const                                                \
-        {                                                                       \
-            return contentPart<content_type>(JsonKey);                          \
-        }                                                                       \
-        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);      \
-    };                                                                          \
-    REGISTER_EVENT_TYPE(Name_)                                                  \
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_, \
+                            JsonKey_)                                       \
+    class QUOTIENT_API Name_ : public Base_ {                               \
+    public:                                                                 \
+        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                 \
+        using value_type = ValueType_;                                      \
+        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}      \
+        explicit Name_(const value_type& v)                                 \
+            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(v) } }))   \
+        {}                                                                  \
+        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, JsonKey)              \
+        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);  \
+    };                                                                      \
+    REGISTER_EVENT_TYPE(Name_)                                              \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===

@@ -1701,7 +1701,7 @@ bool Connection::isIgnored(const User* user) const
 IgnoredUsersList Connection::ignoredUsers() const
 {
     const auto* event = accountData<IgnoredUsersEvent>();
-    return event ? event->ignored_users() : IgnoredUsersList();
+    return event ? event->ignoredUsers() : IgnoredUsersList();
 }
 
 void Connection::addToIgnoredUsers(const User* user)

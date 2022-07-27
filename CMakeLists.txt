@@ -154,7 +154,7 @@ list(APPEND lib_SRCS
     lib/events/roomcanonicalaliasevent.h
     lib/events/roomavatarevent.h
     lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
-    lib/events/typingevent.h lib/events/typingevent.cpp
+    lib/events/typingevent.h
     lib/events/accountdataevents.h
     lib/events/receiptevent.h lib/events/receiptevent.cpp
     lib/events/reactionevent.h
