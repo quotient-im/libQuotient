@@ -19,12 +19,12 @@ public:
 
     //! Make a minimal correct Matrix state event JSON
     static QJsonObject basicJson(const QString& matrixTypeId,
-                                 const QJsonObject& content,
-                                 const QString& stateKey = {})
+                                 const QString& stateKey = {},
+                                 const QJsonObject& contentJson = {})
     {
         return { { TypeKey, matrixTypeId },
                  { StateKeyKey, stateKey },
-                 { ContentKey, content } };
+                 { ContentKey, contentJson } };
     }
 
     bool isStateEvent() const override { return true; }
@@ -41,7 +41,7 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
                                        const QJsonObject& content,
                                        const QString& stateKey = {})
 {
-    return StateEventBase::basicJson(matrixTypeId, content, stateKey);
+    return StateEventBase::basicJson(matrixTypeId, stateKey, content);
 }
 
 //! \brief Override RoomEvent factory with that from StateEventBase if JSON has

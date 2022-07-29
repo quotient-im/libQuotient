@@ -16,7 +16,7 @@ StateEventBase::StateEventBase(Type type, const QJsonObject& json)
 StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
                                const QString& stateKey,
                                const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(matrixType, contentJson, stateKey))
+    : RoomEvent(type, basicJson(type, stateKey, contentJson))
 {}
 
 bool StateEventBase::repeatsState() const

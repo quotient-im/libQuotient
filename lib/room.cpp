@@ -219,8 +219,9 @@ public:
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey, loadStateEvent(evtKey.first, {},
-                                                            evtKey.second));
+                stubbedState.emplace(evtKey,
+                                     loadEvent<StateEventBase>(evtKey.first,
+                                                               evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
                 qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
