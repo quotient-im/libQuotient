@@ -977,22 +977,22 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
     if (!toDeviceEvents.empty()) {
         qCDebug(E2EE) << "Consuming" << toDeviceEvents.size()
                       << "to-device events";
-        visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
-            if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-                qCDebug(E2EE) << "Unsupported algorithm" << event.id()
-                              << "for event" << event.algorithm();
-                return;
+        for (auto&& tdEvt : toDeviceEvents)
+            if (auto&& event = eventCast<EncryptedEvent>(std::move(tdEvt))) {
+                if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                    qCDebug(E2EE) << "Unsupported algorithm" << event->id()
+                                  << "for event" << event->algorithm();
+                    return;
+                }
+                if (isKnownCurveKey(event->senderId(), event->senderKey())) {
+                    handleEncryptedToDeviceEvent(*event);
+                    return;
+                }
+                trackedUsers += event->senderId();
+                outdatedUsers += event->senderId();
+                encryptionUpdateRequired = true;
+                pendingEncryptedEvents.push_back(std::move(event));
             }
-            if (isKnownCurveKey(event.senderId(), event.senderKey())) {
-                handleEncryptedToDeviceEvent(event);
-                return;
-            }
-            trackedUsers += event.senderId();
-            outdatedUsers += event.senderId();
-            encryptionUpdateRequired = true;
-            pendingEncryptedEvents.push_back(
-                makeEvent<EncryptedEvent>(event.fullJson()));
-        });
     }
 #endif
 }

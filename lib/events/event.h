@@ -332,6 +332,13 @@ inline bool isUnknown(const Event& e)
     return e.type() == UnknownEventTypeId;
 }
 
+//! \brief Cast the event pointer down in a type-safe way
+//!
+//! Checks that the event \p eptr points to actually is of the requested type
+//! and returns a (plain) pointer to the event downcast to that type. \p eptr
+//! can be either "dumb" (BaseEventT*) or "smart" (`event_ptr_tt<>`). This
+//! overload doesn't affect the event ownership - if the original pointer owns
+//! the event it must outlive the downcast pointer to keep it from dangling.
 template <class EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
     -> decltype(static_cast<EventT*>(&*eptr))
@@ -339,6 +346,28 @@ inline auto eventCast(const BasePtrT& eptr)
     Q_ASSERT(eptr);
     return is<std::decay_t<EventT>>(*eptr) ? static_cast<EventT*>(&*eptr)
                                            : nullptr;
+}
+
+//! \brief Cast the event pointer down in a type-safe way, with moving
+//!
+//! Checks that the event \p eptr points to actually is of the requested type;
+//! if (and only if) it is, releases the pointer, downcasts it to the requested
+//! event type and returns a new smart pointer wrapping the downcast one.
+//! Unlike the non-moving eventCast() overload, this one only accepts a smart
+//! pointer, and that smart pointer should be an rvalue (either a temporary,
+//! or as a result of std::move()). The ownership, respectively, is transferred
+//! to the new pointer; the original smart pointer is reset to nullptr, as is
+//! normal for `unique_ptr<>::release()`.
+//! \note If \p eptr's event type does not match \p EventT it retains ownership
+//!       after calling this overload; if it is a temporary, this normally
+//!       leads to the event getting deleted along with the end of
+//!       the temporary's lifetime.
+template <class EventT, typename BaseEventT>
+inline auto eventCast(event_ptr_tt<BaseEventT>&& eptr)
+{
+    return eptr && is<std::decay_t<EventT>>(*eptr)
+               ? event_ptr_tt<EventT>(static_cast<EventT*>(eptr.release()))
+               : nullptr;
 }
 
 namespace _impl {
