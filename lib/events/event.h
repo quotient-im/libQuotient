@@ -343,9 +343,9 @@ template <class EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
     -> decltype(static_cast<EventT*>(&*eptr))
 {
-    Q_ASSERT(eptr);
-    return is<std::decay_t<EventT>>(*eptr) ? static_cast<EventT*>(&*eptr)
-                                           : nullptr;
+    return eptr && is<std::decay_t<EventT>>(*eptr)
+               ? static_cast<EventT*>(&*eptr)
+               : nullptr;
 }
 
 //! \brief Cast the event pointer down in a type-safe way, with moving
