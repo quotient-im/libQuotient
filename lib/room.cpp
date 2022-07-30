@@ -597,7 +597,7 @@ bool Room::allHistoryLoaded() const
 
 QString Room::name() const
 {
-    return currentState().queryOr(&RoomNameEvent::name, QString());
+    return currentState().content<RoomNameEvent>().value;
 }
 
 QStringList Room::aliases() const
@@ -613,8 +613,7 @@ QStringList Room::aliases() const
 
 QStringList Room::altAliases() const
 {
-    return currentState().queryOr(&RoomCanonicalAliasEvent::altAliases,
-                                  QStringList());
+    return currentState().content<RoomCanonicalAliasEvent>().altAliases;
 }
 
 QString Room::canonicalAlias() const
