@@ -31,6 +31,17 @@ struct JsonObjectConverter {
 template <typename PodT, typename JsonT>
 PodT fromJson(const JsonT&);
 
+template <typename T>
+struct JsonObjectUnpacker {
+    // By default, revert to fromJson() so that one could provide a single
+    // fromJson<T, QJsonObject> specialisation instead of specialising
+    // the entire JsonConverter; if a different type of JSON value is needed
+    // (e.g., an array), specialising JsonConverter is inevitable
+    static T load(QJsonValueRef jvr) { return fromJson<T>(QJsonValue(jvr)); }
+    static T load(const QJsonValue& jv) { return fromJson<T>(jv.toObject()); }
+    static T load(const QJsonDocument& jd) { return fromJson<T>(jd.object()); }
+};
+
 //! \brief The switchboard for extra conversion algorithms behind from/toJson
 //!
 //! This template is mainly intended for partial conversion specialisations
@@ -47,7 +58,7 @@ PodT fromJson(const JsonT&);
 //! that they are not supported and it's not feasible to support those by means
 //! of overloading toJson() and specialising fromJson().
 template <typename T>
-struct JsonConverter {
+struct JsonConverter : JsonObjectUnpacker<T> {
     // Unfortunately, if constexpr doesn't work with dump() and T::toJson
     // because trying to check invocability of T::toJson hits a hard
     // (non-SFINAE) compilation error if the member is not there. Hence a bit
@@ -77,13 +88,6 @@ struct JsonConverter {
             return pod;
         }
     }
-    // By default, revert to fromJson() so that one could provide a single
-    // fromJson<T, QJsonObject> specialisation instead of specialising
-    // the entire JsonConverter; if a different type of JSON value is needed
-    // (e.g., an array), specialising JsonConverter is inevitable
-    static T load(QJsonValueRef jvr) { return fromJson<T>(QJsonValue(jvr)); }
-    static T load(const QJsonValue& jv) { return fromJson<T>(jv.toObject()); }
-    static T load(const QJsonDocument& jd) { return fromJson<T>(jd.object()); }
 };
 
 template <typename T>
