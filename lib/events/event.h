@@ -64,7 +64,11 @@ struct QUOTIENT_API EventTypeRegistry {
 
 class Event;
 
-template <class EventT>
+// TODO: move over to std::derived_from<Event> once it's available everywhere
+template <typename EventT, typename BaseEventT = Event>
+concept EventClass = std::is_base_of_v<BaseEventT, EventT>;
+
+template <EventClass EventT>
 bool is(const Event& e);
 
 //! \brief The base class for event metatypes
@@ -206,13 +210,13 @@ private:
 //!
 //! This should not be used to load events from JSON - use loadEvent() for that.
 //! \sa loadEvent
-template <typename EventT, typename... ArgTs>
+template <EventClass EventT, typename... ArgTs>
 inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 {
     return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
 }
 
-template <class EventT>
+template <EventClass EventT>
 constexpr const auto& mostSpecificMetaType()
 {
     if constexpr (requires { EventT::MetaType; })
@@ -226,7 +230,7 @@ constexpr const auto& mostSpecificMetaType()
 //! Use this factory template to detect the type from the JSON object
 //! contents (the detected event type should derive from the template
 //! parameter type) and create an event object of that type.
-template <typename EventT>
+template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 {
     return mostSpecificMetaType<EventT>().loadFrom(
@@ -238,7 +242,7 @@ inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 //! Use this template to resolve the C++ type from the Matrix type string in
 //! \p matrixType and create an event of that type by passing all parameters
 //! to BaseEventT::basicJson().
-template <typename EventT>
+template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QString& matrixType,
                                       const auto&... otherBasicJsonParams)
 {
@@ -246,7 +250,7 @@ inline event_ptr_tt<EventT> loadEvent(const QString& matrixType,
         EventT::basicJson(matrixType, otherBasicJsonParams...), matrixType);
 }
 
-template <typename EventT>
+template <EventClass EventT>
 struct JsonConverter<event_ptr_tt<EventT>>
     : JsonObjectUnpacker<event_ptr_tt<EventT>> {
     // No dump() to avoid any ambiguity on whether a given export to JSON uses
@@ -295,7 +299,7 @@ public:
     //! the returned value will be different.
     QString matrixType() const;
 
-    template <class EventT>
+    template <EventClass EventT>
     bool is() const
     {
         return Quotient::is<EventT>(*this);
@@ -377,7 +381,7 @@ private:
 };
 using EventPtr = event_ptr_tt<Event>;
 
-template <typename EventT>
+template <EventClass EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
@@ -400,8 +404,10 @@ using Events = EventsArray<Event>;
 //! your class will likely be clearer and more concise.
 //! \sa https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
 //! \sa DEFINE_SIMPLE_EVENT
-template <class EventT, class BaseEventT, typename ContentT = void>
+template <typename EventT, EventClass BaseEventT, typename ContentT = void>
 class EventTemplate : public BaseEventT {
+    // Above: can't constrain EventT to be EventClass because it's incomplete
+    // by CRTP definition.
 public:
     static_assert(
         !std::is_same_v<ContentT, void>,
@@ -522,7 +528,7 @@ public:
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
 
-template <class EventT>
+template <EventClass EventT>
 inline bool is(const Event& e)
 {
     if constexpr (requires { EventT::MetaType; }) {
@@ -544,7 +550,7 @@ inline bool is(const Event& e)
 //! can be either "dumb" (BaseEventT*) or "smart" (`event_ptr_tt<>`). This
 //! overload doesn't affect the event ownership - if the original pointer owns
 //! the event it must outlive the downcast pointer to keep it from dangling.
-template <class EventT, typename BasePtrT>
+template <EventClass EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
     -> decltype(static_cast<EventT*>(&*eptr))
 {
@@ -567,7 +573,7 @@ inline auto eventCast(const BasePtrT& eptr)
 //!       after calling this overload; if it is a temporary, this normally
 //!       leads to the event getting deleted along with the end of
 //!       the temporary's lifetime.
-template <class EventT, typename BaseEventT>
+template <EventClass EventT, typename BaseEventT>
 inline auto eventCast(event_ptr_tt<BaseEventT>&& eptr)
 {
     return eptr && is<std::decay_t<EventT>>(*eptr)
@@ -576,12 +582,15 @@ inline auto eventCast(event_ptr_tt<BaseEventT>&& eptr)
 }
 
 namespace _impl {
-    template <typename FnT, class BaseT>
-    concept Invocable_With_Downcast =
+    template <typename FnT, typename BaseT>
+    concept Invocable_With_Downcast = requires
+    {
+        requires EventClass<BaseT>;
         std::is_base_of_v<BaseT, std::remove_cvref_t<fn_arg_t<FnT>>>;
+    };
 }
 
-template <class BaseT, typename TailT>
+template <EventClass BaseT, typename TailT>
 inline auto switchOnType(const BaseT& event, TailT&& tail)
 {
     if constexpr (std::is_invocable_v<TailT, BaseT>) {
@@ -596,7 +605,7 @@ inline auto switchOnType(const BaseT& event, TailT&& tail)
     }
 }
 
-template <class BaseT, typename FnT1, typename... FnTs>
+template <EventClass BaseT, typename FnT1, typename... FnTs>
 inline auto switchOnType(const BaseT& event, FnT1&& fn1, FnTs&&... fns)
 {
     using event_type1 = fn_arg_t<FnT1>;
@@ -605,7 +614,7 @@ inline auto switchOnType(const BaseT& event, FnT1&& fn1, FnTs&&... fns)
     return switchOnType(event, std::forward<FnTs>(fns)...);
 }
 
-template <class BaseT, typename... FnTs>
+template <EventClass BaseT, typename... FnTs>
 [[deprecated("The new name for visit() is switchOnType()")]] //
 inline auto visit(const BaseT& event, FnTs&&... fns)
 {

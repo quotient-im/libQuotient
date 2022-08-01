@@ -128,7 +128,7 @@ private:
     [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
                                              const QString& evtIdToRedact);
 
-    template <class EventT>
+    template <EventClass<RoomEvent> EventT>
     [[nodiscard]] bool validatePendingEvent(const QString& txnId);
     [[nodiscard]] bool checkDirectChat() const;
     void finishTest(const TestToken& token, bool condition, const char* file,
@@ -156,7 +156,7 @@ void TestSuite::doTest(const QByteArray& testName)
                               Q_ARG(TestToken, testName));
 }
 
-template <class EventT>
+template <EventClass<RoomEvent> EventT>
 bool TestSuite::validatePendingEvent(const QString& txnId)
 {
     auto it = targetRoom->findPendingEvent(txnId);

@@ -188,7 +188,7 @@ public:
         emit q->accountDataChanged(eventType);
     }
 
-    template <typename EventT, typename ContentT>
+    template <EventClass EventT, typename ContentT>
     void packAndSendAccountData(ContentT&& content)
     {
         packAndSendAccountData(

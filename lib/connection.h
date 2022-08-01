@@ -189,7 +189,7 @@ public:
     //!         of that type.
     //! \note Direct chats map cannot be retrieved using this method _yet_;
     //!       use directChats() instead.
-    template <typename EventT>
+    template <EventClass EventT>
     const EventT* accountData() const
     {
         return eventCast<EventT>(accountData(EventT::TypeId));

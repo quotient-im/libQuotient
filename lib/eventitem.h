@@ -46,7 +46,7 @@ public:
 
     const RoomEvent* event() const { return rawPtr(evt); }
     const RoomEvent* get() const { return event(); }
-    template <typename EventT>
+    template <EventClass<RoomEvent> EventT>
     const EventT* viewAs() const
     {
         return eventCast<const EventT>(evt);
@@ -67,7 +67,7 @@ public:
     std::any& userData() { return data; }
 
 protected:
-    template <typename EventT>
+    template <EventClass<RoomEvent> EventT>
     EventT* getAs()
     {
         return eventCast<EventT>(evt);
