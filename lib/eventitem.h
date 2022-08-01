@@ -22,16 +22,16 @@ namespace EventStatus {
      * All values except Redacted and Hidden are mutually exclusive.
      */
     enum Code {
-        Normal = 0x0, //< No special designation
-        Submitted = 0x01, //< The event has just been submitted for sending
-        FileUploaded = 0x02, //< The file attached to the event has been
-                             // uploaded to the server
-        Departed = 0x03, //< The event has left the client
-        ReachedServer = 0x04, //< The server has received the event
-        SendingFailed = 0x05, //< The server could not receive the event
-        Redacted = 0x08, //< The event has been redacted
-        Replaced = 0x10, //< The event has been replaced
-        Hidden = 0x100, //< The event should not be shown in the timeline
+        Normal = 0x0, ///< No special designation
+        Submitted = 0x01, ///< The event has just been submitted for sending
+        FileUploaded = 0x02, ///< The file attached to the event has been
+                             ///  uploaded to the server
+        Departed = 0x03, ///< The event has left the client
+        ReachedServer = 0x04, ///< The server has received the event
+        SendingFailed = 0x05, ///< The server could not receive the event
+        Redacted = 0x08, ///< The event has been redacted
+        Replaced = 0x10, ///< The event has been replaced
+        Hidden = 0x100, ///< The event should not be shown in the timeline
     };
     Q_ENUM_NS(Code)
 } // namespace EventStatus
