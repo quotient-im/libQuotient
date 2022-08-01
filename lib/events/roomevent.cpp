@@ -12,7 +12,7 @@ RoomEvent::RoomEvent(const QJsonObject& json) : Event(json)
 {
     if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
         !redaction.isEmpty())
-        _redactedBecause = makeEvent<RedactionEvent>(redaction);
+        _redactedBecause = loadEvent<RedactionEvent>(redaction);
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job

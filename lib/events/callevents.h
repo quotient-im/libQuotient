@@ -15,12 +15,12 @@ public:
         return mType.startsWith("m.call.");
     }
 
-    explicit CallEvent(const QJsonObject& json);
-
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)
 
 protected:
+    explicit CallEvent(const QJsonObject& json);
+
     static QJsonObject basicJson(const QString& matrixType,
                                  const QString& callId, int version,
                                  QJsonObject contentJson = {});

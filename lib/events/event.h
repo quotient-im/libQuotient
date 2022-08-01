@@ -203,6 +203,9 @@ private:
 // === Event creation facilities ===
 
 //! \brief Create an event of arbitrary type from its arguments
+//!
+//! This should not be used to load events from JSON - use loadEvent() for that.
+//! \sa loadEvent
 template <typename EventT, typename... ArgTs>
 inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 {
@@ -265,8 +268,6 @@ public:
     {
         return BaseMetaType;
     }
-
-    explicit Event(const QJsonObject& json);
 
     Q_DISABLE_COPY(Event)
     Event(Event&&) noexcept = default;
@@ -364,6 +365,10 @@ public:
     [[deprecated("Use is<CallEvent>() instead")]] bool isCallEvent() const;
 
 protected:
+    friend class EventMetaType<Event>; // To access the below constructor
+
+    explicit Event(const QJsonObject& json);
+
     QJsonObject& editJson() { return _json; }
     virtual void dumpTo(QDebug dbg) const;
 
@@ -427,6 +432,7 @@ public:
 //! pointing to that BaseMetaType.
 //! \sa EventMetaType, EventMetaType::SuppressLoadDerived
 #define QUO_BASE_EVENT(CppType_, ...)                      \
+    friend class EventMetaType<CppType_>;                  \
     static inline EventMetaType<CppType_> BaseMetaType{    \
         #CppType_ __VA_OPT__(,) __VA_ARGS__ };             \
     const AbstractEventMetaType& metaType() const override \
@@ -452,6 +458,7 @@ public:
 //! \sa EventMetaType
 #define QUO_EVENT(CppType_, MatrixType_, ...)                           \
     static inline const auto& TypeId = MatrixType_##_ls;                \
+    friend class EventMetaType<CppType_>;                               \
     static inline const EventMetaType<CppType_> MetaType{               \
         #CppType_, TypeId, BaseMetaType __VA_OPT__(,) __VA_ARGS__       \
     };                                                                  \

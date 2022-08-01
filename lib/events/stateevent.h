@@ -24,7 +24,6 @@ public:
     //! constructors and calls in, e.g., RoomStateView don't include it.
     static constexpr auto needsStateKey = false;
 
-    explicit StateEventBase(const QJsonObject& json);
     explicit StateEventBase(Type type, const QString& stateKey = {},
                             const QJsonObject& contentJson = {});
 
@@ -39,9 +38,11 @@ public:
     }
 
     QString replacedState() const;
-    void dumpTo(QDebug dbg) const override;
-
     virtual bool repeatsState() const;
+
+protected:
+    explicit StateEventBase(const QJsonObject& json);
+    void dumpTo(QDebug dbg) const override;
 };
 using StateEventPtr = event_ptr_tt<StateEventBase>;
 using StateEvents = EventsArray<StateEventBase>;
@@ -129,12 +130,14 @@ private:
     using base_type = EventTemplate<EventT, StateEventBase, ContentT>;
 
 public:
-    explicit KeylessStateEventBase(const QJsonObject& fullJson)
-        : base_type(fullJson)
-    {}
     template <typename... ContentParamTs>
     explicit KeylessStateEventBase(ContentParamTs&&... contentParams)
         : base_type(QString(), std::forward<ContentParamTs>(contentParams)...)
+    {}
+
+protected:
+    explicit KeylessStateEventBase(const QJsonObject& fullJson)
+        : base_type(fullJson)
     {}
 };
 

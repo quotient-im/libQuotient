@@ -16,10 +16,7 @@ class QUOTIENT_API RoomEvent : public Event {
 public:
     QUO_BASE_EVENT(RoomEvent, {}, Event::BaseMetaType)
 
-    // RedactionEvent is an incomplete type here so we cannot inline
-    // constructors using it and also destructors (with 'using', in particular).
-    explicit RoomEvent(const QJsonObject& json);
-    ~RoomEvent() override;
+    ~RoomEvent() override; // Don't inline this - see the private section
 
     QString id() const;
     QDateTime originTimestamp() const;
@@ -66,9 +63,12 @@ public:
 #endif
 
 protected:
+    explicit RoomEvent(const QJsonObject& json);
     void dumpTo(QDebug dbg) const override;
 
 private:
+    // RedactionEvent is an incomplete type here so we cannot inline
+    // constructors using it and also destructors (with 'using', in particular).
     event_ptr_tt<RedactionEvent> _redactedBecause;
 
 #ifdef Quotient_E2EE_ENABLED

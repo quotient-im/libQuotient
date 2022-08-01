@@ -2242,10 +2242,12 @@ void Connection::saveOlmAccount()
 #ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
-    auto r = room(notification["room_id"].toString());
-    auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
-    const auto decrypted = r->decryptMessage(*event);
-    return decrypted ? decrypted->fullJson() : QJsonObject();
+    if (auto r = room(notification["room_id"].toString()))
+        if (auto event =
+                loadEvent<EncryptedEvent>(notification["event"].toObject()))
+            if (const auto decrypted = r->decryptMessage(*event))
+                return decrypted->fullJson();
+    return QJsonObject();
 }
 
 Database* Connection::database() const
