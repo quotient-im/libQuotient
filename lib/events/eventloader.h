@@ -50,9 +50,11 @@ inline StateEventPtr loadStateEvent(const QString& matrixType,
 template <typename EventT>
 struct JsonConverter<event_ptr_tt<EventT>>
     : JsonObjectUnpacker<event_ptr_tt<EventT>> {
+    using JsonObjectUnpacker<event_ptr_tt<EventT>>::load;
     static auto load(const QJsonObject& jo)
     {
         return loadEvent<EventT>(jo);
     }
 };
+
 } // namespace Quotient

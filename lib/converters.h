@@ -74,6 +74,7 @@ struct JsonConverter : JsonObjectUnpacker<T> {
         }
     }
 
+    using JsonObjectUnpacker<T>::load;
     static T load(const QJsonObject& jo)
     {
         // 'else' below are required to suppress code generation for unused
