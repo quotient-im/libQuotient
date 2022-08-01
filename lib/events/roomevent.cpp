@@ -96,22 +96,6 @@ void RoomEvent::dumpTo(QDebug dbg) const
     dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
 }
 
-QJsonObject CallEventBase::basicJson(const QString& matrixType,
-                                     const QString& callId, int version,
-                                     QJsonObject contentJson)
-{
-    contentJson.insert(QStringLiteral("call_id"), callId);
-    contentJson.insert(QStringLiteral("version"), version);
-    return RoomEvent::basicJson(matrixType, contentJson);
-}
-
-CallEventBase::CallEventBase(const QJsonObject& json)
-    : RoomEvent(json)
-{
-    if (callId().isEmpty())
-        qCWarning(EVENTS) << id() << "is a call event with an empty call id";
-}
-
 #ifdef Quotient_E2EE_ENABLED
 void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent>&& originalEvent)
 {

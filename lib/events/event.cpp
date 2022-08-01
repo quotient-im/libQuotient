@@ -3,6 +3,7 @@
 
 #include "event.h"
 
+#include "callevents.h"
 #include "logging.h"
 #include "stateevent.h"
 
@@ -74,7 +75,7 @@ const QJsonObject Event::unsignedJson() const
 
 bool Event::isStateEvent() const { return is<StateEventBase>(); }
 
-bool Event::isCallEvent() const { return is<CallEventBase>(); }
+bool Event::isCallEvent() const { return is<CallEvent>(); }
 
 void Event::dumpTo(QDebug dbg) const
 {

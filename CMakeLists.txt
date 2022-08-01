@@ -158,10 +158,7 @@ list(APPEND lib_SRCS
     lib/events/accountdataevents.h
     lib/events/receiptevent.h lib/events/receiptevent.cpp
     lib/events/reactionevent.h
-    lib/events/callinviteevent.h lib/events/callinviteevent.cpp
-    lib/events/callcandidatesevent.h
-    lib/events/callanswerevent.h lib/events/callanswerevent.cpp
-    lib/events/callhangupevent.h
+    lib/events/callevents.h lib/events/callevents.cpp
     lib/events/directchatevent.h lib/events/directchatevent.cpp
     lib/events/encryptionevent.h lib/events/encryptionevent.cpp
     lib/events/encryptedevent.h lib/events/encryptedevent.cpp

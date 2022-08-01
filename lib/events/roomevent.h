@@ -79,31 +79,6 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-class QUOTIENT_API CallEventBase : public RoomEvent {
-public:
-    QUO_BASE_EVENT(CallEventBase, "m.call.*"_ls, RoomEvent::BaseMetaType)
-
-    explicit CallEventBase(const QJsonObject& json);
-
-    QUO_CONTENT_GETTER(QString, callId)
-    QUO_CONTENT_GETTER(int, version)
-
-protected:
-    static QJsonObject basicJson(const QString& matrixType,
-                                 const QString& callId, int version,
-                                 QJsonObject contentJson = {});
-};
-
-template <typename EventT>
-class EventTemplate<EventT, CallEventBase, void> : public CallEventBase {
-public:
-    using CallEventBase::CallEventBase;
-    explicit EventTemplate(const QString& callId,
-                           const QJsonObject& contentJson = {})
-        : EventTemplate(basicJson(EventT::TypeId, callId, 0, contentJson))
-    {}
-};
-
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
 Q_DECLARE_METATYPE(const Quotient::RoomEvent*)

@@ -35,10 +35,7 @@
 #include "csapi/rooms.h"
 #include "csapi/tags.h"
 
-#include "events/callanswerevent.h"
-#include "events/callcandidatesevent.h"
-#include "events/callhangupevent.h"
-#include "events/callinviteevent.h"
+#include "events/callevents.h"
 #include "events/encryptionevent.h"
 #include "events/reactionevent.h"
 #include "events/receiptevent.h"
@@ -2916,7 +2913,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (q->supportsCalls())
         for (auto it = from; it != syncEdge(); ++it)
-            if (const auto* evt = it->viewAs<CallEventBase>())
+            if (const auto* evt = it->viewAs<CallEvent>())
                 emit q->callEvent(q, evt);
 
     if (totalInserted > 0) {

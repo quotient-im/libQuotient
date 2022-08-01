@@ -361,7 +361,7 @@ public:
     // as an exception. For other base events, Event::is<>() and
     // Quotient::is<>() should be used; don't add is* methods here
     bool isStateEvent() const;
-    [[deprecated("Use is<CallEventBase>() instead")]] bool isCallEvent() const;
+    [[deprecated("Use is<CallEvent>() instead")]] bool isCallEvent() const;
 
 protected:
     QJsonObject& editJson() { return _json; }
@@ -386,7 +386,7 @@ using Events = EventsArray<Event>;
 //! don't need to create an event from its content structure, just go and derive
 //! straight from the respective \p EventBaseT instead of using EventTemplate);
 //! specialisations may override that and provide useful semantics even without
-//! \p ContentT (see EventTemplate<CallEventBase>, e.g.).
+//! \p ContentT (see EventTemplate<CallEvent>, e.g.).
 //!
 //! The template uses CRTP to pick the event type id from the actual class;
 //! it will fail to compile if \p EventT doesn't provide TypeId. It also uses
@@ -402,8 +402,8 @@ public:
         !std::is_same_v<ContentT, void>,
         "If you see this, you tried to use EventTemplate with the default"
         " ContentT type, which is void. This default is only used with explicit"
-        " specialisations (see CallEventBase, e.g.). Otherwise, if you don't"
-        " intend to use the content part of EventTemplate then you don't need"
+        " specialisations (see CallEvent, e.g.). Otherwise, if you don't intend"
+        " to use the content part of EventTemplate then you don't need"
         " EventTemplate; just use the base event class directly");
     using content_type = ContentT;
 
