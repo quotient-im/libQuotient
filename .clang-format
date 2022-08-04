@@ -83,7 +83,7 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 #DeriveLineEnding: true
 #DerivePointerAlignment: false
 #EmptyLineAfterAccessModifier: Never # ClangFormat 14
-EmptyLineBeforeAccessModifier: Always
+EmptyLineBeforeAccessModifier: LogicalBlock
 #FixNamespaceComments: false # See ShortNamespaces below
 IncludeBlocks: Regroup
 IncludeCategories:
