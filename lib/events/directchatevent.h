@@ -8,11 +8,10 @@
 namespace Quotient {
 class QUOTIENT_API DirectChatEvent : public Event {
 public:
-    DEFINE_EVENT_TYPEID("m.direct", DirectChatEvent)
+    QUO_EVENT(DirectChatEvent, "m.direct")
 
     explicit DirectChatEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
 
     QMultiHash<QString, QString> usersToDirectChats() const;
 };
-REGISTER_EVENT_TYPE(DirectChatEvent)
 } // namespace Quotient

@@ -4,6 +4,7 @@
 #include "event.h"
 
 #include "logging.h"
+#include "stateevent.h"
 
 #include <QtCore/QJsonDocument>
 
@@ -11,12 +12,38 @@ using namespace Quotient;
 
 QString EventTypeRegistry::getMatrixType(event_type_t typeId) { return typeId; }
 
-void _impl::EventFactoryBase::logAddingMethod(event_type_t TypeId,
-                                              size_t newSize)
+void AbstractEventMetaType::addDerived(AbstractEventMetaType* newType)
 {
-    qDebug(EVENTS) << "Adding factory method for" << TypeId << "events;"
-                   << newSize << "methods will be in the" << name
-                   << "chain";
+    if (const auto existing =
+            std::find_if(derivedTypes.cbegin(), derivedTypes.cend(),
+                         [&newType](const AbstractEventMetaType* t) {
+                             return t->matrixId == newType->matrixId;
+                         });
+        existing != derivedTypes.cend())
+    {
+        if (*existing == newType)
+            return;
+        // Two different metatype objects claim the same Matrix type id; this
+        // is not normal, so give as much information as possible to diagnose
+        if ((*existing)->className == newType->className) {
+            qCritical(EVENTS)
+                << newType->className << "claims" << newType->matrixId
+                << "repeatedly; check that it's exported across translation "
+                   "units or shared objects";
+            Q_ASSERT(false); // That situation is plain wrong
+            return; // So maybe std::terminate() even?
+        }
+        qWarning(EVENTS).nospace()
+            << newType->matrixId << " is already mapped to "
+            << (*existing)->className << " before " << newType->className
+            << "; unless the two have different isValid() conditions, the "
+               "latter class will never be used";
+    }
+    derivedTypes.emplace_back(newType);
+    qDebug(EVENTS).nospace()
+        << newType->matrixId << " -> " << newType->className << "; "
+        << derivedTypes.size() << " derived type(s) registered for "
+        << className;
 }
 
 Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
@@ -47,6 +74,10 @@ const QJsonObject Event::unsignedJson() const
 {
     return fullJson()[UnsignedKeyL].toObject();
 }
+
+bool Event::isStateEvent() const { return is<StateEventBase>(); }
+
+bool Event::isCallEvent() const { return is<CallEventBase>(); }
 
 void Event::dumpTo(QDebug dbg) const
 {

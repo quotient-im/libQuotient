@@ -9,7 +9,12 @@ namespace Quotient {
 
 class QUOTIENT_API StateEventBase : public RoomEvent {
 public:
-    static inline EventFactory<StateEventBase> factory { "StateEvent" };
+    QUO_BASE_EVENT(StateEventBase, "json.contains('state_key')"_ls,
+                    RoomEvent::BaseMetaType)
+    static bool isValid(const QJsonObject& fullJson)
+    {
+        return fullJson.contains(StateKeyKeyL);
+    }
 
     StateEventBase(Type type, const QJsonObject& json);
     StateEventBase(Type type, event_mtype_t matrixType,
@@ -27,7 +32,6 @@ public:
                  { ContentKey, contentJson } };
     }
 
-    bool isStateEvent() const override { return true; }
     QString replacedState() const;
     void dumpTo(QDebug dbg) const override;
 
@@ -42,28 +46,6 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
                                        const QString& stateKey = {})
 {
     return StateEventBase::basicJson(matrixTypeId, stateKey, content);
-}
-
-//! \brief Override RoomEvent factory with that from StateEventBase if JSON has
-//! stateKey
-//!
-//! This means in particular that an event with a type known to RoomEvent but
-//! having stateKey set (even to an empty value) will be treated as a state
-//! event and most likely end up as unknown (consider, e.g., m.room.message
-//! that has stateKey set).
-template <>
-inline RoomEventPtr doLoadEvent(const QJsonObject& json,
-                                const QString& matrixType)
-{
-    if (json.contains(StateKeyKeyL))
-        return StateEventBase::factory.loadEvent(json, matrixType);
-    return RoomEvent::factory.loadEvent(json, matrixType);
-}
-
-template <>
-inline bool is<StateEventBase>(const Event& e)
-{
-    return e.isStateEvent();
 }
 
 /**

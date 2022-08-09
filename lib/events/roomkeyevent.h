@@ -9,7 +9,7 @@ namespace Quotient {
 class QUOTIENT_API RoomKeyEvent : public Event
 {
 public:
-    DEFINE_EVENT_TYPEID("m.room_key", RoomKeyEvent)
+    QUO_EVENT(RoomKeyEvent, "m.room_key")
 
     explicit RoomKeyEvent(const QJsonObject& obj);
     explicit RoomKeyEvent(const QString& algorithm, const QString& roomId,
@@ -23,5 +23,4 @@ public:
         return contentPart<QString>("session_key"_ls).toLatin1();
     }
 };
-REGISTER_EVENT_TYPE(RoomKeyEvent)
 } // namespace Quotient

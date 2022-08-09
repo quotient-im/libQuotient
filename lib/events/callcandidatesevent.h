@@ -11,7 +11,7 @@
 namespace Quotient {
 class CallCandidatesEvent : public CallEventBase {
 public:
-    DEFINE_EVENT_TYPEID("m.call.candidates", CallCandidatesEvent)
+    QUO_EVENT(CallCandidatesEvent, "m.call.candidates")
 
     explicit CallCandidatesEvent(const QJsonObject& obj)
         : CallEventBase(typeId(), obj)
@@ -27,6 +27,4 @@ public:
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)
 };
-
-REGISTER_EVENT_TYPE(CallCandidatesEvent)
 } // namespace Quotient

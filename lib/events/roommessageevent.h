@@ -20,7 +20,7 @@ namespace MessageEventContent = EventContent; // Back-compatibility
 class QUOTIENT_API RoomMessageEvent : public RoomEvent {
     Q_GADGET
 public:
-    DEFINE_EVENT_TYPEID("m.room.message", RoomMessageEvent)
+    QUO_EVENT(RoomMessageEvent, "m.room.message")
 
     enum class MsgType {
         Text,
@@ -94,7 +94,7 @@ private:
 
     Q_ENUM(MsgType)
 };
-REGISTER_EVENT_TYPE(RoomMessageEvent)
+
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {

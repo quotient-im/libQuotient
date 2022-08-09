@@ -9,7 +9,7 @@
 namespace Quotient {
 class QUOTIENT_API CallHangupEvent : public CallEventBase {
 public:
-    DEFINE_EVENT_TYPEID("m.call.hangup", CallHangupEvent)
+    QUO_EVENT(CallHangupEvent, "m.call.hangup")
 
     explicit CallHangupEvent(const QJsonObject& obj)
         : CallEventBase(typeId(), obj)
@@ -18,6 +18,4 @@ public:
         : CallEventBase(typeId(), matrixTypeId(), callId, 0)
     {}
 };
-
-REGISTER_EVENT_TYPE(CallHangupEvent)
 } // namespace Quotient

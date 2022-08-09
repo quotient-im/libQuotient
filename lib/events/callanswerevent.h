@@ -9,7 +9,7 @@
 namespace Quotient {
 class QUOTIENT_API CallAnswerEvent : public CallEventBase {
 public:
-    DEFINE_EVENT_TYPEID("m.call.answer", CallAnswerEvent)
+    QUO_EVENT(CallAnswerEvent, "m.call.answer")
 
     explicit CallAnswerEvent(const QJsonObject& obj);
 
@@ -20,5 +20,4 @@ public:
         return contentPart<QJsonObject>("answer"_ls).value("sdp"_ls).toString();
     }
 };
-REGISTER_EVENT_TYPE(CallAnswerEvent)
 } // namespace Quotient

@@ -14,7 +14,7 @@ namespace Quotient {
 class QUOTIENT_API StickerEvent : public RoomEvent
 {
 public:
-    DEFINE_EVENT_TYPEID("m.sticker", StickerEvent)
+    QUO_EVENT(StickerEvent, "m.sticker")
 
     explicit StickerEvent(const QJsonObject& obj)
         : RoomEvent(TypeId, obj)
@@ -45,5 +45,4 @@ public:
 private:
     EventContent::ImageContent m_imageContent;
 };
-REGISTER_EVENT_TYPE(StickerEvent)
 } // namespace Quotient

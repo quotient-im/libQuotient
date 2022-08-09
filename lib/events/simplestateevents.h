@@ -14,7 +14,7 @@ namespace Quotient {
               EventContent::SingleKeyValue<_ValueType, &_Name##Key>> {     \
     public:                                                                \
         using value_type = _ValueType;                                     \
-        DEFINE_EVENT_TYPEID(_TypeId, _Name)                                \
+        QUO_EVENT(_Name, _TypeId)                                \
         template <typename T>                                              \
         explicit _Name(T&& value)                                          \
             : StateEvent(TypeId, matrixTypeId(), QString(),                \
@@ -25,7 +25,6 @@ namespace Quotient {
         {}                                                                 \
         auto _ContentKey() const { return content().value; }               \
     };                                                                     \
-    REGISTER_EVENT_TYPE(_Name)                                             \
     // End of macro
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
@@ -38,7 +37,7 @@ class QUOTIENT_API RoomAliasesEvent
     : public StateEvent<
           EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>> {
 public:
-    DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
+    QUO_EVENT(RoomAliasesEvent, "m.room.aliases")
     explicit RoomAliasesEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
     {}

@@ -21,11 +21,10 @@ using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
 class QUOTIENT_API ReceiptEvent : public Event {
 public:
-    DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
+    QUO_EVENT(ReceiptEvent, "m.receipt")
     explicit ReceiptEvent(const EventsWithReceipts& ewrs);
     explicit ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
 
     EventsWithReceipts eventsWithReceipts() const;
 };
-REGISTER_EVENT_TYPE(ReceiptEvent)
 } // namespace Quotient

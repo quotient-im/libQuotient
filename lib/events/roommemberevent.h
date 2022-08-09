@@ -31,7 +31,7 @@ using MembershipType [[deprecated("Use Membership instead")]] = Membership;
 class QUOTIENT_API RoomMemberEvent : public StateEvent<MemberEventContent> {
     Q_GADGET
 public:
-    DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
+    QUO_EVENT(RoomMemberEvent, "m.room.member")
 
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
@@ -79,14 +79,4 @@ public:
     bool isRename() const;
     bool isAvatarUpdate() const;
 };
-
-template <>
-inline event_ptr_tt<RoomMemberEvent>
-doLoadEvent<RoomMemberEvent>(const QJsonObject& json, const QString& matrixType)
-{
-    if (matrixType == QLatin1String(RoomMemberEvent::matrixTypeId()))
-        return makeEvent<RoomMemberEvent>(json);
-    return makeEvent<RoomMemberEvent>(unknownEventTypeId(), json);
-}
-REGISTER_EVENT_TYPE(RoomMemberEvent)
 } // namespace Quotient

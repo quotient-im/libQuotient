@@ -34,7 +34,7 @@ inline auto toJson(const EventContent::AliasesEventContent& c)
 class QUOTIENT_API RoomCanonicalAliasEvent
     : public StateEvent<EventContent::AliasesEventContent> {
 public:
-    DEFINE_EVENT_TYPEID("m.room.canonical_alias", RoomCanonicalAliasEvent)
+    QUO_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias")
 
     explicit RoomCanonicalAliasEvent(const QJsonObject& obj)
         : StateEvent(typeId(), obj)
@@ -55,5 +55,4 @@ public:
     QString alias() const { return content().canonicalAlias; }
     QStringList altAliases() const { return content().altAliases; }
 };
-REGISTER_EVENT_TYPE(RoomCanonicalAliasEvent)
 } // namespace Quotient

@@ -9,7 +9,7 @@
 namespace Quotient {
 class QUOTIENT_API CallInviteEvent : public CallEventBase {
 public:
-    DEFINE_EVENT_TYPEID("m.call.invite", CallInviteEvent)
+    QUO_EVENT(CallInviteEvent, "m.call.invite")
 
     explicit CallInviteEvent(const QJsonObject& obj);
 
@@ -22,6 +22,4 @@ public:
         return contentPart<QJsonObject>("offer"_ls).value("sdp"_ls).toString();
     }
 };
-
-REGISTER_EVENT_TYPE(CallInviteEvent)
 } // namespace Quotient

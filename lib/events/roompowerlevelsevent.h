@@ -33,7 +33,7 @@ struct QUOTIENT_API PowerLevelsEventContent {
 class QUOTIENT_API RoomPowerLevelsEvent
     : public StateEvent<PowerLevelsEventContent> {
 public:
-    DEFINE_EVENT_TYPEID("m.room.power_levels", RoomPowerLevelsEvent)
+    QUO_EVENT(RoomPowerLevelsEvent, "m.room.power_levels")
 
     explicit RoomPowerLevelsEvent(PowerLevelsEventContent&& content)
         : StateEvent(typeId(), matrixTypeId(), QString(), std::move(content))
@@ -61,5 +61,4 @@ public:
     int powerLevelForState(const QString& eventId) const;
     int powerLevelForUser(const QString& userId) const;
 };
-REGISTER_EVENT_TYPE(RoomPowerLevelsEvent)
 } // namespace Quotient

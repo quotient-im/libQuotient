@@ -8,7 +8,7 @@
 namespace Quotient {
 class QUOTIENT_API RedactionEvent : public RoomEvent {
 public:
-    DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
+    QUO_EVENT(RedactionEvent, "m.room.redaction")
 
     explicit RedactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj)
     {}
@@ -19,5 +19,4 @@ public:
     }
     QUO_CONTENT_GETTER(QString, reason)
 };
-REGISTER_EVENT_TYPE(RedactionEvent)
 } // namespace Quotient

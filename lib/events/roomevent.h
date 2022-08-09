@@ -10,10 +10,11 @@
 namespace Quotient {
 class RedactionEvent;
 
-/** This class corresponds to m.room.* events */
+// That check could look into Event and find most stuff already deleted...
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class QUOTIENT_API RoomEvent : public Event {
 public:
-    static inline EventFactory<RoomEvent> factory { "RoomEvent" };
+    QUO_BASE_EVENT(RoomEvent, {}, Event::BaseMetaType)
 
     // RedactionEvent is an incomplete type here so we cannot inline
     // constructors and destructors and we cannot use 'using'.
@@ -80,21 +81,14 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-template <>
-inline EventPtr doLoadEvent(const QJsonObject& json, const QString& matrixType)
-{
-    if (matrixType == "m.room.encrypted")
-        return RoomEvent::factory.loadEvent(json, matrixType);
-    return Event::factory.loadEvent(json, matrixType);
-}
-
 class QUOTIENT_API CallEventBase : public RoomEvent {
 public:
+    QUO_BASE_EVENT(CallEventBase, "m.call.*"_ls, RoomEvent::BaseMetaType)
+
     CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
                   int version, const QJsonObject& contentJson = {});
     CallEventBase(Type type, const QJsonObject& json);
     ~CallEventBase() override = default;
-    bool isCallEvent() const override { return true; }
 
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)

@@ -85,91 +85,167 @@ inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
     return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
 }
 
-namespace _impl {
-    class QUOTIENT_API EventFactoryBase {
-    public:
-        EventFactoryBase(const EventFactoryBase&) = delete;
+// === EventMetaType ===
 
-    protected: // This class is only to inherit from
-        explicit EventFactoryBase(const char* name)
-            : name(name)
-        {}
-        void logAddingMethod(event_type_t TypeId, size_t newSize);
+class Event;
 
-    private:
-        const char* const name;
-    };
-} // namespace _impl
+template <class EventT>
+bool is(const Event& e);
 
-//! \brief A family of event factories to create events from CS API responses
+//! \brief The base class for event metatypes
 //!
-//! Each of these factories, as instantiated by event base types (Event,
-//! RoomEvent etc.) is capable of producing an event object derived from
-//! \p BaseEventT, using the JSON payload and the event type passed to its
-//! make() method. Don't use these directly to make events; use loadEvent()
-//! overloads as the frontend for these. Never instantiate new factories
-//! outside of base event classes.
-//! \sa loadEvent, setupFactory, Event::factory, RoomEvent::factory,
-//!     StateEventBase::factory
-template <typename BaseEventT>
-class EventFactory : public _impl::EventFactoryBase {
-private:
-    using method_t = event_ptr_tt<BaseEventT> (*)(const QJsonObject&,
-                                                  const QString&);
-    std::vector<method_t> methods {};
-
-    template <class EventT>
-    static event_ptr_tt<BaseEventT> makeIfMatches(const QJsonObject& json,
-                                                  const QString& matrixType)
-    {
-        // If your matrix event type is not all ASCII, it's your problem
-        // (see https://github.com/matrix-org/matrix-doc/pull/2758)
-        return EventT::TypeId == matrixType ? makeEvent<EventT>(json) : nullptr;
-    }
-
+//! You should not normally have to use this directly, unless you need to devise
+//! a whole new kind of event metatypes.
+class QUOTIENT_API AbstractEventMetaType {
 public:
-    explicit EventFactory(const char* fName)
-        : EventFactoryBase { fName }
-    {}
+    // The public fields here are const and are not to be changeable anyway.
+    // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
+    const char* const className;
+    const event_type_t matrixId;
+    const AbstractEventMetaType* const baseType = nullptr;
+    // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-    //! \brief Add a method to create events of a given type
-    //!
-    //! Adds a standard factory method (makeIfMatches) for \p EventT so that
-    //! event objects of this type can be created dynamically by loadEvent.
-    //! The caller is responsible for ensuring this method is called only
-    //! once per type.
-    //! \sa loadEvent, Quotient::loadEvent
-    template <class EventT>
-    const auto& addMethod()
+    explicit AbstractEventMetaType(const char* className)
+        : className(className)
+    {}
+    explicit AbstractEventMetaType(const char* className, event_type_t matrixId,
+                                   AbstractEventMetaType& nearestBase)
+        : className(className), matrixId(matrixId), baseType(&nearestBase)
     {
-        const auto m = &makeIfMatches<EventT>;
-        const auto it = std::find(methods.cbegin(), methods.cend(), m);
-        if (it != methods.cend())
-            return *it;
-        logAddingMethod(EventT::TypeId, methods.size() + 1);
-        return methods.emplace_back(m);
+        nearestBase.addDerived(this);
     }
 
-    auto loadEvent(const QJsonObject& json, const QString& matrixType)
+    void addDerived(AbstractEventMetaType *newType);
+
+    virtual ~AbstractEventMetaType() = default;
+
+protected:
+    // Allow template specialisations to call into one another
+    template <class EventT>
+    friend class EventMetaType;
+
+    // The returned value indicates whether a generic object has to be created
+    // on the top level when `event` is empty, instead of returning nullptr
+    virtual bool doLoadFrom(const QJsonObject& fullJson, const QString& type,
+                            Event*& event) const = 0;
+
+private:
+    std::vector<const AbstractEventMetaType*> derivedTypes{};
+    Q_DISABLE_COPY_MOVE(AbstractEventMetaType)
+};
+
+// Any event metatype is unique (note Q_DISABLE_COPY_MOVE above) so can be
+// identified by its address
+inline bool operator==(const AbstractEventMetaType& lhs,
+                       const AbstractEventMetaType& rhs)
+{
+    return &lhs == &rhs;
+}
+
+//! \brief A family of event meta-types to load and match events
+//!
+//! TL;DR for the loadFrom() story:
+//! - for base event types, use QUO_BASE_EVENT and, if you have additional
+//!   validation (e.g., JSON has to contain a certain key - see StateEventBase
+//!   for a real example), define it in the static EventT::isValid() member
+//!   function accepting QJsonObject and returning bool.
+//! - for leaf (specific) event types - simply use QUO_EVENT and it will do
+//!   everything necessary, including the TypeId definition.
+//! \sa QUO_EVENT, QUO_BASE_EVENT
+template <class EventT>
+class QUOTIENT_API EventMetaType : public AbstractEventMetaType {
+    // Above: can't constrain EventT to be EventClass because it's incomplete
+    // at the point of EventMetaType<EventT> instantiation.
+public:
+    using AbstractEventMetaType::AbstractEventMetaType;
+
+    //! \brief Try to load an event from JSON, with dynamic type resolution
+    //!
+    //! The generic logic defined in this class template and invoked applies to
+    //! all event types defined in the library and boils down to the following:
+    //! 1.
+    //!    a. If EventT has TypeId defined (which normally is a case of
+    //!       all leaf - specific - event types, via QUO_EVENT macro) and
+    //!       \p type doesn't exactly match it, nullptr is immediately returned.
+    //!    b. In absence of TypeId, an event type is assumed to be a base;
+    //!       its derivedTypes are examined, and this algorithm is applied
+    //!       recursively on each.
+    //! 2. Optional validation: if EventT (or, due to the way inheritance works,
+    //!    any of its base event types) has a static isValid() predicate and
+    //!    the event JSON does not satisfy it, nullptr is immediately returned
+    //!    to the upper level or to the loadFrom() caller. This is how existence
+    //!    of `state_key` is checked in any type derived from StateEventBase.
+    //! 3. If step 1b above returned non-nullptr, immediately return it.
+    //! 4.
+    //!    a. If EventT::isValid() or EventT::TypeId (either, or both) exist and
+    //!       are satisfied (see steps 1a and 2 above), an object of this type
+    //!       is created from the passed JSON and returned. In case of a base
+    //!       event type, this will be a generic (aka "unknown") event.
+    //!    b. If neither exists, a generic event is only created and returned
+    //!       when on the top level (i.e., outside of recursion into
+    //!       derivedTypes); lower levels return nullptr instead and the type
+    //!       lookup continues. The latter is a case of a derived base event
+    //!       metatype (e.g. RoomEvent) called from its base event metatype
+    //!       (i.e., Event). If no matching type derived from RoomEvent is found,
+    //!       the nested lookup returns nullptr rather than a generic RoomEvent,
+    //!       so that other types derived from Event could be examined.
+    event_ptr_tt<EventT> loadFrom(const QJsonObject& fullJson,
+                                  const QString& type) const
     {
-        for (const auto& f : methods)
-            if (auto e = f(json, matrixType))
-                return e;
-        return makeEvent<BaseEventT>(UnknownEventTypeId, json);
+        Event* event = nullptr;
+        const bool goodEnough = doLoadFrom(fullJson, type, event);
+        if (!event && goodEnough)
+            return event_ptr_tt<EventT>{ makeEvent(fullJson) };
+        return event_ptr_tt<EventT>{ static_cast<EventT*>(event) };
+    }
+
+private:
+    bool doLoadFrom(const QJsonObject& fullJson, const QString& type,
+                    Event*& event) const override
+    {
+        if constexpr (requires { EventT::TypeId; }) {
+            if (EventT::TypeId != type)
+                return false;
+        } else {
+            for (const auto& p : derivedTypes) {
+                p->doLoadFrom(fullJson, type, event);
+                if (event) {
+                    Q_ASSERT(is<EventT>(*event));
+                    return false;
+                }
+            }
+        }
+        if constexpr (requires { EventT::isValid; }) {
+            if (!EventT::isValid(fullJson))
+                return false;
+        } else if constexpr (!requires { EventT::TypeId; })
+            return true; // Create a generic event object if on the top level
+        event = makeEvent(fullJson);
+        return false;
+    }
+    static auto makeEvent(const QJsonObject& fullJson)
+    {
+        if constexpr (requires { EventT::TypeId; })
+            return new EventT(fullJson);
+        else
+            return new EventT(UnknownEventTypeId, fullJson);
     }
 };
 
-//! \brief Point of customisation to dynamically load events
-//!
-//! The default specialisation of this calls BaseEventT::factory.loadEvent()
-//! and if that fails (i.e. returns nullptr) creates an unknown event of
-//! BaseEventT. Other specialisations may reuse other factories, add validations
-//! common to BaseEventT events, and so on.
-template <class BaseEventT>
-event_ptr_tt<BaseEventT> doLoadEvent(const QJsonObject& json,
-                                     const QString& matrixType)
+template <class EventT>
+constexpr const auto& mostSpecificMetaType()
 {
-    return BaseEventT::factory.loadEvent(json, matrixType);
+    if constexpr (requires { EventT::MetaType; })
+        return EventT::MetaType;
+    else
+        return EventT::BaseMetaType;
+}
+
+template <class EventT>
+inline event_ptr_tt<EventT> doLoadEvent(const QJsonObject& json,
+                                        const QString& matrixType)
+{
+    return mostSpecificMetaType<EventT>().loadFrom(json, matrixType);
 }
 
 // === Event ===
@@ -177,7 +253,12 @@ event_ptr_tt<BaseEventT> doLoadEvent(const QJsonObject& json,
 class QUOTIENT_API Event {
 public:
     using Type = event_type_t;
-    static inline EventFactory<Event> factory { "Event" };
+    static inline EventMetaType<Event> BaseMetaType { "Event" };
+    virtual const AbstractEventMetaType& metaType() const
+    {
+        return BaseMetaType;
+    }
+
 
     explicit Event(Type type, const QJsonObject& json);
     explicit Event(Type type, event_mtype_t matrixType,
@@ -194,8 +275,26 @@ public:
         return { { TypeKey, matrixType }, { ContentKey, content } };
     }
 
-    Type type() const { return _type; }
+    //! \brief Event Matrix type, as identified by its metatype object
+    //!
+    //! For generic/unknown events it will contain a descriptive/generic string
+    //! defined by the respective base event type (that can be empty).
+    //! \sa matrixType
+    Type type() const { return metaType().matrixId; }
+
+    //! \brief Exact Matrix type stored in JSON
+    //!
+    //! Coincides with the result of type() (but is slower) for events defined
+    //! in C++ (not necessarily in the library); for generic/unknown events
+    //! the returned value will be different.
     QString matrixType() const;
+
+    template <class EventT>
+    bool is() const
+    {
+        return Quotient::is<EventT>(*this);
+    }
+
     [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
                  "or by other means")]]
     QByteArray originalJson() const;
@@ -237,13 +336,17 @@ public:
     friend QUOTIENT_API QDebug operator<<(QDebug dbg, const Event& e)
     {
         QDebugStateSaver _dss { dbg };
-        dbg.noquote().nospace() << e.matrixType() << '(' << e.type() << "): ";
+        dbg.noquote().nospace()
+            << e.matrixType() << '(' << e.metaType().className << "): ";
         e.dumpTo(dbg);
         return dbg;
     }
 
-    virtual bool isStateEvent() const { return false; }
-    virtual bool isCallEvent() const { return false; }
+    // State events are quite special in Matrix; so isStateEvent() is here,
+    // as an exception. For other base events, Event::is<>() and
+    // Quotient::is<>() should be used; don't add is* methods here
+    bool isStateEvent() const;
+    [[deprecated("Use is<CallEventBase>() instead")]] bool isCallEvent() const;
 
 protected:
     QJsonObject& editJson() { return _json; }
@@ -259,11 +362,64 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
+// === Facilities for event class definitions ===
+
+//! \brief Supply event metatype information in base event types
+//!
+//! Use this macro in a public section of your base event class to provide
+//! type identity and enable dynamic loading of generic events of that type.
+//! Do _not_ add this macro if your class is an intermediate wrapper and is not
+//! supposed to be instantiated on its own. Provides BaseMetaType static field
+//! initialised by parameters passed to the macro, and a metaType() override
+//! pointing to that BaseMetaType.
+//! \sa EventMetaType, EventMetaType::SuppressLoadDerived
+#define QUO_BASE_EVENT(CppType_, ...)                      \
+    static inline EventMetaType<CppType_> BaseMetaType{    \
+        #CppType_ __VA_OPT__(,) __VA_ARGS__ };             \
+    const AbstractEventMetaType& metaType() const override \
+    {                                                      \
+        return BaseMetaType;                               \
+    }                                                      \
+    // End of macro
+
+//! Supply event metatype information in (specific) event types
+//!
+//! Use this macro in a public section of your event class to provide type
+//! identity and enable dynamic loading of generic events of that type.
+//! Do _not_ use this macro if your class is an intermediate wrapper and is not
+//! supposed to be instantiated on its own. Provides MetaType static field
+//! initialised as described below; a metaType() override pointing to it; and
+//! the TypeId static field that is equal to MetaType.matrixId.
+//!
+//! The first two macro parameters are used as the first two EventMetaType
+//! constructor parameters; the third EventMetaType parameter is always
+//! BaseMetaType; and additional base types can be passed in extra macro
+//! parameters if you need to include the same event type in more than one
+//! event factory hierarchy (e.g., EncryptedEvent).
+//! \sa EventMetaType
+#define QUO_EVENT(CppType_, MatrixType_, ...)                           \
+    static inline const auto& TypeId = MatrixType_##_ls;                \
+    static inline const EventMetaType<CppType_> MetaType{               \
+        #CppType_, TypeId, BaseMetaType __VA_OPT__(,) __VA_ARGS__       \
+    };                                                                  \
+    const AbstractEventMetaType& metaType() const override              \
+    {                                                                   \
+        return MetaType;                                                \
+    }                                                                   \
+    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]        \
+    static constexpr const char* matrixTypeId() { return MatrixType_; } \
+    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]        \
+    static event_type_t typeId() { return TypeId; }                     \
+    // End of macro
+
+//! \deprecated This is the old name for what is now known as QUO_EVENT
+#define DEFINE_EVENT_TYPEID(Type_, Id_) QUO_EVENT(Type_, Id_)
+
 #define QUO_CONTENT_GETTER_X(PartType_, PartName_, JsonKey_) \
-    PartType_ PartName_() const                                 \
-    {                                                           \
-        static const auto PartName_##JsonKey = JsonKey_;        \
-        return contentPart<PartType_>(PartName_##JsonKey);      \
+    PartType_ PartName_() const                              \
+    {                                                        \
+        static const auto PartName_##JsonKey = JsonKey_;     \
+        return contentPart<PartType_>(PartName_##JsonKey);   \
     }
 
 //! \brief Define an inline method obtaining a content part
@@ -277,25 +433,9 @@ using Events = EventsArray<Event>;
 #define QUO_CONTENT_GETTER(PartType_, PartName_) \
     QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_ls))
 
-// === Facilities for event class definitions ===
-
-// This macro should be used in a public section of an event class to
-// provide matrixTypeId() and typeId().
-#define DEFINE_EVENT_TYPEID(Id_, Type_)                           \
-    static constexpr event_type_t TypeId = Id_##_ls;              \
-    [[deprecated("Use " #Type_ "::TypeId directly instead")]]     \
-    static constexpr event_mtype_t matrixTypeId() { return Id_; } \
-    [[deprecated("Use " #Type_ "::TypeId directly instead")]]     \
-    static event_type_t typeId() { return TypeId; }               \
-    // End of macro
-
-// This macro should be put after an event class definition (in .h or .cpp)
-// to enable its deserialisation from a /sync and other
-// polymorphic event arrays
-#define REGISTER_EVENT_TYPE(Type_)                                \
-    [[maybe_unused]] inline const auto& factoryMethodFor##Type_ = \
-        Type_::factory.addMethod<Type_>();                        \
-    // End of macro
+//! \deprecated This macro was used after an event class definition
+//! to enable its dynamic loading; it is completely superseded by QUO_EVENT
+#define REGISTER_EVENT_TYPE(Type_)
 
 /// \brief Define a new event class with a single key-value pair in the content
 ///
@@ -309,7 +449,7 @@ using Events = EventsArray<Event>;
                             JsonKey_)                                       \
     class QUOTIENT_API Name_ : public Base_ {                               \
     public:                                                                 \
-        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                 \
+        QUO_EVENT(Name_, TypeId_)                                           \
         using value_type = ValueType_;                                      \
         explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}      \
         explicit Name_(const value_type& v)                                 \
@@ -318,7 +458,6 @@ using Events = EventsArray<Event>;
         QUO_CONTENT_GETTER_X(ValueType_, GetterName_, JsonKey)              \
         static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);  \
     };                                                                      \
-    REGISTER_EVENT_TYPE(Name_)                                              \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
@@ -326,12 +465,16 @@ using Events = EventsArray<Event>;
 template <class EventT>
 inline bool is(const Event& e)
 {
-    return e.type() == typeId<EventT>();
-}
-
-inline bool isUnknown(const Event& e)
-{
-    return e.type() == UnknownEventTypeId;
+    if constexpr (requires { EventT::MetaType; }) {
+        return &e.metaType() == &EventT::MetaType;
+    } else {
+        const auto* p = &e.metaType();
+        do {
+            if (p == &EventT::BaseMetaType)
+                return true;
+        } while ((p = p->baseType) != nullptr);
+        return false;
+    }
 }
 
 //! \brief Cast the event pointer down in a type-safe way

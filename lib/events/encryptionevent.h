@@ -28,7 +28,7 @@ public:
 
 class QUOTIENT_API EncryptionEvent : public StateEvent<EncryptionEventContent> {
 public:
-    DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
+    QUO_EVENT(EncryptionEvent, "m.room.encryption")
 
     using EncryptionType
         [[deprecated("Use Quotient::EncryptionType instead")]] =
@@ -48,5 +48,4 @@ public:
 
     bool useEncryption() const { return !algorithm().isEmpty(); }
 };
-REGISTER_EVENT_TYPE(EncryptionEvent)
 } // namespace Quotient

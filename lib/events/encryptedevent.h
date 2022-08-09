@@ -27,7 +27,7 @@ namespace Quotient {
  */
 class QUOTIENT_API EncryptedEvent : public RoomEvent {
 public:
-    DEFINE_EVENT_TYPEID("m.room.encrypted", EncryptedEvent)
+    QUO_EVENT(EncryptedEvent, "m.room.encrypted")
 
     /* In case with Olm, the encrypted content of the event is
      * a map from the recipient Curve25519 identity key to ciphertext
@@ -59,6 +59,4 @@ public:
 
     void setRelation(const QJsonObject& relation);
 };
-REGISTER_EVENT_TYPE(EncryptedEvent)
-
 } // namespace Quotient
