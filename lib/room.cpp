@@ -2551,6 +2551,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, eventId,
                           job->errorString()));
+        emit newFileTransfer(eventId, localFilename);
     } else
         d->failedTransfer(eventId);
 }
