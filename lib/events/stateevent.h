@@ -7,10 +7,10 @@
 
 namespace Quotient {
 
-class QUOTIENT_API StateEventBase : public RoomEvent {
+class QUOTIENT_API StateEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(StateEventBase, "json.contains('state_key')"_ls,
-                    RoomEvent::BaseMetaType)
+    QUO_BASE_EVENT(StateEvent, "json.contains('state_key')"_ls,
+                   RoomEvent::BaseMetaType)
     static bool isValid(const QJsonObject& fullJson)
     {
         return fullJson.contains(StateKeyKeyL);
@@ -24,8 +24,8 @@ public:
     //! constructors and calls in, e.g., RoomStateView don't include it.
     static constexpr auto needsStateKey = false;
 
-    explicit StateEventBase(Type type, const QString& stateKey = {},
-                            const QJsonObject& contentJson = {});
+    explicit StateEvent(Type type, const QString& stateKey = {},
+                        const QJsonObject& contentJson = {});
 
     //! Make a minimal correct Matrix state event JSON
     static QJsonObject basicJson(const QString& matrixTypeId,
@@ -41,18 +41,20 @@ public:
     virtual bool repeatsState() const;
 
 protected:
-    explicit StateEventBase(const QJsonObject& json);
+    explicit StateEvent(const QJsonObject& json);
     void dumpTo(QDebug dbg) const override;
 };
-using StateEventPtr = event_ptr_tt<StateEventBase>;
-using StateEvents = EventsArray<StateEventBase>;
+using StateEventBase
+    [[deprecated("StateEventBase is StateEvent now")]] = StateEvent;
+using StateEventPtr = event_ptr_tt<StateEvent>;
+using StateEvents = EventsArray<StateEvent>;
 
-[[deprecated("Use StateEventBase::basicJson() instead")]]
+[[deprecated("Use StateEvent::basicJson() instead")]]
 inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
                                        const QJsonObject& content,
                                        const QString& stateKey = {})
 {
-    return StateEventBase::basicJson(matrixTypeId, stateKey, content);
+    return StateEvent::basicJson(matrixTypeId, stateKey, content);
 }
 
 /**
@@ -64,8 +66,8 @@ inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
 using StateEventKey = std::pair<QString, QString>;
 
 template <typename EventT, typename ContentT>
-class EventTemplate<EventT, StateEventBase, ContentT>
-    : public StateEventBase {
+class EventTemplate<EventT, StateEvent, ContentT>
+    : public StateEvent {
 public:
     using content_type = ContentT;
 
@@ -82,14 +84,14 @@ public:
     };
 
     explicit EventTemplate(const QJsonObject& fullJson)
-        : StateEventBase(fullJson)
+        : StateEvent(fullJson)
         , _content(fromJson<ContentT>(Event::contentJson()))
         , _prev(unsignedJson())
     {}
     template <typename... ContentParamTs>
     explicit EventTemplate(const QString& stateKey,
                            ContentParamTs&&... contentParams)
-        : StateEventBase(EventT::TypeId, stateKey)
+        : StateEvent(EventT::TypeId, stateKey)
         , _content { std::forward<ContentParamTs>(contentParams)... }
     {
         editJson().insert(ContentKey, toJson(_content));
@@ -113,11 +115,11 @@ private:
 
 template <typename EventT, typename ContentT>
 class KeyedStateEventBase
-    : public EventTemplate<EventT, StateEventBase, ContentT> {
+    : public EventTemplate<EventT, StateEvent, ContentT> {
 public:
     static constexpr auto needsStateKey = true;
 
-    using EventTemplate<EventT, StateEventBase, ContentT>::EventTemplate;
+    using EventTemplate<EventT, StateEvent, ContentT>::EventTemplate;
 };
 
 template <typename EvT>
@@ -125,9 +127,9 @@ concept Keyed_State_Event = EvT::needsStateKey;
 
 template <typename EventT, typename ContentT>
 class KeylessStateEventBase
-    : public EventTemplate<EventT, StateEventBase, ContentT> {
+    : public EventTemplate<EventT, StateEvent, ContentT> {
 private:
-    using base_type = EventTemplate<EventT, StateEventBase, ContentT>;
+    using base_type = EventTemplate<EventT, StateEvent, ContentT>;
 
 public:
     template <typename... ContentParamTs>
@@ -145,5 +147,5 @@ template <typename EvT>
 concept Keyless_State_Event = !EvT::needsStateKey;
 
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::StateEventBase*)
-Q_DECLARE_METATYPE(const Quotient::StateEventBase*)
+Q_DECLARE_METATYPE(Quotient::StateEvent*)
+Q_DECLARE_METATYPE(const Quotient::StateEvent*)

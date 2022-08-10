@@ -6,30 +6,29 @@
 
 using namespace Quotient;
 
-StateEventBase::StateEventBase(const QJsonObject& json)
+StateEvent::StateEvent(const QJsonObject& json)
     : RoomEvent(json)
 {
     Q_ASSERT_X(json.contains(StateKeyKeyL), __FUNCTION__,
                "Attempt to create a state event without state key");
 }
 
-StateEventBase::StateEventBase(Event::Type type, const QString& stateKey,
+StateEvent::StateEvent(Event::Type type, const QString& stateKey,
                                const QJsonObject& contentJson)
     : RoomEvent(basicJson(type, stateKey, contentJson))
 {}
 
-bool StateEventBase::repeatsState() const
+bool StateEvent::repeatsState() const
 {
-    const auto prevContentJson = unsignedPart<QJsonObject>(PrevContentKeyL);
-    return fullJson().value(ContentKeyL) == prevContentJson;
+    return contentJson() == unsignedPart<QJsonObject>(PrevContentKeyL);
 }
 
-QString StateEventBase::replacedState() const
+QString StateEvent::replacedState() const
 {
     return unsignedPart<QString>("replaces_state"_ls);
 }
 
-void StateEventBase::dumpTo(QDebug dbg) const
+void StateEvent::dumpTo(QDebug dbg) const
 {
     if (!stateKey().isEmpty())
         dbg << '<' << stateKey() << "> ";

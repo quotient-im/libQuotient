@@ -125,7 +125,7 @@ inline bool operator==(const AbstractEventMetaType& lhs,
 //!
 //! TL;DR for the loadFrom() story:
 //! - for base event types, use QUO_BASE_EVENT and, if you have additional
-//!   validation (e.g., JSON has to contain a certain key - see StateEventBase
+//!   validation (e.g., JSON has to contain a certain key - see StateEvent
 //!   for a real example), define it in the static EventT::isValid() member
 //!   function accepting QJsonObject and returning bool.
 //! - for leaf (specific) event types - simply use QUO_EVENT and it will do
@@ -153,7 +153,7 @@ public:
     //!    any of its base event types) has a static isValid() predicate and
     //!    the event JSON does not satisfy it, nullptr is immediately returned
     //!    to the upper level or to the loadFrom() caller. This is how existence
-    //!    of `state_key` is checked in any type derived from StateEventBase.
+    //!    of `state_key` is checked in any type derived from StateEvent.
     //! 3. If step 1b above returned non-nullptr, immediately return it.
     //! 4.
     //!    a. If EventT::isValid() or EventT::TypeId (either, or both) exist and

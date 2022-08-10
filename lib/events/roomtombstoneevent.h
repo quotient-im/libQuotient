@@ -6,11 +6,11 @@
 #include "stateevent.h"
 
 namespace Quotient {
-class QUOTIENT_API RoomTombstoneEvent : public StateEventBase {
+class QUOTIENT_API RoomTombstoneEvent : public StateEvent {
 public:
     QUO_EVENT(RoomTombstoneEvent, "m.room.tombstone")
 
-    using StateEventBase::StateEventBase;
+    using StateEvent::StateEvent;
 
     QString serverMessage() const;
     QString successorRoomId() const;

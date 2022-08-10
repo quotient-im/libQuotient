@@ -208,7 +208,7 @@ public:
 
     void getPreviousContent(int limit = 10, const QString &filter = {});
 
-    const StateEventBase* getCurrentState(const StateEventKey& evtKey) const
+    const StateEvent* getCurrentState(const StateEventKey& evtKey) const
     {
         const auto* evt = currentState.value(evtKey, nullptr);
         if (!evt) {
@@ -216,9 +216,8 @@ public:
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey,
-                                     loadEvent<StateEventBase>(evtKey.first,
-                                                               evtKey.second));
+                stubbedState.emplace(
+                    evtKey, loadEvent<StateEvent>(evtKey.first, evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
                 qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
@@ -1565,8 +1564,8 @@ bool Room::usesEncryption() const
                 .isEmpty();
 }
 
-const StateEventBase* Room::getCurrentState(const QString& evtType,
-                                            const QString& stateKey) const
+const StateEvent* Room::getCurrentState(const QString& evtType,
+                                        const QString& stateKey) const
 {
     return d->getCurrentState({ evtType, stateKey });
 }
@@ -2279,7 +2278,7 @@ QString Room::postJson(const QString& matrixType,
     return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
 }
 
-SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt)
+SetRoomStateWithKeyJob* Room::setState(const StateEvent& evt)
 {
     return setState(evt.matrixType(), evt.stateKey(), evt.contentJson());
 }
@@ -3095,7 +3094,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
 
     // Change the state
     const auto* const oldStateEvent =
-        std::exchange(curStateEvent, static_cast<const StateEventBase*>(&e));
+        std::exchange(curStateEvent, static_cast<const StateEvent*>(&e));
     Q_ASSERT(!oldStateEvent
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));

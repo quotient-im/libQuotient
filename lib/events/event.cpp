@@ -73,7 +73,7 @@ const QJsonObject Event::unsignedJson() const
     return fullJson()[UnsignedKeyL].toObject();
 }
 
-bool Event::isStateEvent() const { return is<StateEventBase>(); }
+bool Event::isStateEvent() const { return is<StateEvent>(); }
 
 bool Event::isCallEvent() const { return is<CallEvent>(); }
 

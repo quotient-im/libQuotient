@@ -7,11 +7,11 @@
 #include "quotient_common.h"
 
 namespace Quotient {
-class QUOTIENT_API RoomCreateEvent : public StateEventBase {
+class QUOTIENT_API RoomCreateEvent : public StateEvent {
 public:
     QUO_EVENT(RoomCreateEvent, "m.room.create")
 
-    using StateEventBase::StateEventBase;
+    using StateEvent::StateEvent;
 
     struct Predecessor {
         QString roomId;

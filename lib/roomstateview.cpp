@@ -5,8 +5,8 @@
 
 using namespace Quotient;
 
-const StateEventBase* RoomStateView::get(const QString& evtType,
-                                         const QString& stateKey) const
+const StateEvent* RoomStateView::get(const QString& evtType,
+                                     const QString& stateKey) const
 {
     return value({ evtType, stateKey });
 }
@@ -23,10 +23,10 @@ QJsonObject RoomStateView::contentJson(const QString& evtType,
     return queryOr(evtType, stateKey, &Event::contentJson, QJsonObject());
 }
 
-const QVector<const StateEventBase*>
-RoomStateView::eventsOfType(const QString& evtType) const
+const QVector<const StateEvent*> RoomStateView::eventsOfType(
+    const QString& evtType) const
 {
-    auto vals = QVector<const StateEventBase*>();
+    auto vals = QVector<const StateEvent*>();
     for (auto it = cbegin(); it != cend(); ++it)
         if (it.key().first == evtType)
             vals.append(it.value());

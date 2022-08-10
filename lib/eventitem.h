@@ -95,10 +95,9 @@ private:
 };
 
 template <>
-inline const StateEventBase* EventItemBase::viewAs<StateEventBase>() const
+inline const StateEvent* EventItemBase::viewAs<StateEvent>() const
 {
-    return evt->isStateEvent() ? weakPtrCast<const StateEventBase>(evt)
-                               : nullptr;
+    return evt->isStateEvent() ? weakPtrCast<const StateEvent>(evt) : nullptr;
 }
 
 template <>

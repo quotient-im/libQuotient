@@ -22,10 +22,10 @@ template <typename FnT, class EvT = std::decay_t<fn_arg_t<FnT>>>
 concept Keyless_State_Fn = !EvT::needsStateKey;
 
 class QUOTIENT_API RoomStateView
-    : private QHash<StateEventKey, const StateEventBase*> {
+    : private QHash<StateEventKey, const StateEvent*> {
     Q_GADGET
 public:
-    const QHash<StateEventKey, const StateEventBase*>& events() const
+    const QHash<StateEventKey, const StateEvent*>& events() const
     {
         return *this;
     }
@@ -40,8 +40,8 @@ public:
     //!          have to check that it has_value() before using. Alternatively
     //!          you can now use queryCurrentState() to access state safely.
     //! \sa getCurrentStateContentJson
-    const StateEventBase* get(const QString& evtType,
-                              const QString& stateKey = {}) const;
+    const StateEvent* get(const QString& evtType,
+                          const QString& stateKey = {}) const;
 
     //! \brief Get a state event with the given event type and state key
     //!
@@ -94,7 +94,7 @@ public:
     auto content(const QString& stateKey,
                  typename EvT::content_type defaultValue = {}) const
     {
-        // StateEvent<>::content is special in that it returns a const-ref,
+        // EventBase<>::content is special in that it returns a const-ref,
         // and lift() inside queryOr() can't wrap that in a temporary Omittable.
         if (const auto evt = get<EvT>(stateKey))
             return evt->content();
@@ -122,8 +122,7 @@ public:
     //!
     //! This method returns all known state events that have occured in
     //! the room of the given type.
-    const QVector<const StateEventBase*>
-    eventsOfType(const QString& evtType) const;
+    const QVector<const StateEvent*> eventsOfType(const QString& evtType) const;
 
     //! \brief Run a function on a state event with the given type and key
     //!
