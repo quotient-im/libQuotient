@@ -11,9 +11,7 @@ class QUOTIENT_API RoomCreateEvent : public StateEventBase {
 public:
     QUO_EVENT(RoomCreateEvent, "m.room.create")
 
-    explicit RoomCreateEvent(const QJsonObject& obj)
-        : StateEventBase(typeId(), obj)
-    {}
+    using StateEventBase::StateEventBase;
 
     struct Predecessor {
         QString roomId;

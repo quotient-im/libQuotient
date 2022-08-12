@@ -2321,7 +2321,7 @@ void Room::setTopic(const QString& newTopic)
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 {
-    if (le->type() != re->type())
+    if (le->metaType() != re->metaType())
         return false;
 
     if (!re->id().isEmpty())

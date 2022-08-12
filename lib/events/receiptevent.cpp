@@ -28,7 +28,7 @@ using namespace Quotient;
 // map lookups are not used and vectors are massively faster. Same goes for
 // de-/serialization of ReceiptsForEvent::receipts.
 // (XXX: would this be generally preferred across CS API JSON maps?..)
-QJsonObject toJson(const EventsWithReceipts& ewrs)
+QJsonObject Quotient::toJson(const EventsWithReceipts& ewrs)
 {
     QJsonObject json;
     for (const auto& e : ewrs) {
@@ -41,20 +41,16 @@ QJsonObject toJson(const EventsWithReceipts& ewrs)
     return json;
 }
 
-ReceiptEvent::ReceiptEvent(const EventsWithReceipts &ewrs)
-    : Event(typeId(), matrixTypeId(), toJson(ewrs))
-{}
-
-EventsWithReceipts ReceiptEvent::eventsWithReceipts() const
+template<>
+EventsWithReceipts Quotient::fromJson(const QJsonObject& json)
 {
     EventsWithReceipts result;
-    const auto& contents = contentJson();
-    result.reserve(contents.size());
-    for (auto eventIt = contents.begin(); eventIt != contents.end(); ++eventIt) {
+    result.reserve(json.size());
+    for (auto eventIt = json.begin(); eventIt != json.end(); ++eventIt) {
         if (eventIt.key().isEmpty()) {
             qCWarning(EPHEMERAL)
                 << "ReceiptEvent has an empty event id, skipping";
-            qCDebug(EPHEMERAL) << "ReceiptEvent content follows:\n" << contents;
+            qCDebug(EPHEMERAL) << "ReceiptEvent content follows:\n" << json;
             continue;
         }
         const auto reads =

@@ -9,18 +9,15 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class CallCandidatesEvent : public CallEventBase {
+class CallCandidatesEvent : public EventTemplate<CallCandidatesEvent, CallEventBase> {
 public:
     QUO_EVENT(CallCandidatesEvent, "m.call.candidates")
 
-    explicit CallCandidatesEvent(const QJsonObject& obj)
-        : CallEventBase(typeId(), obj)
-    {}
+    using EventTemplate::EventTemplate;
 
     explicit CallCandidatesEvent(const QString& callId,
                                  const QJsonArray& candidates)
-        : CallEventBase(typeId(), matrixTypeId(), callId, 0,
-                        { { QStringLiteral("candidates"), candidates } })
+        : EventTemplate(callId, { { QStringLiteral("candidates"), candidates } })
     {}
 
     QUO_CONTENT_GETTER(QJsonArray, candidates)

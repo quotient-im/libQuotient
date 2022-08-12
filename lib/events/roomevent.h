@@ -17,10 +17,8 @@ public:
     QUO_BASE_EVENT(RoomEvent, {}, Event::BaseMetaType)
 
     // RedactionEvent is an incomplete type here so we cannot inline
-    // constructors and destructors and we cannot use 'using'.
-    RoomEvent(Type type, event_mtype_t matrixType,
-              const QJsonObject& contentJson = {});
-    RoomEvent(Type type, const QJsonObject& json);
+    // constructors using it and also destructors (with 'using', in particular).
+    explicit RoomEvent(const QJsonObject& json);
     ~RoomEvent() override;
 
     QString id() const;
@@ -85,10 +83,7 @@ class QUOTIENT_API CallEventBase : public RoomEvent {
 public:
     QUO_BASE_EVENT(CallEventBase, "m.call.*"_ls, RoomEvent::BaseMetaType)
 
-    CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
-                  int version, const QJsonObject& contentJson = {});
-    CallEventBase(Type type, const QJsonObject& json);
-    ~CallEventBase() override = default;
+    explicit CallEventBase(const QJsonObject& json);
 
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)
@@ -98,6 +93,17 @@ protected:
                                  const QString& callId, int version,
                                  QJsonObject contentJson = {});
 };
+
+template <typename EventT>
+class EventTemplate<EventT, CallEventBase, void> : public CallEventBase {
+public:
+    using CallEventBase::CallEventBase;
+    explicit EventTemplate(const QString& callId,
+                           const QJsonObject& contentJson = {})
+        : EventTemplate(basicJson(EventT::TypeId, callId, 0, contentJson))
+    {}
+};
+
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
 Q_DECLARE_METATYPE(const Quotient::RoomEvent*)

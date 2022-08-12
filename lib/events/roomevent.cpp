@@ -8,12 +8,7 @@
 
 using namespace Quotient;
 
-RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
-                     const QJsonObject& contentJson)
-    : Event(type, matrixType, contentJson)
-{}
-
-RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
+RoomEvent::RoomEvent(const QJsonObject& json) : Event(json)
 {
     if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
         !redaction.isEmpty())
@@ -110,14 +105,8 @@ QJsonObject CallEventBase::basicJson(const QString& matrixType,
     return RoomEvent::basicJson(matrixType, contentJson);
 }
 
-CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
-                             const QString& callId, int version,
-                             const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(matrixType, callId, version, contentJson))
-{}
-
-CallEventBase::CallEventBase(Type type, const QJsonObject& json)
-    : RoomEvent(type, json)
+CallEventBase::CallEventBase(const QJsonObject& json)
+    : RoomEvent(json)
 {
     if (callId().isEmpty())
         qCWarning(EVENTS) << id() << "is a call event with an empty call id";

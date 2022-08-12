@@ -32,25 +32,11 @@ inline auto toJson(const EventContent::AliasesEventContent& c)
 }
 
 class QUOTIENT_API RoomCanonicalAliasEvent
-    : public StateEvent<EventContent::AliasesEventContent> {
+    : public KeylessStateEventBase<RoomCanonicalAliasEvent,
+                                   EventContent::AliasesEventContent> {
 public:
     QUO_EVENT(RoomCanonicalAliasEvent, "m.room.canonical_alias")
-
-    explicit RoomCanonicalAliasEvent(const QJsonObject& obj)
-        : StateEvent(typeId(), obj)
-    { }
-
-    explicit RoomCanonicalAliasEvent(const QString& canonicalAlias,
-                                     const QStringList& altAliases = {})
-        : StateEvent(typeId(), matrixTypeId(), {},
-                canonicalAlias, altAliases)
-    { }
-
-    explicit RoomCanonicalAliasEvent(QString&& canonicalAlias,
-                                     QStringList&& altAliases = {})
-        : StateEvent(typeId(), matrixTypeId(), {},
-                std::move(canonicalAlias), std::move(altAliases))
-    { }
+    using KeylessStateEventBase::KeylessStateEventBase;
 
     QString alias() const { return content().canonicalAlias; }
     QStringList altAliases() const { return content().altAliases; }

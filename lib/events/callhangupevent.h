@@ -7,15 +7,11 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class QUOTIENT_API CallHangupEvent : public CallEventBase {
+class QUOTIENT_API CallHangupEvent
+    : public EventTemplate<CallHangupEvent, CallEventBase> {
 public:
     QUO_EVENT(CallHangupEvent, "m.call.hangup")
-
-    explicit CallHangupEvent(const QJsonObject& obj)
-        : CallEventBase(typeId(), obj)
-    {}
-    explicit CallHangupEvent(const QString& callId)
-        : CallEventBase(typeId(), matrixTypeId(), callId, 0)
-    {}
+    using EventTemplate::EventTemplate;
 };
+//REGISTER_EVENT_TYPE(CallHangupEvent)
 } // namespace Quotient

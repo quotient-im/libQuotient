@@ -27,16 +27,9 @@ m.call.invite
 
 using namespace Quotient;
 
-CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
-    : CallEventBase(typeId(), obj)
-{
-    qCDebug(EVENTS) << "Call Invite event";
-}
-
 CallInviteEvent::CallInviteEvent(const QString& callId, int lifetime,
                                  const QString& sdp)
-    : CallEventBase(
-        typeId(), matrixTypeId(), callId, 0,
+    : EventTemplate<CallInviteEvent, CallEventBase>(callId,
         { { QStringLiteral("lifetime"), lifetime },
           { QStringLiteral("offer"),
             QJsonObject { { QStringLiteral("type"), QStringLiteral("offer") },

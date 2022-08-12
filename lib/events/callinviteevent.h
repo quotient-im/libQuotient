@@ -7,11 +7,12 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class QUOTIENT_API CallInviteEvent : public CallEventBase {
+class QUOTIENT_API CallInviteEvent
+    : public EventTemplate<CallInviteEvent, CallEventBase> {
 public:
     QUO_EVENT(CallInviteEvent, "m.call.invite")
 
-    explicit CallInviteEvent(const QJsonObject& obj);
+    using EventTemplate::EventTemplate;
 
     explicit CallInviteEvent(const QString& callId, int lifetime,
                              const QString& sdp);

@@ -26,16 +26,9 @@ m.call.answer
 
 using namespace Quotient;
 
-CallAnswerEvent::CallAnswerEvent(const QJsonObject& obj)
-    : CallEventBase(typeId(), obj)
-{
-    qCDebug(EVENTS) << "Call Answer event";
-}
-
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
-    : CallEventBase(
-        typeId(), matrixTypeId(), callId, 0,
-        { { QStringLiteral("answer"),
-            QJsonObject { { QStringLiteral("type"), QStringLiteral("answer") },
-                          { QStringLiteral("sdp"), sdp } } } })
+    : EventTemplate(callId, { { QStringLiteral("answer"),
+                            QJsonObject { { QStringLiteral("type"),
+                                            QStringLiteral("answer") },
+                                          { QStringLiteral("sdp"), sdp } } } })
 {}

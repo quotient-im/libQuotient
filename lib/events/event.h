@@ -9,7 +9,7 @@
 #include "single_key_value.h"
 
 namespace Quotient {
-// === event_ptr_tt<> and type casting facilities ===
+// === event_ptr_tt<> and basic type casting facilities ===
 
 template <typename EventT>
 using event_ptr_tt = std::unique_ptr<EventT>;
@@ -49,41 +49,17 @@ const QString RoomIdKey { RoomIdKeyL };
 const QString UnsignedKey { UnsignedKeyL };
 const QString StateKeyKey { StateKeyKeyL };
 
-// === Event types ===
-
 using event_type_t = QLatin1String;
-using event_mtype_t = const char*;
 
-class QUOTIENT_API EventTypeRegistry {
-public:
-    ~EventTypeRegistry() = default;
-
-    [[deprecated("event_type_t is a string now, use it directly instead")]]
+// TODO: Remove in 0.8
+struct QUOTIENT_API EventTypeRegistry {
+    [[deprecated("event_type_t is a string since libQuotient 0.7, use it directly instead")]]
     static QString getMatrixType(event_type_t typeId);
 
-private:
-    EventTypeRegistry() = default;
+    EventTypeRegistry() = delete;
+    ~EventTypeRegistry() = default;
     Q_DISABLE_COPY_MOVE(EventTypeRegistry)
 };
-
-template <typename EventT>
-constexpr event_type_t typeId()
-{
-    return std::decay_t<EventT>::TypeId;
-}
-
-constexpr event_type_t UnknownEventTypeId = "?"_ls;
-[[deprecated("Use UnknownEventTypeId")]]
-constexpr event_type_t unknownEventTypeId() { return UnknownEventTypeId; }
-
-// === Event creation facilities ===
-
-//! Create an event of arbitrary type from its arguments
-template <typename EventT, typename... ArgTs>
-inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
-{
-    return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
-}
 
 // === EventMetaType ===
 
@@ -195,7 +171,7 @@ public:
         Event* event = nullptr;
         const bool goodEnough = doLoadFrom(fullJson, type, event);
         if (!event && goodEnough)
-            return event_ptr_tt<EventT>{ makeEvent(fullJson) };
+            return event_ptr_tt<EventT>{ new EventT(fullJson) };
         return event_ptr_tt<EventT>{ static_cast<EventT*>(event) };
     }
 
@@ -220,17 +196,19 @@ private:
                 return false;
         } else if constexpr (!requires { EventT::TypeId; })
             return true; // Create a generic event object if on the top level
-        event = makeEvent(fullJson);
+        event = new EventT(fullJson);
         return false;
     }
-    static auto makeEvent(const QJsonObject& fullJson)
-    {
-        if constexpr (requires { EventT::TypeId; })
-            return new EventT(fullJson);
-        else
-            return new EventT(UnknownEventTypeId, fullJson);
-    }
 };
+
+// === Event creation facilities ===
+
+//! \brief Create an event of arbitrary type from its arguments
+template <typename EventT, typename... ArgTs>
+inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
+{
+    return std::make_unique<EventT>(std::forward<ArgTs>(args)...);
+}
 
 template <class EventT>
 constexpr const auto& mostSpecificMetaType()
@@ -241,12 +219,42 @@ constexpr const auto& mostSpecificMetaType()
         return EventT::BaseMetaType;
 }
 
-template <class EventT>
-inline event_ptr_tt<EventT> doLoadEvent(const QJsonObject& json,
-                                        const QString& matrixType)
+//! \brief Create an event with proper type from a JSON object
+//!
+//! Use this factory template to detect the type from the JSON object
+//! contents (the detected event type should derive from the template
+//! parameter type) and create an event object of that type.
+template <typename EventT>
+inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 {
-    return mostSpecificMetaType<EventT>().loadFrom(json, matrixType);
+    return mostSpecificMetaType<EventT>().loadFrom(
+        fullJson, fullJson[TypeKeyL].toString());
 }
+
+//! \brief Create an event from a type string and content JSON
+//!
+//! Use this template to resolve the C++ type from the Matrix type string in
+//! \p matrixType and create an event of that type by passing all parameters
+//! to BaseEventT::basicJson().
+template <typename EventT>
+inline event_ptr_tt<EventT> loadEvent(const QString& matrixType,
+                                      const auto&... otherBasicJsonParams)
+{
+    return mostSpecificMetaType<EventT>().loadFrom(
+        EventT::basicJson(matrixType, otherBasicJsonParams...), matrixType);
+}
+
+template <typename EventT>
+struct JsonConverter<event_ptr_tt<EventT>>
+    : JsonObjectUnpacker<event_ptr_tt<EventT>> {
+    // No dump() to avoid any ambiguity on whether a given export to JSON uses
+    // fullJson() or only contentJson()
+    using JsonObjectUnpacker<event_ptr_tt<EventT>>::load;
+    static auto load(const QJsonObject& jo)
+    {
+        return loadEvent<EventT>(jo);
+    }
+};
 
 // === Event ===
 
@@ -259,10 +267,8 @@ public:
         return BaseMetaType;
     }
 
+    explicit Event(const QJsonObject& json);
 
-    explicit Event(Type type, const QJsonObject& json);
-    explicit Event(Type type, event_mtype_t matrixType,
-                   const QJsonObject& contentJson = {});
     Q_DISABLE_COPY(Event)
     Event(Event&&) = default;
     Event& operator=(Event&&) = delete;
@@ -312,6 +318,11 @@ public:
 
     const QJsonObject contentJson() const;
 
+    //! \brief Get a part of the content object, assuming a given type
+    //!
+    //! This retrieves the value under `content.<key>` from the event JSON and
+    //! then converts it to \p T using fromJson().
+    //! \sa contentJson, fromJson
     template <typename T, typename KeyT>
     const T contentPart(KeyT&& key) const
     {
@@ -327,6 +338,11 @@ public:
 
     const QJsonObject unsignedJson() const;
 
+    //! \brief Get a part of the unsigned object, assuming a given type
+    //!
+    //! This retrieves the value under `unsigned.<key>` from the event JSON and
+    //! then converts it to \p T using fromJson().
+    //! \sa unsignedJson, fromJson
     template <typename T, typename KeyT>
     const T unsignedPart(KeyT&& key) const
     {
@@ -353,7 +369,6 @@ protected:
     virtual void dumpTo(QDebug dbg) const;
 
 private:
-    Type _type;
     QJsonObject _json;
 };
 using EventPtr = event_ptr_tt<Event>;
@@ -363,6 +378,45 @@ using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
 // === Facilities for event class definitions ===
+
+//! \brief A template base class to derive your event type from
+//!
+//! This simple class template generates commonly used event constructor
+//! signatures and the content() method with the appropriate return type.
+//! The generic version here is only used with non-trivial \p ContentT (if you
+//! don't need to create an event from its content structure, just go and derive
+//! straight from the respective \p EventBaseT instead of using EventTemplate);
+//! specialisations may override that and provide useful semantics even without
+//! \p ContentT (see EventTemplate<CallEventBase>, e.g.).
+//!
+//! The template uses CRTP to pick the event type id from the actual class;
+//! it will fail to compile if \p EventT doesn't provide TypeId. It also uses
+//! the base event type's basicJson(); if you need extra keys to be inserted
+//! you may want to bypass this template as writing the code to that effect in
+//! your class will likely be clearer and more concise.
+//! \sa https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
+//! \sa DEFINE_SIMPLE_EVENT
+template <class EventT, class BaseEventT, typename ContentT = void>
+class EventTemplate : public BaseEventT {
+public:
+    static_assert(
+        !std::is_same_v<ContentT, void>,
+        "If you see this, you tried to use EventTemplate with the default"
+        " ContentT type, which is void. This default is only used with explicit"
+        " specialisations (see CallEventBase, e.g.). Otherwise, if you don't"
+        " intend to use the content part of EventTemplate then you don't need"
+        " EventTemplate; just use the base event class directly");
+    using content_type = ContentT;
+
+    explicit EventTemplate(const QJsonObject& json)
+        : BaseEventT(json)
+    {}
+    explicit EventTemplate(const ContentT& c)
+        : BaseEventT(EventT::basicJson(EventT::TypeId, toJson(c)))
+    {}
+
+    ContentT content() const { return fromJson<ContentT>(this->contentJson()); }
+};
 
 //! \brief Supply event metatype information in base event types
 //!
@@ -445,19 +499,19 @@ using Events = EventsArray<Event>;
 /// To retrieve the value the getter uses a JSON key name that corresponds to
 /// its own (getter's) name but written in snake_case. \p GetterName_ must be
 /// in camelCase, no quotes (an identifier, not a literal).
-#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_, \
-                            JsonKey_)                                       \
-    class QUOTIENT_API Name_ : public Base_ {                               \
-    public:                                                                 \
-        QUO_EVENT(Name_, TypeId_)                                           \
-        using value_type = ValueType_;                                      \
-        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}      \
-        explicit Name_(const value_type& v)                                 \
-            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(v) } }))   \
-        {}                                                                  \
-        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, JsonKey)              \
-        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);  \
-    };                                                                      \
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_,   \
+                            JsonKey_)                                         \
+    constexpr auto Name_##ContentKey = JsonKey_##_ls;                         \
+    class QUOTIENT_API Name_                                                  \
+        : public EventTemplate<                                               \
+              Name_, Base_,                                                   \
+              EventContent::SingleKeyValue<ValueType_, &Name_##ContentKey>> { \
+    public:                                                                   \
+        QUO_EVENT(Name_, TypeId_)                                             \
+        using value_type = ValueType_;                                        \
+        using EventTemplate::EventTemplate;                                   \
+        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, Name_##ContentKey)      \
+    };                                                                        \
     // End of macro
 
 // === is<>(), eventCast<>() and switchOnType<>() ===

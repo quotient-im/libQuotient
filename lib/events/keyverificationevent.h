@@ -15,9 +15,7 @@ class QUOTIENT_API KeyVerificationRequestEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationRequestEvent, "m.key.verification.request")
 
-    explicit KeyVerificationRequestEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationRequestEvent(const QString& transactionId,
                                 const QString& fromDevice,
                                 const QStringList& methods,
@@ -50,9 +48,7 @@ class QUOTIENT_API KeyVerificationReadyEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationReadyEvent, "m.key.verification.ready")
 
-    explicit KeyVerificationReadyEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationReadyEvent(const QString& transactionId,
                               const QString& fromDevice,
                               const QStringList& methods)
@@ -77,9 +73,7 @@ class QUOTIENT_API KeyVerificationStartEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationStartEvent, "m.key.verification.start")
 
-    explicit KeyVerificationStartEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationStartEvent(const QString& transactionId,
                               const QString& fromDevice)
         : KeyVerificationStartEvent(
@@ -150,9 +144,7 @@ class QUOTIENT_API KeyVerificationAcceptEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationAcceptEvent, "m.key.verification.accept")
 
-    explicit KeyVerificationAcceptEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationAcceptEvent(const QString& transactionId,
                                const QString& commitment)
         : KeyVerificationAcceptEvent(basicJson(
@@ -200,9 +192,7 @@ class QUOTIENT_API KeyVerificationCancelEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationCancelEvent, "m.key.verification.cancel")
 
-    explicit KeyVerificationCancelEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationCancelEvent(const QString& transactionId,
                                const QString& reason)
         : KeyVerificationCancelEvent(
@@ -230,9 +220,7 @@ class QUOTIENT_API KeyVerificationKeyEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationKeyEvent, "m.key.verification.key")
 
-    explicit KeyVerificationKeyEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationKeyEvent(const QString& transactionId, const QString& key)
         : KeyVerificationKeyEvent(
             basicJson(TypeId, { { "transaction_id"_ls, transactionId },
@@ -251,9 +239,7 @@ class QUOTIENT_API KeyVerificationMacEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationMacEvent, "m.key.verification.mac")
 
-    explicit KeyVerificationMacEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     KeyVerificationMacEvent(const QString& transactionId, const QString& keys,
                             const QJsonObject& mac)
         : KeyVerificationMacEvent(
@@ -278,9 +264,7 @@ class QUOTIENT_API KeyVerificationDoneEvent : public Event {
 public:
     QUO_EVENT(KeyVerificationDoneEvent, "m.key.verification.done")
 
-    explicit KeyVerificationDoneEvent(const QJsonObject& obj)
-        : Event(TypeId, obj)
-    {}
+    using Event::Event;
     explicit KeyVerificationDoneEvent(const QString& transactionId)
         : KeyVerificationDoneEvent(
             basicJson(TypeId, { { "transaction_id"_ls, transactionId } }))

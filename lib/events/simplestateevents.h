@@ -7,25 +7,18 @@
 #include "single_key_value.h"
 
 namespace Quotient {
-#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey) \
-    constexpr auto _Name##Key = #_ContentKey##_ls;                         \
-    class QUOTIENT_API _Name                                               \
-        : public StateEvent<                                               \
-              EventContent::SingleKeyValue<_ValueType, &_Name##Key>> {     \
-    public:                                                                \
-        using value_type = _ValueType;                                     \
-        QUO_EVENT(_Name, _TypeId)                                \
-        template <typename T>                                              \
-        explicit _Name(T&& value)                                          \
-            : StateEvent(TypeId, matrixTypeId(), QString(),                \
-                         std::forward<T>(value))                           \
-        {}                                                                 \
-        explicit _Name(QJsonObject obj)                                    \
-            : StateEvent(TypeId, std::move(obj))                           \
-        {}                                                                 \
-        auto _ContentKey() const { return content().value; }               \
-    };                                                                     \
-    // End of macro
+#define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, ContentKey_)    \
+    constexpr auto Name_##Key = #ContentKey_##_ls;                            \
+    class QUOTIENT_API Name_                                                  \
+        : public KeylessStateEventBase<                                       \
+              Name_, EventContent::SingleKeyValue<ValueType_, &Name_##Key>> { \
+    public:                                                                   \
+        using value_type = ValueType_;                                        \
+        QUO_EVENT(Name_, TypeId_)                                             \
+        using KeylessStateEventBase::KeylessStateEventBase;                   \
+        auto ContentKey_() const { return content().value; }                  \
+    };                                                                        \
+// End of macro
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
@@ -34,13 +27,14 @@ DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
 
 constexpr auto RoomAliasesEventKey = "aliases"_ls;
 class QUOTIENT_API RoomAliasesEvent
-    : public StateEvent<
-          EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>> {
+    : public KeyedStateEventBase<
+          RoomAliasesEvent,
+          EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>>
+{
 public:
     QUO_EVENT(RoomAliasesEvent, "m.room.aliases")
-    explicit RoomAliasesEvent(const QJsonObject& obj)
-        : StateEvent(typeId(), obj)
-    {}
+    using KeyedStateEventBase::KeyedStateEventBase;
+
     Q_DECL_DEPRECATED_X(
         "m.room.aliases events are deprecated by the Matrix spec; use"
         " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")

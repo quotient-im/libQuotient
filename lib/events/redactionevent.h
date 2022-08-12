@@ -10,8 +10,7 @@ class QUOTIENT_API RedactionEvent : public RoomEvent {
 public:
     QUO_EVENT(RedactionEvent, "m.room.redaction")
 
-    explicit RedactionEvent(const QJsonObject& obj) : RoomEvent(typeId(), obj)
-    {}
+    using RoomEvent::RoomEvent;
 
     QString redactedEvent() const
     {

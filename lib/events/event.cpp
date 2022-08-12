@@ -46,7 +46,8 @@ void AbstractEventMetaType::addDerived(AbstractEventMetaType* newType)
         << className;
 }
 
-Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
+Event::Event(const QJsonObject& json)
+    : _json(json)
 {
     if (!json.contains(ContentKeyL)
         && !json.value(UnsignedKeyL).toObject().contains(RedactedCauseKeyL)) {
@@ -54,10 +55,6 @@ Event::Event(Type type, const QJsonObject& json) : _type(type), _json(json)
         qCWarning(EVENTS) << formatJson << json;
     }
 }
-
-Event::Event(Type type, event_mtype_t matrixType, const QJsonObject& contentJson)
-    : Event(type, basicJson(matrixType, contentJson))
-{}
 
 Event::~Event() = default;
 

@@ -5,18 +5,16 @@
 
 using namespace Quotient;
 
-StateEventBase::StateEventBase(Type type, const QJsonObject& json)
-    : RoomEvent(json.contains(StateKeyKeyL) ? type : UnknownEventTypeId, json)
+StateEventBase::StateEventBase(const QJsonObject& json)
+    : RoomEvent(json)
 {
-    if (Event::type() == UnknownEventTypeId && !json.contains(StateKeyKeyL))
-        qWarning(EVENTS) << "Attempt to create a state event with no stateKey -"
-                            "forcing the event type to unknown to avoid damage";
+    Q_ASSERT_X(json.contains(StateKeyKeyL), __FUNCTION__,
+               "Attempt to create a state event without state key");
 }
 
-StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
-                               const QString& stateKey,
+StateEventBase::StateEventBase(Event::Type type, const QString& stateKey,
                                const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(type, stateKey, contentJson))
+    : RoomEvent(basicJson(type, stateKey, contentJson))
 {}
 
 bool StateEventBase::repeatsState() const

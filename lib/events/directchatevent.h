@@ -10,7 +10,7 @@ class QUOTIENT_API DirectChatEvent : public Event {
 public:
     QUO_EVENT(DirectChatEvent, "m.direct")
 
-    explicit DirectChatEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
+    using Event::Event;
 
     QMultiHash<QString, QString> usersToDirectChats() const;
 };

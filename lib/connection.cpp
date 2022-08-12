@@ -28,7 +28,6 @@
 #include "csapi/whoami.h"
 
 #include "events/directchatevent.h"
-#include "events/eventloader.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"

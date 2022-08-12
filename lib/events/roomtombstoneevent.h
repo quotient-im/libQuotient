@@ -10,9 +10,7 @@ class QUOTIENT_API RoomTombstoneEvent : public StateEventBase {
 public:
     QUO_EVENT(RoomTombstoneEvent, "m.room.tombstone")
 
-    explicit RoomTombstoneEvent(const QJsonObject& obj)
-        : StateEventBase(typeId(), obj)
-    {}
+    using StateEventBase::StateEventBase;
 
     QString serverMessage() const;
     QString successorRoomId() const;
