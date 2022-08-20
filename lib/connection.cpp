@@ -371,9 +371,9 @@ public:
                           const OneTimeKeys &oneTimeKeyObject);
     QString curveKeyForUserDevice(const QString& userId,
                                   const QString& device) const;
-    QJsonObject encryptSessionKeyEvent(QJsonObject payloadJson,
-                                       const QString& targetUserId,
-                                       const QString& targetDeviceId) const;
+    QJsonObject assembleEncryptedContent(QJsonObject payloadJson,
+                                         const QString& targetUserId,
+                                         const QString& targetDeviceId) const;
 #endif
 
     void saveAccessTokenToKeychain() const
@@ -2364,10 +2364,16 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
     return true;
 }
 
-QJsonObject Connection::Private::encryptSessionKeyEvent(
+QJsonObject Connection::Private::assembleEncryptedContent(
     QJsonObject payloadJson, const QString& targetUserId,
     const QString& targetDeviceId) const
 {
+    payloadJson.insert(SenderKeyL, data->userId());
+//    eventJson.insert("sender_device"_ls, data->deviceId());
+    payloadJson.insert("keys"_ls,
+                       QJsonObject{
+                           { Ed25519Key,
+                             QString(olmAccount->identityKeys().ed25519) } });
     payloadJson.insert("recipient"_ls, targetUserId);
     payloadJson.insert(
         "recipient_keys"_ls,
@@ -2381,7 +2387,6 @@ QJsonObject Connection::Private::encryptSessionKeyEvent(
           QJsonObject { { "type"_ls, type },
                         { "body"_ls, QString(cipherText) } } }
     };
-
     return EncryptedEvent(encrypted, olmAccount->identityKeys().curve25519)
         .contentJson();
 }
@@ -2404,18 +2409,8 @@ void Connection::sendSessionKeyToDevices(
     if (hash.isEmpty())
         return;
 
-    auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey, roomId, sessionId,
-                                     sessionKey, userId())
-                            .fullJson();
-    keyEventJson.insert(SenderKeyL, userId());
-    keyEventJson.insert("sender_device"_ls, deviceId());
-    keyEventJson.insert(
-        "keys"_ls,
-        QJsonObject {
-            { Ed25519Key, QString(olmAccount()->identityKeys().ed25519) } });
-
     auto job = callApi<ClaimKeysJob>(hash);
-    connect(job, &BaseJob::success, this, [job, this, roomId, sessionId, keyEventJson, devices, index] {
+    connect(job, &BaseJob::success, this, [job, this, roomId, sessionId, sessionKey, devices, index] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
         for (const auto oneTimeKeys = job->oneTimeKeys();
              const auto& [targetUserId, targetDeviceId] :
@@ -2429,10 +2424,14 @@ void Connection::sendSessionKeyToDevices(
             // Noisy but nice for debugging
 //            qDebug(E2EE) << "Creating the payload for" << targetUserId
 //                         << targetDeviceId << sessionId << sessionKey.toHex();
+            const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
+                                                   roomId, sessionId, sessionKey)
+                                          .fullJson();
+
             usersToDevicesToContent[targetUserId][targetDeviceId] =
-                d->encryptSessionKeyEvent(keyEventJson, targetUserId,
+                d->assembleEncryptedContent(keyEventJson, targetUserId,
                                           targetDeviceId);
-        }
+            }
         if (!usersToDevicesToContent.empty()) {
             sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
             QVector<std::tuple<QString, QString, QString>> receivedDevices;
