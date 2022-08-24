@@ -9,11 +9,11 @@ using namespace Quotient;
 SetTypingJob::SetTypingJob(const QString& userId, const QString& roomId,
                            bool typing, Omittable<int> timeout)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetTypingJob"),
-              makePath("/_matrix/client/r0", "/rooms/", roomId, "/typing/",
+              makePath("/_matrix/client/v3", "/rooms/", roomId, "/typing/",
                        userId))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("typing"), typing);
-    addParam<IfNotEmpty>(_data, QStringLiteral("timeout"), timeout);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("typing"), typing);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
+    setRequestData({ _dataJson });
 }

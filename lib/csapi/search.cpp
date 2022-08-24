@@ -16,11 +16,11 @@ auto queryToSearch(const QString& nextBatch)
 SearchJob::SearchJob(const Categories& searchCategories,
                      const QString& nextBatch)
     : BaseJob(HttpVerb::Post, QStringLiteral("SearchJob"),
-              makePath("/_matrix/client/r0", "/search"),
+              makePath("/_matrix/client/v3", "/search"),
               queryToSearch(nextBatch))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("search_categories"), searchCategories);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("search_categories"), searchCategories);
+    setRequestData({ _dataJson });
     addExpectedKey("search_categories");
 }

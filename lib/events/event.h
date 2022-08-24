@@ -48,13 +48,6 @@ const QString RoomIdKey { RoomIdKeyL };
 const QString UnsignedKey { UnsignedKeyL };
 const QString StateKeyKey { StateKeyKeyL };
 
-/// Make a minimal correct Matrix event JSON
-inline QJsonObject basicEventJson(const QString& matrixType,
-                                  const QJsonObject& content)
-{
-    return { { TypeKey, matrixType }, { ContentKey, content } };
-}
-
 // === Event types ===
 
 using event_type_t = QLatin1String;
@@ -193,6 +186,13 @@ public:
     Event& operator=(Event&&) = delete;
     virtual ~Event();
 
+    /// Make a minimal correct Matrix event JSON
+    static QJsonObject basicJson(const QString& matrixType,
+                                 const QJsonObject& content)
+    {
+        return { { TypeKey, matrixType }, { ContentKey, content } };
+    }
+
     Type type() const { return _type; }
     QString matrixType() const;
     [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
@@ -212,7 +212,7 @@ public:
 
     const QJsonObject contentJson() const;
 
-    template <typename T = QJsonValue, typename KeyT>
+    template <typename T, typename KeyT>
     const T contentPart(KeyT&& key) const
     {
         return fromJson<T>(contentJson()[std::forward<KeyT>(key)]);
@@ -227,7 +227,7 @@ public:
 
     const QJsonObject unsignedJson() const;
 
-    template <typename T = QJsonValue, typename KeyT>
+    template <typename T, typename KeyT>
     const T unsignedPart(KeyT&& key) const
     {
         return fromJson<T>(unsignedJson()[std::forward<KeyT>(key)]);
@@ -258,6 +258,21 @@ template <typename EventT>
 using EventsArray = std::vector<event_ptr_tt<EventT>>;
 using Events = EventsArray<Event>;
 
+//! \brief Define an inline method obtaining a content part
+//!
+//! This macro adds a const method that extracts a JSON value at the key
+//! <tt>toSnakeCase(PartName_)</tt> (sic) and converts it to the type
+//! \p PartType_. Effectively, the generated method is an equivalent of
+//! \code
+//! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_ls));
+//! \endcode
+#define QUO_CONTENT_GETTER(PartType_, PartName_)                  \
+    PartType_ PartName_() const                                   \
+    {                                                             \
+        static const auto JsonKey = toSnakeCase(#PartName_##_ls); \
+        return contentPart<PartType_>(JsonKey);                   \
+    }
+
 // === Facilities for event class definitions ===
 
 // This macro should be used in a public section of an event class to
@@ -278,6 +293,32 @@ using Events = EventsArray<Event>;
         Type_::factory.addMethod<Type_>();                        \
     // End of macro
 
+/// \brief Define a new event class with a single key-value pair in the content
+///
+/// This macro defines a new event class \p Name_ derived from \p Base_,
+/// with Matrix event type \p TypeId_, providing a getter named \p GetterName_
+/// for a single value of type \p ValueType_ inside the event content.
+/// To retrieve the value the getter uses a JSON key name that corresponds to
+/// its own (getter's) name but written in snake_case. \p GetterName_ must be
+/// in camelCase, no quotes (an identifier, not a literal).
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_)     \
+    class QUOTIENT_API Name_ : public Base_ {                                   \
+    public:                                                                     \
+        using content_type = ValueType_;                                        \
+        DEFINE_EVENT_TYPEID(TypeId_, Name_)                                     \
+        explicit Name_(const QJsonObject& obj) : Base_(TypeId, obj) {}          \
+        explicit Name_(const content_type& content)                             \
+            : Name_(Base_::basicJson(TypeId, { { JsonKey, toJson(content) } })) \
+        {}                                                                      \
+        auto GetterName_() const                                                \
+        {                                                                       \
+            return contentPart<content_type>(JsonKey);                          \
+        }                                                                       \
+        static inline const auto JsonKey = toSnakeCase(#GetterName_##_ls);      \
+    };                                                                          \
+    REGISTER_EVENT_TYPE(Name_)                                                  \
+    // End of macro
+
 // === is<>(), eventCast<>() and switchOnType<>() ===
 
 template <class EventT>
@@ -291,65 +332,72 @@ inline bool isUnknown(const Event& e)
     return e.type() == UnknownEventTypeId;
 }
 
+//! \brief Cast the event pointer down in a type-safe way
+//!
+//! Checks that the event \p eptr points to actually is of the requested type
+//! and returns a (plain) pointer to the event downcast to that type. \p eptr
+//! can be either "dumb" (BaseEventT*) or "smart" (`event_ptr_tt<>`). This
+//! overload doesn't affect the event ownership - if the original pointer owns
+//! the event it must outlive the downcast pointer to keep it from dangling.
 template <class EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
     -> decltype(static_cast<EventT*>(&*eptr))
 {
-    Q_ASSERT(eptr);
-    return is<std::decay_t<EventT>>(*eptr) ? static_cast<EventT*>(&*eptr)
-                                           : nullptr;
+    return eptr && is<std::decay_t<EventT>>(*eptr)
+               ? static_cast<EventT*>(&*eptr)
+               : nullptr;
 }
 
-// A trivial generic catch-all "switch"
-template <class BaseEventT, typename FnT>
-inline auto switchOnType(const BaseEventT& event, FnT&& fn)
-    -> decltype(fn(event))
+//! \brief Cast the event pointer down in a type-safe way, with moving
+//!
+//! Checks that the event \p eptr points to actually is of the requested type;
+//! if (and only if) it is, releases the pointer, downcasts it to the requested
+//! event type and returns a new smart pointer wrapping the downcast one.
+//! Unlike the non-moving eventCast() overload, this one only accepts a smart
+//! pointer, and that smart pointer should be an rvalue (either a temporary,
+//! or as a result of std::move()). The ownership, respectively, is transferred
+//! to the new pointer; the original smart pointer is reset to nullptr, as is
+//! normal for `unique_ptr<>::release()`.
+//! \note If \p eptr's event type does not match \p EventT it retains ownership
+//!       after calling this overload; if it is a temporary, this normally
+//!       leads to the event getting deleted along with the end of
+//!       the temporary's lifetime.
+template <class EventT, typename BaseEventT>
+inline auto eventCast(event_ptr_tt<BaseEventT>&& eptr)
 {
-    return fn(event);
+    return eptr && is<std::decay_t<EventT>>(*eptr)
+               ? event_ptr_tt<EventT>(static_cast<EventT*>(eptr.release()))
+               : nullptr;
 }
 
 namespace _impl {
-    // Using bool instead of auto below because auto apparently upsets MSVC
-    template <class BaseT, typename FnT>
-    constexpr bool needs_downcast =
-        std::is_base_of_v<BaseT, std::decay_t<fn_arg_t<FnT>>>
-        && !std::is_same_v<BaseT, std::decay_t<fn_arg_t<FnT>>>;
+    template <typename FnT, class BaseT>
+    concept Invocable_With_Downcast =
+        std::is_base_of_v<BaseT, std::remove_cvref_t<fn_arg_t<FnT>>>;
 }
 
-// A trivial type-specific "switch" for a void function
-template <class BaseT, typename FnT>
-inline auto switchOnType(const BaseT& event, FnT&& fn)
-    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>
-                        && std::is_void_v<fn_return_t<FnT>>>
+template <class BaseT, typename TailT>
+inline auto switchOnType(const BaseT& event, TailT&& tail)
 {
-    using event_type = fn_arg_t<FnT>;
-    if (is<std::decay_t<event_type>>(event))
-        fn(static_cast<event_type>(event));
+    if constexpr (std::is_invocable_v<TailT, BaseT>) {
+        return tail(event);
+    } else if constexpr (_impl::Invocable_With_Downcast<TailT, BaseT>) {
+        using event_type = fn_arg_t<TailT>;
+        if (is<std::decay_t<event_type>>(event))
+            return tail(static_cast<event_type>(event));
+        return std::invoke_result_t<TailT, event_type>(); // Default-constructed
+    } else { // Treat it as a value to return
+        return std::forward<TailT>(tail);
+    }
 }
 
-// A trivial type-specific "switch" for non-void functions with an optional
-// default value; non-voidness is guarded by defaultValue type
-template <class BaseT, typename FnT>
-inline auto switchOnType(const BaseT& event, FnT&& fn,
-                         fn_return_t<FnT>&& defaultValue = {})
-    -> std::enable_if_t<_impl::needs_downcast<BaseT, FnT>, fn_return_t<FnT>>
-{
-    using event_type = fn_arg_t<FnT>;
-    if (is<std::decay_t<event_type>>(event))
-        return fn(static_cast<event_type>(event));
-    return std::move(defaultValue);
-}
-
-// A switch for a chain of 2 or more functions
-template <class BaseT, typename FnT1, typename FnT2, typename... FnTs>
-inline std::common_type_t<fn_return_t<FnT1>, fn_return_t<FnT2>>
-switchOnType(const BaseT& event, FnT1&& fn1, FnT2&& fn2, FnTs&&... fns)
+template <class BaseT, typename FnT1, typename... FnTs>
+inline auto switchOnType(const BaseT& event, FnT1&& fn1, FnTs&&... fns)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
-        return fn1(static_cast<event_type1&>(event));
-    return switchOnType(event, std::forward<FnT2>(fn2),
-                        std::forward<FnTs>(fns)...);
+        return fn1(static_cast<event_type1>(event));
+    return switchOnType(event, std::forward<FnTs>(fns)...);
 }
 
 template <class BaseT, typename... FnTs>
@@ -364,8 +412,8 @@ inline auto visit(const BaseT& event, FnTs&&... fns)
 // TODO: replace with ranges::for_each once all standard libraries have it
 template <typename RangeT, typename... FnTs>
 inline auto visitEach(RangeT&& events, FnTs&&... fns)
-    -> std::enable_if_t<std::is_void_v<
-        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>>
+    requires std::is_void_v<
+        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>
 {
     for (auto&& evtPtr: events)
         switchOnType(*evtPtr, std::forward<FnTs>(fns)...);

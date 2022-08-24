@@ -5,11 +5,8 @@
 #pragma once
 
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmerrors.h"
-#include "olm/olm.h"
 
-#include <memory>
-#include <variant>
+#include <olm/olm.h>
 
 namespace Quotient {
 
@@ -27,14 +24,13 @@ public:
     QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmInboundGroupSession>, QOlmError>
-    unpickle(const QByteArray& picked, const PicklingMode& mode);
+    static QOlmExpected<QOlmInboundGroupSessionPtr> unpickle(
+        const QByteArray& pickled, const PicklingMode& mode);
     //! Decrypts ciphertext received for this group session.
-    std::variant<std::pair<QString, uint32_t>, QOlmError> decrypt(
-        const QByteArray& message);
+    QOlmExpected<std::pair<QByteArray, uint32_t> > decrypt(const QByteArray& message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
     //! in a format which can be used by import.
-    std::variant<QByteArray, QOlmError> exportSession(uint32_t messageIndex);
+    QOlmExpected<QByteArray> exportSession(uint32_t messageIndex);
     //! Get the first message index we know how to decrypt.
     uint32_t firstKnownIndex() const;
     //! Get a base64-encoded identifier for this session.
@@ -44,7 +40,7 @@ public:
     //! The olm session that this session was received from.
     //! Required to get the device this session is from.
     QString olmSessionId() const;
-    void setOlmSessionId(const QString& setOlmSessionId);
+    void setOlmSessionId(const QString& newOlmSessionId);
 
     //! The sender of this session.
     QString senderId() const;

@@ -37,6 +37,31 @@ static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all
         QT_WARNING_POP
 #endif
 
+#if __cpp_conditional_explicit >= 201806L
+#define QUO_IMPLICIT explicit(false)
+#else
+#define QUO_IMPLICIT
+#endif
+
+#define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
+    Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
+
+/// \brief Copy an object with slicing
+///
+/// Unintended slicing is bad, which why there's a C++ Core Guideline that
+/// basically says "don't slice, or if you do, make it explicit". Sonar and
+/// clang-tidy have warnings matching this guideline; unfortunately, those
+/// warnings trigger even when you have a dedicated method (as the guideline
+/// recommends) that makes a slicing copy.
+///
+/// This macro is meant for cases when slicing is intended: the static cast
+/// silences the static analysis warning, and the macro appearance itself makes
+/// it very clear that slicing is wanted here. It is made as a macro
+/// (not as a function template) to support the case of private inheritance
+/// in which a function template would not be able to cast to the private base
+/// (see Uri::toUrl() for an example of just that situation).
+#define SLICE(Object, ToType) ToType{static_cast<const ToType&>(Object)}
+
 namespace Quotient {
 /// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
 template <typename T>
@@ -93,8 +118,8 @@ private:
  */
 template <typename InputIt, typename ForwardIt, typename Pred>
 inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
-                                                    ForwardIt sFirst,
-                                                    ForwardIt sLast, Pred pred)
+                                                 ForwardIt sFirst,
+                                                 ForwardIt sLast, Pred pred)
 {
     for (; first != last; ++first)
         for (auto it = sFirst; it != sLast; ++it)
@@ -110,8 +135,8 @@ inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
 //! to define default constructors/operator=() out of line.
 //! Thanks to https://oliora.github.io/2015/12/29/pimpl-and-rule-of-zero.html
 //! for inspiration
-template <typename ImplType>
-using ImplPtr = std::unique_ptr<ImplType, void (*)(ImplType*)>;
+template <typename ImplType, typename TypeToDelete = ImplType>
+using ImplPtr = std::unique_ptr<ImplType, void (*)(TypeToDelete*)>;
 
 // Why this works (see also the link above): because this defers the moment
 // of requiring sizeof of ImplType to the place where makeImpl is invoked
@@ -131,19 +156,41 @@ using ImplPtr = std::unique_ptr<ImplType, void (*)(ImplType*)>;
 //!
 //! Since std::make_unique is not compatible with ImplPtr, this should be used
 //! in constructors of frontend classes to create implementation instances.
-template <typename ImplType, typename DeleterType = void (*)(ImplType*),
-          typename... ArgTs>
-inline ImplPtr<ImplType> makeImpl(ArgTs&&... args)
+template <typename ImplType, typename TypeToDelete = ImplType, typename... ArgTs>
+inline ImplPtr<ImplType, TypeToDelete> makeImpl(ArgTs&&... args)
 {
-    return ImplPtr<ImplType> { new ImplType(std::forward<ArgTs>(args)...),
-                               [](ImplType* impl) { delete impl; } };
+    return ImplPtr<ImplType, TypeToDelete> {
+        new ImplType(std::forward<ArgTs>(args)...),
+        [](TypeToDelete* impl) { delete impl; }
+    };
 }
 
-template <typename ImplType>
-const inline ImplPtr<ImplType> ZeroImpl()
+template <typename ImplType, typename TypeToDelete = ImplType>
+inline ImplPtr<ImplType, TypeToDelete> acquireImpl(ImplType* from)
 {
-    return { nullptr, [](ImplType*) { /* nullptr doesn't need deletion */ } };
+    return ImplPtr<ImplType, TypeToDelete> { from, [](TypeToDelete* impl) {
+                                                delete impl;
+                                            } };
 }
+
+template <typename ImplType, typename TypeToDelete = ImplType>
+constexpr ImplPtr<ImplType, TypeToDelete> ZeroImpl()
+{
+    return { nullptr, [](TypeToDelete*) { /* nullptr doesn't need deletion */ } };
+}
+
+//! \brief Multiplex several functors in one
+//!
+//! This is a well-known trick to wrap several lambdas into a single functor
+//! class that can be passed to std::visit.
+//! \sa  https://en.cppreference.com/w/cpp/utility/variant/visit
+template <typename... FunctorTs>
+struct Overloads : FunctorTs... {
+    using FunctorTs::operator()...;
+};
+
+template <typename... FunctorTs>
+Overloads(FunctorTs&&...) -> Overloads<FunctorTs...>;
 
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
 QUOTIENT_API void linkifyUrls(QString& htmlEscapedText);
@@ -183,4 +230,5 @@ QUOTIENT_API QString versionString();
 QUOTIENT_API int majorVersion();
 QUOTIENT_API int minorVersion();
 QUOTIENT_API int patchVersion();
+QUOTIENT_API bool encryptionSupported();
 } // namespace Quotient

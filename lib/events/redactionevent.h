@@ -6,7 +6,7 @@
 #include "roomevent.h"
 
 namespace Quotient {
-class RedactionEvent : public RoomEvent {
+class QUOTIENT_API RedactionEvent : public RoomEvent {
 public:
     DEFINE_EVENT_TYPEID("m.room.redaction", RedactionEvent)
 
@@ -17,7 +17,7 @@ public:
     {
         return fullJson()["redacts"_ls].toString();
     }
-    QString reason() const { return contentPart<QString>("reason"_ls); }
+    QUO_CONTENT_GETTER(QString, reason)
 };
 REGISTER_EVENT_TYPE(RedactionEvent)
 } // namespace Quotient

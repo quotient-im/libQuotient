@@ -11,7 +11,8 @@ namespace Quotient {
 
 class Room;
 
-class RoomStateView : private QHash<StateEventKey, const StateEventBase*> {
+class QUOTIENT_API RoomStateView
+    : private QHash<StateEventKey, const StateEventBase*> {
     Q_GADGET
 public:
     const QHash<StateEventKey, const StateEventBase*>& events() const

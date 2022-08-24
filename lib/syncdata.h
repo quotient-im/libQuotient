@@ -98,15 +98,15 @@ public:
      */
     void parseJson(const QJsonObject& json, const QString& baseDir = {});
 
-    Events&& takePresenceData();
-    Events&& takeAccountData();
-    Events&& takeToDeviceEvents();
+    Events takePresenceData();
+    Events takeAccountData();
+    Events takeToDeviceEvents();
     const QHash<QString, int>& deviceOneTimeKeysCount() const
     {
         return deviceOneTimeKeysCount_;
     }
-    SyncDataList&& takeRoomData();
-    DevicesList&& takeDevicesList();
+    SyncDataList takeRoomData();
+    DevicesList takeDevicesList();
 
     QString nextBatch() const { return nextBatch_; }
 

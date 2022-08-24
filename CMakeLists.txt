@@ -1,6 +1,4 @@
-# Officially CMake 3.16+ is needed but LGTM.com still sits on eoan that only
-# has CMake 3.13
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -40,7 +38,7 @@ if (MSVC)
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
     foreach (FLAG Wall Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments)
+            Wno-gnu-zero-variadic-macro-arguments Wno-subobject-linkage)
         CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
         if ( COMPILER_${FLAG}_SUPPORTED AND
                 NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
@@ -80,13 +78,15 @@ option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 if (BUILD_WITH_QT6)
     set(QtMinVersion "6.0")
 else()
-    set(QtMinVersion "5.12")
+    set(QtMinVersion "5.15")
     set(QtExtraModules "Multimedia") # See #483
 endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
 find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
+
+find_package(${Qt}Keychain REQUIRED)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
@@ -109,7 +109,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     if (OpenSSL_FOUND)
         message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
     endif()
-    find_package(${Qt}Keychain REQUIRED)
 endif()
 
 
@@ -119,6 +118,7 @@ list(APPEND lib_SRCS
     lib/quotient_export.h
     lib/function_traits.h lib/function_traits.cpp
     lib/omittable.h
+    lib/expected.h
     lib/networkaccessmanager.h lib/networkaccessmanager.cpp
     lib/connectiondata.h lib/connectiondata.cpp
     lib/connection.h lib/connection.cpp
@@ -144,6 +144,7 @@ list(APPEND lib_SRCS
     lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
     lib/events/stateevent.h lib/events/stateevent.cpp
+    lib/events/single_key_value.h
     lib/events/simplestateevents.h
     lib/events/eventcontent.h lib/events/eventcontent.cpp
     lib/events/eventrelation.h lib/events/eventrelation.cpp
@@ -151,6 +152,7 @@ list(APPEND lib_SRCS
     lib/events/roomtombstoneevent.h lib/events/roomtombstoneevent.cpp
     lib/events/roommessageevent.h lib/events/roommessageevent.cpp
     lib/events/roommemberevent.h lib/events/roommemberevent.cpp
+    lib/events/roomcanonicalaliasevent.h
     lib/events/roomavatarevent.h
     lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
     lib/events/typingevent.h lib/events/typingevent.cpp
@@ -165,9 +167,9 @@ list(APPEND lib_SRCS
     lib/events/encryptionevent.h lib/events/encryptionevent.cpp
     lib/events/encryptedevent.h lib/events/encryptedevent.cpp
     lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
-    lib/events/stickerevent.h lib/events/stickerevent.cpp
-    lib/events/keyverificationevent.h lib/events/keyverificationevent.cpp
-    lib/events/encryptedfile.h lib/events/encryptedfile.cpp
+    lib/events/stickerevent.h
+    lib/events/keyverificationevent.h
+    lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
     lib/jobs/requestdata.h lib/jobs/requestdata.cpp
     lib/jobs/basejob.h lib/jobs/basejob.cpp
     lib/jobs/syncjob.h lib/jobs/syncjob.cpp
@@ -198,20 +200,23 @@ set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
 set(API_GENERATION_ENABLED 0)
-if (GTAD_PATH AND MATRIX_DOC_PATH)
+if (NOT MATRIX_SPEC_PATH AND MATRIX_DOC_PATH)
+    set(MATRIX_SPEC_PATH ${MATRIX_DOC_PATH})
+endif()
+if (GTAD_PATH AND MATRIX_SPEC_PATH)
     # REALPATH resolves ~ (home directory) while PROGRAM doesn't
     get_filename_component(ABS_GTAD_PATH "${GTAD_PATH}" REALPATH)
     get_filename_component(ABS_GTAD_PATH "${ABS_GTAD_PATH}" PROGRAM PROGRAM_ARGS GTAD_ARGS)
     if (EXISTS ${ABS_GTAD_PATH})
-        get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/data/api" REALPATH)
+        get_filename_component(ABS_API_DEF_PATH "${MATRIX_SPEC_PATH}/data/api" REALPATH)
         if (NOT IS_DIRECTORY ${ABS_API_DEF_PATH})
             # Check the old place of API files
-            get_filename_component(ABS_API_DEF_PATH "${MATRIX_DOC_PATH}/api" REALPATH)
+            get_filename_component(ABS_API_DEF_PATH "${MATRIX_SPEC_PATH}/api" REALPATH)
         endif ()
         if (IS_DIRECTORY ${ABS_API_DEF_PATH})
             set(API_GENERATION_ENABLED 1)
         else ()
-            message( WARNING "${MATRIX_DOC_PATH} doesn't seem to point to a valid matrix-doc repo; disabling API stubs generation")
+            message( WARNING "${MATRIX_SPEC_PATH} doesn't seem to point to a valid matrix-doc repo; disabling API stubs generation")
         endif ()
     else (EXISTS ${ABS_GTAD_PATH})
         message( WARNING "${GTAD_PATH} is not executable; disabling API stubs generation")
@@ -291,13 +296,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
              COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
 
-# C++17 required, C++20 desired (see above)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
-# TODO: Bump the CMake requirement and drop the version check here once
-# LGTM upgrades
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0"
-        AND NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU) # https://bugzilla.redhat.com/show_bug.cgi?id=1721553
+# Don't use PCH w/GCC (https://bugzilla.redhat.com/show_bug.cgi?id=1721553#c34)
+if (NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
 endif ()
 
@@ -309,14 +311,14 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL
-        ${Qt}::Sql
-        ${QTKEYCHAIN_LIBRARIES})
+        ${Qt}::Sql)
     set(FIND_DEPS "find_dependency(Olm)
     find_dependency(OpenSSL)
     find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui)
+target_include_directories(${PROJECT_NAME} PRIVATE ${QTKEYCHAIN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)

@@ -9,12 +9,12 @@ using namespace Quotient;
 QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix/client/r0", "/joined_rooms"));
+        std::move(baseUrl), makePath("/_matrix/client/v3", "/joined_rooms"));
 }
 
 GetJoinedRoomsJob::GetJoinedRoomsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetJoinedRoomsJob"),
-              makePath("/_matrix/client/r0", "/joined_rooms"))
+              makePath("/_matrix/client/v3", "/joined_rooms"))
 {
     addExpectedKey("joined_rooms");
 }

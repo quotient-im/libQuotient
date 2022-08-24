@@ -93,6 +93,9 @@ public:
      *   If true, an `access_token` and `device_id` should not be
      *   returned from this call, therefore preventing an automatic
      *   login. Defaults to false.
+     *
+     * \param refreshToken
+     *   If true, the client supports refresh tokens.
      */
     explicit RegisterJob(const QString& kind = QStringLiteral("user"),
                          const Omittable<AuthenticationData>& auth = none,
@@ -100,7 +103,8 @@ public:
                          const QString& password = {},
                          const QString& deviceId = {},
                          const QString& initialDeviceDisplayName = {},
-                         Omittable<bool> inhibitLogin = none);
+                         Omittable<bool> inhibitLogin = none,
+                         Omittable<bool> refreshToken = none);
 
     // Result properties
 
@@ -118,15 +122,27 @@ public:
         return loadFromJson<QString>("access_token"_ls);
     }
 
-    /// The server_name of the homeserver on which the account has
-    /// been registered.
+    /// A refresh token for the account. This token can be used to
+    /// obtain a new access token when it expires by calling the
+    /// `/refresh` endpoint.
     ///
-    /// **Deprecated**. Clients should extract the server_name from
-    /// `user_id` (by splitting at the first colon) if they require
-    /// it. Note also that `homeserver` is not spelt this way.
-    QString homeServer() const
+    /// Omitted if the `inhibit_login` option is true.
+    QString refreshToken() const
     {
-        return loadFromJson<QString>("home_server"_ls);
+        return loadFromJson<QString>("refresh_token"_ls);
+    }
+
+    /// The lifetime of the access token, in milliseconds. Once
+    /// the access token has expired a new access token can be
+    /// obtained by using the provided refresh token. If no
+    /// refresh token is provided, the client will need to re-log in
+    /// to obtain a new access token. If not given, the client can
+    /// assume that the access token will not expire.
+    ///
+    /// Omitted if the `inhibit_login` option is true.
+    Omittable<int> expiresInMs() const
+    {
+        return loadFromJson<Omittable<int>>("expires_in_ms"_ls);
     }
 
     /// ID of the registered device. Will be the same as the
@@ -227,7 +243,8 @@ public:
      * should be revoked if the request succeeds.
      *
      *   When `false`, the server can still take advantage of the [soft logout
-     * method](/client-server-api/#soft-logout) for the user's remaining devices.
+     * method](/client-server-api/#soft-logout) for the user's remaining
+     * devices.
      *
      * \param auth
      *   Additional authentication information for the user-interactive
@@ -247,7 +264,7 @@ public:
  * `/account/password` endpoint.
  *
  * This API's parameters and response are identical to that of the
- * [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+ * [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
  * endpoint, except that
  * `M_THREEPID_NOT_FOUND` may be returned if no account matching the
  * given email address could be found. The server may instead send an
@@ -269,7 +286,7 @@ public:
      *   `/account/password` endpoint.
      *
      *   This API's parameters and response are identical to that of the
-     *   [`/register/email/requestToken`](/client-server-api/#post_matrixclientr0registeremailrequesttoken)
+     *   [`/register/email/requestToken`](/client-server-api/#post_matrixclientv3registeremailrequesttoken)
      *   endpoint, except that
      *   `M_THREEPID_NOT_FOUND` may be returned if no account matching the
      *   given email address could be found. The server may instead send an
@@ -299,7 +316,7 @@ public:
  * `/account/password` endpoint.
  *
  * This API's parameters and response are identical to that of the
- * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+ * [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
  * endpoint, except that
  * `M_THREEPID_NOT_FOUND` may be returned if no account matching the
  * given phone number could be found. The server may instead send the SMS
@@ -321,15 +338,16 @@ public:
      *   `/account/password` endpoint.
      *
      *   This API's parameters and response are identical to that of the
-     *   [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientr0registermsisdnrequesttoken)
+     *   [`/register/msisdn/requestToken`](/client-server-api/#post_matrixclientv3registermsisdnrequesttoken)
      *   endpoint, except that
      *   `M_THREEPID_NOT_FOUND` may be returned if no account matching the
      *   given phone number could be found. The server may instead send the SMS
      *   to the given phone number prompting the user to create an account.
      *   `M_THREEPID_IN_USE` may not be returned.
      *
-     *   The homeserver should validate the phone number itself, either by sending
-     * a validation message itself or by using a service it has control over.
+     *   The homeserver should validate the phone number itself, either by
+     * sending a validation message itself or by using a service it has control
+     * over.
      */
     explicit RequestTokenToResetPasswordMSISDNJob(
         const MsisdnValidationData& body);
@@ -377,8 +395,9 @@ public:
      *   it must return an `id_server_unbind_result` of
      *   `no-support`.
      */
-    explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none,
-                                  const QString& idServer = {});
+    explicit DeactivateAccountJob(
+        const Omittable<AuthenticationData>& auth = none,
+        const QString& idServer = {});
 
     // Result properties
 

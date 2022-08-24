@@ -111,12 +111,16 @@ public:
      * \param initialDeviceDisplayName
      *   A display name to assign to the newly-created device. Ignored
      *   if `device_id` corresponds to a known device.
+     *
+     * \param refreshToken
+     *   If true, the client supports refresh tokens.
      */
     explicit LoginJob(const QString& type,
                       const Omittable<UserIdentifier>& identifier = none,
                       const QString& password = {}, const QString& token = {},
                       const QString& deviceId = {},
-                      const QString& initialDeviceDisplayName = {});
+                      const QString& initialDeviceDisplayName = {},
+                      Omittable<bool> refreshToken = none);
 
     // Result properties
 
@@ -130,15 +134,23 @@ public:
         return loadFromJson<QString>("access_token"_ls);
     }
 
-    /// The server_name of the homeserver on which the account has
-    /// been registered.
-    ///
-    /// **Deprecated**. Clients should extract the server_name from
-    /// `user_id` (by splitting at the first colon) if they require
-    /// it. Note also that `homeserver` is not spelt this way.
-    QString homeServer() const
+    /// A refresh token for the account. This token can be used to
+    /// obtain a new access token when it expires by calling the
+    /// `/refresh` endpoint.
+    QString refreshToken() const
     {
-        return loadFromJson<QString>("home_server"_ls);
+        return loadFromJson<QString>("refresh_token"_ls);
+    }
+
+    /// The lifetime of the access token, in milliseconds. Once
+    /// the access token has expired a new access token can be
+    /// obtained by using the provided refresh token. If no
+    /// refresh token is provided, the client will need to re-log in
+    /// to obtain a new access token. If not given, the client can
+    /// assume that the access token will not expire.
+    Omittable<int> expiresInMs() const
+    {
+        return loadFromJson<Omittable<int>>("expires_in_ms"_ls);
     }
 
     /// ID of the logged-in device. Will be the same as the

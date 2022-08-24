@@ -15,9 +15,9 @@ RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
 
 RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
 {
-    if (const auto redaction = unsignedPart(RedactedCauseKeyL);
-        redaction.isObject())
-        _redactedBecause = makeEvent<RedactionEvent>(redaction.toObject());
+    if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
+        !redaction.isEmpty())
+        _redactedBecause = makeEvent<RedactionEvent>(redaction);
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
@@ -101,22 +101,22 @@ void RoomEvent::dumpTo(QDebug dbg) const
     dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
 }
 
-QJsonObject makeCallContentJson(const QString& callId, int version,
-                                QJsonObject content)
+QJsonObject CallEventBase::basicJson(const QString& matrixType,
+                                     const QString& callId, int version,
+                                     QJsonObject contentJson)
 {
-    content.insert(QStringLiteral("call_id"), callId);
-    content.insert(QStringLiteral("version"), version);
-    return content;
+    contentJson.insert(QStringLiteral("call_id"), callId);
+    contentJson.insert(QStringLiteral("version"), version);
+    return RoomEvent::basicJson(matrixType, contentJson);
 }
 
 CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
                              const QString& callId, int version,
                              const QJsonObject& contentJson)
-    : RoomEvent(type, matrixType,
-                makeCallContentJson(callId, version, contentJson))
+    : RoomEvent(type, basicJson(matrixType, callId, version, contentJson))
 {}
 
-CallEventBase::CallEventBase(Event::Type type, const QJsonObject& json)
+CallEventBase::CallEventBase(Type type, const QJsonObject& json)
     : RoomEvent(type, json)
 {
     if (callId().isEmpty())

@@ -9,7 +9,7 @@
 
 namespace Quotient {
 
-/*! \brief Listen on the event stream.
+/*! \brief Listen on the event stream of a particular room.
  *
  * This will listen for new events related to a particular room and return
  * them to the caller. This will block until an event is received, or until
@@ -24,7 +24,7 @@ namespace Quotient {
  */
 class QUOTIENT_API PeekEventsJob : public BaseJob {
 public:
-    /*! \brief Listen on the event stream.
+    /*! \brief Listen on the event stream of a particular room.
      *
      * \param from
      *   The token to stream from. This token is either from a previous

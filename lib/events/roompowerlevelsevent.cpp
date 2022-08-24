@@ -3,10 +3,10 @@
 
 #include "roompowerlevelsevent.h"
 
-#include <QJsonDocument>
-
 using namespace Quotient;
 
+// The default values used below are defined in
+// https://spec.matrix.org/v1.3/client-server-api/#mroompower_levels
 PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
     invite(json["invite"_ls].toInt(50)),
     kick(json["kick"_ls].toInt(50)),
@@ -18,48 +18,36 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
     users(fromJson<QHash<QString, int>>(json["users"_ls])),
     usersDefault(json["users_default"_ls].toInt(0)),
     notifications(Notifications{json["notifications"_ls].toObject()["room"_ls].toInt(50)})
+{}
+
+QJsonObject PowerLevelsEventContent::toJson() const
 {
+    QJsonObject o;
+    o.insert(QStringLiteral("invite"), invite);
+    o.insert(QStringLiteral("kick"), kick);
+    o.insert(QStringLiteral("ban"), ban);
+    o.insert(QStringLiteral("redact"), redact);
+    o.insert(QStringLiteral("events"), Quotient::toJson(events));
+    o.insert(QStringLiteral("events_default"), eventsDefault);
+    o.insert(QStringLiteral("state_default"), stateDefault);
+    o.insert(QStringLiteral("users"), Quotient::toJson(users));
+    o.insert(QStringLiteral("users_default"), usersDefault);
+    o.insert(QStringLiteral("notifications"),
+             QJsonObject { { "room", notifications.room } });
+    return o;
 }
 
-void PowerLevelsEventContent::fillJson(QJsonObject* o) const {
-    o->insert(QStringLiteral("invite"), invite);
-    o->insert(QStringLiteral("kick"), kick);
-    o->insert(QStringLiteral("ban"), ban);
-    o->insert(QStringLiteral("redact"), redact);
-    o->insert(QStringLiteral("events"), Quotient::toJson(events));
-    o->insert(QStringLiteral("events_default"), eventsDefault);
-    o->insert(QStringLiteral("state_default"), stateDefault);
-    o->insert(QStringLiteral("users"), Quotient::toJson(users));
-    o->insert(QStringLiteral("users_default"), usersDefault);
-    o->insert(QStringLiteral("notifications"), QJsonObject{{"room", notifications.room}});
+int RoomPowerLevelsEvent::powerLevelForEvent(const QString& eventId) const
+{
+    return events().value(eventId, eventsDefault());
 }
 
-int RoomPowerLevelsEvent::powerLevelForEvent(const QString &eventId) const {
-    auto e = events();
-
-    if (e.contains(eventId)) {
-        return e[eventId];
-    }
-
-    return eventsDefault();
+int RoomPowerLevelsEvent::powerLevelForState(const QString& eventId) const
+{
+    return events().value(eventId, stateDefault());
 }
 
-int RoomPowerLevelsEvent::powerLevelForState(const QString &eventId) const {
-    auto e = events();
-
-    if (e.contains(eventId)) {
-        return e[eventId];
-    }
-
-    return stateDefault();
-}
-
-int RoomPowerLevelsEvent::powerLevelForUser(const QString &userId) const {
-    auto u = users();
-
-    if (u.contains(userId)) {
-        return u[userId];
-    }
-
-    return usersDefault();
+int RoomPowerLevelsEvent::powerLevelForUser(const QString& userId) const
+{
+    return users().value(userId, usersDefault());
 }

@@ -41,44 +41,8 @@
     Q_ENUM_NS_IMPL(Enum)                  \
     Q_FLAG_NS(Flags)
 
-// Apple Clang hasn't caught up with explicit(bool) yet
-#if __cpp_conditional_explicit >= 201806L
-#define QUO_IMPLICIT explicit(false)
-#else
-#define QUO_IMPLICIT
-#endif
-
-#define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
-    Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-// The first line forward-declares the namespace static metaobject with
-// QUOTIENT_API so that dynamically linked clients could serialise flag/enum
-// values from the namespace; Qt before 5.14 doesn't help with that. The second
-// line is needed for moc to do its job on the namespace.
-#define QUO_NAMESPACE \
-    extern QUOTIENT_API const QMetaObject staticMetaObject; \
-    Q_NAMESPACE
-#else
-// Since Qt 5.14.0, it's all packed in a single macro
-#define QUO_NAMESPACE Q_NAMESPACE_EXPORT(QUOTIENT_API)
-#endif
-
 namespace Quotient {
-QUO_NAMESPACE
-
-// std::array {} needs explicit template parameters on macOS because
-// Apple stdlib doesn't have deduction guides for std::array. C++20 has
-// to_array() but that can't be borrowed, this time because of MSVC:
-// https://developercommunity.visualstudio.com/t/vc-ice-p1-initc-line-3652-from-stdto-array/1464038
-// Therefore a simpler (but also slightly more wobbly - it resolves the element
-// type using std::common_type<>) make_array facility is implemented here.
-template <typename... Ts>
-constexpr auto make_array(Ts&&... items)
-{
-    return std::array<std::common_type_t<Ts...>, sizeof...(items)>(
-        { std::forward<Ts>(items)... });
-}
+Q_NAMESPACE_EXPORT(QUOTIENT_API)
 
 // TODO: code like this should be generated from the CS API definition
 
@@ -87,7 +51,7 @@ constexpr auto make_array(Ts&&... items)
 //! These are used for member events. The names here are case-insensitively
 //! equal to state names used on the wire.
 //! \sa MemberEventContent, RoomMemberEvent
-enum class Membership : unsigned int {
+enum class Membership : uint16_t {
     // Specific power-of-2 values (1,2,4,...) are important here as syncdata.cpp
     // depends on that, as well as Join being the first in line
     Invalid = 0x0,
@@ -100,9 +64,10 @@ enum class Membership : unsigned int {
 };
 QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
-constexpr auto MembershipStrings = make_array(
-    // The order MUST be the same as the order in the original enum
-    "join", "leave", "invite", "knock", "ban");
+constexpr std::array MembershipStrings {
+    // The order MUST be the same as the order in the Membership enum
+    "join", "leave", "invite", "knock", "ban"
+};
 
 //! \brief Local user join-state names
 //!
@@ -118,10 +83,10 @@ enum class JoinState : std::underlying_type_t<Membership> {
 };
 QUO_DECLARE_FLAGS_NS(JoinStates, JoinState)
 
-[[maybe_unused]] constexpr auto JoinStateStrings = make_array(
+[[maybe_unused]] constexpr std::array JoinStateStrings {
     MembershipStrings[0], MembershipStrings[1], MembershipStrings[2],
     MembershipStrings[3] /* same as MembershipStrings, sans "ban" */
-);
+};
 
 //! \brief Network job running policy flags
 //!
@@ -132,7 +97,7 @@ Q_ENUM_NS(RunningPolicy)
 
 //! \brief The result of URI resolution using UriResolver
 //! \sa UriResolver
-enum UriResolveResult : short {
+enum UriResolveResult : int8_t {
     StillResolving = -1,
     UriResolved = 0,
     CouldNotResolve,
@@ -142,13 +107,19 @@ enum UriResolveResult : short {
 };
 Q_ENUM_NS(UriResolveResult)
 
-enum RoomType {
-    Space,
-    Undefined,
+enum class RoomType : uint8_t {
+    Space = 0,
+    Undefined = 0xFF,
 };
 Q_ENUM_NS(RoomType)
 
-[[maybe_unused]] constexpr auto RoomTypeStrings = make_array("m.space");
+[[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space" };
+
+enum class EncryptionType : uint8_t {
+    MegolmV1AesSha2 = 0,
+    Undefined = 0xFF,
+};
+Q_ENUM_NS(EncryptionType)
 
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)

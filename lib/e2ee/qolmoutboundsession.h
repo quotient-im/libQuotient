@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "olm/olm.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/e2ee.h"
+
 #include <memory>
+#include <olm/olm.h>
 
 namespace Quotient {
 
@@ -19,15 +19,16 @@ public:
     ~QOlmOutboundGroupSession();
     //! Creates a new instance of `QOlmOutboundGroupSession`.
     //! Throw OlmError on errors
-    static std::unique_ptr<QOlmOutboundGroupSession> create();
+    static QOlmOutboundGroupSessionPtr create();
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
-    std::variant<QByteArray, QOlmError> pickle(const PicklingMode &mode);
+    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static std::variant<std::unique_ptr<QOlmOutboundGroupSession>, QOlmError>
-    unpickle(const QByteArray& pickled, const PicklingMode& mode);
+    static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
+        const QByteArray& pickled, const PicklingMode& mode);
+
     //! Encrypts a plaintext message using the session.
-    std::variant<QByteArray, QOlmError> encrypt(const QString &plaintext);
+    QOlmExpected<QByteArray> encrypt(const QString& plaintext) const;
 
     //! Get the current message index for this session.
     //!
@@ -42,7 +43,7 @@ public:
     //!
     //! Each message is sent with a different ratchet key. This function returns the
     //! ratchet key that will be used for the next message.
-    std::variant<QByteArray, QOlmError> sessionKey() const;
+    QOlmExpected<QByteArray> sessionKey() const;
     QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
 
     int messageCount() const;
@@ -56,5 +57,4 @@ private:
     QDateTime m_creationTime = QDateTime::currentDateTime();
 };
 
-using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
-}
+} // namespace Quotient

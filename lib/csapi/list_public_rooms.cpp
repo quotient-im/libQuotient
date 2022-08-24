@@ -10,25 +10,25 @@ QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(QUrl baseUrl,
                                                      const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0",
+                                   makePath("/_matrix/client/v3",
                                             "/directory/list/room/", roomId));
 }
 
 GetRoomVisibilityOnDirectoryJob::GetRoomVisibilityOnDirectoryJob(
     const QString& roomId)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomVisibilityOnDirectoryJob"),
-              makePath("/_matrix/client/r0", "/directory/list/room/", roomId),
+              makePath("/_matrix/client/v3", "/directory/list/room/", roomId),
               false)
 {}
 
 SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(
     const QString& roomId, const QString& visibility)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomVisibilityOnDirectoryJob"),
-              makePath("/_matrix/client/r0", "/directory/list/room/", roomId))
+              makePath("/_matrix/client/v3", "/directory/list/room/", roomId))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("visibility"), visibility);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("visibility"), visibility);
+    setRequestData({ _dataJson });
 }
 
 auto queryToGetPublicRooms(Omittable<int> limit, const QString& since,
@@ -46,7 +46,7 @@ QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, Omittable<int> limit,
                                        const QString& server)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0",
+                                   makePath("/_matrix/client/v3",
                                             "/publicRooms"),
                                    queryToGetPublicRooms(limit, since, server));
 }
@@ -54,7 +54,7 @@ QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, Omittable<int> limit,
 GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
                                      const QString& server)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPublicRoomsJob"),
-              makePath("/_matrix/client/r0", "/publicRooms"),
+              makePath("/_matrix/client/v3", "/publicRooms"),
               queryToGetPublicRooms(limit, since, server), {}, false)
 {
     addExpectedKey("chunk");
@@ -74,17 +74,17 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server,
                                          Omittable<bool> includeAllNetworks,
                                          const QString& thirdPartyInstanceId)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryPublicRoomsJob"),
-              makePath("/_matrix/client/r0", "/publicRooms"),
+              makePath("/_matrix/client/v3", "/publicRooms"),
               queryToQueryPublicRooms(server))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("limit"), limit);
-    addParam<IfNotEmpty>(_data, QStringLiteral("since"), since);
-    addParam<IfNotEmpty>(_data, QStringLiteral("filter"), filter);
-    addParam<IfNotEmpty>(_data, QStringLiteral("include_all_networks"),
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("limit"), limit);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("since"), since);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("filter"), filter);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("include_all_networks"),
                          includeAllNetworks);
-    addParam<IfNotEmpty>(_data, QStringLiteral("third_party_instance_id"),
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("third_party_instance_id"),
                          thirdPartyInstanceId);
-    setRequestData(std::move(_data));
+    setRequestData({ _dataJson });
     addExpectedKey("chunk");
 }

@@ -3,18 +3,18 @@
 
 #pragma once
 
-#include "events/stateevent.h"
 #include "quotient_common.h"
+
+#include "events/filesourceinfo.h"
+#include "events/stateevent.h"
 
 #include <any>
 #include <utility>
 
-#include "events/encryptedfile.h"
-
 namespace Quotient {
 
 namespace EventStatus {
-    QUO_NAMESPACE
+    Q_NAMESPACE_EXPORT(QUOTIENT_API)
 
     /** Special marks an event can assume
      *
@@ -22,16 +22,16 @@ namespace EventStatus {
      * All values except Redacted and Hidden are mutually exclusive.
      */
     enum Code {
-        Normal = 0x0, //< No special designation
-        Submitted = 0x01, //< The event has just been submitted for sending
-        FileUploaded = 0x02, //< The file attached to the event has been
-                             // uploaded to the server
-        Departed = 0x03, //< The event has left the client
-        ReachedServer = 0x04, //< The server has received the event
-        SendingFailed = 0x05, //< The server could not receive the event
-        Redacted = 0x08, //< The event has been redacted
-        Replaced = 0x10, //< The event has been replaced
-        Hidden = 0x100, //< The event should not be shown in the timeline
+        Normal = 0x0, ///< No special designation
+        Submitted = 0x01, ///< The event has just been submitted for sending
+        FileUploaded = 0x02, ///< The file attached to the event has been
+                             ///  uploaded to the server
+        Departed = 0x03, ///< The event has left the client
+        ReachedServer = 0x04, ///< The server has received the event
+        SendingFailed = 0x05, ///< The server could not receive the event
+        Redacted = 0x08, ///< The event has been redacted
+        Replaced = 0x10, ///< The event has been replaced
+        Hidden = 0x100, ///< The event should not be shown in the timeline
     };
     Q_ENUM_NS(Code)
 } // namespace EventStatus
@@ -115,8 +115,7 @@ public:
     QString annotation() const { return _annotation; }
 
     void setDeparted() { setStatus(EventStatus::Departed); }
-    void setFileUploaded(const QUrl& remoteUrl);
-    void setEncryptedFile(const EncryptedFile& encryptedFile);
+    void setFileUploaded(const FileSourceInfo &uploadedFileData);
     void setReachedServer(const QString& eventId)
     {
         setStatus(EventStatus::ReachedServer);

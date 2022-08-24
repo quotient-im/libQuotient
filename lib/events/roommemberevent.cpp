@@ -4,8 +4,6 @@
 
 #include "roommemberevent.h"
 
-#include "logging.h"
-
 #include <QtCore/QtAlgorithms>
 
 namespace Quotient {
@@ -13,18 +11,10 @@ template <>
 struct JsonConverter<Membership> {
     static Membership load(const QJsonValue& jv)
     {
-        const auto& ms = jv.toString();
-        if (ms.isEmpty())
-        {
-            qCWarning(EVENTS) << "Empty membership state";
-            return Membership::Invalid;
-        }
-        const auto it =
-            std::find(MembershipStrings.begin(), MembershipStrings.end(), ms);
-        if (it != MembershipStrings.end())
-            return Membership(1U << (it - MembershipStrings.begin()));
+        if (const auto& ms = jv.toString(); !ms.isEmpty())
+            return flagFromJsonString<Membership>(ms, MembershipStrings);
 
-        qCWarning(EVENTS) << "Unknown Membership value: " << ms;
+        qCWarning(EVENTS) << "Empty membership state";
         return Membership::Invalid;
     }
 };
@@ -43,19 +33,19 @@ MemberEventContent::MemberEventContent(const QJsonObject& json)
         displayName = sanitized(*displayName);
 }
 
-void MemberEventContent::fillJson(QJsonObject* o) const
+QJsonObject MemberEventContent::toJson() const
 {
-    Q_ASSERT(o);
+    QJsonObject o;
     if (membership != Membership::Invalid)
-        o->insert(QStringLiteral("membership"),
-                  MembershipStrings[qCountTrailingZeroBits(
-                      std::underlying_type_t<Membership>(membership))]);
+        o.insert(QStringLiteral("membership"),
+                 flagToJsonString(membership, MembershipStrings));
     if (displayName)
-        o->insert(QStringLiteral("displayname"), *displayName);
+        o.insert(QStringLiteral("displayname"), *displayName);
     if (avatarUrl && avatarUrl->isValid())
-        o->insert(QStringLiteral("avatar_url"), avatarUrl->toString());
+        o.insert(QStringLiteral("avatar_url"), avatarUrl->toString());
     if (!reason.isEmpty())
-        o->insert(QStringLiteral("reason"), reason);
+        o.insert(QStringLiteral("reason"), reason);
+    return o;
 }
 
 bool RoomMemberEvent::changesMembership() const

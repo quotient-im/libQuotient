@@ -53,7 +53,7 @@ class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
 class Database;
-struct EncryptedFile;
+struct EncryptedFileMetadata;
 
 class QOlmAccount;
 class QOlmInboundGroupSession;
@@ -135,8 +135,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
 
 public:
-    using UsersToDevicesToEvents =
-        UnorderedMap<QString, UnorderedMap<QString, std::unique_ptr<Event>>>;
+    using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
 
     enum RoomVisibility {
         PublishRoom,
@@ -177,24 +176,25 @@ public:
      */
     bool hasAccountData(const QString& type) const;
 
-    /** Get a generic account data event of the given type
-     * This returns an account data event of the given type
-     * stored on the server. Direct chats map cannot be retrieved
-     * using this method _yet_; use directChats() instead.
-     */
+    //! \brief Get a generic account data event of the given type
+    //!
+    //! \return an account data event of the given type stored on the server,
+    //!         or nullptr if there's none of that type.
+    //! \note Direct chats map cannot be retrieved using this method _yet_;
+    //!       use directChats() instead.
     const EventPtr& accountData(const QString& type) const;
 
-    /** Get a generic account data event of the given type
-     * This returns an account data event of the given type
-     * stored on the server. Direct chats map cannot be retrieved
-     * using this method _yet_; use directChats() instead.
-     */
+    //! \brief Get an account data event of the given type
+    //!
+    //! \return the account data content for the given event type stored
+    //!         on the server, or a default-constructed object if there's none
+    //!         of that type.
+    //! \note Direct chats map cannot be retrieved using this method _yet_;
+    //!       use directChats() instead.
     template <typename EventT>
-    const typename EventT::content_type accountData() const
+    const EventT* accountData() const
     {
-        if (const auto& eventPtr = accountData(EventT::matrixTypeId()))
-            return eventPtr->content();
-        return {};
+        return eventCast<EventT>(accountData(EventT::TypeId));
     }
 
     /** Get account data as a JSON object
@@ -320,21 +320,33 @@ public:
     bool isLoggedIn() const;
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
-    Database* database();
-    bool hasOlmSession(User* user, const QString& deviceId) const;
+    Database* database() const;
+    PicklingMode picklingMode() const;
 
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(Room* room);
-    void saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data);
+    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(
+        const Room* room) const;
+    void saveMegolmSession(const Room* room,
+                           const QOlmInboundGroupSession& session) const;
+    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+        const QString& roomId) const;
+    void saveCurrentOutboundMegolmSession(
+        const QString& roomId, const QOlmOutboundGroupSession& session) const;
+
+
+    QString edKeyForUserDevice(const QString& user, const QString& device) const;
+    bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     /// Returns true if this megolm session comes from a verified device
     bool isVerifiedSession(const QString& megolmSessionId);
 
-    //This assumes that an olm session with (user, device) exists
-    QPair<QOlmMessage::Type, QByteArray> olmEncryptMessage(User* user, const QString& device, const QByteArray& message);
-    void createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey);
+    void sendSessionKeyToDevices(const QString& roomId,
+                                 const QByteArray& sessionId,
+                                 const QByteArray& sessionKey,
+                                 const QMultiHash<QString, QString>& devices,
+                                 int index);
 
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(Room* room);
-    void saveMegolmSession(Room* room, QOlmInboundGroupSession* session);
+    QJsonObject decryptNotification(const QJsonObject &notification);
+    QStringList devicesForUser(const QString& userId) const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -607,7 +619,8 @@ public Q_SLOTS:
                                   const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob* downloadFile(const QUrl& url, const EncryptedFile& file,
+    DownloadFileJob* downloadFile(const QUrl& url,
+                                  const EncryptedFileMetadata& fileMetadata,
                                   const QString& localFilename = {});
 #endif
     /**
@@ -687,7 +700,7 @@ public Q_SLOTS:
     ForgetRoomJob* forgetRoom(const QString& id);
 
     SendToDeviceJob* sendToDevices(const QString& eventType,
-                                   const UsersToDevicesToEvents& eventsMap);
+                                   const UsersToDevicesToContent& contents);
 
     /** \deprecated This method is experimental and may be removed any time */
     SendMessageJob* sendMessage(const QString& roomId, const RoomEvent& event);
@@ -699,13 +712,6 @@ public Q_SLOTS:
 
 #ifdef Quotient_E2EE_ENABLED
     void encryptionUpdate(Room *room);
-    PicklingMode picklingMode() const;
-    QJsonObject decryptNotification(const QJsonObject &notification);
-
-    QStringList devicesForUser(User* user) const;
-    QString curveKeyForUserDevice(const QString &user, const QString& device) const;
-    QString edKeyForUserDevice(const QString& user, const QString& device) const;
-    bool isKnownCurveKey(const QString& user, const QString& curveKey);
 #endif
 
 Q_SIGNALS:

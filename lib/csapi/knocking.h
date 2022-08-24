@@ -25,7 +25,7 @@ namespace Quotient {
  * history visibility to the user.
  *
  * The knock will appear as an entry in the response of the
- * [`/sync`](/client-server-api/#get_matrixclientr0sync) API.
+ * [`/sync`](/client-server-api/#get_matrixclientv3sync) API.
  */
 class QUOTIENT_API KnockRoomJob : public BaseJob {
 public:

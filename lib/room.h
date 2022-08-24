@@ -758,7 +758,8 @@ public:
     [[deprecated("Use currentState().get() instead; "
                  "make sure to check its result for nullptrs")]] //
     const Quotient::StateEventBase*
-    getCurrentState(const QString& evtType, const QString& stateKey = {}) const;
+    getCurrentState(const QString& evtType,
+                    const QString& stateKey = {}) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
@@ -870,8 +871,9 @@ public Q_SLOTS:
     void inviteCall(const QString& callId, const int lifetime,
                     const QString& sdp);
     void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
-    void answerCall(const QString& callId, const int lifetime,
-                    const QString& sdp);
+    //! \deprecated Lifetime argument is no more passed; use 2-arg
+    //!             Room::answerCall() instead
+    void answerCall(const QString& callId, int lifetime, const QString& sdp);
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 
@@ -971,9 +973,9 @@ Q_SIGNALS:
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
     void lastDisplayedEventChanged();
-    //! The event that m.read receipt points to has changed
+    //! The event the m.read receipt points to has changed for the listed users
     //! \sa lastReadReceipt
-    void lastReadEventChanged(Quotient::User* user);
+    void lastReadEventChanged(QVector<QString> userIds);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
     //! \deprecated since 0.7 - use fullyReadMarkerMoved
     void readMarkerMoved(QString fromEventId, QString toEventId);
@@ -997,7 +999,8 @@ Q_SIGNALS:
 
     void newFileTransfer(QString id, QUrl localFile);
     void fileTransferProgress(QString id, qint64 progress, qint64 total);
-    void fileTransferCompleted(QString id, QUrl localFile, QUrl mxcUrl, Omittable<EncryptedFile> encryptedFile = std::nullopt);
+    void fileTransferCompleted(QString id, QUrl localFile,
+                               FileSourceInfo fileMetadata);
     void fileTransferFailed(QString id, QString errorMessage = {});
     // fileTransferCancelled() is no more here; use fileTransferFailed() and
     // check the transfer status instead

@@ -26,10 +26,10 @@ public:
                              const QSize& imageSize = {},
                              const QString& originalFilename = {})
         : RoomAvatarEvent(EventContent::ImageContent {
-            mxcUrl, fileSize, mimeType, imageSize, none, originalFilename })
+            mxcUrl, fileSize, mimeType, imageSize, originalFilename })
     {}
 
-    QUrl url() const { return content().url; }
+    QUrl url() const { return content().url(); }
 };
 REGISTER_EVENT_TYPE(RoomAvatarEvent)
 } // namespace Quotient

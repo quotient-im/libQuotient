@@ -7,8 +7,10 @@
 [![release](https://img.shields.io/github/release/quotient-im/libQuotient/all.svg)](https://github.com/quotient-im/libQuotient/releases/latest)
 [![](https://img.shields.io/cii/percentage/1023.svg?label=CII%20best%20practices)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
 ![](https://img.shields.io/github/commit-activity/y/quotient-im/libQuotient.svg)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/quotient-im/libQuotient.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/quotient-im/libQuotient/context:cpp)
-[![merge-chance-badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fmerge-chance.info%2Fbadge%3Frepo%3Dquotient-im/libquotient)](https://merge-chance.info/target?repo=quotient-im/libquotient)
+![CI Status](https://img.shields.io/github/workflow/status/quotient-im/libQuotient/CI)
+![Sonar Tech Debt](https://img.shields.io/sonar/tech_debt/quotient-im_libQuotient?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Coverage](https://img.shields.io/sonar/coverage/quotient-im_libQuotient?server=https%3A%2F%2Fsonarcloud.io)
+![Matrix](https://img.shields.io/matrix/quotient:matrix.org?logo=matrix)
 
 The Quotient project aims to produce a Qt5-based SDK to develop applications
 for [Matrix](https://matrix.org). libQuotient is a library that enables client
@@ -27,23 +29,21 @@ If you find what looks like a security issue, please use instructions
 in SECURITY.md.
 
 ## Getting and using libQuotient
-Depending on your platform, the library can come as a separate package.
-Recent releases of Debian and openSUSE, e.g., already have the package
-(under the old name). If your Linux repo doesn't provide binary package
-(either libqmatrixclient - older - or libquotient - newer), or you're
-on Windows or macOS, your best bet is to build the library from the source
-and bundle it with your application.
+Depending on your platform, the library can be obtained from a package
+management system. Recent releases of Debian and openSUSE, e.g., already have
+it. Alternatively, just build the library from the source and bundle it with
+your application, as described below.
 
 ### Pre-requisites
 - A recent Linux, macOS or Windows system (desktop versions are known to work;
   mobile operating systems where Qt is available might work too)
-  - Recent enough Linux examples: Debian Bullseye; Fedora 33; openSUSE Leap 15.3;
-    Ubuntu Focal Fossa.
-- Qt 5 (either Open Source or Commercial), 5.12 or higher
+  - Recent enough Linux examples: Debian Bullseye; Fedora 35;
+    openSUSE Leap 15.4; Ubuntu 22.04 LTS.
+- Qt 5 (either Open Source or Commercial), 5.15 or higher
 - CMake 3.16 or newer (from your package management system or
   [the official website](https://cmake.org/download/))
-- A C++ toolchain with complete (as much as possible) C++17 and basic C++20:
-  - GCC 10 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
+- A C++ toolchain with that supports at least some subset of C++20:
+  - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported.
 - Any build system that works with CMake should be fine:
   GNU Make and ninja on any platform, NMake and jom on Windows are known to work.
@@ -144,7 +144,7 @@ the standard variables coming with CMake. On top of them, Quotient introduces:
   Quotient and Quotient-dependent (if it uses `find_package(Quotient 0.6)`)
   code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code using
   E2EE parts of Quotient.
-- `MATRIX_DOC_PATH` and `GTAD_PATH` - these two variables are used to point
+- `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix
   Client-Server API description made in OpenAPI notation. This is not needed
@@ -165,14 +165,37 @@ by setting `Quotient_INSTALL_TESTS` to `OFF`.
 
 #### Building fails
 
-If `cmake` fails with...
-```
-CMake Warning at CMakeLists.txt:11 (find_package):
-  By not providing "FindQt5Widgets.cmake" in CMAKE_MODULE_PATH this project
-  has asked CMake to find a package configuration file provided by
-  "Qt5Widgets", but CMake did not find one.
-```
-...then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+- If `cmake` fails with
+  ```
+  CMake Warning at CMakeLists.txt:11 (find_package):
+    By not providing "FindQt5Widgets.cmake" in CMAKE_MODULE_PATH this project
+    has asked CMake to find a package configuration file provided by
+    "Qt5Widgets", but CMake did not find one.
+  ```
+  then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+
+- If you use GCC and get an "unknown declarator" compilation error in the file
+`qtconcurrentthreadengine.h` - unfortunately, it is an actual error in Qt 5.15
+sources, see https://bugreports.qt.io/browse/QTBUG-90568 (or
+https://bugreports.qt.io/browse/QTBUG-91909). The Qt company did not make
+an open source release with the fix, therefore:
+
+  - if you're on Linux - try to use Qt from your package management system, as
+    most likely this bug is already fixed in the packages
+  - if you're on Windows, or if you have to use Qt (5.15) from download.qt.io
+    for any other reason, you should apply the fix to Qt sources: locate
+    the file (the GCC error message tells exactly where it is), find the line
+    with the (strange-looking) `ThreadEngineStarter` constructor definition:
+    ```cplusplus
+    ThreadEngineStarter<void>(ThreadEngine<void> \*_threadEngine)
+    ```
+    and remove the template specialisation from the constructor name so that it
+    looks like
+    ```cplusplus
+    ThreadEngineStarter(ThreadEngine<void> \*_threadEngine)
+    ```
+    This will fix your build (and any other build involving QtConcurrent from
+    this installation of Qt - the fix is not specific to Quotient in any way).
 
 #### Logging configuration
 

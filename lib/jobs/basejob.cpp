@@ -138,9 +138,8 @@ public:
     QTimer timer;
     QTimer retryTimer;
 
-    static constexpr std::array<const JobTimeoutConfig, 3> errorStrategy {
-        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } }
-    };
+    static constexpr auto errorStrategy = std::to_array<const JobTimeoutConfig>(
+        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } });
     int maxRetries = int(errorStrategy.size());
     int retriesTaken = 0;
 
@@ -152,10 +151,8 @@ public:
 
     [[nodiscard]] QString dumpRequest() const
     {
-        // FIXME: use std::array {} when Apple stdlib gets deduction guides for it
-        static const auto verbs =
-            make_array(QStringLiteral("GET"), QStringLiteral("PUT"),
-                       QStringLiteral("POST"), QStringLiteral("DELETE"));
+        static const std::array verbs { "GET"_ls, "PUT"_ls, "POST"_ls,
+                                        "DELETE"_ls };
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % ' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
@@ -301,16 +298,10 @@ void BaseJob::Private::sendRequest()
                      QNetworkRequest::NoLessSafeRedirectPolicy);
     req.setMaximumRedirectsAllowed(10);
     req.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
-    req.setAttribute(
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-        QNetworkRequest::Http2AllowedAttribute
-#else
-        QNetworkRequest::HTTP2AllowedAttribute
-#endif
     // Qt doesn't combine HTTP2 with SSL quite right, occasionally crashing at
     // what seems like an attempt to write to a closed channel. If/when that
     // changes, false should be turned to true below.
-        , false);
+    req.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
@@ -754,11 +745,14 @@ QString BaseJob::statusCaption() const
     }
 }
 
-int BaseJob::error() const { return d->status.code; }
+int BaseJob::error() const {
+        return d->status.code; }
 
-QString BaseJob::errorString() const { return d->status.message; }
+QString BaseJob::errorString() const {
+        return d->status.message; }
 
-QUrl BaseJob::errorUrl() const { return d->errorUrl; }
+QUrl BaseJob::errorUrl() const {
+        return d->errorUrl; }
 
 void BaseJob::setStatus(Status s)
 {

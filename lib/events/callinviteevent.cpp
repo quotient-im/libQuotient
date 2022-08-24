@@ -33,7 +33,7 @@ CallInviteEvent::CallInviteEvent(const QJsonObject& obj)
     qCDebug(EVENTS) << "Call Invite event";
 }
 
-CallInviteEvent::CallInviteEvent(const QString& callId, const int lifetime,
+CallInviteEvent::CallInviteEvent(const QString& callId, int lifetime,
                                  const QString& sdp)
     : CallEventBase(
         typeId(), matrixTypeId(), callId, 0,

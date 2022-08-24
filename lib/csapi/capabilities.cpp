@@ -9,12 +9,12 @@ using namespace Quotient;
 QUrl GetCapabilitiesJob::makeRequestUrl(QUrl baseUrl)
 {
     return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix/client/r0", "/capabilities"));
+        std::move(baseUrl), makePath("/_matrix/client/v3", "/capabilities"));
 }
 
 GetCapabilitiesJob::GetCapabilitiesJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetCapabilitiesJob"),
-              makePath("/_matrix/client/r0", "/capabilities"))
+              makePath("/_matrix/client/v3", "/capabilities"))
 {
     addExpectedKey("capabilities");
 }

@@ -34,11 +34,11 @@ struct QUOTIENT_API EventRelation {
         return { ReplacementType, std::move(eventId) };
     }
 
-    [[deprecated("Use ReplyRelation variable instead")]]
+    [[deprecated("Use ReplyType variable instead")]]
     static constexpr auto Reply() { return ReplyType; }
-    [[deprecated("Use AnnotationRelation variable instead")]] //
+    [[deprecated("Use AnnotationType variable instead")]] //
     static constexpr auto Annotation() { return AnnotationType; }
-    [[deprecated("Use ReplacementRelation variable instead")]] //
+    [[deprecated("Use ReplacementType variable instead")]] //
     static constexpr auto Replacement() { return ReplacementType; }
 };
 

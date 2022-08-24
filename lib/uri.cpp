@@ -171,7 +171,7 @@ QUrl Uri::toUrl(UriForm form) const
         return {};
 
     if (form == CanonicalUri || type() == NonMatrix)
-        return *this; // NOLINT(cppcoreguidelines-slicing): It's intentional
+        return SLICE(*this, QUrl);
 
     QUrl url;
     url.setScheme("https");

@@ -5,6 +5,7 @@
 #include "qolmaccount.h"
 
 #include "connection.h"
+#include "e2ee/qolmsession.h"
 #include "e2ee/qolmutility.h"
 #include "e2ee/qolmutils.h"
 
@@ -12,20 +13,9 @@
 
 #include <QtCore/QRandomGenerator>
 
+#include <olm/olm.h>
+
 using namespace Quotient;
-
-QHash<QString, QString> OneTimeKeys::curve25519() const
-{
-    return keys[Curve25519Key];
-}
-
-//std::optional<QHash<QString, QString>> OneTimeKeys::get(QString keyType) const
-//{
-//    if (!keys.contains(keyType)) {
-//        return std::nullopt;
-//    }
-//    return keys[keyType];
-//}
 
 // Convert olm error to enum
 QOlmError lastError(OlmAccount *account) {
@@ -70,7 +60,7 @@ void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
     }
 }
 
-std::variant<QByteArray, QOlmError> QOlmAccount::pickle(const PicklingMode &mode)
+QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
 {
     const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(m_account);
@@ -119,20 +109,15 @@ QByteArray QOlmAccount::sign(const QJsonObject &message) const
 QByteArray QOlmAccount::signIdentityKeys() const
 {
     const auto keys = identityKeys();
-    QJsonObject body
-    {
-        {"algorithms", QJsonArray{"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"}},
-        {"user_id", m_userId},
-        {"device_id", m_deviceId},
-        {"keys",
-            QJsonObject{
-                {QStringLiteral("curve25519:") + m_deviceId, QString::fromUtf8(keys.curve25519)},
-                {QStringLiteral("ed25519:") + m_deviceId, QString::fromUtf8(keys.ed25519)}
-            }
-        }
-    };
-    return sign(QJsonDocument(body).toJson(QJsonDocument::Compact));
-
+    return sign(QJsonObject {
+        { "algorithms", QJsonArray { "m.olm.v1.curve25519-aes-sha2",
+                                     "m.megolm.v1.aes-sha2" } },
+        { "user_id", m_userId },
+        { "device_id", m_deviceId },
+        { "keys", QJsonObject { { QStringLiteral("curve25519:") + m_deviceId,
+                                  QString::fromUtf8(keys.curve25519) },
+                                { QStringLiteral("ed25519:") + m_deviceId,
+                                  QString::fromUtf8(keys.ed25519) } } } });
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
@@ -140,11 +125,15 @@ size_t QOlmAccount::maxNumberOfOneTimeKeys() const
     return olm_account_max_number_of_one_time_keys(m_account);
 }
 
-size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
+size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 {
-    const size_t randomLength = olm_account_generate_one_time_keys_random_length(m_account, numberOfKeys);
+    const size_t randomLength =
+        olm_account_generate_one_time_keys_random_length(m_account,
+                                                         numberOfKeys);
     QByteArray randomBuffer = getRandom(randomLength);
-    const auto error = olm_account_generate_one_time_keys(m_account, numberOfKeys, randomBuffer.data(), randomLength);
+    const auto error =
+        olm_account_generate_one_time_keys(m_account, numberOfKeys,
+                                           randomBuffer.data(), randomLength);
 
     if (error == olm_error()) {
         throw lastError(m_account);
@@ -153,49 +142,39 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys) const
     return error;
 }
 
-OneTimeKeys QOlmAccount::oneTimeKeys() const
+UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 {
     const size_t oneTimeKeyLength = olm_account_one_time_keys_length(m_account);
-    QByteArray oneTimeKeysBuffer(oneTimeKeyLength, '0');
+    QByteArray oneTimeKeysBuffer(static_cast<int>(oneTimeKeyLength), '0');
 
-    const auto error = olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(), oneTimeKeyLength);
+    const auto error = olm_account_one_time_keys(m_account,
+                                                 oneTimeKeysBuffer.data(),
+                                                 oneTimeKeyLength);
     if (error == olm_error()) {
         throw lastError(m_account);
     }
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
-    OneTimeKeys oneTimeKeys;
+    UnsignedOneTimeKeys oneTimeKeys;
     fromJson(json, oneTimeKeys.keys);
     return oneTimeKeys;
 }
 
-QHash<QString, SignedOneTimeKey> QOlmAccount::signOneTimeKeys(const OneTimeKeys &keys) const
+OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 {
-    QHash<QString, SignedOneTimeKey> signedOneTimeKeys;
-    for (const auto &keyid : keys.curve25519().keys()) {
-        const auto oneTimeKey = keys.curve25519()[keyid];
-        QByteArray sign = signOneTimeKey(oneTimeKey);
-        signedOneTimeKeys["signed_curve25519:" + keyid] = signedOneTimeKey(oneTimeKey.toUtf8(), sign);
-    }
+    OneTimeKeys signedOneTimeKeys;
+    for (const auto& curveKeys = keys.curve25519();
+         const auto& [keyId, key] : asKeyValueRange(curveKeys))
+        signedOneTimeKeys.insert("signed_curve25519:" % keyId,
+                                 SignedOneTimeKey {
+                                     key, m_userId, m_deviceId,
+                                     sign(QJsonObject { { "key", key } }) });
     return signedOneTimeKeys;
 }
 
-SignedOneTimeKey QOlmAccount::signedOneTimeKey(const QByteArray &key, const QString &signature) const
+std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(
+    const QOlmSession& session)
 {
-    SignedOneTimeKey sign{};
-    sign.key = key;
-    sign.signatures = {{m_userId, {{"ed25519:" + m_deviceId, signature}}}};
-    return sign;
-}
-
-QByteArray QOlmAccount::signOneTimeKey(const QString &key) const
-{
-    QJsonDocument j(QJsonObject{{"key", key}});
-    return sign(j.toJson(QJsonDocument::Compact));
-}
-
-std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(const QOlmSessionPtr &session) const
-{
-    const auto error = olm_remove_one_time_keys(m_account, session->raw());
+    const auto error = olm_remove_one_time_keys(m_account, session.raw());
 
     if (error == olm_error()) {
         return lastError(m_account);
@@ -208,54 +187,47 @@ OlmAccount* QOlmAccount::data() { return m_account; }
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
-    DeviceKeys deviceKeys;
-    deviceKeys.userId = m_userId;
-    deviceKeys.deviceId = m_deviceId;
-    deviceKeys.algorithms = QStringList {"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"};
+    static QStringList Algorithms(SupportedAlgorithms.cbegin(),
+                                  SupportedAlgorithms.cend());
 
     const auto idKeys = identityKeys();
-    deviceKeys.keys["curve25519:" + m_deviceId] = idKeys.curve25519;
-    deviceKeys.keys["ed25519:" + m_deviceId] = idKeys.ed25519;
-
-    const auto sign = signIdentityKeys();
-    deviceKeys.signatures[m_userId]["ed25519:" + m_deviceId] = sign;
-
-    return deviceKeys;
+    return DeviceKeys {
+        .userId = m_userId,
+        .deviceId = m_deviceId,
+        .algorithms = Algorithms,
+        .keys { { "curve25519:" + m_deviceId, idKeys.curve25519 },
+                { "ed25519:" + m_deviceId, idKeys.ed25519 } },
+        .signatures {
+            { m_userId, { { "ed25519:" + m_deviceId, signIdentityKeys() } } } }
+    };
 }
 
-UploadKeysJob *QOlmAccount::createUploadKeyRequest(const OneTimeKeys &oneTimeKeys)
+UploadKeysJob* QOlmAccount::createUploadKeyRequest(
+    const UnsignedOneTimeKeys& oneTimeKeys) const
 {
-    auto keys = deviceKeys();
-
-    if (oneTimeKeys.curve25519().isEmpty()) {
-        return new UploadKeysJob(keys);
-    }
-
-    // Sign & append the one time keys.
-    auto temp = signOneTimeKeys(oneTimeKeys);
-    QHash<QString, QVariant> oneTimeKeysSigned;
-    for (const auto &[keyId, key] : asKeyValueRange(temp)) {
-        oneTimeKeysSigned[keyId] = QVariant::fromValue(toJson(key));
-    }
-
-    return new UploadKeysJob(keys, oneTimeKeysSigned);
+    return new UploadKeysJob(deviceKeys(), signOneTimeKeys(oneTimeKeys));
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSession(const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSession(
+    const QOlmMessage& preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createInboundSessionFrom(const QByteArray &theirIdentityKey, const QOlmMessage &preKeyMessage)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSessionFrom(
+    const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
-    return QOlmSession::createInboundSessionFrom(this, theirIdentityKey, preKeyMessage);
+    return QOlmSession::createInboundSessionFrom(this, theirIdentityKey,
+                                                 preKeyMessage);
 }
 
-std::variant<QOlmSessionPtr, QOlmError> QOlmAccount::createOutboundSession(const QByteArray &theirIdentityKey, const QByteArray &theirOneTimeKey)
+QOlmExpected<QOlmSessionPtr> QOlmAccount::createOutboundSession(
+    const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey)
 {
-    return QOlmSession::createOutboundSession(this, theirIdentityKey, theirOneTimeKey);
+    return QOlmSession::createOutboundSession(this, theirIdentityKey,
+                                              theirOneTimeKey);
 }
 
 void QOlmAccount::markKeysAsPublished()
@@ -292,10 +264,6 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
     QByteArray signingKeyBuf = signingKey.toUtf8();
     QOlmUtility utility;
     auto signatureBuf = signature.toUtf8();
-    auto result = utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
-    if (std::holds_alternative<QOlmError>(result)) {
-        return false;
-    }
-
-    return std::get<bool>(result);
+    return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf)
+        .value_or(false);
 }

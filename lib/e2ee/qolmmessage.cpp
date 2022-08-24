@@ -4,6 +4,8 @@
 
 #include "qolmmessage.h"
 
+#include "util.h"
+
 using namespace Quotient;
 
 QOlmMessage::QOlmMessage(QByteArray ciphertext, QOlmMessage::Type type)
@@ -26,7 +28,7 @@ QOlmMessage::Type QOlmMessage::type() const
 
 QByteArray QOlmMessage::toCiphertext() const
 {
-    return QByteArray(*this);
+    return SLICE(*this, QByteArray);
 }
 
 QOlmMessage QOlmMessage::fromCiphertext(const QByteArray &ciphertext)

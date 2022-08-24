@@ -6,20 +6,11 @@
 using namespace Quotient;
 
 template <>
-struct Quotient::JsonConverter<RoomType> {
-    static RoomType load(const QJsonValue& jv)
-    {
-        const auto& roomTypeString = jv.toString();
-        for (auto it = RoomTypeStrings.begin(); it != RoomTypeStrings.end();
-             ++it)
-            if (roomTypeString == *it)
-                return RoomType(it - RoomTypeStrings.begin());
-
-        if (!roomTypeString.isEmpty())
-            qCWarning(EVENTS) << "Unknown Room Type: " << roomTypeString;
-        return RoomType::Undefined;
-    }
-};
+RoomType Quotient::fromJson(const QJsonValue& jv)
+{
+    return enumFromJsonString(jv.toString(), RoomTypeStrings,
+                              RoomType::Undefined);
+}
 
 bool RoomCreateEvent::isFederated() const
 {

@@ -9,24 +9,24 @@ using namespace Quotient;
 SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
                                const QString& statusMsg)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetPresenceJob"),
-              makePath("/_matrix/client/r0", "/presence/", userId, "/status"))
+              makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
-    QJsonObject _data;
-    addParam<>(_data, QStringLiteral("presence"), presence);
-    addParam<IfNotEmpty>(_data, QStringLiteral("status_msg"), statusMsg);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<>(_dataJson, QStringLiteral("presence"), presence);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("status_msg"), statusMsg);
+    setRequestData({ _dataJson });
 }
 
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/r0", "/presence/",
+                                   makePath("/_matrix/client/v3", "/presence/",
                                             userId, "/status"));
 }
 
 GetPresenceJob::GetPresenceJob(const QString& userId)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPresenceJob"),
-              makePath("/_matrix/client/r0", "/presence/", userId, "/status"))
+              makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
     addExpectedKey("presence");
 }

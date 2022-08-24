@@ -36,22 +36,20 @@
 #include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "e2ee/qolmaccount.h"
-#    include "e2ee/qolmutils.h"
 #    include "database.h"
+#    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolminboundsession.h"
+#    include "e2ee/qolmsession.h"
+#    include "e2ee/qolmutility.h"
+#    include "e2ee/qolmutils.h"
 #    include "events/keyverificationevent.h"
 #    include "keyverificationsession.h"
 
+#endif // Quotient_E2EE_ENABLED
 #if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
 #else
 #    include <qt5keychain/keychain.h>
-#endif
-#endif // Quotient_E2EE_ENABLED
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-#    include <QtCore/QCborValue>
 #endif
 
 #include <QtCore/QCoreApplication>
@@ -63,7 +61,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
-
 
 using namespace Quotient;
 
@@ -94,12 +91,11 @@ public:
     // state is Invited. The spec mandates to keep Invited room state
     // separately; specifically, we should keep objects for Invite and
     // Leave state of the same room if the two happen to co-exist.
-    QHash<QPair<QString, bool>, Room*> roomMap;
+    QHash<std::pair<QString, bool>, Room*> roomMap;
     /// Mapping from serverparts to alias/room id mappings,
     /// as of the last sync
     QHash<QString, QString> roomAliasMap;
     QVector<QString> roomIdsToForget;
-    QVector<Room*> firstTimeRooms;
     QVector<QString> pendingStateRoomIds;
     QMap<QString, User*> userMap;
     DirectChatsMap directChats;
@@ -182,15 +178,6 @@ public:
     void consumeToDeviceEvents(Events&& toDeviceEvents);
     void consumeDevicesList(DevicesList&& devicesList);
 
-    template <typename EventT>
-    EventT* unpackAccountData() const
-    {
-        const auto& eventIt = accountData.find(EventT::matrixTypeId());
-        return eventIt == accountData.end()
-                   ? nullptr
-                   : weakPtrCast<EventT>(eventIt->second);
-    }
-
     void packAndSendAccountData(EventPtr&& event)
     {
         const auto eventType = event->matrixType();
@@ -213,108 +200,85 @@ public:
 
 #ifdef Quotient_E2EE_ENABLED
     void loadSessions() {
-        olmSessions = q->database()->loadOlmSessions(q->picklingMode());
+        olmSessions = q->database()->loadOlmSessions(picklingMode);
     }
-    void saveSession(QOlmSessionPtr& session, const QString &senderKey) {
-        auto pickleResult = session->pickle(q->picklingMode());
-        if (std::holds_alternative<QOlmError>(pickleResult)) {
-            qCWarning(E2EE) << "Failed to pickle olm session. Error" << std::get<QOlmError>(pickleResult);
-            return;
-        }
-        q->database()->saveOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickleResult), QDateTime::currentDateTime());
-    }
-    std::pair<QString, QString> sessionDecryptPrekey(const QOlmMessage& message, const QString &senderKey, std::unique_ptr<QOlmAccount>& olmAccount)
+    void saveSession(const QOlmSession& session, const QString& senderKey) const
     {
-        Q_ASSERT(message.type() == QOlmMessage::PreKey);
-        for (size_t i = 0; i < olmSessions[senderKey].size(); i++) {
-            auto& session = olmSessions[senderKey][i];
-            const auto matches = session->matchesInboundSessionFrom(senderKey, message);
-            if(std::holds_alternative<bool>(matches) && std::get<bool>(matches)) {
-                qCDebug(E2EE) << "Found inbound session";
-                const auto result = session->decrypt(message);
-                if(std::holds_alternative<QString>(result)) {
-                    q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
-                    auto pickle = session->pickle(q->picklingMode());
-                    if (std::holds_alternative<QByteArray>(pickle)) {
-                        q->database()->updateOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickle));
-                    } else {
-                        qCWarning(E2EE) << "Failed to pickle olm session.";
-                    }
-                    auto s = std::move(session);
-                    olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
-                    olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
-                    return { std::get<QString>(result), olmSessions[senderKey][0]->sessionId() };
-                } else {
-                    qCDebug(E2EE) << "Failed to decrypt prekey message";
-                    return {};
-                }
-            }
-        }
-        qCDebug(E2EE) << "Creating new inbound session";
-        auto newSessionResult = olmAccount->createInboundSessionFrom(senderKey.toUtf8(), message);
-        if(std::holds_alternative<QOlmError>(newSessionResult)) {
-            qCWarning(E2EE) << "Failed to create inbound session for" << senderKey << std::get<QOlmError>(newSessionResult);
-            return {};
-        }
-        auto newSession = std::move(std::get<QOlmSessionPtr>(newSessionResult));
-        auto error = olmAccount->removeOneTimeKeys(newSession);
-        if (error) {
-            qWarning(E2EE) << "Failed to remove one time key for session" << newSession->sessionId();
-        }
-        const auto result = newSession->decrypt(message);
-        QString sessionId = newSession->sessionId();
-        saveSession(newSession, senderKey);
-        olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(newSession));
-        if(std::holds_alternative<QString>(result)) {
-            return { std::get<QString>(result), sessionId };
-        } else {
-            qCDebug(E2EE) << "Failed to decrypt prekey message with new session";
-            return {};
-        }
+        if (auto pickleResult = session.pickle(picklingMode))
+            q->database()->saveOlmSession(senderKey, session.sessionId(),
+                                          *pickleResult,
+                                          QDateTime::currentDateTime());
+        else
+            qCWarning(E2EE) << "Failed to pickle olm session. Error"
+                            << pickleResult.error();
     }
-    std::pair<QString, QString> sessionDecryptGeneral(const QOlmMessage& message, const QString &senderKey)
+
+    template <typename FnT>
+    std::pair<QString, QString> doDecryptMessage(const QOlmSession& session,
+                                                 const QOlmMessage& message,
+                                                 FnT&& andThen) const
     {
-        Q_ASSERT(message.type() == QOlmMessage::General);
-        for (size_t i = 0; i < olmSessions[senderKey].size(); i++) {
-            auto& session = olmSessions[senderKey][i];
-            const auto result = session->decrypt(message);
-            if(std::holds_alternative<QString>(result)) {
-                q->database()->setOlmSessionLastReceived(QString(session->sessionId()), QDateTime::currentDateTime());
-                auto pickle = session->pickle(q->picklingMode());
-                if (std::holds_alternative<QByteArray>(pickle)) {
-                    q->database()->updateOlmSession(senderKey, session->sessionId(), std::get<QByteArray>(pickle));
-                } else {
-                    qCWarning(E2EE) << "Failed to pickle olm session.";
-                }
-                auto s = std::move(session);
-                olmSessions[senderKey].erase(olmSessions[senderKey].begin() + i);
-                olmSessions[senderKey].insert(olmSessions[senderKey].begin(), std::move(s));
-                return { std::get<QString>(result), olmSessions[senderKey][0]->sessionId() };
-            }
+        const auto expectedMessage = session.decrypt(message);
+        if (expectedMessage) {
+            const auto result =
+                std::make_pair(*expectedMessage, session.sessionId());
+            andThen();
+            return result;
         }
-        qCWarning(E2EE) << "Failed to decrypt message";
+        const auto errorLine = message.type() == QOlmMessage::PreKey
+                                   ? "Failed to decrypt prekey message:"
+                                   : "Failed to decrypt message:";
+        qCDebug(E2EE) << errorLine << expectedMessage.error();
         return {};
     }
 
     std::pair<QString, QString> sessionDecryptMessage(
-        const QJsonObject& personalCipherObject, const QByteArray& senderKey, std::unique_ptr<QOlmAccount>& account)
+        const QJsonObject& personalCipherObject, const QByteArray& senderKey)
     {
-        QString decrypted;
-        QString olmSessionId;
-        int type = personalCipherObject.value(TypeKeyL).toInt(-1);
-        QByteArray body = personalCipherObject.value(BodyKeyL).toString().toLatin1();
-        if (type == QOlmMessage::PreKey) {
-            QOlmMessage preKeyMessage(body, QOlmMessage::PreKey);
-            auto result = sessionDecryptPrekey(preKeyMessage, senderKey, account);
-            decrypted = result.first;
-            olmSessionId = result.second;
-        } else if (type == QOlmMessage::General) {
-            QOlmMessage message(body, QOlmMessage::General);
-            auto result = sessionDecryptGeneral(message, senderKey);
-            decrypted = result.first;
-            olmSessionId = result.second;
+        const auto msgType = static_cast<QOlmMessage::Type>(
+            personalCipherObject.value(TypeKeyL).toInt(-1));
+        if (msgType != QOlmMessage::General && msgType != QOlmMessage::PreKey) {
+            qCWarning(E2EE) << "Olm message has incorrect type" << msgType;
+            return {};
         }
-        return { decrypted, olmSessionId };
+        QOlmMessage message {
+            personalCipherObject.value(BodyKeyL).toString().toLatin1(), msgType
+        };
+        for (const auto& session : olmSessions[senderKey])
+            if (msgType == QOlmMessage::General
+                || session->matchesInboundSessionFrom(senderKey, message)) {
+                return doDecryptMessage(*session, message, [this, &session] {
+                    q->database()->setOlmSessionLastReceived(
+                        session->sessionId(), QDateTime::currentDateTime());
+                });
+            }
+
+        if (msgType == QOlmMessage::General) {
+            qCWarning(E2EE) << "Failed to decrypt message";
+            return {};
+        }
+
+        qCDebug(E2EE) << "Creating new inbound session"; // Pre-key messages only
+        auto newSessionResult =
+            olmAccount->createInboundSessionFrom(senderKey, message);
+        if (!newSessionResult) {
+            qCWarning(E2EE)
+                << "Failed to create inbound session for" << senderKey
+                << "with error" << newSessionResult.error();
+            return {};
+        }
+        auto newSession = std::move(*newSessionResult);
+        auto error = olmAccount->removeOneTimeKeys(*newSession);
+        if (error) {
+            qWarning(E2EE) << "Failed to remove one time key for session"
+                           << newSession->sessionId();
+            // Keep going though
+        }
+        return doDecryptMessage(
+            *newSession, message, [this, &senderKey, &newSession] {
+                saveSession(*newSession, senderKey);
+                olmSessions[senderKey].push_back(std::move(newSession));
+            });
     }
 #endif
 
@@ -334,8 +298,9 @@ public:
             qCDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
         }
-        const auto [decrypted, olmSessionId] = sessionDecryptMessage(
-            personalCipherObject, encryptedEvent.senderKey().toLatin1(), olmAccount);
+        const auto [decrypted, olmSessionId] =
+            sessionDecryptMessage(personalCipherObject,
+                                  encryptedEvent.senderKey().toLatin1());
         if (decrypted.isEmpty()) {
             qCDebug(E2EE) << "Problem with new session from senderKey:"
                           << encryptedEvent.senderKey()
@@ -389,10 +354,53 @@ public:
 #endif // Quotient_E2EE_ENABLED
     }
 #ifdef Quotient_E2EE_ENABLED
+    bool isKnownCurveKey(const QString& userId, const QString& curveKey) const;
+
     void loadOutdatedUserDevices();
     void saveDevicesList();
     void loadDevicesList();
+
+    // This function assumes that an olm session with (user, device) exists
+    std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
+        const QString& userId, const QString& device,
+        const QByteArray& message) const;
+    bool createOlmSession(const QString& targetUserId,
+                          const QString& targetDeviceId,
+                          const OneTimeKeys &oneTimeKeyObject);
+    QString curveKeyForUserDevice(const QString& userId,
+                                  const QString& device) const;
+    QJsonObject encryptSessionKeyEvent(QJsonObject payloadJson,
+                                       const QString& targetUserId,
+                                       const QString& targetDeviceId) const;
 #endif
+
+    void saveAccessTokenToKeychain() const
+    {
+        qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
+        auto job = new QKeychain::WritePasswordJob(qAppName());
+        job->setAutoDelete(false);
+        job->setKey(q->userId());
+        job->setBinaryData(data->accessToken());
+        job->start();
+        //TODO error handling
+    }
+
+    void dropAccessToken()
+    {
+        qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
+        auto job = new QKeychain::DeletePasswordJob(qAppName());
+        job->setAutoDelete(true);
+        job->setKey(q->userId());
+        job->start();
+
+        auto pickleJob = new QKeychain::DeletePasswordJob(qAppName());
+        pickleJob->setAutoDelete(true);
+        pickleJob->setKey(q->userId() + "-Pickle"_ls);
+        pickleJob->start();
+        //TODO error handling
+
+        data->setToken({});
+    }
 };
 
 Connection::Connection(const QUrl& server, QObject* parent)
@@ -571,11 +579,10 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         data->setToken(loginJob->accessToken().toLatin1());
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
-#ifndef Quotient_E2EE_ENABLED
-        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
+        saveAccessTokenToKeychain();
+#ifdef Quotient_E2EE_ENABLED
         database->clear();
-#endif // Quotient_E2EE_ENABLED
+#endif
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -591,6 +598,7 @@ void Connection::Private::completeSetup(const QString& mxId)
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     Accounts.add(q);
+    connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
@@ -632,9 +640,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
     connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
 
-#ifdef Quotient_E2EE_ENABLED
     loadSessions();
-#endif
 
     if (database->accountPickle().isEmpty()) {
         // create new account and save unpickle data
@@ -707,7 +713,8 @@ void Connection::logout()
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
-            d->data->setToken({});
+            SettingsGroup("Accounts").remove(userId());
+            d->dropAccessToken();
             emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
@@ -856,16 +863,14 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
         }
         if (auto* r = q->provideRoom(roomData.roomId, roomData.joinState)) {
             pendingStateRoomIds.removeOne(roomData.roomId);
-            r->updateData(std::move(roomData), fromCache);
-            if (firstTimeRooms.removeOne(r)) {
-                emit q->loadedRoomState(r);
-                if (capabilities.roomVersions)
-                    r->checkVersion();
-                // Otherwise, the version will be checked in reloadCapabilities()
-            }
+            // Update rooms one by one, giving time to update the UI.
+            QMetaObject::invokeMethod(
+                r,
+                [r, rd = std::move(roomData), fromCache] () mutable {
+                    r->updateData(std::move(rd), fromCache);
+                },
+                Qt::QueuedConnection);
         }
-        // Let UI update itself after updating each room
-        QCoreApplication::processEvents();
     }
 }
 
@@ -962,38 +967,45 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
 #ifdef Quotient_E2EE_ENABLED
     if (!toDeviceEvents.empty()) {
-        qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
-        visitEach(toDeviceEvents, [this](const EncryptedEvent& event) {
-            if (event.algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-                qCDebug(E2EE) << "Unsupported algorithm" << event.id() << "for event" << event.algorithm();
-                return;
+        qCDebug(E2EE) << "Consuming" << toDeviceEvents.size()
+                      << "to-device events";
+        for (auto&& tdEvt : toDeviceEvents) {
+            if (auto&& event = eventCast<EncryptedEvent>(std::move(tdEvt))) {
+                if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+                    qCDebug(E2EE) << "Unsupported algorithm" << event->id()
+                                  << "for event" << event->algorithm();
+                    return;
+                }
+                if (isKnownCurveKey(event->senderId(), event->senderKey())) {
+                    handleEncryptedToDeviceEvent(*event);
+                    return;
+                }
+                trackedUsers += event->senderId();
+                outdatedUsers += event->senderId();
+                encryptionUpdateRequired = true;
+                pendingEncryptedEvents.push_back(std::move(event));
+                continue;
             }
-            if (q->isKnownCurveKey(event.senderId(), event.senderKey())) {
-                handleEncryptedToDeviceEvent(event);
-                return;
-            }
-            trackedUsers += event.senderId();
-            outdatedUsers += event.senderId();
-            encryptionUpdateRequired = true;
-            pendingEncryptedEvents.push_back(std::make_unique<EncryptedEvent>(event.fullJson()));
-        }, [this](const KeyVerificationRequestEvent& event) {
-            auto session = new KeyVerificationSession(q->userId(), event, q, false, q);
-            emit q->newKeyVerificationSession(session);
-        }, [this](const KeyVerificationReadyEvent& event) {
-            emit q->incomingKeyVerificationReady(event);
-        }, [this](const KeyVerificationStartEvent& event) {
-            emit q->incomingKeyVerificationStart(event);
-        }, [this](const KeyVerificationAcceptEvent& event) {
-            emit q->incomingKeyVerificationAccept(event);
-        }, [this](const KeyVerificationKeyEvent& event) {
-            emit q->incomingKeyVerificationKey(event);
-        }, [this](const KeyVerificationMacEvent& event) {
-            emit q->incomingKeyVerificationMac(event);
-        }, [this](const KeyVerificationDoneEvent& event) {
-            emit q->incomingKeyVerificationDone(event);
-        }, [this](const KeyVerificationCancelEvent& event) {
-            emit q->incomingKeyVerificationCancel(event);
-        });
+            switchOnType(*tdEvt,
+                [this](const KeyVerificationRequestEvent& event) {
+                    auto session = new KeyVerificationSession(q->userId(), event, q, false, q);
+                    emit q->newKeyVerificationSession(session);
+                }, [this](const KeyVerificationReadyEvent& event) {
+                    emit q->incomingKeyVerificationReady(event);
+                }, [this](const KeyVerificationStartEvent& event) {
+                    emit q->incomingKeyVerificationStart(event);
+                }, [this](const KeyVerificationAcceptEvent& event) {
+                    emit q->incomingKeyVerificationAccept(event);
+                }, [this](const KeyVerificationKeyEvent& event) {
+                    emit q->incomingKeyVerificationKey(event);
+                }, [this](const KeyVerificationMacEvent& event) {
+                    emit q->incomingKeyVerificationMac(event);
+                }, [this](const KeyVerificationDoneEvent& event) {
+                    emit q->incomingKeyVerificationDone(event);
+                }, [this](const KeyVerificationCancelEvent& event) {
+                    emit q->incomingKeyVerificationCancel(event);
+                });
+        }
     }
 #endif
 }
@@ -1008,7 +1020,7 @@ void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& eve
     }
 
     switchOnType(*decryptedEvent,
-        [this, senderKey = event.senderKey(), &event, olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
+        [this, &event, olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                 detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId);
             } else {
@@ -1197,15 +1209,14 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
 }
 
 #ifdef Quotient_E2EE_ENABLED
-DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const EncryptedFile& file,
-                                          const QString& localFilename)
+DownloadFileJob* Connection::downloadFile(
+    const QUrl& url, const EncryptedFileMetadata& fileMetadata,
+    const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
-    auto* job =
-        callApi<DownloadFileJob>(idParts.front(), idParts.back(), file, localFilename);
-    return job;
+    return callApi<DownloadFileJob>(idParts.front(), idParts.back(),
+                                    fileMetadata, localFilename);
 }
 #endif
 
@@ -1377,26 +1388,11 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
     return forgetJob;
 }
 
-SendToDeviceJob*
-Connection::sendToDevices(const QString& eventType,
-                          const UsersToDevicesToEvents& eventsMap)
+SendToDeviceJob* Connection::sendToDevices(
+    const QString& eventType, const UsersToDevicesToContent& contents)
 {
-    QHash<QString, QHash<QString, QJsonObject>> json;
-    json.reserve(int(eventsMap.size()));
-    std::for_each(eventsMap.begin(), eventsMap.end(),
-                  [&json](const auto& userTodevicesToEvents) {
-                      auto& jsonUser = json[userTodevicesToEvents.first];
-                      const auto& devicesToEvents = userTodevicesToEvents.second;
-                      std::for_each(devicesToEvents.begin(),
-                                    devicesToEvents.end(),
-                                    [&jsonUser](const auto& deviceToEvents) {
-                                        jsonUser.insert(
-                                            deviceToEvents.first,
-                                            deviceToEvents.second->contentJson());
-                                    });
-                  });
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
-                                    generateTxnId(), json);
+                                    generateTxnId(), contents);
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
@@ -1489,12 +1485,14 @@ User* Connection::user(const QString& uId)
 {
     if (uId.isEmpty())
         return nullptr;
+    if (const auto v = d->userMap.value(uId, nullptr))
+        return v;
+    // Before creating a user object, check that the user id is well-formed
+    // (it's faster to just do a lookup above before validation)
     if (!uId.startsWith('@') || serverPart(uId).isEmpty()) {
         qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
-    if (d->userMap.contains(uId))
-        return d->userMap.value(uId);
     auto* user = userFactory()(this, uId);
     d->userMap.insert(uId, user);
     emit newUser(user);
@@ -1696,7 +1694,7 @@ bool Connection::isIgnored(const User* user) const
 
 IgnoredUsersList Connection::ignoredUsers() const
 {
-    const auto* event = d->unpackAccountData<IgnoredUsersEvent>();
+    const auto* event = accountData<IgnoredUsersEvent>();
     return event ? event->ignored_users() : IgnoredUsersList();
 }
 
@@ -1736,7 +1734,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
 
     // If joinState is empty, all joinState == comparisons below are false.
-    const auto roomKey = qMakePair(id, joinState == JoinState::Invite);
+    const std::pair roomKey { id, joinState == JoinState::Invite };
     auto* room = d->roomMap.value(roomKey, nullptr);
     if (room) {
         // Leave is a special case because in transition (5a) (see the .h file)
@@ -1761,9 +1759,14 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
             return nullptr;
         }
         d->roomMap.insert(roomKey, room);
-        d->firstTimeRooms.push_back(room);
         connect(room, &Room::beforeDestruction, this,
                 &Connection::aboutToDeleteRoom);
+        connect(room, &Room::baseStateLoaded, this, [this, room] {
+            emit loadedRoomState(room);
+            if (d->capabilities.roomVersions)
+                room->checkVersion();
+            // Otherwise, the version will be checked in reloadCapabilities()
+        });
         emit newRoom(room);
     }
     if (!joinState)
@@ -1850,16 +1853,10 @@ void Connection::saveRoomState(Room* r) const
     QFile outRoomFile { stateCacheDir().filePath(
         SyncData::fileNameForRoom(r->id())) };
     if (outRoomFile.open(QFile::WriteOnly)) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
         const auto data =
             d->cacheToBinary
                 ? QCborValue::fromJsonValue(r->toJson()).toCbor()
                 : QJsonDocument(r->toJson()).toJson(QJsonDocument::Compact);
-#else
-        QJsonDocument json { r->toJson() };
-        const auto data = d->cacheToBinary ? json.toBinaryData()
-                                           : json.toJson(QJsonDocument::Compact);
-#endif
         outRoomFile.write(data.data(), data.size());
         qCDebug(MAIN) << "Room state cache saved to" << outRoomFile.fileName();
     } else {
@@ -1912,11 +1909,11 @@ void Connection::saveState() const
     }
     {
         QJsonArray accountDataEvents {
-            basicEventJson(QStringLiteral("m.direct"), toJson(d->directChats))
+            Event::basicJson(QStringLiteral("m.direct"), toJson(d->directChats))
         };
         for (const auto& e : d->accountData)
             accountDataEvents.append(
-                basicEventJson(e.first, e.second->contentJson()));
+                Event::basicJson(e.first, e.second->contentJson()));
 
         rootObj.insert(QStringLiteral("account_data"),
                        QJsonObject {
@@ -1929,15 +1926,9 @@ void Connection::saveState() const
     }
 #endif
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     const auto data =
         d->cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
                          : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
-#else
-    QJsonDocument json { rootObj };
-    const auto data = d->cacheToBinary ? json.toBinaryData()
-                                       : json.toJson(QJsonDocument::Compact);
-#endif
     qCDebug(PROFILER) << "Cache for" << userId() << "generated in" << et;
 
     outFile.write(data.data(), data.size());
@@ -2119,19 +2110,20 @@ void Connection::Private::loadOutdatedUserDevices()
                         continue;
                     }
                 }
-                deviceKeys[user][device.deviceId] = device;
+                deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
             }
             outdatedUsers -= user;
         }
         saveDevicesList();
 
         for(size_t i = 0; i < pendingEncryptedEvents.size();) {
-            if (q->isKnownCurveKey(pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(), pendingEncryptedEvents[i]->contentJson()["sender_key"].toString())) {
-                handleEncryptedToDeviceEvent(*(pendingEncryptedEvents[i].get()));
+            if (isKnownCurveKey(
+                    pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(),
+                    pendingEncryptedEvents[i]->contentPart<QString>("sender_key"_ls))) {
+                handleEncryptedToDeviceEvent(*pendingEncryptedEvents[i]);
                 pendingEncryptedEvents.erase(pendingEncryptedEvents.begin() + i);
-            } else {
-                i++;
-            }
+            } else
+                ++i;
         }
     });
 }
@@ -2234,101 +2226,236 @@ void Connection::saveOlmAccount()
 {
     qCDebug(E2EE) << "Saving olm account";
 #ifdef Quotient_E2EE_ENABLED
-    auto pickle = d->olmAccount->pickle(d->picklingMode);
-    d->database->setAccountPickle(std::get<QByteArray>(pickle));
+    if (const auto expectedPickle = d->olmAccount->pickle(d->picklingMode))
+        d->database->setAccountPickle(*expectedPickle);
+    else
+        qCWarning(E2EE) << "Couldn't save Olm account pickle:"
+                        << expectedPickle.error();
 #endif
 }
 
 #ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
-    auto room = this->room(notification["room_id"].toString());
+    auto r = room(notification["room_id"].toString());
     auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
-    auto decrypted = room->decryptMessage(*event);
-    if(!decrypted) {
-        return QJsonObject();
-    }
-    return decrypted->fullJson();
+    const auto decrypted = r->decryptMessage(*event);
+    return decrypted ? decrypted->fullJson() : QJsonObject();
 }
 
-Database* Connection::database()
+Database* Connection::database() const
 {
     return d->database;
 }
 
-UnorderedMap<QString, QOlmInboundGroupSessionPtr> Connection::loadRoomMegolmSessions(Room* room)
+UnorderedMap<QString, QOlmInboundGroupSessionPtr>
+Connection::loadRoomMegolmSessions(const Room* room) const
 {
     return database()->loadMegolmSessions(room->id(), picklingMode());
 }
 
-void Connection::saveMegolmSession(Room* room, QOlmInboundGroupSession* session)
+void Connection::saveMegolmSession(const Room* room,
+                                   const QOlmInboundGroupSession& session) const
 {
-    database()->saveMegolmSession(room->id(), session->sessionId(), session->pickle(picklingMode()), session->senderId(), session->olmSessionId());
+    database()->saveMegolmSession(room->id(), session.sessionId(),
+                                  session.pickle(picklingMode()),
+                                  session.senderId(), session.olmSessionId());
 }
 
-QStringList Connection::devicesForUser(User* user) const
+QStringList Connection::devicesForUser(const QString& userId) const
 {
-    return d->deviceKeys[user->id()].keys();
+    return d->deviceKeys[userId].keys();
 }
 
-QString Connection::curveKeyForUserDevice(const QString& user, const QString& device) const
+QString Connection::Private::curveKeyForUserDevice(const QString& userId,
+                                                   const QString& device) const
 {
-    return d->deviceKeys[user][device].keys["curve25519:" % device];
+    return deviceKeys[userId][device].keys["curve25519:" % device];
 }
 
-QString Connection::edKeyForUserDevice(const QString& user, const QString& device) const
+QString Connection::edKeyForUserDevice(const QString& userId,
+                                       const QString& device) const
 {
-    return d->deviceKeys[user][device].keys["ed25519:" % device];
+    return d->deviceKeys[userId][device].keys["ed25519:" % device];
 }
 
-bool Connection::hasOlmSession(User* user, const QString& deviceId) const
+bool Connection::Private::isKnownCurveKey(const QString& userId,
+                                          const QString& curveKey) const
 {
-    const auto& curveKey = curveKeyForUserDevice(user->id(), deviceId);
-    return d->olmSessions.contains(curveKey) && d->olmSessions[curveKey].size() > 0;
-}
-
-QPair<QOlmMessage::Type, QByteArray> Connection::olmEncryptMessage(User* user, const QString& device, const QByteArray& message)
-{
-    const auto& curveKey = curveKeyForUserDevice(user->id(), device);
-    QOlmMessage::Type type = d->olmSessions[curveKey][0]->encryptMessageType();
-    auto result = d->olmSessions[curveKey][0]->encrypt(message);
-    auto pickle = d->olmSessions[curveKey][0]->pickle(picklingMode());
-    if (std::holds_alternative<QByteArray>(pickle)) {
-        database()->updateOlmSession(curveKey, d->olmSessions[curveKey][0]->sessionId(), std::get<QByteArray>(pickle));
-    } else {
-        qCWarning(E2EE) << "Failed to pickle olm session.";
-    }
-    return qMakePair(type, result.toCiphertext());
-}
-
-void Connection::createOlmSession(const QString& theirIdentityKey, const QString& theirOneTimeKey)
-{
-    auto session = QOlmSession::createOutboundSession(olmAccount(), theirIdentityKey, theirOneTimeKey);
-    if (std::holds_alternative<QOlmError>(session)) {
-        qCWarning(E2EE) << "Failed to create olm session for " << theirIdentityKey << std::get<QOlmError>(session);
-        return;
-    }
-    d->saveSession(std::get<std::unique_ptr<QOlmSession>>(session), theirIdentityKey);
-    d->olmSessions[theirIdentityKey].push_back(std::move(std::get<std::unique_ptr<QOlmSession>>(session)));
-}
-
-QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(Room* room)
-{
-    return d->database->loadCurrentOutboundMegolmSession(room->id(), d->picklingMode);
-}
-
-void Connection::saveCurrentOutboundMegolmSession(Room *room, const QOlmOutboundGroupSessionPtr& data)
-{
-    d->database->saveCurrentOutboundMegolmSession(room->id(), d->picklingMode, data);
-}
-
-bool Connection::isKnownCurveKey(const QString& user, const QString& curveKey)
-{
-    auto query = database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices WHERE matrixId=:matrixId AND curveKey=:curveKey"));
-    query.bindValue(":matrixId", user);
+    auto query = database->prepareQuery(
+        QStringLiteral("SELECT * FROM tracked_devices WHERE matrixId=:matrixId "
+                       "AND curveKey=:curveKey"));
+    query.bindValue(":matrixId", userId);
     query.bindValue(":curveKey", curveKey);
-    database()->execute(query);
+    database->execute(query);
     return query.next();
+}
+
+bool Connection::hasOlmSession(const QString& user,
+                               const QString& deviceId) const
+{
+    const auto& curveKey = d->curveKeyForUserDevice(user, deviceId);
+    return d->olmSessions.contains(curveKey) && !d->olmSessions[curveKey].empty();
+}
+
+std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
+    const QString& userId, const QString& device,
+    const QByteArray& message) const
+{
+    const auto& curveKey = curveKeyForUserDevice(userId, device);
+    const auto& olmSession = olmSessions.at(curveKey).front();
+    QOlmMessage::Type type = olmSession->encryptMessageType();
+    const auto result = olmSession->encrypt(message);
+    if (const auto pickle = olmSession->pickle(picklingMode)) {
+        database->updateOlmSession(curveKey, olmSession->sessionId(), *pickle);
+    } else {
+        qWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
+    }
+    return { type, result.toCiphertext() };
+}
+
+bool Connection::Private::createOlmSession(const QString& targetUserId,
+                                           const QString& targetDeviceId,
+                                           const OneTimeKeys& oneTimeKeyObject)
+{
+    static QOlmUtility verifier;
+    qDebug(E2EE) << "Creating a new session for" << targetUserId
+                 << targetDeviceId;
+    if (oneTimeKeyObject.isEmpty()) {
+        qWarning(E2EE) << "No one time key for" << targetUserId
+                       << targetDeviceId;
+        return false;
+    }
+    auto* signedOneTimeKey =
+        std::get_if<SignedOneTimeKey>(&*oneTimeKeyObject.begin());
+    if (!signedOneTimeKey) {
+        qWarning(E2EE) << "No signed one time key for" << targetUserId
+                       << targetDeviceId;
+        return false;
+    }
+    // Verify contents of signedOneTimeKey - for that, drop `signatures` and
+    // `unsigned` and then verify the object against the respective signature
+    const auto signature =
+        signedOneTimeKey->signature(targetUserId, targetDeviceId);
+    if (!verifier.ed25519Verify(
+            q->edKeyForUserDevice(targetUserId, targetDeviceId).toLatin1(),
+            signedOneTimeKey->toJsonForVerification(),
+            signature)) {
+        qWarning(E2EE) << "Failed to verify one-time-key signature for"
+                       << targetUserId << targetDeviceId
+                       << ". Skipping this device.";
+        return false;
+    }
+    const auto recipientCurveKey =
+        curveKeyForUserDevice(targetUserId, targetDeviceId);
+    auto session =
+        QOlmSession::createOutboundSession(olmAccount.get(), recipientCurveKey,
+                                           signedOneTimeKey->key());
+    if (!session) {
+        qCWarning(E2EE) << "Failed to create olm session for "
+                        << recipientCurveKey << session.error();
+        return false;
+    }
+    saveSession(**session, recipientCurveKey);
+    olmSessions[recipientCurveKey].push_back(std::move(*session));
+    return true;
+}
+
+QJsonObject Connection::Private::encryptSessionKeyEvent(
+    QJsonObject payloadJson, const QString& targetUserId,
+    const QString& targetDeviceId) const
+{
+    payloadJson.insert("recipient"_ls, targetUserId);
+    payloadJson.insert(
+        "recipient_keys"_ls,
+        QJsonObject{ { Ed25519Key,
+                       q->edKeyForUserDevice(targetUserId, targetDeviceId) } });
+    const auto [type, cipherText] = olmEncryptMessage(
+        targetUserId, targetDeviceId,
+        QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
+    QJsonObject encrypted {
+        { curveKeyForUserDevice(targetUserId, targetDeviceId),
+          QJsonObject { { "type"_ls, type },
+                        { "body"_ls, QString(cipherText) } } }
+    };
+
+    return EncryptedEvent(encrypted, olmAccount->identityKeys().curve25519)
+        .contentJson();
+}
+
+void Connection::sendSessionKeyToDevices(
+    const QString& roomId, const QByteArray& sessionId,
+    const QByteArray& sessionKey, const QMultiHash<QString, QString>& devices,
+    int index)
+{
+    qDebug(E2EE) << "Sending room key to devices:" << sessionId
+                 << sessionKey.toHex();
+    QHash<QString, QHash<QString, QString>> hash;
+    for (const auto& [userId, deviceId] : asKeyValueRange(devices))
+        if (!hasOlmSession(userId, deviceId)) {
+            hash[userId].insert(deviceId, "signed_curve25519"_ls);
+            qDebug(E2EE) << "Adding" << userId << deviceId
+                         << "to keys to claim";
+        }
+
+    if (hash.isEmpty())
+        return;
+
+    auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey, roomId, sessionId,
+                                     sessionKey, userId())
+                            .fullJson();
+    keyEventJson.insert(SenderKeyL, userId());
+    keyEventJson.insert("sender_device"_ls, deviceId());
+    keyEventJson.insert(
+        "keys"_ls,
+        QJsonObject {
+            { Ed25519Key, QString(olmAccount()->identityKeys().ed25519) } });
+
+    auto job = callApi<ClaimKeysJob>(hash);
+    connect(job, &BaseJob::success, this, [job, this, roomId, sessionId, keyEventJson, devices, index] {
+        QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
+        for (const auto oneTimeKeys = job->oneTimeKeys();
+             const auto& [targetUserId, targetDeviceId] :
+             asKeyValueRange(devices)) {
+            if (!hasOlmSession(targetUserId, targetDeviceId)
+                && !d->createOlmSession(
+                    targetUserId, targetDeviceId,
+                    oneTimeKeys[targetUserId][targetDeviceId]))
+                continue;
+
+            // Noisy but nice for debugging
+//            qDebug(E2EE) << "Creating the payload for" << targetUserId
+//                         << targetDeviceId << sessionId << sessionKey.toHex();
+            usersToDevicesToContent[targetUserId][targetDeviceId] =
+                d->encryptSessionKeyEvent(keyEventJson, targetUserId,
+                                          targetDeviceId);
+        }
+        if (!usersToDevicesToContent.empty()) {
+            sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
+            QVector<std::tuple<QString, QString, QString>> receivedDevices;
+            receivedDevices.reserve(devices.size());
+            for (const auto& [user, device] : asKeyValueRange(devices))
+                receivedDevices.push_back(
+                    { user, device, d->curveKeyForUserDevice(user, device) });
+
+            database()->setDevicesReceivedKey(roomId, receivedDevices,
+                                              sessionId, index);
+        }
+    });
+}
+
+QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(
+    const QString& roomId) const
+{
+    return d->database->loadCurrentOutboundMegolmSession(roomId,
+                                                         d->picklingMode);
+}
+
+void Connection::saveCurrentOutboundMegolmSession(
+    const QString& roomId, const QOlmOutboundGroupSession& session) const
+{
+    d->database->saveCurrentOutboundMegolmSession(roomId, d->picklingMode,
+                                                  session);
 }
 
 #endif
@@ -2339,10 +2466,9 @@ void Connection::startKeyVerificationSession(const QString& deviceId)
     Q_EMIT newKeyVerificationSession(session);
 }
 
-void Connection::sendToDevice(const QString& userId, const QString& deviceId, event_ptr_tt<Event> event, bool encrypted)
+void Connection::sendToDevice(const QString& userId, const QString& deviceId,
+                              event_ptr_tt<Event> event, bool encrypted)
 {
-
-    UsersToDevicesToEvents payload;
     if (encrypted) {
         QJsonObject payloadJson = event->fullJson();
         payloadJson["recipient"] = userId;
@@ -2354,16 +2480,23 @@ void Connection::sendToDevice(const QString& userId, const QString& deviceId, ev
         senderObject["ed25519"] = QString(olmAccount()->identityKeys().ed25519);
         payloadJson["keys"] = senderObject;
 
-        const auto& u = user(userId);
-        auto cipherText = olmEncryptMessage(u, deviceId, QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
+        auto cipherText = d->olmEncryptMessage(
+            userId, deviceId,
+            QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
         QJsonObject encryptedJson;
-        encryptedJson[curveKeyForUserDevice(userId, deviceId)] = QJsonObject{{"type", cipherText.first}, {"body", QString(cipherText.second)}, {"sender", this->userId()}};
-        auto encryptedEvent = makeEvent<EncryptedEvent>(encryptedJson, olmAccount()->identityKeys().curve25519);
-        payload[userId][deviceId] = std::move(encryptedEvent);
-    } else {
-        payload[userId][deviceId] = std::move(event);
-    }
-    sendToDevices(payload[userId][deviceId]->matrixType(), payload);
+        encryptedJson[d->curveKeyForUserDevice(userId, deviceId)] =
+            QJsonObject{ { "type", cipherText.first },
+                         { "body", QString(cipherText.second) },
+                         { "sender", this->userId() } };
+        const auto& contentJson =
+            EncryptedEvent(encryptedJson,
+                           olmAccount()->identityKeys().curve25519)
+                .contentJson();
+        sendToDevices(EncryptedEvent::TypeId,
+                      { { userId, { { deviceId, contentJson } } } });
+    } else
+        sendToDevices(event->matrixType(),
+                      { { userId, { { deviceId, event->contentJson() } } } });
 }
 
 bool Connection::isVerifiedSession(const QString& megolmSessionId)

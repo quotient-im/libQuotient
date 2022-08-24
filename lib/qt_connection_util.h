@@ -9,101 +9,67 @@
 
 namespace Quotient {
 namespace _impl {
-    template <typename... ArgTs>
-    using decorated_slot_tt =
-        std::function<void(QMetaObject::Connection&, const ArgTs&...)>;
+    enum ConnectionType { SingleShot, Until };
 
-    template <typename SenderT, typename SignalT, typename ContextT, typename... ArgTs>
-    inline QMetaObject::Connection
-    connectDecorated(SenderT* sender, SignalT signal, ContextT* context,
-                     decorated_slot_tt<ArgTs...> decoratedSlot,
-                     Qt::ConnectionType connType)
+    template <ConnectionType CType>
+    inline auto connect(auto* sender, auto signal, auto* context, auto slotLike,
+                        Qt::ConnectionType connType)
     {
-        auto pc = std::make_unique<QMetaObject::Connection>();
-        auto& c = *pc; // Resolve a reference before pc is moved to lambda
-
-        // Perfect forwarding doesn't work through signal-slot connections -
-        // arguments are always copied (at best - COWed) to the context of
-        // the slot. Therefore the slot decorator receives const ArgTs&...
-        // rather than ArgTs&&...
-        // TODO (C++20): std::bind_front() instead of lambda.
-        c = QObject::connect(sender, signal, context,
-            [pc = std::move(pc),
-             decoratedSlot = std::move(decoratedSlot)](const ArgTs&... args) {
-                Q_ASSERT(*pc); // If it's been triggered, it should exist
-                decoratedSlot(*pc, args...);
+        auto pConn = std::make_unique<QMetaObject::Connection>();
+        auto& c = *pConn; // Save the reference before pConn is moved from
+        c = QObject::connect(
+            sender, signal, context,
+            [slotLike, pConn = std::move(pConn)](const auto&... args)
+            // The requires-expression below is necessary to prevent Qt
+            // from eagerly trying to fill the lambda with more arguments
+            // than slotLike() (i.e., the original slot) can handle
+            requires requires { slotLike(args...); } {
+                static_assert(CType == Until || CType == SingleShot,
+                              "Unsupported disconnection type");
+                if constexpr (CType == SingleShot) {
+                    // Disconnect early to avoid re-triggers during slotLike()
+                    QObject::disconnect(*pConn);
+                    // Qt kindly keeps slot objects until they do their job,
+                    // even if they disconnect themselves in the process (see
+                    // how doActivate() in qobject.cpp handles c->slotObj).
+                    slotLike(args...);
+                } else if constexpr (CType == Until) {
+                    if (slotLike(args...))
+                        QObject::disconnect(*pConn);
+                }
             },
             connType);
         return c;
     }
-    template <typename SenderT, typename SignalT, typename ContextT,
-              typename... ArgTs>
-    inline QMetaObject::Connection
-    connectUntil(SenderT* sender, SignalT signal, ContextT* context,
-                 std::function<bool(ArgTs...)> functor,
-                 Qt::ConnectionType connType)
-    {
-        return connectDecorated(sender, signal, context,
-            decorated_slot_tt<ArgTs...>(
-                [functor = std::move(functor)](QMetaObject::Connection& c,
-                                               const ArgTs&... args) {
-                    if (functor(args...))
-                        QObject::disconnect(c);
-                }),
-            connType);
-    }
-    template <typename SenderT, typename SignalT, typename ContextT,
-              typename... ArgTs>
-    inline QMetaObject::Connection
-    connectSingleShot(SenderT* sender, SignalT signal, ContextT* context,
-                      std::function<void(ArgTs...)> slot,
-                      Qt::ConnectionType connType)
-    {
-        return connectDecorated(sender, signal, context,
-            decorated_slot_tt<ArgTs...>(
-                [slot = std::move(slot)](QMetaObject::Connection& c,
-                                         const ArgTs&... args) {
-                    QObject::disconnect(c);
-                    slot(args...);
-                }),
-            connType);
-    }
 
-    // TODO: get rid of it as soon as Apple Clang gets proper deduction guides
-    //       for std::function<>
-    //       ...or consider using QtPrivate magic used by QObject::connect()
-    //       ...for inspiration, also check a possible std::not_fn implementation
-    //       at https://en.cppreference.com/w/cpp/utility/functional/not_fn
-    template <typename FnT>
-    inline auto wrap_in_function(FnT&& f)
-    {
-        return typename function_traits<FnT>::function_type(std::forward<FnT>(f));
-    }
+    template <typename SlotT, typename ReceiverT>
+    concept PmfSlot =
+        (fn_arg_count_v<SlotT> > 0
+         && std::is_base_of_v<std::decay_t<fn_arg_t<SlotT, 0>>, ReceiverT>);
 } // namespace _impl
 
-/*! \brief Create a connection that self-disconnects when its "slot" returns true
- *
- *  A slot accepted by connectUntil() is different from classic Qt slots
- * in that its return value must be bool, not void. The slot's return value
- * controls whether the connection should be kept; if the slot returns false,
- * the connection remains; upon returning true, the slot is disconnected from
- * the signal. Because of a different slot signature connectUntil() doesn't
- * accept member functions as QObject::connect or Quotient::connectSingleShot
- * do; you should pass a lambda or a pre-bound member function to it.
- */
-template <typename SenderT, typename SignalT, typename ContextT, typename FunctorT>
-inline auto connectUntil(SenderT* sender, SignalT signal, ContextT* context,
-                         const FunctorT& slot,
+//! \brief Create a connection that self-disconnects when its slot returns true
+//!
+//! A slot accepted by connectUntil() is different from classic Qt slots
+//! in that its return value must be bool, not void. Because of that different
+//! signature connectUntil() doesn't accept member functions in the way
+//! QObject::connect or Quotient::connectSingleShot do; you should pass a lambda
+//! or a pre-bound member function to it.
+//! \return whether the connection should be dropped; false means that the
+//!         connection remains; upon returning true, the slot is disconnected
+//!         from the signal.
+inline auto connectUntil(auto* sender, auto signal, auto* context,
+                         auto smartSlot,
                          Qt::ConnectionType connType = Qt::AutoConnection)
 {
-    return _impl::connectUntil(sender, signal, context, _impl::wrap_in_function(slot),
-                               connType);
+    return _impl::connect<_impl::Until>(sender, signal, context, smartSlot,
+                                        connType);
 }
 
-/// Create a connection that self-disconnects after triggering on the signal
-template <typename SenderT, typename SignalT, typename ContextT, typename FunctorT>
-inline auto connectSingleShot(SenderT* sender, SignalT signal,
-                              ContextT* context, const FunctorT& slot,
+//! Create a connection that self-disconnects after triggering on the signal
+template <typename ContextT, typename SlotT>
+inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
+                              SlotT slot,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
 #if QT_VERSION_MAJOR >= 6
@@ -111,25 +77,26 @@ inline auto connectSingleShot(SenderT* sender, SignalT signal,
                             Qt::ConnectionType(connType
                                                | Qt::SingleShotConnection));
 #else
-    return _impl::connectSingleShot(
-        sender, signal, context, _impl::wrap_in_function(slot), connType);
-}
-
-// Specialisation for usual Qt slots passed as pointers-to-members.
-template <typename SenderT, typename SignalT, typename ReceiverT,
-          typename SlotObjectT, typename... ArgTs>
-inline auto connectSingleShot(SenderT* sender, SignalT signal,
-                              ReceiverT* receiver,
-                              void (SlotObjectT::*slot)(ArgTs...),
-                              Qt::ConnectionType connType = Qt::AutoConnection)
-{
-    // TODO: when switching to C++20, use std::bind_front() instead
-    return _impl::connectSingleShot(sender, signal, receiver,
-                                    _impl::wrap_in_function(
-                                        [receiver, slot](const ArgTs&... args) {
-                                            (receiver->*slot)(args...);
-                                        }),
-                                    connType);
+    // In case of classic Qt pointer-to-member-function slots the receiver
+    // object has to be pre-bound to the slot to make it self-contained
+    if constexpr (_impl::PmfSlot<SlotT, ContextT>) {
+        auto&& boundSlot =
+#    if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
+            std::bind_front(slot, context);
+#    else
+            [context, slot](const auto&... args)
+            requires requires { (context->*slot)(args...); }
+            {
+                (context->*slot)(args...);
+            };
+#    endif
+        return _impl::connect<_impl::SingleShot>(
+            sender, signal, context,
+            std::forward<decltype(boundSlot)>(boundSlot), connType);
+    } else {
+        return _impl::connect<_impl::SingleShot>(sender, signal, context, slot,
+                                                 connType);
+    }
 #endif
 }
 

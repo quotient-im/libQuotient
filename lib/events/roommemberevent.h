@@ -5,18 +5,18 @@
 
 #pragma once
 
-#include "eventcontent.h"
 #include "stateevent.h"
 #include "quotient_common.h"
 
 namespace Quotient {
-class QUOTIENT_API MemberEventContent : public EventContent::Base {
+class QUOTIENT_API MemberEventContent {
 public:
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
     QUO_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
     explicit MemberEventContent(const QJsonObject& json);
+    QJsonObject toJson() const;
 
     Membership membership;
     /// (Only for invites) Whether the invite is to a direct chat
@@ -24,9 +24,6 @@ public:
     Omittable<QString> displayName;
     Omittable<QUrl> avatarUrl;
     QString reason;
-
-protected:
-    void fillJson(QJsonObject* o) const override;
 };
 
 using MembershipType [[deprecated("Use Membership instead")]] = Membership;

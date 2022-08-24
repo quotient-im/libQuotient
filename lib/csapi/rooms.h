@@ -5,7 +5,6 @@
 #pragma once
 
 #include "events/eventloader.h"
-#include "events/roommemberevent.h"
 #include "jobs/basejob.h"
 
 namespace Quotient {
@@ -38,7 +37,7 @@ public:
     // Result properties
 
     /// The full event.
-    EventPtr event() { return fromJson<EventPtr>(jsonData()); }
+    RoomEventPtr event() { return fromJson<RoomEventPtr>(jsonData()); }
 };
 
 /*! \brief Get the state identified by the type and key.
@@ -146,10 +145,7 @@ public:
     // Result properties
 
     /// Get the list of members for this room.
-    EventsArray<RoomMemberEvent> chunk()
-    {
-        return takeFromJson<EventsArray<RoomMemberEvent>>("chunk"_ls);
-    }
+    StateEvents chunk() { return takeFromJson<StateEvents>("chunk"_ls); }
 };
 
 /*! \brief Gets the list of currently joined users and their profile data.
@@ -157,9 +153,8 @@ public:
  * This API returns a map of MXIDs to member info objects for members of the
  * room. The current user must be in the room for it to work, unless it is an
  * Application Service in which case any of the AS's users must be in the room.
- * This API is primarily for Application Services and should be faster to
- * respond than `/members` as it can be implemented more efficiently on the
- * server.
+ * This API is primarily for Application Services and should be faster to respond
+ * than `/members` as it can be implemented more efficiently on the server.
  */
 class QUOTIENT_API GetJoinedMembersByRoomJob : public BaseJob {
 public:

@@ -4,65 +4,51 @@
 #pragma once
 
 #include "stateevent.h"
+#include "single_key_value.h"
 
 namespace Quotient {
-namespace EventContent {
-    template <typename T>
-    struct SimpleContent {
-        using value_type = T;
-
-        // The constructor is templated to enable perfect forwarding
-        template <typename TT>
-        SimpleContent(QString keyName, TT&& value)
-            : value(std::forward<TT>(value)), key(std::move(keyName))
-        {}
-        SimpleContent(const QJsonObject& json, QString keyName)
-            : value(fromJson<T>(json[keyName])), key(std::move(keyName))
-        {}
-        QJsonObject toJson() const
-        {
-            return { { key, Quotient::toJson(value) } };
-        }
-
-        T value;
-        const QString key;
-    };
-} // namespace EventContent
-
-#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey)     \
-    class QUOTIENT_API _Name                                                \
-        : public StateEvent<EventContent::SimpleContent<_ValueType>> {         \
-    public:                                                                    \
-        using value_type = content_type::value_type;                           \
-        DEFINE_EVENT_TYPEID(_TypeId, _Name)                                    \
-        template <typename T>                                                  \
-        explicit _Name(T&& value)                                              \
-            : StateEvent(typeId(), matrixTypeId(), QString(),                  \
-                         QStringLiteral(#_ContentKey), std::forward<T>(value)) \
-        {}                                                                     \
-        explicit _Name(QJsonObject obj)                                        \
-            : StateEvent(typeId(), std::move(obj),                             \
-                         QStringLiteral(#_ContentKey))                         \
-        {}                                                                     \
-        auto _ContentKey() const { return content().value; }                   \
-    };                                                                         \
-    REGISTER_EVENT_TYPE(_Name)                                                 \
+#define DEFINE_SIMPLE_STATE_EVENT(_Name, _TypeId, _ValueType, _ContentKey) \
+    constexpr auto _Name##Key = #_ContentKey##_ls;                         \
+    class QUOTIENT_API _Name                                               \
+        : public StateEvent<                                               \
+              EventContent::SingleKeyValue<_ValueType, &_Name##Key>> {     \
+    public:                                                                \
+        using value_type = _ValueType;                                     \
+        DEFINE_EVENT_TYPEID(_TypeId, _Name)                                \
+        template <typename T>                                              \
+        explicit _Name(T&& value)                                          \
+            : StateEvent(TypeId, matrixTypeId(), QString(),                \
+                         std::forward<T>(value))                           \
+        {}                                                                 \
+        explicit _Name(QJsonObject obj)                                    \
+            : StateEvent(TypeId, std::move(obj))                           \
+        {}                                                                 \
+        auto _ContentKey() const { return content().value; }               \
+    };                                                                     \
+    REGISTER_EVENT_TYPE(_Name)                                             \
     // End of macro
 
 DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
 DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
-DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages", QStringList, pinnedEvents)
+DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
+                          QStringList, pinnedEvents)
 
-class [[deprecated(
-    "m.room.aliases events are deprecated by the Matrix spec; use"
-    " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")]] //
-RoomAliasesEvent : public StateEvent<EventContent::SimpleContent<QStringList>> {
+constexpr auto RoomAliasesEventKey = "aliases"_ls;
+class QUOTIENT_API RoomAliasesEvent
+    : public StateEvent<
+          EventContent::SingleKeyValue<QStringList, &RoomAliasesEventKey>> {
 public:
     DEFINE_EVENT_TYPEID("m.room.aliases", RoomAliasesEvent)
     explicit RoomAliasesEvent(const QJsonObject& obj)
-        : StateEvent(typeId(), obj, QStringLiteral("aliases"))
+        : StateEvent(typeId(), obj)
     {}
+    Q_DECL_DEPRECATED_X(
+        "m.room.aliases events are deprecated by the Matrix spec; use"
+        " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
     QString server() const { return stateKey(); }
+    Q_DECL_DEPRECATED_X(
+        "m.room.aliases events are deprecated by the Matrix spec; use"
+        " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
     QStringList aliases() const { return content().value; }
 };
 } // namespace Quotient

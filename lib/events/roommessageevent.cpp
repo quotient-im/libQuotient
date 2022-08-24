@@ -148,21 +148,21 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
         auto mimeTypeName = mimeType.name();
         if (mimeTypeName.startsWith("image/"))
             return new ImageContent(localUrl, file.size(), mimeType,
-                                    QImageReader(filePath).size(), none,
+                                    QImageReader(filePath).size(),
                                     file.fileName());
 
         // duration can only be obtained asynchronously and can only be reliably
         // done by starting to play the file. Left for a future implementation.
         if (mimeTypeName.startsWith("video/"))
             return new VideoContent(localUrl, file.size(), mimeType,
-                                    QMediaResource(localUrl).resolution(), none,
+                                    QMediaResource(localUrl).resolution(),
                                     file.fileName());
 
         if (mimeTypeName.startsWith("audio/"))
-            return new AudioContent(localUrl, file.size(), mimeType, none,
+            return new AudioContent(localUrl, file.size(), mimeType,
                                     file.fileName());
     }
-    return new FileContent(localUrl, file.size(), mimeType, none, file.fileName());
+    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
@@ -302,17 +302,16 @@ TextContent::TextContent(const QJsonObject& json)
     }
 }
 
-void TextContent::fillJson(QJsonObject* json) const
+void TextContent::fillJson(QJsonObject &json) const
 {
     static const auto FormatKey = QStringLiteral("format");
 
-    Q_ASSERT(json);
     if (mimeType.inherits("text/html")) {
-        json->insert(FormatKey, HtmlContentTypeId);
-        json->insert(FormattedBodyKey, body);
+        json.insert(FormatKey, HtmlContentTypeId);
+        json.insert(FormattedBodyKey, body);
     }
     if (relatesTo) {
-        json->insert(
+        json.insert(
             QStringLiteral("m.relates_to"),
             relatesTo->type == EventRelation::ReplyType
                 ? QJsonObject { { relatesTo->type,
@@ -326,7 +325,7 @@ void TextContent::fillJson(QJsonObject* json) const
                 newContentJson.insert(FormatKey, HtmlContentTypeId);
                 newContentJson.insert(FormattedBodyKey, body);
             }
-            json->insert(QStringLiteral("m.new_content"), newContentJson);
+            json.insert(QStringLiteral("m.new_content"), newContentJson);
         }
     }
 }
@@ -347,9 +346,8 @@ QMimeType LocationContent::type() const
     return QMimeDatabase().mimeTypeForData(geoUri.toLatin1());
 }
 
-void LocationContent::fillJson(QJsonObject* o) const
+void LocationContent::fillJson(QJsonObject& o) const
 {
-    Q_ASSERT(o);
-    o->insert(QStringLiteral("geo_uri"), geoUri);
-    o->insert(QStringLiteral("info"), toInfoJson(thumbnail));
+    o.insert(QStringLiteral("geo_uri"), geoUri);
+    o.insert(QStringLiteral("info"), toInfoJson(thumbnail));
 }

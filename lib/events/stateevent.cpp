@@ -6,9 +6,9 @@
 using namespace Quotient;
 
 StateEventBase::StateEventBase(Type type, const QJsonObject& json)
-    : RoomEvent(json.contains(StateKeyKeyL) ? type : unknownEventTypeId(), json)
+    : RoomEvent(json.contains(StateKeyKeyL) ? type : UnknownEventTypeId, json)
 {
-    if (Event::type() == unknownEventTypeId() && !json.contains(StateKeyKeyL))
+    if (Event::type() == UnknownEventTypeId && !json.contains(StateKeyKeyL))
         qWarning(EVENTS) << "Attempt to create a state event with no stateKey -"
                             "forcing the event type to unknown to avoid damage";
 }
@@ -16,12 +16,12 @@ StateEventBase::StateEventBase(Type type, const QJsonObject& json)
 StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
                                const QString& stateKey,
                                const QJsonObject& contentJson)
-    : RoomEvent(type, basicStateEventJson(matrixType, contentJson, stateKey))
+    : RoomEvent(type, basicJson(type, stateKey, contentJson))
 {}
 
 bool StateEventBase::repeatsState() const
 {
-    const auto prevContentJson = unsignedPart(PrevContentKeyL);
+    const auto prevContentJson = unsignedPart<QJsonObject>(PrevContentKeyL);
     return fullJson().value(ContentKeyL) == prevContentJson;
 }
 

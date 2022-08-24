@@ -18,9 +18,10 @@ bool RoomSummary::isEmpty() const
 bool RoomSummary::merge(const RoomSummary& other)
 {
     // Using bitwise OR to prevent computation shortcut.
-    return joinedMemberCount.merge(other.joinedMemberCount)
-           | invitedMemberCount.merge(other.invitedMemberCount)
-           | heroes.merge(other.heroes);
+    return static_cast<bool>(
+        static_cast<int>(joinedMemberCount.merge(other.joinedMemberCount))
+        | static_cast<int>(invitedMemberCount.merge(other.invitedMemberCount))
+        | static_cast<int>(heroes.merge(other.heroes)));
 }
 
 QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
@@ -142,7 +143,7 @@ SyncData::SyncData(const QString& cacheFileName)
                         << "is required; discarding the cache";
 }
 
-SyncDataList&& SyncData::takeRoomData() { return move(roomData); }
+SyncDataList SyncData::takeRoomData() { return move(roomData); }
 
 QString SyncData::fileNameForRoom(QString roomId)
 {
@@ -150,18 +151,18 @@ QString SyncData::fileNameForRoom(QString roomId)
     return roomId + ".json";
 }
 
-Events&& SyncData::takePresenceData() { return std::move(presenceData); }
+Events SyncData::takePresenceData() { return std::move(presenceData); }
 
-Events&& SyncData::takeAccountData() { return std::move(accountData); }
+Events SyncData::takeAccountData() { return std::move(accountData); }
 
-Events&& SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
+Events SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
 
 std::pair<int, int> SyncData::cacheVersion()
 {
     return { MajorCacheVersion, 2 };
 }
 
-DevicesList&& SyncData::takeDevicesList() { return std::move(devicesList); }
+DevicesList SyncData::takeDevicesList() { return std::move(devicesList); }
 
 QJsonObject SyncData::loadJson(const QString& fileName)
 {
@@ -179,12 +180,7 @@ QJsonObject SyncData::loadJson(const QString& fileName)
 
     const auto json = data.startsWith('{')
                           ? QJsonDocument::fromJson(data).object()
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-                          : QCborValue::fromCbor(data).toJsonValue().toObject()
-#else
-                          : QJsonDocument::fromBinaryData(data).object()
-#endif
-        ;
+                          : QCborValue::fromCbor(data).toJsonValue().toObject();
     if (json.isEmpty()) {
         qCWarning(MAIN) << "State cache in" << fileName
                         << "is broken or empty, discarding";

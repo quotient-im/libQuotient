@@ -4,14 +4,11 @@
 
 #pragma once
 
-#include <variant>
-#include "e2ee/qolmerrors.h"
+#include "e2ee/e2ee.h"
 
 struct OlmUtility;
 
 namespace Quotient {
-
-class QOlmSession;
 
 //! Allows you to make use of crytographic hashing via SHA-2 and
 //! verifying ed25519 signatures.
@@ -32,7 +29,7 @@ public:
     //! \param key QByteArray The public part of the ed25519 key that signed the message.
     //! \param message QByteArray The message that was signed.
     //! \param signature QByteArray The signature of the message.
-    std::variant<bool, QOlmError> ed25519Verify(const QByteArray &key,
+    QOlmExpected<bool> ed25519Verify(const QByteArray &key,
             const QByteArray &message, const QByteArray &signature);
 
 private:

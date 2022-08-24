@@ -23,8 +23,10 @@ KeyVerificationSession::KeyVerificationSession(const QString& remoteUserId, cons
     , m_encrypted(encrypted)
     , m_remoteSupportedMethods(event.methods())
 {
-    auto timeoutTime = std::min<long int>(event.timestamp() + 600000, QDateTime::currentDateTime().addSecs(120).toMSecsSinceEpoch());
-    m_timeout = timeoutTime - QDateTime::currentMSecsSinceEpoch();
+    auto timeoutTime = std::min(event.timestamp().addSecs(600),
+                                QDateTime::currentDateTime().addSecs(120));
+    m_timeout =
+        timeoutTime.toMSecsSinceEpoch() - QDateTime::currentMSecsSinceEpoch();
     if (m_timeout <= 5000) {
         return;
     }

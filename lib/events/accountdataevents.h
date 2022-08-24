@@ -32,7 +32,7 @@ struct JsonObjectConverter<TagRecord> {
         if (orderJv.isDouble())
             rec.order = fromJson<float>(orderJv);
         if (orderJv.isString()) {
-            bool ok;
+            bool ok = false;
             rec.order = orderJv.toString().toFloat(&ok);
             if (!ok)
                 rec.order = none;
@@ -46,27 +46,14 @@ struct JsonObjectConverter<TagRecord> {
 
 using TagsMap = QHash<QString, TagRecord>;
 
-#define DEFINE_SIMPLE_EVENT(_Name, _TypeId, _ContentType, _ContentKey)       \
-    class QUOTIENT_API _Name : public Event {                             \
-    public:                                                                  \
-        using content_type = _ContentType;                                   \
-        DEFINE_EVENT_TYPEID(_TypeId, _Name)                                  \
-        explicit _Name(const QJsonObject& obj) : Event(typeId(), obj) {}     \
-        explicit _Name(const content_type& content)                          \
-            : Event(typeId(), matrixTypeId(),                                \
-                    QJsonObject {                                            \
-                        { QStringLiteral(#_ContentKey), toJson(content) } }) \
-        {}                                                                   \
-        auto _ContentKey() const                                             \
-        {                                                                    \
-            return contentPart<content_type>(#_ContentKey##_ls);             \
-        }                                                                    \
-    };                                                                       \
-    REGISTER_EVENT_TYPE(_Name)                                               \
-    // End of macro
-
-DEFINE_SIMPLE_EVENT(TagEvent, "m.tag", TagsMap, tags)
-DEFINE_SIMPLE_EVENT(ReadMarkerEvent, "m.fully_read", QString, event_id)
-DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, "m.ignored_user_list", QSet<QString>,
+DEFINE_SIMPLE_EVENT(TagEvent, Event, "m.tag", TagsMap, tags)
+DEFINE_SIMPLE_EVENT(ReadMarkerEventImpl, Event, "m.fully_read", QString, eventId)
+class ReadMarkerEvent : public ReadMarkerEventImpl {
+public:
+    using ReadMarkerEventImpl::ReadMarkerEventImpl;
+    [[deprecated("Use ReadMarkerEvent::eventId() instead")]]
+    QString event_id() const { return eventId(); }
+};
+DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, Event, "m.ignored_user_list", QSet<QString>,
                     ignored_users)
 } // namespace Quotient

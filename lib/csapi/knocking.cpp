@@ -16,11 +16,11 @@ auto queryToKnockRoom(const QStringList& serverName)
 KnockRoomJob::KnockRoomJob(const QString& roomIdOrAlias,
                            const QStringList& serverName, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("KnockRoomJob"),
-              makePath("/_matrix/client/r0", "/knock/", roomIdOrAlias),
+              makePath("/_matrix/client/v3", "/knock/", roomIdOrAlias),
               queryToKnockRoom(serverName))
 {
-    QJsonObject _data;
-    addParam<IfNotEmpty>(_data, QStringLiteral("reason"), reason);
-    setRequestData(std::move(_data));
+    QJsonObject _dataJson;
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    setRequestData({ _dataJson });
     addExpectedKey("room_id");
 }

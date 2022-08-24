@@ -15,7 +15,7 @@ public:
     explicit SyncJob(const QString& since, const Filter& filter,
                      int timeout = -1, const QString& presence = {});
 
-    SyncData&& takeData() { return std::move(d); }
+    SyncData takeData() { return std::move(d); }
 
 protected:
     Status prepareResult() override;

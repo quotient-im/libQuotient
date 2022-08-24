@@ -12,7 +12,6 @@
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
-#include "e2ee/qolmoutboundsession.h"
 #include "syncdata.h"
 #include "user.h"
 #include "eventstats.h"
@@ -118,7 +117,7 @@ public:
     // A map from evtId to a map of relation type to a vector of event
     // pointers. Not using QMultiHash, because we want to quickly return
     // a number of relations for a given event without enumerating them.
-    QHash<QPair<QString, QString>, RelatedEvents> relations;
+    QHash<std::pair<QString, QString>, RelatedEvents> relations;
     QString displayname;
     Avatar avatar;
     QHash<QString, Notification> notifications;
@@ -219,8 +218,9 @@ public:
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey, loadStateEvent(evtKey.first, {},
-                                                            evtKey.second));
+                stubbedState.emplace(evtKey,
+                                     loadEvent<StateEventBase>(evtKey.first,
+                                                               evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
                 qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
@@ -277,10 +277,17 @@ public:
      * Remove events from the passed container that are already in the timeline
      */
     void dropDuplicateEvents(RoomEvents& events) const;
+    void decryptIncomingEvents(RoomEvents& events);
 
-    Changes setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
-                               ReadReceipt newReceipt = {},
-                               bool deferStatsUpdate = false);
+    //! \brief update last receipt record for a given user
+    //!
+    //! \return previous event id of the receipt if the new receipt changed
+    //!         it, or `none` if no change took place
+    Omittable<QString> setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
+                               ReadReceipt newReceipt = {});
+    Changes setLocalLastReadReceipt(const rev_iter_t& newMarker,
+                                    ReadReceipt newReceipt = {},
+                                    bool deferStatsUpdate = false);
     Changes setFullyReadMarker(const QString &eventId);
     Changes updateStats(const rev_iter_t& from, const rev_iter_t& to);
     bool markMessagesAsRead(const rev_iter_t& upToMarker);
@@ -340,17 +347,21 @@ public:
 
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> groupSessions;
-
+    int currentMegolmSessionMessageCount = 0;
+    //TODO save this to database
+    unsigned long long currentMegolmSessionCreationTimestamp = 0;
     QOlmOutboundGroupSessionPtr currentOutboundMegolmSession = nullptr;
 
-    bool addInboundGroupSession(QString sessionId, QString sessionKey, const QString& senderId, const QString& olmSessionId)
+    bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
+                                const QString& senderId,
+                                const QString& olmSessionId)
     {
-        if (groupSessions.find(sessionId) != groupSessions.end()) {
+        if (groupSessions.contains(sessionId)) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
             return false;
         }
 
-        auto megolmSession = QOlmInboundGroupSession::create(sessionKey.toLatin1());
+        auto megolmSession = QOlmInboundGroupSession::create(sessionKey);
         if (megolmSession->sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
@@ -358,13 +369,12 @@ public:
         megolmSession->setSenderId(senderId);
         megolmSession->setOlmSessionId(olmSessionId);
         qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, megolmSession.get());
+        connection->saveMegolmSession(q, *megolmSession);
         groupSessions[sessionId] = std::move(megolmSession);
         return true;
     }
 
     QString groupSessionDecryptMessage(QByteArray cipher,
-                                       const QString& senderKey,
                                        const QString& sessionId,
                                        const QString& eventId,
                                        QDateTime timestamp,
@@ -375,7 +385,7 @@ public:
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId
             //               << "The sender's device has not sent us the keys for "
             //                  "this message";
-            return QString();
+            return {};
         }
         auto& senderSession = groupSessionIt->second;
         if (senderSession->senderId() != senderId) {
@@ -383,19 +393,24 @@ public:
             return {};
         }
         auto decryptResult = senderSession->decrypt(cipher);
-        if(std::holds_alternative<QOlmError>(decryptResult)) {
+        if(!decryptResult) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
-            << "with matching megolm session:" << std::get<QOlmError>(decryptResult);
-            return QString();
+            << "with matching megolm session:" << decryptResult.error();
+            return {};
         }
-        const auto& [content, index] = std::get<std::pair<QString, uint32_t>>(decryptResult);
-        const auto& [recordEventId, ts] = q->connection()->database()->groupSessionIndexRecord(q->id(), senderSession->sessionId(), index);
+        const auto& [content, index] = *decryptResult;
+        const auto& [recordEventId, ts] =
+            q->connection()->database()->groupSessionIndexRecord(
+                q->id(), senderSession->sessionId(), index);
         if (recordEventId.isEmpty()) {
-            q->connection()->database()->addGroupSessionIndexRecord(q->id(), senderSession->sessionId(), index, eventId, timestamp.toMSecsSinceEpoch());
+            q->connection()->database()->addGroupSessionIndexRecord(
+                q->id(), senderSession->sessionId(), index, eventId,
+                timestamp.toMSecsSinceEpoch());
         } else {
-            if ((eventId != recordEventId) || (ts != timestamp.toMSecsSinceEpoch())) {
+            if ((eventId != recordEventId)
+                || (ts != timestamp.toMSecsSinceEpoch())) {
                 qCWarning(E2EE) << "Detected a replay attack on event" << eventId;
-                return QString();
+                return {};
             }
         }
         return content;
@@ -403,10 +418,17 @@ public:
 
     bool shouldRotateMegolmSession() const
     {
-        if (!q->usesEncryption()) {
+        const auto* encryptionConfig = currentState.get<EncryptionEvent>();
+        if (!encryptionConfig || !encryptionConfig->useEncryption())
             return false;
-        }
-        return currentOutboundMegolmSession->messageCount() >= rotationMessageCount() || currentOutboundMegolmSession->creationTime().addMSecs(rotationInterval()) < QDateTime::currentDateTime();
+
+        const auto rotationInterval = encryptionConfig->rotationPeriodMs();
+        const auto rotationMessageCount = encryptionConfig->rotationPeriodMsgs();
+        return currentOutboundMegolmSession->messageCount()
+                   >= rotationMessageCount
+               || currentOutboundMegolmSession->creationTime().addMSecs(
+                      rotationInterval)
+                      < QDateTime::currentDateTime();
     }
 
     bool hasValidMegolmSession() const
@@ -417,137 +439,45 @@ public:
         return currentOutboundMegolmSession != nullptr;
     }
 
-    /// Time in milliseconds after which the outgoing megolmsession should be replaced
-    unsigned int rotationInterval() const
-    {
-        if (!q->usesEncryption()) {
-            return 0;
-        }
-        return q->getCurrentState<EncryptionEvent>()->rotationPeriodMs();
-    }
-
-    // Number of messages sent by this user after which the outgoing megolm session should be replaced
-    int rotationMessageCount() const
-    {
-        if (!q->usesEncryption()) {
-            return 0;
-        }
-        return q->getCurrentState<EncryptionEvent>()->rotationPeriodMsgs();
-    }
     void createMegolmSession() {
-        qCDebug(E2EE) << "Creating new outbound megolm session for room " << q->id();
+        qCDebug(E2EE) << "Creating new outbound megolm session for room "
+                      << q->objectName();
         currentOutboundMegolmSession = QOlmOutboundGroupSession::create();
-        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
+        connection->saveCurrentOutboundMegolmSession(
+            id, *currentOutboundMegolmSession);
 
         const auto sessionKey = currentOutboundMegolmSession->sessionKey();
-        if(std::holds_alternative<QOlmError>(sessionKey)) {
+        if(!sessionKey) {
             qCWarning(E2EE) << "Failed to load key for new megolm session";
             return;
         }
-        addInboundGroupSession(currentOutboundMegolmSession->sessionId(), std::get<QByteArray>(sessionKey), q->localUser()->id(), "SELF"_ls);
+        addInboundGroupSession(currentOutboundMegolmSession->sessionId(), *sessionKey, q->localUser()->id(), "SELF"_ls);
     }
 
-    std::unique_ptr<EncryptedEvent> payloadForUserDevice(User* user, const QString& device, const QByteArray& sessionId, const QByteArray& sessionKey)
+    QMultiHash<QString, QString> getDevicesWithoutKey() const
     {
-        // Noisy but nice for debugging
-        //qCDebug(E2EE) << "Creating the payload for" << user->id() << device << sessionId << sessionKey.toHex();
-        const auto event = makeEvent<RoomKeyEvent>("m.megolm.v1.aes-sha2", q->id(), sessionId, sessionKey, q->localUser()->id());
-        QJsonObject payloadJson = event->fullJson();
-        payloadJson["recipient"] = user->id();
-        payloadJson["sender"] = connection->user()->id();
-        QJsonObject recipientObject;
-        recipientObject["ed25519"] = connection->edKeyForUserDevice(user->id(), device);
-        payloadJson["recipient_keys"] = recipientObject;
-        QJsonObject senderObject;
-        senderObject["ed25519"] = QString(connection->olmAccount()->identityKeys().ed25519);
-        payloadJson["keys"] = senderObject;
-        payloadJson["sender_device"] = connection->deviceId();
-        auto cipherText = connection->olmEncryptMessage(user, device, QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
-        QJsonObject encrypted;
-        encrypted[connection->curveKeyForUserDevice(user->id(), device)] = QJsonObject{{"type", cipherText.first}, {"body", QString(cipherText.second)}};
+        QMultiHash<QString, QString> devices;
+        for (const auto& user : q->users())
+            for (const auto& deviceId : connection->devicesForUser(user->id()))
+                devices.insert(user->id(), deviceId);
 
-        return makeEvent<EncryptedEvent>(encrypted, connection->olmAccount()->identityKeys().curve25519);
+        return connection->database()->devicesWithoutKey(
+            id, devices, currentOutboundMegolmSession->sessionId());
     }
 
-    QHash<User*, QStringList> getDevicesWithoutKey() const
-    {
-        QHash<User*, QStringList> devices;
-        auto rawDevices = q->connection()->database()->devicesWithoutKey(q, QString(currentOutboundMegolmSession->sessionId()));
-        for (const auto& user : rawDevices.keys()) {
-            devices[q->connection()->user(user)] = rawDevices[user];
-        }
-        return devices;
-    }
-
-    void sendRoomKeyToDevices(const QByteArray& sessionId, const QByteArray& sessionKey, const QHash<User*, QStringList> devices, int index)
-    {
-        qCDebug(E2EE) << "Sending room key to devices" << sessionId, sessionKey.toHex();
-        QHash<QString, QHash<QString, QString>> hash;
-        for (const auto& user : devices.keys()) {
-            QHash<QString, QString> u;
-            for(const auto &device : devices[user]) {
-                if (!connection->hasOlmSession(user, device)) {
-                    u[device] = "signed_curve25519"_ls;
-                    qCDebug(E2EE) << "Adding" << user << device << "to keys to claim";
-                }
-            }
-            if (!u.isEmpty()) {
-                hash[user->id()] = u;
-            }
-        }
-        if (hash.isEmpty()) {
-            return;
-        }
-        auto job = connection->callApi<ClaimKeysJob>(hash);
-        connect(job, &BaseJob::success, q, [job, this, sessionId, sessionKey, devices, index](){
-            Connection::UsersToDevicesToEvents usersToDevicesToEvents;
-            const auto data = job->jsonData();
-            for(const auto &user : devices.keys()) {
-                for(const auto &device : devices[user]) {
-                    const auto recipientCurveKey = connection->curveKeyForUserDevice(user->id(), device);
-                    if (!connection->hasOlmSession(user, device)) {
-                        qCDebug(E2EE) << "Creating a new session for" << user << device;
-                        if(data["one_time_keys"][user->id()][device].toObject().isEmpty()) {
-                            qWarning() << "No one time key for" << user << device;
-                            continue;
-                        }
-                        const auto keyId = data["one_time_keys"][user->id()][device].toObject().keys()[0];
-                        const auto oneTimeKey = data["one_time_keys"][user->id()][device][keyId]["key"].toString();
-                        const auto signature = data["one_time_keys"][user->id()][device][keyId]["signatures"][user->id()][QStringLiteral("ed25519:") + device].toString().toLatin1();
-                        auto signedData = data["one_time_keys"][user->id()][device][keyId].toObject();
-                        signedData.remove("unsigned");
-                        signedData.remove("signatures");
-                        auto signatureMatch = QOlmUtility().ed25519Verify(connection->edKeyForUserDevice(user->id(), device).toLatin1(), QJsonDocument(signedData).toJson(QJsonDocument::Compact), signature);
-                        if (std::holds_alternative<QOlmError>(signatureMatch)) {
-                            qCWarning(E2EE) << "Failed to verify one-time-key signature for" << user->id() << device << ". Skipping this device.";
-                            continue;
-                        } else {
-                        }
-                        connection->createOlmSession(recipientCurveKey, oneTimeKey);
-                    }
-                    usersToDevicesToEvents[user->id()][device] = payloadForUserDevice(user, device, sessionId, sessionKey);
-                }
-            }
-            if (!usersToDevicesToEvents.empty()) {
-                connection->sendToDevices("m.room.encrypted", usersToDevicesToEvents);
-                connection->database()->setDevicesReceivedKey(q->id(), devices, sessionId, index);
-            }
-        });
-    }
-
-    void sendMegolmSession(const QHash<User *, QStringList>& devices) {
+    void sendMegolmSession(const QMultiHash<QString, QString>& devices) const {
         // Save the session to this device
         const auto sessionId = currentOutboundMegolmSession->sessionId();
-        const auto _sessionKey = currentOutboundMegolmSession->sessionKey();
-        if(std::holds_alternative<QOlmError>(_sessionKey)) {
+        const auto sessionKey = currentOutboundMegolmSession->sessionKey();
+        if(!sessionKey) {
             qCWarning(E2EE) << "Error loading session key";
             return;
         }
-        const auto sessionKey = std::get<QByteArray>(_sessionKey);
-        const auto senderKey = q->connection()->olmAccount()->identityKeys().curve25519;
 
         // Send the session to other people
-        sendRoomKeyToDevices(sessionId, sessionKey, devices, currentOutboundMegolmSession->sessionMessageIndex());
+        connection->sendSessionKeyToDevices(
+            id, sessionId, *sessionKey, devices,
+            currentOutboundMegolmSession->sessionMessageIndex());
     }
 
 #endif // Quotient_E2EE_ENABLED
@@ -569,11 +499,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
-    connectUntil(connection, &Connection::loadedRoomState, this, [this](Room* r) {
-        if (this == r)
-            emit baseStateLoaded();
-        return this == r; // loadedRoomState fires only once per room
-    });
 #ifdef Quotient_E2EE_ENABLED
     connectSingleShot(this, &Room::encryption, this, [this, connection](){
         connection->encryptionUpdate(this);
@@ -584,7 +509,8 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         }
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
-    d->currentOutboundMegolmSession = connection->loadCurrentOutboundMegolmSession(this);
+    d->currentOutboundMegolmSession =
+        connection->loadCurrentOutboundMegolmSession(this->id());
     if (d->shouldRotateMegolmSession()) {
         d->currentOutboundMegolmSession = nullptr;
     }
@@ -592,7 +518,9 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         if (!usesEncryption()) {
             return;
         }
-        d->currentOutboundMegolmSession = nullptr;
+        if (d->hasValidMegolmSession()) {
+            d->createMegolmSession();
+        }
         qCDebug(E2EE) << "Invalidating current megolm session because user left";
 
     });
@@ -779,10 +707,9 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
-                                                rev_iter_t newMarker,
-                                                ReadReceipt newReceipt,
-                                                bool deferStatsUpdate)
+Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
+                                                     rev_iter_t newMarker,
+                                                     ReadReceipt newReceipt)
 {
     if (newMarker == historyEdge() && !newReceipt.eventId.isEmpty())
         newMarker = q->findInTimeline(newReceipt.eventId);
@@ -796,7 +723,7 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
         // eagerMarker is now just after the desired event for newMarker
         if (eagerMarker != newMarker.base()) {
             newMarker = rev_iter_t(eagerMarker);
-            qCDebug(EPHEMERAL) << "Auto-promoted read receipt for" << userId
+            qDebug(EPHEMERAL) << "Auto-promoted read receipt for" << userId
                                << "to" << *newMarker;
         }
         // Fill newReceipt with the event (and, if needed, timestamp) from
@@ -810,14 +737,19 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
     const auto prevEventId = storedReceipt.eventId;
     // Check that either the new marker is actually "newer" than the current one
     // or, if both markers are at historyEdge(), event ids are different.
+    // This logic tackles, in particular, the case when the new event is not
+    // found (most likely, because it's too old and hasn't been fetched from
+    // the server yet) but there is a previous marker for a user; in that case,
+    // the previous marker is kept because read receipts are not supposed
+    // to move backwards. If neither new nor old event is found, the new receipt
+    // is blindly stored, in a hope it's also "newer" in the timeline.
     // NB: with reverse iterators, timeline history edge >= sync edge
     if (prevEventId == newReceipt.eventId
         || newMarker > q->findInTimeline(prevEventId))
-        return Change::None;
+        return {};
 
     // Finally make the change
 
-    Changes changes = Change::Other;
     auto oldEventReadUsersIt =
         eventIdReadUsers.find(prevEventId); // clazy:exclude=detaching-member
     if (oldEventReadUsersIt != eventIdReadUsers.end()) {
@@ -829,7 +761,7 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
     storedReceipt = move(newReceipt);
 
     {
-        auto dbg = qDebug(EPHEMERAL); // This trick needs qDebug, not qCDebug
+        auto dbg = qDebug(EPHEMERAL); // NB: qCDebug can't be used like that
         dbg << "The new read receipt for" << userId << "is now at";
         if (newMarker == historyEdge())
             dbg << storedReceipt.eventId;
@@ -837,25 +769,37 @@ Room::Changes Room::Private::setLastReadReceipt(const QString& userId,
             dbg << *newMarker;
     }
 
-    // TODO: use Room::member() when it becomes a thing and only emit signals
-    //       for actual members, not just any user
-    const auto member = q->user(userId);
-    Q_ASSERT(member != nullptr);
-    if (isLocalUser(member) && !deferStatsUpdate) {
-        if (unreadStats.updateOnMarkerMove(q, q->findInTimeline(prevEventId),
+    // NB: This method, unlike setLocalLastReadReceipt, doesn't emit
+    // lastReadEventChanged() to avoid numerous emissions when many read
+    // receipts arrive. It can be called thousands of times during an initial
+    // sync, e.g.
+    // TODO: remove in 0.8
+    if (const auto member = q->user(userId); !isLocalUser(member))
+         emit q->readMarkerForUserMoved(member, prevEventId,
+                                        storedReceipt.eventId);
+    return prevEventId;
+}
+
+Room::Changes Room::Private::setLocalLastReadReceipt(const rev_iter_t& newMarker,
+                                                     ReadReceipt newReceipt,
+                                                     bool deferStatsUpdate)
+{
+    auto prevEventId =
+        setLastReadReceipt(connection->userId(), newMarker, move(newReceipt));
+    if (!prevEventId)
+        return Change::None;
+    Changes changes = Change::Other;
+    if (!deferStatsUpdate) {
+        if (unreadStats.updateOnMarkerMove(q, q->findInTimeline(*prevEventId),
                                            newMarker)) {
-            qCDebug(MESSAGES)
+            qDebug(MESSAGES)
                 << "Updated unread event statistics in" << q->objectName()
                 << "after moving the local read receipt:" << unreadStats;
             changes |= Change::UnreadStats;
         }
         Q_ASSERT(unreadStats.isValidFor(q, newMarker)); // post-check
     }
-    emit q->lastReadEventChanged(member);
-    // TODO: remove in 0.8
-    if (!isLocalUser(member))
-        emit q->readMarkerForUserMoved(member, prevEventId,
-                                       storedReceipt.eventId);
+    emit q->lastReadEventChanged({ connection->userId() });
     return changes;
 }
 
@@ -870,7 +814,7 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
     Changes changes = Change::None;
     // Correct the read receipt to never be behind the fully read marker
     if (readReceiptMarker > fullyReadMarker
-        && setLastReadReceipt(connection->userId(), fullyReadMarker, {}, true)) {
+        && setLocalLastReadReceipt(fullyReadMarker, {}, true)) {
         changes |= Change::Other;
         readReceiptMarker = q->localReadReceiptMarker();
         qCInfo(MESSAGES) << "The local m.read receipt was behind m.fully_read "
@@ -968,7 +912,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker|Change::Other;)
     if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind, and update statistics
-        changes |= setLastReadReceipt(connection->userId(), rm);
+        changes |= setLocalLastReadReceipt(rm);
         if (partiallyReadStats.updateOnMarkerMove(q, prevReadMarker, rm)) {
             changes |= Change::PartiallyReadStats;
             qCDebug(MESSAGES)
@@ -986,9 +930,8 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
 
 void Room::setReadReceipt(const QString& atEventId)
 {
-    if (const auto changes = d->setLastReadReceipt(localUser()->id(),
-                                                   historyEdge(),
-                                                   { atEventId })) {
+    if (const auto changes =
+            d->setLocalLastReadReceipt(historyEdge(), { atEventId })) {
         connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
                                               QStringLiteral("m.read"),
                                               QUrl::toPercentEncoding(atEventId));
@@ -1517,7 +1460,7 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
             auto* thumbnail = event->content()->thumbnailInfo();
             Q_ASSERT(thumbnail != nullptr);
             return connection()->getUrlForApi<MediaThumbnailJob>(
-                thumbnail->url, thumbnail->imageSize);
+                thumbnail->url(), thumbnail->imageSize);
         }
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
@@ -1528,7 +1471,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
     if (auto* event = d->getEventWithFile(eventId)) {
         auto* fileInfo = event->content()->fileInfo();
         Q_ASSERT(fileInfo != nullptr);
-        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url);
+        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
     }
     return {};
 }
@@ -1600,7 +1543,7 @@ QStringList Room::safeMemberNames() const
 {
     QStringList res;
     res.reserve(d->membersMap.size());
-    for (auto u: std::as_const(d->membersMap))
+    for (const auto* u: std::as_const(d->membersMap))
         res.append(safeMemberName(u->id()));
 
     return res;
@@ -1610,7 +1553,7 @@ QStringList Room::htmlSafeMemberNames() const
 {
     QStringList res;
     res.reserve(d->membersMap.size());
-    for (auto u: std::as_const(d->membersMap))
+    for (const auto* u: std::as_const(d->membersMap))
         res.append(htmlSafeMemberName(u->id()));
 
     return res;
@@ -1649,9 +1592,9 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
-        encryptedEvent.ciphertext(), encryptedEvent.senderKey(),
-        encryptedEvent.sessionId(), encryptedEvent.id(),
-        encryptedEvent.originTimestamp(), encryptedEvent.senderId());
+        encryptedEvent.ciphertext(), encryptedEvent.sessionId(),
+        encryptedEvent.id(), encryptedEvent.originTimestamp(),
+        encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
         // qCWarning(E2EE) << "Encrypted message is empty";
         return {};
@@ -1680,7 +1623,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
     if (d->addInboundGroupSession(roomKeyEvent.sessionId(),
-                                  roomKeyEvent.sessionKey(), senderId, olmSessionId)) {
+                                  roomKeyEvent.sessionKey(), senderId,
+                                  olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                       << d->groupSessions.size();
         auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
@@ -1690,8 +1634,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                 continue;
             auto& ti = d->timeline[Timeline::size_type(*pIdx - minTimelineIndex())];
             if (auto encryptedEvent = ti.viewAs<EncryptedEvent>()) {
-                auto decrypted = decryptMessage(*encryptedEvent);
-                if(decrypted) {
+                if (auto decrypted = decryptMessage(*encryptedEvent)) {
                     // The reference will survive the pointer being moved
                     auto& decryptedEvent = *decrypted;
                     auto oldEvent = ti.replaceEvent(std::move(decrypted));
@@ -1986,6 +1929,9 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
 
 void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
+    qCDebug(MAIN) << "--- Updating room" << id() << "/" << objectName();
+    bool firstUpdate = d->baseState.empty();
+
     if (d->prevBatch.isEmpty())
         d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
@@ -2011,6 +1957,9 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         emit namesChanged(this);
 
     d->postprocessChanges(roomChanges, !fromCache);
+    if (firstUpdate)
+        emit baseStateLoaded();
+    qCDebug(MAIN) << "--- Finished updating room" << id() << "/" << objectName();
 }
 
 void Room::Private::postprocessChanges(Changes changes, bool saveState)
@@ -2036,11 +1985,8 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if (changes & Change::Highlights)
         emit q->highlightCountChanged();
 
-    qCDebug(MAIN) << terse << changes << "= hex" <<
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-        Qt::
-#endif
-            hex << uint(changes) << "in" << q->objectName();
+    qCDebug(MAIN) << terse << changes << "= hex" << Qt::hex << uint(changes)
+                  << "in" << q->objectName();
     emit q->changed(changes);
     if (saveState)
         connection->saveRoomState(q);
@@ -2076,6 +2022,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
     const auto txnId = pEvent->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
     const RoomEvent* _event = pEvent;
+    std::unique_ptr<EncryptedEvent> encryptedEvent;
 
     if (q->usesEncryption()) {
 #ifndef Quotient_E2EE_ENABLED
@@ -2085,17 +2032,17 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
-        const auto devicesWithoutKey = getDevicesWithoutKey();
-        sendMegolmSession(devicesWithoutKey);
+        sendMegolmSession(getDevicesWithoutKey());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
-        connection->saveCurrentOutboundMegolmSession(q, currentOutboundMegolmSession);
-        if(std::holds_alternative<QOlmError>(encrypted)) {
-            qWarning(E2EE) << "Error encrypting message" << std::get<QOlmError>(encrypted);
+        connection->saveCurrentOutboundMegolmSession(
+            id, *currentOutboundMegolmSession);
+        if(!encrypted) {
+            qWarning(E2EE) << "Error encrypting message" << encrypted.error();
             return {};
         }
-        auto encryptedEvent = new EncryptedEvent(std::get<QByteArray>(encrypted), q->connection()->olmAccount()->identityKeys().curve25519, q->connection()->deviceId(), currentOutboundMegolmSession->sessionId());
+        encryptedEvent = makeEvent<EncryptedEvent>(*encrypted, q->connection()->olmAccount()->identityKeys().curve25519, q->connection()->deviceId(), currentOutboundMegolmSession->sessionId());
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
@@ -2103,7 +2050,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             encryptedEvent->setRelation(pEvent->contentJson()["m.relates_to"_ls].toObject());
         }
         // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
-        _event = encryptedEvent;
+        _event = encryptedEvent.get();
 #endif
     }
 
@@ -2114,17 +2061,18 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
-                qCWarning(EVENTS) << "Pending event for transaction" << txnId
+                qWarning(EVENTS) << "Pending event for transaction" << txnId
                                  << "not found - got synced so soon?";
                 return;
             }
             it->setDeparted();
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
-        Room::connect(call, &BaseJob::failure, q,
-                      std::bind(&Room::Private::onEventSendingFailure, this,
-                                txnId, call));
-        Room::connect(call, &BaseJob::success, q, [this, call, txnId, _event] {
+        Room::connect(call, &BaseJob::result, q, [this, txnId, call] {
+            if (!call->status().good()) {
+                onEventSendingFailure(txnId, call);
+                return;
+            }
             auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end()) {
                 if (it->deliveryStatus() != EventStatus::ReachedServer) {
@@ -2132,13 +2080,10 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
                 }
             } else
-                qCDebug(EVENTS) << "Pending event for transaction" << txnId
+                qDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
 
             emit q->messageSent(txnId, call->eventId());
-            if (q->usesEncryption()){
-                delete _event;
-            }
         });
     } else
         onEventSendingFailure(txnId);
@@ -2193,11 +2138,9 @@ QString Room::retryMessage(const QString& txnId)
     return d->doSendEvent(it->event());
 }
 
-// Lambda defers actual tr() invocation to the moment when translations are
-// initialised
-const auto FileTransferCancelledMsg = [] {
-    return Room::tr("File transfer cancelled");
-};
+// Using a function defers actual tr() invocation to the moment when
+// translations are initialised
+auto FileTransferCancelledMsg() { return Room::tr("File transfer cancelled"); }
 
 void Room::discardMessage(const QString& txnId)
 {
@@ -2262,28 +2205,26 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
     // Below, the upload job is used as a context object to clean up connections
     const auto& transferJob = fileTransfers.value(txnId).job;
     connect(q, &Room::fileTransferCompleted, transferJob,
-            [this, txnId](const QString& tId, const QUrl&, const QUrl& mxcUri, Omittable<EncryptedFile> encryptedFile) {
-                if (tId != txnId)
-                    return;
+        [this, txnId](const QString& tId, const QUrl&,
+                      const FileSourceInfo& fileMetadata) {
+            if (tId != txnId)
+                return;
 
-                const auto it = q->findPendingEvent(txnId);
-                if (it != unsyncedEvents.end()) {
-                    it->setFileUploaded(mxcUri);
-                    if (encryptedFile) {
-                        it->setEncryptedFile(*encryptedFile);
-                    }
-                    emit q->pendingEventChanged(
-                        int(it - unsyncedEvents.begin()));
-                    doSendEvent(it->get());
-                } else {
-                    // Normally in this situation we should instruct
-                    // the media server to delete the file; alas, there's no
-                    // API specced for that.
-                    qCWarning(MAIN) << "File uploaded to" << mxcUri
-                                    << "but the event referring to it was "
-                                       "cancelled";
-                }
-            });
+            const auto it = q->findPendingEvent(txnId);
+            if (it != unsyncedEvents.end()) {
+                it->setFileUploaded(fileMetadata);
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+                doSendEvent(it->get());
+            } else {
+                // Normally in this situation we should instruct
+                // the media server to delete the file; alas, there's no
+                // API specced for that.
+                qCWarning(MAIN)
+                    << "File uploaded to" << getUrlFromSourceInfo(fileMetadata)
+                    << "but the event referring to it was "
+                       "cancelled";
+            }
+        });
     connect(q, &Room::fileTransferFailed, transferJob,
             [this, txnId](const QString& tId) {
                 if (tId != txnId)
@@ -2309,13 +2250,13 @@ QString Room::postFile(const QString& plainText,
     Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
     const auto* const fileInfo = content->fileInfo();
     Q_ASSERT(fileInfo != nullptr);
-    QFileInfo localFile { fileInfo->url.toLocalFile() };
+    QFileInfo localFile { fileInfo->url().toLocalFile() };
     Q_ASSERT(localFile.isFile());
 
     return d->doPostFile(
         makeEvent<RoomMessageEvent>(
             plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
-        fileInfo->url);
+        fileInfo->url());
 }
 
 #if QT_VERSION_MAJOR < 6
@@ -2343,8 +2284,7 @@ QString Room::postJson(const QString& matrixType,
 
 SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt)
 {
-    return d->requestSetState(evt.matrixType(), evt.stateKey(),
-                              evt.contentJson());
+    return setState(evt.matrixType(), evt.stateKey(), evt.contentJson());
 }
 
 SetRoomStateWithKeyJob* Room::setState(const QString& evtType,
@@ -2431,11 +2371,12 @@ void Room::sendCallCandidates(const QString& callId,
     d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
-void Room::answerCall(const QString& callId, const int lifetime,
+void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
                       const QString& sdp)
 {
-    Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, lifetime, sdp);
+    qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
+                       "Room::answerCall(), it is no more accepted";
+    answerCall(callId, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
@@ -2450,15 +2391,18 @@ void Room::hangupCall(const QString& callId)
     d->sendEvent<CallHangupEvent>(callId);
 }
 
-void Room::getPreviousContent(int limit, const QString &filter) { d->getPreviousContent(limit, filter); }
+void Room::getPreviousContent(int limit, const QString& filter)
+{
+    d->getPreviousContent(limit, filter);
+}
 
 void Room::Private::getPreviousContent(int limit, const QString &filter)
 {
     if (isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob =
-        connection->callApi<GetRoomEventsJob>(id, prevBatch, "b", "", limit, filter);
+    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b", prevBatch,
+                                                             "", limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         prevBatch = eventsHistoryJob->end();
@@ -2506,18 +2450,18 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
                "localFilename should point at a local file");
     auto fileName = localFilename.toLocalFile();
-    Omittable<EncryptedFile> encryptedFile = std::nullopt;
+    FileSourceInfo fileMetadata;
 #ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
         tempFile.open();
         QFile file(localFilename.toLocalFile());
         file.open(QFile::ReadOnly);
-        auto [e, data] = EncryptedFile::encryptFile(file.readAll());
+        QByteArray data;
+        std::tie(fileMetadata, data) = encryptFile(file.readAll());
         tempFile.write(data);
         tempFile.close();
         fileName = QFileInfo(tempFile).absoluteFilePath();
-        encryptedFile = e;
     }
 #endif
     auto job = connection()->uploadFile(fileName, overrideContentType);
@@ -2528,16 +2472,13 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     d->fileTransfers[id].update(sent, total);
                     emit fileTransferProgress(id, sent, total);
                 });
-        connect(job, &BaseJob::success, this, [this, id, localFilename, job, encryptedFile] {
-            d->fileTransfers[id].status = FileTransferInfo::Completed;
-            if (encryptedFile) {
-                auto file = *encryptedFile;
-                file.url = QUrl(job->contentUri());
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()), file);
-            } else {
-                emit fileTransferCompleted(id, localFilename, QUrl(job->contentUri()));
-            }
-        });
+        connect(job, &BaseJob::success, this,
+                [this, id, localFilename, job, fileMetadata]() mutable {
+                    // The lambda is mutable to change encryptedFileMetadata
+                    d->fileTransfers[id].status = FileTransferInfo::Completed;
+                    setUrlInSourceInfo(fileMetadata, QUrl(job->contentUri()));
+                    emit fileTransferCompleted(id, localFilename, fileMetadata);
+                });
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, id, job->errorString()));
         emit newFileTransfer(id, localFilename);
@@ -2570,11 +2511,11 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
                         << "has an empty or malformed mxc URL; won't download";
         return;
     }
-    const auto fileUrl = fileInfo->url;
+    const auto fileUrl = fileInfo->url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath =
-            fileInfo->url.path().mid(1) % '_' % d->fileNameToDownload(event);
+            fileInfo->url().path().mid(1) % '_' % d->fileNameToDownload(event);
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---");
@@ -2584,9 +2525,9 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     }
     DownloadFileJob *job = nullptr;
 #ifdef Quotient_E2EE_ENABLED
-    if(fileInfo->file.has_value()) {
-        auto file = *fileInfo->file;
-        job = connection()->downloadFile(fileUrl, file, filePath);
+    if (auto* fileMetadata =
+            std::get_if<EncryptedFileMetadata>(&fileInfo->source)) {
+        job = connection()->downloadFile(fileUrl, *fileMetadata, filePath);
     } else {
 #endif
     job = connection()->downloadFile(fileUrl, filePath);
@@ -2609,6 +2550,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         connect(job, &BaseJob::failure, this,
                 std::bind(&Private::failedTransfer, d, eventId,
                           job->errorString()));
+        emit newFileTransfer(eventId, localFilename);
     } else
         d->failedTransfer(eventId);
 }
@@ -2652,6 +2594,26 @@ void Room::Private::dropDuplicateEvents(RoomEvents& events) const
     events.erase(dupsBegin, events.end());
 }
 
+void Room::Private::decryptIncomingEvents(RoomEvents& events)
+{
+#ifdef Quotient_E2EE_ENABLED
+    QElapsedTimer et;
+    et.start();
+    size_t totalDecrypted = 0;
+    for (auto& eptr : events)
+        if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
+            if (auto decrypted = q->decryptMessage(*eeptr)) {
+                ++totalDecrypted;
+                auto&& oldEvent = exchange(eptr, move(decrypted));
+                eptr->setOriginalEvent(::move(oldEvent));
+            } else
+                undecryptedEvents[eeptr->sessionId()] += eeptr->id();
+        }
+    if (totalDecrypted > 5 || et.nsecsElapsed() >= profilerMinNsecs())
+        qDebug(PROFILER) << "Decrypted" << totalDecrypted << "events in" << et;
+#endif
+}
+
 /** Make a redacted event
  *
  * This applies the redaction procedure as defined by the CS API specification
@@ -2679,10 +2641,11 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),
-            QStringLiteral("users"), QStringLiteral("users_default") } }
-        //        , { RoomJoinRules::typeId(), { QStringLiteral("join_rule") } }
-        //        , { RoomHistoryVisibility::typeId(),
-        //                { QStringLiteral("history_visibility") } }
+            QStringLiteral("users"), QStringLiteral("users_default") } },
+        // TODO: Replace with RoomJoinRules::TypeId etc. once available
+        { "m.room.join_rules"_ls, { QStringLiteral("join_rule") } },
+        { "m.room.history_visibility"_ls,
+          { QStringLiteral("history_visibility") } }
     };
     for (auto it = originalJson.begin(); it != originalJson.end();) {
         if (!keepKeys.contains(it.key()))
@@ -2754,7 +2717,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
     }
     if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
         const auto& targetEvtId = reaction->relation().eventId;
-        const QPair lookupKey { targetEvtId, EventRelation::AnnotationType };
+        const std::pair lookupKey { targetEvtId, EventRelation::AnnotationType };
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
             emit q->updatedEvent(targetEvtId);
@@ -2842,22 +2805,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::None;
 
+    decryptIncomingEvents(events);
+
     QElapsedTimer et;
     et.start();
-
-#ifdef Quotient_E2EE_ENABLED
-    for(long unsigned int i = 0; i < events.size(); i++) {
-        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            auto decrypted = q->decryptMessage(*encrypted);
-            if(decrypted) {
-                auto oldEvent = std::exchange(events[i], std::move(decrypted));
-                events[i]->setOriginalEvent(std::move(oldEvent));
-            } else {
-                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
-            }
-        }
-    }
-#endif
 
     {
         // Pre-process redactions and edits so that events that get
@@ -3002,30 +2953,17 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
 void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
-    QElapsedTimer et;
-    et.start();
     const auto timelineSize = timeline.size();
 
     dropDuplicateEvents(events);
     if (events.empty())
         return;
 
+    decryptIncomingEvents(events);
+
+    QElapsedTimer et;
+    et.start();
     Changes changes {};
-
-#ifdef Quotient_E2EE_ENABLED
-    for(long unsigned int i = 0; i < events.size(); i++) {
-        if(auto* encrypted = eventCast<EncryptedEvent>(events[i])) {
-            auto decrypted = q->decryptMessage(*encrypted);
-            if(decrypted) {
-                auto oldEvent = std::exchange(events[i], std::move(decrypted));
-                events[i]->setOriginalEvent(std::move(oldEvent));
-            } else {
-                undecryptedEvents[encrypted->sessionId()] += encrypted->id();
-            }
-        }
-    }
-#endif
-
     // In case of lazy-loading new members may be loaded with historical
     // messages. Also, the cache doesn't store events with empty content;
     // so when such events show up in the timeline they should be properly
@@ -3142,7 +3080,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
                 return false;
             }
             if (oldEncEvt
-                && oldEncEvt->encryption() != EncryptionEventContent::Undefined) {
+                && oldEncEvt->encryption() != EncryptionType::Undefined) {
                 qCWarning(STATE) << "The room is already encrypted but a new"
                                     " room encryption event arrived - ignoring";
                 return false;
@@ -3283,58 +3221,66 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     Changes changes {};
     QElapsedTimer et;
     et.start();
-    if (auto* evt = eventCast<TypingEvent>(event)) {
-        d->usersTyping.clear();
-        d->usersTyping.reserve(evt->users().size()); // Assume all are members
-        for (const auto& userId : evt->users())
-            if (isMember(userId))
-                d->usersTyping.append(user(userId));
+    switchOnType(*event,
+        [this, &et](const TypingEvent& evt) {
+            const auto& users = evt.users();
+            d->usersTyping.clear();
+            d->usersTyping.reserve(users.size()); // Assume all are members
+            for (const auto& userId : users)
+                if (isMember(userId))
+                    d->usersTyping.append(user(userId));
 
-        if (evt->users().size() > 3 || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER)
-                << "Processing typing events from" << evt->users().size()
-                << "user(s) in" << objectName() << "took" << et;
-        emit typingChanged();
-    }
-    if (auto* evt = eventCast<ReceiptEvent>(event)) {
-        int totalReceipts = 0;
-        const auto& eventsWithReceipts = evt->eventsWithReceipts();
-        for (const auto& p : eventsWithReceipts) {
-            totalReceipts += p.receipts.size();
-            const auto newMarker = findInTimeline(p.evtId);
-            if (newMarker == historyEdge())
-                qCDebug(EPHEMERAL)
-                    << "Event" << p.evtId
-                    << "is not found; saving read receipt(s) anyway";
-            // If the event is not found (most likely, because it's too old and
-            // hasn't been fetched from the server yet) but there is a previous
-            // marker for a user, keep the previous marker because read receipts
-            // are not supposed to move backwards. Otherwise, blindly store
-            // the event id for this user and update the read marker when/if
-            // the event is fetched later on.
-            const auto updatedCount = std::count_if(
-                p.receipts.cbegin(), p.receipts.cend(),
-                [this, &changes, &newMarker, &evtId = p.evtId](const auto& r) {
-                    const auto change =
-                        d->setLastReadReceipt(r.userId, newMarker,
-                                              { evtId, r.timestamp });
-                    changes |= change;
-                    return change & Change::Any;
-                });
-
-            if (p.receipts.size() > 1)
-                qCDebug(EPHEMERAL) << p.evtId << "marked as read for"
-                                   << updatedCount << "user(s)";
-            if (updatedCount < p.receipts.size())
-                qCDebug(EPHEMERAL) << p.receipts.size() - updatedCount
-                                   << "receipts were skipped";
-        }
-        if (eventsWithReceipts.size() > 3 || totalReceipts > 10
-            || et.nsecsElapsed() >= profilerMinNsecs())
-            qCDebug(PROFILER) << "Processing" << totalReceipts
-                              << "receipt(s) on" << eventsWithReceipts.size()
-                              << "event(s) in" << objectName() << "took" << et;
-    }
+            if (d->usersTyping.size() > 3
+                || et.nsecsElapsed() >= profilerMinNsecs())
+                qDebug(PROFILER)
+                    << "Processing typing events from" << users.size()
+                    << "user(s) in" << objectName() << "took" << et;
+            emit typingChanged();
+        },
+        [this, &changes, &et](const ReceiptEvent& evt) {
+            const auto& receiptsJson = evt.contentJson();
+            QVector<QString> updatedUserIds;
+            // Most often (especially for bigger batches), receipts are
+            // scattered across events (an anecdotal evidence showed 1.2-1.3
+            // receipts per event on average).
+            updatedUserIds.reserve(receiptsJson.size() * 2);
+            for (auto eventIt = receiptsJson.begin();
+                 eventIt != receiptsJson.end(); ++eventIt) {
+                const auto evtId = eventIt.key();
+                const auto newMarker = findInTimeline(evtId);
+                if (newMarker == historyEdge())
+                    qDebug(EPHEMERAL)
+                        << "Event" << evtId
+                        << "is not found; saving read receipt(s) anyway";
+                const auto reads =
+                    eventIt.value().toObject().value("m.read"_ls).toObject();
+                for (auto userIt = reads.begin(); userIt != reads.end();
+                     ++userIt) {
+                    ReadReceipt rr{ evtId,
+                                    fromJson<QDateTime>(
+                                        userIt->toObject().value("ts"_ls)) };
+                    const auto userId = userIt.key();
+                    if (userId == connection()->userId()) {
+                        // Local user is special, and will get a signal about
+                        // its read receipt separately from (and before) a
+                        // signal on everybody else. No particular reason, just
+                        // less cumbersome code.
+                        changes |= d->setLocalLastReadReceipt(newMarker, rr);
+                    } else if (d->setLastReadReceipt(userId, newMarker, rr)) {
+                        changes |= Change::Other;
+                        updatedUserIds.push_back(userId);
+                    }
+                }
+            }
+            if (updatedUserIds.size() > 10
+                || et.nsecsElapsed() >= profilerMinNsecs())
+                qDebug(PROFILER)
+                    << "Processing" << updatedUserIds.size()
+                    << "non-local receipt(s) on" << receiptsJson.size()
+                    << "event(s) in" << objectName() << "took" << et;
+            if (!updatedUserIds.empty())
+                emit lastReadEventChanged(updatedUserIds);
+        });
     return changes;
 }
 
@@ -3444,7 +3390,7 @@ QString Room::Private::calculateDisplayname() const
         shortlist = buildShortlist(membersLeft);
 
     QStringList names;
-    for (auto u : shortlist) {
+    for (const auto* u : shortlist) {
         if (u == nullptr || isLocalUser(u))
             break;
         // Only disambiguate if the room is not empty
@@ -3587,5 +3533,5 @@ void Room::activateEncryption()
         qCWarning(E2EE) << "Room" << objectName() << "is already encrypted";
         return;
     }
-    setState<EncryptionEvent>(EncryptionEventContent::MegolmV1AesSha2);
+    setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }

@@ -20,8 +20,8 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
     const QByteArray oneTimeKeyA("WzsbsjD85iB1R32iWxfJdwkgmdz29ClMbJSJziECYwk");
     const QByteArray identityKeyB("q/YhJtog/5VHCAS9rM9uUf6AaFk1yPe4GYuyUOXyQCg");
     const QByteArray oneTimeKeyB("oWvzryma+B2onYjo3hM6A3Mgo/Yepm8HvgSvwZMTnjQ");
-    auto outbound = std::get<QOlmSessionPtr>(accountA
-        .createOutboundSession(identityKeyB, oneTimeKeyB));
+    auto outbound =
+        accountA.createOutboundSession(identityKeyB, oneTimeKeyB).value();
 
     const auto preKey = outbound->encrypt(""); // Payload does not matter for PreKey
 
@@ -29,7 +29,7 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
         // We can't call QFail here because it's an helper function returning a value
         throw "Wrong first message type received, can't create session";
     }
-    auto inbound = std::get<QOlmSessionPtr>(accountB.createInboundSession(preKey));
+    auto inbound = accountB.createInboundSession(preKey).value();
     return { std::move(inbound), std::move(outbound) };
 }
 
@@ -45,10 +45,10 @@ void TestOlmSession::olmEncryptDecrypt()
     const auto encrypted = outboundSession->encrypt("Hello world!");
     if (encrypted.type() == QOlmMessage::PreKey) {
         QOlmMessage m(encrypted); // clone
-        QVERIFY(std::get<bool>(inboundSession->matchesInboundSession(m)));
+        QVERIFY(inboundSession->matchesInboundSession(m));
     }
 
-    const auto decrypted = std::get<QString>(inboundSession->decrypt(encrypted));
+    const auto decrypted = inboundSession->decrypt(encrypted).value();
 
     QCOMPARE(decrypted, "Hello world!");
 }
@@ -56,11 +56,11 @@ void TestOlmSession::olmEncryptDecrypt()
 void TestOlmSession::correctSessionOrdering()
 {
     // n0W5IJ2ZmaI9FxKRj/wohUQ6WEU0SfoKsgKKHsr4VbM
-    auto session1 = std::get<QOlmSessionPtr>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGvlaV6t/0ihD2/0QGckDIvbmE1aV+PxB0zUtHXh99bI/60N+PWkCLA84jEY4sz3d45ui/TVoFGLDHlymKxvlj7XngXrbtlxSkVntsPzDiNpKEXCa26N2ubKpQ0fbjrV5gbBTYWfU04DXHPXFDTksxpNALYt/h0eVMVhf6hB0ZzpLBsOG0mpwkLufwub0CuDEDGGmRddz3TcNCLq5NnI8R9udDWvHAkTS1UTbHuIf/y6cZg875nJyXpAvd8/XhL8TOo8ot2sE1fElBa4vrH/m9rBQMC1GPkhLBIizmY44C+Sq9PQRnF+uCZ", Unencrypted{}));
+    auto session1 = QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGvlaV6t/0ihD2/0QGckDIvbmE1aV+PxB0zUtHXh99bI/60N+PWkCLA84jEY4sz3d45ui/TVoFGLDHlymKxvlj7XngXrbtlxSkVntsPzDiNpKEXCa26N2ubKpQ0fbjrV5gbBTYWfU04DXHPXFDTksxpNALYt/h0eVMVhf6hB0ZzpLBsOG0mpwkLufwub0CuDEDGGmRddz3TcNCLq5NnI8R9udDWvHAkTS1UTbHuIf/y6cZg875nJyXpAvd8/XhL8TOo8ot2sE1fElBa4vrH/m9rBQMC1GPkhLBIizmY44C+Sq9PQRnF+uCZ", Unencrypted{}).value();
     // +9pHJhP3K4E5/2m8PYBPLh8pS9CJodwUOh8yz3mnmw0
-    auto session2 = std::get<QOlmSessionPtr>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UFD+q37/WlfTAzQsSjCdD07FcErZ4siEy5vpiB+pyO8i53ptZvb2qRvqNKFzPaXuu33PS2PBTmmnR+kJt+DgDNqWadyaj/WqEAejc7ALqSs5GuhbZtpoLe+lRSRK0rwVX3gzz4qrl8pm0pD5pSZAUWRXDRlieGWMclz68VUvnSaQH7ElTo4S634CJk+xQfFFCD26v0yONPSN6rwouS1cWPuG5jTlnV8vCFVTU2+lduKh54Ko6FUJ/ei4xR8Nk2duBGSc/TdllX9e2lDYHSUkWoD4ti5xsFioB8Blus7JK9BZfcmRmdlxIOD", Unencrypted {}));
+    auto session2 = QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UFD+q37/WlfTAzQsSjCdD07FcErZ4siEy5vpiB+pyO8i53ptZvb2qRvqNKFzPaXuu33PS2PBTmmnR+kJt+DgDNqWadyaj/WqEAejc7ALqSs5GuhbZtpoLe+lRSRK0rwVX3gzz4qrl8pm0pD5pSZAUWRXDRlieGWMclz68VUvnSaQH7ElTo4S634CJk+xQfFFCD26v0yONPSN6rwouS1cWPuG5jTlnV8vCFVTU2+lduKh54Ko6FUJ/ei4xR8Nk2duBGSc/TdllX9e2lDYHSUkWoD4ti5xsFioB8Blus7JK9BZfcmRmdlxIOD", Unencrypted {}).value();
     // MC7n8hX1l7WlC2/WJGHZinMocgiBZa4vwGAOredb/ME
-    auto session3 = std::get<QOlmSessionPtr>(QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGNk2TmVDJ95K0Nywf24FNklNVtXtFDiFPHFwNSmCbHNCp3hsGtZlt0AHUkMmL48XklLqzwtVk5/v2RRmSKR5LqYdIakrtuK/fY0ENhBZIbI1sRetaJ2KMbY9l6rCJNfFg8VhpZ4KTVvEZVuP9g/eZkCnP5NxzXiBRF6nfY3O/zhcKxa3acIqs6BMhyLsfuJ80t+hQ1HvVyuhBerGujdSDzV9tJ9SPidOwfYATk81LVF9hTmnI0KaZa7qCtFzhG0dU/Z3hIWH9HOaw1aSB/IPmughbwdJOwERyhuo3YHoznlQnJ7X252BlI", Unencrypted{}));
+    auto session3 = QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGNk2TmVDJ95K0Nywf24FNklNVtXtFDiFPHFwNSmCbHNCp3hsGtZlt0AHUkMmL48XklLqzwtVk5/v2RRmSKR5LqYdIakrtuK/fY0ENhBZIbI1sRetaJ2KMbY9l6rCJNfFg8VhpZ4KTVvEZVuP9g/eZkCnP5NxzXiBRF6nfY3O/zhcKxa3acIqs6BMhyLsfuJ80t+hQ1HvVyuhBerGujdSDzV9tJ9SPidOwfYATk81LVF9hTmnI0KaZa7qCtFzhG0dU/Z3hIWH9HOaw1aSB/IPmughbwdJOwERyhuo3YHoznlQnJ7X252BlI", Unencrypted{}).value();
 
     const auto session1Id = session1->sessionId();
     const auto session2Id = session2->sessionId();

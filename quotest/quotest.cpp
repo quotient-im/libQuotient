@@ -516,30 +516,14 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                         && e.hasFileContent()
                         && e.content()->fileInfo()->originalName == fileName
                         && testDownload(targetRoom->connection()->makeMediaUrl(
-                            e.content()->fileInfo()->url)));
+                            e.content()->fileInfo()->url())));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
     return true;
 }
 
-class CustomEvent : public RoomEvent {
-public:
-    DEFINE_EVENT_TYPEID("quotest.custom", CustomEvent)
-
-    CustomEvent(const QJsonObject& jo)
-        : RoomEvent(typeId(), jo)
-    {}
-    CustomEvent(int testValue)
-        : RoomEvent(typeId(),
-                    basicEventJson(matrixTypeId(),
-                                   QJsonObject { { "testValue"_ls,
-                                                   toJson(testValue) } }))
-    {}
-
-    auto testValue() const { return contentPart<int>("testValue"_ls); }
-};
-REGISTER_EVENT_TYPE(CustomEvent)
+DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue)
 
 TEST_IMPL(sendCustomEvent)
 {
@@ -603,6 +587,14 @@ TEST_IMPL(changeName)
                             continue;
                         if (!rme->newDisplayName()
                             || *rme->newDisplayName() != newName)
+                            FAIL_TEST();
+                        // State events coming in the timeline are first
+                        // processed to change the room state and then as
+                        // timeline messages; aboutToAddNewMessages is triggered
+                        // when the state is already updated, so check that
+                        if (targetRoom->currentState().get<RoomMemberEvent>(
+                                localUser->id())
+                            != rme)
                             FAIL_TEST();
                         clog << "Member rename successful, renaming the account"
                              << endl;
@@ -779,6 +771,14 @@ TEST_IMPL(visitResources)
                 !matrixToUrl.startsWith("https://matrix.to/#/")) {
                 clog << "Incorrect matrix.to representation:"
                      << matrixToUrl.toStdString() << endl;
+            }
+            const auto checkResult = checkResource(connection(), uriString);
+            if ((checkResult != UriResolved && uri.type() != Uri::NonMatrix)
+                || (uri.type() == Uri::NonMatrix
+                    && checkResult != CouldNotResolve)) {
+                clog << "checkResource() returned incorrect result:"
+                     << checkResult;
+                FAIL_TEST();
             }
             ud.visitResource(connection(), uriString);
             if (spy.count() != 1) {

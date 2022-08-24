@@ -7,36 +7,31 @@
 #include "stateevent.h"
 
 namespace Quotient {
-namespace EventContent{
-    class AliasesEventContent {
-
-    public:
-
-        template<typename T1, typename T2>
-        AliasesEventContent(T1&& canonicalAlias, T2&& altAliases)
-            : canonicalAlias(std::forward<T1>(canonicalAlias))
-            , altAliases(std::forward<T2>(altAliases))
-        { }
-
-        AliasesEventContent(const QJsonObject& json)
-            : canonicalAlias(fromJson<QString>(json["alias"]))
-            , altAliases(fromJson<QStringList>(json["alt_aliases"]))
-        { }
-
-        auto toJson() const
-        {
-            QJsonObject jo;
-            addParam<IfNotEmpty>(jo, QStringLiteral("alias"), canonicalAlias);
-            addParam<IfNotEmpty>(jo, QStringLiteral("alt_aliases"), altAliases);
-            return jo;
-        }
-
+namespace EventContent {
+    struct AliasesEventContent {
         QString canonicalAlias;
         QStringList altAliases;
     };
 } // namespace EventContent
 
-class RoomCanonicalAliasEvent
+template<>
+inline EventContent::AliasesEventContent fromJson(const QJsonObject& jo)
+{
+    return EventContent::AliasesEventContent {
+        fromJson<QString>(jo["alias"_ls]),
+        fromJson<QStringList>(jo["alt_aliases"_ls])
+    };
+}
+template<>
+inline auto toJson(const EventContent::AliasesEventContent& c)
+{
+    QJsonObject jo;
+    addParam<IfNotEmpty>(jo, QStringLiteral("alias"), c.canonicalAlias);
+    addParam<IfNotEmpty>(jo, QStringLiteral("alt_aliases"), c.altAliases);
+    return jo;
+}
+
+class QUOTIENT_API RoomCanonicalAliasEvent
     : public StateEvent<EventContent::AliasesEventContent> {
 public:
     DEFINE_EVENT_TYPEID("m.room.canonical_alias", RoomCanonicalAliasEvent)

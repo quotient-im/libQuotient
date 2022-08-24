@@ -58,8 +58,6 @@ public:
     RoomEventPtr createDecrypted(const QString &decrypted) const;
 
     void setRelation(const QJsonObject& relation);
-
-    bool isVerified();
 };
 REGISTER_EVENT_TYPE(EncryptedEvent)
 
