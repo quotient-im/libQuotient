@@ -16,6 +16,7 @@
 #include "user.h"
 #include "eventstats.h"
 #include "roomstateview.h"
+#include "qt_connection_util.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
 #include "moc_room.cpp"

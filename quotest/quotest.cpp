@@ -6,6 +6,7 @@
 #include "user.h"
 #include "uriresolver.h"
 #include "networkaccessmanager.h"
+#include "qt_connection_util.h"
 
 #include "csapi/joining.h"
 #include "csapi/leaving.h"

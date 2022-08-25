@@ -5,13 +5,12 @@
 
 #pragma once
 
-#include "ssosession.h"
-#include "qt_connection_util.h"
 #include "quotient_common.h"
+#include "ssosession.h"
 #include "util.h"
 
-#include "csapi/login.h"
 #include "csapi/create_room.h"
+#include "csapi/login.h"
 
 #include "events/accountdataevents.h"
 
@@ -379,20 +378,12 @@ public:
 
     /**
      * Call this before first sync to load from previously saved file.
-     *
-     * \param fromFile A local path to read the state from. Uses QUrl
-     * to be QML-friendly. Empty parameter means saving to the directory
-     * defined by stateCachePath() / stateCacheDir().
      */
     Q_INVOKABLE void loadState();
     /**
      * This method saves the current state of rooms (but not messages
      * in them) to a local cache file, so that it could be loaded by
      * loadState() on a next run of the client.
-     *
-     * \param toFile A local path to save the state to. Uses QUrl to be
-     * QML-friendly. Empty parameter means saving to the directory
-     * defined by stateCachePath() / stateCacheDir().
      */
     Q_INVOKABLE void saveState() const;
 

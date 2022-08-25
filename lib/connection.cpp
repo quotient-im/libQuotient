@@ -6,11 +6,12 @@
 
 #include "connection.h"
 
+#include "accountregistry.h"
 #include "connectiondata.h"
+#include "qt_connection_util.h"
 #include "room.h"
 #include "settings.h"
 #include "user.h"
-#include "accountregistry.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp"
@@ -20,10 +21,8 @@
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "csapi/logout.h"
-#include "csapi/receipts.h"
 #include "csapi/room_send.h"
 #include "csapi/to_device.h"
-#include "csapi/versions.h"
 #include "csapi/voip.h"
 #include "csapi/wellknown.h"
 #include "csapi/whoami.h"
@@ -2184,8 +2183,8 @@ PicklingMode Connection::picklingMode() const
 
 void Connection::saveOlmAccount()
 {
-    qCDebug(E2EE) << "Saving olm account";
 #ifdef Quotient_E2EE_ENABLED
+    qCDebug(E2EE) << "Saving olm account";
     if (const auto expectedPickle = d->olmAccount->pickle(d->picklingMode))
         d->database->setAccountPickle(*expectedPickle);
     else
