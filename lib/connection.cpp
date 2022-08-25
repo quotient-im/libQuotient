@@ -121,6 +121,7 @@ public:
     QHash<QString, int> oneTimeKeysCount;
     std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents;
     void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
+    bool processIfVerificationEvent(const Event &evt, bool encrypted);
 
     // A map from SenderKey to vector of InboundSession
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
@@ -988,32 +989,46 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 pendingEncryptedEvents.push_back(std::move(event));
                 continue;
             }
-            switchOnType(*tdEvt,
-                [this](const KeyVerificationRequestEvent& event) {
-                    auto session = new KeyVerificationSession(q->userId(),
-                                                              event, q, false);
-                    emit q->newKeyVerificationSession(session);
-                }, [this](const KeyVerificationReadyEvent& event) {
-                    emit q->incomingKeyVerificationReady(event);
-                }, [this](const KeyVerificationStartEvent& event) {
-                    emit q->incomingKeyVerificationStart(event);
-                }, [this](const KeyVerificationAcceptEvent& event) {
-                    emit q->incomingKeyVerificationAccept(event);
-                }, [this](const KeyVerificationKeyEvent& event) {
-                    emit q->incomingKeyVerificationKey(event);
-                }, [this](const KeyVerificationMacEvent& event) {
-                    emit q->incomingKeyVerificationMac(event);
-                }, [this](const KeyVerificationDoneEvent& event) {
-                    emit q->incomingKeyVerificationDone(event);
-                }, [this](const KeyVerificationCancelEvent& event) {
-                    emit q->incomingKeyVerificationCancel(event);
-                });
+            processIfVerificationEvent(*tdEvt, false);
         }
     }
 #endif
 }
 
 #ifdef Quotient_E2EE_ENABLED
+bool Connection::Private::processIfVerificationEvent(const Event& evt,
+                                                     bool encrypted)
+{
+    return switchOnType(evt,
+        [this, encrypted](const KeyVerificationRequestEvent& event) {
+            auto session =
+                new KeyVerificationSession(q->userId(), event, q, encrypted);
+            emit q->newKeyVerificationSession(session);
+            return true;
+        }, [this](const KeyVerificationReadyEvent& event) {
+            emit q->incomingKeyVerificationReady(event);
+            return true;
+        }, [this](const KeyVerificationStartEvent& event) {
+            emit q->incomingKeyVerificationStart(event);
+            return true;
+        }, [this](const KeyVerificationAcceptEvent& event) {
+            emit q->incomingKeyVerificationAccept(event);
+            return true;
+        }, [this](const KeyVerificationKeyEvent& event) {
+            emit q->incomingKeyVerificationKey(event);
+            return true;
+        }, [this](const KeyVerificationMacEvent& event) {
+            emit q->incomingKeyVerificationMac(event);
+            return true;
+        }, [this](const KeyVerificationDoneEvent& event) {
+            emit q->incomingKeyVerificationDone(event);
+            return true;
+        }, [this](const KeyVerificationCancelEvent& event) {
+            emit q->incomingKeyVerificationCancel(event);
+            return true;
+        }, false);
+}
+
 void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
 {
     const auto [decryptedEvent, olmSessionId] = sessionDecryptMessage(event);
@@ -1022,34 +1037,23 @@ void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& eve
         return;
     }
 
+    if (processIfVerificationEvent(*decryptedEvent, true))
+        return;
     switchOnType(*decryptedEvent,
-        [this, &event, olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
+        [this, &event,
+         olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId);
+                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(),
+                                                 olmSessionId);
             } else {
-                qCDebug(E2EE) << "Encrypted event room id" << roomKeyEvent.roomId()
+                qCDebug(E2EE)
+                    << "Encrypted event room id" << roomKeyEvent.roomId()
                     << "is not found at the connection" << q->objectName();
             }
-        }, [this](const KeyVerificationRequestEvent& event) {
-            emit q->newKeyVerificationSession(
-                new KeyVerificationSession(q->userId(), event, q, true));
-        }, [this](const KeyVerificationReadyEvent& event) {
-            emit q->incomingKeyVerificationReady(event);
-        }, [this](const KeyVerificationStartEvent& event) {
-            emit q->incomingKeyVerificationStart(event);
-        }, [this](const KeyVerificationAcceptEvent& event) {
-            emit q->incomingKeyVerificationAccept(event);
-        }, [this](const KeyVerificationKeyEvent& event) {
-            emit q->incomingKeyVerificationKey(event);
-        }, [this](const KeyVerificationMacEvent& event) {
-            emit q->incomingKeyVerificationMac(event);
-        }, [this](const KeyVerificationDoneEvent& event) {
-            emit q->incomingKeyVerificationDone(event);
-        }, [this](const KeyVerificationCancelEvent& event) {
-            emit q->incomingKeyVerificationCancel(event);
-        }, [](const Event& evt) {
+        },
+        [](const Event& evt) {
             qCWarning(E2EE) << "Skipping encrypted to_device event, type"
-                        << evt.matrixType();
+                            << evt.matrixType();
         });
 }
 #endif
@@ -2466,37 +2470,16 @@ void Connection::startKeyVerificationSession(const QString& deviceId)
     emit newKeyVerificationSession(session);
 }
 
-void Connection::sendToDevice(const QString& userId, const QString& deviceId,
-                              event_ptr_tt<Event> event, bool encrypted)
+void Connection::sendToDevice(const QString& targetUserId,
+                              const QString& targetDeviceId, Event event,
+                              bool encrypted)
 {
-    if (encrypted) {
-        QJsonObject payloadJson = event->fullJson();
-        payloadJson["recipient"] = userId;
-        payloadJson["sender"] = user()->id();
-        QJsonObject recipientObject;
-        recipientObject["ed25519"] = edKeyForUserDevice(userId, deviceId);
-        payloadJson["recipient_keys"] = recipientObject;
-        QJsonObject senderObject;
-        senderObject["ed25519"] = QString(olmAccount()->identityKeys().ed25519);
-        payloadJson["keys"] = senderObject;
-
-        auto cipherText = d->olmEncryptMessage(
-            userId, deviceId,
-            QJsonDocument(payloadJson).toJson(QJsonDocument::Compact));
-        QJsonObject encryptedJson;
-        encryptedJson[d->curveKeyForUserDevice(userId, deviceId)] =
-            QJsonObject{ { "type", cipherText.first },
-                         { "body", QString(cipherText.second) },
-                         { "sender", this->userId() } };
-        const auto& contentJson =
-            EncryptedEvent(encryptedJson,
-                           olmAccount()->identityKeys().curve25519)
-                .contentJson();
-        sendToDevices(EncryptedEvent::TypeId,
-                      { { userId, { { deviceId, contentJson } } } });
-    } else
-        sendToDevices(event->matrixType(),
-                      { { userId, { { deviceId, event->contentJson() } } } });
+    const auto contentJson =
+        encrypted ? d->assembleEncryptedContent(event.fullJson(), targetUserId,
+                                                targetDeviceId)
+                  : event.contentJson();
+    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.type(),
+                  { { targetUserId, { { targetDeviceId, contentJson } } } });
 }
 
 bool Connection::isVerifiedSession(const QString& megolmSessionId) const

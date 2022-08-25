@@ -336,8 +336,8 @@ public:
     bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     // This assumes that an olm session already exists. If it doesn't, no message is sent.
-    void sendToDevice(const QString& userId, const QString& deviceId,
-                      event_ptr_tt<Event> event, bool encrypted);
+    void sendToDevice(const QString& targetUserId, const QString& targetDeviceId,
+                      Event event, bool encrypted);
 
     /// Returns true if this megolm session comes from a verified device
     bool isVerifiedSession(const QString& megolmSessionId) const;

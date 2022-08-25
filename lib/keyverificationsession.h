@@ -128,10 +128,8 @@ private:
     void init(std::chrono::milliseconds timeout);
     void setState(State state);
     void setError(Error error);
-    QStringList commonSupportedMethods(const QStringList& remoteSupportedMethods) const;
-    QString errorToString(Error error) const;
-    Error stringToError(const QString& error) const;
-    QStringList m_supportedMethods = { "m.sas.v1"_ls };
+    static QString errorToString(Error error);
+    static Error stringToError(const QString& error);
 
     QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
     QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_ls);
@@ -139,4 +137,4 @@ private:
     std::pair<QString, QString> emojiForCode(int code);
 };
 
-}
+} // namespace Quotient
