@@ -110,9 +110,6 @@ void KeyVerificationSession::init(milliseconds timeout)
     auto randomSize = olm_create_sas_random_length(m_sas);
     auto random = getRandom(randomSize);
     olm_create_sas(m_sas, random.data(), randomSize);
-
-    m_language = QLocale::system().uiLanguages()[0];
-    m_language = m_language.left(m_language.indexOf('-'));
 }
 
 KeyVerificationSession::~KeyVerificationSession()
@@ -121,18 +118,57 @@ KeyVerificationSession::~KeyVerificationSession()
     delete[] reinterpret_cast<std::byte*>(m_sas);
 }
 
+struct EmojiStoreEntry : EmojiEntry {
+    QHash<QString, QString> translatedDescriptions;
+
+    explicit EmojiStoreEntry(const QJsonObject& json)
+        : EmojiEntry{ fromJson<QString>(json["emoji"]),
+                      fromJson<QString>(json["description"]) }
+        , translatedDescriptions{ fromJson<QHash<QString, QString>>(
+              json["translated_descriptions"]) }
+    {}
+};
+
+using EmojiStore = QVector<EmojiStoreEntry>;
+
+EmojiStore loadEmojiStore()
+{
+    QFile dataFile(":/sas-emoji.json");
+    dataFile.open(QFile::ReadOnly);
+    return fromJson<EmojiStore>(
+        QJsonDocument::fromJson(dataFile.readAll()).array());
+}
+
+EmojiEntry emojiForCode(int code, const QString& language)
+{
+    static const EmojiStore emojiStore = loadEmojiStore();
+    const auto& entry = emojiStore[code];
+    if (!language.isEmpty())
+        if (const auto translatedDescription =
+            emojiStore[code].translatedDescriptions.value(language);
+            !translatedDescription.isNull())
+            return { entry.emoji, translatedDescription };
+
+    return SLICE(entry, EmojiEntry);
+}
+
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
     if (state() != WAITINGFORKEY && state() != WAITINGFORVERIFICATION) {
         cancelVerification(UNEXPECTED_MESSAGE);
         return;
     }
-    olm_sas_set_their_key(m_sas, event.key().toLatin1().data(), event.key().toLatin1().size());
+    auto eventKey = event.key().toLatin1();
+    olm_sas_set_their_key(m_sas, eventKey.data(), eventKey.size());
 
     if (startSentByUs) {
-        auto commitment = QString(QCryptographicHash::hash((event.key() % m_startEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
-        commitment = commitment.left(commitment.indexOf('='));
-        if (commitment != m_commitment) {
+        const auto paddedCommitment =
+            QCryptographicHash::hash((eventKey % m_startEvent).toLatin1(),
+                                     QCryptographicHash::Sha256)
+                .toBase64();
+        const QLatin1String unpaddedCommitment(paddedCommitment.constData(),
+                                               paddedCommitment.indexOf('='));
+        if (unpaddedCommitment != m_commitment) {
             qCWarning(E2EE) << "Commitment mismatch; aborting verification";
             cancelVerification(MISMATCHED_COMMITMENT);
             return;
@@ -142,34 +178,40 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     }
     setState(WAITINGFORVERIFICATION);
 
-    QByteArray keyBytes(olm_sas_pubkey_length(m_sas), '\0');
-    olm_sas_get_pubkey(m_sas, keyBytes.data(), keyBytes.size());
-    QString key = QString(keyBytes);
+    std::string key(olm_sas_pubkey_length(m_sas), '\0');
+    olm_sas_get_pubkey(m_sas, key.data(), key.size());
 
-    QByteArray output(6, '\0');
-    QString infoTemplate = startSentByUs ? "MATRIX_KEY_VERIFICATION_SAS|%1|%2|%3|%4|%5|%6|%7"_ls : "MATRIX_KEY_VERIFICATION_SAS|%4|%5|%6|%1|%2|%3|%7"_ls;
+    std::array<std::byte, 6> output{};
+    const auto infoTemplate =
+        startSentByUs ? "MATRIX_KEY_VERIFICATION_SAS|%1|%2|%3|%4|%5|%6|%7"_ls
+                      : "MATRIX_KEY_VERIFICATION_SAS|%4|%5|%6|%1|%2|%3|%7"_ls;
 
-    auto info = infoTemplate.arg(m_connection->userId()).arg(m_connection->deviceId()).arg(key).arg(m_remoteUserId).arg(m_remoteDeviceId).arg(event.key()).arg(m_transactionId);
-    olm_sas_generate_bytes(m_sas, info.toLatin1().data(), info.toLatin1().size(), output.data(), output.size());
+    const auto info = infoTemplate
+                          .arg(m_connection->userId(), m_connection->deviceId(),
+                               key.data(), m_remoteUserId, m_remoteDeviceId,
+                               eventKey, m_transactionId)
+                          .toLatin1();
+    olm_sas_generate_bytes(m_sas, info.data(), info.size(), output.data(),
+                           output.size());
 
-    QVector<uint8_t> code(7, 0);
-    const auto& data = (uint8_t *) output.data();
+    static constexpr auto x3f = std::byte{ 0x3f };
+    const std::array<std::byte, 7> code{
+        output[0] >> 2,
+        (output[0] << 4 & x3f) | output[1] >> 4,
+        (output[1] << 2 & x3f) | output[2] >> 6,
+        output[2] & x3f,
+        output[3] >> 2,
+        (output[3] << 4 & x3f) | output[4] >> 4,
+        (output[4] << 2 & x3f) | output[5] >> 6
+    };
 
-    code[0] = data[0] >> 2;
-    code[1] = (data[0] << 4 & 0x3f) | data[1] >> 4;
-    code[2] = (data[1] << 2 & 0x3f) | data[2] >> 6;
-    code[3] = data[2] & 0x3f;
-    code[4] = data[3] >> 2;
-    code[5] = (data[3] << 4 & 0x3f) | data[4] >> 4;
-    code[6] = (data[4] << 2 & 0x3f) | data[5] >> 6;
+    const auto uiLanguages = QLocale().uiLanguages();
+    const auto preferredLanguage = uiLanguages.isEmpty()
+                                       ? QString()
+                                       : uiLanguages.front().section('-', 0, 0);
+    for (const auto& c : code)
+        m_sasEmojis += emojiForCode(std::to_integer<int>(c), preferredLanguage);
 
-    for (const auto& c : code) {
-        auto [emoji, description] = emojiForCode(c);
-        QVariantMap map;
-        map["emoji"] = emoji;
-        map["description"] = description;
-        m_sasEmojis += map;
-    }
     emit sasEmojisChanged();
     emit keyReceived();
 }
@@ -369,21 +411,7 @@ void KeyVerificationSession::handleCancel(const KeyVerificationCancelEvent& even
     setState(CANCELED);
 }
 
-std::pair<QString, QString> KeyVerificationSession::emojiForCode(int code)
-{
-    static QJsonArray data;
-    if (data.isEmpty()) {
-        QFile dataFile(":/sas-emoji.json");
-        dataFile.open(QFile::ReadOnly);
-        data = QJsonDocument::fromJson(dataFile.readAll()).array();
-    }
-    if (data[code].toObject()["translated_descriptions"].toObject().contains(m_language)) {
-        return {data[code].toObject()["emoji"].toString(), data[code].toObject()["translated_descriptions"].toObject()[m_language].toString()};
-    }
-    return {data[code].toObject()["emoji"].toString(), data[code].toObject()["description"].toString()};
-}
-
-QList<QVariantMap> KeyVerificationSession::sasEmojis() const
+QVector<EmojiEntry> KeyVerificationSession::sasEmojis() const
 {
     return m_sasEmojis;
 }

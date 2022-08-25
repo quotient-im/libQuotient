@@ -12,6 +12,15 @@ struct OlmSAS;
 namespace Quotient {
 class Connection;
 
+struct QUOTIENT_API EmojiEntry {
+    QString emoji;
+    QString description;
+
+    Q_GADGET
+    Q_PROPERTY(QString emoji MEMBER emoji CONSTANT)
+    Q_PROPERTY(QString description MEMBER description CONSTANT)
+};
+
 /** A key verification session. Listen for incoming sessions by connecting to Connection::newKeyVerificationSession.
     Start a new session using Connection::startKeyVerificationSession.
     The object is delete after finished is emitted.
@@ -67,7 +76,7 @@ public:
     Q_ENUM(Error)
 
     Q_PROPERTY(QString remoteDeviceId MEMBER m_remoteDeviceId CONSTANT)
-    Q_PROPERTY(QList<QVariantMap> sasEmojis READ sasEmojis NOTIFY sasEmojisChanged)
+    Q_PROPERTY(QVector<EmojiEntry> sasEmojis READ sasEmojis NOTIFY sasEmojisChanged)
     Q_PROPERTY(State state READ state NOTIFY stateChanged)
     Q_PROPERTY(Error error READ error NOTIFY errorChanged)
 
@@ -79,7 +88,7 @@ public:
     ~KeyVerificationSession() override;
     Q_DISABLE_COPY_MOVE(KeyVerificationSession)
 
-    QList<QVariantMap> sasEmojis() const;
+    QVector<EmojiEntry> sasEmojis() const;
     State state() const;
 
     Error error() const;
@@ -107,13 +116,12 @@ private:
     const QString m_transactionId;
     Connection* m_connection;
     OlmSAS* m_sas = nullptr;
-    QList<QVariantMap> m_sasEmojis;
+    QVector<EmojiEntry> m_sasEmojis;
     bool startSentByUs = false;
     State m_state = INCOMING;
     Error m_error = NONE;
     QString m_startEvent;
     QString m_commitment;
-    QString m_language;
     bool macReceived = false;
     bool m_encrypted;
     QStringList m_remoteSupportedMethods;
@@ -133,8 +141,7 @@ private:
 
     QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
     QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_ls);
-
-    std::pair<QString, QString> emojiForCode(int code);
 };
 
 } // namespace Quotient
+Q_DECLARE_METATYPE(Quotient::EmojiEntry)
