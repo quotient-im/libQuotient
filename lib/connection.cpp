@@ -37,15 +37,17 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "database.h"
+#    include "keyverificationsession.h"
+
 #    include "e2ee/qolmaccount.h"
 #    include "e2ee/qolminboundsession.h"
 #    include "e2ee/qolmsession.h"
 #    include "e2ee/qolmutility.h"
 #    include "e2ee/qolmutils.h"
-#    include "events/keyverificationevent.h"
-#    include "keyverificationsession.h"
 
+#    include "events/keyverificationevent.h"
 #endif // Quotient_E2EE_ENABLED
+
 #if QT_VERSION_MAJOR >= 6
 #    include <qt6keychain/keychain.h>
 #else
@@ -988,7 +990,8 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
             }
             switchOnType(*tdEvt,
                 [this](const KeyVerificationRequestEvent& event) {
-                    auto session = new KeyVerificationSession(q->userId(), event, q, false, q);
+                    auto session = new KeyVerificationSession(q->userId(),
+                                                              event, q, false);
                     emit q->newKeyVerificationSession(session);
                 }, [this](const KeyVerificationReadyEvent& event) {
                     emit q->incomingKeyVerificationReady(event);
@@ -1028,8 +1031,8 @@ void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& eve
                     << "is not found at the connection" << q->objectName();
             }
         }, [this](const KeyVerificationRequestEvent& event) {
-            auto session = new KeyVerificationSession(q->userId(), event, q, true, q);
-            emit q->newKeyVerificationSession(session);
+            emit q->newKeyVerificationSession(
+                new KeyVerificationSession(q->userId(), event, q, true));
         }, [this](const KeyVerificationReadyEvent& event) {
             emit q->incomingKeyVerificationReady(event);
         }, [this](const KeyVerificationStartEvent& event) {
@@ -2274,9 +2277,9 @@ QString Connection::Private::curveKeyForUserDevice(const QString& userId,
 }
 
 QString Connection::edKeyForUserDevice(const QString& userId,
-                                       const QString& device) const
+                                       const QString& deviceId) const
 {
-    return d->deviceKeys[userId][device].keys["ed25519:" % device];
+    return d->deviceKeys[userId][deviceId].keys["ed25519:" % deviceId];
 }
 
 bool Connection::Private::isKnownCurveKey(const QString& userId,
@@ -2458,12 +2461,10 @@ void Connection::saveCurrentOutboundMegolmSession(
                                                   session);
 }
 
-#endif
-
 void Connection::startKeyVerificationSession(const QString& deviceId)
 {
-    auto session = new KeyVerificationSession(userId(), deviceId, this, this);
-    Q_EMIT newKeyVerificationSession(session);
+    auto* const session = new KeyVerificationSession(userId(), deviceId, this);
+    emit newKeyVerificationSession(session);
 }
 
 void Connection::sendToDevice(const QString& userId, const QString& deviceId,
@@ -2499,7 +2500,7 @@ void Connection::sendToDevice(const QString& userId, const QString& deviceId,
                       { { userId, { { deviceId, event->contentJson() } } } });
 }
 
-bool Connection::isVerifiedSession(const QString& megolmSessionId)
+bool Connection::isVerifiedSession(const QString& megolmSessionId) const
 {
     auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
     query.bindValue(":sessionId", megolmSessionId);
@@ -2520,3 +2521,4 @@ bool Connection::isVerifiedSession(const QString& megolmSessionId)
     database()->execute(query);
     return query.next() && query.value("verified").toBool();
 }
+#endif

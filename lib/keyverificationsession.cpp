@@ -1,53 +1,59 @@
 // SPDX-FileCopyrightText: 2022 Tobias Fella <fella@posteo.de>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "connection.h"
 #include "keyverificationsession.h"
-#include "olm/sas.h"
+
+#include "connection.h"
+#include "database.h"
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmutils.h"
+#include "olm/sas.h"
+
 #include "events/event.h"
+
 #include <QtCore/QCryptographicHash>
-#include <QtCore/QUuid>
 #include <QtCore/QTimer>
-#include "database.h"
+#include <QtCore/QUuid>
+
+#include <chrono>
 
 using namespace Quotient;
+using namespace std::chrono;
 
-KeyVerificationSession::KeyVerificationSession(const QString& remoteUserId, const KeyVerificationRequestEvent& event, Connection *connection, bool encrypted, QObject* parent)
-    : QObject(parent)
-    , m_remoteUserId(remoteUserId)
+KeyVerificationSession::KeyVerificationSession(
+    QString remoteUserId, const KeyVerificationRequestEvent& event,
+    Connection* connection, bool encrypted)
+    : QObject(connection)
+    , m_remoteUserId(std::move(remoteUserId))
     , m_remoteDeviceId(event.fromDevice())
     , m_transactionId(event.transactionId())
     , m_connection(connection)
     , m_encrypted(encrypted)
     , m_remoteSupportedMethods(event.methods())
 {
-    auto timeoutTime = std::min(event.timestamp().addSecs(600),
-                                QDateTime::currentDateTime().addSecs(120));
-    m_timeout =
-        timeoutTime.toMSecsSinceEpoch() - QDateTime::currentMSecsSinceEpoch();
-    if (m_timeout <= 5000) {
-        return;
-    }
-    init();
-    setState(INCOMING);
+    const auto& currentTime = QDateTime::currentDateTime();
+    const auto timeoutTime =
+        std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
+    const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
+    if (timeout > 5s)
+        init(timeout);
+    // Otherwise don't even bother starting up
 }
 
-KeyVerificationSession::KeyVerificationSession(const QString& userId, const QString& deviceId, Connection* connection, QObject* parent)
-    : QObject(parent)
-    , m_remoteUserId(userId)
-    , m_remoteDeviceId(deviceId)
+KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
+                                               Connection* connection)
+    : QObject(connection)
+    , m_remoteUserId(std::move(userId))
+    , m_remoteDeviceId(std::move(deviceId))
     , m_transactionId(QUuid::createUuid().toString())
     , m_connection(connection)
     , m_encrypted(false)
 {
-    m_timeout = 600000;
-    init();
+    init(600s);
     QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
 }
 
-void KeyVerificationSession::init()
+void KeyVerificationSession::init(milliseconds timeout)
 {
     connect(m_connection, &Connection::incomingKeyVerificationReady, this, [this](const KeyVerificationReadyEvent& event) {
         if (event.transactionId() == m_transactionId && event.fromDevice() == m_remoteDeviceId) {
@@ -85,10 +91,7 @@ void KeyVerificationSession::init()
         }
     });
 
-    QTimer::singleShot(m_timeout, this, [this] {
-        cancelVerification(TIMEOUT);
-    });
-
+    QTimer::singleShot(timeout, this, [this] { cancelVerification(TIMEOUT); });
 
     m_sas = olm_sas(new uint8_t[olm_sas_size()]);
     auto randomSize = olm_create_sas_random_length(m_sas);
@@ -380,7 +383,7 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
     }
 }
 
-void KeyVerificationSession::handleDone(const KeyVerificationDoneEvent& event)
+void KeyVerificationSession::handleDone(const KeyVerificationDoneEvent&)
 {
     if (state() != DONE) {
         cancelVerification(UNEXPECTED_MESSAGE);

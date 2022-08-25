@@ -9,7 +9,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
-#include <ctime>
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmsession.h"

@@ -4,10 +4,10 @@
 #pragma once
 
 #include "events/keyverificationevent.h"
-#include <QtCore/QObject>
-#include <qchar.h>
 
-class OlmSAS;
+#include <QtCore/QObject>
+
+struct OlmSAS;
 
 namespace Quotient {
 class Connection;
@@ -22,16 +22,20 @@ class QUOTIENT_API KeyVerificationSession : public QObject
 
 public:
     enum State {
-        INCOMING, // There is a request for verification incoming
-        WAITINGFORREADY, // We sent a request for verification and are waiting for ready
-        READY, // Either party sent a ready as a response to a request; The user selects a method
-        WAITINGFORACCEPT, // We sent a start and are waiting for an accept
-        ACCEPTED, // The other party sent an accept and is waiting for a key
-        WAITINGFORKEY, // We're waiting for a key
-        WAITINGFORVERIFICATION, // We're waiting for the *user* to verify the emojis
-        WAITINGFORMAC, // We're waiting for the mac
-        CANCELED, // The session has been canceled
-        DONE, // The verification is done
+        INCOMING, ///< There is a request for verification incoming
+        //! We sent a request for verification and are waiting for ready
+        WAITINGFORREADY,
+        //! Either party sent a ready as a response to a request; the user
+        //! selects a method
+        READY,
+        WAITINGFORACCEPT, ///< We sent a start and are waiting for an accept
+        ACCEPTED, ///< The other party sent an accept and is waiting for a key
+        WAITINGFORKEY, ///< We're waiting for a key
+        //! We're waiting for the *user* to verify the emojis
+        WAITINGFORVERIFICATION,
+        WAITINGFORMAC, ///< We're waiting for the mac
+        CANCELED, ///< The session has been canceled
+        DONE, ///< The verification is done
     };
     Q_ENUM(State)
 
@@ -60,19 +64,21 @@ public:
         MISMATCHED_SAS,
         REMOTE_MISMATCHED_SAS,
     };
-    Q_ENUM(Error);
+    Q_ENUM(Error)
 
-    //Q_PROPERTY(int timeLeft READ timeLeft NOTIFY timeLeftChanged)
     Q_PROPERTY(QString remoteDeviceId MEMBER m_remoteDeviceId CONSTANT)
     Q_PROPERTY(QList<QVariantMap> sasEmojis READ sasEmojis NOTIFY sasEmojisChanged)
     Q_PROPERTY(State state READ state NOTIFY stateChanged)
     Q_PROPERTY(Error error READ error NOTIFY errorChanged)
 
-    KeyVerificationSession(const QString& remoteUserId, const KeyVerificationRequestEvent& event, Connection* connection, bool encrypted, QObject* parent = nullptr);
-    KeyVerificationSession(const QString& userId, const QString& deviceId, Connection* connection, QObject* parent = nullptr);
-    ~KeyVerificationSession();
+    KeyVerificationSession(QString remoteUserId,
+                           const KeyVerificationRequestEvent& event,
+                           Connection* connection, bool encrypted);
+    KeyVerificationSession(QString userId, QString deviceId,
+                           Connection* connection);
+    ~KeyVerificationSession() override;
+    Q_DISABLE_COPY_MOVE(KeyVerificationSession)
 
-    int timeLeft() const;
     QList<QVariantMap> sasEmojis() const;
     State state() const;
 
@@ -88,8 +94,6 @@ public Q_SLOTS:
     void cancelVerification(Error error);
 
 Q_SIGNALS:
-
-    void timeLeftChanged();
     void startReceived();
     void keyReceived();
     void sasEmojisChanged();
@@ -98,20 +102,18 @@ Q_SIGNALS:
     void finished();
 
 private:
-    QString m_remoteUserId;
-    QString m_remoteDeviceId;
-    QString m_transactionId;
+    const QString m_remoteUserId;
+    const QString m_remoteDeviceId;
+    const QString m_transactionId;
     Connection* m_connection;
     OlmSAS* m_sas = nullptr;
-    int timeleft = 0;
     QList<QVariantMap> m_sasEmojis;
     bool startSentByUs = false;
-    State m_state;
-    Error m_error;
+    State m_state = INCOMING;
+    Error m_error = NONE;
     QString m_startEvent;
     QString m_commitment;
     QString m_language;
-    int m_timeout;
     bool macReceived = false;
     bool m_encrypted;
     QStringList m_remoteSupportedMethods;
@@ -121,9 +123,9 @@ private:
     void handleAccept(const KeyVerificationAcceptEvent& event);
     void handleKey(const KeyVerificationKeyEvent& event);
     void handleMac(const KeyVerificationMacEvent& event);
-    void handleDone(const KeyVerificationDoneEvent& event);
+    void handleDone(const KeyVerificationDoneEvent&);
     void handleCancel(const KeyVerificationCancelEvent& event);
-    void init();
+    void init(std::chrono::milliseconds timeout);
     void setState(State state);
     void setError(Error error);
     QStringList commonSupportedMethods(const QStringList& remoteSupportedMethods) const;

@@ -139,7 +139,6 @@ list(APPEND lib_SRCS
     lib/eventitem.h lib/eventitem.cpp
     lib/accountregistry.h lib/accountregistry.cpp
     lib/mxcreply.h lib/mxcreply.cpp
-    lib/keyverificationsession.h lib/keyverificationsession.cpp
     lib/events/event.h lib/events/event.cpp
     lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
@@ -168,7 +167,6 @@ list(APPEND lib_SRCS
     lib/events/encryptedevent.h lib/events/encryptedevent.cpp
     lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
     lib/events/stickerevent.h
-    lib/events/keyverificationevent.h
     lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
     lib/jobs/requestdata.h lib/jobs/requestdata.cpp
     lib/jobs/basejob.h lib/jobs/basejob.cpp
@@ -180,6 +178,7 @@ list(APPEND lib_SRCS
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
         lib/database.h lib/database.cpp
+        lib/keyverificationsession.h lib/keyverificationsession.cpp
         lib/e2ee/qolmaccount.h lib/e2ee/qolmaccount.cpp
         lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
         lib/e2ee/qolminboundsession.h lib/e2ee/qolminboundsession.cpp
@@ -189,6 +188,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         lib/e2ee/qolmerrors.h lib/e2ee/qolmerrors.cpp
         lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
         lib/e2ee/qolmmessage.h lib/e2ee/qolmmessage.cpp
+        lib/events/keyverificationevent.h
     )
 endif()
 
