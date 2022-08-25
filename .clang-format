@@ -93,6 +93,8 @@ IncludeCategories:
     Priority: 32
   - Regex:    '"csapi/'
     Priority: 2
+  - Regex:    '"e2ee/'
+    Priority: 3
   - Regex:    '"(events|jobs)/'
     Priority: 4
   - Regex:    '.*'
