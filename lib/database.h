@@ -12,8 +12,6 @@
 #include "e2ee/e2ee.h"
 
 namespace Quotient {
-class User;
-class Room;
 
 class QUOTIENT_API Database : public QObject
 {
@@ -59,7 +57,8 @@ public:
                           const QByteArray& pickle);
 
     // Returns a map UserId -> [DeviceId] that have not received key yet
-    QMultiHash<QString, QString> devicesWithoutKey(const QString& roomId, QMultiHash<QString, QString> devices,
+    QMultiHash<QString, QString> devicesWithoutKey(
+        const QString& roomId, QMultiHash<QString, QString> devices,
         const QString& sessionId);
     // 'devices' contains tuples {userId, deviceId, curveKey}
     void setDevicesReceivedKey(
@@ -67,12 +66,16 @@ public:
         const QVector<std::tuple<QString, QString, QString>>& devices,
         const QString& sessionId, int index);
 
+    bool isSessionVerified(const QString& edKey);
+    void setSessionVerified(const QString& edKeyId);
+
 private:
     void migrateTo1();
     void migrateTo2();
     void migrateTo3();
     void migrateTo4();
+    void migrateTo5();
 
     QString m_matrixId;
 };
-}
+} // namespace Quotient

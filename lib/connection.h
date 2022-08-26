@@ -23,8 +23,9 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmmessage.h"
 #include "e2ee/qolmoutboundsession.h"
+#include "keyverificationsession.h"
+#include "events/keyverificationevent.h"
 #endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
@@ -319,16 +320,26 @@ public:
     QOlmAccount* olmAccount() const;
     Database* database() const;
     PicklingMode picklingMode() const;
+
     UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
-    bool hasOlmSession(const QString& user, const QString& deviceId) const;
-
     QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
         const QString& roomId) const;
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session) const;
+
+    QString edKeyForUserDevice(const QString& userId,
+                               const QString& deviceId) const;
+    bool hasOlmSession(const QString& user, const QString& deviceId) const;
+
+    // This assumes that an olm session already exists. If it doesn't, no message is sent.
+    void sendToDevice(const QString& targetUserId, const QString& targetDeviceId,
+                      Event event, bool encrypted);
+
+    /// Returns true if this megolm session comes from a verified device
+    bool isVerifiedSession(const QString& megolmSessionId) const;
 
     void sendSessionKeyToDevices(const QString& roomId,
                                  const QByteArray& sessionId,
@@ -689,6 +700,8 @@ public Q_SLOTS:
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
 #ifdef Quotient_E2EE_ENABLED
+    void startKeyVerificationSession(const QString& deviceId);
+
     void encryptionUpdate(Room *room);
 #endif
 
@@ -849,6 +862,19 @@ Q_SIGNALS:
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
     void devicesListLoaded();
+
+#ifdef Quotient_E2EE_ENABLED
+    void incomingKeyVerificationReady(const KeyVerificationReadyEvent& event);
+    void incomingKeyVerificationStart(const KeyVerificationStartEvent& event);
+    void incomingKeyVerificationAccept(const KeyVerificationAcceptEvent& event);
+    void incomingKeyVerificationKey(const KeyVerificationKeyEvent& event);
+    void incomingKeyVerificationMac(const KeyVerificationMacEvent& event);
+    void incomingKeyVerificationDone(const KeyVerificationDoneEvent& event);
+    void incomingKeyVerificationCancel(const KeyVerificationCancelEvent& event);
+
+    void newKeyVerificationSession(KeyVerificationSession* session);
+    void sessionVerified(const QString& userId, const QString& deviceId);
+#endif
 
 protected:
     /**

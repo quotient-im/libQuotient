@@ -31,7 +31,8 @@ Database::Database(const QString& matrixId, const QString& deviceId, QObject* pa
     case 0: migrateTo1(); [[fallthrough]];
     case 1: migrateTo2(); [[fallthrough]];
     case 2: migrateTo3(); [[fallthrough]];
-    case 3: migrateTo4();
+    case 3: migrateTo4(); [[fallthrough]];
+    case 4: migrateTo5();
     }
 }
 
@@ -102,7 +103,7 @@ void Database::migrateTo2()
 {
     qCDebug(DATABASE) << "Migrating database to version 2";
     transaction();
-    //TODO remove this column again - we don't need it after all
+
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD ed25519Key TEXT"));
     execute(QStringLiteral("ALTER TABLE olm_sessions ADD lastReceived TEXT"));
 
@@ -138,6 +139,16 @@ void Database::migrateTo4()
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD creationTime TEXT;"));
     execute(QStringLiteral("ALTER TABLE outbound_megolm_sessions ADD messageCount INTEGER;"));
     execute(QStringLiteral("PRAGMA user_version = 4;"));
+    commit();
+}
+
+void Database::migrateTo5()
+{
+    qCDebug(DATABASE) << "Migrating database to version 5";
+    transaction();
+
+    execute(QStringLiteral("ALTER TABLE tracked_devices ADD verified BOOL;"));
+    execute(QStringLiteral("PRAGMA user_version = 5"));
     commit();
 }
 
@@ -392,3 +403,19 @@ void Database::updateOlmSession(const QString& senderKey, const QString& session
     commit();
 }
 
+void Database::setSessionVerified(const QString& edKeyId)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE tracked_devices SET verified=true WHERE edKeyId=:edKeyId;"));
+    query.bindValue(":edKeyId", edKeyId);
+    transaction();
+    execute(query);
+    commit();
+}
+
+bool Database::isSessionVerified(const QString& edKey)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT verified FROM tracked_devices WHERE edKey=:edKey"));
+    query.bindValue(":edKey", edKey);
+    execute(query);
+    return query.next() && query.value("verified").toBool();
+}

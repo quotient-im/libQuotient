@@ -13,8 +13,7 @@ public:
 
     explicit RoomKeyEvent(const QJsonObject& obj);
     explicit RoomKeyEvent(const QString& algorithm, const QString& roomId,
-                          const QString& sessionId, const QString& sessionKey,
-                          const QString& senderId);
+                          const QString& sessionId, const QString& sessionKey);
 
     QUO_CONTENT_GETTER(QString, algorithm)
     QUO_CONTENT_GETTER(QString, roomId)

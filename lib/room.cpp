@@ -70,7 +70,6 @@
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmerrors.h"
 #include "e2ee/qolminboundsession.h"
-#include "e2ee/qolmoutboundsession.h"
 #include "e2ee/qolmutility.h"
 #include "database.h"
 #endif // Quotient_E2EE_ENABLED

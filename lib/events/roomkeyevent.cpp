@@ -5,21 +5,18 @@
 
 using namespace Quotient;
 
-RoomKeyEvent::RoomKeyEvent(const QJsonObject &obj) : Event(typeId(), obj)
+RoomKeyEvent::RoomKeyEvent(const QJsonObject &obj) : Event(TypeId, obj)
 {
     if (roomId().isEmpty())
         qCWarning(E2EE) << "Room key event has empty room id";
 }
 
-RoomKeyEvent::RoomKeyEvent(const QString& algorithm, const QString& roomId, const QString& sessionId, const QString& sessionKey, const QString& senderId)
-    : Event(typeId(), {
-        {"content", QJsonObject{
-            {"algorithm", algorithm},
-            {"room_id", roomId},
-            {"session_id", sessionId},
-            {"session_key", sessionKey},
-        }},
-        {"sender", senderId},
-        {"type", "m.room_key"},
-    })
+RoomKeyEvent::RoomKeyEvent(const QString& algorithm, const QString& roomId,
+                           const QString& sessionId, const QString& sessionKey)
+    : Event(TypeId, basicJson(TypeId, {
+                                          { "algorithm", algorithm },
+                                          { "room_id", roomId },
+                                          { "session_id", sessionId },
+                                          { "session_key", sessionKey },
+                                      }))
 {}
