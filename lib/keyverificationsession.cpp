@@ -163,7 +163,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 
     if (startSentByUs) {
         const auto paddedCommitment =
-            QCryptographicHash::hash((eventKey % m_startEvent).toLatin1(),
+            QCryptographicHash::hash((event.key() % m_startEvent).toLatin1(),
                                      QCryptographicHash::Sha256)
                 .toBase64();
         const QLatin1String unpaddedCommitment(paddedCommitment.constData(),
@@ -189,7 +189,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     const auto info = infoTemplate
                           .arg(m_connection->userId(), m_connection->deviceId(),
                                key.data(), m_remoteUserId, m_remoteDeviceId,
-                               eventKey, m_transactionId)
+                               event.key(), m_transactionId)
                           .toLatin1();
     olm_sas_generate_bytes(m_sas, info.data(), info.size(), output.data(),
                            output.size());
