@@ -816,7 +816,11 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
     // Change::UnreadStats and also possibly Change::PartiallyReadStats, even if
     // the estimation luckily matched the exact result.
     if (readReceiptMarker < to || changes /*i.e. read receipt was corrected*/) {
+        auto oldNotificationCount = unreadStats.notableCount;
         unreadStats = EventStats::fromMarker(q, readReceiptMarker);
+        if (oldNotificationCount != unreadStats.notableCount) {
+            emit q->notificationCountChanged();
+        }
         Q_ASSERT(!unreadStats.isEstimate);
         qCDebug(MESSAGES).nospace() << "Recalculated unread event statistics in"
                                     << q->objectName() << ": " << unreadStats;
@@ -850,6 +854,9 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
                                                        const rev_iter_t& marker,
                                                        Change c) {
         s.notableCount += newStats.notableCount;
+        if (newStats.notableCount > 0) {
+            emit q->notificationCountChanged();
+        }
         s.highlightCount += newStats.highlightCount;
         if (!s.isEstimate)
             s.isEstimate = marker == historyEdge();
@@ -1862,8 +1869,10 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
                           << "since m.read";
     } else if (timeline.empty()) {
         // In absence of actual events use statistics from the homeserver
-        if (merge(unreadStats.notableCount, data.unreadCount))
+        if (merge(unreadStats.notableCount, data.unreadCount)) {
+            emit q->notificationCountChanged();
             changes |= Change::PartiallyReadStats;
+        }
         if (merge(unreadStats.highlightCount, data.highlightCount))
             changes |= Change::UnreadStats;
         unreadStats.isEstimate = !data.unreadCount.has_value()
@@ -1882,6 +1891,7 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
         correctedStats = true;
         partiallyReadStats.notableCount = unreadStats.notableCount;
         partiallyReadStats.isEstimate |= unreadStats.isEstimate;
+        emit q->notificationCountChanged();
     }
     if (!unreadStats.isEstimate && partiallyReadStats.isEstimate) {
         correctedStats = true;
