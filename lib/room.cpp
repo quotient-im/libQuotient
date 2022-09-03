@@ -26,13 +26,13 @@
 #include "csapi/inviting.h"
 #include "csapi/kicking.h"
 #include "csapi/leaving.h"
+#include "csapi/read_markers.h"
 #include "csapi/receipts.h"
 #include "csapi/redaction.h"
 #include "csapi/room_send.h"
 #include "csapi/room_state.h"
 #include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
-#include "csapi/read_markers.h"
 #include "csapi/tags.h"
 
 #include "events/callanswerevent.h"
@@ -44,15 +44,15 @@
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
 #include "events/roomavatarevent.h"
+#include "events/roomcanonicalaliasevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roommemberevent.h"
+#include "events/roompowerlevelsevent.h"
 #include "events/roomtombstoneevent.h"
 #include "events/simplestateevents.h"
 #include "events/typingevent.h"
-#include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -1353,7 +1353,7 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
 
     d->setTags(move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
-        localUser()->id(), id(), TagEvent::matrixTypeId(),
+        localUser()->id(), id(), TagEvent::TypeId,
         TagEvent(d->tags).contentJson());
 
     if (propagate) {
@@ -2635,10 +2635,10 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         QStringLiteral("membership") };
     // clang-format on
 
-    static const std::pair<event_type_t, QStringList> keepContentKeysMap[] {
-        { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
-        { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
-        { RoomPowerLevelsEvent::typeId(),
+    static const std::pair<event_type_t, QStringList> keepContentKeysMap[]{
+        { RoomMemberEvent::TypeId, { QStringLiteral("membership") } },
+        { RoomCreateEvent::TypeId, { QStringLiteral("creator") } },
+        { RoomPowerLevelsEvent::TypeId,
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),

@@ -269,7 +269,7 @@ public:
     explicit Event(const QJsonObject& json);
 
     Q_DISABLE_COPY(Event)
-    Event(Event&&) = default;
+    Event(Event&&) noexcept = default;
     Event& operator=(Event&&) = delete;
     virtual ~Event();
 

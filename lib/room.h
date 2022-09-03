@@ -770,11 +770,10 @@ public:
                  "make sure to check its result for nullptrs")]] //
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
-        QT_IGNORE_DEPRECATIONS(
-            const auto* evt = eventCast<const EvT>(
-                getCurrentState(EvT::matrixTypeId(), stateKey));)
+        QT_IGNORE_DEPRECATIONS(const auto* evt = eventCast<const EvT>(
+                                   getCurrentState(EvT::TypeId, stateKey));)
         Q_ASSERT(evt);
-        Q_ASSERT(evt->matrixTypeId() == EvT::matrixTypeId()
+        Q_ASSERT(evt->matrixType() == EvT::TypeId
                  && evt->stateKey() == stateKey);
         return evt;
     }

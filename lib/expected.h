@@ -21,11 +21,12 @@ public:
     using error_type = E;
 
     Expected() = default;
-    explicit Expected(const Expected&) = default;
-    explicit Expected(Expected&&) noexcept = default;
+    Expected(const Expected&) = default;
+    Expected(Expected&&) noexcept = default;
+    ~Expected() = default;
 
     template <typename X, typename = enable_if_constructible_t<X>>
-    Expected(X&& x)
+    QUO_IMPLICIT Expected(X&& x) // NOLINT(google-explicit-constructor)
         : data(std::forward<X>(x))
     {}
 

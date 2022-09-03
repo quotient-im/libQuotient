@@ -6,14 +6,15 @@
 
 using namespace Quotient;
 
-EncryptedEvent::EncryptedEvent(const QJsonObject& ciphertext,
+EncryptedEvent::EncryptedEvent(const QJsonObject& ciphertexts,
                                const QString& senderKey)
     : RoomEvent({ { AlgorithmKeyL, OlmV1Curve25519AesSha2AlgoKey },
-                  { CiphertextKeyL, ciphertext },
+                  { CiphertextKeyL, ciphertexts },
                   { SenderKeyKeyL, senderKey } })
 {}
 
-EncryptedEvent::EncryptedEvent(QByteArray ciphertext, const QString& senderKey,
+EncryptedEvent::EncryptedEvent(const QByteArray& ciphertext,
+                               const QString& senderKey,
                                const QString& deviceId, const QString& sessionId)
     : RoomEvent({
         { AlgorithmKeyL, MegolmV1AesSha2AlgoKey },

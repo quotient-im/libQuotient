@@ -32,11 +32,12 @@ public:
     /* In case with Olm, the encrypted content of the event is
      * a map from the recipient Curve25519 identity key to ciphertext
      * information */
-    explicit EncryptedEvent(const QJsonObject& ciphertext,
+    explicit EncryptedEvent(const QJsonObject& ciphertexts,
                             const QString& senderKey);
     /* In case with Megolm, device_id and session_id are required */
-    explicit EncryptedEvent(QByteArray ciphertext, const QString& senderKey,
-                            const QString& deviceId, const QString& sessionId);
+    explicit EncryptedEvent(const QByteArray& ciphertext,
+                            const QString& senderKey, const QString& deviceId,
+                            const QString& sessionId);
     explicit EncryptedEvent(const QJsonObject& obj);
 
     QString algorithm() const;

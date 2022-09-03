@@ -128,9 +128,8 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                    const QString& jsonMsgType,
                                    TypedBase* content)
-    : RoomEvent(RoomEvent::basicJson(TypeId,
-                                     assembleContentJson(plainBody, jsonMsgType,
-                                                         content)))
+    : RoomEvent(
+        basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, content)))
     , _content(content)
 {}
 
