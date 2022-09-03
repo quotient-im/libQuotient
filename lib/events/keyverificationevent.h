@@ -284,7 +284,7 @@ REGISTER_EVENT_TYPE(KeyVerificationMacEvent)
 
 class QUOTIENT_API KeyVerificationDoneEvent : public Event {
 public:
-    DEFINE_EVENT_TYPEID("m.key.verification.done", KeyVerificationRequestEvent)
+    DEFINE_EVENT_TYPEID("m.key.verification.done", KeyVerificationDoneEvent)
 
     explicit KeyVerificationDoneEvent(const QJsonObject& obj)
         : Event(TypeId, obj)
