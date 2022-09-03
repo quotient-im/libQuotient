@@ -13,6 +13,7 @@
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
+#include <QtCore/QStandardPaths>
 
 #include <chrono>
 
@@ -196,13 +197,11 @@ using EmojiStore = QVector<EmojiStoreEntry>;
 
 EmojiStore loadEmojiStore()
 {
-    Q_INIT_RESOURCE(libquotientemojis);
-    QFile dataFile(":/sas-emoji.json");
+    QFile dataFile(QStandardPaths::locate(QStandardPaths::AppDataLocation,
+                                          "sas-emoji.json")); // Will it also run from builddir?
     dataFile.open(QFile::ReadOnly);
-    auto data = dataFile.readAll();
-    Q_CLEANUP_RESOURCE(libquotientemojis);
     return fromJson<EmojiStore>(
-        QJsonDocument::fromJson(data).array());
+        QJsonDocument::fromJson(dataFile.readAll()).array());
 }
 
 EmojiEntry emojiForCode(int code, const QString& language)

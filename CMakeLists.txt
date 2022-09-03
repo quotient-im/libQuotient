@@ -82,7 +82,6 @@ message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
 
 option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 
@@ -356,6 +355,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
 )
 install(DIRECTORY lib/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
+install(FILES sas-emoji.json DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
 include(CMakePackageConfigHelpers)
 # NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
