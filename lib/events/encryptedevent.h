@@ -46,10 +46,10 @@ public:
     explicit EncryptedEvent(const QJsonObject& obj);
 
     QString algorithm() const;
-    QByteArray ciphertext() const
-    {
-        return contentPart<QString>(CiphertextKeyL).toLatin1();
-    }
+
+    QUO_LATIN1_CONTENT_GETTER_X(ciphertext, "ciphertext"_ls)
+    /// An overload for the case when distinct ciphertexts are provided for
+    /// different identity keys
     QJsonObject ciphertext(const QString& identityKey) const
     {
         return contentPart<QJsonObject>(CiphertextKeyL)

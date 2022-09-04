@@ -25,9 +25,6 @@ public:
     QUO_CONTENT_GETTER(QString, algorithm)
     QUO_CONTENT_GETTER(QString, roomId)
     QUO_CONTENT_GETTER(QString, sessionId)
-    QByteArray sessionKey() const
-    {
-        return contentPart<QString>("session_key"_ls).toLatin1();
-    }
+    QUO_LATIN1_CONTENT_GETTER_X(sessionKey, "session_key"_ls)
 };
 } // namespace Quotient

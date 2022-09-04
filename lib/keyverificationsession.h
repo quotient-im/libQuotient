@@ -129,8 +129,8 @@ private:
     bool startSentByUs = false;
     State m_state = INCOMING;
     Error m_error = NONE;
-    QString m_startEvent{};
-    QString m_commitment{};
+    QByteArray m_startEvent{};
+    QByteArray m_commitment{};
     bool macReceived = false;
     bool m_verified = false;
     QString m_pendingEdKeyId{};

@@ -491,6 +491,13 @@ public:
         return contentPart<PartType_>(PartName_##JsonKey);   \
     }
 
+#define QUO_LATIN1_CONTENT_GETTER_X(PartName_, JsonKey_)            \
+    QByteArray PartName_() const                                    \
+    {                                                               \
+        static const auto PartName_##JsonKey = JsonKey_;            \
+        return contentPart<QString>(PartName_##JsonKey).toLatin1(); \
+    }
+
 //! \brief Define an inline method obtaining a content part
 //!
 //! This macro adds a const method that extracts a JSON value at the key
