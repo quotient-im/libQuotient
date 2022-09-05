@@ -306,9 +306,10 @@ void KeyVerificationSession::sendStartSas()
 {
     startSentByUs = true;
     KeyVerificationStartEvent event(m_transactionId, m_connection->deviceId());
-    m_startEvent = QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact);
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
-                               std::move(event), m_encrypted);
+    m_startEvent =
+        QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact);
+    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId, event,
+                               m_encrypted);
     setState(WAITINGFORACCEPT);
 }
 
