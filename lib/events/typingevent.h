@@ -6,13 +6,5 @@
 #include "event.h"
 
 namespace Quotient {
-class QUOTIENT_API TypingEvent : public Event {
-public:
-    DEFINE_EVENT_TYPEID("m.typing", TypingEvent)
-
-    explicit TypingEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
-
-    QStringList users() const;
-};
-REGISTER_EVENT_TYPE(TypingEvent)
+DEFINE_SIMPLE_EVENT(TypingEvent, Event, "m.typing", QStringList, users, "user_ids")
 } // namespace Quotient

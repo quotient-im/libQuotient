@@ -128,8 +128,8 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                    const QString& jsonMsgType,
                                    TypedBase* content)
-    : RoomEvent(typeId(), matrixTypeId(),
-                assembleContentJson(plainBody, jsonMsgType, content))
+    : RoomEvent(
+        basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, content)))
     , _content(content)
 {}
 
@@ -175,7 +175,7 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
 #endif
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
-    : RoomEvent(typeId(), obj), _content(nullptr)
+    : RoomEvent(obj), _content(nullptr)
 {
     if (isRedacted())
         return;

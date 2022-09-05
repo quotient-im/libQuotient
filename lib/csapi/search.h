@@ -6,7 +6,8 @@
 
 #include "csapi/definitions/room_event_filter.h"
 
-#include "events/eventloader.h"
+#include "events/roomevent.h"
+#include "events/stateevent.h"
 #include "jobs/basejob.h"
 
 namespace Quotient {

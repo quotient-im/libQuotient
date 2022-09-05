@@ -19,13 +19,17 @@ struct ReceiptsForEvent {
 };
 using EventsWithReceipts = QVector<ReceiptsForEvent>;
 
-class QUOTIENT_API ReceiptEvent : public Event {
-public:
-    DEFINE_EVENT_TYPEID("m.receipt", ReceiptEvent)
-    explicit ReceiptEvent(const EventsWithReceipts& ewrs);
-    explicit ReceiptEvent(const QJsonObject& obj) : Event(typeId(), obj) {}
+template <>
+QUOTIENT_API EventsWithReceipts fromJson(const QJsonObject& json);
+QUOTIENT_API QJsonObject toJson(const EventsWithReceipts& ewrs);
 
-    EventsWithReceipts eventsWithReceipts() const;
+class QUOTIENT_API ReceiptEvent
+    : public EventTemplate<ReceiptEvent, Event, EventsWithReceipts> {
+public:
+    QUO_EVENT(ReceiptEvent, "m.receipt")
+    using EventTemplate::EventTemplate;
+
+    [[deprecated("Use content() instead")]]
+    EventsWithReceipts eventsWithReceipts() const { return content(); }
 };
-REGISTER_EVENT_TYPE(ReceiptEvent)
 } // namespace Quotient

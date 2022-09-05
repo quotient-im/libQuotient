@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "events/eventloader.h"
+#include "events/stateevent.h"
 #include "jobs/basejob.h"
 
 namespace Quotient {

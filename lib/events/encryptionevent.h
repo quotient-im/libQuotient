@@ -26,20 +26,16 @@ public:
     int rotationPeriodMsgs = 100;
 };
 
-class QUOTIENT_API EncryptionEvent : public StateEvent<EncryptionEventContent> {
+class QUOTIENT_API EncryptionEvent
+    : public KeylessStateEventBase<EncryptionEvent, EncryptionEventContent> {
 public:
-    DEFINE_EVENT_TYPEID("m.room.encryption", EncryptionEvent)
+    QUO_EVENT(EncryptionEvent, "m.room.encryption")
 
     using EncryptionType
         [[deprecated("Use Quotient::EncryptionType instead")]] =
             Quotient::EncryptionType;
 
-    explicit EncryptionEvent(const QJsonObject& obj)
-        : StateEvent(typeId(), obj)
-    {}
-    explicit EncryptionEvent(EncryptionEventContent&& content)
-        : StateEvent(typeId(), matrixTypeId(), QString(), std::move(content))
-    {}
+    using KeylessStateEventBase::KeylessStateEventBase;
 
     Quotient::EncryptionType encryption() const { return content().encryption; }
     QString algorithm() const { return content().algorithm; }
@@ -48,5 +44,4 @@ public:
 
     bool useEncryption() const { return !algorithm().isEmpty(); }
 };
-REGISTER_EVENT_TYPE(EncryptionEvent)
 } // namespace Quotient

@@ -32,7 +32,7 @@ endif(CMAKE_BUILD_TYPE)
 message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 include(CheckCXXCompilerFlag)
 if (MSVC)
-    add_compile_options(/EHsc /W4
+    add_compile_options(/Zc:preprocessor /EHsc /W4
         /wd4100 /wd4127 /wd4242 /wd4244 /wd4245 /wd4267 /wd4365 /wd4456 /wd4459
         /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
@@ -154,18 +154,15 @@ list(APPEND lib_SRCS
     lib/events/roomcanonicalaliasevent.h
     lib/events/roomavatarevent.h
     lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
-    lib/events/typingevent.h lib/events/typingevent.cpp
+    lib/events/typingevent.h
     lib/events/accountdataevents.h
     lib/events/receiptevent.h lib/events/receiptevent.cpp
     lib/events/reactionevent.h
-    lib/events/callinviteevent.h lib/events/callinviteevent.cpp
-    lib/events/callcandidatesevent.h
-    lib/events/callanswerevent.h lib/events/callanswerevent.cpp
-    lib/events/callhangupevent.h
+    lib/events/callevents.h lib/events/callevents.cpp
     lib/events/directchatevent.h lib/events/directchatevent.cpp
     lib/events/encryptionevent.h lib/events/encryptionevent.cpp
     lib/events/encryptedevent.h lib/events/encryptedevent.cpp
-    lib/events/roomkeyevent.h lib/events/roomkeyevent.cpp
+    lib/events/roomkeyevent.h
     lib/events/stickerevent.h
     lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
     lib/jobs/requestdata.h lib/jobs/requestdata.cpp

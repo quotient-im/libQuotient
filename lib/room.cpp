@@ -26,33 +26,30 @@
 #include "csapi/inviting.h"
 #include "csapi/kicking.h"
 #include "csapi/leaving.h"
+#include "csapi/read_markers.h"
 #include "csapi/receipts.h"
 #include "csapi/redaction.h"
 #include "csapi/room_send.h"
 #include "csapi/room_state.h"
 #include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
-#include "csapi/read_markers.h"
 #include "csapi/tags.h"
 
-#include "events/callanswerevent.h"
-#include "events/callcandidatesevent.h"
-#include "events/callhangupevent.h"
-#include "events/callinviteevent.h"
+#include "events/callevents.h"
 #include "events/encryptionevent.h"
 #include "events/reactionevent.h"
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
 #include "events/roomavatarevent.h"
+#include "events/roomcanonicalaliasevent.h"
 #include "events/roomcreateevent.h"
 #include "events/roommemberevent.h"
+#include "events/roompowerlevelsevent.h"
 #include "events/roomtombstoneevent.h"
 #include "events/simplestateevents.h"
 #include "events/typingevent.h"
-#include "events/roompowerlevelsevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "events/roomcanonicalaliasevent.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -211,7 +208,7 @@ public:
 
     void getPreviousContent(int limit = 10, const QString &filter = {});
 
-    const StateEventBase* getCurrentState(const StateEventKey& evtKey) const
+    const StateEvent* getCurrentState(const StateEventKey& evtKey) const
     {
         const auto* evt = currentState.value(evtKey, nullptr);
         if (!evt) {
@@ -219,9 +216,8 @@ public:
                 // In the absence of a real event, make a stub as-if an event
                 // with empty content has been received. Event classes should be
                 // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(evtKey,
-                                     loadEvent<StateEventBase>(evtKey.first,
-                                                               evtKey.second));
+                stubbedState.emplace(
+                    evtKey, loadEvent<StateEvent>(evtKey.first, evtKey.second));
                 qCDebug(STATE) << "A new stub event created for key {"
                                << evtKey.first << evtKey.second << "}";
                 qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
@@ -597,7 +593,7 @@ bool Room::allHistoryLoaded() const
 
 QString Room::name() const
 {
-    return currentState().queryOr(&RoomNameEvent::name, QString());
+    return currentState().content<RoomNameEvent>().value;
 }
 
 QStringList Room::aliases() const
@@ -613,8 +609,7 @@ QStringList Room::aliases() const
 
 QStringList Room::altAliases() const
 {
-    return currentState().queryOr(&RoomCanonicalAliasEvent::altAliases,
-                                  QStringList());
+    return currentState().content<RoomCanonicalAliasEvent>().altAliases;
 }
 
 QString Room::canonicalAlias() const
@@ -1353,8 +1348,8 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
 
     d->setTags(move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
-        localUser()->id(), id(), TagEvent::matrixTypeId(),
-        TagEvent(d->tags).contentJson());
+        localUser()->id(), id(), TagEvent::TypeId,
+        Quotient::toJson(TagEvent::content_type { d->tags }));
 
     if (propagate) {
         for (auto* r = this; (r = r->successor(joinStates));)
@@ -1569,8 +1564,8 @@ bool Room::usesEncryption() const
                 .isEmpty();
 }
 
-const StateEventBase* Room::getCurrentState(const QString& evtType,
-                                            const QString& stateKey) const
+const StateEvent* Room::getCurrentState(const QString& evtType,
+                                        const QString& stateKey) const
 {
     return d->getCurrentState({ evtType, stateKey });
 }
@@ -2283,7 +2278,7 @@ QString Room::postJson(const QString& matrixType,
     return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
 }
 
-SetRoomStateWithKeyJob* Room::setState(const StateEventBase& evt)
+SetRoomStateWithKeyJob* Room::setState(const StateEvent& evt)
 {
     return setState(evt.matrixType(), evt.stateKey(), evt.contentJson());
 }
@@ -2321,7 +2316,7 @@ void Room::setTopic(const QString& newTopic)
 
 bool isEchoEvent(const RoomEventPtr& le, const PendingEventItem& re)
 {
-    if (le->type() != re->type())
+    if (le->metaType() != re->metaType())
         return false;
 
     if (!re->id().isEmpty())
@@ -2635,10 +2630,10 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         QStringLiteral("membership") };
     // clang-format on
 
-    static const std::pair<event_type_t, QStringList> keepContentKeysMap[] {
-        { RoomMemberEvent::typeId(), { QStringLiteral("membership") } },
-        { RoomCreateEvent::typeId(), { QStringLiteral("creator") } },
-        { RoomPowerLevelsEvent::typeId(),
+    static const std::pair<event_type_t, QStringList> keepContentKeysMap[]{
+        { RoomMemberEvent::TypeId, { QStringLiteral("membership") } },
+        { RoomCreateEvent::TypeId, { QStringLiteral("creator") } },
+        { RoomPowerLevelsEvent::TypeId,
           { QStringLiteral("ban"), QStringLiteral("events"),
             QStringLiteral("events_default"), QStringLiteral("kick"),
             QStringLiteral("redact"), QStringLiteral("state_default"),
@@ -2917,7 +2912,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 
     if (q->supportsCalls())
         for (auto it = from; it != syncEdge(); ++it)
-            if (const auto* evt = it->viewAs<CallEventBase>())
+            if (const auto* evt = it->viewAs<CallEvent>())
                 emit q->callEvent(q, evt);
 
     if (totalInserted > 0) {
@@ -3099,7 +3094,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
 
     // Change the state
     const auto* const oldStateEvent =
-        std::exchange(curStateEvent, static_cast<const StateEventBase*>(&e));
+        std::exchange(curStateEvent, static_cast<const StateEvent*>(&e));
     Q_ASSERT(!oldStateEvent
              || (oldStateEvent->matrixType() == e.matrixType()
                  && oldStateEvent->stateKey() == e.stateKey()));
@@ -3294,7 +3289,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     }
 
     if (auto* evt = eventCast<const ReadMarkerEvent>(event))
-        changes |= d->setFullyReadMarker(evt->event_id());
+        changes |= d->setFullyReadMarker(evt->eventId());
 
     // For all account data events
     auto& currentData = d->accountData[event->matrixType()];

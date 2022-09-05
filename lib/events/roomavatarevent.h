@@ -8,28 +8,16 @@
 
 namespace Quotient {
 class QUOTIENT_API RoomAvatarEvent
-    : public StateEvent<EventContent::ImageContent> {
+    : public KeylessStateEventBase<RoomAvatarEvent,
+                       EventContent::ImageContent> {
     // It's a bit of an overkill to use a full-fledged ImageContent
     // because in reality m.room.avatar usually only has a single URL,
     // without a thumbnail. But The Spec says there be thumbnails, and
-    // we follow The Spec.
+    // we follow The Spec (and ImageContent is very convenient to reuse here).
 public:
-    DEFINE_EVENT_TYPEID("m.room.avatar", RoomAvatarEvent)
-    explicit RoomAvatarEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
-    {}
-    explicit RoomAvatarEvent(const EventContent::ImageContent& avatar)
-        : StateEvent(typeId(), matrixTypeId(), QString(), avatar)
-    {}
-    // A replica of EventContent::ImageInfo constructor
-    explicit RoomAvatarEvent(const QUrl& mxcUrl, qint64 fileSize = -1,
-                             QMimeType mimeType = {},
-                             const QSize& imageSize = {},
-                             const QString& originalFilename = {})
-        : RoomAvatarEvent(EventContent::ImageContent {
-            mxcUrl, fileSize, mimeType, imageSize, originalFilename })
-    {}
+    QUO_EVENT(RoomAvatarEvent, "m.room.avatar")
+    using KeylessStateEventBase::KeylessStateEventBase;
 
     QUrl url() const { return content().url(); }
 };
-REGISTER_EVENT_TYPE(RoomAvatarEvent)
 } // namespace Quotient

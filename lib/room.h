@@ -757,9 +757,8 @@ public:
      */
     [[deprecated("Use currentState().get() instead; "
                  "make sure to check its result for nullptrs")]] //
-    const Quotient::StateEventBase*
-    getCurrentState(const QString& evtType,
-                    const QString& stateKey = {}) const;
+    const StateEvent* getCurrentState(const QString& evtType,
+                                      const QString& stateKey = {}) const;
 
     /// Get a state event with the given event type and state key
     /*! This is a typesafe overload that accepts a C++ event type instead of
@@ -770,11 +769,10 @@ public:
                  "make sure to check its result for nullptrs")]] //
     const EvT* getCurrentState(const QString& stateKey = {}) const
     {
-        QT_IGNORE_DEPRECATIONS(
-            const auto* evt = eventCast<const EvT>(
-                getCurrentState(EvT::matrixTypeId(), stateKey));)
+        QT_IGNORE_DEPRECATIONS(const auto* evt = eventCast<const EvT>(
+                                   getCurrentState(EvT::TypeId, stateKey));)
         Q_ASSERT(evt);
-        Q_ASSERT(evt->matrixTypeId() == EvT::matrixTypeId()
+        Q_ASSERT(evt->matrixType() == EvT::TypeId
                  && evt->stateKey() == stateKey);
         return evt;
     }
@@ -783,16 +781,21 @@ public:
     RoomStateView currentState() const;
 
     //! Send a request to update the room state with the given event
-    SetRoomStateWithKeyJob* setState(const StateEventBase& evt);
+    SetRoomStateWithKeyJob* setState(const StateEvent& evt);
 
     //! \brief Set a state event of the given type with the given arguments
     //!
     //! This typesafe overload attempts to send a state event with the type
     //! \p EvT and the content defined by \p args. Specifically, the function
-    //! creates a temporary object of type \p EvT passing \p args to
-    //! the constructor, and sends a request to the homeserver using
-    //! the Matrix event type defined by \p EvT and the event content produced
-    //! via EvT::contentJson().
+    //! constructs a temporary object of type \p EvT with its content
+    //! list-initialised from \p args, and sends a request to the homeserver
+    //! using the Matrix event type defined by \p EvT and the event content
+    //! produced via EvT::contentJson().
+    //!
+    //! \note This call is not suitable for events that assume non-empty
+    //!       stateKey, such as member events; for those you have to create
+    //!       a temporary event object yourself and use the setState() overload
+    //!       that accepts StateEvent const-ref.
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args)
     {

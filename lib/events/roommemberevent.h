@@ -28,32 +28,16 @@ public:
 
 using MembershipType [[deprecated("Use Membership instead")]] = Membership;
 
-class QUOTIENT_API RoomMemberEvent : public StateEvent<MemberEventContent> {
+class QUOTIENT_API RoomMemberEvent
+    : public KeyedStateEventBase<RoomMemberEvent, MemberEventContent> {
     Q_GADGET
 public:
-    DEFINE_EVENT_TYPEID("m.room.member", RoomMemberEvent)
+    QUO_EVENT(RoomMemberEvent, "m.room.member")
 
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
-    explicit RoomMemberEvent(const QJsonObject& obj) : StateEvent(typeId(), obj)
-    {}
-    RoomMemberEvent(const QString& userId, MemberEventContent&& content)
-        : StateEvent(typeId(), matrixTypeId(), userId, std::move(content))
-    {}
-
-    //! \brief A special constructor to create unknown RoomMemberEvents
-    //!
-    //! This is needed in order to use RoomMemberEvent as a "base event class"
-    //! in cases like GetMembersByRoomJob when RoomMemberEvents (rather than
-    //! RoomEvents or StateEvents) are resolved from JSON. For such cases
-    //! loadEvent\<> requires an underlying class to have a specialisation of
-    //! EventFactory\<> and be constructible with unknownTypeId() instead of
-    //! its genuine id. Don't use directly.
-    //! \sa EventFactory, loadEvent, GetMembersByRoomJob
-    RoomMemberEvent(Type type, const QJsonObject& fullJson)
-        : StateEvent(type, fullJson)
-    {}
+    using KeyedStateEventBase::KeyedStateEventBase;
 
     Membership membership() const { return content().membership; }
     QString userId() const { return stateKey(); }
@@ -79,14 +63,4 @@ public:
     bool isRename() const;
     bool isAvatarUpdate() const;
 };
-
-template <>
-inline event_ptr_tt<RoomMemberEvent>
-doLoadEvent<RoomMemberEvent>(const QJsonObject& json, const QString& matrixType)
-{
-    if (matrixType == QLatin1String(RoomMemberEvent::matrixTypeId()))
-        return makeEvent<RoomMemberEvent>(json);
-    return makeEvent<RoomMemberEvent>(unknownEventTypeId(), json);
-}
-REGISTER_EVENT_TYPE(RoomMemberEvent)
 } // namespace Quotient

@@ -4,7 +4,6 @@
 #pragma once
 
 #include "event.h"
-#include "util.h"
 
 namespace Quotient {
 constexpr auto FavouriteTag [[maybe_unused]] = "m.favourite"_ls;
@@ -46,14 +45,21 @@ struct JsonObjectConverter<TagRecord> {
 
 using TagsMap = QHash<QString, TagRecord>;
 
-DEFINE_SIMPLE_EVENT(TagEvent, Event, "m.tag", TagsMap, tags)
-DEFINE_SIMPLE_EVENT(ReadMarkerEventImpl, Event, "m.fully_read", QString, eventId)
+DEFINE_SIMPLE_EVENT(TagEvent, Event, "m.tag", TagsMap, tags, "tags")
+DEFINE_SIMPLE_EVENT(ReadMarkerEventImpl, Event, "m.fully_read", QString,
+                    eventId, "event_id")
 class ReadMarkerEvent : public ReadMarkerEventImpl {
 public:
     using ReadMarkerEventImpl::ReadMarkerEventImpl;
     [[deprecated("Use ReadMarkerEvent::eventId() instead")]]
-    QString event_id() const { return eventId(); }
+    auto event_id() const { return eventId(); }
 };
-DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, Event, "m.ignored_user_list", QSet<QString>,
-                    ignored_users)
+DEFINE_SIMPLE_EVENT(IgnoredUsersEventImpl, Event, "m.ignored_user_list",
+                    QSet<QString>, ignoredUsers, "ignored_users")
+class IgnoredUsersEvent : public IgnoredUsersEventImpl {
+public:
+    using IgnoredUsersEventImpl::IgnoredUsersEventImpl;
+    [[deprecated("Use IgnoredUsersEvent::ignoredUsers() instead")]]
+    auto ignored_users() const { return ignoredUsers(); }
+};
 } // namespace Quotient

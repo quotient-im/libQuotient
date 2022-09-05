@@ -7,15 +7,25 @@
 
 namespace Quotient {
 
-class QUOTIENT_API StateEventBase : public RoomEvent {
+class QUOTIENT_API StateEvent : public RoomEvent {
 public:
-    static inline EventFactory<StateEventBase> factory { "StateEvent" };
+    QUO_BASE_EVENT(StateEvent, "json.contains('state_key')"_ls,
+                   RoomEvent::BaseMetaType)
+    static bool isValid(const QJsonObject& fullJson)
+    {
+        return fullJson.contains(StateKeyKeyL);
+    }
 
-    StateEventBase(Type type, const QJsonObject& json);
-    StateEventBase(Type type, event_mtype_t matrixType,
-                   const QString& stateKey = {},
-                   const QJsonObject& contentJson = {});
-    ~StateEventBase() override = default;
+    //! \brief Static setting of whether a given even type uses state keys
+    //!
+    //! Most event types don't use a state key; overriding this to `true`
+    //! for a given type changes the calls across Quotient to include state key
+    //! in their signatures; otherwise, state key is still accessible but
+    //! constructors and calls in, e.g., RoomStateView don't include it.
+    static constexpr auto needsStateKey = false;
+
+    explicit StateEvent(Type type, const QString& stateKey = {},
+                        const QJsonObject& contentJson = {});
 
     //! Make a minimal correct Matrix state event JSON
     static QJsonObject basicJson(const QString& matrixTypeId,
@@ -27,43 +37,24 @@ public:
                  { ContentKey, contentJson } };
     }
 
-    bool isStateEvent() const override { return true; }
     QString replacedState() const;
-    void dumpTo(QDebug dbg) const override;
-
     virtual bool repeatsState() const;
-};
-using StateEventPtr = event_ptr_tt<StateEventBase>;
-using StateEvents = EventsArray<StateEventBase>;
 
-[[deprecated("Use StateEventBase::basicJson() instead")]]
+protected:
+    explicit StateEvent(const QJsonObject& json);
+    void dumpTo(QDebug dbg) const override;
+};
+using StateEventBase
+    [[deprecated("StateEventBase is StateEvent now")]] = StateEvent;
+using StateEventPtr = event_ptr_tt<StateEvent>;
+using StateEvents = EventsArray<StateEvent>;
+
+[[deprecated("Use StateEvent::basicJson() instead")]]
 inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
                                        const QJsonObject& content,
                                        const QString& stateKey = {})
 {
-    return StateEventBase::basicJson(matrixTypeId, stateKey, content);
-}
-
-//! \brief Override RoomEvent factory with that from StateEventBase if JSON has
-//! stateKey
-//!
-//! This means in particular that an event with a type known to RoomEvent but
-//! having stateKey set (even to an empty value) will be treated as a state
-//! event and most likely end up as unknown (consider, e.g., m.room.message
-//! that has stateKey set).
-template <>
-inline RoomEventPtr doLoadEvent(const QJsonObject& json,
-                                const QString& matrixType)
-{
-    if (json.contains(StateKeyKeyL))
-        return StateEventBase::factory.loadEvent(json, matrixType);
-    return RoomEvent::factory.loadEvent(json, matrixType);
-}
-
-template <>
-inline bool is<StateEventBase>(const Event& e)
-{
-    return e.isStateEvent();
+    return StateEvent::basicJson(matrixTypeId, stateKey, content);
 }
 
 /**
@@ -74,64 +65,87 @@ inline bool is<StateEventBase>(const Event& e)
  */
 using StateEventKey = std::pair<QString, QString>;
 
-template <typename ContentT>
-struct Prev {
-    template <typename... ContentParamTs>
-    explicit Prev(const QJsonObject& unsignedJson,
-                  ContentParamTs&&... contentParams)
-        : senderId(unsignedJson.value("prev_sender"_ls).toString())
-        , content(fromJson<ContentT>(unsignedJson.value(PrevContentKeyL)),
-                  std::forward<ContentParamTs>(contentParams)...)
-    {}
-
-    QString senderId;
-    ContentT content;
-};
-
-template <typename ContentT>
-class StateEvent : public StateEventBase {
+template <typename EventT, typename ContentT>
+class EventTemplate<EventT, StateEvent, ContentT>
+    : public StateEvent {
 public:
     using content_type = ContentT;
 
+    struct Prev {
+        explicit Prev() = default;
+        explicit Prev(const QJsonObject& unsignedJson)
+            : senderId(fromJson<QString>(unsignedJson["prev_sender"_ls]))
+            , content(
+                  fromJson<Omittable<ContentT>>(unsignedJson[PrevContentKeyL]))
+        {}
+
+        QString senderId;
+        Omittable<ContentT> content;
+    };
+
+    explicit EventTemplate(const QJsonObject& fullJson)
+        : StateEvent(fullJson)
+        , _content(fromJson<ContentT>(Event::contentJson()))
+        , _prev(unsignedJson())
+    {}
     template <typename... ContentParamTs>
-    explicit StateEvent(Type type, const QJsonObject& fullJson,
-                        ContentParamTs&&... contentParams)
-        : StateEventBase(type, fullJson)
-        , _content(fromJson<ContentT>(contentJson()),
-                   std::forward<ContentParamTs>(contentParams)...)
-    {
-        const auto& unsignedData = unsignedJson();
-        if (unsignedData.contains(PrevContentKeyL))
-            _prev = std::make_unique<Prev<ContentT>>(
-                unsignedData, std::forward<ContentParamTs>(contentParams)...);
-    }
-    template <typename... ContentParamTs>
-    explicit StateEvent(Type type, event_mtype_t matrixType,
-                        const QString& stateKey,
-                        ContentParamTs&&... contentParams)
-        : StateEventBase(type, matrixType, stateKey)
-        , _content{std::forward<ContentParamTs>(contentParams)...}
+    explicit EventTemplate(const QString& stateKey,
+                           ContentParamTs&&... contentParams)
+        : StateEvent(EventT::TypeId, stateKey)
+        , _content { std::forward<ContentParamTs>(contentParams)... }
     {
         editJson().insert(ContentKey, toJson(_content));
     }
 
     const ContentT& content() const { return _content; }
+
     template <typename VisitorT>
     void editContent(VisitorT&& visitor)
     {
         visitor(_content);
         editJson()[ContentKeyL] = toJson(_content);
     }
-    const ContentT* prevContent() const
-    {
-        return _prev ? &_prev->content : nullptr;
-    }
-    QString prevSenderId() const { return _prev ? _prev->senderId : QString(); }
+    const Omittable<ContentT>& prevContent() const { return _prev.content; }
+    QString prevSenderId() const { return _prev.senderId; }
 
 private:
     ContentT _content;
-    std::unique_ptr<Prev<ContentT>> _prev;
+    Prev _prev;
 };
+
+template <typename EventT, typename ContentT>
+class KeyedStateEventBase
+    : public EventTemplate<EventT, StateEvent, ContentT> {
+public:
+    static constexpr auto needsStateKey = true;
+
+    using EventTemplate<EventT, StateEvent, ContentT>::EventTemplate;
+};
+
+template <typename EvT>
+concept Keyed_State_Event = EvT::needsStateKey;
+
+template <typename EventT, typename ContentT>
+class KeylessStateEventBase
+    : public EventTemplate<EventT, StateEvent, ContentT> {
+private:
+    using base_type = EventTemplate<EventT, StateEvent, ContentT>;
+
+public:
+    template <typename... ContentParamTs>
+    explicit KeylessStateEventBase(ContentParamTs&&... contentParams)
+        : base_type(QString(), std::forward<ContentParamTs>(contentParams)...)
+    {}
+
+protected:
+    explicit KeylessStateEventBase(const QJsonObject& fullJson)
+        : base_type(fullJson)
+    {}
+};
+
+template <typename EvT>
+concept Keyless_State_Event = !EvT::needsStateKey;
+
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::StateEventBase*)
-Q_DECLARE_METATYPE(const Quotient::StateEventBase*)
+Q_DECLARE_METATYPE(Quotient::StateEvent*)
+Q_DECLARE_METATYPE(const Quotient::StateEvent*)

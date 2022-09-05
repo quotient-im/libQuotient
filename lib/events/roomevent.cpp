@@ -8,16 +8,11 @@
 
 using namespace Quotient;
 
-RoomEvent::RoomEvent(Type type, event_mtype_t matrixType,
-                     const QJsonObject& contentJson)
-    : Event(type, matrixType, contentJson)
-{}
-
-RoomEvent::RoomEvent(Type type, const QJsonObject& json) : Event(type, json)
+RoomEvent::RoomEvent(const QJsonObject& json) : Event(json)
 {
     if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
         !redaction.isEmpty())
-        _redactedBecause = makeEvent<RedactionEvent>(redaction);
+        _redactedBecause = loadEvent<RedactionEvent>(redaction);
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
@@ -99,28 +94,6 @@ void RoomEvent::dumpTo(QDebug dbg) const
 {
     Event::dumpTo(dbg);
     dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
-}
-
-QJsonObject CallEventBase::basicJson(const QString& matrixType,
-                                     const QString& callId, int version,
-                                     QJsonObject contentJson)
-{
-    contentJson.insert(QStringLiteral("call_id"), callId);
-    contentJson.insert(QStringLiteral("version"), version);
-    return RoomEvent::basicJson(matrixType, contentJson);
-}
-
-CallEventBase::CallEventBase(Type type, event_mtype_t matrixType,
-                             const QString& callId, int version,
-                             const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(matrixType, callId, version, contentJson))
-{}
-
-CallEventBase::CallEventBase(Type type, const QJsonObject& json)
-    : RoomEvent(type, json)
-{
-    if (callId().isEmpty())
-        qCWarning(EVENTS) << id() << "is a call event with an empty call id";
 }
 
 #ifdef Quotient_E2EE_ENABLED

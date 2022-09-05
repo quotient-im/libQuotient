@@ -7,13 +7,11 @@
 #include "quotient_common.h"
 
 namespace Quotient {
-class QUOTIENT_API RoomCreateEvent : public StateEventBase {
+class QUOTIENT_API RoomCreateEvent : public StateEvent {
 public:
-    DEFINE_EVENT_TYPEID("m.room.create", RoomCreateEvent)
+    QUO_EVENT(RoomCreateEvent, "m.room.create")
 
-    explicit RoomCreateEvent(const QJsonObject& obj)
-        : StateEventBase(typeId(), obj)
-    {}
+    using StateEvent::StateEvent;
 
     struct Predecessor {
         QString roomId;
@@ -26,5 +24,4 @@ public:
     bool isUpgrade() const;
     RoomType roomType() const;
 };
-REGISTER_EVENT_TYPE(RoomCreateEvent)
 } // namespace Quotient

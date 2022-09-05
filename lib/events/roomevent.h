@@ -10,17 +10,13 @@
 namespace Quotient {
 class RedactionEvent;
 
-/** This class corresponds to m.room.* events */
+// That check could look into Event and find most stuff already deleted...
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class QUOTIENT_API RoomEvent : public Event {
 public:
-    static inline EventFactory<RoomEvent> factory { "RoomEvent" };
+    QUO_BASE_EVENT(RoomEvent, {}, Event::BaseMetaType)
 
-    // RedactionEvent is an incomplete type here so we cannot inline
-    // constructors and destructors and we cannot use 'using'.
-    RoomEvent(Type type, event_mtype_t matrixType,
-              const QJsonObject& contentJson = {});
-    RoomEvent(Type type, const QJsonObject& json);
-    ~RoomEvent() override;
+    ~RoomEvent() override; // Don't inline this - see the private section
 
     QString id() const;
     QDateTime originTimestamp() const;
@@ -67,9 +63,12 @@ public:
 #endif
 
 protected:
+    explicit RoomEvent(const QJsonObject& json);
     void dumpTo(QDebug dbg) const override;
 
 private:
+    // RedactionEvent is an incomplete type here so we cannot inline
+    // constructors using it and also destructors (with 'using', in particular).
     event_ptr_tt<RedactionEvent> _redactedBecause;
 
 #ifdef Quotient_E2EE_ENABLED
@@ -80,30 +79,6 @@ using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = Range<RoomEvents>;
 
-template <>
-inline EventPtr doLoadEvent(const QJsonObject& json, const QString& matrixType)
-{
-    if (matrixType == "m.room.encrypted")
-        return RoomEvent::factory.loadEvent(json, matrixType);
-    return Event::factory.loadEvent(json, matrixType);
-}
-
-class QUOTIENT_API CallEventBase : public RoomEvent {
-public:
-    CallEventBase(Type type, event_mtype_t matrixType, const QString& callId,
-                  int version, const QJsonObject& contentJson = {});
-    CallEventBase(Type type, const QJsonObject& json);
-    ~CallEventBase() override = default;
-    bool isCallEvent() const override { return true; }
-
-    QUO_CONTENT_GETTER(QString, callId)
-    QUO_CONTENT_GETTER(int, version)
-
-protected:
-    static QJsonObject basicJson(const QString& matrixType,
-                                 const QString& callId, int version,
-                                 QJsonObject contentJson = {});
-};
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
 Q_DECLARE_METATYPE(const Quotient::RoomEvent*)

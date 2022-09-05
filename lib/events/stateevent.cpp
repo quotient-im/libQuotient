@@ -2,35 +2,33 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "stateevent.h"
+#include "logging.h"
 
 using namespace Quotient;
 
-StateEventBase::StateEventBase(Type type, const QJsonObject& json)
-    : RoomEvent(json.contains(StateKeyKeyL) ? type : UnknownEventTypeId, json)
+StateEvent::StateEvent(const QJsonObject& json)
+    : RoomEvent(json)
 {
-    if (Event::type() == UnknownEventTypeId && !json.contains(StateKeyKeyL))
-        qWarning(EVENTS) << "Attempt to create a state event with no stateKey -"
-                            "forcing the event type to unknown to avoid damage";
+    Q_ASSERT_X(json.contains(StateKeyKeyL), __FUNCTION__,
+               "Attempt to create a state event without state key");
 }
 
-StateEventBase::StateEventBase(Event::Type type, event_mtype_t matrixType,
-                               const QString& stateKey,
+StateEvent::StateEvent(Event::Type type, const QString& stateKey,
                                const QJsonObject& contentJson)
-    : RoomEvent(type, basicJson(type, stateKey, contentJson))
+    : RoomEvent(basicJson(type, stateKey, contentJson))
 {}
 
-bool StateEventBase::repeatsState() const
+bool StateEvent::repeatsState() const
 {
-    const auto prevContentJson = unsignedPart<QJsonObject>(PrevContentKeyL);
-    return fullJson().value(ContentKeyL) == prevContentJson;
+    return contentJson() == unsignedPart<QJsonObject>(PrevContentKeyL);
 }
 
-QString StateEventBase::replacedState() const
+QString StateEvent::replacedState() const
 {
     return unsignedPart<QString>("replaces_state"_ls);
 }
 
-void StateEventBase::dumpTo(QDebug dbg) const
+void StateEvent::dumpTo(QDebug dbg) const
 {
     if (!stateKey().isEmpty())
         dbg << '<' << stateKey() << "> ";

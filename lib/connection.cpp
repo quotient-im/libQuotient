@@ -28,7 +28,6 @@
 #include "csapi/whoami.h"
 
 #include "events/directchatevent.h"
-#include "events/eventloader.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
@@ -189,7 +188,7 @@ public:
         emit q->accountDataChanged(eventType);
     }
 
-    template <typename EventT, typename ContentT>
+    template <EventClass EventT, typename ContentT>
     void packAndSendAccountData(ContentT&& content)
     {
         packAndSendAccountData(
@@ -1701,7 +1700,7 @@ bool Connection::isIgnored(const User* user) const
 IgnoredUsersList Connection::ignoredUsers() const
 {
     const auto* event = accountData<IgnoredUsersEvent>();
-    return event ? event->ignored_users() : IgnoredUsersList();
+    return event ? event->ignoredUsers() : IgnoredUsersList();
 }
 
 void Connection::addToIgnoredUsers(const User* user)
@@ -2243,10 +2242,12 @@ void Connection::saveOlmAccount()
 #ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
-    auto r = room(notification["room_id"].toString());
-    auto event = makeEvent<EncryptedEvent>(notification["event"].toObject());
-    const auto decrypted = r->decryptMessage(*event);
-    return decrypted ? decrypted->fullJson() : QJsonObject();
+    if (auto r = room(notification["room_id"].toString()))
+        if (auto event =
+                loadEvent<EncryptedEvent>(notification["event"].toObject()))
+            if (const auto decrypted = r->decryptMessage(*event))
+                return decrypted->fullJson();
+    return QJsonObject();
 }
 
 Database* Connection::database() const

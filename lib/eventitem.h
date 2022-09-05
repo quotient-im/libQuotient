@@ -5,6 +5,7 @@
 
 #include "quotient_common.h"
 
+#include "events/callevents.h"
 #include "events/filesourceinfo.h"
 #include "events/stateevent.h"
 
@@ -45,7 +46,7 @@ public:
 
     const RoomEvent* event() const { return rawPtr(evt); }
     const RoomEvent* get() const { return event(); }
-    template <typename EventT>
+    template <EventClass<RoomEvent> EventT>
     const EventT* viewAs() const
     {
         return eventCast<const EventT>(evt);
@@ -66,7 +67,7 @@ public:
     std::any& userData() { return data; }
 
 protected:
-    template <typename EventT>
+    template <EventClass<RoomEvent> EventT>
     EventT* getAs()
     {
         return eventCast<EventT>(evt);
@@ -94,16 +95,15 @@ private:
 };
 
 template <>
-inline const StateEventBase* EventItemBase::viewAs<StateEventBase>() const
+inline const StateEvent* EventItemBase::viewAs<StateEvent>() const
 {
-    return evt->isStateEvent() ? weakPtrCast<const StateEventBase>(evt)
-                               : nullptr;
+    return evt->isStateEvent() ? weakPtrCast<const StateEvent>(evt) : nullptr;
 }
 
 template <>
-inline const CallEventBase* EventItemBase::viewAs<CallEventBase>() const
+inline const CallEvent* EventItemBase::viewAs<CallEvent>() const
 {
-    return evt->isCallEvent() ? weakPtrCast<const CallEventBase>(evt) : nullptr;
+    return evt->is<CallEvent>() ? weakPtrCast<const CallEvent>(evt) : nullptr;
 }
 
 class QUOTIENT_API PendingEventItem : public EventItemBase {

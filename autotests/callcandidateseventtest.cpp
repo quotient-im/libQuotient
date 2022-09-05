@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "events/callcandidatesevent.h"
+#include "events/callevents.h"
 
 #include <QtTest/QtTest>
 
@@ -40,13 +40,16 @@ void TestCallCandidatesEvent::fromJson()
 
     auto object = document.object();
 
-    Quotient::CallCandidatesEvent callCandidatesEvent(object);
+    using namespace Quotient;
+    const auto& callCandidatesEvent = loadEvent<CallCandidatesEvent>(object);
+    QVERIFY(callCandidatesEvent);
+    QVERIFY(callCandidatesEvent->is<CallCandidatesEvent>());
 
-    QCOMPARE(callCandidatesEvent.version(), 0);
-    QCOMPARE(callCandidatesEvent.callId(), QStringLiteral("12345"));
-    QCOMPARE(callCandidatesEvent.candidates().count(), 1);
+    QCOMPARE(callCandidatesEvent->version(), 0);
+    QCOMPARE(callCandidatesEvent->callId(), QStringLiteral("12345"));
+    QCOMPARE(callCandidatesEvent->candidates().count(), 1);
 
-    const QJsonObject &candidate = callCandidatesEvent.candidates().at(0).toObject();
+    const auto& candidate = callCandidatesEvent->candidates().at(0).toObject();
     QCOMPARE(candidate.value("sdpMid").toString(), QStringLiteral("audio"));
     QCOMPARE(candidate.value("sdpMLineIndex").toInt(), 0);
     QCOMPARE(candidate.value("candidate").toString(),

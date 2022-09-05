@@ -9,11 +9,18 @@ namespace Quotient {
 class QUOTIENT_API RoomKeyEvent : public Event
 {
 public:
-    DEFINE_EVENT_TYPEID("m.room_key", RoomKeyEvent)
+    QUO_EVENT(RoomKeyEvent, "m.room_key")
 
-    explicit RoomKeyEvent(const QJsonObject& obj);
+    using Event::Event;
     explicit RoomKeyEvent(const QString& algorithm, const QString& roomId,
-                          const QString& sessionId, const QString& sessionKey);
+                          const QString& sessionId, const QString& sessionKey)
+        : Event(basicJson(TypeId, {
+                                      { "algorithm", algorithm },
+                                      { "room_id", roomId },
+                                      { "session_id", sessionId },
+                                      { "session_key", sessionKey },
+                                  }))
+    {}
 
     QUO_CONTENT_GETTER(QString, algorithm)
     QUO_CONTENT_GETTER(QString, roomId)
@@ -23,5 +30,4 @@ public:
         return contentPart<QString>("session_key"_ls).toLatin1();
     }
 };
-REGISTER_EVENT_TYPE(RoomKeyEvent)
 } // namespace Quotient
