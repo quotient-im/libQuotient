@@ -2471,7 +2471,7 @@ void Connection::startKeyVerificationSession(const QString& deviceId)
 }
 
 void Connection::sendToDevice(const QString& targetUserId,
-                              const QString& targetDeviceId, Event event,
+                              const QString& targetDeviceId, const Event& event,
                               bool encrypted)
 {
     const auto contentJson =
