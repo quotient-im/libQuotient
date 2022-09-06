@@ -19,6 +19,11 @@ struct QUOTIENT_API EmojiEntry {
     Q_GADGET
     Q_PROPERTY(QString emoji MEMBER emoji CONSTANT)
     Q_PROPERTY(QString description MEMBER description CONSTANT)
+
+public:
+    bool operator==(const EmojiEntry& rhs) const {
+        return emoji == rhs.emoji && description == rhs.description;
+    }
 };
 
 /** A key verification session. Listen for incoming sessions by connecting to Connection::newKeyVerificationSession.
@@ -92,6 +97,8 @@ public:
     State state() const;
 
     Error error() const;
+
+    QString remoteDeviceId() const;
 
 public Q_SLOTS:
     void sendRequest();

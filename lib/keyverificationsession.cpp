@@ -154,7 +154,7 @@ EmojiEntry emojiForCode(int code, const QString& language)
 
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
-    if (state() != WAITINGFORKEY && state() != WAITINGFORVERIFICATION) {
+    if (state() != WAITINGFORKEY && state() != ACCEPTED) {
         cancelVerification(UNEXPECTED_MESSAGE);
         return;
     }
@@ -176,7 +176,6 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     } else {
         sendKey();
     }
-    setState(WAITINGFORVERIFICATION);
 
     std::string key(olm_sas_pubkey_length(m_sas), '\0');
     olm_sas_get_pubkey(m_sas, key.data(), key.size());
@@ -214,6 +213,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 
     emit sasEmojisChanged();
     emit keyReceived();
+    setState(WAITINGFORVERIFICATION);
 }
 
 QString KeyVerificationSession::calculateMac(const QString& input,
@@ -314,6 +314,10 @@ void KeyVerificationSession::sendStartSas()
 
 void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
 {
+    if (state() == ACCEPTED) {
+        // It's possible to receive ready and start in the same sync, in which case start might be handled before ready.
+        return;
+    }
     if (state() != WAITINGFORREADY) {
         cancelVerification(UNEXPECTED_MESSAGE);
         return;
@@ -334,7 +338,7 @@ void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
 
 void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
 {
-    if (state() != READY) {
+    if (state() != READY && state() != WAITINGFORREADY) {
         cancelVerification(UNEXPECTED_MESSAGE);
         return;
     }
@@ -509,4 +513,9 @@ KeyVerificationSession::Error KeyVerificationSession::stringToError(const QStrin
         return REMOTE_MISMATCHED_SAS;
     }
     return NONE;
+}
+
+QString KeyVerificationSession::remoteDeviceId() const
+{
+    return m_remoteDeviceId;
 }
