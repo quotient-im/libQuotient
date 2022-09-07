@@ -173,6 +173,20 @@ by setting `Quotient_INSTALL_TESTS` to `OFF`.
     "Qt5Widgets", but CMake did not find one.
   ```
   then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
+  
+- If `cmake` fails with a message similar to:
+  ```
+  CMake Error at /usr/lib64/cmake/Qt6Core/Qt6CoreVersionlessTargets.cmake:37 (message):
+    Some (but not all) targets in this export set were already defined.
+  
+    Targets Defined: Qt::Core
+  
+    Targets not yet defined: Qt::CorePrivate
+  ```
+  then you likely have both Qt 5 and Qt 6 on your system, and your client code
+  uses a different major version than Quotient. Make sure you use the client
+  version that matches libQuotient (e.g. you can't configure Quaternion 0.0.95
+  with libQuotient 0.7 in Qt 6 mode).
 
 - If you use GCC and get an "unknown declarator" compilation error in the file
 `qtconcurrentthreadengine.h` - unfortunately, it is an actual error in Qt 5.15
