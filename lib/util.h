@@ -160,7 +160,7 @@ template <typename ImplType, typename TypeToDelete = ImplType, typename... ArgTs
 inline ImplPtr<ImplType, TypeToDelete> makeImpl(ArgTs&&... args)
 {
     return ImplPtr<ImplType, TypeToDelete> {
-        new ImplType(std::forward<ArgTs>(args)...),
+        new ImplType{std::forward<ArgTs>(args)...},
         [](TypeToDelete* impl) { delete impl; }
     };
 }
