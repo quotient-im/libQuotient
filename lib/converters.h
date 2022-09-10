@@ -37,7 +37,6 @@ struct JsonObjectUnpacker {
     // fromJson<T, QJsonObject> specialisation instead of specialising
     // the entire JsonConverter; if a different type of JSON value is needed
     // (e.g., an array), specialising JsonConverter is inevitable
-    static T load(QJsonValueRef jvr) { return fromJson<T>(QJsonValue(jvr)); }
     static T load(const QJsonValue& jv) { return fromJson<T>(jv.toObject()); }
     static T load(const QJsonDocument& jd) { return fromJson<T>(jd.object()); }
 };
@@ -228,7 +227,7 @@ QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
     return {};
 }
 
-// JsonConverter<> specialisations
+// Specialisations
 
 template<>
 inline bool fromJson(const QJsonValue& jv) { return jv.toBool(); }
@@ -248,7 +247,7 @@ inline qint64 fromJson(const QJsonValue& jv) { return qint64(jv.toDouble()); }
 template <>
 inline QString fromJson(const QJsonValue& jv) { return jv.toString(); }
 
-//! Use fromJson<QString> and use toLatin1()/toUtf8()/... to make QByteArray
+//! Use fromJson<QString> and then toLatin1()/toUtf8()/... to make QByteArray
 //!
 //! QJsonValue can only convert to QString and there's ambiguity whether
 //! conversion to QByteArray should use (fast but very limited) toLatin1() or
@@ -348,8 +347,12 @@ struct JsonArrayConverter {
     {
         VectorT vect;
         vect.reserve(typename VectorT::size_type(ja.size()));
-        for (const auto& i : ja)
-            vect.push_back(fromJson<T>(i));
+        // NB: Make sure to pass QJsonValue to fromJson<> so that it could
+        // hit the correct overload and not fall back to the generic fromJson
+        // that treats everything as an object. See also the explanation in
+        // the commit introducing these lines.
+        for (const QJsonValue v : ja)
+            vect.push_back(fromJson<T>(v));
         return vect;
     }
     static auto load(const QJsonValue& jv) { return load(jv.toArray()); }
@@ -401,8 +404,11 @@ struct HashMapFromJson {
     static void fillFrom(const QJsonObject& jo, HashMapT& h)
     {
         h.reserve(h.size() + jo.size());
+        // NB: the QJsonValue cast below is for the same reason as in
+        // JsonArrayConverter
         for (auto it = jo.begin(); it != jo.end(); ++it)
-            h[it.key()] = fromJson<typename HashMapT::mapped_type>(it.value());
+            h[it.key()] = fromJson<typename HashMapT::mapped_type>(
+                QJsonValue(it.value()));
     }
 };
 
