@@ -50,18 +50,22 @@ endif()
 if (WIN32)
     if (NOT CMAKE_INSTALL_LIBDIR)
         set(CMAKE_INSTALL_LIBDIR ".")
-    endif ()
+        set(CMakeFilesLocation "cmake")
+    else()
+        set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+    endif()
 
     if (NOT CMAKE_INSTALL_BINDIR)
         set(CMAKE_INSTALL_BINDIR ".")
-    endif ()
+    endif()
 
     if (NOT CMAKE_INSTALL_INCLUDEDIR)
         set(CMAKE_INSTALL_INCLUDEDIR "include")
-    endif ()
+    endif()
 else()
     include(GNUInstallDirs)
     set(INCLUDEDIR_INIT ${PROJECT_NAME})
+    set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
@@ -357,14 +361,13 @@ configure_file(cmake/${PROJECT_NAME}Config.cmake.in
     @ONLY
 )
 
-set(ConfigFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 install(EXPORT ${PROJECT_NAME}Targets
-        FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${ConfigFilesLocation})
+        FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${CMakeFilesLocation})
 
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION ${ConfigFilesLocation}
+    DESTINATION ${CMakeFilesLocation}
 )
 install(EXPORT_ANDROID_MK ${PROJECT_NAME}Targets DESTINATION ${CMAKE_INSTALL_DATADIR}/ndk-modules)
 
