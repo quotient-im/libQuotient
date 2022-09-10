@@ -21,9 +21,7 @@ struct QUOTIENT_API EmojiEntry {
     Q_PROPERTY(QString description MEMBER description CONSTANT)
 
 public:
-    bool operator==(const EmojiEntry& rhs) const {
-        return emoji == rhs.emoji && description == rhs.description;
-    }
+    bool operator==(const EmojiEntry& rhs) const = default;
 };
 
 /** A key verification session. Listen for incoming sessions by connecting to Connection::newKeyVerificationSession.
