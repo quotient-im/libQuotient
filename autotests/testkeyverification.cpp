@@ -23,7 +23,7 @@ private Q_SLOTS:
             QVERIFY(session->remoteDeviceId() == b->deviceId());
             QVERIFY(session->state() == KeyVerificationSession::WAITINGFORREADY);
             connectSingleShot(session, &KeyVerificationSession::stateChanged, this, [=](){
-                QVERIFY(session->state() == KeyVerificationSession::ACCEPTED);
+                QVERIFY(session->state() == KeyVerificationSession::ACCEPTED || session->state() == KeyVerificationSession::READY);
                 connectSingleShot(session, &KeyVerificationSession::stateChanged, this, [=](){
                     QVERIFY(session->state() == KeyVerificationSession::WAITINGFORVERIFICATION);
                     session->sendMac();
