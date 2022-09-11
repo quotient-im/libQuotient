@@ -85,8 +85,7 @@ protected:
 //!
 //! \sa ImageInfo, FileContent, ImageContent, AudioContent, VideoContent,
 //!     UrlBasedContent
-class QUOTIENT_API FileInfo {
-public:
+struct QUOTIENT_API FileInfo {
     FileInfo() = default;
     //! \brief Construct from a QFileInfo object
     //!
@@ -112,7 +111,6 @@ public:
     //! \code "image://provider/" + info.mediaId() \endcode
     QString mediaId() const { return url().authority() + url().path(); }
 
-public:
     FileSourceInfo source;
     QJsonObject originalInfoJson;
     QMimeType mimeType;
@@ -123,8 +121,7 @@ public:
 QUOTIENT_API QJsonObject toInfoJson(const FileInfo& info);
 
 //! \brief A content info class for image/video content types and thumbnails
-class QUOTIENT_API ImageInfo : public FileInfo {
-public:
+struct QUOTIENT_API ImageInfo : public FileInfo {
     ImageInfo() = default;
     explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
     explicit ImageInfo(FileSourceInfo sourceInfo, qint64 fileSize = -1,
@@ -133,7 +130,6 @@ public:
     ImageInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
               const QString& originalFilename = {});
 
-public:
     QSize imageSize;
 };
 
@@ -145,8 +141,7 @@ QUOTIENT_API QJsonObject toInfoJson(const ImageInfo& info);
 //! the JSON representation of event content; namely, `info/thumbnail_url`
 //! (or, in case of an encrypted thumbnail, `info/thumbnail_file`) and
 //! `info/thumbnail_info` fields are used.
-class QUOTIENT_API Thumbnail : public ImageInfo {
-public:
+struct QUOTIENT_API Thumbnail : public ImageInfo {
     using ImageInfo::ImageInfo;
     explicit Thumbnail(const QJsonObject& infoJson,
                        const Omittable<EncryptedFileMetadata>& efm = none);
