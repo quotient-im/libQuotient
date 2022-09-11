@@ -864,15 +864,10 @@ Q_SIGNALS:
     void devicesListLoaded();
 
 #ifdef Quotient_E2EE_ENABLED
-    void incomingKeyVerificationReady(const KeyVerificationReadyEvent& event);
-    void incomingKeyVerificationStart(const KeyVerificationStartEvent& event);
-    void incomingKeyVerificationAccept(const KeyVerificationAcceptEvent& event);
-    void incomingKeyVerificationKey(const KeyVerificationKeyEvent& event);
-    void incomingKeyVerificationMac(const KeyVerificationMacEvent& event);
-    void incomingKeyVerificationDone(const KeyVerificationDoneEvent& event);
-    void incomingKeyVerificationCancel(const KeyVerificationCancelEvent& event);
-
     void newKeyVerificationSession(KeyVerificationSession* session);
+    void keyVerificationStateChanged(
+        const KeyVerificationSession* session,
+        Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
 #endif
 

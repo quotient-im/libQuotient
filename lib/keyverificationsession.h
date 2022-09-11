@@ -91,6 +91,8 @@ public:
     ~KeyVerificationSession() override;
     Q_DISABLE_COPY_MOVE(KeyVerificationSession)
 
+    void handleEvent(const KeyVerificationEvent& baseEvent);
+
     QVector<EmojiEntry> sasEmojis() const;
     State state() const;
 
@@ -108,7 +110,6 @@ public Q_SLOTS:
     void cancelVerification(Error error);
 
 Q_SIGNALS:
-    void startReceived();
     void keyReceived();
     void sasEmojisChanged();
     void stateChanged();
@@ -133,11 +134,8 @@ private:
 
     void handleReady(const KeyVerificationReadyEvent& event);
     void handleStart(const KeyVerificationStartEvent& event);
-    void handleAccept(const KeyVerificationAcceptEvent& event);
     void handleKey(const KeyVerificationKeyEvent& event);
     void handleMac(const KeyVerificationMacEvent& event);
-    void handleDone(const KeyVerificationDoneEvent&);
-    void handleCancel(const KeyVerificationCancelEvent& event);
     void init(std::chrono::milliseconds timeout);
     void setState(State state);
     void setError(Error error);

@@ -17,7 +17,7 @@ private Q_SLOTS:
         CREATE_CONNECTION(a, "alice1", "secret", "AliceDesktop")
         CREATE_CONNECTION(b, "alice1", "secret", "AlicePhone")
 
-        KeyVerificationSession *aSession = nullptr;
+        QPointer<KeyVerificationSession> aSession{};
         connect(a.get(), &Connection::newKeyVerificationSession, this, [&](KeyVerificationSession* session) {
             aSession = session;
             QVERIFY(session->remoteDeviceId() == b->deviceId());
@@ -51,7 +51,7 @@ private Q_SLOTS:
         });
         b->syncLoop();
         a->syncLoop();
-        QSignalSpy spy(b.get(), &Connection::incomingKeyVerificationDone);
+        QSignalSpy spy(aSession, &KeyVerificationSession::finished);
         spy.wait(10000);
     }
 };
