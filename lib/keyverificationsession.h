@@ -125,6 +125,8 @@ private:
     bool macReceived = false;
     bool m_encrypted;
     QStringList m_remoteSupportedMethods;
+    bool m_verified = false;
+    QString m_pendingEdKeyId{};
 
     void handleReady(const KeyVerificationReadyEvent& event);
     void handleStart(const KeyVerificationStartEvent& event);
@@ -138,6 +140,7 @@ private:
     void setError(Error error);
     static QString errorToString(Error error);
     static Error stringToError(const QString& error);
+    void trustKeys();
 
     QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
     QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_ls);

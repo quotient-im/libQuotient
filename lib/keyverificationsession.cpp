@@ -249,6 +249,10 @@ void KeyVerificationSession::sendMac()
                                                        mac),
                                m_encrypted);
     setState (macReceived ? DONE : WAITINGFORMAC);
+    m_verified = true;
+    if (!m_pendingEdKeyId.isEmpty()) {
+        trustKeys();
+    }
 }
 
 void KeyVerificationSession::sendDone()
@@ -387,7 +391,16 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
         return;
     }
 
-    m_connection->database()->setSessionVerified(edKeyId);
+    m_pendingEdKeyId = edKeyId;
+
+    if (m_verified) {
+        trustKeys();
+    }
+}
+
+void KeyVerificationSession::trustKeys()
+{
+    m_connection->database()->setSessionVerified(m_pendingEdKeyId);
     emit m_connection->sessionVerified(m_remoteUserId, m_remoteDeviceId);
     macReceived = true;
 
