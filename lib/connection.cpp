@@ -379,7 +379,7 @@ public:
     {
         qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
         auto job = new QKeychain::WritePasswordJob(qAppName());
-        job->setAutoDelete(false);
+        job->setAutoDelete(true);
         job->setKey(q->userId());
         job->setBinaryData(data->accessToken());
         job->start();
