@@ -68,42 +68,6 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
 
 void KeyVerificationSession::init(milliseconds timeout)
 {
-    connect(m_connection, &Connection::incomingKeyVerificationReady, this, [this](const KeyVerificationReadyEvent& event) {
-        if (event.transactionId() == m_transactionId && event.fromDevice() == m_remoteDeviceId) {
-            handleReady(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationStart, this, [this](const KeyVerificationStartEvent& event) {
-        if (event.transactionId() == m_transactionId && event.fromDevice() == m_remoteDeviceId) {
-            handleStart(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationAccept, this, [this](const KeyVerificationAcceptEvent& event) {
-        if (event.transactionId() == m_transactionId) {
-            handleAccept(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationKey, this, [this](const KeyVerificationKeyEvent& event) {
-        if (event.transactionId() == m_transactionId) {
-            handleKey(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationMac, this, [this](const KeyVerificationMacEvent& event) {
-        if (event.transactionId() == m_transactionId) {
-            handleMac(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationDone, this, [this](const KeyVerificationDoneEvent& event) {
-        if (event.transactionId() == m_transactionId) {
-            handleDone(event);
-        }
-    });
-    connect(m_connection, &Connection::incomingKeyVerificationCancel, this, [this](const KeyVerificationCancelEvent& event) {
-        if (event.transactionId() == m_transactionId) {
-            handleCancel(event);
-        }
-    });
-
     QTimer::singleShot(timeout, this, [this] { cancelVerification(TIMEOUT); });
 
     m_sas = olm_sas(new std::byte[olm_sas_size()]);
@@ -116,6 +80,53 @@ KeyVerificationSession::~KeyVerificationSession()
 {
     olm_clear_sas(m_sas);
     delete[] reinterpret_cast<std::byte*>(m_sas);
+}
+
+void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
+{
+    if (!switchOnType(
+            baseEvent,
+            [this](const KeyVerificationCancelEvent& event) {
+                setError(stringToError(event.code()));
+                setState(CANCELED);
+                return true;
+            },
+            [this](const KeyVerificationStartEvent& event) {
+                if (state() != WAITINGFORREADY && state() != READY)
+                    return false;
+                handleStart(event);
+                return true;
+            },
+            [this](const KeyVerificationReadyEvent& event) {
+                if (state() == WAITINGFORREADY)
+                    handleReady(event);
+                // ACCEPTED is also fine here because it's possible to receive
+                // ready and start in the same sync, in which case start might
+                // be handled before ready.
+                return state() == WAITINGFORREADY || state() == ACCEPTED;
+            },
+            [this](const KeyVerificationAcceptEvent& event) {
+                if (state() != WAITINGFORACCEPT)
+                    return false;
+                m_commitment = event.commitment();
+                sendKey();
+                setState(WAITINGFORKEY);
+                return true;
+            },
+            [this](const KeyVerificationKeyEvent& event) {
+                if (state() != ACCEPTED && state() != WAITINGFORKEY)
+                    return false;
+                handleKey(event);
+                return true;
+            },
+            [this](const KeyVerificationMacEvent& event) {
+                if (state() != WAITINGFORMAC)
+                    return false;
+                handleMac(event);
+                return true;
+            },
+            [this](const KeyVerificationDoneEvent&) { return state() == DONE; }))
+        cancelVerification(UNEXPECTED_MESSAGE);
 }
 
 struct EmojiStoreEntry : EmojiEntry {
@@ -154,10 +165,6 @@ EmojiEntry emojiForCode(int code, const QString& language)
 
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
-    if (state() != WAITINGFORKEY && state() != WAITINGFORVERIFICATION) {
-        cancelVerification(UNEXPECTED_MESSAGE);
-        return;
-    }
     auto eventKey = event.key().toLatin1();
     olm_sas_set_their_key(m_sas, eventKey.data(), eventKey.size());
 
@@ -176,7 +183,6 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     } else {
         sendKey();
     }
-    setState(WAITINGFORVERIFICATION);
 
     std::string key(olm_sas_pubkey_length(m_sas), '\0');
     olm_sas_get_pubkey(m_sas, key.data(), key.size());
@@ -214,6 +220,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 
     emit sasEmojisChanged();
     emit keyReceived();
+    setState(WAITINGFORVERIFICATION);
 }
 
 QString KeyVerificationSession::calculateMac(const QString& input,
@@ -319,30 +326,18 @@ void KeyVerificationSession::sendStartSas()
 
 void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
 {
-    if (state() != WAITINGFORREADY) {
-        cancelVerification(UNEXPECTED_MESSAGE);
-        return;
-    }
     setState(READY);
     m_remoteSupportedMethods = event.methods();
     auto methods = commonSupportedMethods(m_remoteSupportedMethods);
 
-    if (methods.isEmpty()) {
+    if (methods.isEmpty())
         cancelVerification(UNKNOWN_METHOD);
-        return;
-    }
-
-    if (methods.size() == 1) {
-        sendStartSas();
-    }
+    else if (methods.size() == 1)
+        sendStartSas(); // -> WAITINGFORACCEPT
 }
 
 void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
 {
-    if (state() != READY) {
-        cancelVerification(UNEXPECTED_MESSAGE);
-        return;
-    }
     if (startSentByUs) {
         if (m_remoteUserId > m_connection->userId() || (m_remoteUserId == m_connection->userId() && m_remoteDeviceId > m_connection->deviceId())) {
             return;
@@ -361,17 +356,6 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
                                                           commitment),
                                m_encrypted);
     setState(ACCEPTED);
-}
-
-void KeyVerificationSession::handleAccept(const KeyVerificationAcceptEvent& event)
-{
-    if(state() != WAITINGFORACCEPT) {
-        cancelVerification(UNEXPECTED_MESSAGE);
-        return;
-    }
-    m_commitment = event.commitment();
-    sendKey();
-    setState(WAITINGFORKEY);
 }
 
 void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
@@ -410,19 +394,6 @@ void KeyVerificationSession::trustKeys()
         emit finished();
         deleteLater();
     }
-}
-
-void KeyVerificationSession::handleDone(const KeyVerificationDoneEvent&)
-{
-    if (state() != DONE) {
-        cancelVerification(UNEXPECTED_MESSAGE);
-    }
-}
-
-void KeyVerificationSession::handleCancel(const KeyVerificationCancelEvent& event)
-{
-    setError(stringToError(event.code()));
-    setState(CANCELED);
 }
 
 QVector<EmojiEntry> KeyVerificationSession::sasEmojis() const
@@ -523,4 +494,9 @@ KeyVerificationSession::Error KeyVerificationSession::stringToError(const QStrin
         return REMOTE_MISMATCHED_SAS;
     }
     return NONE;
+}
+
+QString KeyVerificationSession::remoteDeviceId() const
+{
+    return m_remoteDeviceId;
 }

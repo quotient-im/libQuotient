@@ -19,6 +19,9 @@ struct QUOTIENT_API EmojiEntry {
     Q_GADGET
     Q_PROPERTY(QString emoji MEMBER emoji CONSTANT)
     Q_PROPERTY(QString description MEMBER description CONSTANT)
+
+public:
+    bool operator==(const EmojiEntry& rhs) const = default;
 };
 
 /** A key verification session. Listen for incoming sessions by connecting to Connection::newKeyVerificationSession.
@@ -88,10 +91,14 @@ public:
     ~KeyVerificationSession() override;
     Q_DISABLE_COPY_MOVE(KeyVerificationSession)
 
+    void handleEvent(const KeyVerificationEvent& baseEvent);
+
     QVector<EmojiEntry> sasEmojis() const;
     State state() const;
 
     Error error() const;
+
+    QString remoteDeviceId() const;
 
 public Q_SLOTS:
     void sendRequest();
@@ -103,7 +110,6 @@ public Q_SLOTS:
     void cancelVerification(Error error);
 
 Q_SIGNALS:
-    void startReceived();
     void keyReceived();
     void sasEmojisChanged();
     void stateChanged();
@@ -130,11 +136,8 @@ private:
 
     void handleReady(const KeyVerificationReadyEvent& event);
     void handleStart(const KeyVerificationStartEvent& event);
-    void handleAccept(const KeyVerificationAcceptEvent& event);
     void handleKey(const KeyVerificationKeyEvent& event);
     void handleMac(const KeyVerificationMacEvent& event);
-    void handleDone(const KeyVerificationDoneEvent&);
-    void handleCancel(const KeyVerificationCancelEvent& event);
     void init(std::chrono::milliseconds timeout);
     void setState(State state);
     void setError(Error error);

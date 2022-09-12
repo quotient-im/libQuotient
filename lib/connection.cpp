@@ -124,6 +124,7 @@ public:
     // A map from SenderKey to vector of InboundSession
     UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
 
+    QHash<QString, KeyVerificationSession*> verificationSessions;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -971,6 +972,8 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
         qCDebug(E2EE) << "Consuming" << toDeviceEvents.size()
                       << "to-device events";
         for (auto&& tdEvt : toDeviceEvents) {
+            if (processIfVerificationEvent(*tdEvt, false))
+                continue;
             if (auto&& event = eventCast<EncryptedEvent>(std::move(tdEvt))) {
                 if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
                     qCDebug(E2EE) << "Unsupported algorithm" << event->id()
@@ -985,9 +988,7 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 outdatedUsers += event->senderId();
                 encryptionUpdateRequired = true;
                 pendingEncryptedEvents.push_back(std::move(event));
-                continue;
             }
-            processIfVerificationEvent(*tdEvt, false);
         }
     }
 #endif
@@ -998,33 +999,22 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
                                                      bool encrypted)
 {
     return switchOnType(evt,
-        [this, encrypted](const KeyVerificationRequestEvent& event) {
-            auto session =
-                new KeyVerificationSession(q->userId(), event, q, encrypted);
-            emit q->newKeyVerificationSession(session);
+        [this, encrypted](const KeyVerificationRequestEvent& reqEvt) {
+            const auto sessionIter = verificationSessions.insert(
+                reqEvt.transactionId(),
+                new KeyVerificationSession(q->userId(), reqEvt, q, encrypted));
+            emit q->newKeyVerificationSession(*sessionIter);
             return true;
-        }, [this](const KeyVerificationReadyEvent& event) {
-            emit q->incomingKeyVerificationReady(event);
+        },
+        [this](const KeyVerificationEvent& kvEvt) {
+            if (auto* const session =
+                verificationSessions.value(kvEvt.transactionId())) {
+                session->handleEvent(kvEvt);
+                emit q->keyVerificationStateChanged(session, session->state());
+            }
             return true;
-        }, [this](const KeyVerificationStartEvent& event) {
-            emit q->incomingKeyVerificationStart(event);
-            return true;
-        }, [this](const KeyVerificationAcceptEvent& event) {
-            emit q->incomingKeyVerificationAccept(event);
-            return true;
-        }, [this](const KeyVerificationKeyEvent& event) {
-            emit q->incomingKeyVerificationKey(event);
-            return true;
-        }, [this](const KeyVerificationMacEvent& event) {
-            emit q->incomingKeyVerificationMac(event);
-            return true;
-        }, [this](const KeyVerificationDoneEvent& event) {
-            emit q->incomingKeyVerificationDone(event);
-            return true;
-        }, [this](const KeyVerificationCancelEvent& event) {
-            emit q->incomingKeyVerificationCancel(event);
-            return true;
-        }, false);
+        },
+        false);
 }
 
 void Connection::Private::handleEncryptedToDeviceEvent(const EncryptedEvent& event)

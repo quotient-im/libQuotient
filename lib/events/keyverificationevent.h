@@ -9,13 +9,24 @@ namespace Quotient {
 
 static constexpr auto SasV1Method = "m.sas.v1"_ls;
 
+class QUOTIENT_API KeyVerificationEvent : public Event {
+public:
+    QUO_BASE_EVENT(KeyVerificationEvent, "m.key.*"_ls, Event::BaseMetaType)
+
+    using Event::Event;
+
+    /// An opaque identifier for the verification request. Must
+    /// be unique with respect to the devices involved.
+    QUO_CONTENT_GETTER(QString, transactionId)
+};
+
 /// Requests a key verification with another user's devices.
 /// Typically sent as a to-device event.
-class QUOTIENT_API KeyVerificationRequestEvent : public Event {
+class QUOTIENT_API KeyVerificationRequestEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationRequestEvent, "m.key.verification.request")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationRequestEvent(const QString& transactionId,
                                 const QString& fromDevice,
                                 const QStringList& methods,
@@ -30,10 +41,6 @@ public:
     /// The device ID which is initiating the request.
     QUO_CONTENT_GETTER(QString, fromDevice)
 
-    /// An opaque identifier for the verification request. Must
-    /// be unique with respect to the devices involved.
-    QUO_CONTENT_GETTER(QString, transactionId)
-
     /// The verification methods supported by the sender.
     QUO_CONTENT_GETTER(QStringList, methods)
 
@@ -44,11 +51,11 @@ public:
     QUO_CONTENT_GETTER(QDateTime, timestamp)
 };
 
-class QUOTIENT_API KeyVerificationReadyEvent : public Event {
+class QUOTIENT_API KeyVerificationReadyEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationReadyEvent, "m.key.verification.ready")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationReadyEvent(const QString& transactionId,
                               const QString& fromDevice,
                               const QStringList& methods)
@@ -61,19 +68,16 @@ public:
     /// The device ID which is accepting the request.
     QUO_CONTENT_GETTER(QString, fromDevice)
 
-    /// The transaction id of the verification request
-    QUO_CONTENT_GETTER(QString, transactionId)
-
     /// The verification methods supported by the sender.
     QUO_CONTENT_GETTER(QStringList, methods)
 };
 
 /// Begins a key verification process.
-class QUOTIENT_API KeyVerificationStartEvent : public Event {
+class QUOTIENT_API KeyVerificationStartEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationStartEvent, "m.key.verification.start")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationStartEvent(const QString& transactionId,
                               const QString& fromDevice)
         : KeyVerificationStartEvent(
@@ -91,10 +95,6 @@ public:
 
     /// The device ID which is initiating the process.
     QUO_CONTENT_GETTER(QString, fromDevice)
-
-    /// An opaque identifier for the verification request. Must
-    /// be unique with respect to the devices involved.
-    QUO_CONTENT_GETTER(QString, transactionId)
 
     /// The verification method to use.
     QUO_CONTENT_GETTER(QString, method)
@@ -140,11 +140,11 @@ public:
 
 /// Accepts a previously sent m.key.verification.start message.
 /// Typically sent as a to-device event.
-class QUOTIENT_API KeyVerificationAcceptEvent : public Event {
+class QUOTIENT_API KeyVerificationAcceptEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationAcceptEvent, "m.key.verification.accept")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationAcceptEvent(const QString& transactionId,
                                const QString& commitment)
         : KeyVerificationAcceptEvent(basicJson(
@@ -158,9 +158,6 @@ public:
                       { "commitment"_ls, commitment } }))
     {}
 
-    /// An opaque identifier for the verification process.
-    QUO_CONTENT_GETTER(QString, transactionId)
-
     /// The verification method to use. Must be 'm.sas.v1'.
     QUO_CONTENT_GETTER(QString, method)
 
@@ -170,10 +167,7 @@ public:
 
     /// The hash method the device is choosing to use, out of the
     /// options in the m.key.verification.start message.
-    QString hashData() const
-    {
-        return contentPart<QString>("hash"_ls);
-    }
+    QUO_CONTENT_GETTER_X(QString, hashData, "hash"_ls)
 
     /// The message authentication code the device is choosing to use, out
     /// of the options in the m.key.verification.start message.
@@ -188,11 +182,11 @@ public:
     QUO_CONTENT_GETTER(QString, commitment)
 };
 
-class QUOTIENT_API KeyVerificationCancelEvent : public Event {
+class QUOTIENT_API KeyVerificationCancelEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationCancelEvent, "m.key.verification.cancel")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationCancelEvent(const QString& transactionId,
                                const QString& reason)
         : KeyVerificationCancelEvent(
@@ -202,9 +196,6 @@ public:
                                   { "code"_ls, reason } // Not a typo
                               }))
     {}
-
-    /// An opaque identifier for the verification process.
-    QUO_CONTENT_GETTER(QString, transactionId)
 
     /// A human readable description of the code. The client should only
     /// rely on this string if it does not understand the code.
@@ -216,30 +207,27 @@ public:
 
 /// Sends the ephemeral public key for a device to the partner device.
 /// Typically sent as a to-device event.
-class QUOTIENT_API KeyVerificationKeyEvent : public Event {
+class KeyVerificationKeyEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationKeyEvent, "m.key.verification.key")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationKeyEvent(const QString& transactionId, const QString& key)
         : KeyVerificationKeyEvent(
             basicJson(TypeId, { { "transaction_id"_ls, transactionId },
                                 { "key"_ls, key } }))
     {}
 
-    /// An opaque identifier for the verification process.
-    QUO_CONTENT_GETTER(QString, transactionId)
-
     /// The device's ephemeral public key, encoded as unpadded base64.
     QUO_CONTENT_GETTER(QString, key)
 };
 
 /// Sends the MAC of a device's key to the partner device.
-class QUOTIENT_API KeyVerificationMacEvent : public Event {
+class QUOTIENT_API KeyVerificationMacEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationMacEvent, "m.key.verification.mac")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationMacEvent(const QString& transactionId, const QString& keys,
                             const QJsonObject& mac)
         : KeyVerificationMacEvent(
@@ -247,9 +235,6 @@ public:
                                 { "keys"_ls, keys },
                                 { "mac"_ls, mac } }))
     {}
-
-    /// An opaque identifier for the verification process.
-    QUO_CONTENT_GETTER(QString, transactionId)
 
     /// The device's ephemeral public key, encoded as unpadded base64.
     QUO_CONTENT_GETTER(QString, keys)
@@ -260,17 +245,14 @@ public:
     }
 };
 
-class QUOTIENT_API KeyVerificationDoneEvent : public Event {
+class QUOTIENT_API KeyVerificationDoneEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationDoneEvent, "m.key.verification.done")
 
-    using Event::Event;
+    using KeyVerificationEvent::KeyVerificationEvent;
     explicit KeyVerificationDoneEvent(const QString& transactionId)
         : KeyVerificationDoneEvent(
             basicJson(TypeId, { { "transaction_id"_ls, transactionId } }))
     {}
-
-    /// The same transactionId as before
-    QUO_CONTENT_GETTER(QString, transactionId)
 };
 } // namespace Quotient
