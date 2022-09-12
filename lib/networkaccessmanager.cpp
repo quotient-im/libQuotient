@@ -9,7 +9,6 @@
 #include "mxcreply.h"
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QThreadStorage>
 #include <QtCore/QSettings>
 #include <QtNetwork/QNetworkReply>
 
@@ -50,9 +49,8 @@ QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 void NetworkAccessManager::ignoreSslErrors(bool ignore) const
 {
     if (ignore) {
-        connect(this, &QNetworkAccessManager::sslErrors, this, [](QNetworkReply *reply, const QList<QSslError> &errors) {
-            reply->ignoreSslErrors();
-        });
+        connect(this, &QNetworkAccessManager::sslErrors, this,
+                [](QNetworkReply* reply) { reply->ignoreSslErrors(); });
     } else {
         disconnect(this, &QNetworkAccessManager::sslErrors, this, nullptr);
     }
@@ -70,11 +68,8 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
-    static QThreadStorage<NetworkAccessManager*> storage;
-    if(!storage.hasLocalData()) {
-        storage.setLocalData(new NetworkAccessManager());
-    }
-    return storage.localData();
+    thread_local NetworkAccessManager nam;
+    return &nam;
 }
 
 QNetworkReply* NetworkAccessManager::createRequest(
