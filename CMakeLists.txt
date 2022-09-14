@@ -50,6 +50,7 @@ else()
         if (Wno-${FLAG}_SUPPORTED AND
                 NOT CMAKE_CXX_FLAGS MATCHES "W(no-)?${FLAG}($| )")
             add_compile_options(-Wno-${FLAG})
+        endif()
     endforeach ()
 endif()
 
