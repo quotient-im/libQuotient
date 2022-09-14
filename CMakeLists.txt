@@ -37,13 +37,19 @@ if (MSVC)
         /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
         /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
 else()
-    foreach (FLAG Wall Wpedantic Wextra Werror=return-type Wno-unused-parameter
-            Wno-gnu-zero-variadic-macro-arguments Wno-subobject-linkage)
-        CHECK_CXX_COMPILER_FLAG("-${FLAG}" COMPILER_${FLAG}_SUPPORTED)
-        if ( COMPILER_${FLAG}_SUPPORTED AND
-                NOT CMAKE_CXX_FLAGS MATCHES "(^| )-?${FLAG}($| )")
-            add_compile_options(-${FLAG})
+    foreach (FLAG all pedantic extra error=return-type) # Switch these on
+        CHECK_CXX_COMPILER_FLAG("-W${FLAG}" W${FLAG}_SUPPORTED)
+        if (W${FLAG}_SUPPORTED AND
+                NOT CMAKE_CXX_FLAGS MATCHES "W(no-)?${FLAG}($| )")
+            add_compile_options(-W${FLAG})
         endif ()
+    endforeach ()
+    foreach (FLAG unused-parameter gnu-zero-variadic-macro-arguments
+                  subobject-linkage) # Switch these off
+        CHECK_CXX_COMPILER_FLAG("-Wno-${FLAG}" Wno-${FLAG}_SUPPORTED)
+        if (Wno-${FLAG}_SUPPORTED AND
+                NOT CMAKE_CXX_FLAGS MATCHES "W(no-)?${FLAG}($| )")
+            add_compile_options(-Wno-${FLAG})
     endforeach ()
 endif()
 
