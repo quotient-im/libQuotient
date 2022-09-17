@@ -47,7 +47,7 @@ your application, as described below.
   - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported.
 - If using E2EE (beta, as of libQuotient 0.7):
-  - libolm 3.x (the latest 3.x strongly recommended)
+  - libolm 3.2.5 or newer (the latest 3.x strongly recommended)
   - OpenSSL (1.1.x is known to work; 3.x should likely work too).
 - Any build system that works with CMake should be fine:
   GNU Make and ninja on any platform, NMake and jom on Windows are known to work.

@@ -101,7 +101,7 @@ find_package(${Qt}Keychain REQUIRED)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
-    find_package(Olm 3.1.3 REQUIRED)
+    find_package(Olm 3.2.5 REQUIRED)
     set_package_properties(Olm PROPERTIES
         DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
         URL "https://gitlab.matrix.org/matrix-org/olm"

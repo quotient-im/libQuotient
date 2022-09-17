@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-20.04, macos-11 ]
+        os: [ ubuntu-22.04, macos-11 ]
         qt-version: [ '6.3.1', '5.15.2' ]
         compiler: [ LLVM ]
         # Not using binary values here, to make the job captions more readable
@@ -31,7 +31,7 @@ jobs:
         exclude:
         - qt-version: '6.3.1'
           update-api: update-api # Generated code is not specific to Qt version
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           e2ee: e2ee # Will be re-added with static analysis below
         # TODO: Enable E2EE on Windows and macOS
         - os: macos-11
@@ -42,7 +42,7 @@ jobs:
           compiler: MSVC
           platform: x64
           qt-arch: win64_msvc2019_64
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           qt-version: '5.15.2'
           compiler: LLVM
           e2ee: e2ee
@@ -57,7 +57,7 @@ jobs:
           compiler: GCC
           e2ee: e2ee
           update-api: update-api
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           qt-version: '5.15.2'
           compiler: LLVM
           update-api: update-api
