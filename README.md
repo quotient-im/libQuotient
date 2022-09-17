@@ -30,8 +30,8 @@ in SECURITY.md.
 
 ## Getting and using libQuotient
 Depending on your platform, the library can be obtained from a package
-management system. Recent releases of Debian and openSUSE, e.g., already have
-it. Alternatively, just build the library from the source and bundle it with
+management system. Recent releases of Fedora, Debian and openSUSE already have
+it. Alternatively, you can build the library from the source and bundle it with
 your application, as described below.
 
 ### Pre-requisites
@@ -39,12 +39,16 @@ your application, as described below.
   mobile operating systems where Qt is available might work too)
   - Recent enough Linux examples: Debian Bullseye; Fedora 35;
     openSUSE Leap 15.4; Ubuntu 22.04 LTS.
-- Qt 5 (either Open Source or Commercial), 5.15 or higher
-- CMake 3.16 or newer (from your package management system or
-  [the official website](https://cmake.org/download/))
-- A C++ toolchain with that supports at least some subset of C++20:
+- Qt 5.15 or 6 (experimental, as of libQuotient 0.7) - either Open Source or
+  Commercial
+- CMake 3.16 or newer
+- A C++ toolchain that supports at least some subset of C++20 (concepts,
+  in particular):
   - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported.
+- If using E2EE (beta, as of libQuotient 0.7):
+  - libolm 3.x (the latest 3.x strongly recommended)
+  - OpenSSL (1.1.x is known to work; 3.x should likely work too).
 - Any build system that works with CMake should be fine:
   GNU Make and ninja on any platform, NMake and jom on Windows are known to work.
   Ninja is recommended.
@@ -56,8 +60,11 @@ at error messages. The library is entirely offscreen but aside from QtCore and
 QtNetwork it also depends on QtGui in order to handle avatar thumbnails.
 
 #### macOS
-`brew install qt5` should get you a recent Qt5. You may need to pass
-`-DCMAKE_PREFIX_PATH=$(brew --prefix qt5)` to make it aware of the Qt location.
+`brew install qt5` should get you a recent Qt5. You may need to add the output
+of `brew --prefix qt5` to `CMAKE_PREFIX_PATH` (see below) to make CMake aware
+of the Qt location.
+
+If using E2EE, you need to perform the same dance for libolm and openssl.
 
 #### Windows
 Install Qt5 using their official installer; make sure to tick the CMake box
@@ -71,6 +78,14 @@ the script adds necessary paths to PATH. You might not want to run that script
 on system startup but it's very handy to setup the environment before building.
 Alternatively you can add the Qt path to `CMAKE_PREFIX_PATH` and leave PATH
 unchanged.
+
+If you're trying out E2EE, you will also need libolm and OpenSSL. Unfortunately,
+neither project provides official binary libraries for Windows. libolm can
+be compiled from the sources (available at ) using the same toolchain
+(CMake+MSVC). It's not recommended to compile OpenSSL yourself; instead, use
+one of the "OpenSSL for Windows" links in
+[unofficial list on the project Wiki](https://wiki.openssl.org/index.php/Binaries).
+
 
 ### Using the library
 If you're just starting a project using libQuotient from scratch, you can copy
@@ -121,6 +136,9 @@ Static builds are tested on all supported platforms, building the library as
 a shared object (aka dynamic library) is supported on Linux and macOS but is
 very likely to be broken on Windows.
 
+Before proceeding, double-check that you have installed development libraries
+for all prerequisites above. CMake will stop and tell you if something's missing.
+
 The first CMake invocation above configures the build. You can pass CMake
 variables (such as `-DCMAKE_PREFIX_PATH="path1;path2;..."` and
 `-DCMAKE_INSTALL_PREFIX=path`) here if needed.
@@ -137,11 +155,14 @@ the standard variables coming with CMake. On top of them, Quotient introduces:
   to get the contents of `#quotient:matrix.org`; this is being fixed in
   [#401](https://github.com/quotient-im/libQuotient/issues/401).
 - `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default - enable work-in-progress
-  E2EE code in the library. As of 0.6, this code is very incomplete and leaks
-  memory; only set this to `ON` if you want to help making this code work.
+  E2EE code in the library. As of 0.6, this code is very incomplete and buggy;
+  you should NEVER use it. In 0.7, the enabled code is beta-quality and is
+  generally good for trying the technology and API but really not for
+  mission-critical applications.
+
   Switching this on will define `Quotient_E2EE_ENABLED` macro (note
   the difference from the CMake switch) for compiler invocations on all
-  Quotient and Quotient-dependent (if it uses `find_package(Quotient 0.6)`)
+  Quotient and Quotient-dependent (if it uses `find_package(Quotient)`)
   code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code using
   E2EE parts of Quotient.
 - `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
