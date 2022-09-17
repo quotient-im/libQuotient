@@ -772,7 +772,7 @@ Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
     // TODO: remove in 0.8
     if (const auto member = q->user(userId); !isLocalUser(member))
         QT_IGNORE_DEPRECATIONS(emit q->readMarkerForUserMoved(
-            member, prevEventId, storedReceipt.eventId));
+            member, prevEventId, storedReceipt.eventId);)
     return prevEventId;
 }
 
@@ -921,7 +921,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     emit q->fullyReadMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
     // TODO: Remove in 0.8
     QT_IGNORE_DEPRECATIONS(
-        emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId));
+        emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);)
     return changes;
 }
 
@@ -1973,7 +1973,7 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
 
     if (changes & Change::PartiallyReadStats) {
         QT_IGNORE_DEPRECATIONS(
-            emit q->unreadMessagesChanged(q)); // TODO: remove in 0.8
+            emit q->unreadMessagesChanged(q);) // TODO: remove in 0.8
         emit q->partiallyReadStatsChanged();
     }
 
