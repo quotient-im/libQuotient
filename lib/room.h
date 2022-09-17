@@ -187,28 +187,28 @@ public:
     //! each change. Specific enumerators mention these individual signals.
     //! \sa changed
     enum class Change : uint {
-        None = 0x0, //< No changes occurred in the room
-        Name = 0x1, //< \sa namesChanged, displaynameChanged
-        Aliases = 0x2, //< \sa namesChanged, displaynameChanged
+        None = 0x0, ///< No changes occurred in the room
+        Name = 0x1, ///< \sa namesChanged, displaynameChanged
+        Aliases = 0x2, ///< \sa namesChanged, displaynameChanged
         CanonicalAlias = Aliases,
-        Topic = 0x4, //< \sa topicChanged
-        PartiallyReadStats = 0x8, //< \sa partiallyReadStatsChanged
+        Topic = 0x4, ///< \sa topicChanged
+        PartiallyReadStats = 0x8, ///< \sa partiallyReadStatsChanged
         DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
-        Avatar = 0x10, //< \sa avatarChanged
-        JoinState = 0x20, //< \sa joinStateChanged
-        Tags = 0x40, //< \sa tagsChanged
+        Avatar = 0x10, ///< \sa avatarChanged
+        JoinState = 0x20, ///< \sa joinStateChanged
+        Tags = 0x40, ///< \sa tagsChanged
         //! \sa userAdded, userRemoved, memberRenamed, memberListChanged,
         //!     displaynameChanged
         Members = 0x80,
-        UnreadStats = 0x100, //< \sa unreadStatsChanged
+        UnreadStats = 0x100, ///< \sa unreadStatsChanged
         AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::AccountData will be merged into Change::Other in 0.8") =
             0x200,
-        Summary = 0x400, //< \sa summaryChanged, displaynameChanged
+        Summary = 0x400, ///< \sa summaryChanged, displaynameChanged
         ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::ReadMarker will be merged into Change::Other in 0.8") =
             0x800,
-        Highlights = 0x1000, //< \sa highlightCountChanged
+        Highlights = 0x1000, ///< \sa highlightCountChanged
         //! A catch-all value that covers changes not listed above (such as
         //! encryption turned on or the room having been upgraded), as well as
         //! changes in the room state that the library is not aware of (e.g.,
@@ -626,7 +626,7 @@ public:
     //! \sa unreadStats, lastLocalReadReceipt
     qsizetype notificationCount() const;
 
-    //! \deprecated Use setReadReceipt() to drive changes in notification count
+    [[deprecated("Use setReadReceipt() to drive changes in notification count")]]
     Q_INVOKABLE void resetNotificationCount();
 
     //! \brief Get the number of highlights since the last read receipt
@@ -637,7 +637,7 @@ public:
     //! \sa unreadStats, lastLocalReadReceipt
     qsizetype highlightCount() const;
 
-    //! \deprecated Use setReadReceipt() to drive changes in highlightCount
+    [[deprecated("Use setReadReceipt() to drive changes in highlightCount")]]
     Q_INVOKABLE void resetHighlightCount();
 
     /** Check whether the room has account data of the given type
@@ -673,12 +673,12 @@ public:
      * actions on the room to its predecessors and successors.
      */
     enum ActionScope {
-        ThisRoomOnly,    //< Do not apply to predecessors and successors
-        WithinSameState, //< Apply to predecessors and successors in the same
-                         //< state as the current one
-        OmitLeftState,   //< Apply to all reachable predecessors and successors
-                         //< except those in Leave state
-        WholeSequence    //< Apply to all reachable predecessors and successors
+        ThisRoomOnly,    ///< Do not apply to predecessors and successors
+        WithinSameState, ///< Apply to predecessors and successors in the same
+                         ///< state as the current one
+        OmitLeftState,   ///< Apply to all reachable predecessors and successors
+                         ///< except those in Leave state
+        WholeSequence    ///< Apply to all reachable predecessors and successors
     };
 
     /** Overwrite the room's tags
@@ -874,8 +874,8 @@ public Q_SLOTS:
     void inviteCall(const QString& callId, const int lifetime,
                     const QString& sdp);
     void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
-    //! \deprecated Lifetime argument is no more passed; use 2-arg
-    //!             Room::answerCall() instead
+    [[deprecated("Lifetime argument is no more passed; "
+                 "use 2-arg Room::answerCall() instead")]]
     void answerCall(const QString& callId, int lifetime, const QString& sdp);
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
@@ -970,8 +970,8 @@ Q_SIGNALS:
                           Quotient::JoinState newState);
     void typingChanged();
 
-    void highlightCountChanged(); //< \sa highlightCount
-    void notificationCountChanged(); //< \sa notificationCount
+    void highlightCountChanged(); ///< \sa highlightCount
+    void notificationCountChanged(); ///< \sa notificationCount
 
     void displayedChanged(bool displayed);
     void firstDisplayedEventChanged();
@@ -980,13 +980,13 @@ Q_SIGNALS:
     //! \sa lastReadReceipt
     void lastReadEventChanged(QVector<QString> userIds);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
-    //! \deprecated since 0.7 - use fullyReadMarkerMoved
+    [[deprecated("Since 0.7, use fullyReadMarkerMoved")]]
     void readMarkerMoved(QString fromEventId, QString toEventId);
-    //! \deprecated since 0.7 - use lastReadEventChanged
+    [[deprecated("Since 0.7, use lastReadEventChanged")]]
     void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
                                 QString toEventId);
-    //! \deprecated since 0.7 - use either partiallyReadStatsChanged
-    //!             or unreadStatsChanged
+    [[deprecated("Since 0.7, use either partiallyReadStatsChanged "
+                 "or unreadStatsChanged")]]
     void unreadMessagesChanged(Quotient::Room* room);
     void partiallyReadStatsChanged();
     void unreadStatsChanged();
