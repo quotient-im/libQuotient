@@ -9,6 +9,7 @@
 #include "mxcreply.h"
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QThread>
 #include <QtCore/QSettings>
 #include <QtNetwork/QNetworkReply>
 
@@ -68,8 +69,13 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
-    thread_local NetworkAccessManager nam;
-    return &nam;
+    thread_local auto* nam = [] {
+        auto* namInit = new NetworkAccessManager();
+        connect(QThread::currentThread(), &QThread::finished, namInit,
+                &QObject::deleteLater);
+        return namInit;
+    }();
+    return nam;
 }
 
 QNetworkReply* NetworkAccessManager::createRequest(
