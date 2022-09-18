@@ -106,6 +106,7 @@ jobs:
                 sed -i 's/ThreadEngineStarter<void>(ThreadEngine<void> \*_threadEngine)/ThreadEngineStarter(ThreadEngine<void> \*_threadEngine)/' \
                     $Qt5_DIR/include/QtConcurrent/qtconcurrentthreadengine.h
             fi
+            echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
         elif [[ '${{ runner.os }}' != 'Windows' ]]; then
             echo "CC=clang" >>$GITHUB_ENV
             echo "CXX=clang++" >>$GITHUB_ENV
@@ -155,7 +156,6 @@ jobs:
             echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
         fi
         sudo apt-get -qq install ninja-build valgrind $EXTRA_DEPS
-        echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
