@@ -44,8 +44,7 @@ void QOlmAccount::createNewAccount()
 {
     m_account = olm_account(new uint8_t[olm_account_size()]);
     const auto randomLength = olm_create_account_random_length(m_account);
-    QByteArray randomData = getRandom(randomLength);
-    if (olm_create_account(m_account, randomData.data(), randomLength)
+    if (olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
         == olm_error()) {
         throw lastError();
     }
@@ -133,10 +132,8 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
     const auto randomLength =
         olm_account_generate_one_time_keys_random_length(m_account,
                                                          numberOfKeys);
-    QByteArray randomBuffer = getRandom(randomLength);
-    const auto result =
-        olm_account_generate_one_time_keys(m_account, numberOfKeys,
-                                           randomBuffer.data(), randomLength);
+    const auto result = olm_account_generate_one_time_keys(
+        m_account, numberOfKeys, RandomBuffer(randomLength), randomLength);
 
     if (result == olm_error()) {
         throw lastError();

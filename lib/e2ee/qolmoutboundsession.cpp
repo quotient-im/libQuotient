@@ -34,11 +34,10 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
 {
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
     const auto randomLength = olm_init_outbound_group_session_random_length(olmOutboundGroupSession);
-    QByteArray randomBuf = getRandom(randomLength);
 
-    if (olm_init_outbound_group_session(
-            olmOutboundGroupSession,
-            reinterpret_cast<uint8_t*>(randomBuf.data()), randomBuf.length())
+    if (olm_init_outbound_group_session(olmOutboundGroupSession,
+                                        RandomBuffer(randomLength).bytes(),
+                                        randomLength)
         == olm_error()) {
         // FIXME: create the session object earlier and use lastError()
         throw olm_outbound_group_session_last_error_code(olmOutboundGroupSession);
@@ -49,8 +48,6 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
     QByteArray keyBuffer(keyMaxLength, '\0');
     olm_outbound_group_session_key(olmOutboundGroupSession, reinterpret_cast<uint8_t *>(keyBuffer.data()),
             keyMaxLength);
-
-    randomBuf.clear();
 
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }

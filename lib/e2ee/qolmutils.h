@@ -12,5 +12,26 @@ namespace Quotient {
 
 // Convert PicklingMode to key
 QUOTIENT_API QByteArray toKey(const PicklingMode &mode);
-QUOTIENT_API QByteArray getRandom(size_t bufferSize);
+
+class QUOTIENT_API RandomBuffer : public QByteArray {
+public:
+    explicit RandomBuffer(size_t size);
+    ~RandomBuffer() { clear(); }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    QUO_IMPLICIT operator void*() { return data(); }
+    char* chars() { return data(); }
+    uint8_t* bytes() { return reinterpret_cast<uint8_t*>(data()); }
+
+    Q_DISABLE_COPY(RandomBuffer)
+    RandomBuffer(RandomBuffer&&) = default;
+    void operator=(RandomBuffer&&) = delete;
+};
+
+[[deprecated("Create RandomBuffer directly")]] inline auto getRandom(
+    size_t bufferSize)
+{
+    return RandomBuffer(bufferSize);
 }
+
+} // namespace Quotient

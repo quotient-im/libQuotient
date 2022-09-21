@@ -15,9 +15,8 @@ QByteArray Quotient::toKey(const Quotient::PicklingMode &mode)
     return std::get<Quotient::Encrypted>(mode).key;
 }
 
-QByteArray Quotient::getRandom(size_t bufferSize)
+RandomBuffer::RandomBuffer(size_t size)
+    : QByteArray(static_cast<int>(size), '\0')
 {
-    QByteArray buffer(bufferSize, '0');
-    QRandomGenerator::system()->generate(buffer.begin(), buffer.end());
-    return buffer;
+    QRandomGenerator::system()->generate(begin(), end());
 }

@@ -59,19 +59,17 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
 #ifdef Quotient_E2EE_ENABLED
-    auto k = getRandom(32);
+    auto k = RandomBuffer(32);
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
-    auto iv = getRandom(16);
+    auto iv = RandomBuffer(16);
     JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, kBase64, true
     };
 
     int length = -1;
     auto* ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr,
-                       reinterpret_cast<const unsigned char*>(k.data()),
-                       reinterpret_cast<const unsigned char*>(iv.data()));
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, k.bytes(), iv.bytes());
     const auto blockSize = EVP_CIPHER_CTX_block_size(ctx);
     QByteArray cipherText(plainText.size() + blockSize - 1, '\0');
     EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()),

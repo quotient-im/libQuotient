@@ -72,8 +72,7 @@ void KeyVerificationSession::init(milliseconds timeout)
 
     m_sas = olm_sas(new std::byte[olm_sas_size()]);
     const auto randomLength = olm_create_sas_random_length(m_sas);
-    auto random = getRandom(randomLength);
-    olm_create_sas(m_sas, random.data(), randomLength);
+    olm_create_sas(m_sas, RandomBuffer(randomLength), randomLength);
 }
 
 KeyVerificationSession::~KeyVerificationSession()
