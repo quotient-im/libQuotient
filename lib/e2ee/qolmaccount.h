@@ -41,7 +41,7 @@ public:
                                         const PicklingMode& mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
+    QByteArray pickle(const PicklingMode &mode);
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
@@ -107,6 +107,8 @@ private:
     OlmAccount *m_account = nullptr; // owning
     QString m_userId;
     QString m_deviceId;
+
+    QString accountId() const;
 };
 
 QUOTIENT_API bool verifyIdentitySignature(const DeviceKeys& deviceKeys,

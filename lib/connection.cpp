@@ -206,13 +206,9 @@ public:
     }
     void saveSession(const QOlmSession& session, const QString& senderKey) const
     {
-        if (auto pickleResult = session.pickle(picklingMode))
-            q->database()->saveOlmSession(senderKey, session.sessionId(),
-                                          *pickleResult,
-                                          QDateTime::currentDateTime());
-        else
-            qCWarning(E2EE) << "Failed to pickle olm session. Error"
-                            << pickleResult.error();
+        q->database()->saveOlmSession(senderKey, session.sessionId(),
+                                      session.pickle(picklingMode),
+                                      QDateTime::currentDateTime());
     }
 
     template <typename FnT>
@@ -2219,11 +2215,7 @@ void Connection::saveOlmAccount()
 {
 #ifdef Quotient_E2EE_ENABLED
     qCDebug(E2EE) << "Saving olm account";
-    if (const auto expectedPickle = d->olmAccount->pickle(d->picklingMode))
-        d->database->setAccountPickle(*expectedPickle);
-    else
-        qCWarning(E2EE) << "Couldn't save Olm account pickle:"
-                        << expectedPickle.error();
+    d->database->setAccountPickle(d->olmAccount->pickle(d->picklingMode));
 #endif
 }
 
@@ -2300,11 +2292,8 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
     const auto& curveKey = curveKeyForUserDevice(userId, device);
     const auto& olmSession = olmSessions.at(curveKey).front();
     const auto result = olmSession->encrypt(message);
-    if (const auto pickle = olmSession->pickle(picklingMode)) {
-        database->updateOlmSession(curveKey, olmSession->sessionId(), *pickle);
-    } else {
-        qWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
-    }
+    database->updateOlmSession(curveKey, olmSession->sessionId(),
+                               olmSession->pickle(picklingMode));
     return { result.type(), result.toCiphertext() };
 }
 

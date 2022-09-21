@@ -39,8 +39,10 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
                                         RandomBuffer(randomLength).bytes(),
                                         randomLength)
         == olm_error()) {
-        // FIXME: create the session object earlier and use lastError()
-        throw olm_outbound_group_session_last_error_code(olmOutboundGroupSession);
+        // FIXME: create the session object earlier
+        QOLM_INTERNAL_ERROR_X("Failed to initialise an outbound group session",
+                              olm_outbound_group_session_last_error(
+                                  olmOutboundGroupSession));
     }
 
     // FIXME: is it used anywhere?
@@ -52,7 +54,7 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-QOlmExpected<QByteArray> QOlmOutboundGroupSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmOutboundGroupSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(
         olm_pickle_outbound_group_session_length(m_groupSession), '\0');
@@ -61,7 +63,7 @@ QOlmExpected<QByteArray> QOlmOutboundGroupSession::pickle(const PicklingMode &mo
                                           key.length(), pickledBuf.data(),
                                           pickledBuf.length())
         == olm_error())
-        return lastErrorCode();
+        QOLM_INTERNAL_ERROR("Failed to pickle the outbound group session");
 
     key.clear();
     return pickledBuf;
@@ -77,6 +79,9 @@ QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(
                                             pickled.length())
         == olm_error()) {
         // FIXME: create the session object earlier and use lastError()
+        qWarning(E2EE) << "Failed to unpickle an outbound group session:"
+                       << olm_outbound_group_session_last_error(
+                              olmOutboundGroupSession);
         return olm_outbound_group_session_last_error_code(
             olmOutboundGroupSession);
     }
@@ -90,8 +95,7 @@ QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
-QOlmExpected<QByteArray> QOlmOutboundGroupSession::encrypt(
-    const QByteArray& plaintext) const
+QByteArray QOlmOutboundGroupSession::encrypt(const QByteArray& plaintext) const
 {
     const auto messageMaxLength =
         olm_group_encrypt_message_length(m_groupSession, plaintext.length());
@@ -102,7 +106,7 @@ QOlmExpected<QByteArray> QOlmOutboundGroupSession::encrypt(
                           reinterpret_cast<uint8_t*>(messageBuf.data()),
                           messageBuf.length())
         == olm_error())
-        return lastErrorCode();
+        QOLM_INTERNAL_ERROR("Failed to encrypt a message");
 
     return messageBuf;
 }
@@ -120,12 +124,12 @@ QByteArray QOlmOutboundGroupSession::sessionId() const
             m_groupSession, reinterpret_cast<uint8_t*>(idBuffer.data()),
             idBuffer.length())
         == olm_error())
-        throw lastError();
+        QOLM_INTERNAL_ERROR("Failed to obtain group session id");
 
     return idBuffer;
 }
 
-QOlmExpected<QByteArray> QOlmOutboundGroupSession::sessionKey() const
+QByteArray QOlmOutboundGroupSession::sessionKey() const
 {
     const auto keyMaxLength = olm_outbound_group_session_key_length(m_groupSession);
     QByteArray keyBuffer(keyMaxLength, '\0');
@@ -133,7 +137,7 @@ QOlmExpected<QByteArray> QOlmOutboundGroupSession::sessionKey() const
             m_groupSession, reinterpret_cast<uint8_t*>(keyBuffer.data()),
             keyMaxLength)
         == olm_error())
-        return lastErrorCode();
+        QOLM_INTERNAL_ERROR("Failed to obtain group session key");
 
     return keyBuffer;
 }

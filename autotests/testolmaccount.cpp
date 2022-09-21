@@ -23,7 +23,7 @@ void TestOlmAccount::pickleUnpickledTest()
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     olmAccount.createNewAccount();
     auto identityKeys = olmAccount.identityKeys();
-    auto pickled = olmAccount.pickle(Unencrypted{}).value();
+    auto pickled = olmAccount.pickle(Unencrypted{});
     QOlmAccount olmAccount2(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     auto unpickleResult = olmAccount2.unpickle(std::move(pickled),
                                                Unencrypted{});

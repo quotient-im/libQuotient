@@ -31,7 +31,8 @@ QOlmInboundGroupSession::~QOlmInboundGroupSession()
     //delete[](reinterpret_cast<uint8_t *>(m_groupSession));
 }
 
-std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const QByteArray &key)
+QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::create(
+    const QByteArray& key)
 {
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
     if (olm_init_inbound_group_session(
@@ -39,13 +40,17 @@ std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const Q
             reinterpret_cast<const uint8_t*>(key.constData()), key.size())
         == olm_error()) {
         // FIXME: create QOlmInboundGroupSession earlier and use lastErrorCode()
-        throw olm_inbound_group_session_last_error_code(olmInboundGroupSession);
+        qWarning(E2EE) << "Failed to create an inbound group session:"
+                       << olm_inbound_group_session_last_error(
+                              olmInboundGroupSession);
+        return olm_inbound_group_session_last_error_code(olmInboundGroupSession);
     }
 
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
 }
 
-std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::import(const QByteArray &key)
+QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::import(
+    const QByteArray& key)
 {
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
 
@@ -54,7 +59,10 @@ std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::import(const Q
             reinterpret_cast<const uint8_t*>(key.data()), key.size())
         == olm_error()) {
         // FIXME: create QOlmInboundGroupSession earlier and use lastError()
-        throw olm_inbound_group_session_last_error_code(olmInboundGroupSession);
+        qWarning(E2EE) << "Failed to import an inbound group session:"
+                       << olm_inbound_group_session_last_error(
+                              olmInboundGroupSession);
+        return olm_inbound_group_session_last_error_code(olmInboundGroupSession);
     }
 
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
@@ -69,7 +77,7 @@ QByteArray QOlmInboundGroupSession::pickle(const PicklingMode& mode) const
                                          key.length(), pickledBuf.data(),
                                          pickledBuf.length())
         == olm_error()) {
-        throw lastError();
+        QOLM_INTERNAL_ERROR("Failed to pickle the inbound group session");
     }
     return pickledBuf;
 }
@@ -84,6 +92,8 @@ QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::unpickle(
                                            pickled.size())
         == olm_error()) {
         // FIXME: create QOlmInboundGroupSession earlier and use lastError()
+        qWarning(E2EE) << "Failed to unpickle an inbound group session:"
+                       << olm_inbound_group_session_last_error(groupSession);
         return olm_inbound_group_session_last_error_code(groupSession);
     }
     key.clear();
@@ -133,6 +143,8 @@ QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(
             m_groupSession, reinterpret_cast<uint8_t*>(keyBuf.data()),
             keyLength, messageIndex)
         == olm_error()) {
+        QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL,
+                         "Failed to export the inbound group session");
         return lastErrorCode();
     }
     return keyBuf;
@@ -150,9 +162,9 @@ QByteArray QOlmInboundGroupSession::sessionId() const
     if (olm_inbound_group_session_id(
             m_groupSession, reinterpret_cast<uint8_t*>(sessionIdBuf.data()),
             sessionIdBuf.length())
-        == olm_error()) {
-        throw lastError();
-    }
+        == olm_error())
+        QOLM_INTERNAL_ERROR("Failed to obtain the group session id");
+
     return sessionIdBuf;
 }
 

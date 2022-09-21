@@ -20,14 +20,14 @@ public:
     //! Throw OlmError on errors
     static QOlmOutboundGroupSessionPtr create();
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
         QByteArray&& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
-    QOlmExpected<QByteArray> encrypt(const QByteArray& plaintext) const;
+    QByteArray encrypt(const QByteArray& plaintext) const;
 
     //! Get the current message index for this session.
     //!
@@ -42,7 +42,7 @@ public:
     //!
     //! Each message is sent with a different ratchet key. This function returns the
     //! ratchet key that will be used for the next message.
-    QOlmExpected<QByteArray> sessionKey() const;
+    QByteArray sessionKey() const;
     QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
 
     int messageCount() const;

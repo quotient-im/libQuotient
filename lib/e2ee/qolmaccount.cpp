@@ -45,9 +45,9 @@ void QOlmAccount::createNewAccount()
     m_account = olm_account(new uint8_t[olm_account_size()]);
     const auto randomLength = olm_create_account_random_length(m_account);
     if (olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
-        == olm_error()) {
-        throw lastError();
-    }
+        == olm_error())
+        QOLM_INTERNAL_ERROR("Failed to create a new account");
+
     emit needsSave();
 }
 
@@ -64,7 +64,7 @@ OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingMode &mod
     return OLM_SUCCESS;
 }
 
-QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
+QByteArray QOlmAccount::pickle(const PicklingMode &mode)
 {
     const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(m_account);
@@ -72,7 +72,9 @@ QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
     if (olm_pickle_account(m_account, key.data(), key.length(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
-        return lastErrorCode();
+        QOLM_INTERNAL_ERROR(qPrintable("Failed to pickle Olm account "
+                                       + accountId()));
+
     return pickleBuffer;
 }
 
@@ -82,7 +84,8 @@ IdentityKeys QOlmAccount::identityKeys() const
     QByteArray keyBuffer(keyLength, '\0');
     if (olm_account_identity_keys(m_account, keyBuffer.data(), keyLength)
         == olm_error()) {
-        throw lastError();
+        QOLM_INTERNAL_ERROR(
+            qPrintable("Failed to get " % accountId() % " identity keys"));
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
     return IdentityKeys {
@@ -97,9 +100,9 @@ QByteArray QOlmAccount::sign(const QByteArray &message) const
 
     if (olm_account_sign(m_account, message.data(), message.length(),
                          signatureBuffer.data(), signatureBuffer.length())
-        == olm_error()) {
-        throw lastError();
-    }
+        == olm_error())
+        QOLM_INTERNAL_ERROR("Failed to sign a message");
+
     return signatureBuffer;
 }
 
@@ -135,9 +138,10 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
     const auto result = olm_account_generate_one_time_keys(
         m_account, numberOfKeys, RandomBuffer(randomLength), randomLength);
 
-    if (result == olm_error()) {
-        throw lastError();
-    }
+    if (result == olm_error())
+        QOLM_INTERNAL_ERROR(qPrintable(
+            "Failed to generate one-time keys for account " + accountId()));
+
     emit needsSave();
     return result;
 }
@@ -149,9 +153,10 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 
     if (olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(),
                                   oneTimeKeyLength)
-        == olm_error()) {
-        throw lastError();
-    }
+        == olm_error())
+        QOLM_INTERNAL_ERROR(qPrintable(
+            "Failed to obtain one-time keys for account" % accountId()));
+
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     UnsignedOneTimeKeys oneTimeKeys;
     fromJson(json, oneTimeKeys.keys);
@@ -266,3 +271,5 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
     return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf)
         .value_or(false);
 }
+
+QString QOlmAccount::accountId() const { return m_userId % '/' % m_deviceId; }
