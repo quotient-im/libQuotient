@@ -652,8 +652,7 @@ void Connection::Private::completeSetup(const QString& mxId)
         });
     } else {
         // account already existing
-        auto pickle = database->accountPickle();
-        olmAccount->unpickle(pickle, picklingMode);
+        olmAccount->unpickle(database->accountPickle(), picklingMode);
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
@@ -2300,14 +2299,13 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
 {
     const auto& curveKey = curveKeyForUserDevice(userId, device);
     const auto& olmSession = olmSessions.at(curveKey).front();
-    QOlmMessage::Type type = olmSession->encryptMessageType();
     const auto result = olmSession->encrypt(message);
     if (const auto pickle = olmSession->pickle(picklingMode)) {
         database->updateOlmSession(curveKey, olmSession->sessionId(), *pickle);
     } else {
         qWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
     }
-    return { type, result.toCiphertext() };
+    return { result.type(), result.toCiphertext() };
 }
 
 bool Connection::Private::createOlmSession(const QString& targetUserId,
@@ -2343,7 +2341,7 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
         return false;
     }
     const auto recipientCurveKey =
-        curveKeyForUserDevice(targetUserId, targetDeviceId);
+        curveKeyForUserDevice(targetUserId, targetDeviceId).toLatin1();
     auto session =
         QOlmSession::createOutboundSession(olmAccount.get(), recipientCurveKey,
                                            signedOneTimeKey->key());

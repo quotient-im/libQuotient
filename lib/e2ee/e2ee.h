@@ -98,7 +98,7 @@ public:
     {}
 
     //! Unpadded Base64-encoded 32-byte Curve25519 public key
-    QString key() const { return payload["key"_ls].toString(); }
+    QByteArray key() const { return payload["key"_ls].toString().toLatin1(); }
 
     //! \brief Signatures of the key object
     //!

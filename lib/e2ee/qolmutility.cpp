@@ -32,7 +32,7 @@ QOlmUtility::~QOlmUtility()
 QString QOlmUtility::sha256Bytes(const QByteArray &inputBuf) const
 {
     const auto outputLen = olm_sha256_length(m_utility);
-    QByteArray outputBuf(outputLen, '0');
+    QByteArray outputBuf(outputLen, '\0');
     olm_sha256(m_utility, inputBuf.data(), inputBuf.length(),
             outputBuf.data(), outputBuf.length());
 
@@ -48,19 +48,17 @@ QOlmExpected<bool> QOlmUtility::ed25519Verify(const QByteArray& key,
                                               const QByteArray& message,
                                               const QByteArray& signature)
 {
-    QByteArray signatureBuf(signature.length(), '0');
+    QByteArray signatureBuf(signature.length(), '\0');
     std::copy(signature.begin(), signature.end(), signatureBuf.begin());
 
-    const auto ret = olm_ed25519_verify(m_utility, key.data(), key.size(),
-                                        message.data(), message.size(),
-                                        (void*)signatureBuf.data(),
-                                        signatureBuf.size());
-    if (ret == olm_error()) {
-        auto error = lastErrorCode();
-        if (error == OLM_BAD_MESSAGE_MAC)
-            return false;
-        return error;
-    }
+    if (olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
+                           message.size(), signatureBuf.data(),
+                           signatureBuf.size())
+        == 0)
+        return true;
 
-    return ret == 0;
+    auto error = lastErrorCode();
+    if (error == OLM_BAD_MESSAGE_MAC)
+        return false;
+    return error;
 }

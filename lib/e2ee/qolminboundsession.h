@@ -21,11 +21,11 @@ public:
     //! Import an inbound group session, from a previous export.
     static std::unique_ptr<QOlmInboundGroupSession> import(const QByteArray& key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
-    QByteArray pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode& mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
     static QOlmExpected<QOlmInboundGroupSessionPtr> unpickle(
-        const QByteArray& pickled, const PicklingMode& mode);
+        QByteArray&& pickled, const PicklingMode& mode);
     //! Decrypts ciphertext received for this group session.
     QOlmExpected<std::pair<QByteArray, uint32_t> > decrypt(const QByteArray& message);
     //! Export the base64-encoded ratchet key for this session, at the given index,

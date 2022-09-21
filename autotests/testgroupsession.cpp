@@ -17,7 +17,9 @@ void TestGroupSession::groupSessionPicklingValid()
     QCOMPARE(0, ogs->sessionMessageIndex());
 
     auto ogsPickled = ogs->pickle(Unencrypted {}).value();
-    auto ogs2 = QOlmOutboundGroupSession::unpickle(ogsPickled, Unencrypted {}).value();
+    auto ogs2 =
+        QOlmOutboundGroupSession::unpickle(std::move(ogsPickled), Unencrypted{})
+            .value();
     QCOMPARE(ogsId, ogs2->sessionId());
 
     auto igs = QOlmInboundGroupSession::create(ogs->sessionKey().value());
@@ -29,7 +31,8 @@ void TestGroupSession::groupSessionPicklingValid()
     QCOMPARE(0, igs->firstKnownIndex());
 
     auto igsPickled = igs->pickle(Unencrypted {});
-    igs = QOlmInboundGroupSession::unpickle(igsPickled, Unencrypted {}).value();
+    igs = QOlmInboundGroupSession::unpickle(std::move(igsPickled), Unencrypted{})
+              .value();
     QCOMPARE(igsId, igs->sessionId());
 }
 
@@ -39,7 +42,7 @@ void TestGroupSession::groupSessionCryptoValid()
     auto igs = QOlmInboundGroupSession::create(ogs->sessionKey().value());
     QCOMPARE(ogs->sessionId(), igs->sessionId());
 
-    const auto plainText = QStringLiteral("Hello world!");
+    const auto plainText = "Hello world!";
     const auto ciphertext = ogs->encrypt(plainText).value();
     // ciphertext valid base64?
     QVERIFY(QByteArray::fromBase64(ciphertext).size() > 0);

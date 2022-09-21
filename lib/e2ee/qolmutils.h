@@ -9,6 +9,7 @@
 #include "e2ee/e2ee.h"
 
 namespace Quotient {
+
 // Convert PicklingMode to key
 QUOTIENT_API QByteArray toKey(const PicklingMode &mode);
 QUOTIENT_API QByteArray getRandom(size_t bufferSize);

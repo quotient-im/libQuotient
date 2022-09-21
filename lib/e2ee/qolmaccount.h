@@ -24,7 +24,8 @@ class QUOTIENT_API QOlmAccount : public QObject
 {
     Q_OBJECT
 public:
-    QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent = nullptr);
+    QOlmAccount(QStringView userId, QStringView deviceId,
+                QObject* parent = nullptr);
     ~QOlmAccount() override;
 
     //! Creates a new instance of OlmAccount. During the instantiation
@@ -36,7 +37,7 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! This needs to be called before any other action or use createNewAccount() instead.
-    [[nodiscard]] OlmErrorCode unpickle(QByteArray& pickled,
+    [[nodiscard]] OlmErrorCode unpickle(QByteArray&& pickled,
                                         const PicklingMode& mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
@@ -74,7 +75,7 @@ public:
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
-    //! \param message An Olm pre-key message that was encrypted for this account.
+    //! \param preKeyMessage An Olm pre-key message that was encrypted for this account.
     QOlmExpected<QOlmSessionPtr> createInboundSession(
         const QOlmMessage& preKeyMessage);
 
@@ -93,7 +94,7 @@ public:
     void markKeysAsPublished();
 
     OlmErrorCode lastErrorCode() const;
-    const char *lastError() const;
+    const char* lastError() const;
 
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);
