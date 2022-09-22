@@ -33,9 +33,9 @@ QOlmOutboundGroupSession::~QOlmOutboundGroupSession()
 QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
 {
     auto *olmOutboundGroupSession = olm_outbound_group_session(new uint8_t[olm_outbound_group_session_size()]);
-    const auto randomLength = olm_init_outbound_group_session_random_length(olmOutboundGroupSession);
-
-    if (olm_init_outbound_group_session(olmOutboundGroupSession,
+    if (const auto randomLength = olm_init_outbound_group_session_random_length(
+            olmOutboundGroupSession);
+        olm_init_outbound_group_session(olmOutboundGroupSession,
                                         RandomBuffer(randomLength).bytes(),
                                         randomLength)
         == olm_error()) {

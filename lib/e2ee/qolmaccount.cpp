@@ -43,15 +43,16 @@ QOlmAccount::~QOlmAccount()
 void QOlmAccount::createNewAccount()
 {
     m_account = olm_account(new uint8_t[olm_account_size()]);
-    const auto randomLength = olm_create_account_random_length(m_account);
-    if (olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
+    if (const auto randomLength = olm_create_account_random_length(m_account);
+        olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to create a new account");
 
     emit needsSave();
 }
 
-OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingMode &mode)
+OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled,
+                                   const PicklingMode& mode)
 {
     m_account = olm_account(new uint8_t[olm_account_size()]);
     if (const auto key = toKey(mode);

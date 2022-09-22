@@ -49,7 +49,7 @@ QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::create(
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
 }
 
-QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::import(
+QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::importSession(
     const QByteArray& key)
 {
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);

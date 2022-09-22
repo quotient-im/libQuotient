@@ -80,10 +80,9 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createOutboundSession(
     const QByteArray& theirOneTimeKey)
 {
     auto* olmOutboundSession = create();
-    const auto randomLength =
-        olm_create_outbound_session_random_length(olmOutboundSession);
-
-    if (olm_create_outbound_session(
+    if (const auto randomLength =
+            olm_create_outbound_session_random_length(olmOutboundSession);
+        olm_create_outbound_session(
             olmOutboundSession, account->data(), theirIdentityKey.data(),
             theirIdentityKey.length(), theirOneTimeKey.data(),
             theirOneTimeKey.length(), RandomBuffer(randomLength), randomLength)
@@ -136,11 +135,11 @@ QOlmMessage QOlmSession::encrypt(const QByteArray& plaintext)
 {
     const auto messageMaxLength =
         olm_encrypt_message_length(m_session, plaintext.length());
-    QByteArray messageBuf(messageMaxLength, '0');
+    QByteArray messageBuf(messageMaxLength, '\0');
     // NB: The type has to be calculated before calling olm_encrypt()
     const auto messageType = olm_encrypt_message_type(m_session);
-    const auto randomLength = olm_encrypt_random_length(m_session);
-    if (olm_encrypt(m_session, plaintext.data(), plaintext.length(),
+    if (const auto randomLength = olm_encrypt_random_length(m_session);
+        olm_encrypt(m_session, plaintext.data(), plaintext.length(),
                     RandomBuffer(randomLength), randomLength, messageBuf.data(),
                     messageBuf.length())
         == olm_error()) {

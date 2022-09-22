@@ -648,7 +648,9 @@ void Connection::Private::completeSetup(const QString& mxId)
         });
     } else {
         // account already existing
-        olmAccount->unpickle(database->accountPickle(), picklingMode);
+        if (!olmAccount->unpickle(database->accountPickle(), picklingMode))
+            qWarning(E2EE)
+                << "Could not unpickle Olm account, E2EE won't be available";
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();

@@ -19,7 +19,7 @@ public:
     //! Creates a new instance of `OlmInboundGroupSession`.
     static QOlmExpected<QOlmInboundGroupSessionPtr> create(const QByteArray& key);
     //! Import an inbound group session, from a previous export.
-    static QOlmExpected<QOlmInboundGroupSessionPtr> import(const QByteArray& key);
+    static QOlmExpected<QOlmInboundGroupSessionPtr> importSession(const QByteArray& key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
     QByteArray pickle(const PicklingMode& mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
