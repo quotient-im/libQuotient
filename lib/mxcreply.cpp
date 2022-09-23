@@ -63,10 +63,11 @@ MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
 #ifdef Quotient_E2EE_ENABLED
     auto eventIt = room->findInTimeline(eventId);
     if(eventIt != room->historyEdge()) {
-        auto event = eventIt->viewAs<RoomMessageEvent>();
-        if (auto* efm = std::get_if<EncryptedFileMetadata>(
-                &event->content()->fileInfo()->source))
-            d->m_encryptedFile = *efm;
+        if (auto event = eventIt->viewAs<RoomMessageEvent>()) {
+            if (auto* efm = std::get_if<EncryptedFileMetadata>(
+                    &event->content()->fileInfo()->source))
+                d->m_encryptedFile = *efm;
+        }
     }
 #endif
 }
