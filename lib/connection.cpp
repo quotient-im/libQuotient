@@ -1006,8 +1006,7 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
             emit q->newKeyVerificationSession(*sessionIter);
             return true;
         },
-        [](const KeyVerificationDoneEvent& doneEvt) {
-            Q_UNUSED(doneEvt)
+        [](const KeyVerificationDoneEvent&) {
             return true;
         },
         [this](const KeyVerificationEvent& kvEvt) {
