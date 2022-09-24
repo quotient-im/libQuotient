@@ -1006,6 +1006,10 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
             emit q->newKeyVerificationSession(*sessionIter);
             return true;
         },
+        [](const KeyVerificationDoneEvent& doneEvt) {
+            Q_UNUSED(doneEvt)
+            return true;
+        },
         [this](const KeyVerificationEvent& kvEvt) {
             if (auto* const session =
                 verificationSessions.value(kvEvt.transactionId())) {
