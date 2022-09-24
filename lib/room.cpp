@@ -444,7 +444,6 @@ public:
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
-        currentOutboundMegolmSession->sessionKey();
         addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
                                currentOutboundMegolmSession->sessionKey(),
                                q->localUser()->id(), "SELF"_ls);

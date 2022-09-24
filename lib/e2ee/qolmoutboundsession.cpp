@@ -45,12 +45,6 @@ QOlmOutboundGroupSessionPtr QOlmOutboundGroupSession::create()
                                   olmOutboundGroupSession));
     }
 
-    // FIXME: is it used anywhere?
-    const auto keyMaxLength = olm_outbound_group_session_key_length(olmOutboundGroupSession);
-    QByteArray keyBuffer(keyMaxLength, '\0');
-    olm_outbound_group_session_key(olmOutboundGroupSession, reinterpret_cast<uint8_t *>(keyBuffer.data()),
-            keyMaxLength);
-
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
 }
 
@@ -85,11 +79,6 @@ QOlmExpected<QOlmOutboundGroupSessionPtr> QOlmOutboundGroupSession::unpickle(
         return olm_outbound_group_session_last_error_code(
             olmOutboundGroupSession);
     }
-    const auto idMaxLength = olm_outbound_group_session_id_length(olmOutboundGroupSession);
-    QByteArray idBuffer(idMaxLength, '\0');
-    olm_outbound_group_session_id(olmOutboundGroupSession, reinterpret_cast<uint8_t *>(idBuffer.data()),
-            idBuffer.length());
-    // FIXME: idBuffer doesn't seem to be used, is it needed here?
 
     key.clear();
     return std::make_unique<QOlmOutboundGroupSession>(olmOutboundGroupSession);
