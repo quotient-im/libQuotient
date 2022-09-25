@@ -40,23 +40,10 @@ QString QOlmUtility::sha256Utf8Msg(const QString &message) const
     return sha256Bytes(message.toUtf8());
 }
 
-QOlmExpected<bool> QOlmUtility::ed25519Verify(const QByteArray& key,
-                                              const QByteArray& message,
-                                              const QByteArray& signature)
+bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
+                                QByteArray signature)
 {
-    QByteArray signatureBuf(signature.length(), '0');
-    std::copy(signature.begin(), signature.end(), signatureBuf.begin());
-
-    const auto ret = olm_ed25519_verify(m_utility, key.data(), key.size(),
-            message.data(), message.size(), (void *)signatureBuf.data(), signatureBuf.size());
-
-    if (ret == olm_error()) {
-        auto error = lastError(m_utility);
-        if (error == QOlmError::BadMessageMac) {
-            return false;
-        }
-        return error;
-    }
-
-    return !ret; // ret == 0 means success
+    return olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
+                              message.size(), signature.data(), signature.size())
+           == 0;
 }

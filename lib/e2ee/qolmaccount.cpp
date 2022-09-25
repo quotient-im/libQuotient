@@ -264,6 +264,5 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
     QByteArray signingKeyBuf = signingKey.toUtf8();
     QOlmUtility utility;
     auto signatureBuf = signature.toUtf8();
-    return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf)
-        .value_or(false);
+    return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
 }

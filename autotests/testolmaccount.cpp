@@ -58,8 +58,7 @@ void TestOlmAccount::signatureValid()
     QOlmUtility utility;
     const auto identityKeys = olmAccount.identityKeys();
     const auto ed25519Key = identityKeys.ed25519;
-    const auto verify = utility.ed25519Verify(ed25519Key, message, signature);
-    QVERIFY(verify.value_or(false));
+    QVERIFY(utility.ed25519Verify(ed25519Key, message, signature));
 }
 
 void TestOlmAccount::oneTimeKeysValid()
