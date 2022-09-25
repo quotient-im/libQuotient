@@ -44,21 +44,10 @@ QString QOlmUtility::sha256Utf8Msg(const QString &message) const
     return sha256Bytes(message.toUtf8());
 }
 
-QOlmExpected<bool> QOlmUtility::ed25519Verify(const QByteArray& key,
-                                              const QByteArray& message,
-                                              const QByteArray& signature)
+bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
+                                QByteArray signature)
 {
-    QByteArray signatureBuf(signature.length(), '\0');
-    std::copy(signature.begin(), signature.end(), signatureBuf.begin());
-
-    if (olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
-                           message.size(), signatureBuf.data(),
-                           signatureBuf.size())
-        == 0)
-        return true;
-
-    auto error = lastErrorCode();
-    if (error == OLM_BAD_MESSAGE_MAC)
-        return false;
-    return error;
+    return olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
+                              message.size(), signature.data(), signature.size())
+           == 0;
 }

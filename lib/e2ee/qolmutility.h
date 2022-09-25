@@ -29,8 +29,8 @@ public:
     //! \param key QByteArray The public part of the ed25519 key that signed the message.
     //! \param message QByteArray The message that was signed.
     //! \param signature QByteArray The signature of the message.
-    QOlmExpected<bool> ed25519Verify(const QByteArray &key,
-            const QByteArray &message, const QByteArray &signature);
+    bool ed25519Verify(const QByteArray &key,
+            const QByteArray &message, QByteArray signature);
 
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
