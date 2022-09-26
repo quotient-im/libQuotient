@@ -11,10 +11,16 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
 {
     QByteArray pickledAccountA("eOBXIKivUT6YYowRH031BNv7zNmzqM5B7CpXdyeaPvala5mt7/OeqrG1qVA7vA1SYloFyvJPIy0QNkD3j1HiPl5vtZHN53rtfZ9exXDok03zjmssqn4IJsqcA7Fbo1FZeKafG0NFcWwCPTdmcV7REqxjqGm3I4K8MQFa45AdTGSUu2C12cWeOcbSMlcINiMral+Uyah1sgPmLJ18h1qcnskXUXQvpffZ5DiUw1Iz5zxnwOQF1GVyowPJD7Zdugvj75RQnDxAn6CzyvrY2k2CuedwqDC3fIXM2xdUNWttW4nC2g4InpBhCVvNwhZYxlUb5BUEjmPI2AB3dAL5ry6o9MFncmbN6x5x");
     QByteArray pickledAccountB("eModTvoFi9oOIkax4j4nuxw9Tcl/J8mOmUctUWI68Q89HSaaPTqR+tdlKQ85v2GOs5NlZCp7EuycypN9GQ4fFbHUCrS7nspa3GFBWsR8PnM8+wez5PWmfFZLg3drOvT0jbMjpDx0MjGYClHBqcrEpKx9oFaIRGBaX6HXzT4lRaWSJkXxuX92q8iGNrLn96PuAWFNcD+2JXpPcNFntslwLUNgqzpZ04aIFYwL80GmzyOgq3Bz1GO6u3TgCQEAmTIYN2QkO0MQeuSfe7UoMumhlAJ6R8GPcdSSPtmXNk4tdyzzlgpVq1hm7ZLKto+g8/5Aq3PvnvA8wCqno2+Pi1duK1pZFTIlActr");
-    auto accountA = QOlmAccount("accountA:foo.com", "Device1UserA");
-    accountA.unpickle(pickledAccountA, Unencrypted{});
-    auto accountB = QOlmAccount("accountB:foo.com", "Device1UserB");
-    accountB.unpickle(pickledAccountB, Unencrypted{});
+    auto accountA = QOlmAccount(u"accountA:foo.com", u"Device1UserA");
+    if (accountA.unpickle(std::move(pickledAccountA), Unencrypted{})
+        != OLM_SUCCESS)
+        qFatal("Failed to unpickle account A: %s", accountA.lastError());
+
+    auto accountB = QOlmAccount(u"accountB:foo.com", u"Device1UserB");
+    if (accountB.unpickle(std::move(pickledAccountB), Unencrypted{})
+        != OLM_SUCCESS)
+        qFatal("Failed to unpickle account B: %s", accountB.lastError());
+
 
     const QByteArray identityKeyA("qIEr3TWcJQt4CP8QoKKJcCaukByIOpgh6erBkhLEa2o");
     const QByteArray oneTimeKeyA("WzsbsjD85iB1R32iWxfJdwkgmdz29ClMbJSJziECYwk");

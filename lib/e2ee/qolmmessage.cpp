@@ -15,12 +15,6 @@ QOlmMessage::QOlmMessage(QByteArray ciphertext, QOlmMessage::Type type)
     Q_ASSERT_X(!isEmpty(), "olm message", "Ciphertext is empty");
 }
 
-QOlmMessage::QOlmMessage(const QOlmMessage &message)
-    : QByteArray(message)
-    , m_messageType(message.type())
-{
-}
-
 QOlmMessage::Type QOlmMessage::type() const
 {
     return m_messageType;

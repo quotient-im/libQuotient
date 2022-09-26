@@ -65,7 +65,6 @@
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmaccount.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmutility.h"
 #include "database.h"
@@ -358,7 +357,9 @@ public:
             return false;
         }
 
-        auto megolmSession = QOlmInboundGroupSession::create(sessionKey);
+        auto expectedMegolmSession = QOlmInboundGroupSession::create(sessionKey);
+        Q_ASSERT(expectedMegolmSession.has_value());
+        auto&& megolmSession = *expectedMegolmSession;
         if (megolmSession->sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
@@ -443,12 +444,9 @@ public:
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
-        const auto sessionKey = currentOutboundMegolmSession->sessionKey();
-        if(!sessionKey) {
-            qCWarning(E2EE) << "Failed to load key for new megolm session";
-            return;
-        }
-        addInboundGroupSession(currentOutboundMegolmSession->sessionId(), *sessionKey, q->localUser()->id(), "SELF"_ls);
+        addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
+                               currentOutboundMegolmSession->sessionKey(),
+                               q->localUser()->id(), "SELF"_ls);
     }
 
     QMultiHash<QString, QString> getDevicesWithoutKey() const
@@ -461,22 +459,6 @@ public:
         return connection->database()->devicesWithoutKey(
             id, devices, currentOutboundMegolmSession->sessionId());
     }
-
-    void sendMegolmSession(const QMultiHash<QString, QString>& devices) const {
-        // Save the session to this device
-        const auto sessionId = currentOutboundMegolmSession->sessionId();
-        const auto sessionKey = currentOutboundMegolmSession->sessionKey();
-        if(!sessionKey) {
-            qCWarning(E2EE) << "Error loading session key";
-            return;
-        }
-
-        // Send the session to other people
-        connection->sendSessionKeyToDevices(
-            id, sessionId, *sessionKey, devices,
-            currentOutboundMegolmSession->sessionMessageIndex());
-    }
-
 #endif // Quotient_E2EE_ENABLED
 
 private:
@@ -2030,17 +2012,20 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
-        sendMegolmSession(getDevicesWithoutKey());
+        // Send the session to other people
+        connection->sendSessionKeyToDevices(
+            id, currentOutboundMegolmSession->sessionId(),
+            currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
+            currentOutboundMegolmSession->sessionMessageIndex());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
-        if(!encrypted) {
-            qWarning(E2EE) << "Error encrypting message" << encrypted.error();
-            return {};
-        }
-        encryptedEvent = makeEvent<EncryptedEvent>(*encrypted, q->connection()->olmAccount()->identityKeys().curve25519, q->connection()->deviceId(), currentOutboundMegolmSession->sessionId());
+        encryptedEvent = makeEvent<EncryptedEvent>(
+            encrypted, q->connection()->olmAccount()->identityKeys().curve25519,
+            q->connection()->deviceId(),
+            currentOutboundMegolmSession->sessionId());
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());

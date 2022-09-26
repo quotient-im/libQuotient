@@ -6,8 +6,9 @@
 
 #include "quotient_export.h"
 
-#include <QObject>
-#include <QByteArray>
+#include <QtCore/QByteArray>
+#include <qobjectdefs.h>
+#include <olm/olm.h>
 
 namespace Quotient {
 
@@ -22,15 +23,12 @@ class QUOTIENT_API QOlmMessage : public QByteArray {
     Q_GADGET
 public:
     enum Type {
-        PreKey = 0,
-        General,
+        PreKey = OLM_MESSAGE_TYPE_PRE_KEY,
+        General = OLM_MESSAGE_TYPE_MESSAGE,
     };
     Q_ENUM(Type)
 
-    QOlmMessage() = default;
     explicit QOlmMessage(QByteArray ciphertext, Type type = General);
-    explicit QOlmMessage(const QOlmMessage &message);
-    ~QOlmMessage() = default;
 
     static QOlmMessage fromCiphertext(const QByteArray &ciphertext);
 

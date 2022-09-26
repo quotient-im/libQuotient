@@ -12,8 +12,13 @@
 
 using namespace Quotient;
 
-QOlmError lastError(OlmSession* session) {
-    return fromString(olm_session_last_error(session));
+OlmErrorCode QOlmSession::lastErrorCode() const {
+    return olm_session_last_error_code(m_session);
+}
+
+const char* QOlmSession::lastError() const
+{
+    return olm_session_last_error(m_session);
 }
 
 Quotient::QOlmSession::~QOlmSession()
@@ -32,7 +37,8 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createInbound(
     const QString& theirIdentityKey)
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
-        qCCritical(E2EE) << "The message is not a pre-key in when creating inbound session" << BadMessageFormat;
+        qCCritical(E2EE) << "The message is not a pre-key; will try to create "
+                            "the inbound session anyway";
     }
 
     const auto olmSession = create();
@@ -47,7 +53,8 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createInbound(
     }
 
     if (error == olm_error()) {
-        const auto lastErr = lastError(olmSession);
+        // FIXME: the QOlmSession object should be created earlier
+        const auto lastErr = olm_session_last_error_code(olmSession);
         qCWarning(E2EE) << "Error when creating inbound session" << lastErr;
         return lastErr;
     }
@@ -69,147 +76,120 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createInboundSessionFrom(
 }
 
 QOlmExpected<QOlmSessionPtr> QOlmSession::createOutboundSession(
-    QOlmAccount* account, const QString& theirIdentityKey,
-    const QString& theirOneTimeKey)
+    QOlmAccount* account, const QByteArray& theirIdentityKey,
+    const QByteArray& theirOneTimeKey)
 {
-    auto *olmOutboundSession = create();
-    const auto randomLen = olm_create_outbound_session_random_length(olmOutboundSession);
-    QByteArray randomBuf = getRandom(randomLen);
-
-    QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
-    QByteArray theirOneTimeKeyBuf = theirOneTimeKey.toUtf8();
-    const auto error = olm_create_outbound_session(olmOutboundSession,
-                                                   account->data(),
-                                                   reinterpret_cast<uint8_t *>(theirIdentityKeyBuf.data()), theirIdentityKeyBuf.length(),
-                                                   reinterpret_cast<uint8_t *>(theirOneTimeKeyBuf.data()), theirOneTimeKeyBuf.length(),
-                                                   reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
-
-    if (error == olm_error()) {
-        const auto lastErr = lastError(olmOutboundSession);
-        if (lastErr == QOlmError::NotEnoughRandom) {
-            throw lastErr;
-        }
+    auto* olmOutboundSession = create();
+    if (const auto randomLength =
+            olm_create_outbound_session_random_length(olmOutboundSession);
+        olm_create_outbound_session(
+            olmOutboundSession, account->data(), theirIdentityKey.data(),
+            theirIdentityKey.length(), theirOneTimeKey.data(),
+            theirOneTimeKey.length(), RandomBuffer(randomLength), randomLength)
+        == olm_error()) {
+        // FIXME: the QOlmSession object should be created earlier
+        const auto lastErr = olm_session_last_error_code(olmOutboundSession);
+        QOLM_FAIL_OR_LOG_X(lastErr == OLM_NOT_ENOUGH_RANDOM,
+                           "Failed to create an outbound Olm session",
+                           olm_session_last_error(olmOutboundSession));
         return lastErr;
     }
 
-    randomBuf.clear();
     return std::make_unique<QOlmSession>(olmOutboundSession);
 }
 
-QOlmExpected<QByteArray> QOlmSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmSession::pickle(const PicklingMode &mode) const
 {
-    QByteArray pickledBuf(olm_pickle_session_length(m_session), '0');
+    QByteArray pickledBuf(olm_pickle_session_length(m_session), '\0');
     QByteArray key = toKey(mode);
-    const auto error = olm_pickle_session(m_session, key.data(), key.length(),
-                                          pickledBuf.data(),
-                                          pickledBuf.length());
-
-    if (error == olm_error()) {
-        return lastError(m_session);
-    }
+    if (olm_pickle_session(m_session, key.data(), key.length(),
+                           pickledBuf.data(), pickledBuf.length())
+        == olm_error())
+        QOLM_INTERNAL_ERROR("Failed to pickle an Olm session");
 
     key.clear();
-
     return pickledBuf;
 }
 
-QOlmExpected<QOlmSessionPtr> QOlmSession::unpickle(const QByteArray& pickled,
+QOlmExpected<QOlmSessionPtr> QOlmSession::unpickle(QByteArray&& pickled,
                                                    const PicklingMode& mode)
 {
-    QByteArray pickledBuf = pickled;
     auto *olmSession = create();
-    QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_session(olmSession, key.data(), key.length(),
-            pickledBuf.data(), pickledBuf.length());
-    if (error == olm_error()) {
-        return lastError(olmSession);
+    auto key = toKey(mode);
+    if (olm_unpickle_session(olmSession, key.data(), key.length(),
+                             pickled.data(), pickled.length())
+        == olm_error()) {
+        // FIXME: the QOlmSession object should be created earlier
+        const auto errorCode = olm_session_last_error_code(olmSession);
+        QOLM_FAIL_OR_LOG_X(errorCode == OLM_OUTPUT_BUFFER_TOO_SMALL,
+                           "Failed to unpickle an Olm session",
+                           olm_session_last_error(olmSession));
+        return errorCode;
     }
 
     key.clear();
     return std::make_unique<QOlmSession>(olmSession);
 }
 
-QOlmMessage QOlmSession::encrypt(const QString &plaintext)
+QOlmMessage QOlmSession::encrypt(const QByteArray& plaintext)
 {
-    QByteArray plaintextBuf = plaintext.toUtf8();
-    const auto messageMaxLen = olm_encrypt_message_length(m_session, plaintextBuf.length());
-    QByteArray messageBuf(messageMaxLen, '0');
-    const auto messageType = encryptMessageType();
-    const auto randomLen = olm_encrypt_random_length(m_session);
-    QByteArray randomBuf = getRandom(randomLen);
-    const auto error = olm_encrypt(m_session,
-                                   reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextBuf.length(),
-                                   reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length(),
-                                   reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
-
-    if (error == olm_error()) {
-        throw lastError(m_session);
+    const auto messageMaxLength =
+        olm_encrypt_message_length(m_session, plaintext.length());
+    QByteArray messageBuf(messageMaxLength, '\0');
+    // NB: The type has to be calculated before calling olm_encrypt()
+    const auto messageType = olm_encrypt_message_type(m_session);
+    if (const auto randomLength = olm_encrypt_random_length(m_session);
+        olm_encrypt(m_session, plaintext.data(), plaintext.length(),
+                    RandomBuffer(randomLength), randomLength, messageBuf.data(),
+                    messageBuf.length())
+        == olm_error()) {
+        QOLM_INTERNAL_ERROR("Failed to encrypt the message");
     }
 
-    return QOlmMessage(messageBuf, messageType);
+    return QOlmMessage(messageBuf, QOlmMessage::Type(messageType));
 }
 
 QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage &message) const
 {
-    const auto messageType = message.type();
     const auto ciphertext = message.toCiphertext();
-    const auto messageTypeValue = messageType == QOlmMessage::Type::General
-        ? OLM_MESSAGE_TYPE_MESSAGE : OLM_MESSAGE_TYPE_PRE_KEY;
+    const auto messageTypeValue = message.type();
 
     // We need to clone the message because
     // olm_decrypt_max_plaintext_length destroys the input buffer
-    QByteArray messageBuf(ciphertext.length(), '0');
+    QByteArray messageBuf(ciphertext.length(), '\0');
     std::copy(message.begin(), message.end(), messageBuf.begin());
 
-    const auto plaintextMaxLen = olm_decrypt_max_plaintext_length(m_session, messageTypeValue,
-            reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
-
+    const auto plaintextMaxLen = olm_decrypt_max_plaintext_length(
+        m_session, messageTypeValue, messageBuf.data(), messageBuf.length());
     if (plaintextMaxLen == olm_error()) {
-        return lastError(m_session);
+        qWarning(E2EE) << "Couldn't calculate decrypted message length:"
+                       << lastError();
+        return lastErrorCode();
     }
 
-    QByteArray plaintextBuf(plaintextMaxLen, '0');
-    QByteArray messageBuf2(ciphertext.length(), '0');
+    QByteArray plaintextBuf(plaintextMaxLen, '\0');
+    QByteArray messageBuf2(ciphertext.length(), '\0');
     std::copy(message.begin(), message.end(), messageBuf2.begin());
 
-    const auto plaintextResultLen = olm_decrypt(m_session, messageTypeValue,
-            reinterpret_cast<uint8_t *>(messageBuf2.data()), messageBuf2.length(),
-            reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextMaxLen);
-
+    const auto plaintextResultLen =
+        olm_decrypt(m_session, messageTypeValue, messageBuf2.data(),
+                    messageBuf2.length(), plaintextBuf.data(), plaintextMaxLen);
     if (plaintextResultLen == olm_error()) {
-        const auto lastErr = lastError(m_session);
-        if (lastErr == QOlmError::OutputBufferTooSmall) {
-            throw lastErr;
-        }
-        return lastErr;
+        QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL,
+                         "Failed to decrypt the message");
+        return lastErrorCode();
     }
-    QByteArray output(plaintextResultLen, '0');
-    std::memcpy(output.data(), plaintextBuf.data(), plaintextResultLen);
-    plaintextBuf.clear();
-    return output;
-}
-
-QOlmMessage::Type QOlmSession::encryptMessageType()
-{
-    const auto messageTypeResult = olm_encrypt_message_type(m_session);
-    if (messageTypeResult == olm_error()) {
-        throw lastError(m_session);
-    }
-    if (messageTypeResult == OLM_MESSAGE_TYPE_PRE_KEY) {
-        return QOlmMessage::PreKey;
-    }
-    return QOlmMessage::General;
+    plaintextBuf.truncate(plaintextResultLen);
+    return plaintextBuf;
 }
 
 QByteArray QOlmSession::sessionId() const
 {
     const auto idMaxLength = olm_session_id_length(m_session);
-    QByteArray idBuffer(idMaxLength, '0');
-    const auto error = olm_session_id(m_session, reinterpret_cast<uint8_t *>(idBuffer.data()),
-            idBuffer.length());
-    if (error == olm_error()) {
-        throw lastError(m_session);
-    }
+    QByteArray idBuffer(idMaxLength, '\0');
+    if (olm_session_id(m_session, idBuffer.data(), idMaxLength) == olm_error())
+        QOLM_INTERNAL_ERROR("Failed to obtain Olm session id");
+
     return idBuffer;
 }
 
@@ -225,11 +205,10 @@ bool QOlmSession::matchesInboundSession(const QOlmMessage& preKeyMessage) const
     const auto maybeMatches =
         olm_matches_inbound_session(m_session, oneTimeKeyBuf.data(),
                                     oneTimeKeyBuf.length());
+    if (maybeMatches == olm_error())
+        qWarning(E2EE) << "Error matching an inbound session:" << lastError();
 
-    if (maybeMatches == olm_error()) {
-        return lastError(m_session);
-    }
-    return maybeMatches == 1;
+    return maybeMatches == 1; // Any errors are treated as non-match
 }
 
 bool QOlmSession::matchesInboundSessionFrom(
@@ -242,8 +221,8 @@ bool QOlmSession::matchesInboundSessionFrom(
         oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
 
     if (maybeMatches == olm_error())
-        qCWarning(E2EE) << "Error matching an inbound session:"
-                        << olm_session_last_error(m_session);
+        qCWarning(E2EE) << "Error matching an inbound session:" << lastError();
+
     return maybeMatches == 1;
 }
 

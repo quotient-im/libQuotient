@@ -24,7 +24,8 @@ class QUOTIENT_API QOlmAccount : public QObject
 {
     Q_OBJECT
 public:
-    QOlmAccount(const QString &userId, const QString &deviceId, QObject *parent = nullptr);
+    QOlmAccount(QStringView userId, QStringView deviceId,
+                QObject* parent = nullptr);
     ~QOlmAccount() override;
 
     //! Creates a new instance of OlmAccount. During the instantiation
@@ -36,10 +37,11 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! This needs to be called before any other action or use createNewAccount() instead.
-    void unpickle(QByteArray &pickled, const PicklingMode &mode);
+    [[nodiscard]] OlmErrorCode unpickle(QByteArray&& pickled,
+                                        const PicklingMode& mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
+    QByteArray pickle(const PicklingMode &mode);
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
@@ -69,12 +71,11 @@ public:
     DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
-    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(
-        const QOlmSession& session);
+    [[nodiscard]] OlmErrorCode removeOneTimeKeys(const QOlmSession& session);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
-    //! \param message An Olm pre-key message that was encrypted for this account.
+    //! \param preKeyMessage An Olm pre-key message that was encrypted for this account.
     QOlmExpected<QOlmSessionPtr> createInboundSession(
         const QOlmMessage& preKeyMessage);
 
@@ -92,6 +93,9 @@ public:
 
     void markKeysAsPublished();
 
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
+
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);
     OlmAccount *data();
@@ -103,6 +107,8 @@ private:
     OlmAccount *m_account = nullptr; // owning
     QString m_userId;
     QString m_deviceId;
+
+    QString accountId() const;
 };
 
 QUOTIENT_API bool verifyIdentitySignature(const DeviceKeys& deviceKeys,

@@ -6,21 +6,20 @@
 #pragma once
 
 #include "converters.h"
-#include "expected.h"
-#include "qolmerrors.h"
 
 #include <QtCore/QMetaType>
 #include <QtCore/QStringBuilder>
 
 #include <array>
-#include <variant>
+
+#ifdef Quotient_E2EE_ENABLED
+#    include "expected.h"
+
+#    include <olm/error.h>
+#    include <variant>
+#endif
 
 namespace Quotient {
-
-constexpr auto CiphertextKeyL = "ciphertext"_ls;
-constexpr auto SenderKeyKeyL = "sender_key"_ls;
-constexpr auto DeviceIdKeyL = "device_id"_ls;
-constexpr auto SessionIdKeyL = "session_id"_ls;
 
 constexpr auto AlgorithmKeyL = "algorithm"_ls;
 constexpr auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
@@ -47,6 +46,7 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
            != SupportedAlgorithms.cend();
 }
 
+#ifdef Quotient_E2EE_ENABLED
 struct Unencrypted {};
 struct Encrypted {
     QByteArray key;
@@ -64,7 +64,8 @@ class QOlmOutboundGroupSession;
 using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
 
 template <typename T>
-using QOlmExpected = Expected<T, QOlmError>;
+using QOlmExpected = Expected<T, OlmErrorCode>;
+#endif
 
 struct IdentityKeys
 {
@@ -97,7 +98,7 @@ public:
     {}
 
     //! Unpadded Base64-encoded 32-byte Curve25519 public key
-    QString key() const { return payload["key"_ls].toString(); }
+    QByteArray key() const { return payload["key"_ls].toString().toLatin1(); }
 
     //! \brief Signatures of the key object
     //!
@@ -132,23 +133,6 @@ private:
 };
 
 using OneTimeKeys = QHash<QString, std::variant<QString, SignedOneTimeKey>>;
-
-template <typename T>
-class asKeyValueRange
-{
-public:
-    asKeyValueRange(T& data)
-        : m_data { data }
-    {}
-
-    auto begin() { return m_data.keyValueBegin(); }
-    auto end() { return m_data.keyValueEnd(); }
-
-private:
-    T &m_data;
-};
-template <typename T>
-asKeyValueRange(T&) -> asKeyValueRange<T>;
 
 } // namespace Quotient
 

@@ -3,10 +3,15 @@
 
 #pragma once
 
-#include "e2ee/e2ee.h"
 #include "roomevent.h"
 
 namespace Quotient {
+
+constexpr auto CiphertextKeyL = "ciphertext"_ls;
+constexpr auto SenderKeyKeyL = "sender_key"_ls;
+constexpr auto DeviceIdKeyL = "device_id"_ls;
+constexpr auto SessionIdKeyL = "session_id"_ls;
+
 /*
  * While the specification states:
  *

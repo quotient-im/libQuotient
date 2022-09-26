@@ -6,7 +6,7 @@
 
 #include "e2ee/e2ee.h"
 
-#include <olm/olm.h>
+struct OlmInboundGroupSession;
 
 namespace Quotient {
 
@@ -17,15 +17,15 @@ class QUOTIENT_API QOlmInboundGroupSession
 public:
     ~QOlmInboundGroupSession();
     //! Creates a new instance of `OlmInboundGroupSession`.
-    static std::unique_ptr<QOlmInboundGroupSession> create(const QByteArray& key);
+    static QOlmExpected<QOlmInboundGroupSessionPtr> create(const QByteArray& key);
     //! Import an inbound group session, from a previous export.
-    static std::unique_ptr<QOlmInboundGroupSession> import(const QByteArray& key);
+    static QOlmExpected<QOlmInboundGroupSessionPtr> importSession(const QByteArray& key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
-    QByteArray pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode& mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
     static QOlmExpected<QOlmInboundGroupSessionPtr> unpickle(
-        const QByteArray& pickled, const PicklingMode& mode);
+        QByteArray&& pickled, const PicklingMode& mode);
     //! Decrypts ciphertext received for this group session.
     QOlmExpected<std::pair<QByteArray, uint32_t> > decrypt(const QByteArray& message);
     //! Export the base64-encoded ratchet key for this session, at the given index,
@@ -45,6 +45,9 @@ public:
     //! The sender of this session.
     QString senderId() const;
     void setSenderId(const QString& senderId);
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
 
     QOlmInboundGroupSession(OlmInboundGroupSession* session);
 private:

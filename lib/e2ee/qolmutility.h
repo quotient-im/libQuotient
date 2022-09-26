@@ -32,8 +32,10 @@ public:
     bool ed25519Verify(const QByteArray &key,
             const QByteArray &message, QByteArray signature);
 
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
+
 private:
     OlmUtility *m_utility;
-
 };
 }

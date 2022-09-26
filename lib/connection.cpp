@@ -206,13 +206,9 @@ public:
     }
     void saveSession(const QOlmSession& session, const QString& senderKey) const
     {
-        if (auto pickleResult = session.pickle(picklingMode))
-            q->database()->saveOlmSession(senderKey, session.sessionId(),
-                                          *pickleResult,
-                                          QDateTime::currentDateTime());
-        else
-            qCWarning(E2EE) << "Failed to pickle olm session. Error"
-                            << pickleResult.error();
+        q->database()->saveOlmSession(senderKey, session.sessionId(),
+                                      session.pickle(picklingMode),
+                                      QDateTime::currentDateTime());
     }
 
     template <typename FnT>
@@ -270,8 +266,7 @@ public:
             return {};
         }
         auto newSession = std::move(*newSessionResult);
-        auto error = olmAccount->removeOneTimeKeys(*newSession);
-        if (error) {
+        if (olmAccount->removeOneTimeKeys(*newSession) != OLM_SUCCESS) {
             qWarning(E2EE) << "Failed to remove one time key for session"
                            << newSession->sessionId();
             // Keep going though
@@ -615,7 +610,7 @@ void Connection::Private::completeSetup(const QString& mxId)
     loop.exec();
 
     if (job.error() == QKeychain::Error::EntryNotFound) {
-        picklingMode = Encrypted { getRandom(128) };
+        picklingMode = Encrypted { RandomBuffer(128) };
         QKeychain::WritePasswordJob job(qAppName());
         job.setAutoDelete(false);
         job.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
@@ -653,8 +648,9 @@ void Connection::Private::completeSetup(const QString& mxId)
         });
     } else {
         // account already existing
-        auto pickle = database->accountPickle();
-        olmAccount->unpickle(pickle, picklingMode);
+        if (!olmAccount->unpickle(database->accountPickle(), picklingMode))
+            qWarning(E2EE)
+                << "Could not unpickle Olm account, E2EE won't be available";
     }
 #endif // Quotient_E2EE_ENABLED
     emit q->stateChanged();
@@ -2224,11 +2220,7 @@ void Connection::saveOlmAccount()
 {
 #ifdef Quotient_E2EE_ENABLED
     qCDebug(E2EE) << "Saving olm account";
-    if (const auto expectedPickle = d->olmAccount->pickle(d->picklingMode))
-        d->database->setAccountPickle(*expectedPickle);
-    else
-        qCWarning(E2EE) << "Couldn't save Olm account pickle:"
-                        << expectedPickle.error();
+    d->database->setAccountPickle(d->olmAccount->pickle(d->picklingMode));
 #endif
 }
 
@@ -2304,14 +2296,10 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
 {
     const auto& curveKey = curveKeyForUserDevice(userId, device);
     const auto& olmSession = olmSessions.at(curveKey).front();
-    QOlmMessage::Type type = olmSession->encryptMessageType();
     const auto result = olmSession->encrypt(message);
-    if (const auto pickle = olmSession->pickle(picklingMode)) {
-        database->updateOlmSession(curveKey, olmSession->sessionId(), *pickle);
-    } else {
-        qWarning(E2EE) << "Failed to pickle olm session: " << pickle.error();
-    }
-    return { type, result.toCiphertext() };
+    database->updateOlmSession(curveKey, olmSession->sessionId(),
+                               olmSession->pickle(picklingMode));
+    return { result.type(), result.toCiphertext() };
 }
 
 bool Connection::Private::createOlmSession(const QString& targetUserId,
@@ -2347,7 +2335,7 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
         return false;
     }
     const auto recipientCurveKey =
-        curveKeyForUserDevice(targetUserId, targetDeviceId);
+        curveKeyForUserDevice(targetUserId, targetDeviceId).toLatin1();
     auto session =
         QOlmSession::createOutboundSession(olmAccount.get(), recipientCurveKey,
                                            signedOneTimeKey->key());

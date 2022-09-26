@@ -6,8 +6,7 @@
 
 #include "e2ee/e2ee.h"
 
-#include <memory>
-#include <olm/olm.h>
+struct OlmOutboundGroupSession;
 
 namespace Quotient {
 
@@ -21,14 +20,14 @@ public:
     //! Throw OlmError on errors
     static QOlmOutboundGroupSessionPtr create();
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
-        const QByteArray& pickled, const PicklingMode& mode);
+        QByteArray&& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
-    QOlmExpected<QByteArray> encrypt(const QString& plaintext) const;
+    QByteArray encrypt(const QByteArray& plaintext) const;
 
     //! Get the current message index for this session.
     //!
@@ -43,7 +42,7 @@ public:
     //!
     //! Each message is sent with a different ratchet key. This function returns the
     //! ratchet key that will be used for the next message.
-    QOlmExpected<QByteArray> sessionKey() const;
+    QByteArray sessionKey() const;
     QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
 
     int messageCount() const;
@@ -51,6 +50,10 @@ public:
 
     QDateTime creationTime() const;
     void setCreationTime(const QDateTime& creationTime);
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
+
 private:
     OlmOutboundGroupSession *m_groupSession;
     int m_messageCount = 0;

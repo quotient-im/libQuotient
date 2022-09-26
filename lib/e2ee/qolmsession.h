@@ -6,7 +6,6 @@
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/qolmaccount.h"
 
 struct OlmSession;
@@ -27,18 +26,18 @@ public:
         const QOlmMessage& preKeyMessage);
 
     static QOlmExpected<QOlmSessionPtr> createOutboundSession(
-        QOlmAccount* account, const QString& theirIdentityKey,
-        const QString& theirOneTimeKey);
+        QOlmAccount* account, const QByteArray& theirIdentityKey,
+        const QByteArray& theirOneTimeKey);
 
     //! Serialises an `QOlmSession` to encrypted Base64.
-    QOlmExpected<QByteArray> pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingMode &mode) const;
 
-    //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmSession`.
-    static QOlmExpected<QOlmSessionPtr> unpickle(
-        const QByteArray& pickled, const PicklingMode& mode);
+    //! Deserialises from encrypted Base64 previously made with pickle()
+    static QOlmExpected<QOlmSessionPtr> unpickle(QByteArray&& pickled,
+                                                 const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
-    QOlmMessage encrypt(const QString &plaintext);
+    QOlmMessage encrypt(const QByteArray& plaintext);
 
     //! Decrypts a message using this session. Decoding is lossy, meaning if
     //! the decrypted plaintext contains invalid UTF-8 symbols, they will
@@ -47,9 +46,6 @@ public:
 
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
-
-    //! The type of the next message that will be returned from encryption.
-    QOlmMessage::Type encryptMessageType();
 
     //! Checker for any received messages for this session.
     bool hasReceivedMessage() const;
@@ -70,6 +66,9 @@ public:
     {
         return *lhs < *rhs;
     }
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
 
     OlmSession* raw() const { return m_session; }
 

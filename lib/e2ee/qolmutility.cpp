@@ -8,9 +8,13 @@
 
 using namespace Quotient;
 
-// Convert olm error to enum
-QOlmError lastError(OlmUtility *utility) {
-    return fromString(olm_utility_last_error(utility));
+OlmErrorCode QOlmUtility::lastErrorCode() const {
+    return olm_utility_last_error_code(m_utility);
+}
+
+const char* QOlmUtility::lastError() const
+{
+    return olm_utility_last_error(m_utility);
 }
 
 QOlmUtility::QOlmUtility()
@@ -28,7 +32,7 @@ QOlmUtility::~QOlmUtility()
 QString QOlmUtility::sha256Bytes(const QByteArray &inputBuf) const
 {
     const auto outputLen = olm_sha256_length(m_utility);
-    QByteArray outputBuf(outputLen, '0');
+    QByteArray outputBuf(outputLen, '\0');
     olm_sha256(m_utility, inputBuf.data(), inputBuf.length(),
             outputBuf.data(), outputBuf.length());
 

@@ -49,7 +49,7 @@ void TestOlmUtility::canonicalJSON()
 
 void TestOlmUtility::verifySignedOneTimeKey()
 {
-    QOlmAccount aliceOlm { "@alice:matrix.org", "aliceDevice" };
+    QOlmAccount aliceOlm { u"@alice:matrix.org", u"aliceDevice" };
     aliceOlm.createNewAccount();
     aliceOlm.generateOneTimeKeys(1);
     auto keys = aliceOlm.oneTimeKeys();
@@ -64,16 +64,13 @@ void TestOlmUtility::verifySignedOneTimeKey()
     auto utility = olm_utility(utilityBuf);
 
 
-    QByteArray signatureBuf1(sig.length(), '0');
+    QByteArray signatureBuf1(sig.length(), '\0');
     std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
 
-    auto res = olm_ed25519_verify(utility,
-                                 aliceOlm.identityKeys().ed25519.data(),
-                                 aliceOlm.identityKeys().ed25519.size(),
-                                 msg.data(),
-                                 msg.size(),
-                                 (void *)sig.data(),
-                                 sig.size());
+    auto res =
+        olm_ed25519_verify(utility, aliceOlm.identityKeys().ed25519.data(),
+                           aliceOlm.identityKeys().ed25519.size(), msg.data(),
+                           msg.size(), sig.data(), sig.size());
 
     QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QCOMPARE(res, 0);
