@@ -18,8 +18,13 @@
 using namespace Quotient;
 
 // Convert olm error to enum
-QOlmError lastError(OlmAccount *account) {
-    return fromString(olm_account_last_error(account));
+OlmErrorCode QOlmAccount::lastErrorCode() const {
+    return olm_account_last_error_code(m_account);
+}
+
+const char* QOlmAccount::lastError() const
+{
+    return olm_account_last_error(m_account);
 }
 
 QOlmAccount::QOlmAccount(const QString& userId, const QString& deviceId,
@@ -40,24 +45,24 @@ void QOlmAccount::createNewAccount()
     m_account = olm_account(new uint8_t[olm_account_size()]);
     size_t randomSize = olm_create_account_random_length(m_account);
     QByteArray randomData = getRandom(randomSize);
-    const auto error = olm_create_account(m_account, randomData.data(), randomSize);
-    if (error == olm_error()) {
-        throw lastError(m_account);
+    if (olm_create_account(m_account, randomData.data(), randomSize)
+        == olm_error()) {
+        throw lastError();
     }
     emit needsSave();
 }
 
-void QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
+OlmErrorCode QOlmAccount::unpickle(QByteArray &pickled, const PicklingMode &mode)
 {
     m_account = olm_account(new uint8_t[olm_account_size()]);
     const QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_account(m_account, key.data(), key.length(), pickled.data(), pickled.size());
-    if (error == olm_error()) {
-        qCWarning(E2EE) << "Failed to unpickle olm account";
-        //TODO: Do something that is not dying
+    if (olm_unpickle_account(m_account, key.data(), key.length(),
+                             pickled.data(), pickled.size())
+        == olm_error()) {
         // Probably log the user out since we have no way of getting to the keys
-        //throw lastError(m_account);
+        return lastErrorCode();
     }
+    return OLM_SUCCESS;
 }
 
 QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
@@ -65,11 +70,10 @@ QOlmExpected<QByteArray> QOlmAccount::pickle(const PicklingMode &mode)
     const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(m_account);
     QByteArray pickleBuffer(pickleLength, '0');
-    const auto error = olm_pickle_account(m_account, key.data(),
-                key.length(), pickleBuffer.data(), pickleLength);
-    if (error == olm_error()) {
-        return lastError(m_account);
-    }
+    if (olm_pickle_account(m_account, key.data(), key.length(),
+                           pickleBuffer.data(), pickleLength)
+        == olm_error())
+        return lastErrorCode();
     return pickleBuffer;
 }
 
@@ -77,9 +81,9 @@ IdentityKeys QOlmAccount::identityKeys() const
 {
     const size_t keyLength = olm_account_identity_keys_length(m_account);
     QByteArray keyBuffer(keyLength, '0');
-    const auto error = olm_account_identity_keys(m_account, keyBuffer.data(), keyLength);
-    if (error == olm_error()) {
-        throw lastError(m_account);
+    if (olm_account_identity_keys(m_account, keyBuffer.data(), keyLength)
+        == olm_error()) {
+        throw lastError();
     }
     const QJsonObject key = QJsonDocument::fromJson(keyBuffer).object();
     return IdentityKeys {
@@ -92,11 +96,10 @@ QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
     QByteArray signatureBuffer(olm_account_signature_length(m_account), '0');
 
-    const auto error = olm_account_sign(m_account, message.data(), message.length(),
-            signatureBuffer.data(), signatureBuffer.length());
-
-    if (error == olm_error()) {
-        throw lastError(m_account);
+    if (olm_account_sign(m_account, message.data(), message.length(),
+                         signatureBuffer.data(), signatureBuffer.length())
+        == olm_error()) {
+        throw lastError();
     }
     return signatureBuffer;
 }
@@ -131,15 +134,15 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
         olm_account_generate_one_time_keys_random_length(m_account,
                                                          numberOfKeys);
     QByteArray randomBuffer = getRandom(randomLength);
-    const auto error =
+    const auto result =
         olm_account_generate_one_time_keys(m_account, numberOfKeys,
                                            randomBuffer.data(), randomLength);
 
-    if (error == olm_error()) {
-        throw lastError(m_account);
+    if (result == olm_error()) {
+        throw lastError();
     }
     emit needsSave();
-    return error;
+    return result;
 }
 
 UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
@@ -147,11 +150,10 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
     const size_t oneTimeKeyLength = olm_account_one_time_keys_length(m_account);
     QByteArray oneTimeKeysBuffer(static_cast<int>(oneTimeKeyLength), '0');
 
-    const auto error = olm_account_one_time_keys(m_account,
-                                                 oneTimeKeysBuffer.data(),
-                                                 oneTimeKeyLength);
-    if (error == olm_error()) {
-        throw lastError(m_account);
+    if (olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(),
+                                  oneTimeKeyLength)
+        == olm_error()) {
+        throw lastError();
     }
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     UnsignedOneTimeKeys oneTimeKeys;
@@ -171,16 +173,16 @@ OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
     return signedOneTimeKeys;
 }
 
-std::optional<QOlmError> QOlmAccount::removeOneTimeKeys(
-    const QOlmSession& session)
+OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
 {
-    const auto error = olm_remove_one_time_keys(m_account, session.raw());
-
-    if (error == olm_error()) {
-        return lastError(m_account);
+    if (olm_remove_one_time_keys(m_account, session.raw()) == olm_error()) {
+        qWarning(E2EE).nospace()
+            << "Failed to remove one-time keys for session "
+            << session.sessionId() << ": " << lastError();
+        return lastErrorCode();
     }
     emit needsSave();
-    return std::nullopt;
+    return OLM_SUCCESS;
 }
 
 OlmAccount* QOlmAccount::data() { return m_account; }

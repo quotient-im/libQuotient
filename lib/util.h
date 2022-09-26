@@ -111,6 +111,23 @@ private:
     iterator to;
 };
 
+template <typename T>
+class asKeyValueRange
+{
+public:
+    asKeyValueRange(T& data)
+        : m_data { data }
+    {}
+
+    auto begin() { return m_data.keyValueBegin(); }
+    auto end() { return m_data.keyValueEnd(); }
+
+private:
+    T &m_data;
+};
+template <typename T>
+asKeyValueRange(T&) -> asKeyValueRange<T>;
+
 /** A replica of std::find_first_of that returns a pair of iterators
  *
  * Convenient for cases when you need to know which particular "first of"

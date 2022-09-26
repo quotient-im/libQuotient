@@ -36,7 +36,8 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! This needs to be called before any other action or use createNewAccount() instead.
-    void unpickle(QByteArray &pickled, const PicklingMode &mode);
+    [[nodiscard]] OlmErrorCode unpickle(QByteArray& pickled,
+                                        const PicklingMode& mode);
 
     //! Serialises an OlmAccount to encrypted Base64.
     QOlmExpected<QByteArray> pickle(const PicklingMode &mode);
@@ -69,8 +70,7 @@ public:
     DeviceKeys deviceKeys() const;
 
     //! Remove the one time key used to create the supplied session.
-    [[nodiscard]] std::optional<QOlmError> removeOneTimeKeys(
-        const QOlmSession& session);
+    [[nodiscard]] OlmErrorCode removeOneTimeKeys(const QOlmSession& session);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
@@ -91,6 +91,9 @@ public:
         const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey);
 
     void markKeysAsPublished();
+
+    OlmErrorCode lastErrorCode() const;
+    const char *lastError() const;
 
     // HACK do not use directly
     QOlmAccount(OlmAccount *account);

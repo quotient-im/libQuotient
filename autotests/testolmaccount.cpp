@@ -25,7 +25,8 @@ void TestOlmAccount::pickleUnpickledTest()
     auto identityKeys = olmAccount.identityKeys();
     auto pickled = olmAccount.pickle(Unencrypted{}).value();
     QOlmAccount olmAccount2(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    olmAccount2.unpickle(pickled, Unencrypted{});
+    auto unpickleResult = olmAccount2.unpickle(pickled, Unencrypted{});
+    QCOMPARE(unpickleResult, 0);
     auto identityKeys2 = olmAccount2.identityKeys();
     QCOMPARE(identityKeys.curve25519, identityKeys2.curve25519);
     QCOMPARE(identityKeys.ed25519, identityKeys2.ed25519);

@@ -6,7 +6,7 @@
 
 #include "e2ee/e2ee.h"
 
-#include <olm/olm.h>
+struct OlmInboundGroupSession;
 
 namespace Quotient {
 
@@ -45,6 +45,9 @@ public:
     //! The sender of this session.
     QString senderId() const;
     void setSenderId(const QString& senderId);
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
 
     QOlmInboundGroupSession(OlmInboundGroupSession* session);
 private:

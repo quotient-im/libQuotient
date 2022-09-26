@@ -12,8 +12,13 @@
 
 using namespace Quotient;
 
-QOlmError lastError(OlmSession* session) {
-    return fromString(olm_session_last_error(session));
+OlmErrorCode QOlmSession::lastErrorCode() const {
+    return olm_session_last_error_code(m_session);
+}
+
+const char* QOlmSession::lastError() const
+{
+    return olm_session_last_error(m_session);
 }
 
 Quotient::QOlmSession::~QOlmSession()
@@ -32,7 +37,8 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createInbound(
     const QString& theirIdentityKey)
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
-        qCCritical(E2EE) << "The message is not a pre-key in when creating inbound session" << BadMessageFormat;
+        qCCritical(E2EE) << "The message is not a pre-key; will try to create "
+                            "the inbound session anyway";
     }
 
     const auto olmSession = create();
@@ -47,7 +53,8 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createInbound(
     }
 
     if (error == olm_error()) {
-        const auto lastErr = lastError(olmSession);
+        // FIXME: the QOlmSession object should be created earlier
+        const auto lastErr = olm_session_last_error_code(olmSession);
         qCWarning(E2EE) << "Error when creating inbound session" << lastErr;
         return lastErr;
     }
@@ -78,15 +85,17 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::createOutboundSession(
 
     QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
     QByteArray theirOneTimeKeyBuf = theirOneTimeKey.toUtf8();
-    const auto error = olm_create_outbound_session(olmOutboundSession,
-                                                   account->data(),
-                                                   reinterpret_cast<uint8_t *>(theirIdentityKeyBuf.data()), theirIdentityKeyBuf.length(),
-                                                   reinterpret_cast<uint8_t *>(theirOneTimeKeyBuf.data()), theirOneTimeKeyBuf.length(),
-                                                   reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length());
-
-    if (error == olm_error()) {
-        const auto lastErr = lastError(olmOutboundSession);
-        if (lastErr == QOlmError::NotEnoughRandom) {
+    if (olm_create_outbound_session(
+            olmOutboundSession, account->data(),
+            reinterpret_cast<uint8_t*>(theirIdentityKeyBuf.data()),
+            theirIdentityKeyBuf.length(),
+            reinterpret_cast<uint8_t*>(theirOneTimeKeyBuf.data()),
+            theirOneTimeKeyBuf.length(),
+            reinterpret_cast<uint8_t*>(randomBuf.data()), randomBuf.length())
+        == olm_error()) {
+        // FIXME: the QOlmSession object should be created earlier
+        const auto lastErr = olm_session_last_error_code(olmOutboundSession);
+        if (lastErr == OLM_NOT_ENOUGH_RANDOM) {
             throw lastErr;
         }
         return lastErr;
@@ -100,16 +109,12 @@ QOlmExpected<QByteArray> QOlmSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(olm_pickle_session_length(m_session), '0');
     QByteArray key = toKey(mode);
-    const auto error = olm_pickle_session(m_session, key.data(), key.length(),
-                                          pickledBuf.data(),
-                                          pickledBuf.length());
-
-    if (error == olm_error()) {
-        return lastError(m_session);
-    }
+    if (olm_pickle_session(m_session, key.data(), key.length(),
+                           pickledBuf.data(), pickledBuf.length())
+        == olm_error())
+        return lastErrorCode();
 
     key.clear();
-
     return pickledBuf;
 }
 
@@ -119,10 +124,11 @@ QOlmExpected<QOlmSessionPtr> QOlmSession::unpickle(const QByteArray& pickled,
     QByteArray pickledBuf = pickled;
     auto *olmSession = create();
     QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_session(olmSession, key.data(), key.length(),
-            pickledBuf.data(), pickledBuf.length());
-    if (error == olm_error()) {
-        return lastError(olmSession);
+    if (olm_unpickle_session(olmSession, key.data(), key.length(),
+                             pickledBuf.data(), pickledBuf.length())
+        == olm_error()) {
+        // FIXME: the QOlmSession object should be created earlier
+        return olm_session_last_error_code(olmSession);
     }
 
     key.clear();
@@ -137,13 +143,14 @@ QOlmMessage QOlmSession::encrypt(const QString &plaintext)
     const auto messageType = encryptMessageType();
     const auto randomLen = olm_encrypt_random_length(m_session);
     QByteArray randomBuf = getRandom(randomLen);
-    const auto error = olm_encrypt(m_session,
-                                   reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextBuf.length(),
-                                   reinterpret_cast<uint8_t *>(randomBuf.data()), randomBuf.length(),
-                                   reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
-
-    if (error == olm_error()) {
-        throw lastError(m_session);
+    if (olm_encrypt(m_session, reinterpret_cast<uint8_t*>(plaintextBuf.data()),
+                    plaintextBuf.length(),
+                    reinterpret_cast<uint8_t*>(randomBuf.data()),
+                    randomBuf.length(),
+                    reinterpret_cast<uint8_t*>(messageBuf.data()),
+                    messageBuf.length())
+        == olm_error()) {
+        throw lastError();
     }
 
     return QOlmMessage(messageBuf, messageType);
@@ -163,9 +170,8 @@ QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage &message) const
 
     const auto plaintextMaxLen = olm_decrypt_max_plaintext_length(m_session, messageTypeValue,
             reinterpret_cast<uint8_t *>(messageBuf.data()), messageBuf.length());
-
     if (plaintextMaxLen == olm_error()) {
-        return lastError(m_session);
+        return lastError();
     }
 
     QByteArray plaintextBuf(plaintextMaxLen, '0');
@@ -175,10 +181,9 @@ QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage &message) const
     const auto plaintextResultLen = olm_decrypt(m_session, messageTypeValue,
             reinterpret_cast<uint8_t *>(messageBuf2.data()), messageBuf2.length(),
             reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextMaxLen);
-
     if (plaintextResultLen == olm_error()) {
-        const auto lastErr = lastError(m_session);
-        if (lastErr == QOlmError::OutputBufferTooSmall) {
+        const auto lastErr = lastErrorCode();
+        if (lastErr == OLM_OUTPUT_BUFFER_TOO_SMALL) {
             throw lastErr;
         }
         return lastErr;
@@ -193,7 +198,7 @@ QOlmMessage::Type QOlmSession::encryptMessageType()
 {
     const auto messageTypeResult = olm_encrypt_message_type(m_session);
     if (messageTypeResult == olm_error()) {
-        throw lastError(m_session);
+        throw lastError();
     }
     if (messageTypeResult == OLM_MESSAGE_TYPE_PRE_KEY) {
         return QOlmMessage::PreKey;
@@ -205,10 +210,10 @@ QByteArray QOlmSession::sessionId() const
 {
     const auto idMaxLength = olm_session_id_length(m_session);
     QByteArray idBuffer(idMaxLength, '0');
-    const auto error = olm_session_id(m_session, reinterpret_cast<uint8_t *>(idBuffer.data()),
-            idBuffer.length());
-    if (error == olm_error()) {
-        throw lastError(m_session);
+    if (olm_session_id(m_session, reinterpret_cast<uint8_t*>(idBuffer.data()),
+                       idBuffer.length())
+        == olm_error()) {
+        throw lastError();
     }
     return idBuffer;
 }
@@ -225,11 +230,10 @@ bool QOlmSession::matchesInboundSession(const QOlmMessage& preKeyMessage) const
     const auto maybeMatches =
         olm_matches_inbound_session(m_session, oneTimeKeyBuf.data(),
                                     oneTimeKeyBuf.length());
-
-    if (maybeMatches == olm_error()) {
-        return lastError(m_session);
-    }
-    return maybeMatches == 1;
+    if (maybeMatches == olm_error())
+        qWarning(E2EE) << "Error matching an inbound session:"
+                       << olm_session_last_error(m_session);
+    return maybeMatches == 1; // Any errors are treated as non-match
 }
 
 bool QOlmSession::matchesInboundSessionFrom(

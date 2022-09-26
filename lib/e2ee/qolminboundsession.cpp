@@ -3,19 +3,26 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "e2ee/qolminboundsession.h"
-#include <iostream>
+#include "logging.h"
+
 #include <cstring>
+#include <iostream>
+#include <olm/olm.h>
 
 using namespace Quotient;
 
-QOlmError lastError(OlmInboundGroupSession *session) {
-    return fromString(olm_inbound_group_session_last_error(session));
+OlmErrorCode QOlmInboundGroupSession::lastErrorCode() const {
+    return olm_inbound_group_session_last_error_code(m_groupSession);
+}
+
+const char* QOlmInboundGroupSession::lastError() const
+{
+    return olm_inbound_group_session_last_error(m_groupSession);
 }
 
 QOlmInboundGroupSession::QOlmInboundGroupSession(OlmInboundGroupSession *session)
     : m_groupSession(session)
-{
-}
+{}
 
 QOlmInboundGroupSession::~QOlmInboundGroupSession()
 {
@@ -26,11 +33,12 @@ QOlmInboundGroupSession::~QOlmInboundGroupSession()
 std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::create(const QByteArray &key)
 {
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
-    const auto error = olm_init_inbound_group_session(olmInboundGroupSession,
-            reinterpret_cast<const uint8_t *>(key.constData()), key.size());
-
-    if (error == olm_error()) {
-        throw lastError(olmInboundGroupSession);
+    if (olm_init_inbound_group_session(
+            olmInboundGroupSession,
+            reinterpret_cast<const uint8_t*>(key.constData()), key.size())
+        == olm_error()) {
+        // FIXME: create QOlmInboundGroupSession earlier and use lastError()
+        throw olm_inbound_group_session_last_error_code(olmInboundGroupSession);
     }
 
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
@@ -41,10 +49,12 @@ std::unique_ptr<QOlmInboundGroupSession> QOlmInboundGroupSession::import(const Q
     const auto olmInboundGroupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
     QByteArray keyBuf = key;
 
-    const auto error = olm_import_inbound_group_session(olmInboundGroupSession,
-            reinterpret_cast<const uint8_t *>(keyBuf.data()), keyBuf.size());
-    if (error == olm_error()) {
-        throw lastError(olmInboundGroupSession);
+    if (olm_import_inbound_group_session(
+            olmInboundGroupSession,
+            reinterpret_cast<const uint8_t*>(keyBuf.data()), keyBuf.size())
+        == olm_error()) {
+        // FIXME: create QOlmInboundGroupSession earlier and use lastError()
+        throw olm_inbound_group_session_last_error_code(olmInboundGroupSession);
     }
 
     return std::make_unique<QOlmInboundGroupSession>(olmInboundGroupSession);
@@ -62,10 +72,11 @@ QByteArray QOlmInboundGroupSession::pickle(const PicklingMode &mode) const
 {
     QByteArray pickledBuf(olm_pickle_inbound_group_session_length(m_groupSession), '0');
     const QByteArray key = toKey(mode);
-    const auto error = olm_pickle_inbound_group_session(m_groupSession, key.data(), key.length(), pickledBuf.data(),
-            pickledBuf.length());
-    if (error == olm_error()) {
-        throw lastError(m_groupSession);
+    if (olm_pickle_inbound_group_session(m_groupSession, key.data(),
+                                         key.length(), pickledBuf.data(),
+                                         pickledBuf.length())
+        == olm_error()) {
+        throw lastError();
     }
     return pickledBuf;
 }
@@ -76,10 +87,12 @@ QOlmExpected<QOlmInboundGroupSessionPtr> QOlmInboundGroupSession::unpickle(
     QByteArray pickledBuf = pickled;
     const auto groupSession = olm_inbound_group_session(new uint8_t[olm_inbound_group_session_size()]);
     QByteArray key = toKey(mode);
-    const auto error = olm_unpickle_inbound_group_session(groupSession, key.data(), key.length(),
-            pickledBuf.data(), pickledBuf.size());
-    if (error == olm_error()) {
-        return lastError(groupSession);
+    if (olm_unpickle_inbound_group_session(groupSession, key.data(),
+                                           key.length(), pickledBuf.data(),
+                                           pickledBuf.size())
+        == olm_error()) {
+        // FIXME: create QOlmInboundGroupSession earlier and use lastError()
+        return olm_inbound_group_session_last_error_code(groupSession);
     }
     key.clear();
 
@@ -105,12 +118,9 @@ QOlmExpected<std::pair<QByteArray, uint32_t>> QOlmInboundGroupSession::decrypt(
 
     const auto plaintextLen = olm_group_decrypt(m_groupSession, reinterpret_cast<uint8_t *>(messageBuf.data()),
             messageBuf.length(), reinterpret_cast<uint8_t *>(plaintextBuf.data()), plaintextBuf.length(), &messageIndex);
-
-    // Error code or plaintext length is returned
-    const auto decryptError = plaintextLen;
-
-    if (decryptError == olm_error()) {
-        return lastError(m_groupSession);
+    if (plaintextLen == olm_error()) {
+        qWarning(E2EE) << "Failed to decrypt the message:" << lastError();
+        return lastErrorCode();
     }
 
     QByteArray output(plaintextLen, '0');
@@ -123,10 +133,11 @@ QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(uint32_t message
 {
     const auto keyLength = olm_export_inbound_group_session_length(m_groupSession);
     QByteArray keyBuf(keyLength, '0');
-    const auto error = olm_export_inbound_group_session(m_groupSession, reinterpret_cast<uint8_t *>(keyBuf.data()), keyLength, messageIndex);
-
-    if (error == olm_error()) {
-        return lastError(m_groupSession);
+    if (olm_export_inbound_group_session(
+            m_groupSession, reinterpret_cast<uint8_t*>(keyBuf.data()),
+            keyLength, messageIndex)
+        == olm_error()) {
+        return lastErrorCode();
     }
     return keyBuf;
 }
@@ -139,10 +150,11 @@ uint32_t QOlmInboundGroupSession::firstKnownIndex() const
 QByteArray QOlmInboundGroupSession::sessionId() const
 {
     QByteArray sessionIdBuf(olm_inbound_group_session_id_length(m_groupSession), '0');
-    const auto error = olm_inbound_group_session_id(m_groupSession, reinterpret_cast<uint8_t *>(sessionIdBuf.data()),
-            sessionIdBuf.length());
-    if (error == olm_error()) {
-        throw lastError(m_groupSession);
+    if (olm_inbound_group_session_id(
+            m_groupSession, reinterpret_cast<uint8_t*>(sessionIdBuf.data()),
+            sessionIdBuf.length())
+        == olm_error()) {
+        throw lastError();
     }
     return sessionIdBuf;
 }

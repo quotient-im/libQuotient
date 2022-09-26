@@ -6,7 +6,6 @@
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
-#include "e2ee/qolmerrors.h"
 #include "e2ee/qolmaccount.h"
 
 struct OlmSession;
@@ -70,6 +69,9 @@ public:
     {
         return *lhs < *rhs;
     }
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
 
     OlmSession* raw() const { return m_session; }
 

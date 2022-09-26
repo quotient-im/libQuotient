@@ -270,8 +270,7 @@ public:
             return {};
         }
         auto newSession = std::move(*newSessionResult);
-        auto error = olmAccount->removeOneTimeKeys(*newSession);
-        if (error) {
+        if (olmAccount->removeOneTimeKeys(*newSession) != OLM_SUCCESS) {
             qWarning(E2EE) << "Failed to remove one time key for session"
                            << newSession->sessionId();
             // Keep going though

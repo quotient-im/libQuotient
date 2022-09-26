@@ -6,8 +6,7 @@
 
 #include "e2ee/e2ee.h"
 
-#include <memory>
-#include <olm/olm.h>
+struct OlmOutboundGroupSession;
 
 namespace Quotient {
 
@@ -51,6 +50,10 @@ public:
 
     QDateTime creationTime() const;
     void setCreationTime(const QDateTime& creationTime);
+
+    OlmErrorCode lastErrorCode() const;
+    const char* lastError() const;
+
 private:
     OlmOutboundGroupSession *m_groupSession;
     int m_messageCount = 0;

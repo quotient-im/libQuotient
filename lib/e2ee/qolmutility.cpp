@@ -8,9 +8,13 @@
 
 using namespace Quotient;
 
-// Convert olm error to enum
-QOlmError lastError(OlmUtility *utility) {
-    return fromString(olm_utility_last_error(utility));
+OlmErrorCode QOlmUtility::lastErrorCode() const {
+    return olm_utility_last_error_code(m_utility);
+}
+
+const char* QOlmUtility::lastError() const
+{
+    return olm_utility_last_error(m_utility);
 }
 
 QOlmUtility::QOlmUtility()
@@ -48,15 +52,15 @@ QOlmExpected<bool> QOlmUtility::ed25519Verify(const QByteArray& key,
     std::copy(signature.begin(), signature.end(), signatureBuf.begin());
 
     const auto ret = olm_ed25519_verify(m_utility, key.data(), key.size(),
-            message.data(), message.size(), (void *)signatureBuf.data(), signatureBuf.size());
-
+                                        message.data(), message.size(),
+                                        (void*)signatureBuf.data(),
+                                        signatureBuf.size());
     if (ret == olm_error()) {
-        auto error = lastError(m_utility);
-        if (error == QOlmError::BadMessageMac) {
+        auto error = lastErrorCode();
+        if (error == OLM_BAD_MESSAGE_MAC)
             return false;
-        }
         return error;
     }
 
-    return !ret; // ret == 0 means success
+    return ret == 0;
 }

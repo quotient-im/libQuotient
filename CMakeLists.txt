@@ -150,6 +150,7 @@ list(APPEND lib_SRCS
     lib/eventitem.h lib/eventitem.cpp
     lib/accountregistry.h lib/accountregistry.cpp
     lib/mxcreply.h lib/mxcreply.cpp
+    lib/e2ee/e2ee.h # because it's used by generated API
     lib/events/event.h lib/events/event.cpp
     lib/events/eventloader.h
     lib/events/roomevent.h lib/events/roomevent.cpp
@@ -193,7 +194,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         lib/e2ee/qolmoutboundsession.h lib/e2ee/qolmoutboundsession.cpp
         lib/e2ee/qolmutils.h lib/e2ee/qolmutils.cpp
         lib/e2ee/qolmutility.h lib/e2ee/qolmutility.cpp
-        lib/e2ee/qolmerrors.h lib/e2ee/qolmerrors.cpp
         lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
         lib/e2ee/qolmmessage.h lib/e2ee/qolmmessage.cpp
         lib/events/keyverificationevent.h
