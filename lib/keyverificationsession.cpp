@@ -119,7 +119,7 @@ void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
                 return true;
             },
             [this](const KeyVerificationMacEvent& event) {
-                if (state() != WAITINGFORMAC)
+                if (state() != WAITINGFORMAC && state() != WAITINGFORVERIFICATION)
                     return false;
                 handleMac(event);
                 return true;
