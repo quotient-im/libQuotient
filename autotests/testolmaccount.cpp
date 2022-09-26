@@ -21,7 +21,7 @@ using namespace Quotient;
 void TestOlmAccount::pickleUnpickledTest()
 {
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    olmAccount.createNewAccount();
+    olmAccount.setupNewAccount();
     auto identityKeys = olmAccount.identityKeys();
     auto pickled = olmAccount.pickle(Unencrypted{});
     QOlmAccount olmAccount2(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
@@ -36,7 +36,7 @@ void TestOlmAccount::pickleUnpickledTest()
 void TestOlmAccount::identityKeysValid()
 {
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    olmAccount.createNewAccount();
+    olmAccount.setupNewAccount();
     const auto identityKeys = olmAccount.identityKeys();
     const auto curve25519 = identityKeys.curve25519;
     const auto ed25519 = identityKeys.ed25519;
@@ -52,7 +52,7 @@ void TestOlmAccount::identityKeysValid()
 void TestOlmAccount::signatureValid()
 {
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    olmAccount.createNewAccount();
+    olmAccount.setupNewAccount();
     const auto message = "Hello world!";
     const auto signature = olmAccount.sign(message);
     QVERIFY(QByteArray::fromBase64(signature).size() > 0);
@@ -66,7 +66,7 @@ void TestOlmAccount::signatureValid()
 void TestOlmAccount::oneTimeKeysValid()
 {
     QOlmAccount olmAccount(QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    olmAccount.createNewAccount();
+    olmAccount.setupNewAccount();
     const auto maxNumberOfOneTimeKeys = olmAccount.maxNumberOfOneTimeKeys();
     QCOMPARE(100, maxNumberOfOneTimeKeys);
 

@@ -40,13 +40,13 @@ QOlmAccount::~QOlmAccount()
     delete[](reinterpret_cast<uint8_t *>(m_account));
 }
 
-void QOlmAccount::createNewAccount()
+void QOlmAccount::setupNewAccount()
 {
     m_account = olm_account(new uint8_t[olm_account_size()]);
     if (const auto randomLength = olm_create_account_random_length(m_account);
         olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
         == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to create a new account");
+        QOLM_INTERNAL_ERROR("Failed to setup a new account");
 
     emit needsSave();
 }

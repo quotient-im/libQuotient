@@ -660,7 +660,7 @@ void Connection::Private::completeSetup(const QString& mxId)
 
     if (database->accountPickle().isEmpty()) {
         // create new account and save unpickle data
-        olmAccount->createNewAccount();
+        olmAccount->setupNewAccount();
         auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
         connect(job, &BaseJob::failure, q, [job]{
             qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();

@@ -33,7 +33,7 @@ public:
     //! pair are generated. For more information see <a
     //! href="https://matrix.org/docs/guides/e2e_implementation.html#keys-used-in-end-to-end-encryption">here</a>.
     //! This needs to be called before any other action or use unpickle() instead.
-    void createNewAccount();
+    void setupNewAccount();
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! This needs to be called before any other action or use createNewAccount() instead.

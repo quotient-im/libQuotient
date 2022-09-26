@@ -50,7 +50,7 @@ void TestOlmUtility::canonicalJSON()
 void TestOlmUtility::verifySignedOneTimeKey()
 {
     QOlmAccount aliceOlm { u"@alice:matrix.org", u"aliceDevice" };
-    aliceOlm.createNewAccount();
+    aliceOlm.setupNewAccount();
     aliceOlm.generateOneTimeKeys(1);
     auto keys = aliceOlm.oneTimeKeys();
 
@@ -91,7 +91,7 @@ void TestOlmUtility::validUploadKeysRequest()
     const auto deviceId = QStringLiteral("FKALSOCCC");
 
     QOlmAccount alice { userId, deviceId };
-    alice.createNewAccount();
+    alice.setupNewAccount();
     alice.generateOneTimeKeys(1);
 
     auto idSig = alice.signIdentityKeys();
