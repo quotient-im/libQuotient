@@ -26,12 +26,17 @@ constexpr auto none = std::nullopt;
 //! \return Always an Omittable: if \p fn returns another type, lift() wraps
 //!         it in an Omittable; if \p fn returns an Omittable, that return value
 //!         (or none) is returned as is.
-template <typename FnT, typename... MaybeTs>
-inline auto lift(FnT&& fn, MaybeTs&&... args)
+template <typename FnT, typename... ArgTs>
+inline auto lift(FnT&& fn, ArgTs&&... args)
 {
-    return (... && bool(args))
-               ? Omittable(std::invoke(std::forward<FnT>(fn), *args...))
-               : none;
+    if constexpr (std::is_void_v<decltype(std::invoke(std::forward<FnT>(fn),
+                                                      *args...))>) {
+        if ((... && bool(args)))
+            std::invoke(std::forward<FnT>(fn), *args...);
+    } else
+        return (... && bool(args))
+                   ? Omittable(std::invoke(std::forward<FnT>(fn), *args...))
+                   : none;
 }
 
 /** `std::optional` with tweaks
@@ -49,10 +54,8 @@ inline auto lift(FnT&& fn, MaybeTs&&... args)
  *   have it; but besides that, value_or() or (after explicit checking)
  *   `operator*()`/`operator->()` are better alternatives within Quotient
  *   that doesn't practice throwing exceptions (as doesn't most of Qt).
- * - disabled non-const lvalue operator*() and operator->(), as it's too easy
- *   to inadvertently cause a value change through them.
- * - ensure() to provide a safe and explicit lvalue accessor instead of
- *   those above. Allows chained initialisation of nested Omittables:
+ * - ensure() to provide a safer lvalue accessor instead of operator* or
+ *   operator->. Allows chained initialisation of nested Omittables:
  *   \code
  *   struct Inner { int member = 10; Omittable<int> innermost; };
  *   struct Outer { int anotherMember = 10; Omittable<Inner> inner; };
@@ -95,7 +98,7 @@ public:
     // with operator-> or operator*
     // The technical reason is that Xcode 10 has incomplete std::optional
     // that has no value(); but using value() may also mean that you rely
-    // on the optional throwing an exception (which is not assumed practice
+    // on the optional throwing an exception (which is not an assumed practice
     // throughout Quotient) or that you spend unnecessary CPU cycles on
     // an extraneous has_value() check.
     auto& value() = delete;
@@ -131,15 +134,6 @@ public:
         return true;
     }
 
-    // Hide non-const lvalue operator-> and operator* as these are
-    // a bit too surprising: value() & doesn't lazy-create an object;
-    // and it's too easy to inadvertently change the underlying value.
-
-    const value_type* operator->() const& { return base_type::operator->(); }
-    value_type* operator->() && { return base_type::operator->(); }
-    const value_type& operator*() const& { return base_type::operator*(); }
-    value_type& operator*() && { return base_type::operator*(); }
-
     // The below is inspired by the proposed std::optional monadic operations
     // (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p0798r6.html).
 
@@ -162,7 +156,7 @@ public:
     //!             returning Omittable<T2>, T2 is any supported type
     //! \sa then_or, transform
     template <typename FnT>
-    auto then(FnT&& fn) const&
+    auto then(FnT&& fn) const
     {
         return lift(std::forward<FnT>(fn), *this);
     }
@@ -171,7 +165,7 @@ public:
     //!
     //! This is an rvalue overload for then().
     template <typename FnT>
-    auto then(FnT&& fn) &&
+    auto then(FnT&& fn)
     {
         return lift(std::forward<FnT>(fn), *this);
     }
@@ -184,7 +178,7 @@ public:
     //! an operation on an Omittable without having to deal with another
     //! Omittable afterwards.
     template <typename FnT, typename FallbackT>
-    auto then_or(FnT&& fn, FallbackT&& fallback) const&
+    auto then_or(FnT&& fn, FallbackT&& fallback) const
     {
         return then(std::forward<FnT>(fn))
             .value_or(std::forward<FallbackT>(fallback));
@@ -194,7 +188,7 @@ public:
     //!
     //! This is an overload for functions that accept rvalue
     template <typename FnT, typename FallbackT>
-    auto then_or(FnT&& fn, FallbackT&& fallback) &&
+    auto then_or(FnT&& fn, FallbackT&& fallback)
     {
         return then(std::forward<FnT>(fn))
             .value_or(std::forward<FallbackT>(fallback));
