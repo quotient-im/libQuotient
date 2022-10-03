@@ -45,7 +45,7 @@ QString QOlmUtility::sha256Utf8Msg(const QString &message) const
 }
 
 bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
-                                QByteArray signature)
+                                QByteArray signature) const
 {
     return olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
                               message.size(), signature.data(), signature.size())
