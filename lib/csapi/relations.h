@@ -36,8 +36,8 @@ public:
      *   The pagination token to start returning results from. If not supplied,
      * results start at the most recent topological event known to the server.
      *
-     *   Can be a `next_batch` token from a previous call, or a returned
-     *   `start` token from
+     *   Can be a `next_batch` or `prev_batch` token from a previous call, or a
+     * returned `start` token from
      * [`/messages`](/client-server-api/#get_matrixclientv3roomsroomidmessages),
      *   or a `next_batch` token from
      * [`/sync`](/client-server-api/#get_matrixclientv3sync).
@@ -55,11 +55,18 @@ public:
      * responses.
      *
      *   Similarly, the server should apply a default value when not supplied.
+     *
+     * \param dir
+     *   Optional (default `b`) direction to return events from. If this is set
+     * to `f`, events will be returned in chronological order starting at
+     * `from`. If it is set to `b`, events will be returned in *reverse*
+     * chronological order, again starting at `from`.
      */
     explicit GetRelatingEventsJob(const QString& roomId, const QString& eventId,
                                   const QString& from = {},
                                   const QString& to = {},
-                                  Omittable<int> limit = none);
+                                  Omittable<int> limit = none,
+                                  const QString& dir = {});
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -69,7 +76,8 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventId, const QString& from = {},
                                const QString& to = {},
-                               Omittable<int> limit = none);
+                               Omittable<int> limit = none,
+                               const QString& dir = {});
 
     // Result properties
 
@@ -122,8 +130,8 @@ public:
      *   The pagination token to start returning results from. If not supplied,
      * results start at the most recent topological event known to the server.
      *
-     *   Can be a `next_batch` token from a previous call, or a returned
-     *   `start` token from
+     *   Can be a `next_batch` or `prev_batch` token from a previous call, or a
+     * returned `start` token from
      * [`/messages`](/client-server-api/#get_matrixclientv3roomsroomidmessages),
      *   or a `next_batch` token from
      * [`/sync`](/client-server-api/#get_matrixclientv3sync).
@@ -141,13 +149,17 @@ public:
      * responses.
      *
      *   Similarly, the server should apply a default value when not supplied.
+     *
+     * \param dir
+     *   Optional (default `b`) direction to return events from. If this is set
+     * to `f`, events will be returned in chronological order starting at
+     * `from`. If it is set to `b`, events will be returned in *reverse*
+     * chronological order, again starting at `from`.
      */
-    explicit GetRelatingEventsWithRelTypeJob(const QString& roomId,
-                                             const QString& eventId,
-                                             const QString& relType,
-                                             const QString& from = {},
-                                             const QString& to = {},
-                                             Omittable<int> limit = none);
+    explicit GetRelatingEventsWithRelTypeJob(
+        const QString& roomId, const QString& eventId, const QString& relType,
+        const QString& from = {}, const QString& to = {},
+        Omittable<int> limit = none, const QString& dir = {});
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -157,7 +169,8 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventId, const QString& relType,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none);
+                               Omittable<int> limit = none,
+                               const QString& dir = {});
 
     // Result properties
 
@@ -219,8 +232,8 @@ public:
      *   The pagination token to start returning results from. If not supplied,
      * results start at the most recent topological event known to the server.
      *
-     *   Can be a `next_batch` token from a previous call, or a returned
-     *   `start` token from
+     *   Can be a `next_batch` or `prev_batch` token from a previous call, or a
+     * returned `start` token from
      * [`/messages`](/client-server-api/#get_matrixclientv3roomsroomidmessages),
      *   or a `next_batch` token from
      * [`/sync`](/client-server-api/#get_matrixclientv3sync).
@@ -238,11 +251,18 @@ public:
      * responses.
      *
      *   Similarly, the server should apply a default value when not supplied.
+     *
+     * \param dir
+     *   Optional (default `b`) direction to return events from. If this is set
+     * to `f`, events will be returned in chronological order starting at
+     * `from`. If it is set to `b`, events will be returned in *reverse*
+     * chronological order, again starting at `from`.
      */
     explicit GetRelatingEventsWithRelTypeAndEventTypeJob(
         const QString& roomId, const QString& eventId, const QString& relType,
         const QString& eventType, const QString& from = {},
-        const QString& to = {}, Omittable<int> limit = none);
+        const QString& to = {}, Omittable<int> limit = none,
+        const QString& dir = {});
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -254,7 +274,8 @@ public:
                                const QString& eventId, const QString& relType,
                                const QString& eventType,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none);
+                               Omittable<int> limit = none,
+                               const QString& dir = {});
 
     // Result properties
 

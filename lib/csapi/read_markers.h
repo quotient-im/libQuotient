@@ -28,9 +28,16 @@ public:
      *   The event ID to set the read receipt location at. This is
      *   equivalent to calling `/receipt/m.read/$elsewhere:example.org`
      *   and is provided here to save that extra call.
+     *
+     * \param mReadPrivate
+     *   The event ID to set the *private* read receipt location at. This
+     *   equivalent to calling `/receipt/m.read.private/$elsewhere:example.org`
+     *   and is provided here to save that extra call.
      */
-    explicit SetReadMarkerJob(const QString& roomId, const QString& mFullyRead,
-                              const QString& mRead = {});
+    explicit SetReadMarkerJob(const QString& roomId,
+                              const QString& mFullyRead = {},
+                              const QString& mRead = {},
+                              const QString& mReadPrivate = {});
 };
 
 } // namespace Quotient

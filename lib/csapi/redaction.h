@@ -33,9 +33,9 @@ public:
      *   The ID of the event to redact
      *
      * \param txnId
-     *   The transaction ID for this event. Clients should generate a
-     *   unique ID; it will be used by the server to ensure idempotency of
-     * requests.
+     *   The [transaction ID](/client-server-api/#transaction-identifiers) for
+     * this event. Clients should generate a unique ID; it will be used by the
+     * server to ensure idempotency of requests.
      *
      * \param reason
      *   The reason for the event being redacted.

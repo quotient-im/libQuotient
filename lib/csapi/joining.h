@@ -55,7 +55,7 @@ public:
 /*! \brief Start the requesting user participating in a particular room.
  *
  * *Note that this API takes either a room ID or alias, unlike*
- * `/room/{roomId}/join`.
+ * `/rooms/{roomId}/join`.
  *
  * This API starts a user participating in a particular room, if that user
  * is allowed to participate in that room. After this call, the client is

@@ -38,4 +38,7 @@ LoginJob::LoginJob(const QString& type,
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"),
                          refreshToken);
     setRequestData({ _dataJson });
+    addExpectedKey("user_id");
+    addExpectedKey("access_token");
+    addExpectedKey("device_id");
 }
