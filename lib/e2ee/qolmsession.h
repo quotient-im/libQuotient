@@ -16,16 +16,15 @@ namespace Quotient {
 class QUOTIENT_API QOlmSession
 {
 public:
-    ~QOlmSession();
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
-    static QOlmExpected<QOlmSessionPtr> createInboundSession(
+    static QOlmExpected<QOlmSession> createInboundSession(
         QOlmAccount* account, const QOlmMessage& preKeyMessage);
 
-    static QOlmExpected<QOlmSessionPtr> createInboundSessionFrom(
+    static QOlmExpected<QOlmSession> createInboundSessionFrom(
         QOlmAccount* account, const QString& theirIdentityKey,
         const QOlmMessage& preKeyMessage);
 
-    static QOlmExpected<QOlmSessionPtr> createOutboundSession(
+    static QOlmExpected<QOlmSession> createOutboundSession(
         QOlmAccount* account, const QByteArray& theirIdentityKey,
         const QByteArray& theirOneTimeKey);
 
@@ -33,11 +32,11 @@ public:
     QByteArray pickle(const PicklingMode &mode) const;
 
     //! Deserialises from encrypted Base64 previously made with pickle()
-    static QOlmExpected<QOlmSessionPtr> unpickle(QByteArray&& pickled,
-                                                 const PicklingMode& mode);
+    static QOlmExpected<QOlmSession> unpickle(QByteArray&& pickled,
+                                              const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
-    QOlmMessage encrypt(const QByteArray& plaintext);
+    QOlmMessage encrypt(const QByteArray& plaintext) const;
 
     //! Decrypts a message using this session. Decoding is lossy, meaning if
     //! the decrypted plaintext contains invalid UTF-8 symbols, they will
@@ -62,23 +61,18 @@ public:
         return lhs.sessionId() < rhs.sessionId();
     }
 
-    friend bool operator<(const QOlmSessionPtr& lhs, const QOlmSessionPtr& rhs)
-    {
-        return *lhs < *rhs;
-    }
-
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
 
-    OlmSession* raw() const { return m_session; }
-
-    QOlmSession(OlmSession* session);
 private:
-    //! Helper function for creating new sessions and handling errors.
-    static OlmSession* create();
-    static QOlmExpected<QOlmSessionPtr> createInbound(
+    QOlmSession();
+    CStructPtr<OlmSession> olmDataHolder;
+    OlmSession* olmData = olmDataHolder.get();
+
+    friend class QOlmAccount;
+
+    static QOlmExpected<QOlmSession> createInbound(
         QOlmAccount* account, const QOlmMessage& preKeyMessage,
         bool from = false, const QString& theirIdentityKey = "");
-    OlmSession* m_session;
 };
 } //namespace Quotient

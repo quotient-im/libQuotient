@@ -54,15 +54,6 @@ struct Encrypted {
 
 using PicklingMode = std::variant<Unencrypted, Encrypted>;
 
-class QOlmSession;
-using QOlmSessionPtr = std::unique_ptr<QOlmSession>;
-
-class QOlmInboundGroupSession;
-using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;
-
-class QOlmOutboundGroupSession;
-using QOlmOutboundGroupSessionPtr = std::unique_ptr<QOlmOutboundGroupSession>;
-
 template <typename T>
 using QOlmExpected = Expected<T, OlmErrorCode>;
 #endif

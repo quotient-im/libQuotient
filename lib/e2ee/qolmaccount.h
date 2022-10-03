@@ -16,6 +16,8 @@ struct OlmAccount;
 
 namespace Quotient {
 
+class QOlmSession;
+
 //! An olm account manages all cryptographic keys used on a device.
 //! \code{.cpp}
 //! const auto olmAccount = new QOlmAccount(this);
@@ -26,17 +28,16 @@ class QUOTIENT_API QOlmAccount : public QObject
 public:
     QOlmAccount(QStringView userId, QStringView deviceId,
                 QObject* parent = nullptr);
-    ~QOlmAccount() override;
 
     //! Creates a new instance of OlmAccount. During the instantiation
     //! the Ed25519 fingerprint key pair and the Curve25519 identity key
-    //! pair are generated. For more information see <a
-    //! href="https://matrix.org/docs/guides/e2e_implementation.html#keys-used-in-end-to-end-encryption">here</a>.
-    //! This needs to be called before any other action or use unpickle() instead.
+    //! pair are generated.
+    //! \sa https://matrix.org/docs/guides/e2e_implementation.html#keys-used-in-end-to-end-encryption
+    //! \note This needs to be called before any other action or use unpickle() instead.
     void setupNewAccount();
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
-    //! This needs to be called before any other action or use createNewAccount() instead.
+    //! \note This needs to be called before any other action or use setupNewAccount() instead.
     [[nodiscard]] OlmErrorCode unpickle(QByteArray&& pickled,
                                         const PicklingMode& mode);
 
@@ -76,19 +77,19 @@ public:
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param preKeyMessage An Olm pre-key message that was encrypted for this account.
-    QOlmExpected<QOlmSessionPtr> createInboundSession(
+    QOlmExpected<QOlmSession> createInboundSession(
         const QOlmMessage& preKeyMessage);
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
-    QOlmExpected<QOlmSessionPtr> createInboundSessionFrom(
+    QOlmExpected<QOlmSession> createInboundSessionFrom(
         const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage);
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
-    QOlmExpected<QOlmSessionPtr> createOutboundSession(
+    QOlmExpected<QOlmSession> createOutboundSession(
         const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey);
 
     void markKeysAsPublished();
@@ -96,17 +97,16 @@ public:
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
 
-    // HACK do not use directly
-    QOlmAccount(OlmAccount *account);
-    OlmAccount *data();
-
 Q_SIGNALS:
     void needsSave();
 
 private:
-    OlmAccount *m_account = nullptr; // owning
+    CStructPtr<OlmAccount> olmDataHolder;
     QString m_userId;
     QString m_deviceId;
+    OlmAccount* olmData = olmDataHolder.get();
+
+    friend class QOlmSession;
 
     QString accountId() const;
 };

@@ -15,15 +15,13 @@ namespace Quotient {
 class QUOTIENT_API QOlmOutboundGroupSession
 {
 public:
-    ~QOlmOutboundGroupSession();
-    //! Creates a new instance of `QOlmOutboundGroupSession`.
-    //! Throw OlmError on errors
-    static QOlmOutboundGroupSessionPtr create();
+    QOlmOutboundGroupSession();
+
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
     QByteArray pickle(const PicklingMode &mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static QOlmExpected<QOlmOutboundGroupSessionPtr> unpickle(
+    static QOlmExpected<QOlmOutboundGroupSession> unpickle(
         QByteArray&& pickled, const PicklingMode& mode);
 
     //! Encrypts a plaintext message using the session.
@@ -43,7 +41,6 @@ public:
     //! Each message is sent with a different ratchet key. This function returns the
     //! ratchet key that will be used for the next message.
     QByteArray sessionKey() const;
-    QOlmOutboundGroupSession(OlmOutboundGroupSession *groupSession);
 
     int messageCount() const;
     void setMessageCount(int messageCount);
@@ -55,9 +52,10 @@ public:
     const char* lastError() const;
 
 private:
-    OlmOutboundGroupSession *m_groupSession;
+    CStructPtr<OlmOutboundGroupSession> m_groupSession;
     int m_messageCount = 0;
     QDateTime m_creationTime = QDateTime::currentDateTime();
+    OlmOutboundGroupSession* olmData = m_groupSession.get();
 };
 
 } // namespace Quotient

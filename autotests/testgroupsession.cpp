@@ -5,24 +5,24 @@
 #include "testgroupsession.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
-#include "e2ee/qolmutils.h"
 
 using namespace Quotient;
 
 void TestGroupSession::groupSessionPicklingValid()
 {
-    auto ogs = QOlmOutboundGroupSession::create();
-    const auto ogsId = ogs->sessionId();
+    QOlmOutboundGroupSession ogs{};
+    const auto ogsId = ogs.sessionId();
     QVERIFY(QByteArray::fromBase64(ogsId).size() > 0);
-    QCOMPARE(0, ogs->sessionMessageIndex());
+    QCOMPARE(0, ogs.sessionMessageIndex());
 
-    auto&& ogsPickled = ogs->pickle(Unencrypted {});
+    auto&& ogsPickled = ogs.pickle(Unencrypted {});
     auto ogs2 =
         QOlmOutboundGroupSession::unpickle(std::move(ogsPickled), Unencrypted{})
             .value();
-    QCOMPARE(ogsId, ogs2->sessionId());
+    QCOMPARE(ogsId, ogs2.sessionId());
 
-    auto igs = QOlmInboundGroupSession::create(ogs->sessionKey()).value();
+    auto igs = QOlmInboundGroupSession::create(ogs.sessionKey());
+    QVERIFY(igs.has_value());
     const auto igsId = igs->sessionId();
     // ID is valid base64?
     QVERIFY(QByteArray::fromBase64(igsId).size() > 0);
@@ -38,12 +38,13 @@ void TestGroupSession::groupSessionPicklingValid()
 
 void TestGroupSession::groupSessionCryptoValid()
 {
-    auto ogs = QOlmOutboundGroupSession::create();
-    auto igs = QOlmInboundGroupSession::create(ogs->sessionKey()).value();
-    QCOMPARE(ogs->sessionId(), igs->sessionId());
+    QOlmOutboundGroupSession ogs{};
+    auto igs = QOlmInboundGroupSession::create(ogs.sessionKey());
+    QVERIFY(igs.has_value());
+    QCOMPARE(ogs.sessionId(), igs->sessionId());
 
     const auto plainText = "Hello world!";
-    const auto ciphertext = ogs->encrypt(plainText);
+    const auto ciphertext = ogs.encrypt(plainText);
     // ciphertext valid base64?
     QVERIFY(QByteArray::fromBase64(ciphertext).size() > 0);
 

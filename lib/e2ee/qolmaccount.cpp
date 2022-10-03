@@ -19,32 +19,27 @@ using namespace Quotient;
 
 // Convert olm error to enum
 OlmErrorCode QOlmAccount::lastErrorCode() const {
-    return olm_account_last_error_code(m_account);
+    return olm_account_last_error_code(olmData);
 }
 
 const char* QOlmAccount::lastError() const
 {
-    return olm_account_last_error(m_account);
+    return olm_account_last_error(olmData);
 }
 
 QOlmAccount::QOlmAccount(QStringView userId, QStringView deviceId,
                          QObject* parent)
     : QObject(parent)
+    , olmDataHolder(
+          makeCStruct(olm_account, olm_account_size, olm_clear_account))
     , m_userId(userId.toString())
     , m_deviceId(deviceId.toString())
 {}
 
-QOlmAccount::~QOlmAccount()
-{
-    olm_clear_account(m_account);
-    delete[](reinterpret_cast<uint8_t *>(m_account));
-}
-
 void QOlmAccount::setupNewAccount()
 {
-    m_account = olm_account(new uint8_t[olm_account_size()]);
-    if (const auto randomLength = olm_create_account_random_length(m_account);
-        olm_create_account(m_account, RandomBuffer(randomLength), randomLength)
+    if (const auto randomLength = olm_create_account_random_length(olmData);
+        olm_create_account(olmData, RandomBuffer(randomLength), randomLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to setup a new account");
 
@@ -54,10 +49,9 @@ void QOlmAccount::setupNewAccount()
 OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled,
                                    const PicklingMode& mode)
 {
-    m_account = olm_account(new uint8_t[olm_account_size()]);
     if (const auto key = toKey(mode);
-        olm_unpickle_account(m_account, key.data(), key.length(),
-                             pickled.data(), pickled.size())
+        olm_unpickle_account(olmData, key.data(), key.length(), pickled.data(),
+                             pickled.size())
         == olm_error()) {
         // Probably log the user out since we have no way of getting to the keys
         return lastErrorCode();
@@ -68,9 +62,9 @@ OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled,
 QByteArray QOlmAccount::pickle(const PicklingMode &mode)
 {
     const QByteArray key = toKey(mode);
-    const size_t pickleLength = olm_pickle_account_length(m_account);
+    const size_t pickleLength = olm_pickle_account_length(olmData);
     QByteArray pickleBuffer(pickleLength, '\0');
-    if (olm_pickle_account(m_account, key.data(), key.length(),
+    if (olm_pickle_account(olmData, key.data(), key.length(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
         QOLM_INTERNAL_ERROR(qPrintable("Failed to pickle Olm account "
@@ -81,9 +75,9 @@ QByteArray QOlmAccount::pickle(const PicklingMode &mode)
 
 IdentityKeys QOlmAccount::identityKeys() const
 {
-    const size_t keyLength = olm_account_identity_keys_length(m_account);
+    const size_t keyLength = olm_account_identity_keys_length(olmData);
     QByteArray keyBuffer(keyLength, '\0');
-    if (olm_account_identity_keys(m_account, keyBuffer.data(), keyLength)
+    if (olm_account_identity_keys(olmData, keyBuffer.data(), keyLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR(
             qPrintable("Failed to get " % accountId() % " identity keys"));
@@ -97,9 +91,9 @@ IdentityKeys QOlmAccount::identityKeys() const
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
-    QByteArray signatureBuffer(olm_account_signature_length(m_account), '\0');
+    QByteArray signatureBuffer(olm_account_signature_length(olmData), '\0');
 
-    if (olm_account_sign(m_account, message.data(), message.length(),
+    if (olm_account_sign(olmData, message.data(), message.length(),
                          signatureBuffer.data(), signatureBuffer.length())
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to sign a message");
@@ -128,16 +122,15 @@ QByteArray QOlmAccount::signIdentityKeys() const
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
 {
-    return olm_account_max_number_of_one_time_keys(m_account);
+    return olm_account_max_number_of_one_time_keys(olmData);
 }
 
 size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 {
     const auto randomLength =
-        olm_account_generate_one_time_keys_random_length(m_account,
-                                                         numberOfKeys);
+        olm_account_generate_one_time_keys_random_length(olmData, numberOfKeys);
     const auto result = olm_account_generate_one_time_keys(
-        m_account, numberOfKeys, RandomBuffer(randomLength), randomLength);
+        olmData, numberOfKeys, RandomBuffer(randomLength), randomLength);
 
     if (result == olm_error())
         QOLM_INTERNAL_ERROR(qPrintable(
@@ -149,10 +142,10 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 
 UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 {
-    const auto oneTimeKeyLength = olm_account_one_time_keys_length(m_account);
+    const auto oneTimeKeyLength = olm_account_one_time_keys_length(olmData);
     QByteArray oneTimeKeysBuffer(static_cast<int>(oneTimeKeyLength), '\0');
 
-    if (olm_account_one_time_keys(m_account, oneTimeKeysBuffer.data(),
+    if (olm_account_one_time_keys(olmData, oneTimeKeysBuffer.data(),
                                   oneTimeKeyLength)
         == olm_error())
         QOLM_INTERNAL_ERROR(qPrintable(
@@ -178,7 +171,7 @@ OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 
 OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
 {
-    if (olm_remove_one_time_keys(m_account, session.raw()) == olm_error()) {
+    if (olm_remove_one_time_keys(olmData, session.olmData) == olm_error()) {
         qWarning(E2EE).nospace()
             << "Failed to remove one-time keys for session "
             << session.sessionId() << ": " << lastError();
@@ -187,8 +180,6 @@ OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
     emit needsSave();
     return OLM_SUCCESS;
 }
-
-OlmAccount* QOlmAccount::data() { return m_account; }
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
@@ -213,14 +204,14 @@ UploadKeysJob* QOlmAccount::createUploadKeyRequest(
     return new UploadKeysJob(deviceKeys(), signOneTimeKeys(oneTimeKeys));
 }
 
-QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSession(
+QOlmExpected<QOlmSession> QOlmAccount::createInboundSession(
     const QOlmMessage& preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
     return QOlmSession::createInboundSession(this, preKeyMessage);
 }
 
-QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSessionFrom(
+QOlmExpected<QOlmSession> QOlmAccount::createInboundSessionFrom(
     const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
@@ -228,7 +219,7 @@ QOlmExpected<QOlmSessionPtr> QOlmAccount::createInboundSessionFrom(
                                                  preKeyMessage);
 }
 
-QOlmExpected<QOlmSessionPtr> QOlmAccount::createOutboundSession(
+QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
     const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey)
 {
     return QOlmSession::createOutboundSession(this, theirIdentityKey,
@@ -237,7 +228,7 @@ QOlmExpected<QOlmSessionPtr> QOlmAccount::createOutboundSession(
 
 void QOlmAccount::markKeysAsPublished()
 {
-    olm_account_mark_keys_as_published(m_account);
+    olm_account_mark_keys_as_published(olmData);
     emit needsSave();
 }
 

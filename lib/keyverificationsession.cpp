@@ -33,6 +33,15 @@ QStringList commonSupportedMethods(const QStringList& remoteMethods)
     return result;
 }
 
+CStructPtr<OlmSAS> KeyVerificationSession::makeOlmData()
+{
+    auto data = makeCStruct(olm_sas, olm_sas_size, olm_clear_sas);
+
+    const auto randomLength = olm_create_sas_random_length(data.get());
+    olm_create_sas(data.get(), RandomBuffer(randomLength), randomLength);
+    return data;
+}
+
 KeyVerificationSession::KeyVerificationSession(
     QString remoteUserId, const KeyVerificationRequestEvent& event,
     Connection* connection, bool encrypted)
@@ -49,7 +58,7 @@ KeyVerificationSession::KeyVerificationSession(
         std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
     if (timeout > 5s)
-        init(timeout);
+        setupTimeout(timeout);
     // Otherwise don't even bother starting up
 }
 
@@ -62,23 +71,13 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
     , m_connection(connection)
     , m_encrypted(false)
 {
-    init(600s);
+    setupTimeout(600s);
     QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
 }
 
-void KeyVerificationSession::init(milliseconds timeout)
+void KeyVerificationSession::setupTimeout(milliseconds timeout)
 {
     QTimer::singleShot(timeout, this, [this] { cancelVerification(TIMEOUT); });
-
-    m_sas = olm_sas(new std::byte[olm_sas_size()]);
-    const auto randomLength = olm_create_sas_random_length(m_sas);
-    olm_create_sas(m_sas, RandomBuffer(randomLength), randomLength);
-}
-
-KeyVerificationSession::~KeyVerificationSession()
-{
-    olm_clear_sas(m_sas);
-    delete[] reinterpret_cast<std::byte*>(m_sas);
 }
 
 void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
@@ -165,7 +164,7 @@ EmojiEntry emojiForCode(int code, const QString& language)
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
     auto eventKey = event.key().toLatin1();
-    olm_sas_set_their_key(m_sas, eventKey.data(), eventKey.size());
+    olm_sas_set_their_key(olmData, eventKey.data(), eventKey.size());
 
     if (startSentByUs) {
         const auto paddedCommitment =
@@ -183,8 +182,8 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
         sendKey();
     }
 
-    std::string key(olm_sas_pubkey_length(m_sas), '\0');
-    olm_sas_get_pubkey(m_sas, key.data(), key.size());
+    std::string key(olm_sas_pubkey_length(olmData), '\0');
+    olm_sas_get_pubkey(olmData, key.data(), key.size());
 
     std::array<std::byte, 6> output{};
     const auto infoTemplate =
@@ -196,7 +195,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                key.data(), m_remoteUserId, m_remoteDeviceId,
                                event.key(), m_transactionId)
                           .toLatin1();
-    olm_sas_generate_bytes(m_sas, info.data(), info.size(), output.data(),
+    olm_sas_generate_bytes(olmData, info.data(), info.size(), output.data(),
                            output.size());
 
     static constexpr auto x3f = std::byte{ 0x3f };
@@ -227,14 +226,14 @@ QString KeyVerificationSession::calculateMac(const QString& input,
                                              const QString& keyId)
 {
     QByteArray inputBytes = input.toLatin1();
-    QByteArray outputBytes(olm_sas_mac_length(m_sas), '\0');
+    QByteArray outputBytes(olm_sas_mac_length(olmData), '\0');
     const auto macInfo =
         (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_ls
                    : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_ls)
             .arg(m_connection->userId(), m_connection->deviceId(),
                  m_remoteUserId, m_remoteDeviceId, m_transactionId, keyId)
             .toLatin1();
-    olm_sas_calculate_mac(m_sas, inputBytes.data(), inputBytes.size(),
+    olm_sas_calculate_mac(olmData, inputBytes.data(), inputBytes.size(),
                           macInfo.data(), macInfo.size(), outputBytes.data(),
                           outputBytes.size());
     return QString::fromLatin1(outputBytes.data(), outputBytes.indexOf('='));
@@ -270,8 +269,8 @@ void KeyVerificationSession::sendDone()
 
 void KeyVerificationSession::sendKey()
 {
-    QByteArray keyBytes(olm_sas_pubkey_length(m_sas), '\0');
-    olm_sas_get_pubkey(m_sas, keyBytes.data(), keyBytes.size());
+    QByteArray keyBytes(olm_sas_pubkey_length(olmData), '\0');
+    olm_sas_get_pubkey(olmData, keyBytes.data(), keyBytes.size());
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationKeyEvent(m_transactionId,
                                                        keyBytes),
@@ -344,8 +343,8 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
             startSentByUs = false;
         }
     }
-    QByteArray publicKey(olm_sas_pubkey_length(m_sas), '\0');
-    olm_sas_get_pubkey(m_sas, publicKey.data(), publicKey.size());
+    QByteArray publicKey(olm_sas_pubkey_length(olmData), '\0');
+    olm_sas_get_pubkey(olmData, publicKey.data(), publicKey.size());
     const auto canonicalEvent = QString(QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact));
     auto commitment = QString(QCryptographicHash::hash((QString(publicKey) % canonicalEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
     commitment = commitment.left(commitment.indexOf('='));

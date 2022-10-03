@@ -355,11 +355,8 @@ public:
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 
 #ifdef Quotient_E2EE_ENABLED
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> groupSessions;
-    int currentMegolmSessionMessageCount = 0;
-    //TODO save this to database
-    unsigned long long currentMegolmSessionCreationTimestamp = 0;
-    QOlmOutboundGroupSessionPtr currentOutboundMegolmSession = nullptr;
+    UnorderedMap<QString, QOlmInboundGroupSession> groupSessions;
+    Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
 
     bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
                                 const QString& senderId,
@@ -373,15 +370,15 @@ public:
         auto expectedMegolmSession = QOlmInboundGroupSession::create(sessionKey);
         Q_ASSERT(expectedMegolmSession.has_value());
         auto&& megolmSession = *expectedMegolmSession;
-        if (megolmSession->sessionId() != sessionId) {
+        if (megolmSession.sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
         }
-        megolmSession->setSenderId(senderId);
-        megolmSession->setOlmSessionId(olmSessionId);
-        qCWarning(E2EE) << "Adding inbound session";
-        connection->saveMegolmSession(q, *megolmSession);
-        groupSessions[sessionId] = std::move(megolmSession);
+        megolmSession.setSenderId(senderId);
+        megolmSession.setOlmSessionId(olmSessionId);
+        qCWarning(E2EE) << "Adding inbound session" << sessionId;
+        connection->saveMegolmSession(q, megolmSession);
+        groupSessions.try_emplace(sessionId, std::move(megolmSession));
         return true;
     }
 
@@ -399,11 +396,11 @@ public:
             return {};
         }
         auto& senderSession = groupSessionIt->second;
-        if (senderSession->senderId() != senderId) {
+        if (senderSession.senderId() != senderId) {
             qCWarning(E2EE) << "Sender from event does not match sender from session";
             return {};
         }
-        auto decryptResult = senderSession->decrypt(cipher);
+        auto decryptResult = senderSession.decrypt(cipher);
         if(!decryptResult) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
             << "with matching megolm session:" << decryptResult.error();
@@ -412,10 +409,10 @@ public:
         const auto& [content, index] = *decryptResult;
         const auto& [recordEventId, ts] =
             q->connection()->database()->groupSessionIndexRecord(
-                q->id(), senderSession->sessionId(), index);
+                q->id(), senderSession.sessionId(), index);
         if (recordEventId.isEmpty()) {
             q->connection()->database()->addGroupSessionIndexRecord(
-                q->id(), senderSession->sessionId(), index, eventId,
+                q->id(), senderSession.sessionId(), index, eventId,
                 timestamp.toMSecsSinceEpoch());
         } else {
             if ((eventId != recordEventId)
@@ -444,16 +441,13 @@ public:
 
     bool hasValidMegolmSession() const
     {
-        if (!q->usesEncryption()) {
-            return false;
-        }
-        return currentOutboundMegolmSession != nullptr;
+        return q->usesEncryption() && currentOutboundMegolmSession.has_value();
     }
 
     void createMegolmSession() {
         qCDebug(E2EE) << "Creating new outbound megolm session for room "
                       << q->objectName();
-        currentOutboundMegolmSession = QOlmOutboundGroupSession::create();
+        currentOutboundMegolmSession.emplace();
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
@@ -502,24 +496,19 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
     d->currentOutboundMegolmSession =
-        connection->loadCurrentOutboundMegolmSession(this->id());
-    if (d->shouldRotateMegolmSession()) {
-        d->currentOutboundMegolmSession = nullptr;
+        connection->loadCurrentOutboundMegolmSession(id);
+    if (d->currentOutboundMegolmSession && d->shouldRotateMegolmSession()) {
+        d->currentOutboundMegolmSession.reset();
     }
-    connect(this, &Room::userRemoved, this, [this](){
-        if (!usesEncryption()) {
-            return;
-        }
+    connect(this, &Room::userRemoved, this, [this] {
         if (d->hasValidMegolmSession()) {
+            qCDebug(E2EE) << "Rotating the megolm session because a user left";
             d->createMegolmSession();
         }
-        qCDebug(E2EE) << "Invalidating current megolm session because user left";
-
     });
 
-    connect(this, &Room::beforeDestruction, this, [=](){
-        connection->database()->clearRoomData(id);
-    });
+    connect(this, &Room::beforeDestruction, this,
+            [id,connection] { connection->database()->clearRoomData(id); });
 #endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
@@ -1618,7 +1607,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                                   roomKeyEvent.sessionKey(), senderId,
                                   olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
-                      << d->groupSessions.size();
+                        << d->groupSessions.size();
         auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
         for (const auto& eventId : undecryptedEvents) {
             const auto pIdx = d->eventsIndex.constFind(eventId);
@@ -2033,13 +2022,13 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             currentOutboundMegolmSession->sessionMessageIndex());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
-        currentOutboundMegolmSession->setMessageCount(currentOutboundMegolmSession->messageCount() + 1);
+        currentOutboundMegolmSession->setMessageCount(
+            currentOutboundMegolmSession->messageCount() + 1);
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
         encryptedEvent = makeEvent<EncryptedEvent>(
-            encrypted, q->connection()->olmAccount()->identityKeys().curve25519,
-            q->connection()->deviceId(),
-            currentOutboundMegolmSession->sessionId());
+            encrypted, connection->olmAccount()->identityKeys().curve25519,
+            connection->deviceId(), currentOutboundMegolmSession->sessionId());
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());

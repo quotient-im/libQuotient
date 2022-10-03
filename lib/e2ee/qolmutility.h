@@ -4,7 +4,9 @@
 
 #pragma once
 
-#include "e2ee/e2ee.h"
+#include "util.h"
+
+#include <olm/error.h>
 
 struct OlmUtility;
 
@@ -16,14 +18,13 @@ class QUOTIENT_API QOlmUtility
 {
 public:
     QOlmUtility();
-    ~QOlmUtility();
 
     //! Returns a sha256 of the supplied byte slice.
-    QString sha256Bytes(const QByteArray &inputBuf) const;
+    QString sha256Bytes(const QByteArray& inputBuf) const;
 
     //! Convenience function that converts the UTF-8 message
     //! to bytes and then calls `sha256Bytes()`, returning its output.
-    QString sha256Utf8Msg(const QString &message) const;
+    QString sha256Utf8Msg(const QString& message) const;
 
     //! Verify a ed25519 signature.
     //! \param key QByteArray The public part of the ed25519 key that signed the message.
@@ -36,6 +37,6 @@ public:
     const char* lastError() const;
 
 private:
-    OlmUtility *m_utility;
+    CStructPtr<OlmUtility> olmDataHolder;
 };
-}
+} // namespace Quotient

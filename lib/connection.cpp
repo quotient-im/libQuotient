@@ -122,7 +122,7 @@ public:
     bool processIfVerificationEvent(const Event &evt, bool encrypted);
 
     // A map from SenderKey to vector of InboundSession
-    UnorderedMap<QString, std::vector<QOlmSessionPtr>> olmSessions;
+    UnorderedMap<QString, std::vector<QOlmSession>> olmSessions;
 
     QHash<QString, KeyVerificationSession*> verificationSessions;
 #endif
@@ -244,10 +244,10 @@ public:
         };
         for (const auto& session : olmSessions[senderKey])
             if (msgType == QOlmMessage::General
-                || session->matchesInboundSessionFrom(senderKey, message)) {
-                return doDecryptMessage(*session, message, [this, &session] {
+                || session.matchesInboundSessionFrom(senderKey, message)) {
+                return doDecryptMessage(session, message, [this, &session] {
                     q->database()->setOlmSessionLastReceived(
-                        session->sessionId(), QDateTime::currentDateTime());
+                        session.sessionId(), QDateTime::currentDateTime());
                 });
             }
 
@@ -265,15 +265,15 @@ public:
                 << "with error" << newSessionResult.error();
             return {};
         }
-        auto newSession = std::move(*newSessionResult);
-        if (olmAccount->removeOneTimeKeys(*newSession) != OLM_SUCCESS) {
+        auto&& newSession = std::move(*newSessionResult);
+        if (olmAccount->removeOneTimeKeys(newSession) != OLM_SUCCESS) {
             qWarning(E2EE) << "Failed to remove one time key for session"
-                           << newSession->sessionId();
+                           << newSession.sessionId();
             // Keep going though
         }
         return doDecryptMessage(
-            *newSession, message, [this, &senderKey, &newSession] {
-                saveSession(*newSession, senderKey);
+            newSession, message, [this, &senderKey, &newSession] {
+                saveSession(newSession, senderKey);
                 olmSessions[senderKey].push_back(std::move(newSession));
             });
     }
@@ -2259,7 +2259,7 @@ Database* Connection::database() const
     return d->database;
 }
 
-UnorderedMap<QString, QOlmInboundGroupSessionPtr>
+UnorderedMap<QString, QOlmInboundGroupSession>
 Connection::loadRoomMegolmSessions(const Room* room) const
 {
     return database()->loadMegolmSessions(room->id(), picklingMode());
@@ -2315,9 +2315,9 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
 {
     const auto& curveKey = curveKeyForUserDevice(userId, device);
     const auto& olmSession = olmSessions.at(curveKey).front();
-    const auto result = olmSession->encrypt(message);
-    database->updateOlmSession(curveKey, olmSession->sessionId(),
-                               olmSession->pickle(picklingMode));
+    const auto result = olmSession.encrypt(message);
+    database->updateOlmSession(curveKey, olmSession.sessionId(),
+                               olmSession.pickle(picklingMode));
     return { result.type(), result.toCiphertext() };
 }
 
@@ -2363,7 +2363,7 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                         << recipientCurveKey << session.error();
         return false;
     }
-    saveSession(**session, recipientCurveKey);
+    saveSession(*session, recipientCurveKey);
     olmSessions[recipientCurveKey].push_back(std::move(*session));
     return true;
 }
@@ -2450,7 +2450,7 @@ void Connection::sendSessionKeyToDevices(
     });
 }
 
-QOlmOutboundGroupSessionPtr Connection::loadCurrentOutboundMegolmSession(
+Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
     const QString& roomId) const
 {
     return d->database->loadCurrentOutboundMegolmSession(roomId,

@@ -13,6 +13,10 @@
 
 namespace Quotient {
 
+class QOlmSession;
+class QOlmInboundGroupSession;
+class QOlmOutboundGroupSession;
+
 class QUOTIENT_API Database : public QObject
 {
     Q_OBJECT
@@ -32,9 +36,9 @@ public:
     void clear();
     void saveOlmSession(const QString& senderKey, const QString& sessionId,
                         const QByteArray& pickle, const QDateTime& timestamp);
-    UnorderedMap<QString, std::vector<QOlmSessionPtr>> loadOlmSessions(
+    UnorderedMap<QString, std::vector<QOlmSession>> loadOlmSessions(
         const PicklingMode& picklingMode);
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadMegolmSessions(
+    UnorderedMap<QString, QOlmInboundGroupSession> loadMegolmSessions(
         const QString& roomId, const PicklingMode& picklingMode);
     void saveMegolmSession(const QString& roomId, const QString& sessionId,
                            const QByteArray& pickle, const QString& senderId,
@@ -48,7 +52,7 @@ public:
     void clearRoomData(const QString& roomId);
     void setOlmSessionLastReceived(const QString& sessionId,
                                    const QDateTime& timestamp);
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+    Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
         const QString& roomId, const PicklingMode& picklingMode);
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const PicklingMode& picklingMode,
