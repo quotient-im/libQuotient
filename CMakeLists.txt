@@ -118,7 +118,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         TYPE REQUIRED
     )
     if (OpenSSL_FOUND)
-        message(STATUS "Using OpenSSL ${OpenSSL_VERSION} at ${OpenSSL_DIR}")
+        message(STATUS "Using OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
     endif()
 endif()
 
