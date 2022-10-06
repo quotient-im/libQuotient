@@ -207,7 +207,7 @@ public:
 
 /// Sends the ephemeral public key for a device to the partner device.
 /// Typically sent as a to-device event.
-class KeyVerificationKeyEvent : public KeyVerificationEvent {
+class QUOTIENT_API KeyVerificationKeyEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationKeyEvent, "m.key.verification.key")
 
