@@ -2,7 +2,7 @@
 
 <a href='https://matrix.org'><img src='https://matrix.org/docs/projects/images/made-for-matrix.png' alt='Made for Matrix' height=64 target=_blank /></a>
 
-[![license](https://img.shields.io/github/license/quotient-im/libQuotient.svg)](https://github.com/quotient-im/libQuotient/blob/master/COPYING)
+[![license](https://img.shields.io/github/license/quotient-im/libQuotient.svg)](https://github.com/quotient-im/libQuotient/blob/dev/COPYING)
 ![status](https://img.shields.io/badge/status-beta-yellow.svg)
 [![release](https://img.shields.io/github/release/quotient-im/libQuotient/all.svg)](https://github.com/quotient-im/libQuotient/releases/latest)
 [![](https://img.shields.io/cii/percentage/1023.svg?label=CII%20best%20practices)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
@@ -35,12 +35,17 @@ it. Alternatively, you can build the library from the source and bundle it with
 your application, as described below.
 
 ### Pre-requisites
+To use libQuotient (i.e. build or run applications with it), you'll need:
 - A recent Linux, macOS or Windows system (desktop versions are known to work;
   mobile operating systems where Qt is available might work too)
   - Recent enough Linux examples: Debian Bullseye; Fedora 35;
     openSUSE Leap 15.4; Ubuntu 22.04 LTS.
 - Qt 5.15 or 6 (experimental, as of libQuotient 0.7) - either Open Source or
   Commercial
+- Qt Keychain (https://github.com/frankosterfeld/qtkeychain) - 0.12 or newer is
+  recommended, the build should match the Qt major version
+  
+To build applications with libQuotient, you'll also need:
 - CMake 3.16 or newer
 - A C++ toolchain that supports at least some subset of C++20 (concepts,
   in particular):
@@ -48,46 +53,69 @@ your application, as described below.
     and Visual Studio 2019 (Windows) are the oldest officially supported.
 - If using E2EE (beta, as of libQuotient 0.7):
   - libolm 3.2.5 or newer (the latest 3.x strongly recommended)
-  - OpenSSL (1.1.x is known to work; 3.x should likely work too).
+  - OpenSSL (1.1.x and 3.x are known to work).
 - Any build system that works with CMake should be fine:
   GNU Make and ninja on any platform, NMake and jom on Windows are known to work.
   Ninja is recommended.
+  
+The requirements to build libQuotient itself are basically the same except
+that you should install development libraries for the list above.
+
 
 #### Linux
-Just install things from the list above using your preferred package manager.
-If your Qt package base is fine-grained you might want to run cmake and look
-at error messages. The library is entirely offscreen but aside from QtCore and
-QtNetwork it also depends on QtGui in order to handle avatar thumbnails.
+Just install the prerequisites using your preferred package manager. If your Qt
+package base is fine-grained you might want to run CMake and look at error
+messages. The library is entirely offscreen but aside from QtCore and QtNetwork;
+it only depends on QtGui in order to handle avatar thumbnails.
 
 #### macOS
-`brew install qt5` should get you a recent Qt5. You may need to add the output
-of `brew --prefix qt5` to `CMAKE_PREFIX_PATH` (see below) to make CMake aware
-of the Qt location.
+`brew install qt qtkeychain` should get you the most recent versions of the
+runtime libraries. You may need to add the output of `brew --prefix qt` and
+`brew --prefix qtkeychain` to `CMAKE_PREFIX_PATH` (see below) to make CMake
+aware of the library locations. There is no qtkeychain built with Qt 6 on
+Homebrew; if you need to go with Qt 5, you have to build QtKeychain from
+the source.
 
-If using E2EE, you need to perform the same dance for libolm and openssl.
+If using E2EE, you need to perform the same dance for libolm and openssl@1.1.
+It is strongly recommended to have OpenSSL of the version that was used to build
+Qt. As of this writing, it's 1.1.x; check https://formulae.brew.sh/formula/qt
+for the most current situation
 
 #### Windows
-Install Qt5 using their official installer; make sure to tick the CMake box
-in the list of installed components unless you already have it installed.
+Install Qt using their official installer; make sure to tick the CMake box
+in the list of installed components unless you already have it installed. This
+will get you both the runtime libraries and the files necessary for building
+libQuotient or with libQuotient. Alternatively, you can use vcpkg to install
+both Qt and QtKeychain.
 
-The commands in further sections imply that cmake is in your PATH, otherwise
-you have to prepend those commands with actual paths. It's a good idea to run
-a `qtenv2.bat` script that can be found in `C:\Qt\<Qt version>\<toolchain>\bin`
-(assuming you installed Qt to `C:\Qt`) if you're building from the command line;
-the script adds necessary paths to PATH. You might not want to run that script
-on system startup but it's very handy to setup the environment before building.
-Alternatively you can add the Qt path to `CMAKE_PREFIX_PATH` and leave PATH
-unchanged.
+If you use Qt Creator it will find Qt and CMake automatically, as long as all
+of these are installed with the official installer. If you don't use Qt Creator,
+the commands in further sections imply that `cmake` is in your `PATH`, otherwise
+you have to prepend those commands with actual paths.
+
+It's a good idea to run the `qtenv2.bat` script that can be found in
+`C:\Qt\<Qt version>\<toolchain>\bin` (assuming you installed Qt to `C:\Qt`) if
+you're building from the command line. This script adds necessary paths to
+`PATH`. You might not want to run that script on system startup but it's very
+handy to setup the environment before building.
+Alternatively you can add the Qt path to `CMAKE_PREFIX_PATH` and leave `PATH`
+unchanged. This is also the recommended way if you use an IDE different from
+Qt Creator.
+
+Qt Keychain doesn't distribute prebuilt packages so unless you use vcpkg you
+should build it from the source code.
 
 If you're trying out E2EE, you will also need libolm and OpenSSL. Unfortunately,
 neither project provides official binary libraries for Windows. libolm can
-be compiled from the sources (available at ) using the same toolchain
-(CMake+MSVC). It's not recommended to compile OpenSSL yourself; instead, use
-one of the "OpenSSL for Windows" links in
+be compiled from the sources (available at
+https://gitlab.matrix.org/matrix-org/olm) using the same toolchain (CMake+MSVC).
+It's not recommended to compile OpenSSL yourself; instead, use vcpkg or one of
+the "OpenSSL for Windows" links in the
 [unofficial list on the project Wiki](https://wiki.openssl.org/index.php/Binaries).
+Make sure to install the development libraries, not only the runtime.
 
 
-### Using the library
+## Using the library
 If you're just starting a project using libQuotient from scratch, you can copy
 `quotest/CMakeLists.txt` to your project and change `quotest` to your
 project name. If you already have an existing CMakeLists.txt, you need to insert
@@ -109,7 +137,12 @@ feel free to check out (and copy, with appropriate attribution) the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion) (the reference client
 for libQuotient) or [NeoChat](https://invent.kde.org/network/neochat).
 
+
 ## Building the library
+On platforms other than Linux you will have to build libQuotient yourself
+before usage - nobody packaged it so far (contributions welcome!). You may also
+want to build the library on Linux if you are to use newer/unstable versions.
+
 [The source code is at GitHub](https://github.com/quotient-im/libQuotient).
 Checking out a certain commit or tag (rather than downloading the archive)
 along with submodules is strongly recommended. If you want to hack on
@@ -118,11 +151,11 @@ but need to do some changes to the library code), it makes sense
 to make a recursive check out of that project (in this case, Quaternion)
 and update the library submodule (also recursively) within the appropriate
 branch. Be mindful of API compatibility restrictions: e.g., Quaternion 0.0.95
-will not build with the master branch of libQuotient.
+will not build with the `dev` branch of libQuotient.
 
 Tags consisting of digits and periods represent released versions; tags ending
 with `-betaN` or `-rcN` mark pre-releases. If/when packaging pre-releases,
-it is advised to replace a dash with a tilde.
+it is advised to replace this dash with a tilde.
 
 The following commands issued in the root directory of the project sources:
 ```shell script
@@ -134,7 +167,7 @@ cmake --build . --target all
 will get you a compiled library in `build_dir` inside your project sources.
 Static builds are tested on all supported platforms, building the library as
 a shared object (aka dynamic library) is supported on Linux and macOS but is
-very likely to be broken on Windows.
+untested on Windows.
 
 Before proceeding, double-check that you have installed development libraries
 for all prerequisites above. CMake will stop and tell you if something's missing.
@@ -157,8 +190,8 @@ the standard variables coming with CMake. On top of them, Quotient introduces:
 - `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default - enable work-in-progress
   E2EE code in the library. As of 0.6, this code is very incomplete and buggy;
   you should NEVER use it. In 0.7, the enabled code is beta-quality and is
-  generally good for trying the technology and API but really not for
-  mission-critical applications.
+  generally good for trying the technology but really not for mission-critical
+  applications.
 
   Switching this on will define `Quotient_E2EE_ENABLED` macro (note
   the difference from the CMake switch) for compiler invocations on all
@@ -181,6 +214,7 @@ should be able to use [`quotest/CMakeLists.txt`](quotest/CMakeLists.txt) to comp
 with the _installed_ library. Installation of the `quotest` binary
 along with the rest of the library can be skipped
 by setting `Quotient_INSTALL_TESTS` to `OFF`.
+
 
 ## Troubleshooting
 

@@ -30,8 +30,9 @@ You are welcome aboard!
 
 ### Pull requests and different branches recommended
 
-Pull requests are preferred, since they are specific.
-See the GitHub Help [articles about pull requests](https://help.github.com/articles/using-pull-requests/)
+Contributions are preferred in the form of pull requests at GitHub.
+See the respective
+[articles about pull requests](https://help.github.com/articles/using-pull-requests/)
 to learn how to deal with them.
 
 We recommend creating different branches for different (logical)
@@ -195,13 +196,15 @@ Additionally:
     `std::deque` for a timeline). Especially when it comes to API intended
     for usage from QML (e.g. `Q_PROPERTY`), STL containers or iterators are
     unlikely to work and therefore unlikely to be accepted into `dev`.
-  * Notwithstanding the above (you're not going to use them with QML anyway),
+  * Notwithstanding the above (you're not going to use these with QML anyway),
     prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives stronger
-    guarantees.
+    guarantees; also, some features of `QScopedPointer` are deprecated in Qt 6.
 * Always use `QVector` instead of `QList` unless Qt's own API uses it - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details. With Qt 6, these two become the same type matching what used
-  to be `QVector` in Qt 5.
+  to be `QVector` in Qt 5. Unfortunately, since QVector becomes an alias in Qt 6
+  that comes with some breakage in template code; the fix usually boils down
+  to specifying template parameter of `QVector` explicitly.
 
 ### API conventions
 
@@ -213,7 +216,7 @@ implementation details as much as possible. `_impl` namespace is reserved for
 definitions that should not be used by clients and are not covered by
 API guarantees.
 
-Note: As of now, all header files of libQuotient are considered public;
+Note: As of Quotient 0.7, all header files of libQuotient are considered public;
 this may change eventually.
 
 ### Comments
@@ -289,10 +292,10 @@ Pay attention to security, and work *with*, not against, the usual security hard
 `char *` and similar unchecked C-style read/write arrays are forbidden - use
 Qt containers or at the very least `std::array<>` instead. Where you see fit
 (usually with data structures), try to use smart pointers, especially
-`std::unique_ptr<>` or `QScopedPointer` instead of bare pointers. When dealing
-with `QObject`s, use the parent-child ownership semantics exercised by Qt
-(this is preferred to using smart pointers). If you find a particular use case
-where the strict semantic of unique pointers doesn't help and a shared pointer
+`std::unique_ptr<>`, instead of bare pointers. When dealing with `QObject`s,
+use the parent-child ownership semantics exercised by Qt (this in turn is
+preferred to using smart pointers). If you find a particular use case where
+the strict semantic of unique pointers doesn't help and a shared pointer
 is necessary, feel free to step up with the working code and it will be
 considered for inclusion.
 
@@ -435,7 +438,7 @@ Instead of relying on the event structure definition in the OpenAPI files, `gtad
 
 Checking the code on at least one configuration is essential; if you only have
 a hasty fix that doesn't even compile, better make an issue and put a link to
-your commit into it (with an explanation what it is about and why).
+your commit or gist into it (with an explanation what it is about and why).
 
 ### Standard checks
 
