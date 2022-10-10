@@ -12,9 +12,16 @@ class QUOTIENT_API MxcReply : public QNetworkReply
 {
     Q_OBJECT
 public:
-    explicit MxcReply();
+    enum DeferredFlag { Deferred };
+    enum ErrorFlag { Error };
+
     explicit MxcReply(QNetworkReply* reply,
                       const EncryptedFileMetadata& fileMetadata);
+    explicit MxcReply(DeferredFlag);
+    explicit MxcReply(ErrorFlag);
+
+    void setNetworkReply(QNetworkReply* newReply,
+                         const EncryptedFileMetadata& fileMetadata = {});
 
     qint64 bytesAvailable() const override;
 
@@ -26,6 +33,6 @@ protected:
 
 private:
     class Private;
-    ImplPtr<Private> d;
+    ImplPtr<Private> d = ZeroImpl<Private>();
 };
-}
+} // namespace Quotient

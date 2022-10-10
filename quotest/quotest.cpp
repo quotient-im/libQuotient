@@ -125,6 +125,8 @@ private:
     [[nodiscard]] bool checkFileSendingOutcome(const TestToken& thisTest,
                                                const QString& txnId,
                                                const QString& fileName);
+    [[nodiscard]] bool testDownload(const TestToken& thisTest,
+                                    const QUrl& mxcUrl);
     [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
                                              const QString& evtIdToRedact);
 
@@ -474,18 +476,44 @@ struct DownloadRunner {
         el.exec();
         return reply->error();
     }
+
+    static QVector<QNetworkReply::NetworkError> run(const QUrl& url, int threads)
+    {
+        return QtConcurrent::blockingMapped(QVector<int>(threads),
+                                            DownloadRunner{ url });
+    }
 };
 
-bool testDownload(const QUrl& url)
+bool TestSuite::testDownload(const TestToken& thisTest, const QUrl& mxcUrl)
 {
-    // Move out actual test from the multithreaded code
-    // to help debugging
-    auto results = QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 },
-                                                DownloadRunner { url });
-    return std::all_of(results.cbegin(), results.cend(),
-                        [](QNetworkReply::NetworkError ne) {
-                            return ne == QNetworkReply::NoError;
-                        });
+    // Testing direct media requests needs explicit allowance
+    QSettings s;
+    static constexpr auto DirectMediaRequestsSetting =
+        "Network/allow_direct_media_requests"_ls;
+    s.setValue(DirectMediaRequestsSetting, true);
+    if (const auto result = DownloadRunner::run(mxcUrl, 1);
+        result.back() != QNetworkReply::NoError) {
+        clog << "Direct media request to "
+             << mxcUrl.toDisplayString().toStdString()
+             << " was allowed but failed" << endl;
+        FAIL_TEST();
+    }
+    s.setValue(DirectMediaRequestsSetting, false);
+    if (const auto result = DownloadRunner::run(mxcUrl, 1);
+        result.back() == QNetworkReply::NoError) {
+        clog << "Direct media request to "
+             << mxcUrl.toDisplayString().toStdString()
+             << " was disallowed but succeeded" << endl;
+        FAIL_TEST();
+    }
+
+    const auto httpUrl = targetRoom->connection()->makeMediaUrl(mxcUrl);
+    const auto results = DownloadRunner::run(httpUrl, 3);
+    // Move out actual test from the multithreaded code to help debugging
+    FINISH_TEST(std::all_of(results.begin(), results.end(),
+                            [](QNetworkReply::NetworkError ne) {
+                                return ne == QNetworkReply::NoError;
+                            }));
 }
 
 bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
@@ -519,14 +547,15 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                 *evt,
                 [&](const RoomMessageEvent& e) {
                     // TODO: check #366 once #368 is implemented
-                    FINISH_TEST(
-                        !e.id().isEmpty()
-                        && pendingEvents[size_t(pendingIdx)]->transactionId()
-                               == txnId
-                        && e.hasFileContent()
-                        && e.content()->fileInfo()->originalName == fileName
-                        && testDownload(targetRoom->connection()->makeMediaUrl(
-                            e.content()->fileInfo()->url())));
+                    if (e.id().isEmpty()
+                        || pendingEvents[size_t(pendingIdx)]->transactionId()
+                               != txnId
+                        || !e.hasFileContent()
+                        || e.content()->fileInfo()->originalName != fileName) {
+                        clog << "Malformed file event";
+                        FAIL_TEST();
+                    }
+                    return testDownload(thisTest, e.content()->fileInfo()->url());
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
