@@ -1745,8 +1745,8 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                                           : timeline.back().index();
     auto baseIndex = index;
     for (auto&& e : events) {
-        const auto eId = e->id();
         Q_ASSERT_X(e, __FUNCTION__, "Attempt to add nullptr to timeline");
+        const auto eId = e->id();
         Q_ASSERT_X(
             !eId.isEmpty(), __FUNCTION__,
             makeErrorStr(*e, "Event with empty id cannot be in the timeline"));
@@ -1759,7 +1759,7 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                              : timeline.emplace_back(move(e), ++index);
         eventsIndex.insert(eId, index);
         if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
-            notifications.insert(e->id(), n);
+            notifications.insert(eId, n);
         Q_ASSERT(q->findInTimeline(eId)->event()->id() == eId);
     }
     const auto insertedSize = (index - baseIndex) * placement;

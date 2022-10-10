@@ -21,7 +21,6 @@ public:
     explicit NetworkSettings(ArgTs... qsettingsArgs)
         : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
     {}
-    ~NetworkSettings() override = default;
 
     Q_INVOKABLE void setupApplicationProxy() const;
 };

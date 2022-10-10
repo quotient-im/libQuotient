@@ -19,11 +19,11 @@ public:
     void clearIgnoredSslErrors();
     void ignoreSslErrors(bool ignore = true) const;
 
-    /** Get a pointer to the singleton */
+    /// Get a NAM instance for the current thread
     static NetworkAccessManager* instance();
 
-public Q_SLOTS:
-    QStringList supportedSchemesImplementation() const;
+private Q_SLOTS:
+    QStringList supportedSchemesImplementation() const; // clazy:exclude=const-signal-or-slot
 
 private:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
