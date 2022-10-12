@@ -41,7 +41,7 @@ private Q_SLOTS:
                 });
             });
         });
-        QTimer::singleShot(3000, this, [a, b](){
+        QTimer::singleShot(3000, this, [a, b] {
             a->startKeyVerificationSession(b->userId(), b->deviceId());
         });
         connect(b.get(), &Connection::newKeyVerificationSession, this, [&](KeyVerificationSession* session) {
