@@ -20,7 +20,7 @@ private Q_SLOTS:
         CREATE_CONNECTION(b, "alice2", "secret", "AlicePhone")
 
         a->requestDirectChat(b->userId());
-            connectSingleShot(b.get(), &Connection::invitedRoom, this, [=](Quotient::Room* room, Quotient::Room*) {
+        connectSingleShot(b.get(), &Connection::invitedRoom, this, [=](Quotient::Room* room) {
             b->joinRoom(room->id());
             a->room(room->id())->activateEncryption();
         });
