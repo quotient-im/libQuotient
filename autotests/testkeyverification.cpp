@@ -29,7 +29,7 @@ private Q_SLOTS:
         connect(a.get(), &Connection::newKeyVerificationSession, this, [&](KeyVerificationSession* session) {
             aSession = session;
             QVERIFY(aSession);
-            connect(session, &KeyVerificationSession::stateChanged, this, [session](){
+            connect(session, &KeyVerificationSession::stateChanged, this, [session] {
                 QVERIFY(session->state() != KeyVerificationSession::CANCELED);
             });
             QVERIFY(session->remoteDeviceId() == b->deviceId());
