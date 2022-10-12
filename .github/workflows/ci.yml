@@ -14,7 +14,6 @@ concurrency: ci-${{ github.ref }}
 jobs:
   CI:
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.qt-version != '5.15.2' }} # Qt 6 will fail for now
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -26,8 +25,6 @@ jobs:
         e2ee: [ '', e2ee ]
         update-api: [ '', update-api ]
         static-analysis: [ '' ]
-        platform: [ '' ]
-        qt-arch: [ '' ]
         exclude:
         - qt-version: '6.3.1'
           update-api: update-api # Generated code is not specific to Qt version
@@ -40,8 +37,6 @@ jobs:
         - os: windows-2019
           qt-version: '5.15.2'
           compiler: MSVC
-          platform: x64
-          qt-arch: win64_msvc2019_64
         - os: ubuntu-22.04
           qt-version: '5.15.2'
           compiler: LLVM
@@ -65,36 +60,25 @@ jobs:
           qt-version: '6.3.1'
           compiler: MSVC
           # e2ee: e2ee # TODO
-          platform: x64
-          qt-arch: win64_msvc2019_64
         - os: windows-2019
           qt-version: '5.15.2'
           compiler: MSVC
           update-api: update-api
-          platform: x64
-          qt-arch: win64_msvc2019_64
 
     env:
       SONAR_SERVER_URL: 'https://sonarcloud.io'
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v2
-      with:
-        path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}${{ matrix.platform }}-Qt${{ matrix.qt-version }}-cache
-
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2.14.0
+      uses: jurplel/install-qt-action@v3.0.0
       with:
         version: ${{ matrix.qt-version }}
-        arch: ${{ matrix.qt-arch }}
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        cache: true
+        cache-key-prefix: Qt
 
     - name: Setup build environment
       run: |
@@ -161,7 +145,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       if: matrix.compiler == 'MSVC'
       with:
-        arch: ${{ matrix.platform }}
+        arch: x64
 
     - name: Download and set up Sonar Cloud tools
       if: matrix.static-analysis == 'sonar'
@@ -184,7 +168,7 @@ jobs:
         cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
-    - name: get CS API definitions; clone and build GTAD
+    - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
       run: |
         git clone --depth=1 https://github.com/quotient-im/matrix-spec.git ../matrix-spec
