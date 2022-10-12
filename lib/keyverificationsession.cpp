@@ -499,3 +499,8 @@ QString KeyVerificationSession::remoteDeviceId() const
 {
     return m_remoteDeviceId;
 }
+
+QString KeyVerificationSession::transactionId() const
+{
+    return m_transactionId;
+}

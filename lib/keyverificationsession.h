@@ -99,6 +99,7 @@ public:
     Error error() const;
 
     QString remoteDeviceId() const;
+    QString transactionId() const;
 
 public Q_SLOTS:
     void sendRequest();
