@@ -6,7 +6,7 @@
 #include <QTest>
 #include "testutils.h"
 #include <qt_connection_util.h>
-#include <QTimer>
+#include <QtCore/QTimer>
 #include <room.h>
 
 class TestKeyVerificationSession : public QObject
