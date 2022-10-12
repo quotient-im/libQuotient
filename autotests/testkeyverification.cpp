@@ -38,9 +38,11 @@ private Q_SLOTS:
                 QVERIFY(session->state() == KeyVerificationSession::ACCEPTED || session->state() == KeyVerificationSession::READY);
                 connectSingleShot(session, &KeyVerificationSession::stateChanged, this, [=](){
                     QVERIFY(session->state() == KeyVerificationSession::WAITINGFORVERIFICATION);
+                    aSession->sendMac();
                 });
             });
         });
+        // The delay is added to make sure that the parties have each other's device keys available
         QTimer::singleShot(3000, this, [a, b] {
             a->startKeyVerificationSession(b->userId(), b->deviceId());
         });
@@ -60,7 +62,6 @@ private Q_SLOTS:
                     QVERIFY(aSession);
                     QVERIFY(aSession->sasEmojis() == session->sasEmojis());
                     session->sendMac();
-                    aSession->sendMac();
                     QVERIFY(session->state() == KeyVerificationSession::WAITINGFORMAC);
                 });
             });
