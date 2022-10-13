@@ -5,7 +5,7 @@
 
 #include <QTest>
 #include "testutils.h"
-#include <QDateTime>
+#include <QtCore/QDateTime>
 #include <e2ee/qolmaccount.h>
 #include "olm/sas.h"
 #include "e2ee/qolmutils.h"

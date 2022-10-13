@@ -2487,7 +2487,9 @@ bool Connection::isVerifiedSession(const QString& megolmSessionId) const
 }
 #endif
 
-void Connection::completeSetup(const QString &mxId)
+Connection* Connection::makeMockConnection(const QString& mxId)
 {
-    d->completeSetup(mxId);
+    auto* c = new Connection;
+    c->d->completeSetup(mxId);
+    return c;
 }
