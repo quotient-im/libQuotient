@@ -700,10 +700,12 @@ public Q_SLOTS:
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
 #ifdef Quotient_E2EE_ENABLED
-    void startKeyVerificationSession(const QString& deviceId);
+    void startKeyVerificationSession(const QString& userId, const QString& deviceId);
 
     void encryptionUpdate(Room *room);
 #endif
+
+    static Connection* makeMockConnection(const QString& mxId);
 
 Q_SIGNALS:
     /// \brief Initial server resolution has failed

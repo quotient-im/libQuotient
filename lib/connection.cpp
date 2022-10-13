@@ -998,7 +998,7 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
         [this, encrypted](const KeyVerificationRequestEvent& reqEvt) {
             const auto sessionIter = verificationSessions.insert(
                 reqEvt.transactionId(),
-                new KeyVerificationSession(q->userId(), reqEvt, q, encrypted));
+                new KeyVerificationSession(reqEvt.fullJson()["sender"].toString(), reqEvt, q, encrypted));
             emit q->newKeyVerificationSession(*sessionIter);
             return true;
         },
@@ -2445,9 +2445,10 @@ void Connection::saveCurrentOutboundMegolmSession(
                                                   session);
 }
 
-void Connection::startKeyVerificationSession(const QString& deviceId)
+void Connection::startKeyVerificationSession(const QString& userId, const QString& deviceId)
 {
-    auto* const session = new KeyVerificationSession(userId(), deviceId, this);
+    auto* const session = new KeyVerificationSession(userId, deviceId, this);
+    d->verificationSessions.insert(session->transactionId(), session);
     emit newKeyVerificationSession(session);
 }
 
@@ -2485,3 +2486,10 @@ bool Connection::isVerifiedSession(const QString& megolmSessionId) const
     return query.next() && query.value("verified").toBool();
 }
 #endif
+
+Connection* Connection::makeMockConnection(const QString& mxId)
+{
+    auto* c = new Connection;
+    c->d->completeSetup(mxId);
+    return c;
+}
