@@ -19,9 +19,8 @@ private Q_SLOTS:
     {
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
-        auto connection = new Connection();
+        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
         const auto transactionId = "other_transaction_id"_ls;
-        connection->completeSetup("@carl:localhost"_ls);
         auto session = new KeyVerificationSession("@alice:localhost"_ls, "ABCDEF"_ls, connection);
         session->sendRequest();
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORREADY);
@@ -39,8 +38,7 @@ private Q_SLOTS:
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
         const auto transactionId = "trans123action123id"_ls;
-        auto connection = new Connection();
-        connection->completeSetup("@carl:localhost"_ls);
+        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
         auto session = new KeyVerificationSession(userId, KeyVerificationRequestEvent(transactionId, deviceId, {SasV1Method}, QDateTime::currentDateTime()), connection, false);
         QVERIFY(session->state() == KeyVerificationSession::INCOMING);
         session->sendReady();
