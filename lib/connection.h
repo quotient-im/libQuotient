@@ -705,6 +705,9 @@ public Q_SLOTS:
     void encryptionUpdate(Room *room);
 #endif
 
+    // WARNING: Use only for unit tests! This will not lead to a correctly working connection!
+    void completeSetup(const QString& mxId);
+
 Q_SIGNALS:
     /// \brief Initial server resolution has failed
     ///

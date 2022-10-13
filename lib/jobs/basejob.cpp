@@ -353,7 +353,6 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
     } else {
         qCCritical(d->logCat)
             << "Developers, ensure the Connection is valid before using it";
-        Q_ASSERT(false);
         setStatus(IncorrectRequest, tr("Invalid server connection"));
     }
     // The status is no good, finalise

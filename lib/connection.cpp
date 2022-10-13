@@ -2486,3 +2486,8 @@ bool Connection::isVerifiedSession(const QString& megolmSessionId) const
     return query.next() && query.value("verified").toBool();
 }
 #endif
+
+void Connection::completeSetup(const QString &mxId)
+{
+    d->completeSetup(mxId);
+}

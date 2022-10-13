@@ -91,7 +91,7 @@ void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
                 return true;
             },
             [this](const KeyVerificationStartEvent& event) {
-                if (state() != WAITINGFORREADY && state() != READY)
+                if (state() != WAITINGFORREADY && state() != READY && state() != WAITINGFORACCEPT)
                     return false;
                 handleStart(event);
                 return true;
@@ -102,7 +102,7 @@ void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
                 // ACCEPTED is also fine here because it's possible to receive
                 // ready and start in the same sync, in which case start might
                 // be handled before ready.
-                return state() == WAITINGFORREADY || state() == ACCEPTED;
+                return state() == READY || state() == WAITINGFORACCEPT || state() == ACCEPTED;
             },
             [this](const KeyVerificationAcceptEvent& event) {
                 if (state() != WAITINGFORACCEPT)
