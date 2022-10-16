@@ -17,7 +17,7 @@ public:
     QUO_EVENT(StickerEvent, "m.sticker")
 
     explicit StickerEvent(const QJsonObject& obj)
-        : RoomEvent(TypeId, obj)
+        : RoomEvent(obj)
         , m_imageContent(
               EventContent::ImageContent(obj["content"_ls].toObject()))
     {}
