@@ -2748,7 +2748,13 @@ bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
     Q_ASSERT(q->isValidIndex(*pIdx));
 
     auto& ti = timeline[Timeline::size_type(*pIdx - q->minTimelineIndex())];
-    if (ti->replacedBy() == newEvent.id()) {
+    const auto* const rme = ti.viewAs<RoomMessageEvent>();
+    if (!rme) {
+        qCWarning(STATE) << "Ignoring attempt to replace a non-message event"
+                         << ti->id();
+        return false;
+    }
+    if (rme->replacedBy() == newEvent.id()) {
         qCDebug(STATE) << "Event" << ti->id() << "is already replaced with"
                        << newEvent.id();
         return true;
@@ -2757,7 +2763,8 @@ bool Room::Private::processReplacement(const RoomMessageEvent& newEvent)
     // Make a new event from the redacted JSON and put it in the timeline
     // instead of the redacted one. oldEvent will be deleted on return.
     auto oldEvent = ti.replaceEvent(makeReplaced(*ti, newEvent));
-    qCDebug(STATE) << "Replaced" << oldEvent->id() << "with" << newEvent.id();
+    qCDebug(STATE) << "Replaced" << oldEvent->id() << "with"
+                   << newEvent.id();
     emit q->replacedEvent(ti.event(), rawPtr(oldEvent));
     return true;
 }

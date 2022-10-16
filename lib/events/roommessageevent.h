@@ -77,9 +77,18 @@ public:
     //!         such as m.image, or generic binary content, i.e. m.file);
     //!         false otherwise
     bool hasThumbnail() const;
+
     //! \brief Obtain id of an event replaced by the current one
     //! \sa RoomEvent::isReplaced, RoomEvent::replacedBy
     QString replacedEvent() const;
+
+    //! \brief Determine whether the event has been replaced
+    //!
+    //! \return true if this event has been overridden by another event
+    //!         with `"rel_type": "m.replace"`; false otherwise
+    bool isReplaced() const;
+
+    QString replacedBy() const;
 
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);

@@ -22,12 +22,6 @@ public:
     QDateTime originTimestamp() const;
     QString roomId() const;
     QString senderId() const;
-    //! \brief Determine whether the event has been replaced
-    //!
-    //! \return true if this event has been overridden by another event
-    //!         with `"rel_type": "m.replace"`; false otherwise
-    bool isReplaced() const;
-    QString replacedBy() const;
     bool isRedacted() const { return bool(_redactedBecause); }
     const event_ptr_tt<RedactionEvent>& redactedBecause() const
     {
