@@ -251,6 +251,19 @@ public:
         }
         return changes;
     }
+    void addRelations(auto from, auto to)
+    {
+        for (auto it = from; it != to; ++it) {
+            if (const auto* reaction = it->template viewAs<ReactionEvent>()) {
+                const auto& content = reaction->content().value;
+                // See ReactionEvent::isValid()
+                Q_ASSERT(content.type == EventRelation::AnnotationType);
+                relations[{ content.eventId, content.type }] << reaction;
+                emit q->updatedEvent(content.eventId);
+            }
+        }
+    }
+
     Changes addNewMessageEvents(RoomEvents&& events);
     void addHistoricalMessageEvents(RoomEvents&& events);
 
@@ -2176,7 +2189,7 @@ QString Room::postHtmlText(const QString& plainText, const QString& html)
 
 QString Room::postReaction(const QString& eventId, const QString& key)
 {
-    return d->sendEvent<ReactionEvent>(EventRelation::annotate(eventId, key));
+    return d->sendEvent<ReactionEvent>(eventId, key);
 }
 
 QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
@@ -2699,11 +2712,11 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
         }
     }
     if (const auto* reaction = eventCast<ReactionEvent>(oldEvent)) {
-        const auto& targetEvtId = reaction->relation().eventId;
-        const std::pair lookupKey { targetEvtId, EventRelation::AnnotationType };
+        const auto& content = reaction->content().value;
+        const std::pair lookupKey { content.eventId, content.type };
         if (relations.contains(lookupKey)) {
             relations[lookupKey].removeOne(reaction);
-            emit q->updatedEvent(targetEvtId);
+            emit q->updatedEvent(content.eventId);
         }
     }
     q->onRedaction(*oldEvent, *ti);
@@ -2910,13 +2923,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 emit q->callEvent(q, evt);
 
     if (totalInserted > 0) {
-        for (auto it = from; it != syncEdge(); ++it) {
-            if (const auto* reaction = it->viewAs<ReactionEvent>()) {
-                const auto& relation = reaction->relation();
-                relations[{ relation.eventId, relation.type }] << reaction;
-                emit q->updatedEvent(relation.eventId);
-            }
-        }
+        addRelations(from, syncEdge());
 
         qCDebug(MESSAGES) << "Room" << q->objectName() << "received"
                        << totalInserted << "new events; the last event is now"
@@ -2975,13 +2982,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     q->onAddHistoricalTimelineEvents(from);
     emit q->addedMessages(timeline.front().index(), from->index());
 
-    for (auto it = from; it != historyEdge(); ++it) {
-        if (const auto* reaction = it->viewAs<ReactionEvent>()) {
-            const auto& relation = reaction->relation();
-            relations[{ relation.eventId, relation.type }] << reaction;
-            emit q->updatedEvent(relation.eventId);
-        }
-    }
+    addRelations(from, historyEdge());
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
         qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"

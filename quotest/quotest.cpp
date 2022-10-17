@@ -371,6 +371,16 @@ TEST_IMPL(sendReaction)
     clog << "Reacting to the newest message in the room" << endl;
     Q_ASSERT(targetRoom->timelineSize() > 0);
     const auto targetEvtId = targetRoom->messageEvents().back()->id();
+
+    // TODO: a separate test unit for reactionevent.h
+    if (loadEvent<ReactionEvent>(RoomEvent::basicJson(
+            ReactionEvent::TypeId,
+            { { RelatesToKey, toJson(EventRelation::replace(targetEvtId)) } }))) {
+        clog << "ReactionEvent can be created with an invalid relation type"
+             << endl;
+        FAIL_TEST();
+    }
+
     const auto key = QStringLiteral("+1");
     const auto txnId = targetRoom->postReaction(targetEvtId, key);
     if (!validatePendingEvent<ReactionEvent>(txnId)) {
@@ -392,8 +402,7 @@ TEST_IMPL(sendReaction)
             const auto* evt =
                 eventCast<const ReactionEvent>(reactions.back());
             FINISH_TEST(is<ReactionEvent>(*evt) && !evt->id().isEmpty()
-                        && evt->relation().key == key
-                        && evt->transactionId() == txnId);
+                        && evt->key() == key && evt->transactionId() == txnId);
             // TODO: Test removing the reaction
         });
     return false;
