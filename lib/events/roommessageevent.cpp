@@ -248,6 +248,20 @@ QString RoomMessageEvent::replacedEvent() const
     return isReplacement(rel) ? rel->eventId : QString();
 }
 
+bool RoomMessageEvent::isReplaced() const
+{
+    return unsignedPart<QJsonObject>("m.relations"_ls).contains(u"m.replace");
+}
+
+QString RoomMessageEvent::replacedBy() const
+{
+    // clang-format off
+    return unsignedPart<QJsonObject>("m.relations"_ls)
+            .value("m.replace"_ls).toObject()
+            .value(EventIdKeyL).toString();
+    // clang-format on
+}
+
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();

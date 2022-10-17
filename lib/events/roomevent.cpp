@@ -34,20 +34,6 @@ QString RoomEvent::senderId() const
     return fullJson()[SenderKeyL].toString();
 }
 
-bool RoomEvent::isReplaced() const
-{
-    return unsignedPart<QJsonObject>("m.relations"_ls).contains("m.replace");
-}
-
-QString RoomEvent::replacedBy() const
-{
-    // clang-format off
-    return unsignedPart<QJsonObject>("m.relations"_ls)
-            .value("m.replace"_ls).toObject()
-            .value(EventIdKeyL).toString();
-    // clang-format on
-}
-
 QString RoomEvent::redactionReason() const
 {
     return isRedacted() ? _redactedBecause->reason() : QString {};
