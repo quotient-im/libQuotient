@@ -8,7 +8,7 @@
 namespace Quotient {
 
 [[maybe_unused]] constexpr auto RelatesToKey = "m.relates_to"_ls;
-constexpr auto RelTypeKey = "rel_type"_ls;
+[[maybe_unused]] constexpr auto RelTypeKey = "rel_type"_ls;
 
 struct QUOTIENT_API EventRelation {
     using reltypeid_t = QLatin1String;
@@ -48,5 +48,4 @@ struct QUOTIENT_API JsonObjectConverter<EventRelation> {
     static void fillFrom(const QJsonObject& jo, EventRelation& pod);
 };
 
-}
-
+} // namespace Quotient
