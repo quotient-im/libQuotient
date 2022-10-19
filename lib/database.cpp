@@ -3,17 +3,18 @@
 
 #include "database.h"
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlError>
-#include <QtCore/QStandardPaths>
-#include <QtCore/QDebug>
-#include <QtCore/QDir>
+#include "logging.h"
 
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmsession.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
+#include "e2ee/qolmsession.h"
+
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlError>
+#include <QtSql/QSqlQuery>
 
 using namespace Quotient;
 Database::Database(const QString& matrixId, const QString& deviceId, QObject* parent)
