@@ -2355,9 +2355,8 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
     }
     const auto recipientCurveKey =
         curveKeyForUserDevice(targetUserId, targetDeviceId).toLatin1();
-    auto session =
-        QOlmSession::createOutboundSession(olmAccount.get(), recipientCurveKey,
-                                           signedOneTimeKey->key());
+    auto session = olmAccount->createOutboundSession(recipientCurveKey,
+                                                     signedOneTimeKey->key());
     if (!session) {
         qCWarning(E2EE) << "Failed to create olm session for "
                         << recipientCurveKey << session.error();

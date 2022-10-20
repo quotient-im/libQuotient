@@ -78,19 +78,21 @@ public:
     //!
     //! \param preKeyMessage An Olm pre-key message that was encrypted for this account.
     QOlmExpected<QOlmSession> createInboundSession(
-        const QOlmMessage& preKeyMessage);
+        const QOlmMessage& preKeyMessage) const;
 
     //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
     QOlmExpected<QOlmSession> createInboundSessionFrom(
-        const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage);
+        const QByteArray& theirIdentityKey,
+        const QOlmMessage& preKeyMessage) const;
 
     //! Creates an outbound session for sending messages to a specific
     /// identity and one time key.
     QOlmExpected<QOlmSession> createOutboundSession(
-        const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey);
+        const QByteArray& theirIdentityKey,
+        const QByteArray& theirOneTimeKey) const;
 
     void markKeysAsPublished();
 
@@ -106,7 +108,8 @@ private:
     QString m_deviceId;
     OlmAccount* olmData = olmDataHolder.get();
 
-    friend class QOlmSession;
+    QOlmExpected<QOlmSession> createInbound(const QOlmMessage& preKeyMessage,
+        const QString& theirIdentityKey = "") const;
 
     QString accountId() const;
 };

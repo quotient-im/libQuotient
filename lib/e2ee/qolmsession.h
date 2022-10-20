@@ -6,28 +6,17 @@
 
 #include "e2ee/e2ee.h"
 #include "e2ee/qolmmessage.h"
-#include "e2ee/qolmaccount.h"
 
 struct OlmSession;
 
 namespace Quotient {
 
+class QOlmAccount;
+
 //! Either an outbound or inbound session for secure communication.
 class QUOTIENT_API QOlmSession
 {
 public:
-    //! Creates an inbound session for sending/receiving messages from a received 'prekey' message.
-    static QOlmExpected<QOlmSession> createInboundSession(
-        QOlmAccount* account, const QOlmMessage& preKeyMessage);
-
-    static QOlmExpected<QOlmSession> createInboundSessionFrom(
-        QOlmAccount* account, const QString& theirIdentityKey,
-        const QOlmMessage& preKeyMessage);
-
-    static QOlmExpected<QOlmSession> createOutboundSession(
-        QOlmAccount* account, const QByteArray& theirIdentityKey,
-        const QByteArray& theirOneTimeKey);
-
     //! Serialises an `QOlmSession` to encrypted Base64.
     QByteArray pickle(const PicklingMode &mode) const;
 
@@ -70,9 +59,5 @@ private:
     OlmSession* olmData = olmDataHolder.get();
 
     friend class QOlmAccount;
-
-    static QOlmExpected<QOlmSession> createInbound(
-        QOlmAccount* account, const QOlmMessage& preKeyMessage,
-        bool from = false, const QString& theirIdentityKey = "");
 };
 } //namespace Quotient

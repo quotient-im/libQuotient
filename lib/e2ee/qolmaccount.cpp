@@ -27,6 +27,38 @@ const char* QOlmAccount::lastError() const
     return olm_account_last_error(olmData);
 }
 
+QOlmExpected<QOlmSession> QOlmAccount::createInbound(
+    const QOlmMessage& preKeyMessage, const QString& theirIdentityKey) const
+{
+    if (preKeyMessage.type() != QOlmMessage::PreKey) {
+        qCCritical(E2EE) << "The message is not a pre-key; will try to create "
+                            "the inbound session anyway";
+    }
+
+    QOlmSession session{};
+
+    QByteArray oneTimeKeyMessageBuf = preKeyMessage.toCiphertext();
+    QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
+    const auto error =
+        theirIdentityKey.isEmpty()
+            ? olm_create_inbound_session(session.olmData, olmData,
+                                         oneTimeKeyMessageBuf.data(),
+                                         oneTimeKeyMessageBuf.length())
+            : olm_create_inbound_session_from(session.olmData, olmData,
+                                              theirIdentityKeyBuf.data(),
+                                              theirIdentityKeyBuf.length(),
+                                              oneTimeKeyMessageBuf.data(),
+                                              oneTimeKeyMessageBuf.length());
+
+    if (error == olm_error()) {
+        qCWarning(E2EE) << "Error when creating inbound session"
+                        << session.lastError();
+        return session.lastErrorCode();
+    }
+
+    return session;
+}
+
 QOlmAccount::QOlmAccount(QStringView userId, QStringView deviceId,
                          QObject* parent)
     : QObject(parent)
@@ -205,25 +237,37 @@ UploadKeysJob* QOlmAccount::createUploadKeyRequest(
 }
 
 QOlmExpected<QOlmSession> QOlmAccount::createInboundSession(
-    const QOlmMessage& preKeyMessage)
+    const QOlmMessage& preKeyMessage) const
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
-    return QOlmSession::createInboundSession(this, preKeyMessage);
+    return createInbound(preKeyMessage);
 }
 
 QOlmExpected<QOlmSession> QOlmAccount::createInboundSessionFrom(
-    const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
+    const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage) const
 {
     Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
-    return QOlmSession::createInboundSessionFrom(this, theirIdentityKey,
-                                                 preKeyMessage);
+    return createInbound(preKeyMessage, theirIdentityKey);
 }
 
 QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
-    const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey)
+    const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey) const
 {
-    return QOlmSession::createOutboundSession(this, theirIdentityKey,
-                                              theirOneTimeKey);
+    QOlmSession olmOutboundSession{};
+    if (const auto randomLength = olm_create_outbound_session_random_length(
+            olmOutboundSession.olmData);
+        olm_create_outbound_session(
+            olmOutboundSession.olmData, olmData, theirIdentityKey.data(),
+            theirIdentityKey.length(), theirOneTimeKey.data(),
+            theirOneTimeKey.length(), RandomBuffer(randomLength), randomLength)
+        == olm_error()) {
+        const auto errorCode = olmOutboundSession.lastErrorCode();
+        QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,
+                         "Failed to create an outbound Olm session",
+                           olmOutboundSession.lastError());
+        return errorCode;
+    }
+    return olmOutboundSession;
 }
 
 void QOlmAccount::markKeysAsPublished()
