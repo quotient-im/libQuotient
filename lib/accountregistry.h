@@ -37,7 +37,8 @@ public:
 
     enum EventRoles {
         AccountRole = Qt::UserRole + 1,
-        ConnectionRole = AccountRole
+        ConnectionRole = AccountRole,
+        UserIdRole = Qt::DisplayRole
     };
 
     [[deprecated("Use Accounts variable instead")]] //
