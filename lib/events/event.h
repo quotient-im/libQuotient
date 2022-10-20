@@ -80,7 +80,7 @@ public:
     // The public fields here are const and are not to be changeable anyway.
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
     const char* const className;
-    const event_type_t matrixId;
+    const event_type_t matrixId{};
     const AbstractEventMetaType* const baseType = nullptr;
     // NOLINTEND(misc-non-private-member-variables-in-classes)
 
@@ -437,14 +437,16 @@ public:
 //! initialised by parameters passed to the macro, and a metaType() override
 //! pointing to that BaseMetaType.
 //! \sa EventMetaType, EventMetaType::SuppressLoadDerived
-#define QUO_BASE_EVENT(CppType_, ...)                      \
-    friend class EventMetaType<CppType_>;                  \
-    static inline EventMetaType<CppType_> BaseMetaType{    \
-        #CppType_ __VA_OPT__(,) __VA_ARGS__ };             \
-    const AbstractEventMetaType& metaType() const override \
-    {                                                      \
-        return BaseMetaType;                               \
-    }                                                      \
+#define QUO_BASE_EVENT(CppType_, ...)                                 \
+    friend class EventMetaType<CppType_>;                             \
+    static inline EventMetaType<CppType_> BaseMetaType{               \
+        #CppType_ __VA_OPT__(,) __VA_ARGS__ };                        \
+    static_assert(&CppType_::BaseMetaType == &BaseMetaType,           \
+                  #CppType_ " is wrong here - check for copy-pasta"); \
+    const AbstractEventMetaType& metaType() const override            \
+    {                                                                 \
+        return BaseMetaType;                                          \
+    }                                                                 \
     // End of macro
 
 //! Supply event metatype information in (specific) event types
@@ -468,6 +470,8 @@ public:
     static inline const EventMetaType<CppType_> MetaType{               \
         #CppType_, TypeId, BaseMetaType __VA_OPT__(,) __VA_ARGS__       \
     };                                                                  \
+    static_assert(&CppType_::MetaType == &MetaType,                     \
+                  #CppType_ " is wrong here - check for copy-pasta");   \
     const AbstractEventMetaType& metaType() const override              \
     {                                                                   \
         return MetaType;                                                \
