@@ -41,10 +41,14 @@ QVariant AccountRegistry::data(const QModelIndex& index, int role) const
     if (!index.isValid() || index.row() >= count())
         return {};
 
-    if (role == AccountRole)
-        return QVariant::fromValue(at(index.row()));
-
-    return {};
+    switch (role) {
+        case AccountRole:
+            return QVariant::fromValue(at(index.row()));
+        case UserIdRole:
+            return QVariant::fromValue(at(index.row())->userId());
+        default:
+            return {};
+    }
 }
 
 int AccountRegistry::rowCount(const QModelIndex& parent) const
@@ -54,7 +58,7 @@ int AccountRegistry::rowCount(const QModelIndex& parent) const
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const
 {
-    return { { AccountRole, "connection" } };
+    return { { AccountRole, "connection" }, { UserIdRole, "userId" } };
 }
 
 Connection* AccountRegistry::get(const QString& userId)
