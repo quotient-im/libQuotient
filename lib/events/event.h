@@ -483,7 +483,7 @@ public:
     // End of macro
 
 //! \deprecated This is the old name for what is now known as QUO_EVENT
-#define DEFINE_EVENT_TYPEID(Type_, Id_) QUO_EVENT(Type_, Id_)
+#define DEFINE_EVENT_TYPEID(Id_, Type_) QUO_EVENT(Type_, Id_)
 
 #define QUO_CONTENT_GETTER_X(PartType_, PartName_, JsonKey_) \
     PartType_ PartName_() const                              \
