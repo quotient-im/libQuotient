@@ -1741,7 +1741,8 @@ void Room::Private::removeMemberFromMap(User* u)
 inline auto makeErrorStr(const Event& e, QByteArray msg)
 {
     return msg.append("; event dump follows:\n")
-        .append(QJsonDocument(e.fullJson()).toJson());
+        .append(QJsonDocument(e.fullJson()).toJson())
+        .constData();
 }
 
 Room::Timeline::size_type

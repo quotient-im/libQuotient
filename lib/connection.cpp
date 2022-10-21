@@ -1118,8 +1118,8 @@ inline auto splitMediaId(const QString& mediaId)
 {
     auto idParts = mediaId.split('/');
     Q_ASSERT_X(idParts.size() == 2, __FUNCTION__,
-               ("'" + mediaId + "' doesn't look like 'serverName/localMediaId'")
-                   .toLatin1());
+               qPrintable("'" % mediaId
+                          % "' doesn't look like 'serverName/localMediaId'"));
     return idParts;
 }
 

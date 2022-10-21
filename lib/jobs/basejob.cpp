@@ -455,9 +455,10 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
 
         auto patternParts = pattern.split('/');
         Q_ASSERT_X(patternParts.size() <= 2, __FUNCTION__,
-                   "BaseJob: Expected content type should have up to two"
-                   " /-separated parts; violating pattern: "
-                       + pattern);
+                   qPrintable(
+                       "BaseJob: Expected content type should have up to two"
+                       " /-separated parts; violating pattern: "
+                       + pattern));
 
         if (ctype.split('/').front() == patternParts.front()
             && patternParts.back() == "*")
