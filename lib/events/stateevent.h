@@ -9,8 +9,8 @@ namespace Quotient {
 
 class QUOTIENT_API StateEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(StateEvent, "json.contains('state_key')"_ls,
-                   RoomEvent::BaseMetaType)
+    QUO_BASE_EVENT(StateEvent, RoomEvent, "json.contains('state_key')")
+
     static bool isValid(const QJsonObject& fullJson)
     {
         return fullJson.contains(StateKeyKeyL);

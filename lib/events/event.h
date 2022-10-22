@@ -79,22 +79,21 @@ class QUOTIENT_API AbstractEventMetaType {
 public:
     // The public fields here are const and are not to be changeable anyway.
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
-    const char* const className;
-    const event_type_t matrixId{};
-    const AbstractEventMetaType* const baseType = nullptr;
+    const char* const className; ///< C++ class name this metatype is for
+    const AbstractEventMetaType* const baseType;
+    const event_type_t matrixId;
     // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-    explicit AbstractEventMetaType(const char* className)
-        : className(className)
-    {}
-    explicit AbstractEventMetaType(const char* className, event_type_t matrixId,
-                                   AbstractEventMetaType& nearestBase)
-        : className(className), matrixId(matrixId), baseType(&nearestBase)
+    explicit AbstractEventMetaType(const char* className,
+                                   AbstractEventMetaType* nearestBase = nullptr,
+                                   const char* matrixId = nullptr)
+        : className(className), baseType(nearestBase), matrixId(matrixId)
     {
-        nearestBase.addDerived(this);
+        if (nearestBase)
+            nearestBase->addDerived(this);
     }
 
-    void addDerived(AbstractEventMetaType *newType);
+    void addDerived(const AbstractEventMetaType* newType);
 
     virtual ~AbstractEventMetaType() = default;
 
@@ -436,20 +435,21 @@ public:
 //! supposed to be instantiated on its own. Provides BaseMetaType static field
 //! initialised by parameters passed to the macro, and a metaType() override
 //! pointing to that BaseMetaType.
-//! \sa EventMetaType, EventMetaType::SuppressLoadDerived
-#define QUO_BASE_EVENT(CppType_, ...)                                 \
-    friend class EventMetaType<CppType_>;                             \
-    static inline EventMetaType<CppType_> BaseMetaType{               \
-        #CppType_ __VA_OPT__(,) __VA_ARGS__ };                        \
-    static_assert(&CppType_::BaseMetaType == &BaseMetaType,           \
-                  #CppType_ " is wrong here - check for copy-pasta"); \
-    const AbstractEventMetaType& metaType() const override            \
-    {                                                                 \
-        return BaseMetaType;                                          \
-    }                                                                 \
+//! \sa EventMetaType
+#define QUO_BASE_EVENT(CppType_, BaseCppType_, ...)                       \
+    friend class EventMetaType<CppType_>;                                 \
+    static inline EventMetaType<CppType_> BaseMetaType{                   \
+        #CppType_, &BaseCppType_::BaseMetaType __VA_OPT__(, ) __VA_ARGS__ \
+    };                                                                    \
+    static_assert(&CppType_::BaseMetaType == &BaseMetaType,               \
+                  #CppType_ " is wrong here - check for copy-pasta");     \
+    const AbstractEventMetaType& metaType() const override                \
+    {                                                                     \
+        return BaseMetaType;                                              \
+    }                                                                     \
     // End of macro
 
-//! Supply event metatype information in (specific) event types
+//! \brief Supply event metatype information in (specific) event types
 //!
 //! Use this macro in a public section of your event class to provide type
 //! identity and enable dynamic loading of generic events of that type.
@@ -464,22 +464,22 @@ public:
 //! parameters if you need to include the same event type in more than one
 //! event factory hierarchy (e.g., EncryptedEvent).
 //! \sa EventMetaType
-#define QUO_EVENT(CppType_, MatrixType_, ...)                           \
-    static inline const auto& TypeId = MatrixType_##_ls;                \
-    friend class EventMetaType<CppType_>;                               \
-    static inline const EventMetaType<CppType_> MetaType{               \
-        #CppType_, TypeId, BaseMetaType __VA_OPT__(,) __VA_ARGS__       \
-    };                                                                  \
-    static_assert(&CppType_::MetaType == &MetaType,                     \
-                  #CppType_ " is wrong here - check for copy-pasta");   \
-    const AbstractEventMetaType& metaType() const override              \
-    {                                                                   \
-        return MetaType;                                                \
-    }                                                                   \
-    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]        \
-    static constexpr const char* matrixTypeId() { return MatrixType_; } \
-    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]        \
-    static event_type_t typeId() { return TypeId; }                     \
+#define QUO_EVENT(CppType_, MatrixType_)                                 \
+    friend class EventMetaType<CppType_>;                                \
+    static inline const EventMetaType<CppType_> MetaType{ #CppType_,     \
+                                                          &BaseMetaType, \
+                                                          MatrixType_ }; \
+    static_assert(&CppType_::MetaType == &MetaType,                      \
+                  #CppType_ " is wrong here - check for copy-pasta");    \
+    static inline const auto& TypeId = MetaType.matrixId;                \
+    const AbstractEventMetaType& metaType() const override               \
+    {                                                                    \
+        return MetaType;                                                 \
+    }                                                                    \
+    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
+    static constexpr const char* matrixTypeId() { return MatrixType_; }  \
+    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
+    static event_type_t typeId() { return TypeId; }                      \
     // End of macro
 
 //! \deprecated This is the old name for what is now known as QUO_EVENT

@@ -9,7 +9,8 @@ namespace Quotient {
 
 class QUOTIENT_API CallEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(CallEvent, "m.call.*"_ls, RoomEvent::BaseMetaType)
+    QUO_BASE_EVENT(CallEvent, RoomEvent, "m.call.*")
+
     static bool matches(const QJsonObject&, const QString& mType)
     {
         return mType.startsWith("m.call.");

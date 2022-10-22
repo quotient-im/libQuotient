@@ -14,7 +14,7 @@ class RedactionEvent;
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class QUOTIENT_API RoomEvent : public Event {
 public:
-    QUO_BASE_EVENT(RoomEvent, {}, Event::BaseMetaType)
+    QUO_BASE_EVENT(RoomEvent, Event)
 
     ~RoomEvent() override; // Don't inline this - see the private section
 

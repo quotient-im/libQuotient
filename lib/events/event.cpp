@@ -13,7 +13,7 @@ using namespace Quotient;
 
 QString EventTypeRegistry::getMatrixType(event_type_t typeId) { return typeId; }
 
-void AbstractEventMetaType::addDerived(AbstractEventMetaType* newType)
+void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
 {
     if (const auto existing =
             std::find_if(derivedTypes.cbegin(), derivedTypes.cend(),
