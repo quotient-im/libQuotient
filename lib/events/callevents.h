@@ -10,10 +10,6 @@ namespace Quotient {
 class QUOTIENT_API CallEvent : public RoomEvent {
 public:
     QUO_BASE_EVENT(CallEvent, RoomEvent, "m.call.*")
-    static bool isValid(const QJsonObject&, const QString& mType)
-    {
-        return mType.startsWith("m.call.");
-    }
 
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)
