@@ -69,9 +69,7 @@ public:
 class QUOTIENT_API DummyEvent : public Event {
 public:
     QUO_EVENT(DummyEvent, "m.dummy")
-    explicit DummyEvent(const QJsonObject& obj)
-        : Event(obj)
-    {}
+    using Event::Event;
     explicit DummyEvent()
         : Event(basicJson(TypeId, {}))
     {}
