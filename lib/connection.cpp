@@ -302,6 +302,24 @@ public:
             qCDebug(E2EE) << "Problem with new session from senderKey:"
                           << encryptedEvent.senderKey()
                           << olmAccount->oneTimeKeys().keys;
+
+            QHash<QString, QHash<QString, QString>> hash;
+            auto query = database->prepareQuery("SELECT deviceId FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+            query.bindValue(":curveKey"_ls, encryptedEvent.senderKey());
+            database->execute(query);
+            if (!query.next()) {
+                qCWarning(E2EE) << "Unknown device while trying to recover from broken olm session";
+                return {};
+            }
+            auto senderId = encryptedEvent.senderId();
+            auto deviceId = query.value("deviceId"_ls).toString();
+            hash[encryptedEvent.senderId()].insert(deviceId, "signed_curve25519"_ls);
+            auto job = q->callApi<ClaimKeysJob>(hash);
+            connect(job, &BaseJob::finished, q, [this, deviceId, job, senderId](){
+                qCDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
+                createOlmSession(senderId, deviceId, job->oneTimeKeys()[senderId][deviceId]);
+                q->sendToDevice(senderId, deviceId, DummyEvent(), true);
+            });
             return {};
         }
 

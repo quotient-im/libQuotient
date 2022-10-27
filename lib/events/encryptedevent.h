@@ -65,4 +65,15 @@ public:
 
     void setRelation(const QJsonObject& relation);
 };
+
+class QUOTIENT_API DummyEvent : public Event {
+public:
+    QUO_EVENT(DummyEvent, "m.dummy")
+    explicit DummyEvent(const QJsonObject& obj)
+        : Event(obj)
+    {}
+    explicit DummyEvent()
+        : Event(basicJson(TypeId, {}))
+    {}
+};
 } // namespace Quotient
