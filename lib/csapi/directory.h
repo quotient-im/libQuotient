@@ -16,7 +16,8 @@ public:
     /*! \brief Create a new mapping from room alias to room ID.
      *
      * \param roomAlias
-     *   The room alias to set.
+     *   The room alias to set. Its format is defined
+     *   [in the appendices](/appendices/#room-aliases).
      *
      * \param roomId
      *   The room ID to set.
@@ -37,7 +38,8 @@ public:
     /*! \brief Get the room ID corresponding to this room alias.
      *
      * \param roomAlias
-     *   The room alias.
+     *   The room alias. Its format is defined
+     *   [in the appendices](/appendices/#room-aliases).
      */
     explicit GetRoomIdByAliasJob(const QString& roomAlias);
 
@@ -81,7 +83,8 @@ public:
     /*! \brief Remove a mapping of room alias to room ID.
      *
      * \param roomAlias
-     *   The room alias to remove.
+     *   The room alias to remove. Its format is defined
+     *   [in the appendices](/appendices/#room-aliases).
      */
     explicit DeleteRoomAliasJob(const QString& roomAlias);
 

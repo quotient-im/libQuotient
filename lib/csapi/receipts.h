@@ -32,13 +32,15 @@ public:
      * \param eventId
      *   The event ID to acknowledge up to.
      *
-     * \param receipt
-     *   Extra receipt information to attach to `content` if any. The
-     *   server will automatically set the `ts` field.
+     * \param threadId
+     *   The root thread event's ID (or `main`) for which
+     *   thread this receipt is intended to be under. If
+     *   not specified, the read receipt is *unthreaded*
+     *   (default).
      */
     explicit PostReceiptJob(const QString& roomId, const QString& receiptType,
                             const QString& eventId,
-                            const QJsonObject& receipt = {});
+                            const QString& threadId = {});
 };
 
 } // namespace Quotient
