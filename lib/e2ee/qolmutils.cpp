@@ -3,7 +3,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "e2ee/qolmutils.h"
+
+#include "logging.h"
+
 #include <QtCore/QRandomGenerator>
+
+#include <openssl/crypto.h>
 
 using namespace Quotient;
 
@@ -15,8 +20,18 @@ QByteArray Quotient::toKey(const Quotient::PicklingMode &mode)
     return std::get<Quotient::Encrypted>(mode).key;
 }
 
-RandomBuffer::RandomBuffer(size_t size)
-    : QByteArray(static_cast<int>(size), '\0')
+void Quotient::fillWithRandom(std::span<char, std::dynamic_extent> buffer)
 {
-    QRandomGenerator::system()->generate(begin(), end());
+    QRandomGenerator::system()->generate(buffer.begin(), buffer.end());
+}
+
+QByteArray Quotient::bufferForOlm(size_t bufferSize)
+{
+    if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
+        return { static_cast<QByteArray::size_type>(bufferSize), '\0' };
+
+    qCritical(E2EE) << "Too large buffer size:" << bufferSize;
+    // Zero-length QByteArray is an almost guaranteed way to cause
+    // an internal error in QOlm* classes, unless checked
+    return {};
 }

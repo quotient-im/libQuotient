@@ -13,9 +13,35 @@ namespace Quotient {
 // Convert PicklingMode to key
 QUOTIENT_API QByteArray toKey(const PicklingMode &mode);
 
+//! \brief Initialise a buffer object for use with Olm calls
+//!
+//! Qt and Olm use different size types; this causes the warning noise
+QUOTIENT_API QByteArray bufferForOlm(size_t bufferSize);
+
+//! \brief Get a size of Qt container coerced to size_t
+//!
+//! It's a safe cast since size_t can easily accommodate the range between
+//! 0 and INTMAX - 1 that Qt containers support; yet compilers complain...
+inline size_t unsignedSize(auto qtBuffer)
+{
+    // The buffer size cannot be negative by definition, so this is deemed safe
+    return static_cast<size_t>(qtBuffer.size());
+}
+
+QUOTIENT_API void fillWithRandom(std::span<char, std::dynamic_extent> buffer);
+
+inline void fillWithRandom(auto buffer)
+    requires(!std::is_const_v<decltype(buffer.begin())>)
+{
+    fillWithRandom({ buffer.begin(), buffer.end() });
+}
+
 class QUOTIENT_API RandomBuffer : public QByteArray {
 public:
-    explicit RandomBuffer(size_t size);
+    explicit RandomBuffer(size_t size) : QByteArray(bufferForOlm(size))
+    {
+        fillWithRandom({ begin(), end() });
+    }
     ~RandomBuffer() { clear(); }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -28,8 +54,8 @@ public:
     void operator=(RandomBuffer&&) = delete;
 };
 
-[[deprecated("Create RandomBuffer directly")]] inline auto getRandom(
-    size_t bufferSize)
+[[deprecated("Create RandomBuffer directly")]] //
+inline RandomBuffer getRandom(size_t bufferSize)
 {
     return RandomBuffer(bufferSize);
 }
